@@ -22,6 +22,9 @@ public class MainActivity extends AppCompatActivity {
         viewPager = findViewById(R.id.view_pager);
         viewPager.setAdapter(createCardAdapter());
 
+        /**
+         * Add price plan or scenarion depending on the visible fragement
+         */
         FloatingActionButton fab = findViewById(R.id.addSomething);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -38,6 +41,9 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        /**
+         * Enable/Disable the floating 'add' button based on the visible fragment
+         */
         viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
