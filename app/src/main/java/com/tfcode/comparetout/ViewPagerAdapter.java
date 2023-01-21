@@ -10,6 +10,7 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
     private static final int CARD_ITEM_SIZE = 3;
     private PricePlanNavFragment pricePlanNavFragment = PricePlanNavFragment.newInstance();
     private ScenarioNavFragment scenarioNavFragment = ScenarioNavFragment.newInstance();
+
     public ViewPagerAdapter(@NonNull FragmentActivity fragmentActivity) {
         super(fragmentActivity);
     }

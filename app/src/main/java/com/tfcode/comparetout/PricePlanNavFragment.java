@@ -102,7 +102,7 @@ public class PricePlanNavFragment extends Fragment {
 
                 b.setText(p.supplier + ":"+ p.plan);
                 c.setImageResource(android.R.drawable.ic_menu_delete);
-                d.setImageResource(android.R.drawable.ic_menu_add);
+                d.setImageResource(R.drawable.ic_menu_copy);
                 e.setImageResource(android.R.drawable.ic_menu_view);
 
                 a.setId(p.id);

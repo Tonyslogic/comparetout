@@ -101,7 +101,7 @@ public class ScenarioNavFragment extends Fragment {
 
                 b.setText(scenario.name);
                 c.setImageResource(android.R.drawable.ic_menu_delete);
-                d.setImageResource(android.R.drawable.ic_menu_add);
+                d.setImageResource(R.drawable.ic_menu_copy);
                 e.setImageResource(android.R.drawable.ic_menu_view);
 
                 a.setId(scenario.id);
