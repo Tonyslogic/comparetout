@@ -21,8 +21,11 @@ import android.widget.TextView;
 
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
+import com.tfcode.comparetout.dbmodel.DayRate;
+import com.tfcode.comparetout.dbmodel.PricePlan;
 
 import java.util.List;
+import java.util.Map;
 
 public class PricePlanNavFragment extends Fragment {
 
@@ -37,8 +40,13 @@ public class PricePlanNavFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mViewModel = new ViewModelProvider(this).get(PricePlanNavViewModel.class);
-        mViewModel.doAction();
+//        mViewModel.doAction();
         // TODO: Use the ViewModel
+        mViewModel.getAllPricePlans().observe(this, plans -> {
+            // Update the cached copy of the words in the adapter.
+//            adapter.submitList(plans);
+            updateView();
+        });
     }
 
     @Nullable
@@ -53,9 +61,23 @@ public class PricePlanNavFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         mTableLayout = (TableLayout) getView().findViewById(R.id.planTable);
 
-        List<Plan> plans =mViewModel.getPlan().getValue();
+        TabLayout tabLayout = getActivity().findViewById(R.id.tab_layout);
+        ViewPager2 viewPager = getActivity().findViewById(R.id.view_pager);
+
+        String[] tabTitles = {"Prices", "Scenarios", "Compare"};
+        new TabLayoutMediator(tabLayout, viewPager,
+                (tab, position) -> tab.setText(tabTitles[position])
+        ).attach();
+    }
+
+    public void updateView() {
+        Map<PricePlan, List<DayRate>> plans = mViewModel.getAllPricePlans().getValue();
         if (plans != null) {
-            for (Plan p : mViewModel.getPlan().getValue()) {
+            for (Map.Entry<PricePlan, List<DayRate>> entry : plans.entrySet()) {
+                Plan p = new Plan();
+                p.id = entry.getKey().getId();
+                p.supplier = entry.getKey().getSupplier();
+                p.plan = entry.getKey().getPlanName();
 
                 // CREATE TABLE ROW
                 TableRow tableRow;
@@ -105,10 +127,10 @@ public class PricePlanNavFragment extends Fragment {
                 d.setImageResource(R.drawable.ic_menu_copy);
                 e.setImageResource(android.R.drawable.ic_menu_view);
 
-                a.setId(p.id);
-                c.setId(p.id);
-                d.setId(p.id);
-                e.setId(p.id);
+                a.setId((int) p.id);
+                c.setId((int) p.id);
+                d.setId((int) p.id);
+                e.setId((int) p.id);
 
                 a.setOnClickListener(new View.OnClickListener(){
                     @Override
@@ -150,13 +172,6 @@ public class PricePlanNavFragment extends Fragment {
                 // ADD TABLEROW TO TABLELAYOUT
                 mTableLayout.addView(tableRow);
             }
-            TabLayout tabLayout = getActivity().findViewById(R.id.tab_layout);
-            ViewPager2 viewPager = getActivity().findViewById(R.id.view_pager);
-
-            String[] tabTitles = {"Prices", "Scenarios", "Compare"};
-            new TabLayoutMediator(tabLayout, viewPager,
-                    (tab, position) -> tab.setText(tabTitles[position])
-            ).attach();
         }
     }
 

@@ -1,40 +1,41 @@
 package com.tfcode.comparetout;
 
+import android.app.Application;
+
+import androidx.annotation.NonNull;
+import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
+import com.tfcode.comparetout.dbmodel.DayRate;
+import com.tfcode.comparetout.dbmodel.DoubleHolder;
+import com.tfcode.comparetout.dbmodel.IntHolder;
+import com.tfcode.comparetout.dbmodel.PricePlan;
+import com.tfcode.comparetout.dbmodel.ToutcRepository;
+
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
-public class PricePlanNavViewModel extends ViewModel {
-    // TODO: Implement the ViewModel
-    private final MutableLiveData<List<Plan>> liveData = new MutableLiveData<>();
+public class PricePlanNavViewModel extends AndroidViewModel {
 
-    public LiveData<List<Plan>> getPlan() {
-        return liveData;
+    private ToutcRepository toutcRepository;
+
+    private final LiveData<Map<PricePlan, List<DayRate>>> allPricePlans;
+
+    public PricePlanNavViewModel(Application application) {
+        super(application);
+        toutcRepository = new ToutcRepository(application);
+        allPricePlans = toutcRepository.getAllPricePlans();
     }
 
-    void doAction() {
-        List<Plan> plans = liveData.getValue();
-        if (plans == null) plans = new ArrayList<Plan>();
-        Plan newPlan = new Plan();
-        newPlan.id = 0;
-        newPlan.supplier = "Energia";
-        newPlan.plan = "SmartEV 40%";
-        plans.add(newPlan);
-        newPlan = new Plan();
-        newPlan.id = 1;
-        newPlan.supplier = "EI";
-        newPlan.plan = "NightSaver";
-        plans.add(newPlan);
-        newPlan = new Plan();
-        newPlan.id = 2;
-        newPlan.supplier = "SSE";
-        newPlan.plan = "SomePlan";
-        plans.add(newPlan);
-        liveData.setValue(plans);
-        // depending on the action, do necessary business logic calls and update the
-        // userLiveData.
+    LiveData<Map<PricePlan, List<DayRate>>> getAllPricePlans() {
+        return allPricePlans;
+    }
+
+    public void insertPricePlan(PricePlan pp, List<DayRate> drs) {
+        toutcRepository.insert(pp, drs);
     }
 }
