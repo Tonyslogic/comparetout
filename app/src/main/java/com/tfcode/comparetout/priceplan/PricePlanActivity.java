@@ -10,6 +10,8 @@ import android.view.MenuItem;
 import com.tfcode.comparetout.PricePlanNavViewModel;
 import com.tfcode.comparetout.R;
 
+import java.util.Objects;
+
 public class PricePlanActivity extends AppCompatActivity {
 
     private PricePlanNavViewModel mViewModel;
@@ -19,7 +21,7 @@ public class PricePlanActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         mViewModel = new ViewModelProvider(this).get(PricePlanNavViewModel.class);
         setContentView(R.layout.activity_price_plan);
-        getSupportActionBar().setTitle("Price plan control");
+        Objects.requireNonNull(getSupportActionBar()).setTitle("Price plan control");
     }
 
     @Override

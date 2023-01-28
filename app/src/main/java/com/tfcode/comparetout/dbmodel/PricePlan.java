@@ -29,9 +29,8 @@ public class PricePlan {
 
         if(object instanceof PricePlan)
         {
-            if (planName.equals(((PricePlan) object).getPlanName())
-                    && supplier.equals(((PricePlan) object).getSupplier()))
-                return true;
+            return planName.equals(((PricePlan) object).getPlanName())
+                    && supplier.equals(((PricePlan) object).getSupplier());
         }
         return false;
     }

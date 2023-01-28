@@ -26,6 +26,7 @@ import com.tfcode.comparetout.dbmodel.PricePlan;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class PricePlanNavFragment extends Fragment {
 
@@ -59,10 +60,10 @@ public class PricePlanNavFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        mTableLayout = (TableLayout) getView().findViewById(R.id.planTable);
+        mTableLayout = (TableLayout) requireView().findViewById(R.id.planTable);
 
-        TabLayout tabLayout = getActivity().findViewById(R.id.tab_layout);
-        ViewPager2 viewPager = getActivity().findViewById(R.id.view_pager);
+        TabLayout tabLayout = requireActivity().findViewById(R.id.tab_layout);
+        ViewPager2 viewPager = requireActivity().findViewById(R.id.view_pager);
 
         String[] tabTitles = {"Prices", "Scenarios", "Compare"};
         new TabLayoutMediator(tabLayout, viewPager,
@@ -132,34 +133,16 @@ public class PricePlanNavFragment extends Fragment {
                 d.setId((int) p.id);
                 e.setId((int) p.id);
 
-                a.setOnClickListener(new View.OnClickListener(){
-                    @Override
-                    public void onClick(View v) {
-                        System.out.println("Select for comparison: " + v.getId());
-                    }
+                a.setOnClickListener(v -> System.out.println("Select for comparison: " + v.getId()));
+
+                c.setOnClickListener(v -> {
+                    c.setBackgroundColor(Color.RED);
+                    System.out.println("Delete: " + v.getId());
                 });
 
-                c.setOnClickListener(new View.OnClickListener(){
-                    @Override
-                    public void onClick(View v) {
-                        c.setBackgroundColor(Color.RED);
-                        System.out.println("Delete: " + v.getId());
-                    }
-                });
+                d.setOnClickListener(v -> System.out.println("Copy/Add: " + v.getId()));
 
-                d.setOnClickListener(new View.OnClickListener(){
-                    @Override
-                    public void onClick(View v) {
-                        System.out.println("Copy/Add: " + v.getId());
-                    }
-                });
-
-                e.setOnClickListener(new View.OnClickListener(){
-                    @Override
-                    public void onClick(View v) {
-                        System.out.println("View: " + v.getId());
-                    }
-                });
+                e.setOnClickListener(v -> System.out.println("View: " + v.getId()));
 
                 // ADD TEXTVIEW TO TABLEROW
 

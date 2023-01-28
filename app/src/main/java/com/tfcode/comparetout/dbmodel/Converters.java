@@ -13,8 +13,7 @@ public class Converters {
     @TypeConverter
     public static String fromDoubleHolder(DoubleHolder h) {
         Gson gson = new Gson();
-        String json = gson.toJson(h);
-        return json;
+        return gson.toJson(h);
     }
     @TypeConverter
     public static DoubleHolder toDoubleHolder(String s) {
@@ -24,8 +23,7 @@ public class Converters {
     @TypeConverter
     public static String fromIntHolder(IntHolder h) {
         Gson gson = new Gson();
-        String json = gson.toJson(h);
-        return json;
+        return gson.toJson(h);
     }
     @TypeConverter
     public static IntHolder toIntHolder(String s) {

@@ -24,13 +24,13 @@ public abstract class PricePlanDAO {
             dr.setPricePlanId(pricePlanID);
             addNewDayRate(dr);
         }
-    };
+    }
 
     @Transaction
     void deleteAll() {
         clearDayRates();
         clearPricePlans();
-    };
+    }
 
     @Query("DELETE FROM DayRates")
     abstract void clearDayRates();

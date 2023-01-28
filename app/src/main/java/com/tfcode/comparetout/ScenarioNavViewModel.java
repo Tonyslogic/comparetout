@@ -25,7 +25,7 @@ public class ScenarioNavViewModel extends AndroidViewModel {
 
     void doAction() {
         List<Scenario> scenarios = liveData.getValue();
-        if (scenarios == null) scenarios = new ArrayList<Scenario>();
+        if (scenarios == null) scenarios = new ArrayList<>();
         Scenario newScenario = new Scenario();
         newScenario.id = 0;
         newScenario.name = "Default";

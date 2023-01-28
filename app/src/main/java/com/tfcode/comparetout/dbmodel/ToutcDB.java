@@ -39,7 +39,7 @@ public abstract class ToutcDB extends RoomDatabase {
         }
         return INSTANCE;
     }
-    private static ToutcDB.Callback sRoomDatabaseCallback = new RoomDatabase.Callback() {
+    private static final ToutcDB.Callback sRoomDatabaseCallback = new RoomDatabase.Callback() {
         @Override
         public void onCreate(@NonNull SupportSQLiteDatabase db) {
             super.onCreate(db);
@@ -68,7 +68,7 @@ public abstract class ToutcDB extends RoomDatabase {
                 dr.setStartDate("01/01");
                 dr.setEndDate("12/31");
 
-                List<DayRate> drs = new ArrayList<DayRate>();
+                List<DayRate> drs = new ArrayList<>();
                 drs.add(dr);
 
                 PricePlan p = new PricePlan();

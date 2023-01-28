@@ -21,7 +21,7 @@ import java.util.Map;
 
 public class PricePlanNavViewModel extends AndroidViewModel {
 
-    private ToutcRepository toutcRepository;
+    private final ToutcRepository toutcRepository;
 
     private final LiveData<Map<PricePlan, List<DayRate>>> allPricePlans;
 

@@ -8,8 +8,8 @@ import java.util.List;
 import java.util.Map;
 
 public class ToutcRepository {
-    private PricePlanDAO pricePlanDAO;
-    private LiveData<Map<PricePlan, List<DayRate>>> allPricePlans;
+    private final PricePlanDAO pricePlanDAO;
+    private final LiveData<Map<PricePlan, List<DayRate>>> allPricePlans;
 
     // Note that in order to unit test the WordRepository, you have to remove the Application
     // dependency. This adds complexity and much more code, and this sample is not about testing.
@@ -30,8 +30,6 @@ public class ToutcRepository {
     // You must call this on a non-UI thread or your app will throw an exception. Room ensures
     // that you're not doing any long running operations on the main thread, blocking the UI.
     public void insert(PricePlan pp, List<DayRate> drs) {
-        ToutcDB.databaseWriteExecutor.execute(() -> {
-            pricePlanDAO.addNewPricePlanWithDayRates(pp, drs);
-        });
+        ToutcDB.databaseWriteExecutor.execute(() -> pricePlanDAO.addNewPricePlanWithDayRates(pp, drs));
     }
 }
