@@ -6,6 +6,8 @@ import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
+import com.tfcode.comparetout.priceplan.PricePlanJsonFile;
+
 @Entity(tableName = "PricePlans")
 public class PricePlan {
     @PrimaryKey(autoGenerate = true)
@@ -20,6 +22,21 @@ public class PricePlan {
     private String lastUpdate;
     @NonNull private String reference;
     @NonNull private boolean active;
+
+    public PricePlan(PricePlanJsonFile pp) {
+        setPlanName(pp.plan);
+        setSupplier(pp.supplier);
+        setFeed(pp.feed);
+        setStandingCharges(pp.standingCharges);
+        setSignUpBonus(pp.bonus);
+        setActive(pp.active);
+        setLastUpdate(pp.lastUpdate);
+        setReference(pp.reference);
+    }
+
+    public PricePlan() {
+
+    }
 
     @Override
     public boolean equals(@Nullable Object object)

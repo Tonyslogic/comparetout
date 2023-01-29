@@ -5,10 +5,17 @@
 
     <item
         android:id="@+id/load"
-        app:showAsAction="never"
+        app:showAsAction="ifRoom|withText"
+        android:icon="@android:drawable/stat_notify_sdcard"
+        android:title="Load"/>
+    <item
+        android:id="@+id/download"
+        app:showAsAction="ifRoom|withText"
+        android:icon="@android:drawable/stat_sys_download"
         android:title="Load"/>
     <item
         android:id="@+id/export"
-        app:showAsAction="never"
+        app:showAsAction="ifRoom|withText"
+        android:icon="@android:drawable/stat_sys_upload"
         android:title="Export"/>
 </menu>

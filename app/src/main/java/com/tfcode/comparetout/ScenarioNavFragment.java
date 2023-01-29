@@ -51,6 +51,9 @@ public class ScenarioNavFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         mTableLayout = (TableLayout) getView().findViewById(R.id.scenarioTable);
+        mTableLayout.setShrinkAllColumns(false);
+        mTableLayout.setStretchAllColumns(false);
+        mTableLayout.setColumnShrinkable(1, true);
 
         List<Scenario> plans =mViewModel.getScenario().getValue();
         if (plans != null) {
@@ -91,11 +94,11 @@ public class ScenarioNavFragment extends Fragment {
 
                 // SET PADDING
 
-                a.setPadding(20, 20, 20, 20);
-                b.setPadding(20, 20, 20, 20);
-                c.setPadding(20, 20, 20, 20);
-                d.setPadding(20, 20, 20, 20);
-                e.setPadding(20, 20, 20, 20);
+                a.setPadding(10, 10, 10, 10);
+                b.setPadding(10, 10, 10, 10);
+                c.setPadding(10, 10, 10, 10);
+                d.setPadding(10, 10, 10, 10);
+                e.setPadding(10, 10, 10, 10);
 
                 // SET TEXTVIEW TEXT
 
