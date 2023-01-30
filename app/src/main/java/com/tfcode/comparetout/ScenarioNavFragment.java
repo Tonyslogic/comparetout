@@ -50,10 +50,11 @@ public class ScenarioNavFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        mTableLayout = (TableLayout) getView().findViewById(R.id.scenarioTable);
+        mTableLayout = getView().findViewById(R.id.scenarioTable);
         mTableLayout.setShrinkAllColumns(false);
-        mTableLayout.setStretchAllColumns(false);
+        mTableLayout.setStretchAllColumns(true);
         mTableLayout.setColumnShrinkable(1, true);
+        mTableLayout.setColumnStretchable(1, false);
 
         List<Scenario> plans =mViewModel.getScenario().getValue();
         if (plans != null) {

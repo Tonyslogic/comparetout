@@ -12,31 +12,17 @@ import com.tfcode.comparetout.priceplan.PricePlanJsonFile;
 public class PricePlan {
     @PrimaryKey(autoGenerate = true)
     private long id;
-    @NonNull private String supplier;
-    @NonNull private String planName;
-    @NonNull private double feed;
-    @NonNull private double standingCharges;
-    @NonNull private double signUpBonus;
+    @NonNull private String supplier = "<SUPPLIER>";
+    @NonNull private String planName = "<PLAN>";
+    @NonNull private Double feed = 0.0;
+    @NonNull private Double standingCharges = 0.0;
+    @NonNull private Double signUpBonus = 0.0;
     @NonNull
     @ColumnInfo(defaultValue = "CURRENT_TIMESTAMP")
     private String lastUpdate;
-    @NonNull private String reference;
-    @NonNull private boolean active;
+    @NonNull private String reference = "<REFERENCE>";
+    @NonNull private Boolean active = true;
 
-    public PricePlan(PricePlanJsonFile pp) {
-        setPlanName(pp.plan);
-        setSupplier(pp.supplier);
-        setFeed(pp.feed);
-        setStandingCharges(pp.standingCharges);
-        setSignUpBonus(pp.bonus);
-        setActive(pp.active);
-        setLastUpdate(pp.lastUpdate);
-        setReference(pp.reference);
-    }
-
-    public PricePlan() {
-
-    }
 
     @Override
     public boolean equals(@Nullable Object object)

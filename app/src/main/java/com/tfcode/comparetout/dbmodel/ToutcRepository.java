@@ -3,6 +3,7 @@ package com.tfcode.comparetout.dbmodel;
 import android.app.Application;
 
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 
 import java.util.List;
 import java.util.Map;
@@ -31,5 +32,24 @@ public class ToutcRepository {
     // that you're not doing any long running operations on the main thread, blocking the UI.
     public void insert(PricePlan pp, List<DayRate> drs) {
         ToutcDB.databaseWriteExecutor.execute(() -> pricePlanDAO.addNewPricePlanWithDayRates(pp, drs));
+    }
+
+    public void deletePricePlan(Integer id) {
+        ToutcDB.databaseWriteExecutor.execute(() -> {
+            pricePlanDAO.deletePricePlan(id);
+            System.out.println("Size after delete = " + allPricePlans.getValue().entrySet().size());
+        });
+    }
+
+    public void deleteAll() {
+        ToutcDB.databaseWriteExecutor.execute(pricePlanDAO::deleteAll);
+    }
+
+    public void deletePPRow (int id){
+        ToutcDB.databaseWriteExecutor.execute(() -> pricePlanDAO.deletePricePlanRow(id));
+    }
+
+    public void delpp(PricePlan pp) {
+        ToutcDB.databaseWriteExecutor.execute(() -> pricePlanDAO.delpp(pp));
     }
 }

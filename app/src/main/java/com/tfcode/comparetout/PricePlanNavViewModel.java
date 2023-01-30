@@ -31,11 +31,27 @@ public class PricePlanNavViewModel extends AndroidViewModel {
         allPricePlans = toutcRepository.getAllPricePlans();
     }
 
-    LiveData<Map<PricePlan, List<DayRate>>> getAllPricePlans() {
+    public LiveData<Map<PricePlan, List<DayRate>>> getAllPricePlans() {
         return allPricePlans;
     }
 
     public void insertPricePlan(PricePlan pp, List<DayRate> drs) {
         toutcRepository.insert(pp, drs);
+    }
+
+    public void deletePricePlan(Integer id) {
+        toutcRepository.deletePricePlan(id);
+    }
+
+    public void deletePricePlanRow(int id) {
+        toutcRepository.deletePPRow(id);
+    }
+
+    public void deleteAll() {
+        toutcRepository.deleteAll();
+    }
+
+    public void delpp(PricePlan pp) {
+        toutcRepository.delpp(pp);
     }
 }

@@ -2,17 +2,11 @@ package com.tfcode.comparetout.dbmodel;
 
 import android.content.Context;
 
-import androidx.annotation.NonNull;
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
 import androidx.room.TypeConverters;
-import androidx.sqlite.db.SupportSQLiteDatabase;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -23,7 +17,7 @@ public abstract class ToutcDB extends RoomDatabase {
     public abstract PricePlanDAO pricePlanDAO();
 
     private static volatile ToutcDB INSTANCE;
-    private static final int NUMBER_OF_THREADS = 4;
+    private static final int NUMBER_OF_THREADS = 8;
     static final ExecutorService databaseWriteExecutor =
             Executors.newFixedThreadPool(NUMBER_OF_THREADS);
 
@@ -32,7 +26,7 @@ public abstract class ToutcDB extends RoomDatabase {
             synchronized (ToutcDB.class) {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
-                                    ToutcDB.class, "toutc_database")
+                                    ToutcDB.class, "toutc_database").setQueryExecutor(databaseWriteExecutor)
                             .build();
 //                            .addCallback(sRoomDatabaseCallback).build();
                 }

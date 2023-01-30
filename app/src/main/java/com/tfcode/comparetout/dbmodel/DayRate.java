@@ -4,7 +4,7 @@ import androidx.annotation.NonNull;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
-import com.tfcode.comparetout.priceplan.DayRateJson;
+import java.util.Arrays;
 
 @Entity(tableName = "DayRates")
 public class DayRate {
@@ -12,29 +12,12 @@ public class DayRate {
     @PrimaryKey(autoGenerate = true)
     private long id;
 
-    @NonNull private long pricePlanId;
+    @NonNull private Long pricePlanId;
 
-    @NonNull private IntHolder days;
-    @NonNull private DoubleHolder hours;
-    @NonNull private String startDate;
-    @NonNull private String endDate;
-
-    public DayRate(DayRateJson drj) {
-        if (drj.endDate == null) setEndDate("12/31");
-        else setEndDate(drj.endDate);
-        if (drj.startDate == null) setStartDate("01/01");
-        else setStartDate(drj.startDate);
-        IntHolder ih = new IntHolder();
-        ih.ints = drj.days;
-        setDays(ih);
-        DoubleHolder dh = new DoubleHolder();
-        dh.doubles = drj.hours;
-        setHours(dh);
-    }
-
-    public DayRate() {
-
-    }
+    @NonNull private IntHolder days = new IntHolder();
+    @NonNull private DoubleHolder hours = new DoubleHolder();
+    @NonNull private String startDate = "01/01";
+    @NonNull private String endDate = "12/31";
 
     public long getId() {
         return id;

@@ -26,7 +26,6 @@ import com.tfcode.comparetout.dbmodel.PricePlan;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 public class PricePlanNavFragment extends Fragment {
 
@@ -41,12 +40,9 @@ public class PricePlanNavFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mViewModel = new ViewModelProvider(this).get(PricePlanNavViewModel.class);
-//        mViewModel.doAction();
-        // TODO: Use the ViewModel
         mViewModel.getAllPricePlans().observe(this, plans -> {
-            // Update the cached copy of the words in the adapter.
-//            adapter.submitList(plans);
-            updateView();
+            System.out.println("Observed a change in live plans data " + plans.entrySet().size());
+            updateView(plans);
         });
     }
 
@@ -60,10 +56,11 @@ public class PricePlanNavFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        mTableLayout = (TableLayout) requireView().findViewById(R.id.planTable);
+        mTableLayout = requireView().findViewById(R.id.planTable);
         mTableLayout.setShrinkAllColumns(false);
-        mTableLayout.setStretchAllColumns(false);
+        mTableLayout.setStretchAllColumns(true);
         mTableLayout.setColumnShrinkable(1, true);
+        mTableLayout.setColumnStretchable(1, false);
 
         TabLayout tabLayout = requireActivity().findViewById(R.id.tab_layout);
         ViewPager2 viewPager = requireActivity().findViewById(R.id.view_pager);
@@ -74,8 +71,8 @@ public class PricePlanNavFragment extends Fragment {
         ).attach();
     }
 
-    public void updateView() {
-        Map<PricePlan, List<DayRate>> plans = mViewModel.getAllPricePlans().getValue();
+    public void updateView(Map<PricePlan, List<DayRate>> plans) {
+        mTableLayout.removeAllViews();
         if (plans != null) {
             for (Map.Entry<PricePlan, List<DayRate>> entry : plans.entrySet()) {
                 Plan p = new Plan();
@@ -139,8 +136,16 @@ public class PricePlanNavFragment extends Fragment {
                 a.setOnClickListener(v -> System.out.println("Select for comparison: " + v.getId()));
 
                 c.setOnClickListener(v -> {
+                    a.setBackgroundColor(Color.RED);
+                    b.setBackgroundColor(Color.RED);
                     c.setBackgroundColor(Color.RED);
+                    d.setBackgroundColor(Color.RED);
+                    e.setBackgroundColor(Color.RED);
                     System.out.println("Delete: " + v.getId());
+                    mViewModel.deletePricePlan(v.getId());
+//                    mViewModel.delpp(entry.getKey());
+//                    mViewModel.deletePricePlanRow(v.getId());
+//                    mViewModel.deleteAll();
                 });
 
                 d.setOnClickListener(v -> System.out.println("Copy/Add: " + v.getId()));
