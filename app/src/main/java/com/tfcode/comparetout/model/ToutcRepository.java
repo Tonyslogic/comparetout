@@ -1,9 +1,8 @@
-package com.tfcode.comparetout.dbmodel;
+package com.tfcode.comparetout.model;
 
 import android.app.Application;
 
 import androidx.lifecycle.LiveData;
-import androidx.lifecycle.MutableLiveData;
 
 import java.util.List;
 import java.util.Map;
@@ -26,6 +25,10 @@ public class ToutcRepository {
     // Observed LiveData will notify the observer when the data has changed.
     public LiveData<Map<PricePlan, List<DayRate>>> getAllPricePlans() {
         return allPricePlans;
+    }
+
+    public Map<PricePlan, List<DayRate>> getPricePlan(Integer id) {
+        return pricePlanDAO.loadPricePlan(id);
     }
 
     // You must call this on a non-UI thread or your app will throw an exception. Room ensures

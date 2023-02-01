@@ -1,12 +1,10 @@
-package com.tfcode.comparetout.dbmodel;
+package com.tfcode.comparetout.model;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
-
-import com.tfcode.comparetout.priceplan.PricePlanJsonFile;
 
 @Entity(tableName = "PricePlans")
 public class PricePlan {
@@ -120,5 +118,19 @@ public class PricePlan {
 
     public void setLastUpdate(@NonNull String lastUpdate) {
         this.lastUpdate = lastUpdate;
+    }
+
+    public PricePlan copy() {
+        PricePlan copy = new PricePlan();
+        copy.supplier = supplier;
+        copy.planName = planName + " (Copy)";
+        copy.feed = feed;
+        copy.standingCharges = standingCharges;
+        copy.signUpBonus = signUpBonus;
+        copy.lastUpdate = lastUpdate;
+        copy.reference = reference;
+        copy.active = active;
+        copy.id = 0;
+        return copy;
     }
 }

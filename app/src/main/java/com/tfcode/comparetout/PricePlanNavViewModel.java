@@ -2,20 +2,13 @@ package com.tfcode.comparetout;
 
 import android.app.Application;
 
-import androidx.annotation.NonNull;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
-import androidx.lifecycle.MutableLiveData;
-import androidx.lifecycle.ViewModel;
 
-import com.tfcode.comparetout.dbmodel.DayRate;
-import com.tfcode.comparetout.dbmodel.DoubleHolder;
-import com.tfcode.comparetout.dbmodel.IntHolder;
-import com.tfcode.comparetout.dbmodel.PricePlan;
-import com.tfcode.comparetout.dbmodel.ToutcRepository;
+import com.tfcode.comparetout.model.DayRate;
+import com.tfcode.comparetout.model.PricePlan;
+import com.tfcode.comparetout.model.ToutcRepository;
 
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -53,5 +46,9 @@ public class PricePlanNavViewModel extends AndroidViewModel {
 
     public void delpp(PricePlan pp) {
         toutcRepository.delpp(pp);
+    }
+
+    public Map<PricePlan, List<DayRate>> getPricePlan(Integer id) {
+        return toutcRepository.getPricePlan(id);
     }
 }

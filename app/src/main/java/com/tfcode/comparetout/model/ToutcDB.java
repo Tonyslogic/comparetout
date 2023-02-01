@@ -1,4 +1,4 @@
-package com.tfcode.comparetout.dbmodel;
+package com.tfcode.comparetout.model;
 
 import android.content.Context;
 

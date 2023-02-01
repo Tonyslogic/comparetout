@@ -27,6 +27,7 @@ public class PricePlanJsonFile {
     Double bonus;
 
     @SerializedName("Rates")
+    public
     ArrayList<DayRateJson> rates;
 
     @SerializedName("Active")

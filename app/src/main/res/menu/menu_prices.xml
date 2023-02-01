@@ -16,6 +16,6 @@
     <item
         android:id="@+id/export"
         app:showAsAction="ifRoom|withText"
-        android:icon="@android:drawable/stat_sys_upload"
+        android:icon="@android:drawable/ic_menu_share"
         android:title="Export"/>
 </menu>

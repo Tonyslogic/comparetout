@@ -2,6 +2,7 @@ package com.tfcode.comparetout;
 
 import androidx.lifecycle.ViewModelProvider;
 
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 
@@ -21,11 +22,14 @@ import android.widget.TextView;
 
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
-import com.tfcode.comparetout.dbmodel.DayRate;
-import com.tfcode.comparetout.dbmodel.PricePlan;
+import com.tfcode.comparetout.model.DayRate;
+import com.tfcode.comparetout.model.PricePlan;
+import com.tfcode.comparetout.priceplan.PricePlanActivity;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 
 public class PricePlanNavFragment extends Fragment {
 
@@ -39,7 +43,7 @@ public class PricePlanNavFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mViewModel = new ViewModelProvider(this).get(PricePlanNavViewModel.class);
+        mViewModel = new ViewModelProvider(requireActivity()).get(PricePlanNavViewModel.class);
         mViewModel.getAllPricePlans().observe(this, plans -> {
             System.out.println("Observed a change in live plans data " + plans.entrySet().size());
             updateView(plans);
@@ -148,9 +152,34 @@ public class PricePlanNavFragment extends Fragment {
 //                    mViewModel.deleteAll();
                 });
 
-                d.setOnClickListener(v -> System.out.println("Copy/Add: " + v.getId()));
+                d.setOnClickListener(v -> {
+                    System.out.println("Copy/Add: " + v.getId());
+                    Map<PricePlan, List<DayRate>> pricePlanMap = mViewModel.getAllPricePlans().getValue();
+                    if (pricePlanMap != null) {
+                        for (PricePlan pp : pricePlanMap.keySet()) {
+                            if (pp.getId() == v.getId()) {
+                                System.out.println(pp.getId() + "  " + v.getId());
+                                PricePlan newPP = pp.copy();
+                                mViewModel.insertPricePlan(newPP, pricePlanMap.get(pp));
+                            }
+                        }
+                    }
+//                    Map<PricePlan, List<DayRate>> pricePlanMap = mViewModel.getPricePlan(v.getId());
+//                    Optional<PricePlan> pp = pricePlanMap.keySet().stream().findFirst();
+//                    if (pp.isPresent()) {
+//                        PricePlan rpp = pp.get();
+//                        rpp.setPlanName(rpp.getPlanName() + " (Copy)");
+//                        mViewModel.insertPricePlan(rpp, pricePlanMap.get(rpp));
+//                    }
+                });
 
-                e.setOnClickListener(v -> System.out.println("View: " + v.getId()));
+                e.setOnClickListener(v -> {
+                    System.out.println("View: " + v.getId());
+                    Intent intent = new Intent(getActivity(), PricePlanActivity.class);
+                    intent.putExtra("PlanID", Long.valueOf(v.getId()));
+                    intent.putExtra("Edit", false);
+                    startActivity(intent);
+                });
 
                 // ADD TEXTVIEW TO TABLEROW
 

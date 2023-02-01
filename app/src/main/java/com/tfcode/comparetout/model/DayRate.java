@@ -1,10 +1,8 @@
-package com.tfcode.comparetout.dbmodel;
+package com.tfcode.comparetout.model;
 
 import androidx.annotation.NonNull;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
-
-import java.util.Arrays;
 
 @Entity(tableName = "DayRates")
 public class DayRate {

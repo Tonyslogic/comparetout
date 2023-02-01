@@ -1,14 +1,12 @@
-package com.tfcode.comparetout.dbmodel;
+package com.tfcode.comparetout.model;
 
 import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
 import androidx.room.Delete;
-import androidx.room.Entity;
 import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 import androidx.room.Transaction;
-import androidx.room.Update;
 
 import java.util.List;
 import java.util.Map;
@@ -18,13 +16,14 @@ public abstract class PricePlanDAO {
     @Insert
     abstract long addNewPricePlan(PricePlan pp);
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.FAIL)
     abstract void addNewDayRate(DayRate dr);
 
     @Transaction
     void addNewPricePlanWithDayRates(PricePlan pp, List<DayRate> drs) {
         long pricePlanID = addNewPricePlan(pp);
         for (DayRate dr : drs) {
+            dr.setId(0);
             dr.setPricePlanId(pricePlanID);
             addNewDayRate(dr);
         }
@@ -42,8 +41,11 @@ public abstract class PricePlanDAO {
     @Query("DELETE FROM PricePlans")
     abstract void clearPricePlans();
 
-    @Query("SELECT * FROM PricePlans JOIN DayRates ON PricePlans.id = DayRates.pricePlanId")
+    @Query("SELECT * FROM PricePlans JOIN DayRates ON PricePlans.id = DayRates.pricePlanId ORDER BY PricePlans.supplier ASC, PricePlans.planName ASC ")
     public abstract LiveData<Map<PricePlan, List<DayRate>>> loadPricePlans();
+
+    @Query("SELECT * FROM PricePlans JOIN DayRates ON PricePlans.id = DayRates.pricePlanId WHERE PricePlans.id = :id")
+    public abstract Map<PricePlan, List<DayRate>> loadPricePlan(long id);
 
     @Transaction
     public void deletePricePlan(long id) {
