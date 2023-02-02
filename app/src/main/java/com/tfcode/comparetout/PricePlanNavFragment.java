@@ -77,10 +77,7 @@ public class PricePlanNavFragment extends Fragment {
         mTableLayout.removeAllViews();
         if (plans != null) {
             for (Map.Entry<PricePlan, List<DayRate>> entry : plans.entrySet()) {
-                Plan p = new Plan();
-                p.id = entry.getKey().getId();
-                p.supplier = entry.getKey().getSupplier();
-                p.plan = entry.getKey().getPlanName();
+                PricePlan p = entry.getKey();
 
                 // CREATE TABLE ROW
                 TableRow tableRow;
@@ -126,15 +123,15 @@ public class PricePlanNavFragment extends Fragment {
 
                 // SET TEXTVIEW TEXT
 
-                b.setText(p.supplier + ":"+ p.plan);
+                b.setText(p.getSupplier() + ":"+ p.getPlanName() + " (" + p.getLastUpdate() + ")");
                 c.setImageResource(android.R.drawable.ic_menu_delete);
                 d.setImageResource(R.drawable.ic_menu_copy);
                 e.setImageResource(android.R.drawable.ic_menu_view);
 
-                a.setId((int) p.id);
-                c.setId((int) p.id);
-                d.setId((int) p.id);
-                e.setId((int) p.id);
+                a.setId((int) p.getId());
+                c.setId((int) p.getId());
+                d.setId((int) p.getId());
+                e.setId((int) p.getId());
 
                 a.setOnClickListener(v -> {
                     System.out.println("Select for comparison: " + v.getId() + " " + a.isChecked());
@@ -150,9 +147,6 @@ public class PricePlanNavFragment extends Fragment {
                     e.setBackgroundColor(Color.RED);
                     System.out.println("Delete: " + v.getId());
                     mViewModel.deletePricePlan(v.getId());
-//                    mViewModel.delpp(entry.getKey());
-//                    mViewModel.deletePricePlanRow(v.getId());
-//                    mViewModel.deleteAll();
                 });
 
                 d.setOnClickListener(v -> {
