@@ -78,7 +78,7 @@ public class MainActivity extends AppCompatActivity {
         mViewModel = new ViewModelProvider(this).get(PricePlanNavViewModel.class);
 
         /*
-          Add price plan or scenarion depending on the visible fragement
+          Add price plan or scenario depending on the visible fragment
          */
         FloatingActionButton fab = findViewById(R.id.addSomething);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -92,7 +92,7 @@ public class MainActivity extends AppCompatActivity {
                     startActivity(intent);
                 }
                 if (pos == 1) {
-                    Snackbar.make(view, "Here's a Snackbar", Snackbar.LENGTH_LONG)
+                    Snackbar.make(view, "Here's a Snack bar", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
                 }
             }
@@ -176,7 +176,7 @@ public class MainActivity extends AppCompatActivity {
                 }).start();
                 return(true);
 
-            case R.id.export:
+            case R.id.share_plans:
                 //add the function to perform here
                 System.out.println("Export attempt ");
 
@@ -189,6 +189,16 @@ public class MainActivity extends AppCompatActivity {
 
                 Intent shareIntent = Intent.createChooser(sendIntent, null);
                 startActivity(shareIntent);
+                return(true);
+
+            case R.id.share_scenarios:
+                Snackbar.make(viewPager.getRootView(), "TODO: Export scenarios", Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
+                return(true);
+
+            case R.id.share_comparison:
+                Snackbar.make(viewPager.getRootView(), "TODO: Export comparisons", Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
                 return(true);
         }
         return(super.onOptionsItemSelected(item));

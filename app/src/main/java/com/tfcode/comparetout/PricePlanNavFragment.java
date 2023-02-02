@@ -28,8 +28,6 @@ import com.tfcode.comparetout.priceplan.PricePlanActivity;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 
 public class PricePlanNavFragment extends Fragment {
 
@@ -96,6 +94,7 @@ public class PricePlanNavFragment extends Fragment {
                 // CREATE TEXTVIEW
 
                 CheckBox a = new CheckBox(getActivity());
+                a.setChecked(entry.getKey().isActive());
                 TextView b = new TextView(getActivity());
                 ImageButton c = new ImageButton(getActivity());
                 ImageButton d = new ImageButton(getActivity());
@@ -137,7 +136,11 @@ public class PricePlanNavFragment extends Fragment {
                 d.setId((int) p.id);
                 e.setId((int) p.id);
 
-                a.setOnClickListener(v -> System.out.println("Select for comparison: " + v.getId()));
+                a.setOnClickListener(v -> {
+                    System.out.println("Select for comparison: " + v.getId() + " " + a.isChecked());
+                    mViewModel.updatePricePlanActiveStatus(v.getId(), a.isChecked());
+                    Map<PricePlan, List<DayRate>> pricePlanMap = mViewModel.getAllPricePlans().getValue();
+                });
 
                 c.setOnClickListener(v -> {
                     a.setBackgroundColor(Color.RED);
@@ -164,13 +167,6 @@ public class PricePlanNavFragment extends Fragment {
                             }
                         }
                     }
-//                    Map<PricePlan, List<DayRate>> pricePlanMap = mViewModel.getPricePlan(v.getId());
-//                    Optional<PricePlan> pp = pricePlanMap.keySet().stream().findFirst();
-//                    if (pp.isPresent()) {
-//                        PricePlan rpp = pp.get();
-//                        rpp.setPlanName(rpp.getPlanName() + " (Copy)");
-//                        mViewModel.insertPricePlan(rpp, pricePlanMap.get(rpp));
-//                    }
                 });
 
                 e.setOnClickListener(v -> {

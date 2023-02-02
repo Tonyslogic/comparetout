@@ -55,4 +55,9 @@ public class ToutcRepository {
     public void delpp(PricePlan pp) {
         ToutcDB.databaseWriteExecutor.execute(() -> pricePlanDAO.delpp(pp));
     }
+
+    public void updatePricePlanActiveStatus(int id, boolean checked) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                pricePlanDAO.updatePricePlanActiveStatus(id, checked));
+    }
 }

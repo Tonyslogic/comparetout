@@ -17,5 +17,22 @@
         android:id="@+id/export"
         app:showAsAction="ifRoom|withText"
         android:icon="@android:drawable/ic_menu_share"
-        android:title="Export"/>
+        android:title="Export">
+        <menu>
+            <group android:checkableBehavior="single">
+                <item
+                    android:id="@+id/share_plans"
+                    android:title="Plans">
+                </item>
+                <item
+                    android:id="@+id/share_scenarios"
+                    android:title="Scenarios">
+                </item>
+                <item
+                    android:id="@+id/share_comparison"
+                    android:title="Comparisons">
+                </item>
+            </group>
+        </menu>
+    </item>
 </menu>

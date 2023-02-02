@@ -7,6 +7,7 @@ import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 import androidx.room.Transaction;
+import androidx.room.Update;
 
 import java.util.List;
 import java.util.Map;
@@ -65,4 +66,7 @@ public abstract class PricePlanDAO {
 
     @Delete
     public abstract void delpp(PricePlan pp);
+
+    @Query("UPDATE PricePlans SET active = :checked WHERE id = :id")
+    public abstract void updatePricePlanActiveStatus(int id, boolean checked);
 }

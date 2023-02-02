@@ -51,4 +51,8 @@ public class PricePlanNavViewModel extends AndroidViewModel {
     public Map<PricePlan, List<DayRate>> getPricePlan(Integer id) {
         return toutcRepository.getPricePlan(id);
     }
+
+    public void updatePricePlanActiveStatus(int id, boolean checked) {
+        toutcRepository.updatePricePlanActiveStatus(id, checked);
+    }
 }
