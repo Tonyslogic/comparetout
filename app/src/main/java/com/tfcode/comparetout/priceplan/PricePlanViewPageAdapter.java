@@ -5,27 +5,48 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 public class PricePlanViewPageAdapter extends FragmentStateAdapter {
 
     private int mDayRateCount;
     private final PricePlanEditFragment pricePlanEditFragment = PricePlanEditFragment.newInstance();
-//    private PricePlanEditDayFragment pricePlanEditDayFragment = PricePlanEditDayFragment.newInstance();
+    private Map<Integer, PricePlanEditDayFragment> dayRateFragments = new HashMap<>();
 
     public PricePlanViewPageAdapter(@NonNull FragmentActivity fragmentActivity, int count) {
         super(fragmentActivity);
         mDayRateCount = count;
     }
-    @NonNull @Override public Fragment createFragment(int position) {
+
+    @NonNull
+    @Override
+    public Fragment createFragment(int position) {
         if (position == 0) {
             return pricePlanEditFragment;
         }
-        return PricePlanEditDayFragment.newInstance(position);
+        PricePlanEditDayFragment dayRateFragment = PricePlanEditDayFragment.newInstance(position);
+        dayRateFragments.put(position, dayRateFragment);
+        return dayRateFragment;
     }
-    @Override public int getItemCount() {
+
+    public void add(int index) {
+        Map<Integer, PricePlanEditDayFragment> newDayRateFragments = new HashMap<>();
+        for (int key: dayRateFragments.keySet()){
+            if (key < index) newDayRateFragments.put(key, dayRateFragments.get(key));
+            else newDayRateFragments.put(key +1, dayRateFragments.get(key));
+        }
+        dayRateFragments = newDayRateFragments;
+        mDayRateCount = mDayRateCount + 1;
+        notifyDataSetChanged();
+    }
+
+    @Override
+    public int getItemCount() {
         return mDayRateCount;
     }
 
-    public void setDayRateCount(int count) {
-        this.mDayRateCount = count;
-    }
+
 }

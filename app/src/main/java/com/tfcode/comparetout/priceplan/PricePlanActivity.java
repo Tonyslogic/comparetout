@@ -4,15 +4,19 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.tfcode.comparetout.MainActivity;
 import com.tfcode.comparetout.PricePlanNavViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.DayRate;
@@ -34,6 +38,7 @@ public class PricePlanActivity extends AppCompatActivity {
     private Boolean copy = false;
     private Long planID = 0L;
     private String focusedPlan = "{}";
+    private TabLayoutMediator mMediator;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -43,26 +48,68 @@ public class PricePlanActivity extends AppCompatActivity {
         planID = intent.getLongExtra("PlanID", 0L);
         focusedPlan = intent.getStringExtra("Focus");
 
-        Type type = new TypeToken<PricePlanJsonFile>(){}.getType();
-        PricePlanJsonFile ppj = new Gson().fromJson(focusedPlan, type);
-        int count = ppj.rates.size() + 1;
-
         setContentView(R.layout.activity_price_plan);
         viewPager = findViewById(R.id.view_plan_pager);
-        viewPager.setAdapter(createPlanAdapter(count));
-//        viewPager.setOrientation(ViewPager2.ORIENTATION_VERTICAL);
-
-        ArrayList<String> tabTitlesList = new ArrayList<>();
-        tabTitlesList.add("Plan details");
-        for (DayRateJson dr: ppj.rates) tabTitlesList.add("DayRate");
-        String[] tabTitles = tabTitlesList.toArray(new String[tabTitlesList.size()]);
-        TabLayout tabLayout = findViewById(R.id.tab_layout);
-        new TabLayoutMediator(tabLayout, viewPager,
-                (tab, position) -> tab.setText(tabTitles[position])
-        ).attach();
+        setupViewPager();
 
         mViewModel = new ViewModelProvider(this).get(PricePlanNavViewModel.class);
         Objects.requireNonNull(getSupportActionBar()).setTitle("Price plan details");
+
+        /*
+          Add price plan or scenario depending on the visible fragment
+         */
+        FloatingActionButton fab = findViewById(R.id.addDayRate);
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                int pos = viewPager.getCurrentItem();
+                Type type = new TypeToken<PricePlanJsonFile>(){}.getType();
+                PricePlanJsonFile ppj = new Gson().fromJson(focusedPlan, type);
+                PricePlan pricePlan = JsonTools.createPricePlan(ppj);
+                ArrayList<DayRate> dayRates = new ArrayList<>();
+                for (DayRateJson drj : ppj.rates) {
+                    dayRates.add(JsonTools.createDayRate(drj));
+                }
+                dayRates.add(pos, new DayRate());
+
+                focusedPlan = JsonTools.createSinglePricePlanJsonObject(pricePlan, dayRates);
+                //
+                ppj = new Gson().fromJson(focusedPlan, type);
+                ArrayList<String> tabTitlesList = new ArrayList<>();
+                tabTitlesList.add("Plan details");
+                for (DayRateJson dr: ppj.rates) tabTitlesList.add("Rates");
+                String[] tabTitles = tabTitlesList.toArray(new String[tabTitlesList.size()]);
+                TabLayout tabLayout = findViewById(R.id.tab_layout);
+                mMediator.detach();
+                mMediator = new TabLayoutMediator(tabLayout, viewPager,
+                        (tab, position) -> tab.setText(tabTitles[position])
+                );
+                mMediator.attach();
+                //
+                ((PricePlanViewPageAdapter)viewPager.getAdapter()).add(pos);
+
+//                Snackbar.make(view, "Tried to add a day rate @ "+ pos, Snackbar.LENGTH_LONG)
+//                            .setAction("Action", null).show();
+            }
+        });
+    }
+
+    private void setupViewPager() {
+        Type type = new TypeToken<PricePlanJsonFile>(){}.getType();
+        PricePlanJsonFile ppj = new Gson().fromJson(focusedPlan, type);
+        int count = ppj.rates.size() + 1;
+        viewPager.setAdapter(createPlanAdapter(count));
+        System.out.println("setupViewPager " + count + " fragments");
+
+        ArrayList<String> tabTitlesList = new ArrayList<>();
+        tabTitlesList.add("Plan details");
+        for (DayRateJson dr: ppj.rates) tabTitlesList.add("Rates");
+        String[] tabTitles = tabTitlesList.toArray(new String[tabTitlesList.size()]);
+        TabLayout tabLayout = findViewById(R.id.tab_layout);
+        mMediator = new TabLayoutMediator(tabLayout, viewPager,
+                (tab, position) -> tab.setText(tabTitles[position])
+        );
+        mMediator.attach();
     }
 
     @Override
