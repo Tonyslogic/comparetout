@@ -87,8 +87,10 @@ public class MainActivity extends AppCompatActivity {
                 int pos = viewPager.getCurrentItem();
                 if (pos == 0) {
                     Intent intent = new Intent(MainActivity.this, PricePlanActivity.class);
-                    intent.putExtra("PlanID", 0);
+                    intent.putExtra("PlanID", 0L);
                     intent.putExtra("Edit", false);
+                    intent.putExtra("Focus", JsonTools.createSinglePricePlanJsonObject(
+                            new PricePlan(), new ArrayList<DayRate>()));
                     startActivity(intent);
                 }
                 if (pos == 1) {
@@ -157,8 +159,7 @@ public class MainActivity extends AppCompatActivity {
                     try {
                         url = new URL("https://raw.githubusercontent.com/Tonyslogic/tout-compare/main/rates.json");
                         InputStreamReader reader = new InputStreamReader(url.openStream());
-                        Type type = new TypeToken<List<PricePlanJsonFile>>() {
-                        }.getType();
+                        Type type = new TypeToken<List<PricePlanJsonFile>>() {}.getType();
                         List<PricePlanJsonFile> ppList = new Gson().fromJson(reader, type);
                         for (PricePlanJsonFile pp : ppList) {
                             System.out.println(pp.plan);

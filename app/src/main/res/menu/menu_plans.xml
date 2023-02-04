@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".priceplan.PricePlanActivity">
+
+    <item
+        android:id="@+id/export_a_plan"
+        app:showAsAction="ifRoom|withText"
+        android:icon="@android:drawable/ic_menu_share"
+        android:title="Share"/>
+    <item
+        android:id="@+id/edit_a_plan"
+        app:showAsAction="ifRoom|withText"
+        android:icon="@android:drawable/ic_menu_edit"
+        android:title="Edit"/>
+    <item
+        android:id="@+id/save_a_plan"
+        app:showAsAction="ifRoom|withText"
+        android:icon="@android:drawable/ic_menu_save"
+        android:title="Save"/>
+</menu>

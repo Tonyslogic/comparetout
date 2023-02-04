@@ -24,6 +24,7 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.model.DayRate;
 import com.tfcode.comparetout.model.PricePlan;
+import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.priceplan.PricePlanActivity;
 
 import java.util.List;
@@ -136,7 +137,7 @@ public class PricePlanNavFragment extends Fragment {
                 a.setOnClickListener(v -> {
                     System.out.println("Select for comparison: " + v.getId() + " " + a.isChecked());
                     mViewModel.updatePricePlanActiveStatus(v.getId(), a.isChecked());
-                    Map<PricePlan, List<DayRate>> pricePlanMap = mViewModel.getAllPricePlans().getValue();
+//                    Map<PricePlan, List<DayRate>> pricePlanMap = mViewModel.getAllPricePlans().getValue();
                 });
 
                 c.setOnClickListener(v -> {
@@ -168,6 +169,7 @@ public class PricePlanNavFragment extends Fragment {
                     Intent intent = new Intent(getActivity(), PricePlanActivity.class);
                     intent.putExtra("PlanID", Long.valueOf(v.getId()));
                     intent.putExtra("Edit", false);
+                    intent.putExtra("Focus", JsonTools.createSinglePricePlanJsonObject(p, entry.getValue()));
                     startActivity(intent);
                 });
 

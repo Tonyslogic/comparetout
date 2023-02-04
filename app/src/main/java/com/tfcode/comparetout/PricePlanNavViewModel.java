@@ -15,8 +15,8 @@ import java.util.Map;
 public class PricePlanNavViewModel extends AndroidViewModel {
 
     private final ToutcRepository toutcRepository;
-
     private final LiveData<Map<PricePlan, List<DayRate>>> allPricePlans;
+//    private String focusedPricePlanJson = "[]";
 
     public PricePlanNavViewModel(Application application) {
         super(application);
@@ -55,4 +55,10 @@ public class PricePlanNavViewModel extends AndroidViewModel {
     public void updatePricePlanActiveStatus(int id, boolean checked) {
         toutcRepository.updatePricePlanActiveStatus(id, checked);
     }
+
+//    public String getFocusedPricePlanJson() {return focusedPricePlanJson;}
+//
+//    public void setFocusedPricePlanJson(String ppj) {
+//        focusedPricePlanJson = ppj;
+//    }
 }

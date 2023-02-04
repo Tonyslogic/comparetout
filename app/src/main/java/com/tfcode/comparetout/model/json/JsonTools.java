@@ -74,4 +74,31 @@ public class JsonTools {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         return gson.toJson(ppList,type);
     }
+
+    public static String createSinglePricePlanJsonObject(PricePlan pp, List<DayRate> rates) {
+        ArrayList<DayRateJson> dayRateJsons = new ArrayList<>();
+        for (DayRate dr : rates) {
+            DayRateJson drj = new DayRateJson();
+            drj.startDate = dr.getStartDate();
+            drj.endDate = dr.getEndDate();
+            drj.days = (ArrayList<Integer>) dr.getDays().ints;
+            drj.hours = (ArrayList<Double>) dr.getHours().doubles;
+            dayRateJsons.add(drj);
+        }
+        PricePlanJsonFile ppj = new PricePlanJsonFile();
+        ppj.rates = dayRateJsons;
+        ppj.active = pp.isActive();
+        ppj.plan = pp.getPlanName();
+        ppj.bonus = pp.getSignUpBonus();
+        ppj.feed = pp.getFeed();
+        ppj.lastUpdate = pp.getLastUpdate();
+        ppj.standingCharges = pp.getStandingCharges();
+        ppj.reference = pp.getReference();
+        ppj.supplier = pp.getSupplier();
+
+        Type type = new TypeToken<PricePlanJsonFile>() {
+        }.getType();
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        return gson.toJson(ppj, type);
+    }
 }
