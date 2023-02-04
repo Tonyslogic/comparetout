@@ -124,10 +124,10 @@ public class PricePlanEditFragment extends Fragment {
 //        for (DayRate dr: mDayRates) tabTitlesList.add("DayRate");
 //        ((PricePlanViewPageAdapter) viewPager.getAdapter()).setDayRateCount(mDayRates.size()+1);
 //        String[] tabTitles = tabTitlesList.toArray(new String[tabTitlesList.size()]);
-        String[] tabTitles = {"Plan details", "Day rate", "Day rate"};
-        new TabLayoutMediator(tabLayout, viewPager,
-                (tab, position) -> tab.setText(tabTitles[position])
-        ).attach();
+//        String[] tabTitles = {"Plan details", "Day rate", "Day rate"};
+//        new TabLayoutMediator(tabLayout, viewPager,
+//                (tab, position) -> tab.setText(tabTitles[position])
+//        ).attach();
 
         updateView();
     }

@@ -7,12 +7,13 @@ import androidx.viewpager2.adapter.FragmentStateAdapter;
 
 public class PricePlanViewPageAdapter extends FragmentStateAdapter {
 
-    private int mDayRateCount = 3;
-    private PricePlanEditFragment pricePlanEditFragment = PricePlanEditFragment.newInstance();
+    private int mDayRateCount;
+    private final PricePlanEditFragment pricePlanEditFragment = PricePlanEditFragment.newInstance();
 //    private PricePlanEditDayFragment pricePlanEditDayFragment = PricePlanEditDayFragment.newInstance();
 
-    public PricePlanViewPageAdapter(@NonNull FragmentActivity fragmentActivity) {
+    public PricePlanViewPageAdapter(@NonNull FragmentActivity fragmentActivity, int count) {
         super(fragmentActivity);
+        mDayRateCount = count;
     }
     @NonNull @Override public Fragment createFragment(int position) {
         if (position == 0) {

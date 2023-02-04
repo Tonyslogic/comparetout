@@ -9,12 +9,18 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 
+import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.tabs.TabLayoutMediator;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.PricePlanNavViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.DayRate;
 import com.tfcode.comparetout.model.PricePlan;
 import com.tfcode.comparetout.model.json.JsonTools;
 
+import java.lang.reflect.Type;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -32,16 +38,30 @@ public class PricePlanActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        setContentView(R.layout.activity_price_plan);
-        viewPager = findViewById(R.id.view_plan_pager);
-        viewPager.setAdapter(createPlanAdapter());
-
-        mViewModel = new ViewModelProvider(this).get(PricePlanNavViewModel.class);
         Intent intent = getIntent();
         edit = intent.getBooleanExtra("Edit", false);
         planID = intent.getLongExtra("PlanID", 0L);
         focusedPlan = intent.getStringExtra("Focus");
+
+        Type type = new TypeToken<PricePlanJsonFile>(){}.getType();
+        PricePlanJsonFile ppj = new Gson().fromJson(focusedPlan, type);
+        int count = ppj.rates.size() + 1;
+
+        setContentView(R.layout.activity_price_plan);
+        viewPager = findViewById(R.id.view_plan_pager);
+        viewPager.setAdapter(createPlanAdapter(count));
+//        viewPager.setOrientation(ViewPager2.ORIENTATION_VERTICAL);
+
+        ArrayList<String> tabTitlesList = new ArrayList<>();
+        tabTitlesList.add("Plan details");
+        for (DayRateJson dr: ppj.rates) tabTitlesList.add("DayRate");
+        String[] tabTitles = tabTitlesList.toArray(new String[tabTitlesList.size()]);
+        TabLayout tabLayout = findViewById(R.id.tab_layout);
+        new TabLayoutMediator(tabLayout, viewPager,
+                (tab, position) -> tab.setText(tabTitles[position])
+        ).attach();
+
+        mViewModel = new ViewModelProvider(this).get(PricePlanNavViewModel.class);
         Objects.requireNonNull(getSupportActionBar()).setTitle("Price plan details");
     }
 
@@ -60,10 +80,8 @@ public class PricePlanActivity extends AppCompatActivity {
         return false;
     }
 
-    private PricePlanViewPageAdapter createPlanAdapter() {
-        PricePlanViewPageAdapter ppa =  new PricePlanViewPageAdapter(this);
-//        ppa.setDayRateCount(5);
-        return ppa;
+    private PricePlanViewPageAdapter createPlanAdapter(int count) {
+        return new PricePlanViewPageAdapter(this, count);
     }
 
     long getPlanID() {
