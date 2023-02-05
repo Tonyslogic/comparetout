@@ -9,6 +9,7 @@ import com.tfcode.comparetout.model.DayRate;
 import com.tfcode.comparetout.model.PricePlan;
 import com.tfcode.comparetout.model.ToutcRepository;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -54,6 +55,10 @@ public class PricePlanNavViewModel extends AndroidViewModel {
 
     public void updatePricePlanActiveStatus(int id, boolean checked) {
         toutcRepository.updatePricePlanActiveStatus(id, checked);
+    }
+
+    public void updatePricePlan(PricePlan p, ArrayList<DayRate> drs) {
+        toutcRepository.updatePricePlan(p, drs);
     }
 
 //    public String getFocusedPricePlanJson() {return focusedPricePlanJson;}

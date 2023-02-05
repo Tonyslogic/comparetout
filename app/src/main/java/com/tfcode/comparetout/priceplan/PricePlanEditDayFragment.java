@@ -1,14 +1,46 @@
 package com.tfcode.comparetout.priceplan;
 
+import android.graphics.Color;
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.viewpager2.widget.ViewPager2;
 
+import android.text.Editable;
+import android.text.InputType;
+import android.text.TextUtils;
+import android.text.TextWatcher;
+import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
+import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.TableLayout;
+import android.widget.TableRow;
+import android.widget.TextView;
 
+import com.google.android.material.tabs.TabLayout;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import com.tfcode.comparetout.PricePlanNavViewModel;
 import com.tfcode.comparetout.R;
+import com.tfcode.comparetout.model.DayRate;
+import com.tfcode.comparetout.model.HourlyRate;
+import com.tfcode.comparetout.model.HourlyRateRange;
+import com.tfcode.comparetout.model.PricePlan;
+import com.tfcode.comparetout.model.json.JsonTools;
+
+import java.lang.reflect.Type;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -17,14 +49,18 @@ import com.tfcode.comparetout.R;
  */
 public class PricePlanEditDayFragment extends Fragment {
 
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
+    private PricePlanNavViewModel mViewModel;
+    private TableLayout mTableLayout;
 
-    // TODO: Rename and change types of parameters
-//    private String mParam1;
-//    private String mParam2;
+    private String mFocus;
+    private Long mPlanID;
+    private boolean mEdit;
+    private PricePlan mPricePlan;
+    private List<DayRate> mDayRates;
+
+    private int mRateIndex;
+
+    private List<View> mEditFields;
 
     public PricePlanEditDayFragment() {
         // Required empty public constructor
@@ -39,20 +75,26 @@ public class PricePlanEditDayFragment extends Fragment {
     // TODO: Rename and change types and number of parameters
     public static PricePlanEditDayFragment newInstance(Integer position) {
         PricePlanEditDayFragment fragment = new PricePlanEditDayFragment();
-        Bundle args = new Bundle();
-//        args.putString(ARG_PARAM1, param1);
-//        args.putString(ARG_PARAM2, param2);
-        fragment.setArguments(args);
+        fragment.mRateIndex = position - 1;
         return fragment;
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-//        if (getArguments() != null) {
-//            mParam1 = getArguments().getString(ARG_PARAM1);
-//            mParam2 = getArguments().getString(ARG_PARAM2);
-//        }
+        setHasOptionsMenu(true);
+        mPlanID = ((PricePlanActivity) requireActivity()).getPlanID();
+        mFocus = ((PricePlanActivity) requireActivity()).getFocusedPlan();
+        mEdit = ((PricePlanActivity) requireActivity()).getEdit();
+        mEditFields = new ArrayList<>();
+        Type type = new TypeToken<PricePlanJsonFile>(){}.getType();
+        PricePlanJsonFile ppj = new Gson().fromJson(mFocus, type);
+        mDayRates = new ArrayList<>();
+        for (DayRateJson drj : ppj.rates){
+            DayRate dr = JsonTools.createDayRate(drj);
+            mDayRates.add(dr);
+        }
+        mViewModel = new ViewModelProvider(requireActivity()).get(PricePlanNavViewModel.class);
     }
 
     @Override
@@ -60,5 +102,269 @@ public class PricePlanEditDayFragment extends Fragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_price_plan_edit_day, container, false);
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        mTableLayout = requireView().findViewById(R.id.planEditDayTable);
+        mTableLayout.setShrinkAllColumns(true);
+        mTableLayout.setStretchAllColumns(true);
+        updateView();
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        System.out.println("PricePlanEditFragment.onOptionsItemSelected");
+        if (item.getItemId() == R.id.edit_a_plan) {//add the function to perform here
+            System.out.println("Edit attempt");
+            if (!mEdit) {
+                mEdit = true;
+                for (View v : mEditFields) v.setEnabled(true);
+            }
+            return (true);
+        }
+        return true;
+    }
+
+    private void updateView() {
+        mTableLayout.removeAllViews();
+
+        // CREATE PARAM FOR MARGINING
+        TableRow.LayoutParams planParams = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
+        planParams.topMargin = 2;
+        planParams.rightMargin = 2;
+//        planParams.width = 0;
+//        planParams.weight = 1;
+
+        // CREATE TABLE ROWS
+
+        // Dates
+        TableLayout datesTable = new TableLayout(getActivity());
+        datesTable.setShrinkAllColumns(true);
+        datesTable.setStretchAllColumns(true);
+        TableRow datesRow = new TableRow(getActivity());
+        {
+            TableRow tableRow = new TableRow(getActivity());
+            TextView a = new TextView(getActivity());
+            a.setText("From (MM/DD)");
+            tableRow.addView(a);
+            EditText b = new EditText(getActivity());
+            b.setText(mDayRates.get(mRateIndex).getStartDate());
+            b.setOnClickListener(v -> mDayRates.get(mRateIndex).setStartDate( ((EditText)v).getText().toString()));
+            b.setEnabled(mEdit);
+            tableRow.addView(b);
+            TextView c = new TextView(getActivity());
+            c.setText("To (MM/DD)");
+            tableRow.addView(c);
+            EditText d = new EditText(getActivity());
+            d.setText(mDayRates.get(mRateIndex).getEndDate());
+            b.setOnClickListener(v -> mDayRates.get(mRateIndex).setEndDate( ((EditText)v).getText().toString()));
+            d.setEnabled(mEdit);
+            tableRow.addView(d);
+            mEditFields.add(b);
+            mEditFields.add(d);
+            datesTable.addView(tableRow);
+        }
+        datesRow.addView(datesTable);
+        mTableLayout.addView(datesRow);
+
+        // Days of week Names
+        TableLayout daysTable = new TableLayout(getActivity());
+        daysTable.setShrinkAllColumns(true);
+        daysTable.setStretchAllColumns(true);
+        TableRow daysRow = new TableRow(getActivity());
+        {
+            TableRow tableRow = new TableRow(getActivity());
+            TextView a = new TextView(getActivity());
+            a.setText("Mon");
+            tableRow.addView(a);
+            TextView b = new TextView(getActivity());
+            b.setText("Tue");
+            tableRow.addView(b);
+            TextView c = new TextView(getActivity());
+            c.setText("Wed");
+            tableRow.addView(c);
+            TextView d = new TextView(getActivity());
+            d.setText("Thu");
+            tableRow.addView(d);
+            TextView e = new TextView(getActivity());
+            e.setText("Fri");
+            tableRow.addView(e);
+            TextView f = new TextView(getActivity());
+            f.setText("Sat");
+            tableRow.addView(f);
+            TextView g = new TextView(getActivity());
+            g.setText("Sun");
+            tableRow.addView(g);
+            daysTable.addView(tableRow);
+        }
+        // Days of week checkboxes
+        {
+            TableRow tableRow = new TableRow(getActivity());
+            CheckBox c1 = new CheckBox(getActivity());
+            c1.setChecked(mDayRates.get(mRateIndex).getDays().ints.contains(1));
+            tableRow.addView(c1);
+            c1.setOnClickListener(v -> updateDays(c1.isChecked(), Integer.valueOf(1)));
+            CheckBox c2 = new CheckBox(getActivity());
+            c2.setChecked(mDayRates.get(mRateIndex).getDays().ints.contains(2));
+            tableRow.addView(c2);
+            c2.setOnClickListener(v -> updateDays(c1.isChecked(), Integer.valueOf(2)));
+            CheckBox c3 = new CheckBox(getActivity());
+            c3.setChecked(mDayRates.get(mRateIndex).getDays().ints.contains(3));
+            tableRow.addView(c3);
+            c3.setOnClickListener(v -> updateDays(c1.isChecked(), Integer.valueOf(3)));
+            CheckBox c4 = new CheckBox(getActivity());
+            c4.setChecked(mDayRates.get(mRateIndex).getDays().ints.contains(4));
+            tableRow.addView(c4);
+            c4.setOnClickListener(v -> updateDays(c1.isChecked(), Integer.valueOf(4)));
+            CheckBox c5 = new CheckBox(getActivity());
+            c5.setChecked(mDayRates.get(mRateIndex).getDays().ints.contains(5));
+            tableRow.addView(c5);
+            c5.setOnClickListener(v -> updateDays(c1.isChecked(), Integer.valueOf(5)));
+            CheckBox c6 = new CheckBox(getActivity());
+            c6.setChecked(mDayRates.get(mRateIndex).getDays().ints.contains(6));
+            tableRow.addView(c6);
+            c6.setOnClickListener(v -> updateDays(c1.isChecked(), Integer.valueOf(6)));
+            CheckBox c7 = new CheckBox(getActivity());
+            c7.setChecked(mDayRates.get(mRateIndex).getDays().ints.contains(0));
+            tableRow.addView(c7);
+            c7.setOnClickListener(v -> updateDays(c1.isChecked(), Integer.valueOf(0)));
+            c1.setEnabled(mEdit);
+            c2.setEnabled(mEdit);
+            c3.setEnabled(mEdit);
+            c4.setEnabled(mEdit);
+            c5.setEnabled(mEdit);
+            c6.setEnabled(mEdit);
+            c7.setEnabled(mEdit);
+            mEditFields.add(c1);
+            mEditFields.add(c2);
+            mEditFields.add(c3);
+            mEditFields.add(c4);
+            mEditFields.add(c5);
+            mEditFields.add(c6);
+            mEditFields.add(c7);
+            daysTable.addView(tableRow);
+        }
+        daysRow.addView(daysTable);
+        mTableLayout.addView(daysRow);
+
+        // SPACER
+        {
+            TableRow spacer = new TableRow(getActivity());
+            TextView spacerTV = new TextView(getActivity());
+            spacerTV.setSingleLine(true);
+            spacerTV.setEllipsize(TextUtils.TruncateAt.END);
+            spacerTV.setText("......................................................................" +
+                    "...............................................................................");
+            spacer.addView(spacerTV);
+            mTableLayout.addView(spacer);
+        }
+
+        // PRICES Table
+        TableLayout pricesTable = new TableLayout(getActivity());
+        pricesTable.setShrinkAllColumns(false);
+        pricesTable.setColumnShrinkable(3, true);
+        pricesTable.setStretchAllColumns(true);
+        pricesTable.setColumnStretchable(3, false);
+        TableRow pricesTableRow = new TableRow(getActivity());
+        {
+            TableRow titleRow = new TableRow(getActivity());
+            TextView a = new TextView(getActivity());
+            a.setText("From");
+            a.setGravity(Gravity.CENTER);
+            titleRow.addView(a);
+            TextView b = new TextView(getActivity());
+            b.setText("To");
+            b.setGravity(Gravity.CENTER);
+            titleRow.addView(b);
+            TextView c = new TextView(getActivity());
+            c.setText("€");
+            c.setGravity(Gravity.CENTER);
+            titleRow.addView(c);
+            TextView d = new TextView(getActivity());
+            d.setText("Del");
+            d.setGravity(Gravity.CENTER);
+            titleRow.addView(d);
+            pricesTable.addView(titleRow);
+
+            HourlyRateRange hourlyRateRange =
+                    new HourlyRateRange(mDayRates.get(mRateIndex).getHours());
+            for (HourlyRate hourlyRate: hourlyRateRange.getRates()){
+                TableRow priceRow = new TableRow(getActivity());
+                EditText from = new EditText(getActivity());
+                EditText to = new EditText(getActivity());
+                EditText price = new EditText(getActivity());
+                ImageButton del = new ImageButton(getActivity());
+                from.setText("" + hourlyRate.getBegin());
+                from.setEnabled(false);
+                priceRow.addView(from);
+                to.setText("" + hourlyRate.getEnd());
+                to.setInputType(InputType.TYPE_CLASS_NUMBER);
+                to.setEnabled(mEdit);
+                mEditFields.add(to);
+                to.addTextChangedListener(new TextWatcher() {
+
+                    @Override
+                    public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                    }
+
+                    @Override
+                    public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    }
+
+                    @Override
+                    public void afterTextChanged(Editable s) {
+                        // TODO empty s
+                        System.out.println("To TO " + Integer.parseInt(s.toString()));
+                    }
+                });
+//                to.setOnClickListener(v -> System.out.println("EDIT TO " + v.getId()));
+                priceRow.addView(to);
+                price.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+                price.setText("" + hourlyRate.getPrice());
+                price.setEnabled(mEdit);
+                mEditFields.add(price);
+                price.addTextChangedListener(new TextWatcher() {
+
+                    @Override
+                    public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                    }
+
+                    @Override
+                    public void onTextChanged(CharSequence s, int start, int before, int count) {
+                    }
+
+                    @Override
+                    public void afterTextChanged(Editable s) {
+                        System.out.println("PRICE TO " + Double.parseDouble(s.toString()));
+                    }
+                });
+//                price.setOnClickListener(v -> System.out.println("PRICE TO " + Double.parseDouble(((EditText)v).getText().toString())));
+                priceRow.addView(price);
+                del.setImageResource(android.R.drawable.ic_menu_delete);
+                del.setOnClickListener(v -> System.out.println("delete: " + v.getId()));
+                del.setBackgroundColor(Color.WHITE);
+                priceRow.addView(del);
+                del.setEnabled(mEdit);
+                mEditFields.add(del);
+
+                pricesTable.addView(priceRow);
+            }
+        }
+        pricesTableRow.addView(pricesTable);
+        mTableLayout.addView(pricesTableRow);
+
+    }
+
+    private void updateDays(boolean checked, Integer integer) {
+        System.out.println("Select day: " + mRateIndex + " " + checked);
+        if (checked) {
+            if (!mDayRates.get(mRateIndex).getDays().ints.contains(integer))
+                mDayRates.get(mRateIndex).getDays().ints.add(integer);
+        }
+        else {
+            mDayRates.get(mRateIndex).getDays().ints.remove(integer);
+        }
     }
 }

@@ -8,7 +8,9 @@ import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 import androidx.room.Transaction;
 import androidx.room.Update;
+import androidx.room.Upsert;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -17,7 +19,7 @@ public abstract class PricePlanDAO {
     @Insert
     abstract long addNewPricePlan(PricePlan pp);
 
-    @Insert(onConflict = OnConflictStrategy.FAIL)
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract void addNewDayRate(DayRate dr);
 
     @Transaction
@@ -69,4 +71,28 @@ public abstract class PricePlanDAO {
 
     @Query("UPDATE PricePlans SET active = :checked WHERE id = :id")
     public abstract void updatePricePlanActiveStatus(int id, boolean checked);
+
+    @Upsert(entity = PricePlan.class )
+    public abstract void updatePricePlan(PricePlan pp);
+
+    @Upsert(entity = DayRate.class)
+    public abstract void updateDayRate(List<DayRate> drs);
+
+    @Transaction
+    public void updatePricePlanWithDayRates(PricePlan pp, ArrayList<DayRate> drs) {
+        System.out.println("DAO Updating " + pp.getPlanName() + "," + pp.getId());
+        if (pp.getId() == 0) {
+            System.out.println("DAO creation from Update ");
+            addNewPricePlanWithDayRates(pp, drs);
+        }
+        else {
+            updatePricePlan(pp);
+            System.out.println("DAO read " + getNameForPlanID(pp.getId()) + " for " + pp.getId());
+            updateDayRate(drs);
+        }
+
+    }
+
+    @Query("SELECT planName FROM PricePlans WHERE id = :id")
+    public abstract String getNameForPlanID (long id);
 }

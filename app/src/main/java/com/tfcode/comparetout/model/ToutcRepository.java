@@ -4,6 +4,7 @@ import android.app.Application;
 
 import androidx.lifecycle.LiveData;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -59,5 +60,9 @@ public class ToutcRepository {
     public void updatePricePlanActiveStatus(int id, boolean checked) {
         ToutcDB.databaseWriteExecutor.execute(() ->
                 pricePlanDAO.updatePricePlanActiveStatus(id, checked));
+    }
+
+    public void updatePricePlan(PricePlan pp, ArrayList<DayRate> drs) {
+        ToutcDB.databaseWriteExecutor.execute(() -> pricePlanDAO.updatePricePlanWithDayRates(pp, drs));
     }
 }

@@ -85,7 +85,6 @@ public class PricePlanEditFragment extends Fragment {
         PricePlanJsonFile ppj = new Gson().fromJson(mFocus, type);
         mPricePlan = JsonTools.createPricePlan(ppj);
         System.out.println("Plan:" + mPricePlan.getPlanName());
-        /* TODO: not needed in this fragment */
         mDayRates = new ArrayList<>();
         for (DayRateJson drj : ppj.rates){
             DayRate dr = JsonTools.createDayRate(drj);
@@ -108,7 +107,6 @@ public class PricePlanEditFragment extends Fragment {
         // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_price_plan_edit, container, false);
     }
-
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
@@ -150,7 +148,8 @@ public class PricePlanEditFragment extends Fragment {
         mTableLayout.removeAllViews();
 
         // CREATE PARAM FOR MARGINING
-        TableRow.LayoutParams planParams = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
+        TableRow.LayoutParams planParams = new TableRow.LayoutParams(
+                TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
         planParams.topMargin = 2;
         planParams.rightMargin = 2;
 
@@ -161,7 +160,7 @@ public class PricePlanEditFragment extends Fragment {
         EditText b = new EditText(getActivity());
         b.setText(mPricePlan.getSupplier());
         b.setEnabled(mEdit);
-        a.setOnClickListener(v -> mPricePlan.setSupplier( ((EditText)v).getText().toString()));
+        b.setOnClickListener(v -> mPricePlan.setSupplier( ((EditText)v).getText().toString()));
         a.setLayoutParams(planParams);
         b.setLayoutParams(planParams);
         tableRow.addView(a);
@@ -175,7 +174,22 @@ public class PricePlanEditFragment extends Fragment {
         b = new EditText(getActivity());
         b.setEnabled(mEdit);
         b.setText(mPricePlan.getPlanName());
-        a.setOnClickListener(v -> mPricePlan.setPlanName( ((EditText)v).getText().toString()));
+//        b.setOnClickListener(v -> {
+//            mPricePlan.setPlanName( ((EditText)v).getText().toString());
+//            ((PricePlanActivity)requireActivity()).updateFocusedPlan(
+//                    JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
+//        });
+        b.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View v, boolean hasFocus) {
+                if (!hasFocus) {
+                    System.out.println("Plan name edit lost focus");
+                    mPricePlan.setPlanName( ((EditText)v).getText().toString());
+                    ((PricePlanActivity)requireActivity()).updateFocusedPlan(
+                            JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
+                }
+            }
+        });
         a.setLayoutParams(planParams);
         b.setLayoutParams(planParams);
         tableRow.addView(a);

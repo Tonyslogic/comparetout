@@ -10,7 +10,7 @@ public class DayRate {
     @PrimaryKey(autoGenerate = true)
     private long id;
 
-    @NonNull private Long pricePlanId;
+    @NonNull private Long pricePlanId = 0L;
 
     @NonNull private IntHolder days = new IntHolder();
     @NonNull private DoubleHolder hours = new DoubleHolder();

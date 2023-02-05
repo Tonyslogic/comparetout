@@ -6,17 +6,16 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
-import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.tfcode.comparetout.MainActivity;
 import com.tfcode.comparetout.PricePlanNavViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.DayRate;
@@ -26,19 +25,20 @@ import com.tfcode.comparetout.model.json.JsonTools;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 public class PricePlanActivity extends AppCompatActivity {
 
     ViewPager2 viewPager;
+    private Menu mMenu;
 
     private PricePlanNavViewModel mViewModel;
     private Boolean edit = false;
-    private Boolean copy = false;
+//    private Boolean copy = false;
     private Long planID = 0L;
     private String focusedPlan = "{}";
     private TabLayoutMediator mMediator;
+    private FloatingActionButton fab;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,7 +58,7 @@ public class PricePlanActivity extends AppCompatActivity {
         /*
           Add price plan or scenario depending on the visible fragment
          */
-        FloatingActionButton fab = findViewById(R.id.addDayRate);
+        fab = findViewById(R.id.addDayRate);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -70,7 +70,9 @@ public class PricePlanActivity extends AppCompatActivity {
                 for (DayRateJson drj : ppj.rates) {
                     dayRates.add(JsonTools.createDayRate(drj));
                 }
-                dayRates.add(pos, new DayRate());
+                DayRate newDayRate = new DayRate();
+                newDayRate.setPricePlanId(pricePlan.getId());
+                dayRates.add(pos, newDayRate);
 
                 focusedPlan = JsonTools.createSinglePricePlanJsonObject(pricePlan, dayRates);
                 //
@@ -116,14 +118,63 @@ public class PricePlanActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_plans, menu);
+        mMenu = menu;
         return true;
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(@NonNull Menu menu) {
+        MenuItem saveMenuItem = menu.findItem(R.id.save_a_plan);
+        MenuItem editMenuItem = menu.findItem(R.id.edit_a_plan);
+        if (!edit) {
+            saveMenuItem.setVisible(false);
+            fab.hide();
+        }
+        if (edit) editMenuItem.setVisible(false);
+        return super.onPrepareOptionsMenu(menu);
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         System.out.println("PricePlanActivity.onOptionsItemSelected");
-        // Only set the return to true if the event is handled here
-        // TODO: Handle the save and share
+
+        if (item.getItemId() == R.id.edit_a_plan) {//add the function to perform here
+            System.out.println("Edit attempt");
+            edit = true;
+            MenuItem saveMenuItem = mMenu.findItem(R.id.save_a_plan);
+            saveMenuItem.setVisible(true);
+            item.setVisible(false);
+            fab.show();
+            return (false);
+        }
+        if (item.getItemId() == R.id.export_a_plan){
+            Intent sendIntent = new Intent();
+            sendIntent.setAction(Intent.ACTION_SEND);
+            sendIntent.putExtra(Intent.EXTRA_TEXT, focusedPlan);
+            sendIntent.setType("text/json");
+
+            Intent shareIntent = Intent.createChooser(sendIntent, null);
+            startActivity(shareIntent);
+            return (true);
+        }
+        if (item.getItemId() == R.id.save_a_plan){
+            // TODO Save the plan
+            System.out.println("Saving the changed plan");
+            Type type = new TypeToken<PricePlanJsonFile>() {}.getType();
+            PricePlanJsonFile pp = new Gson().fromJson(focusedPlan, type);
+            System.out.println(pp.plan);
+            PricePlan p = JsonTools.createPricePlan(pp);
+            p.setId(planID);
+            ArrayList<DayRate> drs = new ArrayList<>();
+            for (DayRateJson drj : pp.rates) {
+                DayRate dr = JsonTools.createDayRate(drj);
+                dr.setPricePlanId(planID);
+                drs.add(dr);
+            }
+            mViewModel.updatePricePlan(p, drs);
+
+            return (true);
+        }
         return false;
     }
 
@@ -137,6 +188,10 @@ public class PricePlanActivity extends AppCompatActivity {
 
     public String getFocusedPlan() {
         return focusedPlan;
+    }
+
+    public void updateFocusedPlan(String updatedPlan) {
+        focusedPlan = updatedPlan;
     }
 
     public boolean getEdit() {

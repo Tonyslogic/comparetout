@@ -1,10 +1,15 @@
 package com.tfcode.comparetout.model;
 
+import android.annotation.SuppressLint;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 @Entity(tableName = "PricePlans")
 public class PricePlan {
@@ -15,9 +20,10 @@ public class PricePlan {
     @NonNull private Double feed = 0.0;
     @NonNull private Double standingCharges = 0.0;
     @NonNull private Double signUpBonus = 0.0;
+    @SuppressLint("SimpleDateFormat")
     @NonNull
     @ColumnInfo(defaultValue = "CURRENT_TIMESTAMP")
-    private String lastUpdate;
+    private String lastUpdate = (new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
     @NonNull private String reference = "<REFERENCE>";
     @NonNull private Boolean active = true;
 
