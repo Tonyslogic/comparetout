@@ -32,6 +32,7 @@ import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.PricePlanNavViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.DayRate;
+import com.tfcode.comparetout.model.DoubleHolder;
 import com.tfcode.comparetout.model.HourlyRate;
 import com.tfcode.comparetout.model.HourlyRateRange;
 import com.tfcode.comparetout.model.PricePlan;
@@ -39,6 +40,7 @@ import com.tfcode.comparetout.model.json.JsonTools;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -66,13 +68,6 @@ public class PricePlanEditDayFragment extends Fragment {
         // Required empty public constructor
     }
 
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @return A new instance of fragment PricePlanEditDayFragment.
-     */
-    // TODO: Rename and change types and number of parameters
     public static PricePlanEditDayFragment newInstance(Integer position) {
         PricePlanEditDayFragment fragment = new PricePlanEditDayFragment();
         fragment.mRateIndex = position - 1;
@@ -129,7 +124,8 @@ public class PricePlanEditDayFragment extends Fragment {
         if (!mEdit) {
             mEdit = ed;
             for (View v : mEditFields) v.setEnabled(true);
-            ((PricePlanActivity) requireActivity()).setEdit(true);
+            PricePlanActivity ppa = ((PricePlanActivity) getActivity());
+            if (!(null == ppa)) ppa.setEdit(true);
         }
     }
 
@@ -158,7 +154,6 @@ public class PricePlanEditDayFragment extends Fragment {
             tableRow.addView(a);
             EditText b = new EditText(getActivity());
             b.setText(mDayRates.get(mRateIndex).getStartDate());
-//            b.setOnClickListener(v -> mDayRates.get(mRateIndex).setStartDate( ((EditText)v).getText().toString()));
             b.setOnFocusChangeListener(new View.OnFocusChangeListener() {
                 @Override
                 public void onFocusChange(View v, boolean hasFocus) {
@@ -177,7 +172,6 @@ public class PricePlanEditDayFragment extends Fragment {
             tableRow.addView(c);
             EditText d = new EditText(getActivity());
             d.setText(mDayRates.get(mRateIndex).getEndDate());
-//            d.setOnClickListener(v -> mDayRates.get(mRateIndex).setEndDate( ((EditText)v).getText().toString()));
             d.setOnFocusChangeListener(new View.OnFocusChangeListener() {
                 @Override
                 public void onFocusChange(View v, boolean hasFocus) {
@@ -291,34 +285,42 @@ public class PricePlanEditDayFragment extends Fragment {
         }
 
         // PRICES Table
+        DoubleHolder ratesList = mDayRates.get(mRateIndex).getHours();
         TableLayout pricesTable = new TableLayout(getActivity());
         pricesTable.setShrinkAllColumns(false);
         pricesTable.setColumnShrinkable(3, true);
         pricesTable.setStretchAllColumns(true);
         pricesTable.setColumnStretchable(3, false);
+        ArrayList<TableRow> pricesTableEntries = new ArrayList<>();
         TableRow pricesTableRow = new TableRow(getActivity());
         {
-            TableRow titleRow = new TableRow(getActivity());
-            TextView a = new TextView(getActivity());
-            a.setText("From");
-            a.setGravity(Gravity.CENTER);
-            titleRow.addView(a);
-            TextView b = new TextView(getActivity());
-            b.setText("To");
-            b.setGravity(Gravity.CENTER);
-            titleRow.addView(b);
-            TextView c = new TextView(getActivity());
-            c.setText("€");
-            c.setGravity(Gravity.CENTER);
-            titleRow.addView(c);
-            TextView d = new TextView(getActivity());
-            d.setText("Del");
-            d.setGravity(Gravity.CENTER);
-            titleRow.addView(d);
-            pricesTable.addView(titleRow);
+            // TITLES
+            {
+                TableRow titleRow = new TableRow(getActivity());
+                TextView a = new TextView(getActivity());
+                a.setText("From");
+                a.setGravity(Gravity.CENTER);
+                titleRow.addView(a);
+                TextView b = new TextView(getActivity());
+                b.setText("To");
+                b.setGravity(Gravity.CENTER);
+                titleRow.addView(b);
+                TextView c = new TextView(getActivity());
+                c.setText("€");
+                c.setGravity(Gravity.CENTER);
+                titleRow.addView(c);
+                TextView d = new TextView(getActivity());
+                d.setText("Del");
+                d.setGravity(Gravity.CENTER);
+                titleRow.addView(d);
+                pricesTable.addView(titleRow);
+            }
 
+            // HOURLY RATES
             HourlyRateRange hourlyRateRange =
-                    new HourlyRateRange(mDayRates.get(mRateIndex).getHours());
+                    new HourlyRateRange(ratesList);
+            Collections.reverse(hourlyRateRange.getRates());
+            EditText nextFrom = null;
             for (HourlyRate hourlyRate: hourlyRateRange.getRates()){
                 TableRow priceRow = new TableRow(getActivity());
                 EditText from = new EditText(getActivity());
@@ -332,44 +334,43 @@ public class PricePlanEditDayFragment extends Fragment {
                 to.setInputType(InputType.TYPE_CLASS_NUMBER);
                 to.setEnabled(mEdit);
                 mEditFields.add(to);
-                to.addTextChangedListener(new TextWatcher() {
-
+                EditText finalNextFrom = nextFrom;
+                to.setOnFocusChangeListener(new View.OnFocusChangeListener() {
                     @Override
-                    public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-                    }
-
-                    @Override
-                    public void onTextChanged(CharSequence s, int start, int before, int count) {
-                    }
-
-                    @Override
-                    public void afterTextChanged(Editable s) {
-                        // TODO empty s
-                        System.out.println("To TO " + Integer.parseInt(s.toString()));
+                    public void onFocusChange(View v, boolean hasFocus) {
+                        if (!hasFocus) {
+                            Integer newToValue = Integer.parseInt(((EditText)v).getText().toString());
+                            Integer fromValue = Integer.parseInt(from.getText().toString());
+                            Double rate = Double.parseDouble((price.getText().toString()));
+                            ratesList.update(fromValue, newToValue, rate);
+                            System.out.println("TO_HOUR edit lost focus " + ratesList);
+                            mDayRates.get(mRateIndex).setHours(ratesList);
+                            if (!(null == finalNextFrom)) finalNextFrom.setText(newToValue.toString());
+                            ((PricePlanActivity)requireActivity()).updateFocusedPlan(
+                                    JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
+                        }
                     }
                 });
-//                to.setOnClickListener(v -> System.out.println("EDIT TO " + v.getId()));
                 priceRow.addView(to);
                 price.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
                 price.setText("" + hourlyRate.getPrice());
                 price.setEnabled(mEdit);
                 mEditFields.add(price);
-                price.addTextChangedListener(new TextWatcher() {
-
+                price.setOnFocusChangeListener(new View.OnFocusChangeListener() {
                     @Override
-                    public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-                    }
-
-                    @Override
-                    public void onTextChanged(CharSequence s, int start, int before, int count) {
-                    }
-
-                    @Override
-                    public void afterTextChanged(Editable s) {
-                        System.out.println("PRICE TO " + Double.parseDouble(s.toString()));
+                    public void onFocusChange(View v, boolean hasFocus) {
+                        if (!hasFocus) {
+                            Double newValue = Double.parseDouble(((EditText)v).getText().toString());
+                            Integer toValue = Integer.parseInt(to.getText().toString());
+                            Integer fromValue = Integer.parseInt(from.getText().toString());
+                            ratesList.update(fromValue, toValue, newValue);
+                            System.out.println("PRICE edit lost focus " + ratesList);
+                            mDayRates.get(mRateIndex).setHours(ratesList);
+                            ((PricePlanActivity)requireActivity()).updateFocusedPlan(
+                                    JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
+                        }
                     }
                 });
-//                price.setOnClickListener(v -> System.out.println("PRICE TO " + Double.parseDouble(((EditText)v).getText().toString())));
                 priceRow.addView(price);
                 del.setImageResource(android.R.drawable.ic_menu_delete);
                 del.setOnClickListener(v -> System.out.println("delete: " + v.getId()));
@@ -378,12 +379,80 @@ public class PricePlanEditDayFragment extends Fragment {
                 del.setEnabled(mEdit);
                 mEditFields.add(del);
 
-                pricesTable.addView(priceRow);
+                pricesTableEntries.add(priceRow);
+                nextFrom = from;
+            }
+            Collections.reverse(pricesTableEntries);
+            for (TableRow tr: pricesTableEntries){
+                pricesTable.addView(tr);
             }
         }
         pricesTableRow.addView(pricesTable);
         mTableLayout.addView(pricesTableRow);
 
+        // SPACER
+        {
+            TableRow spacer = new TableRow(getActivity());
+            TextView spacerTV = new TextView(getActivity());
+            spacerTV.setSingleLine(true);
+            spacerTV.setEllipsize(TextUtils.TruncateAt.END);
+            spacerTV.setText("......................................................................" +
+                    "...............................................................................");
+            spacer.addView(spacerTV);
+            mTableLayout.addView(spacer);
+        }
+
+        // ADD NEW RATE
+        {
+            TableRow addPriceTableRow = new TableRow(getActivity());
+            TableLayout addPriceTable = new TableLayout(getActivity());
+            addPriceTable.setShrinkAllColumns(false);
+            addPriceTable.setColumnShrinkable(3, true);
+            addPriceTable.setStretchAllColumns(true);
+            addPriceTable.setColumnStretchable(3, false);
+
+            TableRow addPriceRow = new TableRow(getActivity());
+            EditText from = new EditText(getActivity());
+            EditText to = new EditText(getActivity());
+            EditText price = new EditText(getActivity());
+            ImageButton add = new ImageButton(getActivity());
+
+            from.setText("0");
+            to.setText("24");
+            price.setText("11.1");
+            from.setEnabled(mEdit);
+            to.setEnabled(mEdit);
+            price.setEnabled(mEdit);
+            add.setEnabled(mEdit);
+            from.setInputType(InputType.TYPE_CLASS_NUMBER);
+            to.setInputType(InputType.TYPE_CLASS_NUMBER);
+            price.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+            add.setImageResource(android.R.drawable.ic_menu_add);
+            add.setBackgroundColor(Color.WHITE);
+            add.setOnClickListener(v -> {
+                Double buyPrice = Double.parseDouble(price.getText().toString());
+                Integer toValue = Integer.parseInt(to.getText().toString());
+                Integer fromValue = Integer.parseInt(from.getText().toString());
+                ratesList.update(fromValue, toValue, buyPrice);
+                System.out.println("Adding an hourly rate " + ratesList);
+                mDayRates.get(mRateIndex).setHours(ratesList);
+                ((PricePlanActivity)requireActivity()).updateFocusedPlan(
+                        JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
+                updateView();
+            });
+            mEditFields.add(from);
+            mEditFields.add(to);
+            mEditFields.add(price);
+            mEditFields.add(add);
+            addPriceRow.addView(from);
+            addPriceRow.addView(to);
+            addPriceRow.addView(price);
+            addPriceRow.addView(add);
+
+            addPriceTable.addView(addPriceRow);
+            addPriceTableRow.addView(addPriceTable);
+            mTableLayout.addView(addPriceTableRow);
+        }
     }
 
     private void updateDays(boolean checked, Integer integer) {

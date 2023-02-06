@@ -15,6 +15,11 @@
         android:icon="@android:drawable/ic_menu_edit"
         android:title="Edit"/>
     <item
+        android:id="@+id/add_a_day_rate"
+        app:showAsAction="ifRoom|withText"
+        android:icon="@android:drawable/ic_menu_add"
+        android:title="Add day rate"/>
+    <item
         android:id="@+id/save_a_plan"
         app:showAsAction="ifRoom|withText"
         android:icon="@android:drawable/ic_menu_save"

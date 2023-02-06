@@ -115,8 +115,8 @@ public class PricePlanEditFragment extends Fragment {
 //        mTableLayout.setShrinkAllColumns(true);
 //        mTableLayout.setStretchAllColumns(true);
 
-        TabLayout tabLayout = requireActivity().findViewById(R.id.tab_layout);
-        ViewPager2 viewPager = requireActivity().findViewById(R.id.view_plan_pager);
+//        TabLayout tabLayout = requireActivity().findViewById(R.id.tab_layout);
+//        ViewPager2 viewPager = requireActivity().findViewById(R.id.view_plan_pager);
 //        ArrayList<String> tabTitlesList = new ArrayList<>();
 //        tabTitlesList.add("Plan details");
 //        for (DayRate dr: mDayRates) tabTitlesList.add("DayRate");
