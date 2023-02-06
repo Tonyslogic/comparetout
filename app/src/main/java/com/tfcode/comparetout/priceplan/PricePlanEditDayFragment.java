@@ -321,6 +321,7 @@ public class PricePlanEditDayFragment extends Fragment {
                     new HourlyRateRange(ratesList);
             Collections.reverse(hourlyRateRange.getRates());
             EditText nextFrom = null;
+            EditText nextPrice = null;
             for (HourlyRate hourlyRate: hourlyRateRange.getRates()){
                 TableRow priceRow = new TableRow(getActivity());
                 EditText from = new EditText(getActivity());
@@ -373,7 +374,21 @@ public class PricePlanEditDayFragment extends Fragment {
                 });
                 priceRow.addView(price);
                 del.setImageResource(android.R.drawable.ic_menu_delete);
-                del.setOnClickListener(v -> System.out.println("delete: " + v.getId()));
+                EditText finalNextPrice = nextPrice;
+                del.setOnClickListener(v -> {
+                    System.out.println("delete: " + v.getId());
+                    Double newValue = Double.valueOf(0);
+                    if (!(null == finalNextPrice))
+                        newValue = Double.parseDouble(finalNextPrice.getText().toString());
+                    Integer toValue = Integer.parseInt(to.getText().toString());
+                    Integer fromValue = Integer.parseInt(from.getText().toString());
+                    ratesList.update(fromValue, toValue, newValue);
+                    System.out.println("PRICE edit lost focus " + ratesList);
+                    mDayRates.get(mRateIndex).setHours(ratesList);
+                    ((PricePlanActivity)requireActivity()).updateFocusedPlan(
+                            JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
+                    updateView();
+                });
                 del.setBackgroundColor(Color.WHITE);
                 priceRow.addView(del);
                 del.setEnabled(mEdit);
@@ -381,6 +396,7 @@ public class PricePlanEditDayFragment extends Fragment {
 
                 pricesTableEntries.add(priceRow);
                 nextFrom = from;
+                nextPrice = price;
             }
             Collections.reverse(pricesTableEntries);
             for (TableRow tr: pricesTableEntries){
