@@ -60,10 +60,4 @@ public class PricePlanNavViewModel extends AndroidViewModel {
     public void updatePricePlan(PricePlan p, ArrayList<DayRate> drs) {
         toutcRepository.updatePricePlan(p, drs);
     }
-
-//    public String getFocusedPricePlanJson() {return focusedPricePlanJson;}
-//
-//    public void setFocusedPricePlanJson(String ppj) {
-//        focusedPricePlanJson = ppj;
-//    }
 }

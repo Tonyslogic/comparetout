@@ -7,14 +7,10 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.viewpager2.widget.ViewPager2;
 
-import android.text.Editable;
 import android.text.InputType;
 import android.text.TextUtils;
-import android.text.TextWatcher;
 import android.view.Gravity;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
@@ -26,7 +22,6 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
-import com.google.android.material.tabs.TabLayout;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.PricePlanNavViewModel;
@@ -42,7 +37,6 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -154,15 +148,12 @@ public class PricePlanEditDayFragment extends Fragment {
             tableRow.addView(a);
             EditText b = new EditText(getActivity());
             b.setText(mDayRates.get(mRateIndex).getStartDate());
-            b.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-                @Override
-                public void onFocusChange(View v, boolean hasFocus) {
-                    if (!hasFocus) {
-                        System.out.println("FROM edit lost focus");
-                        mDayRates.get(mRateIndex).setStartDate( ((EditText)v).getText().toString());
-                        ((PricePlanActivity)requireActivity()).updateFocusedPlan(
-                                JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
-                    }
+            b.setOnFocusChangeListener((v, hasFocus) -> {
+                if (!hasFocus) {
+                    System.out.println("FROM edit lost focus");
+                    mDayRates.get(mRateIndex).setStartDate( ((EditText)v).getText().toString());
+                    ((PricePlanActivity)requireActivity()).updateFocusedPlan(
+                            JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
                 }
             });
             b.setEnabled(mEdit);
@@ -172,15 +163,12 @@ public class PricePlanEditDayFragment extends Fragment {
             tableRow.addView(c);
             EditText d = new EditText(getActivity());
             d.setText(mDayRates.get(mRateIndex).getEndDate());
-            d.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-                @Override
-                public void onFocusChange(View v, boolean hasFocus) {
-                    if (!hasFocus) {
-                        System.out.println("TO edit lost focus");
-                        mDayRates.get(mRateIndex).setEndDate( ((EditText)v).getText().toString());
-                        ((PricePlanActivity)requireActivity()).updateFocusedPlan(
-                                JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
-                    }
+            d.setOnFocusChangeListener((v, hasFocus) -> {
+                if (!hasFocus) {
+                    System.out.println("TO edit lost focus");
+                    mDayRates.get(mRateIndex).setEndDate( ((EditText)v).getText().toString());
+                    ((PricePlanActivity)requireActivity()).updateFocusedPlan(
+                            JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
                 }
             });
             d.setEnabled(mEdit);
@@ -228,31 +216,31 @@ public class PricePlanEditDayFragment extends Fragment {
             CheckBox c1 = new CheckBox(getActivity());
             c1.setChecked(mDayRates.get(mRateIndex).getDays().ints.contains(1));
             tableRow.addView(c1);
-            c1.setOnClickListener(v -> updateDays(c1.isChecked(), Integer.valueOf(1)));
+            c1.setOnClickListener(v -> updateDays(c1.isChecked(), 1));
             CheckBox c2 = new CheckBox(getActivity());
             c2.setChecked(mDayRates.get(mRateIndex).getDays().ints.contains(2));
             tableRow.addView(c2);
-            c2.setOnClickListener(v -> updateDays(c2.isChecked(), Integer.valueOf(2)));
+            c2.setOnClickListener(v -> updateDays(c2.isChecked(), 2));
             CheckBox c3 = new CheckBox(getActivity());
             c3.setChecked(mDayRates.get(mRateIndex).getDays().ints.contains(3));
             tableRow.addView(c3);
-            c3.setOnClickListener(v -> updateDays(c3.isChecked(), Integer.valueOf(3)));
+            c3.setOnClickListener(v -> updateDays(c3.isChecked(), 3));
             CheckBox c4 = new CheckBox(getActivity());
             c4.setChecked(mDayRates.get(mRateIndex).getDays().ints.contains(4));
             tableRow.addView(c4);
-            c4.setOnClickListener(v -> updateDays(c4.isChecked(), Integer.valueOf(4)));
+            c4.setOnClickListener(v -> updateDays(c4.isChecked(), 4));
             CheckBox c5 = new CheckBox(getActivity());
             c5.setChecked(mDayRates.get(mRateIndex).getDays().ints.contains(5));
             tableRow.addView(c5);
-            c5.setOnClickListener(v -> updateDays(c5.isChecked(), Integer.valueOf(5)));
+            c5.setOnClickListener(v -> updateDays(c5.isChecked(), 5));
             CheckBox c6 = new CheckBox(getActivity());
             c6.setChecked(mDayRates.get(mRateIndex).getDays().ints.contains(6));
             tableRow.addView(c6);
-            c6.setOnClickListener(v -> updateDays(c6.isChecked(), Integer.valueOf(6)));
+            c6.setOnClickListener(v -> updateDays(c6.isChecked(), 6));
             CheckBox c7 = new CheckBox(getActivity());
             c7.setChecked(mDayRates.get(mRateIndex).getDays().ints.contains(0));
             tableRow.addView(c7);
-            c7.setOnClickListener(v -> updateDays(c7.isChecked(), Integer.valueOf(0)));
+            c7.setOnClickListener(v -> updateDays(c7.isChecked(), 0));
             c1.setEnabled(mEdit);
             c2.setEnabled(mEdit);
             c3.setEnabled(mEdit);
@@ -336,20 +324,17 @@ public class PricePlanEditDayFragment extends Fragment {
                 to.setEnabled(mEdit);
                 mEditFields.add(to);
                 EditText finalNextFrom = nextFrom;
-                to.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-                    @Override
-                    public void onFocusChange(View v, boolean hasFocus) {
-                        if (!hasFocus) {
-                            Integer newToValue = Integer.parseInt(((EditText)v).getText().toString());
-                            Integer fromValue = Integer.parseInt(from.getText().toString());
-                            Double rate = Double.parseDouble((price.getText().toString()));
-                            ratesList.update(fromValue, newToValue, rate);
-                            System.out.println("TO_HOUR edit lost focus " + ratesList);
-                            mDayRates.get(mRateIndex).setHours(ratesList);
-                            if (!(null == finalNextFrom)) finalNextFrom.setText(newToValue.toString());
-                            ((PricePlanActivity)requireActivity()).updateFocusedPlan(
-                                    JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
-                        }
+                to.setOnFocusChangeListener((v, hasFocus) -> {
+                    if (!hasFocus) {
+                        Integer newToValue = Integer.parseInt(((EditText)v).getText().toString());
+                        Integer fromValue = Integer.parseInt(from.getText().toString());
+                        Double rate = Double.parseDouble((price.getText().toString()));
+                        ratesList.update(fromValue, newToValue, rate);
+                        System.out.println("TO_HOUR edit lost focus " + ratesList);
+                        mDayRates.get(mRateIndex).setHours(ratesList);
+                        if (!(null == finalNextFrom)) finalNextFrom.setText(newToValue.toString());
+                        ((PricePlanActivity)requireActivity()).updateFocusedPlan(
+                                JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
                     }
                 });
                 priceRow.addView(to);
@@ -357,19 +342,16 @@ public class PricePlanEditDayFragment extends Fragment {
                 price.setText("" + hourlyRate.getPrice());
                 price.setEnabled(mEdit);
                 mEditFields.add(price);
-                price.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-                    @Override
-                    public void onFocusChange(View v, boolean hasFocus) {
-                        if (!hasFocus) {
-                            Double newValue = Double.parseDouble(((EditText)v).getText().toString());
-                            Integer toValue = Integer.parseInt(to.getText().toString());
-                            Integer fromValue = Integer.parseInt(from.getText().toString());
-                            ratesList.update(fromValue, toValue, newValue);
-                            System.out.println("PRICE edit lost focus " + ratesList);
-                            mDayRates.get(mRateIndex).setHours(ratesList);
-                            ((PricePlanActivity)requireActivity()).updateFocusedPlan(
-                                    JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
-                        }
+                price.setOnFocusChangeListener((v, hasFocus) -> {
+                    if (!hasFocus) {
+                        Double newValue = Double.parseDouble(((EditText)v).getText().toString());
+                        Integer toValue = Integer.parseInt(to.getText().toString());
+                        Integer fromValue = Integer.parseInt(from.getText().toString());
+                        ratesList.update(fromValue, toValue, newValue);
+                        System.out.println("PRICE edit lost focus " + ratesList);
+                        mDayRates.get(mRateIndex).setHours(ratesList);
+                        ((PricePlanActivity)requireActivity()).updateFocusedPlan(
+                                JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
                     }
                 });
                 priceRow.addView(price);
@@ -377,7 +359,7 @@ public class PricePlanEditDayFragment extends Fragment {
                 EditText finalNextPrice = nextPrice;
                 del.setOnClickListener(v -> {
                     System.out.println("delete: " + v.getId());
-                    Double newValue = Double.valueOf(0);
+                    Double newValue = (double) 0;
                     if (!(null == finalNextPrice))
                         newValue = Double.parseDouble(finalNextPrice.getText().toString());
                     Integer toValue = Integer.parseInt(to.getText().toString());

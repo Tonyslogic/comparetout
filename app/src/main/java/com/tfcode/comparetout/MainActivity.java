@@ -41,7 +41,7 @@ public class MainActivity extends AppCompatActivity {
     ViewPager2 viewPager;
     private PricePlanNavViewModel mViewModel;
 
-    ActivityResultLauncher<String> mLoadFromFile = registerForActivityResult(new ActivityResultContracts.GetContent(),
+    final ActivityResultLauncher<String> mLoadFromFile = registerForActivityResult(new ActivityResultContracts.GetContent(),
             new ActivityResultCallback<Uri>() {
                 @Override
                 public void onActivityResult(Uri uri) {
@@ -81,22 +81,19 @@ public class MainActivity extends AppCompatActivity {
           Add price plan or scenario depending on the visible fragment
          */
         FloatingActionButton fab = findViewById(R.id.addSomething);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                int pos = viewPager.getCurrentItem();
-                if (pos == 0) {
-                    Intent intent = new Intent(MainActivity.this, PricePlanActivity.class);
-                    intent.putExtra("PlanID", 0L);
-                    intent.putExtra("Edit", false);
-                    intent.putExtra("Focus", JsonTools.createSinglePricePlanJsonObject(
-                            new PricePlan(), new ArrayList<DayRate>()));
-                    startActivity(intent);
-                }
-                if (pos == 1) {
-                    Snackbar.make(view, "Here's a Snack bar", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-                }
+        fab.setOnClickListener(view -> {
+            int pos = viewPager.getCurrentItem();
+            if (pos == 0) {
+                Intent intent = new Intent(MainActivity.this, PricePlanActivity.class);
+                intent.putExtra("PlanID", 0L);
+                intent.putExtra("Edit", false);
+                intent.putExtra("Focus", JsonTools.createSinglePricePlanJsonObject(
+                        new PricePlan(), new ArrayList<>()));
+                startActivity(intent);
+            }
+            if (pos == 1) {
+                Snackbar.make(view, "Here's a Snack bar", Snackbar.LENGTH_LONG)
+                    .setAction("Action", null).show();
             }
         });
 

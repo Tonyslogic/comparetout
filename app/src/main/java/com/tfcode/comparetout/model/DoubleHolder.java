@@ -1,6 +1,6 @@
 package com.tfcode.comparetout.model;
 
-import android.widget.EditText;
+import androidx.annotation.NonNull;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -11,7 +11,7 @@ public class DoubleHolder {
 
     public DoubleHolder() {
         doubles = new ArrayList<>();
-        for (int i = 0; i <= 24; i++) doubles.add(Double.valueOf(10));
+        for (int i = 0; i <= 24; i++) doubles.add(10.0);
     }
 
     public void update(Integer fromValue, Integer toValue, Double price) {
@@ -19,6 +19,7 @@ public class DoubleHolder {
         if (toValue == 24) doubles.set(toValue, price);
     }
 
+    @NonNull
     public String toString() {
         StringBuilder sb = new StringBuilder();
         sb.append("[");

@@ -6,9 +6,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.viewpager2.widget.ViewPager2;
 
-import android.text.Editable;
 import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
@@ -19,8 +17,6 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
-import com.google.android.material.tabs.TabLayout;
-import com.google.android.material.tabs.TabLayoutMediator;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.PricePlanNavViewModel;
@@ -32,7 +28,6 @@ import com.tfcode.comparetout.model.json.JsonTools;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -66,8 +61,6 @@ public class PricePlanEditFragment extends Fragment {
     public static PricePlanEditFragment newInstance() {
         PricePlanEditFragment fragment = new PricePlanEditFragment();
         Bundle args = new Bundle();
-//        args.putString(ARG_PARAM1, param1);
-//        args.putString(ARG_PARAM2, param2);
         fragment.setArguments(args);
         return fragment;
     }
@@ -90,14 +83,7 @@ public class PricePlanEditFragment extends Fragment {
             DayRate dr = JsonTools.createDayRate(drj);
             mDayRates.add(dr);
         }
-//        if (getArguments() != null) {
-//            mParam1 = getArguments().getString(ARG_PARAM1);
-//            mParam2 = getArguments().getString(ARG_PARAM2);
-//        }
         mViewModel = new ViewModelProvider(requireActivity()).get(PricePlanNavViewModel.class);
-//        mViewModel.getAllPricePlans().observe(this, plans -> {
-//            System.out.println("Observed a change in live plans data " + plans.entrySet().size());
-//            updateView(plans);
 //        });
     }
 
@@ -112,8 +98,6 @@ public class PricePlanEditFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         mTableLayout = requireView().findViewById(R.id.planEditTable);
-//        mTableLayout.setShrinkAllColumns(true);
-//        mTableLayout.setStretchAllColumns(true);
 
 //        TabLayout tabLayout = requireActivity().findViewById(R.id.tab_layout);
 //        ViewPager2 viewPager = requireActivity().findViewById(R.id.view_plan_pager);
@@ -170,15 +154,12 @@ public class PricePlanEditFragment extends Fragment {
         EditText b = new EditText(getActivity());
         b.setText(mPricePlan.getSupplier());
         b.setEnabled(mEdit);
-        b.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                if (!hasFocus) {
-                    System.out.println("Plan supplier edit lost focus");
-                    mPricePlan.setSupplier(((EditText)v).getText().toString());
-                    ((PricePlanActivity)requireActivity()).updateFocusedPlan(
-                            JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
-                }
+        b.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                System.out.println("Plan supplier edit lost focus");
+                mPricePlan.setSupplier(((EditText)v).getText().toString());
+                ((PricePlanActivity)requireActivity()).updateFocusedPlan(
+                        JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
             }
         });
         a.setLayoutParams(planParams);
@@ -194,15 +175,12 @@ public class PricePlanEditFragment extends Fragment {
         b = new EditText(getActivity());
         b.setEnabled(mEdit);
         b.setText(mPricePlan.getPlanName());
-        b.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                if (!hasFocus) {
-                    System.out.println("Plan name edit lost focus");
-                    mPricePlan.setPlanName( ((EditText)v).getText().toString());
-                    ((PricePlanActivity)requireActivity()).updateFocusedPlan(
-                            JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
-                }
+        b.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                System.out.println("Plan name edit lost focus");
+                mPricePlan.setPlanName( ((EditText)v).getText().toString());
+                ((PricePlanActivity)requireActivity()).updateFocusedPlan(
+                        JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
             }
         });
         a.setLayoutParams(planParams);
@@ -219,15 +197,12 @@ public class PricePlanEditFragment extends Fragment {
         b.setEnabled(mEdit);
         b.setText("" + mPricePlan.getFeed());
         b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        b.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                if (!hasFocus) {
-                    System.out.println("Feed edit lost focus");
-                    mPricePlan.setFeed( Double.parseDouble(((EditText)v).getText().toString()));
-                    ((PricePlanActivity)requireActivity()).updateFocusedPlan(
-                            JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
-                }
+        b.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                System.out.println("Feed edit lost focus");
+                mPricePlan.setFeed( Double.parseDouble(((EditText)v).getText().toString()));
+                ((PricePlanActivity)requireActivity()).updateFocusedPlan(
+                        JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
             }
         });
         a.setLayoutParams(planParams);
@@ -244,15 +219,12 @@ public class PricePlanEditFragment extends Fragment {
         b.setEnabled(mEdit);
         b.setText("" + mPricePlan.getStandingCharges());
         b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        b.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                if (!hasFocus) {
-                    System.out.println("Standing charged edit lost focus");
-                    mPricePlan.setStandingCharges( Double.parseDouble(((EditText)v).getText().toString()));
-                    ((PricePlanActivity)requireActivity()).updateFocusedPlan(
-                            JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
-                }
+        b.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                System.out.println("Standing charged edit lost focus");
+                mPricePlan.setStandingCharges( Double.parseDouble(((EditText)v).getText().toString()));
+                ((PricePlanActivity)requireActivity()).updateFocusedPlan(
+                        JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
             }
         });
         a.setLayoutParams(planParams);
@@ -269,15 +241,12 @@ public class PricePlanEditFragment extends Fragment {
         b.setEnabled(mEdit);
         b.setText("" + mPricePlan.getSignUpBonus());
         b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        b.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                if (!hasFocus) {
-                    System.out.println("Bonus edit lost focus");
-                    mPricePlan.setSignUpBonus( Double.parseDouble(((EditText)v).getText().toString()));
-                    ((PricePlanActivity)requireActivity()).updateFocusedPlan(
-                            JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
-                }
+        b.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                System.out.println("Bonus edit lost focus");
+                mPricePlan.setSignUpBonus( Double.parseDouble(((EditText)v).getText().toString()));
+                ((PricePlanActivity)requireActivity()).updateFocusedPlan(
+                        JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
             }
         });
         a.setLayoutParams(planParams);
@@ -294,15 +263,12 @@ public class PricePlanEditFragment extends Fragment {
         b.setEnabled(mEdit);
         b.setText("" + mPricePlan.getLastUpdate());
         b.setInputType(InputType.TYPE_CLASS_DATETIME | InputType.TYPE_DATETIME_VARIATION_DATE);
-        b.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                if (!hasFocus) {
-                    System.out.println("Last update edit lost focus");
-                    mPricePlan.setLastUpdate( ((EditText)v).getText().toString());
-                    ((PricePlanActivity)requireActivity()).updateFocusedPlan(
-                            JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
-                }
+        b.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                System.out.println("Last update edit lost focus");
+                mPricePlan.setLastUpdate( ((EditText)v).getText().toString());
+                ((PricePlanActivity)requireActivity()).updateFocusedPlan(
+                        JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
             }
         });
         a.setLayoutParams(planParams);
@@ -319,15 +285,12 @@ public class PricePlanEditFragment extends Fragment {
         b.setEnabled(mEdit);
         b.setText(mPricePlan.getReference());
         b.setInputType(InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_IME_MULTI_LINE);
-        b.setOnFocusChangeListener(new View.OnFocusChangeListener() {
-            @Override
-            public void onFocusChange(View v, boolean hasFocus) {
-                if (!hasFocus) {
-                    System.out.println("Reference edit lost focus");
-                    mPricePlan.setReference( ((EditText)v).getText().toString());
-                    ((PricePlanActivity)requireActivity()).updateFocusedPlan(
-                            JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
-                }
+        b.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                System.out.println("Reference edit lost focus");
+                mPricePlan.setReference( ((EditText)v).getText().toString());
+                ((PricePlanActivity)requireActivity()).updateFocusedPlan(
+                        JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
             }
         });
         a.setLayoutParams(planParams);

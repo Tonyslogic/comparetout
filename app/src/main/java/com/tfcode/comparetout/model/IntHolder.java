@@ -1,7 +1,6 @@
 package com.tfcode.comparetout.model;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class IntHolder {
@@ -9,6 +8,6 @@ public class IntHolder {
 
     public IntHolder() {
         ints = new ArrayList<>();
-        for (int i = 0; i < 7; i++) ints.add(Integer.valueOf(i));
+        for (int i = 0; i < 7; i++) ints.add(i);
     }
 }
