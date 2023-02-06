@@ -17,15 +17,15 @@ public class PricePlan {
     private long id;
     @NonNull private String supplier = "<SUPPLIER>";
     @NonNull private String planName = "<PLAN>";
-    @NonNull private Double feed = 0.0;
-    @NonNull private Double standingCharges = 0.0;
-    @NonNull private Double signUpBonus = 0.0;
+    private double feed = 0.0;
+    private double standingCharges = 0.0;
+    private double signUpBonus = 0.0;
     @SuppressLint("SimpleDateFormat")
     @NonNull
     @ColumnInfo(defaultValue = "CURRENT_TIMESTAMP")
     private String lastUpdate = (new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
     @NonNull private String reference = "<REFERENCE>";
-    @NonNull private Boolean active = true;
+    private boolean active = true;
 
 
     @Override
