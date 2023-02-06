@@ -43,6 +43,8 @@ public class JsonTools {
         DoubleHolder dh = new DoubleHolder();
         dh.doubles = drj.hours;
         dr.setHours(dh);
+        if (drj.dbID == null) dr.setId(0L);
+        else dr.setId(drj.dbID);
         return dr;
     }
 
@@ -56,6 +58,7 @@ public class JsonTools {
                     drj.endDate = dr.getEndDate();
                     drj.days = (ArrayList<Integer>) dr.getDays().ints;
                     drj.hours = (ArrayList<Double>) dr.getHours().doubles;
+                    drj.dbID = dr.getId();
                     dayRateJsons.add(drj);
                 }
                 PricePlanJsonFile ppj = new PricePlanJsonFile();
@@ -83,6 +86,7 @@ public class JsonTools {
             drj.endDate = dr.getEndDate();
             drj.days = (ArrayList<Integer>) dr.getDays().ints;
             drj.hours = (ArrayList<Double>) dr.getHours().doubles;
+            drj.dbID = dr.getId();
             dayRateJsons.add(drj);
         }
         PricePlanJsonFile ppj = new PricePlanJsonFile();
@@ -96,8 +100,7 @@ public class JsonTools {
         ppj.reference = pp.getReference();
         ppj.supplier = pp.getSupplier();
 
-        Type type = new TypeToken<PricePlanJsonFile>() {
-        }.getType();
+        Type type = new TypeToken<PricePlanJsonFile>(){}.getType();
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         return gson.toJson(ppj, type);
     }

@@ -36,11 +36,19 @@ public class PricePlanViewPageAdapter extends FragmentStateAdapter {
         Map<Integer, PricePlanEditDayFragment> newDayRateFragments = new HashMap<>();
         for (int key: dayRateFragments.keySet()){
             if (key < index) newDayRateFragments.put(key, dayRateFragments.get(key));
-            else newDayRateFragments.put(key +1, dayRateFragments.get(key));
+            else newDayRateFragments.put(key + 1, dayRateFragments.get(key));
         }
+        newDayRateFragments.put(index, PricePlanEditDayFragment.newInstance(index));
         dayRateFragments = newDayRateFragments;
         mDayRateCount = mDayRateCount + 1;
         notifyDataSetChanged();
+    }
+
+    public void setEdit(boolean ed) {
+        pricePlanEditFragment.setEditMode(ed);
+        for (PricePlanEditDayFragment pricePlanEditDayFragment: dayRateFragments.values()){
+            pricePlanEditDayFragment.setEditMode(ed);
+        }
     }
 
     @Override

@@ -88,6 +88,7 @@ public abstract class PricePlanDAO {
         else {
             updatePricePlan(pp);
             System.out.println("DAO read " + getNameForPlanID(pp.getId()) + " for " + pp.getId());
+            System.out.println("DAO count of dayRates = " + drs.size());
             updateDayRate(drs);
         }
 

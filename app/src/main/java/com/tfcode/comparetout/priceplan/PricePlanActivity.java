@@ -72,7 +72,7 @@ public class PricePlanActivity extends AppCompatActivity {
                 }
                 DayRate newDayRate = new DayRate();
                 newDayRate.setPricePlanId(pricePlan.getId());
-                dayRates.add(pos, newDayRate);
+                dayRates.add(newDayRate);
 
                 focusedPlan = JsonTools.createSinglePricePlanJsonObject(pricePlan, dayRates);
                 //
@@ -145,6 +145,7 @@ public class PricePlanActivity extends AppCompatActivity {
             saveMenuItem.setVisible(true);
             item.setVisible(false);
             fab.show();
+            ((PricePlanViewPageAdapter)viewPager.getAdapter()).setEdit(true);
             return (false);
         }
         if (item.getItemId() == R.id.export_a_plan){
@@ -196,5 +197,9 @@ public class PricePlanActivity extends AppCompatActivity {
 
     public boolean getEdit() {
         return edit;
+    }
+
+    public void setEdit(boolean ed){
+        edit = ed;
     }
 }

@@ -21,4 +21,8 @@ public class DayRateJson {
     public
     String endDate;
 
+    @SerializedName("dbID")
+    public
+    Long dbID;
+
 }
