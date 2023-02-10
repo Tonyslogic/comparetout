@@ -76,6 +76,11 @@ public class PricePlanEditDayFragment extends Fragment {
         mFocus = ((PricePlanActivity) requireActivity()).getFocusedPlan();
         mEdit = ((PricePlanActivity) requireActivity()).getEdit();
         mEditFields = new ArrayList<>();
+        unpackmFocus();
+        mViewModel = new ViewModelProvider(requireActivity()).get(PricePlanNavViewModel.class);
+    }
+
+    private void unpackmFocus() {
         Type type = new TypeToken<PricePlanJsonFile>(){}.getType();
         PricePlanJsonFile ppj = new Gson().fromJson(mFocus, type);
         mPricePlan = JsonTools.createPricePlan(ppj);
@@ -84,7 +89,6 @@ public class PricePlanEditDayFragment extends Fragment {
             DayRate dr = JsonTools.createDayRate(drj);
             mDayRates.add(dr);
         }
-        mViewModel = new ViewModelProvider(requireActivity()).get(PricePlanNavViewModel.class);
     }
 
     @Override
@@ -117,9 +121,27 @@ public class PricePlanEditDayFragment extends Fragment {
     public void setEditMode(boolean ed) {
         if (!mEdit) {
             mEdit = ed;
-            for (View v : mEditFields) v.setEnabled(true);
+            if (!(null == mEditFields)) for (View v : mEditFields) v.setEnabled(true);
             PricePlanActivity ppa = ((PricePlanActivity) getActivity());
             if (!(null == ppa)) ppa.setEdit(true);
+        }
+    }
+
+    public void refreshFocus() {
+        mFocus = ((PricePlanActivity) requireActivity()).getFocusedPlan();
+        unpackmFocus();
+        updateView();
+    }
+
+    public void dayRateDeleted(Integer newPosition) {
+        System.out.println("Updating fragment index from " + mRateIndex + " to " + (newPosition -1));
+        mRateIndex = newPosition -1;
+        try {
+            mFocus = ((PricePlanActivity) requireActivity()).getFocusedPlan();
+            unpackmFocus();
+            updateView();
+        } catch (java.lang.IllegalStateException ise) {
+            System.out.println("Fragment was detached from activity");
         }
     }
 
@@ -342,6 +364,22 @@ public class PricePlanEditDayFragment extends Fragment {
                 price.setText("" + hourlyRate.getPrice());
                 price.setEnabled(mEdit);
                 mEditFields.add(price);
+//                price.addTextChangedListener(new TextWatcher() {
+//                    @Override
+//                    public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+//
+//                    }
+//
+//                    @Override
+//                    public void onTextChanged(CharSequence s, int start, int before, int count) {
+//
+//                    }
+//
+//                    @Override
+//                    public void afterTextChanged(Editable s) {
+//
+//                    }
+//                });
                 price.setOnFocusChangeListener((v, hasFocus) -> {
                     if (!hasFocus) {
                         Double newValue = Double.parseDouble(((EditText)v).getText().toString());

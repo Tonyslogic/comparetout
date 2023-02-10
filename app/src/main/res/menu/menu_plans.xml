@@ -20,8 +20,13 @@
         android:icon="@android:drawable/ic_menu_add"
         android:title="Add day rate"/>
     <item
+        android:id="@+id/del_a_day_rate"
+        app:showAsAction="ifRoom|withText"
+        android:icon="@android:drawable/ic_menu_delete"
+        android:title="Delete day rate"/>
+    <item
         android:id="@+id/save_a_plan"
         app:showAsAction="ifRoom|withText"
         android:icon="@android:drawable/ic_menu_save"
-        android:title="Save"/>
+        android:title="Save price plan"/>
 </menu>

@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 
+import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.google.gson.Gson;
@@ -89,10 +90,11 @@ public class PricePlanActivity extends AppCompatActivity {
         MenuItem saveMenuItem = menu.findItem(R.id.save_a_plan);
         MenuItem editMenuItem = menu.findItem(R.id.edit_a_plan);
         MenuItem addDayRateItem = menu.findItem((R.id.add_a_day_rate));
+        MenuItem delDayRateItem = menu.findItem((R.id.del_a_day_rate));
         if (!edit) {
             saveMenuItem.setVisible(false);
             addDayRateItem.setVisible(false);
-//            fab.hide();
+            delDayRateItem.setVisible(false);
         }
         if (edit) editMenuItem.setVisible(false);
         return super.onPrepareOptionsMenu(menu);
@@ -107,8 +109,10 @@ public class PricePlanActivity extends AppCompatActivity {
             edit = true;
             MenuItem saveMenuItem = mMenu.findItem(R.id.save_a_plan);
             saveMenuItem.setVisible(true);
-            MenuItem addDayRateItem = mMenu.findItem((R.id.add_a_day_rate));
+            MenuItem addDayRateItem = mMenu.findItem(R.id.add_a_day_rate);
             addDayRateItem.setVisible(true);
+            MenuItem delDayRateItem = mMenu.findItem(R.id.del_a_day_rate);
+            delDayRateItem.setVisible(true);
             item.setVisible(false);
             ((PricePlanViewPageAdapter)viewPager.getAdapter()).setEdit(true);
             return (false);
@@ -140,11 +144,46 @@ public class PricePlanActivity extends AppCompatActivity {
 
             return (true);
         }
+        if (item.getItemId() == R.id.del_a_day_rate) {
+            int pos = viewPager.getCurrentItem();
+            if (pos > 0) {
+                System.out.println("Deleting a dayRate @ position " + pos);
+                Type type = new TypeToken<PricePlanJsonFile>() {}.getType();
+                PricePlanJsonFile ppj = new Gson().fromJson(focusedPlan, type);
+                PricePlan pricePlan = JsonTools.createPricePlan(ppj);
+                ArrayList<DayRate> dayRates = new ArrayList<>();
+                for (DayRateJson drj : ppj.rates) {
+                    dayRates.add(JsonTools.createDayRate(drj));
+                }
+                dayRates.remove(pos - 1);
+
+                focusedPlan = JsonTools.createSinglePricePlanJsonObject(pricePlan, dayRates);
+
+//                viewPager.setCurrentItem(pos - 1);
+                ((PricePlanViewPageAdapter)viewPager.getAdapter()).delete(pos);
+
+                ppj = new Gson().fromJson(focusedPlan, type);
+                ArrayList<String> tabTitlesList = new ArrayList<>();
+                tabTitlesList.add("Plan details");
+                for (DayRateJson dr : ppj.rates) tabTitlesList.add("Rates");
+                String[] tabTitles = tabTitlesList.toArray(new String[tabTitlesList.size()]);
+                TabLayout tabLayout = findViewById(R.id.tab_layout);
+                mMediator.detach();
+                mMediator = new TabLayoutMediator(tabLayout, viewPager,
+                        (tab, position) -> tab.setText(tabTitles[position])
+                );
+                mMediator.attach();
+            }
+            else {
+                Snackbar.make(getWindow().getDecorView().getRootView(), "Try again from a RATES tab", Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
+            }
+            return true;
+        }
         if (item.getItemId() == R.id.add_a_day_rate) {
             System.out.println("Adding a dayRate");
-            int pos = viewPager.getCurrentItem();
-            Type type = new TypeToken<PricePlanJsonFile>() {
-            }.getType();
+            int pos = viewPager.getAdapter().getItemCount(); //.getCurrentItem();
+            Type type = new TypeToken<PricePlanJsonFile>() {}.getType();
             PricePlanJsonFile ppj = new Gson().fromJson(focusedPlan, type);
             PricePlan pricePlan = JsonTools.createPricePlan(ppj);
             ArrayList<DayRate> dayRates = new ArrayList<>();
