@@ -24,4 +24,6 @@
 
     <color name="green_500">#673AB7</color>
     <color name="green_700">#0B8043</color>
+    <color name="app_bar_ok">#3F51B5</color>
+    <color name="app_bar_nok">#F44336</color>
 </resources>

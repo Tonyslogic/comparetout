@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">Compare tariffs</string>
+    <string name="share">Share</string>
+    <string name="edit">Edit</string>
+    <string name="add_day_rate">Add day rate</string>
+    <string name="info">Info</string>
+    <string name="save_price_plan">Save price plan</string>
+    <string name="delete_day_rate">Delete day rate</string>
 </resources>

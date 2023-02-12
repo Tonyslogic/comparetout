@@ -1,11 +1,13 @@
 package com.tfcode.comparetout.priceplan;
 
 import android.content.Intent;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
@@ -23,6 +25,7 @@ import com.tfcode.comparetout.model.json.JsonTools;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public class PricePlanActivity extends AppCompatActivity {
@@ -36,6 +39,7 @@ public class PricePlanActivity extends AppCompatActivity {
     private Long planID = 0L;
     private String focusedPlan = "{}";
     private TabLayoutMediator mMediator;
+    private ActionBar mActionBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,8 +54,8 @@ public class PricePlanActivity extends AppCompatActivity {
         setupViewPager();
 
         mViewModel = new ViewModelProvider(this).get(PricePlanNavViewModel.class);
-        Objects.requireNonNull(getSupportActionBar()).setTitle("Price plan details");
-
+        mActionBar = Objects.requireNonNull(getSupportActionBar());
+        mActionBar.setTitle("Price plan details");
     }
 
     // PAGE ADAPTER PAGE ADAPTER PAGE ADAPTER PAGE ADAPTER PAGE ADAPTER
@@ -59,6 +63,7 @@ public class PricePlanActivity extends AppCompatActivity {
         Type type = new TypeToken<PricePlanJsonFile>(){}.getType();
         PricePlanJsonFile ppj = new Gson().fromJson(focusedPlan, type);
         int count = ppj.rates.size() + 1;
+
         viewPager.setAdapter(createPlanAdapter(count));
         viewPager.setOffscreenPageLimit(4);
         System.out.println("setupViewPager " + count + " fragments");
@@ -93,13 +98,28 @@ public class PricePlanActivity extends AppCompatActivity {
         MenuItem editMenuItem = menu.findItem(R.id.edit_a_plan);
         MenuItem addDayRateItem = menu.findItem((R.id.add_a_day_rate));
         MenuItem delDayRateItem = menu.findItem((R.id.del_a_day_rate));
+        MenuItem infoItem = menu.findItem((R.id.info));
+        infoItem.setVisible(false);
         if (!edit) {
             saveMenuItem.setVisible(false);
             addDayRateItem.setVisible(false);
             delDayRateItem.setVisible(false);
         }
         if (edit) editMenuItem.setVisible(false);
+        checkPlanValidity();
         return super.onPrepareOptionsMenu(menu);
+    }
+
+    private void checkPlanValidity() {
+        Type type = new TypeToken<PricePlanJsonFile>(){}.getType();
+        PricePlanJsonFile ppj = new Gson().fromJson(focusedPlan, type);
+        PricePlan pp = JsonTools.createPricePlan(ppj);
+        List<DayRate> drs = new ArrayList<>();
+        for (DayRateJson drj : ppj.rates){
+            DayRate dr = JsonTools.createDayRate(drj);
+            drs.add(dr);
+        }
+        setPlanValidity(pp.validatePlan(drs));
     }
 
     @Override
@@ -215,6 +235,11 @@ public class PricePlanActivity extends AppCompatActivity {
 
             return true;
         }
+        if (item.getItemId() == R.id.info) {
+            System.out.println("Rendering info");
+            Snackbar.make(getWindow().getDecorView().getRootView(), PricePlan.getInvalidReason(mPlanValidity), Snackbar.LENGTH_LONG)
+                    .setAction("Action", null).show();
+        }
         return false;
     }
 
@@ -243,14 +268,15 @@ public class PricePlanActivity extends AppCompatActivity {
         System.out.println("PPA Setting validity to: " + validityCode);
         mPlanValidity = validityCode;
         boolean valid = (mPlanValidity == PricePlan.VALID_PLAN);
-        if (edit && !valid) {
+        if (!valid) {
             // disable save & share
             MenuItem saveMenuItem = mMenu.findItem(R.id.save_a_plan);
             saveMenuItem.setEnabled(false);
             MenuItem exportDayRateItem = mMenu.findItem(R.id.export_a_plan);
             exportDayRateItem.setEnabled(false);
-            Snackbar.make(getWindow().getDecorView().getRootView(), "Problem with Price Plan " + mPlanValidity, Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show();
+            mActionBar.setBackgroundDrawable(new ColorDrawable(getColor(R.color.app_bar_nok)));
+            MenuItem infoItem = mMenu.findItem(R.id.info);
+            infoItem.setVisible(true);
         }
         if (edit && valid) {
             // enable save & share
@@ -258,6 +284,9 @@ public class PricePlanActivity extends AppCompatActivity {
             saveMenuItem.setEnabled(true);
             MenuItem exportDayRateItem = mMenu.findItem(R.id.export_a_plan);
             exportDayRateItem.setEnabled(true);
+            mActionBar.setBackgroundDrawable(new ColorDrawable(getColor(R.color.app_bar_ok)));
+            MenuItem infoItem = mMenu.findItem(R.id.info);
+            infoItem.setVisible(false);
         }
     }
 }

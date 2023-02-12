@@ -153,8 +153,10 @@ public class PricePlan {
     public static final int INVALID_PLAN_OVERLAPPING_DATE_RANGES = 3;
     public static final int INVALID_PLAN_MISSING_DATES = 4;
     public static final int INVALID_PLAN_BAD_DATE_FORMAT = 5;
-    public static final int INVALID_PLAN_NAME_IN_USE = 6; //??
+    public static final int INVALID_PLAN_NAME_IN_USE = 6;
+    public static final int INVALID_PLAN_NO_DAY_RATES = 7;
     public int validatePlan(List<DayRate> drs) {
+        if (drs.size() == 0) return INVALID_PLAN_NO_DAY_RATES;
         Map<String, Calendar[]> dtRanges = new HashMap<>();
         Map<String, List<Integer>> dtDays = new HashMap<>();
         for (DayRate dr : drs) {
@@ -208,5 +210,26 @@ public class PricePlan {
             }
         }
         return VALID_PLAN;
+    }
+
+    public static String getInvalidReason(int reasonCode) {
+        switch (reasonCode) {
+            case INVALID_PLAN_DUPLICATE_DAYS:
+                return "Conflicting days in date ranges";
+            case INVALID_PLAN_MISSING_DAYS:
+                return "At least one date range is missing a day";
+            case INVALID_PLAN_OVERLAPPING_DATE_RANGES:
+                return "Date ranges cannot overlap";
+            case INVALID_PLAN_MISSING_DATES:
+                return "The sum of date ranges does not cover the year";
+            case INVALID_PLAN_BAD_DATE_FORMAT:
+                return "A date range does not follow MM/DD";
+            case INVALID_PLAN_NAME_IN_USE:
+                return "The plan name is used by another plan";
+            case INVALID_PLAN_NO_DAY_RATES:
+                return "The plan must include at least one day rate";
+            default:
+                return "Unknown reason for invalidity";
+        }
     }
 }
