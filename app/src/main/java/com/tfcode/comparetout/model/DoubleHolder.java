@@ -5,6 +5,7 @@ import androidx.annotation.NonNull;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class DoubleHolder {
     public List<Double> doubles;
@@ -21,14 +22,6 @@ public class DoubleHolder {
 
     @NonNull
     public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("[");
-        Iterator<Double> itr = doubles.iterator();
-        while (itr.hasNext()) {
-            sb.append(itr.next().toString());
-            if (itr.hasNext()) sb.append(", ");
-        }
-        sb.append("]");
-        return sb.toString();
+        return "[" + doubles.stream().map(String::valueOf).collect(Collectors.joining(", ")) + "]";
     }
 }

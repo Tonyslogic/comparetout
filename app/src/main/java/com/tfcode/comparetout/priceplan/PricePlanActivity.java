@@ -3,8 +3,11 @@ package com.tfcode.comparetout.priceplan;
 import android.content.Intent;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.ProgressBar;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
@@ -40,6 +43,7 @@ public class PricePlanActivity extends AppCompatActivity {
     private String focusedPlan = "{}";
     private TabLayoutMediator mMediator;
     private ActionBar mActionBar;
+    private ProgressBar mProgressBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,6 +55,19 @@ public class PricePlanActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_price_plan);
         viewPager = findViewById(R.id.view_plan_pager);
+//        mProgressBar = findViewById(R.id.startup);
+//
+//        mProgressBar.setVisibility(View.VISIBLE);
+//        final Handler handler = new Handler();
+//        handler.postDelayed(new Runnable() {
+//            @Override
+//            public void run() {
+//                setupViewPager();
+//                mProgressBar.setVisibility(View.INVISIBLE);
+//            }
+//
+//        }, 5000);
+
         setupViewPager();
 
         mViewModel = new ViewModelProvider(this).get(PricePlanNavViewModel.class);

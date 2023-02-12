@@ -9,6 +9,7 @@ import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -155,15 +156,18 @@ public class PricePlan {
     public static final int INVALID_PLAN_BAD_DATE_FORMAT = 5;
     public static final int INVALID_PLAN_NAME_IN_USE = 6;
     public static final int INVALID_PLAN_NO_DAY_RATES = 7;
+    public static final int INVALID_PLAN_END_BEFORE_START = 8;
     public int validatePlan(List<DayRate> drs) {
         if (drs.size() == 0) return INVALID_PLAN_NO_DAY_RATES;
-        Map<String, Calendar[]> dtRanges = new HashMap<>();
+        Map<String, LocalDate[]> dtRanges = new HashMap<>();
         Map<String, List<Integer>> dtDays = new HashMap<>();
         for (DayRate dr : drs) {
             switch (dr.validate()) {
                 case DayRate.DR_BAD_END:
                 case DayRate.DR_BAD_START:
                     return INVALID_PLAN_BAD_DATE_FORMAT;
+                case DayRate.DR_END_BEFOR_START:
+                    return INVALID_PLAN_END_BEFORE_START;
             }
             String drKey = dr.getKey();
             dtRanges.put(drKey, dr.get2001DateRange());
@@ -176,7 +180,7 @@ public class PricePlan {
                 }
                 dtDays.put(drKey, daysSoFar);
             }
-            else dtDays.put(drKey, dr.getDays().getCopy());
+            else dtDays.put(drKey, dr.getDays().getCopyOfInts());
         }
         // Check for missing days
         List<Integer> allDays = new ArrayList<>(Arrays.asList(0,1,2,3,4,5,6));
@@ -187,9 +191,9 @@ public class PricePlan {
         }
         // Check for missing dates
         List<Integer> datesSoFar = new ArrayList<>();
-        for (Calendar[] cal: dtRanges.values()){
-            int start = cal[0].get(Calendar.DAY_OF_YEAR);
-            int end = cal[1].get(Calendar.DAY_OF_YEAR);
+        for (LocalDate[] cal: dtRanges.values()){
+            int start = cal[0].getDayOfYear();
+            int end = cal[1].getDayOfYear();
             for (int day = start; day <= end; day++){
                 if (datesSoFar.contains(day)) return INVALID_PLAN_OVERLAPPING_DATE_RANGES;
                 else datesSoFar.add(day);
@@ -228,6 +232,8 @@ public class PricePlan {
                 return "The plan name is used by another plan";
             case INVALID_PLAN_NO_DAY_RATES:
                 return "The plan must include at least one day rate";
+            case INVALID_PLAN_END_BEFORE_START:
+                return "Day rates must end after start";
             default:
                 return "Unknown reason for invalidity";
         }

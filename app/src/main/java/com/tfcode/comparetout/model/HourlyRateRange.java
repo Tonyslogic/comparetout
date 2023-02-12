@@ -1,6 +1,7 @@
 package com.tfcode.comparetout.model;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 import java.util.stream.IntStream;
@@ -35,8 +36,9 @@ public class HourlyRateRange {
 
     public DoubleHolder getDoubleHolder() {
         DoubleHolder dh = new DoubleHolder();
-        IntStream.iterate(0, i -> i + 24)
-            .forEach(i -> dh.doubles.add(lookup(i)));
+        List<Double> doubles = new ArrayList<>();
+        for (int i = 0; i < 25; i++) doubles.add(lookup(i));
+        dh.doubles = doubles;
         return dh;
     }
 
