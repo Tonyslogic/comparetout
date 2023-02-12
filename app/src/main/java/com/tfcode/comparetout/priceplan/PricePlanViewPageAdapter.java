@@ -3,7 +3,6 @@ package com.tfcode.comparetout.priceplan;
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
-import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 
 import java.util.HashMap;
@@ -97,10 +96,6 @@ public class PricePlanViewPageAdapter extends FragmentStateAdapter {
 
     @Override
     public long getItemId(int position) {
-//        System.out.println("Getting id for " + position);
-//        for (Map.Entry<Integer, Long> entry : mPos2ID.entrySet()) {
-//            System.out.println(entry.getKey() + ":" + entry.getValue().toString());
-//        }
         Long id = mPos2ID.get(position);
         if (id == null) createFragment(position);
         return mPos2ID.get(position);

@@ -10,4 +10,8 @@ public class IntHolder {
         ints = new ArrayList<>();
         for (int i = 0; i < 7; i++) ints.add(i);
     }
+
+    public List<Integer> getCopy(){
+        return new ArrayList<>(ints);
+    }
 }

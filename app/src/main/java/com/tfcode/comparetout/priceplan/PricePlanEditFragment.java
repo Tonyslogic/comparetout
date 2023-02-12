@@ -1,12 +1,6 @@
 package com.tfcode.comparetout.priceplan;
 
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-import androidx.lifecycle.ViewModelProvider;
-
 import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
@@ -16,6 +10,11 @@ import android.widget.EditText;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -27,7 +26,9 @@ import com.tfcode.comparetout.model.json.JsonTools;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -37,6 +38,7 @@ import java.util.List;
 public class PricePlanEditFragment extends Fragment {
 
     private PricePlanNavViewModel mViewModel;
+    private Set<PricePlan> mPricePlans = new HashSet<>();
     private TableLayout mTableLayout;
 
     private String mFocus;
@@ -84,7 +86,10 @@ public class PricePlanEditFragment extends Fragment {
             mDayRates.add(dr);
         }
         mViewModel = new ViewModelProvider(requireActivity()).get(PricePlanNavViewModel.class);
-//        });
+        mViewModel.getAllPricePlans().observe(this, plans -> {
+            System.out.println("PPEF Observed a change in live plans data " + plans.entrySet().size());
+            mPricePlans = plans.keySet();
+        });
     }
 
     @Override
@@ -98,19 +103,6 @@ public class PricePlanEditFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         mTableLayout = requireView().findViewById(R.id.planEditTable);
-
-//        TabLayout tabLayout = requireActivity().findViewById(R.id.tab_layout);
-//        ViewPager2 viewPager = requireActivity().findViewById(R.id.view_plan_pager);
-//        ArrayList<String> tabTitlesList = new ArrayList<>();
-//        tabTitlesList.add("Plan details");
-//        for (DayRate dr: mDayRates) tabTitlesList.add("DayRate");
-//        ((PricePlanViewPageAdapter) viewPager.getAdapter()).setDayRateCount(mDayRates.size()+1);
-//        String[] tabTitles = tabTitlesList.toArray(new String[tabTitlesList.size()]);
-//        String[] tabTitles = {"Plan details", "Day rate", "Day rate"};
-//        new TabLayoutMediator(tabLayout, viewPager,
-//                (tab, position) -> tab.setText(tabTitles[position])
-//        ).attach();
-
         updateView();
     }
 
@@ -179,8 +171,10 @@ public class PricePlanEditFragment extends Fragment {
             if (!hasFocus) {
                 System.out.println("Plan name edit lost focus");
                 mPricePlan.setPlanName( ((EditText)v).getText().toString());
-                ((PricePlanActivity)requireActivity()).updateFocusedPlan(
-                        JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
+                PricePlanActivity ppa = ((PricePlanActivity)requireActivity());
+                ppa.updateFocusedPlan(JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
+                if (!(mPricePlans == null)) ppa.setPlanValidity(mPricePlan.checkNameUsageIn(mPricePlans));
+                else System.out.println("mPricePlans is null ==> need another way to get the list of plans");
             }
         });
         a.setLayoutParams(planParams);
@@ -299,6 +293,5 @@ public class PricePlanEditFragment extends Fragment {
         tableRow.addView(b);
         mTableLayout.addView(tableRow);
         mEditFields.add(b);
-
     }
 }

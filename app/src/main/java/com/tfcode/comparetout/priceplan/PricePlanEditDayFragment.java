@@ -2,12 +2,6 @@ package com.tfcode.comparetout.priceplan;
 
 import android.graphics.Color;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-import androidx.lifecycle.ViewModelProvider;
-
 import android.text.InputType;
 import android.text.TextUtils;
 import android.view.Gravity;
@@ -21,6 +15,11 @@ import android.widget.ImageButton;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -108,6 +107,21 @@ public class PricePlanEditDayFragment extends Fragment {
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+        System.out.println("PPEDF::onResume");
+        try {
+            DayRate thisFragmentsDayRate = mDayRates.get(mRateIndex);
+            mFocus = ((PricePlanActivity) requireActivity()).getFocusedPlan();
+            unpackmFocus();
+            mDayRates.remove(mRateIndex);
+            mDayRates.add(mRateIndex, thisFragmentsDayRate);
+        } catch (IllegalStateException ise) {
+            System.out.println("Fragment " + (mRateIndex + 1) + " was detached from activity during resume");
+        }
+    }
+
+    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         System.out.println("PricePlanEditFragment.onOptionsItemSelected");
         if (item.getItemId() == R.id.edit_a_plan) {//add the function to perform here
@@ -128,9 +142,13 @@ public class PricePlanEditDayFragment extends Fragment {
     }
 
     public void refreshFocus() {
-        mFocus = ((PricePlanActivity) requireActivity()).getFocusedPlan();
-        unpackmFocus();
-        updateView();
+        try {
+            mFocus = ((PricePlanActivity) requireActivity()).getFocusedPlan();
+            unpackmFocus();
+            updateView();
+        } catch (IllegalStateException ise) {
+            System.out.println("Fragment " + (mRateIndex + 1) + " was detached from activity during refresh");
+        }
     }
 
     public void dayRateDeleted(Integer newPosition) {
@@ -141,7 +159,7 @@ public class PricePlanEditDayFragment extends Fragment {
             unpackmFocus();
             updateView();
         } catch (java.lang.IllegalStateException ise) {
-            System.out.println("Fragment was detached from activity");
+            System.out.println("Fragment " + (mRateIndex + 1) + " was detached from activity during delete");
         }
     }
 
@@ -174,8 +192,7 @@ public class PricePlanEditDayFragment extends Fragment {
                 if (!hasFocus) {
                     System.out.println("FROM edit lost focus");
                     mDayRates.get(mRateIndex).setStartDate( ((EditText)v).getText().toString());
-                    ((PricePlanActivity)requireActivity()).updateFocusedPlan(
-                            JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
+                    updateFocusAndValidate();
                 }
             });
             b.setEnabled(mEdit);
@@ -189,8 +206,7 @@ public class PricePlanEditDayFragment extends Fragment {
                 if (!hasFocus) {
                     System.out.println("TO edit lost focus");
                     mDayRates.get(mRateIndex).setEndDate( ((EditText)v).getText().toString());
-                    ((PricePlanActivity)requireActivity()).updateFocusedPlan(
-                            JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
+                    updateFocusAndValidate();
                 }
             });
             d.setEnabled(mEdit);
@@ -355,8 +371,7 @@ public class PricePlanEditDayFragment extends Fragment {
                         System.out.println("TO_HOUR edit lost focus " + ratesList);
                         mDayRates.get(mRateIndex).setHours(ratesList);
                         if (!(null == finalNextFrom)) finalNextFrom.setText(newToValue.toString());
-                        ((PricePlanActivity)requireActivity()).updateFocusedPlan(
-                                JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
+                        updateFocusAndValidate();
                     }
                 });
                 priceRow.addView(to);
@@ -388,8 +403,7 @@ public class PricePlanEditDayFragment extends Fragment {
                         ratesList.update(fromValue, toValue, newValue);
                         System.out.println("PRICE edit lost focus " + ratesList);
                         mDayRates.get(mRateIndex).setHours(ratesList);
-                        ((PricePlanActivity)requireActivity()).updateFocusedPlan(
-                                JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
+                        updateFocusAndValidate();
                     }
                 });
                 priceRow.addView(price);
@@ -405,8 +419,7 @@ public class PricePlanEditDayFragment extends Fragment {
                     ratesList.update(fromValue, toValue, newValue);
                     System.out.println("PRICE edit lost focus " + ratesList);
                     mDayRates.get(mRateIndex).setHours(ratesList);
-                    ((PricePlanActivity)requireActivity()).updateFocusedPlan(
-                            JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
+                    updateFocusAndValidate();
                     updateView();
                 });
                 del.setBackgroundColor(Color.WHITE);
@@ -472,8 +485,7 @@ public class PricePlanEditDayFragment extends Fragment {
                 ratesList.update(fromValue, toValue, buyPrice);
                 System.out.println("Adding an hourly rate " + ratesList);
                 mDayRates.get(mRateIndex).setHours(ratesList);
-                ((PricePlanActivity)requireActivity()).updateFocusedPlan(
-                        JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
+                updateFocusAndValidate();
                 updateView();
             });
             mEditFields.add(from);
@@ -500,7 +512,12 @@ public class PricePlanEditDayFragment extends Fragment {
         else {
             mDayRates.get(mRateIndex).getDays().ints.remove(integer);
         }
-        ((PricePlanActivity)requireActivity()).updateFocusedPlan(
-                JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
+        updateFocusAndValidate();
+    }
+
+    private void updateFocusAndValidate() {
+        PricePlanActivity ppa = (PricePlanActivity)requireActivity();
+        ppa.updateFocusedPlan(JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
+        ppa.setPlanValidity(mPricePlan.validatePlan(mDayRates));
     }
 }

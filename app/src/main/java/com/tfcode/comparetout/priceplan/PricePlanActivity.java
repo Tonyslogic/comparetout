@@ -32,6 +32,7 @@ public class PricePlanActivity extends AppCompatActivity {
 
     private PricePlanNavViewModel mViewModel;
     private Boolean edit = false;
+    private Integer mPlanValidity = PricePlan.VALID_PLAN;
     private Long planID = 0L;
     private String focusedPlan = "{}";
     private TabLayoutMediator mMediator;
@@ -59,6 +60,7 @@ public class PricePlanActivity extends AppCompatActivity {
         PricePlanJsonFile ppj = new Gson().fromJson(focusedPlan, type);
         int count = ppj.rates.size() + 1;
         viewPager.setAdapter(createPlanAdapter(count));
+        viewPager.setOffscreenPageLimit(4);
         System.out.println("setupViewPager " + count + " fragments");
 
         ArrayList<String> tabTitlesList = new ArrayList<>();
@@ -107,6 +109,7 @@ public class PricePlanActivity extends AppCompatActivity {
         if (item.getItemId() == R.id.edit_a_plan) {//add the function to perform here
             System.out.println("Edit attempt");
             edit = true;
+            setPlanValidity(mPlanValidity);
             MenuItem saveMenuItem = mMenu.findItem(R.id.save_a_plan);
             saveMenuItem.setVisible(true);
             MenuItem addDayRateItem = mMenu.findItem(R.id.add_a_day_rate);
@@ -234,5 +237,27 @@ public class PricePlanActivity extends AppCompatActivity {
 
     public void setEdit(boolean ed){
         edit = ed;
+    }
+
+    public void setPlanValidity(int validityCode) {
+        System.out.println("PPA Setting validity to: " + validityCode);
+        mPlanValidity = validityCode;
+        boolean valid = (mPlanValidity == PricePlan.VALID_PLAN);
+        if (edit && !valid) {
+            // disable save & share
+            MenuItem saveMenuItem = mMenu.findItem(R.id.save_a_plan);
+            saveMenuItem.setEnabled(false);
+            MenuItem exportDayRateItem = mMenu.findItem(R.id.export_a_plan);
+            exportDayRateItem.setEnabled(false);
+            Snackbar.make(getWindow().getDecorView().getRootView(), "Problem with Price Plan " + mPlanValidity, Snackbar.LENGTH_LONG)
+                    .setAction("Action", null).show();
+        }
+        if (edit && valid) {
+            // enable save & share
+            MenuItem saveMenuItem = mMenu.findItem(R.id.save_a_plan);
+            saveMenuItem.setEnabled(true);
+            MenuItem exportDayRateItem = mMenu.findItem(R.id.export_a_plan);
+            exportDayRateItem.setEnabled(true);
+        }
     }
 }
