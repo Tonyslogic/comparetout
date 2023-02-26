@@ -5,8 +5,6 @@ import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
 import java.time.LocalDate;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
 
 @Entity(tableName = "DayRates")
 public class DayRate {
@@ -75,7 +73,7 @@ public class DayRate {
     public static final int DR_OK = 0;
     public static final int DR_BAD_START = 1;
     public static final int DR_BAD_END = 2;
-    public static final int DR_END_BEFOR_START = 3;
+    public static final int DR_END_BEFORE_START = 3;
     public int validate() {
         try {
             getMonthDay(startDate);
@@ -89,7 +87,7 @@ public class DayRate {
         }
         LocalDate[] ld = get2001DateRange();
         if (ld[1].getDayOfYear() < ld[0].getDayOfYear())
-            return DR_END_BEFOR_START;
+            return DR_END_BEFORE_START;
         return DR_OK;
     }
 
@@ -101,16 +99,6 @@ public class DayRate {
         }
         return ints;
     }
-
-//    public Calendar[] get2001DateRange() {
-//        int[] dm = getMonthDay(getStartDate());
-//        Calendar start = new GregorianCalendar(2001, dm[0] - 1, dm[1]);
-//        if ((dm[0] == 2) && (dm[1] == 29)) start = new GregorianCalendar(2001, 1, 28);
-//        dm = getMonthDay(getEndDate());
-//        Calendar end = new GregorianCalendar(2001, dm[0] - 1, dm[1]);
-//        if (dm[0] == 2 && dm[1] == 29) end = new GregorianCalendar(2001,1,28);
-//        return new Calendar[]{start, end};
-//    }
 
     public LocalDate[] get2001DateRange() {
         int[] dm = getMonthDay(getStartDate());

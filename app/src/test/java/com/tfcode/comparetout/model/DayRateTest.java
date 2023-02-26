@@ -46,6 +46,6 @@ public class DayRateTest {
         // Start after end
         testObjectDefault.setStartDate("12/31");
         testObjectDefault.setEndDate("01/01");
-        assertEquals(DayRate.DR_END_BEFOR_START, testObjectDefault.validate());
+        assertEquals(DayRate.DR_END_BEFORE_START, testObjectDefault.validate());
     }
 }
