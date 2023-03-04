@@ -17,10 +17,12 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.tfcode.comparetout.model.json.scenario.ScenarioJsonFile;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.json.priceplan.DayRateJson;
+import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.priceplan.PricePlanActivity;
 import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
 
@@ -40,7 +42,7 @@ public class MainActivity extends AppCompatActivity {
     ViewPager2 viewPager;
     private PricePlanNavViewModel mViewModel;
 
-    final ActivityResultLauncher<String> mLoadFromFile = registerForActivityResult(new ActivityResultContracts.GetContent(),
+    final ActivityResultLauncher<String> mLoadPricePlansFromFile = registerForActivityResult(new ActivityResultContracts.GetContent(),
             new ActivityResultCallback<Uri>() {
                 @Override
                 public void onActivityResult(Uri uri) {
@@ -64,6 +66,31 @@ public class MainActivity extends AppCompatActivity {
                         }
                     } catch (FileNotFoundException e) {
                         e.printStackTrace();
+                    }
+                }
+            });
+
+    final ActivityResultLauncher<String> mLoadScenariosFromFile = registerForActivityResult(new ActivityResultContracts.GetContent(),
+            new ActivityResultCallback<Uri>() {
+                @Override
+                public void onActivityResult(Uri uri) {
+                    // Handle the returned Uri
+                    if (uri == null) return;
+                    InputStream is;
+                    try {
+                        is = getContentResolver().openInputStream(uri);
+                        InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
+                        Type type = new TypeToken<List<ScenarioJsonFile>>() {}.getType();
+                        List<ScenarioJsonFile> scenarioJsonFiles = new Gson().fromJson(reader, type);
+                        List<ScenarioComponents> scs = JsonTools.createScenarioComponentList(scenarioJsonFiles);
+                        for (ScenarioComponents sc : scs) {
+                            mViewModel.insertScenario(sc);
+                        }
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
+                    } catch (NullPointerException e) {
+                        Snackbar.make(viewPager.getRootView(), "File did not parse", Snackbar.LENGTH_LONG)
+                                .setAction("Action", null).show();
                     }
                 }
             });
@@ -139,39 +166,72 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
+        int pos = viewPager.getCurrentItem();
         switch(item.getItemId()) {
             case R.id.load:
                 //add the function to perform here
                 System.out.println("Import attempt");
-                mLoadFromFile.launch("*/*");
-                return(true);
+                if (pos == 0) {
+                    mLoadPricePlansFromFile.launch("*/*");
+                    return (true);
+                }
+                if (pos == 1) {
+                    mLoadScenariosFromFile.launch("*/*");
+                    return true;
+                }
+                if (pos == 2) {
+                    Snackbar.make(viewPager.getRootView(), "TODO disable file on compare tab", Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
+                    return true;
+                }
 
             case R.id.download:
                 //add the function to perform here
                 System.out.println("Download attempt");
-
-                new Thread(() -> {
-                    URL url;
-                    try {
-                        url = new URL("https://raw.githubusercontent.com/Tonyslogic/tout-compare/main/rates.json");
-                        InputStreamReader reader = new InputStreamReader(url.openStream());
-                        Type type = new TypeToken<List<PricePlanJsonFile>>() {}.getType();
-                        List<PricePlanJsonFile> ppList = new Gson().fromJson(reader, type);
-                        for (PricePlanJsonFile pp : ppList) {
-                            System.out.println(pp.plan);
-                            PricePlan p = JsonTools.createPricePlan(pp);
-                            ArrayList<DayRate> drs = new ArrayList<>();
-                            for (DayRateJson drj : pp.rates) {
-                                DayRate dr = JsonTools.createDayRate(drj);
-                                drs.add(dr);
+                if (pos == 0) {
+                    new Thread(() -> {
+                        URL url;
+                        try {
+                            url = new URL("https://raw.githubusercontent.com/Tonyslogic/tout-compare/main/rates.json");
+                            InputStreamReader reader = new InputStreamReader(url.openStream());
+                            Type type = new TypeToken<List<PricePlanJsonFile>>() {}.getType();
+                            List<PricePlanJsonFile> ppList = new Gson().fromJson(reader, type);
+                            for (PricePlanJsonFile pp : ppList) {
+                                System.out.println(pp.plan);
+                                PricePlan p = JsonTools.createPricePlan(pp);
+                                ArrayList<DayRate> drs = new ArrayList<>();
+                                for (DayRateJson drj : pp.rates) {
+                                    DayRate dr = JsonTools.createDayRate(drj);
+                                    drs.add(dr);
+                                }
+                                mViewModel.insertPricePlan(p, drs);
                             }
-                            mViewModel.insertPricePlan(p, drs);
+                        } catch (IOException e) {
+                            e.printStackTrace();
                         }
-                    } catch (IOException e) {
-                        e.printStackTrace();
+                    }).start();
+                    return(true);
+                }
+                if (pos == 1) {
+                    InputStream ins = getResources().openRawResource(
+                            getResources().getIdentifier("scenarios","raw", getPackageName()));
+                    InputStreamReader reader = new InputStreamReader(ins, StandardCharsets.UTF_8);
+                    Type type = new TypeToken<List<ScenarioJsonFile>>() {}.getType();
+                    List<ScenarioJsonFile> scenarioJsonFiles = new Gson().fromJson(reader, type);
+                    List<ScenarioComponents> scs = JsonTools.createScenarioComponentList(scenarioJsonFiles);
+                    for (ScenarioComponents sc : scs) {
+                        mViewModel.insertScenario(sc);
                     }
-                }).start();
-                return(true);
+                    Snackbar.make(viewPager.getRootView(), "TODO Scenario download", Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
+                    return(true);
+                }
+                if (pos == 2) {
+                    Snackbar.make(viewPager.getRootView(), "TODO Hide download on compare tab", Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
+                    return(true);
+                }
+
 
             case R.id.share_plans:
                 //add the function to perform here

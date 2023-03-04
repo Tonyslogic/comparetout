@@ -8,6 +8,8 @@ import androidx.lifecycle.LiveData;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.ToutcRepository;
+import com.tfcode.comparetout.model.scenario.Scenario;
+import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,12 +19,14 @@ public class PricePlanNavViewModel extends AndroidViewModel {
 
     private final ToutcRepository toutcRepository;
     private final LiveData<Map<PricePlan, List<DayRate>>> allPricePlans;
+    private final LiveData<List<Scenario>> allScenarios;
 //    private String focusedPricePlanJson = "[]";
 
     public PricePlanNavViewModel(Application application) {
         super(application);
         toutcRepository = new ToutcRepository(application);
         allPricePlans = toutcRepository.getAllPricePlans();
+        allScenarios = toutcRepository.getAllScenarios();
     }
 
     public LiveData<Map<PricePlan, List<DayRate>>> getAllPricePlans() {
@@ -59,5 +63,13 @@ public class PricePlanNavViewModel extends AndroidViewModel {
 
     public void updatePricePlan(PricePlan p, ArrayList<DayRate> drs) {
         toutcRepository.updatePricePlan(p, drs);
+    }
+
+    public void insertScenario(ScenarioComponents sc) {
+        toutcRepository.insertScenario(sc);
+    }
+
+    public LiveData<List<Scenario>> getAllScenarios() {
+        return toutcRepository.getAllScenarios();
     }
 }

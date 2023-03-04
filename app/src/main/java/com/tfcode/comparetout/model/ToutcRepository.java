@@ -6,6 +6,8 @@ import androidx.lifecycle.LiveData;
 
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
+import com.tfcode.comparetout.model.scenario.Scenario;
+import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +17,9 @@ public class ToutcRepository {
     private final PricePlanDAO pricePlanDAO;
     private final LiveData<Map<PricePlan, List<DayRate>>> allPricePlans;
 
+    private final ScenarioDAO scenarioDAO;
+    private final LiveData<List<Scenario>> allScenarios;
+
     // Note that in order to unit test the WordRepository, you have to remove the Application
     // dependency. This adds complexity and much more code, and this sample is not about testing.
     // See the BasicSample in the android-architecture-components repository at
@@ -23,6 +28,9 @@ public class ToutcRepository {
         ToutcDB db = ToutcDB.getDatabase(application);
         pricePlanDAO = db.pricePlanDAO();
         allPricePlans = pricePlanDAO.loadPricePlans();
+
+        scenarioDAO = db.sceanrioDAO();
+        allScenarios = scenarioDAO.loadScenarios();
     }
 
     // Room executes all queries on a separate thread.
@@ -66,6 +74,16 @@ public class ToutcRepository {
     }
 
     public void updatePricePlan(PricePlan pp, ArrayList<DayRate> drs) {
-        ToutcDB.databaseWriteExecutor.execute(() -> pricePlanDAO.updatePricePlanWithDayRates(pp, drs));
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                pricePlanDAO.updatePricePlanWithDayRates(pp, drs));
+    }
+
+    public void insertScenario(ScenarioComponents sc) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                scenarioDAO.addNewScenarioWithComponents(sc.scenario, sc));
+    }
+
+    public LiveData<List<Scenario>> getAllScenarios() {
+        return allScenarios;
     }
 }

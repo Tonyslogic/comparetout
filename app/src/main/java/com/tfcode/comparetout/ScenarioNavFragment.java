@@ -25,7 +25,7 @@ import java.util.List;
 
 public class ScenarioNavFragment extends Fragment {
 
-    private ScenarioNavViewModel mViewModel;
+    private PricePlanNavViewModel mViewModel;
     private TableLayout mTableLayout;
 
     public static ScenarioNavFragment newInstance() {
@@ -35,9 +35,12 @@ public class ScenarioNavFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mViewModel = new ViewModelProvider(this).get(ScenarioNavViewModel.class);
-        mViewModel.doAction();
-        // TODO: Use the ViewModel
+        mViewModel = new ViewModelProvider(this).get(PricePlanNavViewModel.class);
+//        mViewModel.doAction();
+        mViewModel.getAllScenarios().observe(this, scenarios -> {
+            System.out.println("Observed a change in live scenario data " + scenarios.size());
+            updateView(scenarios);
+        });
     }
 
     @Override
@@ -49,15 +52,27 @@ public class ScenarioNavFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
         mTableLayout = requireView().findViewById(R.id.scenarioTable);
         mTableLayout.setShrinkAllColumns(false);
         mTableLayout.setStretchAllColumns(true);
         mTableLayout.setColumnShrinkable(1, true);
         mTableLayout.setColumnStretchable(1, false);
 
-        List<Scenario> plans =mViewModel.getScenario().getValue();
-        if (plans != null) {
-            for (Scenario scenario : mViewModel.getScenario().getValue()) {
+        TabLayout tabLayout = requireActivity().findViewById(R.id.tab_layout);
+        ViewPager2 viewPager = requireActivity().findViewById(R.id.view_pager);
+
+        String[] tabTitles = {"Prices", "Scenarios", "Compare"};
+        new TabLayoutMediator(tabLayout, viewPager,
+                (tab, position) -> tab.setText(tabTitles[position])
+        ).attach();
+    }
+
+    private void updateView(List<Scenario> scenarios) {
+        mTableLayout.removeAllViews();
+
+        if (scenarios != null) {
+            for (Scenario scenario : scenarios) {
 
                 // CREATE TABLE ROW
                 TableRow tableRow;
@@ -134,13 +149,6 @@ public class ScenarioNavFragment extends Fragment {
                 // ADD TABLEROW TO TABLELAYOUT
                 mTableLayout.addView(tableRow);
             }
-            TabLayout tabLayout = requireActivity().findViewById(R.id.tab_layout);
-            ViewPager2 viewPager = requireActivity().findViewById(R.id.view_pager);
-
-            String[] tabTitles = {"Prices", "Scenarios", "Compare"};
-            new TabLayoutMediator(tabLayout, viewPager,
-                    (tab, position) -> tab.setText(tabTitles[position])
-            ).attach();
         }
     }
 
