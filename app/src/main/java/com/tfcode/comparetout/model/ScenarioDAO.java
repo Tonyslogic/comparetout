@@ -68,34 +68,34 @@ public abstract class ScenarioDAO {
     abstract long addNewEVDivert(EVDivert evDivert);
 
     @Insert
-    abstract long addNewSenario2Inverter(Scenario2Inverter scenario2Inverter);
+    abstract long addNewScenario2Inverter(Scenario2Inverter scenario2Inverter);
 
     @Insert
-    abstract long addNewSenario2Battery(Scenario2Battery scenario2Battery);
+    abstract long addNewScenario2Battery(Scenario2Battery scenario2Battery);
 
     @Insert
-    abstract long addNewSenario2Panel(Scenario2Panel scenario2Panel);
+    abstract long addNewScenario2Panel(Scenario2Panel scenario2Panel);
 
     @Insert
-    abstract long addNewSenario2HWSystem(Scenario2HWSystem scenario2HWSystem);
+    abstract long addNewScenario2HWSystem(Scenario2HWSystem scenario2HWSystem);
 
     @Insert
-    abstract long addNewSenario2LoadProfile(Scenario2LoadProfile scenario2LoadProfile);
+    abstract long addNewScenario2LoadProfile(Scenario2LoadProfile scenario2LoadProfile);
 
     @Insert
-    abstract long addNewSenario2LoasShift(Scenario2LoadShift scenario2LoadShift);
+    abstract long addNewScenario2LoadShift(Scenario2LoadShift scenario2LoadShift);
 
     @Insert
-    abstract long addNewSenario2EVCharge(Scenario2EVCharge scenario2EVCharge);
+    abstract long addNewScenario2EVCharge(Scenario2EVCharge scenario2EVCharge);
 
     @Insert
-    abstract long addNewSenario2HWSchedule(Scenario2HWSchedule scenario2HWSchedule);
+    abstract long addNewScenario2HWSchedule(Scenario2HWSchedule scenario2HWSchedule);
 
     @Insert
-    abstract long addNewSenario2HWDivert(Scenario2HWDivert scenario2HWDivert);
+    abstract long addNewScenario2HWDivert(Scenario2HWDivert scenario2HWDivert);
 
     @Insert
-    abstract long addNewSenario2EVDivert(Scenario2EVDivert scenario2EVDivert);
+    abstract long addNewScenario2EVDivert(Scenario2EVDivert scenario2EVDivert);
 
     @Transaction
     void addNewScenarioWithComponents(Scenario scenario, ScenarioComponents components) {
@@ -107,7 +107,7 @@ public abstract class ScenarioDAO {
                 Scenario2Inverter s2i = new Scenario2Inverter();
                 s2i.setScenarioID(scenarioID);
                 s2i.setInverterID(inverterID);
-                addNewSenario2Inverter(s2i);
+                addNewScenario2Inverter(s2i);
             }
         }
         if (!(null == components.batteries)) {
@@ -116,7 +116,7 @@ public abstract class ScenarioDAO {
                 Scenario2Battery s2b = new Scenario2Battery();
                 s2b.setScenarioID(scenarioID);
                 s2b.setBatteryID(batteryID);
-                addNewSenario2Battery(s2b);
+                addNewScenario2Battery(s2b);
             }
         }
         if (!(null == components.panels)) {
@@ -125,7 +125,7 @@ public abstract class ScenarioDAO {
                 Scenario2Panel s2p = new Scenario2Panel();
                 s2p.setScenarioID(scenarioID);
                 s2p.setPanelID(panelsID);
-                addNewSenario2Panel(s2p);
+                addNewScenario2Panel(s2p);
             }
         }
         if (!(null == components.hwSystem)) {
@@ -133,14 +133,14 @@ public abstract class ScenarioDAO {
             Scenario2HWSystem s2hws = new Scenario2HWSystem();
             s2hws.setScenarioID(scenarioID);
             s2hws.setHwSystemID(hwSystemID);
-            addNewSenario2HWSystem(s2hws);
+            addNewScenario2HWSystem(s2hws);
         }
         if (!(null == components.loadProfile)) {
             long loadProfileID = addNewLoadProfile(components.loadProfile);
             Scenario2LoadProfile s2lp = new Scenario2LoadProfile();
             s2lp.setScenarioID(scenarioID);
             s2lp.setLoadProfileID(loadProfileID);
-            addNewSenario2LoadProfile(s2lp);
+            addNewScenario2LoadProfile(s2lp);
         }
         if (!(null == components.loadShifts)) {
             for (LoadShift ls : components.loadShifts) {
@@ -148,7 +148,7 @@ public abstract class ScenarioDAO {
                 Scenario2LoadShift s2ls = new Scenario2LoadShift();
                 s2ls.setScenarioID(scenarioID);
                 s2ls.setLoadShiftID(loadShiftID);
-                addNewSenario2LoasShift(s2ls);
+                addNewScenario2LoadShift(s2ls);
             }
         }
         if (!(null == components.evCharges)) {
@@ -157,7 +157,7 @@ public abstract class ScenarioDAO {
                 Scenario2EVCharge s2evc = new Scenario2EVCharge();
                 s2evc.setScenarioID(scenarioID);
                 s2evc.setEvChargeID(evChargeID);
-                addNewSenario2EVCharge(s2evc);
+                addNewScenario2EVCharge(s2evc);
             }
         }
         if (!(null == components.hwSchedules)) {
@@ -166,7 +166,7 @@ public abstract class ScenarioDAO {
                 Scenario2HWSchedule s2hws = new Scenario2HWSchedule();
                 s2hws.setScenarioID(scenarioID);
                 s2hws.setHwScheduleID(hwScheduleID);
-                addNewSenario2HWSchedule(s2hws);
+                addNewScenario2HWSchedule(s2hws);
             }
         }
         if (!(null == components.hwDivert)) {
@@ -174,14 +174,14 @@ public abstract class ScenarioDAO {
             Scenario2HWDivert s2hwd = new Scenario2HWDivert();
             s2hwd.setScenarioID(scenarioID);
             s2hwd.setHwDivertID(hwDivertID);
-            addNewSenario2HWDivert(s2hwd);
+            addNewScenario2HWDivert(s2hwd);
         }
         if (!(null == components.evDivert)) {
             long evDivertID = addNewEVDivert(components.evDivert);
             Scenario2EVDivert s2evd = new Scenario2EVDivert();
             s2evd.setScenarioID(scenarioID);
             s2evd.setEvDivertID(evDivertID);
-            addNewSenario2EVDivert(s2evd);
+            addNewScenario2EVDivert(s2evd);
         }
     }
 
@@ -191,4 +191,40 @@ public abstract class ScenarioDAO {
     @Query("SELECT * FROM inverters, scenario2inverter " +
             "WHERE scenarioID = :id AND inverters.id = scenario2inverter.inverterID")
     public abstract List<Inverter> getInvertersForScenarioID (long id);
+
+    @Query("SELECT * FROM batteries, scenario2battery " +
+            "WHERE scenarioID = :id AND batteries.id = scenario2battery.batteryID")
+    public abstract List<Battery> getBatteriesForScenarioID(long id);
+
+    @Query("SELECT * FROM panels, scenario2panel " +
+            "WHERE scenarioID = :id AND panels.id = scenario2panel.panelID")
+    public abstract List<Panel> getPanelsForScenarioID(long id);
+
+    @Query("SELECT * FROM hwsystem, scenario2hwsystem " +
+            "WHERE scenarioID = :id AND hwsystem.id = scenario2hwsystem.hwSystemID")
+    public abstract HWSystem getHWSystemForScenarioID(long id);
+
+    @Query("SELECT * FROM loadprofile, scenario2loadprofile " +
+            "WHERE scenarioID = :id AND loadprofile.id = loadProfileID")
+    public abstract LoadProfile getLoadProfileForScenarioID(long id);
+
+    @Query("SELECT * FROM loadshift, scenario2loadshift " +
+            "WHERE scenarioID = :id AND loadshift.id = loadShiftID")
+    public abstract List<LoadShift> getLoadShiftsForScenarioID(long id);
+
+    @Query("SELECT * FROM evcharge, scenario2evcharge " +
+            "WHERE scenarioID = :id AND evcharge.id = evChargeID")
+    public abstract List<EVCharge> getEVChargesForScenarioID(long id);
+
+    @Query("SELECT * FROM hwschedule, scenario2hwschedule " +
+            "WHERE scenarioID = :id AND hwschedule.id = hwScheduleID")
+    public abstract List<HWSchedule> getHWSchedulesForScenarioID(long id);
+
+    @Query("SELECT * FROM hwdivert, scenario2hwdivert " +
+            "WHERE scenarioID = :id AND hwdivert.id = hwDivertID")
+    public abstract HWDivert getHWDivertForScenarioID(long id);
+
+    @Query("SELECT * FROM evdivert, scenario2evdivert " +
+            "WHERE scenarioID = :id AND evdivert.id = evDivertID")
+    public abstract EVDivert getEVDivertForScenarioID(long id);
 }
