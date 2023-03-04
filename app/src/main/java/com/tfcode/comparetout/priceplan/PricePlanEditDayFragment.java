@@ -6,6 +6,8 @@ import android.text.InputType;
 import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,6 +20,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -72,7 +75,7 @@ public class PricePlanEditDayFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setHasOptionsMenu(true);
+//        setHasOptionsMenu(true);
         mPlanID = ((PricePlanActivity) requireActivity()).getPlanID();
         mFocus = ((PricePlanActivity) requireActivity()).getFocusedPlan();
         mEdit = ((PricePlanActivity) requireActivity()).getEdit();
@@ -106,8 +109,26 @@ public class PricePlanEditDayFragment extends Fragment {
         mTableLayout.setShrinkAllColumns(true);
         mTableLayout.setStretchAllColumns(true);
         updateView();
+        setupMenu();
     }
 
+    private void setupMenu() {
+        requireActivity().addMenuProvider(new MenuProvider() {
+            @Override
+            public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {}
+
+            @Override
+            public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
+                System.out.println("PricePlanEditFragment.onOptionsItemSelected");
+                if (menuItem.getItemId() == R.id.edit_a_plan) {//add the function to perform here
+                    System.out.println("Edit attempt");
+                    setEditMode(true);
+                    return (false);
+                }
+                return true;
+            }
+        });
+    }
     @Override
     public void onResume() {
         super.onResume();
@@ -123,16 +144,16 @@ public class PricePlanEditDayFragment extends Fragment {
         }
     }
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        System.out.println("PricePlanEditFragment.onOptionsItemSelected");
-        if (item.getItemId() == R.id.edit_a_plan) {//add the function to perform here
-            System.out.println("Edit attempt");
-            setEditMode(true);
-            return (false);
-        }
-        return true;
-    }
+//    @Override
+//    public boolean onOptionsItemSelected(MenuItem item) {
+//        System.out.println("PricePlanEditFragment.onOptionsItemSelected");
+//        if (item.getItemId() == R.id.edit_a_plan) {//add the function to perform here
+//            System.out.println("Edit attempt");
+//            setEditMode(true);
+//            return (false);
+//        }
+//        return true;
+//    }
 
     public void setEditMode(boolean ed) {
         if (!mEdit) {

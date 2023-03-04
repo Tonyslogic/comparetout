@@ -1,5 +1,7 @@
 package com.tfcode.comparetout.model;
 
+import android.database.sqlite.SQLiteConstraintException;
+
 import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
 import androidx.room.Delete;
@@ -18,7 +20,7 @@ import java.util.Map;
 
 @Dao
 public abstract class PricePlanDAO {
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.ABORT)
     abstract long addNewPricePlan(PricePlan pp);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -26,11 +28,16 @@ public abstract class PricePlanDAO {
 
     @Transaction
     void addNewPricePlanWithDayRates(PricePlan pp, List<DayRate> drs) {
-        long pricePlanID = addNewPricePlan(pp);
-        for (DayRate dr : drs) {
-            dr.setId(0);
-            dr.setPricePlanId(pricePlanID);
-            addNewDayRate(dr);
+        try {
+            long pricePlanID = addNewPricePlan(pp);
+            for (DayRate dr : drs) {
+                dr.setId(0);
+                dr.setPricePlanId(pricePlanID);
+                addNewDayRate(dr);
+            }
+        }
+        catch (SQLiteConstraintException e) {
+            System.out.println("Silently ignoring a duplicate added as new");
         }
     }
 

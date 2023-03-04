@@ -6,6 +6,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
+import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
 import java.text.SimpleDateFormat;
@@ -18,12 +19,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-@Entity(tableName = "PricePlans")
+@Entity(tableName = "PricePlans", indices = {
+        @Index(value = {"supplier","planName"}, unique = true) })
 public class PricePlan {
     @PrimaryKey(autoGenerate = true)
     private long id;
-    @NonNull private String supplier = "<SUPPLIER>";
-    @NonNull private String planName = "<PLAN>";
+    @NonNull
+    @ColumnInfo(name = "supplier")
+    private String supplier = "<SUPPLIER>";
+    @NonNull
+    @ColumnInfo(name = "planName")
+    private String planName = "<PLAN>";
     private double feed = 0.0;
     private double standingCharges = 0.0;
     private double signUpBonus = 0.0;

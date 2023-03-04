@@ -3,6 +3,8 @@ package com.tfcode.comparetout.priceplan;
 import android.os.Bundle;
 import android.text.InputType;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
@@ -13,6 +15,8 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.view.MenuHost;
+import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -72,7 +76,7 @@ public class PricePlanEditFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setHasOptionsMenu(true);
+//        setHasOptionsMenu(true);
         mPlanID = ((PricePlanActivity) requireActivity()).getPlanID();
         mFocus = ((PricePlanActivity) requireActivity()).getFocusedPlan();
         mEdit = ((PricePlanActivity) requireActivity()).getEdit();
@@ -106,6 +110,33 @@ public class PricePlanEditFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         mTableLayout = requireView().findViewById(R.id.planEditTable);
         updateView();
+        setupMenu();
+    }
+
+    private void setupMenu() {
+//        MenuHost menuHost = ;
+        requireActivity().addMenuProvider(new MenuProvider() {
+            @Override
+            public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
+//                Don't inflate the menu, the activity already did this'
+//                menuInflater.inflate(R.menu.menu_plans, menu);
+            }
+
+            @Override
+            public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
+                System.out.println("PricePlanEditFragment.onOptionsItemSelected");
+                if (menuItem.getItemId() == R.id.edit_a_plan) {//add the function to perform here
+                    System.out.println("Edit attempt");
+                    if (!mEdit) {
+                        mEdit = true;
+                        for (View v : mEditFields) v.setEnabled(true);
+                        ((PricePlanActivity) requireActivity()).setEdit(true);
+                    }
+                    return false;
+                }
+                return true;
+            }
+        });
     }
 
     @Override
