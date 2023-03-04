@@ -3,10 +3,8 @@ package com.tfcode.comparetout.priceplan;
 import android.content.Intent;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
-import android.os.Handler;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 import android.widget.ProgressBar;
 
 import androidx.annotation.NonNull;
@@ -22,9 +20,11 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.PricePlanNavViewModel;
 import com.tfcode.comparetout.R;
-import com.tfcode.comparetout.model.DayRate;
-import com.tfcode.comparetout.model.PricePlan;
+import com.tfcode.comparetout.model.priceplan.DayRate;
+import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.json.JsonTools;
+import com.tfcode.comparetout.model.json.priceplan.DayRateJson;
+import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;

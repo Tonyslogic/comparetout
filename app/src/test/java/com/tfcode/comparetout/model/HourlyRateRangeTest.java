@@ -2,6 +2,9 @@ package com.tfcode.comparetout.model;
 
 import static org.junit.Assert.*;
 
+import com.tfcode.comparetout.model.priceplan.DoubleHolder;
+import com.tfcode.comparetout.model.priceplan.HourlyRateRange;
+
 import org.junit.Before;
 import org.junit.Test;
 

@@ -12,18 +12,17 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.tfcode.comparetout.model.DayRate;
-import com.tfcode.comparetout.model.PricePlan;
+import com.tfcode.comparetout.model.priceplan.DayRate;
+import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.json.JsonTools;
-import com.tfcode.comparetout.priceplan.DayRateJson;
+import com.tfcode.comparetout.model.json.priceplan.DayRateJson;
 import com.tfcode.comparetout.priceplan.PricePlanActivity;
-import com.tfcode.comparetout.priceplan.PricePlanJsonFile;
+import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;

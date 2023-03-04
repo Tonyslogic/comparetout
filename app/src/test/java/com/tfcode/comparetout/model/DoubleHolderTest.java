@@ -2,6 +2,8 @@ package com.tfcode.comparetout.model;
 
 import static org.junit.Assert.*;
 
+import com.tfcode.comparetout.model.priceplan.DoubleHolder;
+
 import org.junit.Test;
 
 public class DoubleHolderTest {

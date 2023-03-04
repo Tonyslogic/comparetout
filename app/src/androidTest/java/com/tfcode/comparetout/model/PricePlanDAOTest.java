@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.Intent;
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule;
-import androidx.lifecycle.LiveData;
 import androidx.room.Room;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -14,8 +13,10 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.model.json.JsonTools;
-import com.tfcode.comparetout.priceplan.DayRateJson;
-import com.tfcode.comparetout.priceplan.PricePlanJsonFile;
+import com.tfcode.comparetout.model.json.priceplan.DayRateJson;
+import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
+import com.tfcode.comparetout.model.priceplan.DayRate;
+import com.tfcode.comparetout.model.priceplan.PricePlan;
 
 import org.junit.After;
 import org.junit.Before;
@@ -27,8 +28,6 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 @RunWith(AndroidJUnit4.class)
 public class PricePlanDAOTest {

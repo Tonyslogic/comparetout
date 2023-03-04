@@ -5,8 +5,8 @@ import android.app.Application;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 
-import com.tfcode.comparetout.model.DayRate;
-import com.tfcode.comparetout.model.PricePlan;
+import com.tfcode.comparetout.model.priceplan.DayRate;
+import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.ToutcRepository;
 
 import java.util.ArrayList;

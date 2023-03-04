@@ -9,6 +9,9 @@ import androidx.room.Query;
 import androidx.room.Transaction;
 import androidx.room.Upsert;
 
+import com.tfcode.comparetout.model.priceplan.DayRate;
+import com.tfcode.comparetout.model.priceplan.PricePlan;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

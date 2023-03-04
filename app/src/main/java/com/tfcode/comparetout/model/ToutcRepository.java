@@ -4,6 +4,9 @@ import android.app.Application;
 
 import androidx.lifecycle.LiveData;
 
+import com.tfcode.comparetout.model.priceplan.DayRate;
+import com.tfcode.comparetout.model.priceplan.PricePlan;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
