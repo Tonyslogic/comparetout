@@ -4,11 +4,10 @@ import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
 import androidx.room.Insert;
 import androidx.room.Query;
+import androidx.room.RewriteQueriesToDropUnusedColumns;
 import androidx.room.Transaction;
 import androidx.room.Update;
-import androidx.room.Upsert;
 
-import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.EVCharge;
 import com.tfcode.comparetout.model.scenario.EVDivert;
@@ -71,34 +70,34 @@ public abstract class ScenarioDAO {
     abstract long addNewEVDivert(EVDivert evDivert);
 
     @Insert
-    abstract long addNewScenario2Inverter(Scenario2Inverter scenario2Inverter);
+    abstract void addNewScenario2Inverter(Scenario2Inverter scenario2Inverter);
 
     @Insert
-    abstract long addNewScenario2Battery(Scenario2Battery scenario2Battery);
+    abstract void addNewScenario2Battery(Scenario2Battery scenario2Battery);
 
     @Insert
-    abstract long addNewScenario2Panel(Scenario2Panel scenario2Panel);
+    abstract void addNewScenario2Panel(Scenario2Panel scenario2Panel);
 
     @Insert
-    abstract long addNewScenario2HWSystem(Scenario2HWSystem scenario2HWSystem);
+    abstract void addNewScenario2HWSystem(Scenario2HWSystem scenario2HWSystem);
 
     @Insert
-    abstract long addNewScenario2LoadProfile(Scenario2LoadProfile scenario2LoadProfile);
+    abstract void addNewScenario2LoadProfile(Scenario2LoadProfile scenario2LoadProfile);
 
     @Insert
-    abstract long addNewScenario2LoadShift(Scenario2LoadShift scenario2LoadShift);
+    abstract void addNewScenario2LoadShift(Scenario2LoadShift scenario2LoadShift);
 
     @Insert
-    abstract long addNewScenario2EVCharge(Scenario2EVCharge scenario2EVCharge);
+    abstract void addNewScenario2EVCharge(Scenario2EVCharge scenario2EVCharge);
 
     @Insert
-    abstract long addNewScenario2HWSchedule(Scenario2HWSchedule scenario2HWSchedule);
+    abstract void addNewScenario2HWSchedule(Scenario2HWSchedule scenario2HWSchedule);
 
     @Insert
-    abstract long addNewScenario2HWDivert(Scenario2HWDivert scenario2HWDivert);
+    abstract void addNewScenario2HWDivert(Scenario2HWDivert scenario2HWDivert);
 
     @Insert
-    abstract long addNewScenario2EVDivert(Scenario2EVDivert scenario2EVDivert);
+    abstract void addNewScenario2EVDivert(Scenario2EVDivert scenario2EVDivert);
 
     @Update(entity = Scenario.class)
     public abstract void updateScenario(Scenario scenario);
@@ -216,41 +215,51 @@ public abstract class ScenarioDAO {
 
     @Query("SELECT * FROM inverters, scenario2inverter " +
             "WHERE scenarioID = :id AND inverters.id = scenario2inverter.inverterID")
+    @RewriteQueriesToDropUnusedColumns
     public abstract List<Inverter> getInvertersForScenarioID (long id);
 
     @Query("SELECT * FROM batteries, scenario2battery " +
             "WHERE scenarioID = :id AND batteries.id = scenario2battery.batteryID")
+    @RewriteQueriesToDropUnusedColumns
     public abstract List<Battery> getBatteriesForScenarioID(long id);
 
     @Query("SELECT * FROM panels, scenario2panel " +
             "WHERE scenarioID = :id AND panels.id = scenario2panel.panelID")
+    @RewriteQueriesToDropUnusedColumns
     public abstract List<Panel> getPanelsForScenarioID(long id);
 
     @Query("SELECT * FROM hwsystem, scenario2hwsystem " +
             "WHERE scenarioID = :id AND hwsystem.id = scenario2hwsystem.hwSystemID")
+    @RewriteQueriesToDropUnusedColumns
     public abstract HWSystem getHWSystemForScenarioID(long id);
 
     @Query("SELECT * FROM loadprofile, scenario2loadprofile " +
             "WHERE scenarioID = :id AND loadprofile.id = loadProfileID")
+    @RewriteQueriesToDropUnusedColumns
     public abstract LoadProfile getLoadProfileForScenarioID(long id);
 
     @Query("SELECT * FROM loadshift, scenario2loadshift " +
             "WHERE scenarioID = :id AND loadshift.id = loadShiftID")
+    @RewriteQueriesToDropUnusedColumns
     public abstract List<LoadShift> getLoadShiftsForScenarioID(long id);
 
     @Query("SELECT * FROM evcharge, scenario2evcharge " +
             "WHERE scenarioID = :id AND evcharge.id = evChargeID")
+    @RewriteQueriesToDropUnusedColumns
     public abstract List<EVCharge> getEVChargesForScenarioID(long id);
 
     @Query("SELECT * FROM hwschedule, scenario2hwschedule " +
             "WHERE scenarioID = :id AND hwschedule.id = hwScheduleID")
+    @RewriteQueriesToDropUnusedColumns
     public abstract List<HWSchedule> getHWSchedulesForScenarioID(long id);
 
     @Query("SELECT * FROM hwdivert, scenario2hwdivert " +
             "WHERE scenarioID = :id AND hwdivert.id = hwDivertID")
+    @RewriteQueriesToDropUnusedColumns
     public abstract HWDivert getHWDivertForScenarioID(long id);
 
     @Query("SELECT * FROM evdivert, scenario2evdivert " +
             "WHERE scenarioID = :id AND evdivert.id = evDivertID")
+    @RewriteQueriesToDropUnusedColumns
     public abstract EVDivert getEVDivertForScenarioID(long id);
 }
