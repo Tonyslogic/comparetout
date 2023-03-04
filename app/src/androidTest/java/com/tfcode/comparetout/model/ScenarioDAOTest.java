@@ -41,6 +41,7 @@ import org.junit.runner.RunWith;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @RunWith(AndroidJUnit4.class)
@@ -92,9 +93,20 @@ public class ScenarioDAOTest {
                 evDivert);
         ArrayList<ScenarioComponents> fromDBList = new ArrayList<>();
         fromDBList.add(fromDB);
-        String string = JsonTools.createScenarioList(fromDBList);
-        String after = testData.replaceAll("\t", "");
-        assertEquals(after, string);
+
+        // Cannot rely on json order -- need to remove commas, split and sort, then compare
+        String outString = JsonTools.createScenarioList(fromDBList).replaceAll(",","");
+        String[] outStingArray = outString.split("\n");
+        Arrays.sort(outStingArray);
+
+        // The original also needs to have whitespace removed
+        String inString = testData.replaceAll("\t", "").replaceAll(",", "");
+        String[] inStringArray = inString.split("\n");
+        Arrays.sort(inStringArray);
+
+        for (int index = 0; index < outStingArray.length; index++){
+            assertEquals(inStringArray[index], outStingArray[index]);
+        }
     }
 
     @Test
