@@ -1,15 +1,7 @@
 package com.tfcode.comparetout;
 
-import androidx.lifecycle.ViewModelProvider;
-
 import android.graphics.Color;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-import androidx.viewpager2.widget.ViewPager2;
-
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -19,11 +11,17 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.viewpager2.widget.ViewPager2;
+
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
+import com.tfcode.comparetout.model.scenario.Scenario;
 
 import java.util.List;
-import java.util.Objects;
 
 public class ScenarioNavFragment extends Fragment {
 
@@ -104,15 +102,15 @@ public class ScenarioNavFragment extends Fragment {
 
                 // SET TEXTVIEW TEXT
 
-                b.setText(scenario.name);
+                b.setText(scenario.getScenarioName());
                 c.setImageResource(android.R.drawable.ic_menu_delete);
                 d.setImageResource(R.drawable.ic_menu_copy);
                 e.setImageResource(android.R.drawable.ic_menu_view);
 
-                a.setId(scenario.id);
-                c.setId(scenario.id);
-                d.setId(scenario.id);
-                e.setId(scenario.id);
+                a.setId((int) scenario.getId());
+                c.setId((int) scenario.getId());
+                d.setId((int) scenario.getId());
+                e.setId((int) scenario.getId());
 
                 a.setOnClickListener(v -> System.out.println("Select for comparison: " + v.getId()));
 

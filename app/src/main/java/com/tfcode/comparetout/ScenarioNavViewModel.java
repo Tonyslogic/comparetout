@@ -7,6 +7,8 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
 
+import com.tfcode.comparetout.model.scenario.Scenario;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,16 +28,16 @@ public class ScenarioNavViewModel extends AndroidViewModel {
         List<Scenario> scenarios = liveData.getValue();
         if (scenarios == null) scenarios = new ArrayList<>();
         Scenario newScenario = new Scenario();
-        newScenario.id = 0;
-        newScenario.name = "Default";
+        newScenario.setId(0);
+        newScenario.setScenarioName("Default");
         scenarios.add(newScenario);
         newScenario = new Scenario();
-        newScenario.id = 1;
-        newScenario.name = "Loadshift";
+        newScenario.setId(1);
+        newScenario.setScenarioName("Loadshift");
         scenarios.add(newScenario);
         newScenario = new Scenario();
-        newScenario.id = 2;
-        newScenario.name = "EVDiversion";
+        newScenario.setId(2);
+        newScenario.setScenarioName("EVDiversion");
         scenarios.add(newScenario);
         liveData.setValue(scenarios);
     }
