@@ -99,11 +99,19 @@ public abstract class ScenarioDAO {
     @Insert
     abstract void addNewScenario2EVDivert(Scenario2EVDivert scenario2EVDivert);
 
-    @Update(entity = Scenario.class)
-    public abstract void updateScenario(Scenario scenario);
-
     @Transaction
     void addNewScenarioWithComponents(Scenario scenario, ScenarioComponents components) {
+        if (!(null == components.inverters)) scenario.setHasInverters(true);
+        if (!(null == components.batteries)) scenario.setHasBatteries(true);
+        if (!(null == components.panels)) scenario.setHasPanels(true);
+        if (!(null == components.hwSystem)) scenario.setHasHWSystem(true);
+        if (!(null == components.loadProfile)) scenario.setHasLoadProfiles(true);
+        if (!(null == components.loadShifts)) scenario.setHasLoadShifts(true);
+        if (!(null == components.evCharges)) scenario.setHasEVCharges(true);
+        if (!(null == components.hwSchedules)) scenario.setHasHWSchedules(true);
+        if (!(null == components.hwDivert)) scenario.setHasHWDivert(true);
+        if (!(null == components.evDivert)) scenario.setHasEVDivert(true);
+
         long scenarioID = addNewSceanrio(scenario);
         if (!(null == components.inverters)) {
             for (Inverter i : components.inverters) {
@@ -113,8 +121,8 @@ public abstract class ScenarioDAO {
                 s2i.setScenarioID(scenarioID);
                 s2i.setInverterID(inverterID);
                 addNewScenario2Inverter(s2i);
-                scenario.setHasInverters(true);
-                updateScenario(scenario);
+//                scenario.setHasInverters(true);
+//                updateScenario(scenario);
             }
         }
         if (!(null == components.batteries)) {
@@ -124,8 +132,6 @@ public abstract class ScenarioDAO {
                 s2b.setScenarioID(scenarioID);
                 s2b.setBatteryID(batteryID);
                 addNewScenario2Battery(s2b);
-                scenario.setHasBatteries(true);
-                updateScenario(scenario);
             }
         }
         if (!(null == components.panels)) {
@@ -135,8 +141,6 @@ public abstract class ScenarioDAO {
                 s2p.setScenarioID(scenarioID);
                 s2p.setPanelID(panelsID);
                 addNewScenario2Panel(s2p);
-                scenario.setHasPanels(true);
-                updateScenario(scenario);
             }
         }
         if (!(null == components.hwSystem)) {
@@ -145,8 +149,6 @@ public abstract class ScenarioDAO {
             s2hws.setScenarioID(scenarioID);
             s2hws.setHwSystemID(hwSystemID);
             addNewScenario2HWSystem(s2hws);
-            scenario.setHasHWSystem(true);
-            updateScenario(scenario);
         }
         if (!(null == components.loadProfile)) {
             long loadProfileID = addNewLoadProfile(components.loadProfile);
@@ -154,8 +156,6 @@ public abstract class ScenarioDAO {
             s2lp.setScenarioID(scenarioID);
             s2lp.setLoadProfileID(loadProfileID);
             addNewScenario2LoadProfile(s2lp);
-            scenario.setHasLoadProfiles(true);
-            updateScenario(scenario);
         }
         if (!(null == components.loadShifts)) {
             for (LoadShift ls : components.loadShifts) {
@@ -164,8 +164,6 @@ public abstract class ScenarioDAO {
                 s2ls.setScenarioID(scenarioID);
                 s2ls.setLoadShiftID(loadShiftID);
                 addNewScenario2LoadShift(s2ls);
-                scenario.setHasLoadShifts(true);
-                updateScenario(scenario);
             }
         }
         if (!(null == components.evCharges)) {
@@ -175,8 +173,6 @@ public abstract class ScenarioDAO {
                 s2evc.setScenarioID(scenarioID);
                 s2evc.setEvChargeID(evChargeID);
                 addNewScenario2EVCharge(s2evc);
-                scenario.setHasEVCharges(true);
-                updateScenario(scenario);
             }
         }
         if (!(null == components.hwSchedules)) {
@@ -186,8 +182,6 @@ public abstract class ScenarioDAO {
                 s2hws.setScenarioID(scenarioID);
                 s2hws.setHwScheduleID(hwScheduleID);
                 addNewScenario2HWSchedule(s2hws);
-                scenario.setHasHWSchedules(true);
-                updateScenario(scenario);
             }
         }
         if (!(null == components.hwDivert)) {
@@ -196,8 +190,6 @@ public abstract class ScenarioDAO {
             s2hwd.setScenarioID(scenarioID);
             s2hwd.setHwDivertID(hwDivertID);
             addNewScenario2HWDivert(s2hwd);
-            scenario.setHasHWDivert(true);
-            updateScenario(scenario);
         }
         if (!(null == components.evDivert)) {
             long evDivertID = addNewEVDivert(components.evDivert);
@@ -205,8 +197,6 @@ public abstract class ScenarioDAO {
             s2evd.setScenarioID(scenarioID);
             s2evd.setEvDivertID(evDivertID);
             addNewScenario2EVDivert(s2evd);
-            scenario.setHasEVDivert(true);
-            updateScenario(scenario);
         }
     }
 

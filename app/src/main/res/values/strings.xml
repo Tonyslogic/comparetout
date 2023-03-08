@@ -6,4 +6,6 @@
     <string name="info">Info</string>
     <string name="save_price_plan">Save price plan</string>
     <string name="delete_day_rate">Delete day rate</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 </resources>

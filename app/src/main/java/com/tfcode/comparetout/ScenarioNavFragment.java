@@ -1,5 +1,6 @@
 package com.tfcode.comparetout;
 
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -19,7 +20,10 @@ import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
+import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.scenario.Scenario;
+import com.tfcode.comparetout.priceplan.PricePlanActivity;
+import com.tfcode.comparetout.scenario.ScenarioActivity;
 
 import java.util.List;
 
@@ -136,7 +140,12 @@ public class ScenarioNavFragment extends Fragment {
 
                 d.setOnClickListener(v -> System.out.println("Copy/Add: " + v.getId()));
 
-                e.setOnClickListener(v -> System.out.println("View: " + v.getId()));
+                e.setOnClickListener(v -> {
+                    System.out.println("View: " + v.getId());
+                    Intent intent = new Intent(getActivity(), ScenarioActivity.class);
+                    intent.putExtra("ScenarioID", Long.valueOf(v.getId()));
+                    startActivity(intent);
+                });
 
                 // ADD TEXTVIEW TO TABLEROW
 

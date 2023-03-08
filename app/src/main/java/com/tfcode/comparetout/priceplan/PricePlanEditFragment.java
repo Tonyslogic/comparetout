@@ -139,20 +139,20 @@ public class PricePlanEditFragment extends Fragment {
         });
     }
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        System.out.println("PricePlanEditFragment.onOptionsItemSelected");
-        if (item.getItemId() == R.id.edit_a_plan) {//add the function to perform here
-            System.out.println("Edit attempt");
-            if (!mEdit) {
-                mEdit = true;
-                for (View v : mEditFields) v.setEnabled(true);
-                ((PricePlanActivity) requireActivity()).setEdit(true);
-            }
-            return false;
-        }
-        return true;
-    }
+//    @Override
+//    public boolean onOptionsItemSelected(MenuItem item) {
+//        System.out.println("PricePlanEditFragment.onOptionsItemSelected");
+//        if (item.getItemId() == R.id.edit_a_plan) {//add the function to perform here
+//            System.out.println("Edit attempt");
+//            if (!mEdit) {
+//                mEdit = true;
+//                for (View v : mEditFields) v.setEnabled(true);
+//                ((PricePlanActivity) requireActivity()).setEdit(true);
+//            }
+//            return false;
+//        }
+//        return true;
+//    }
 
     public void setEditMode(boolean ed) {
         if (!mEdit) {
