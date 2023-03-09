@@ -25,6 +25,7 @@ import com.tfcode.comparetout.model.json.priceplan.DayRateJson;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.priceplan.PricePlanActivity;
 import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
+import com.tfcode.comparetout.scenario.ScenarioActivity;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -118,8 +119,12 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(intent);
             }
             if (pos == 1) {
-                Snackbar.make(view, "Here's a Snack bar", Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show();
+                Intent intent = new Intent(MainActivity.this, ScenarioActivity.class);
+                intent.putExtra("ScenarioID", 0L);
+                intent.putExtra("Edit", true);
+                startActivity(intent);
+//                Snackbar.make(view, "Here's a Snack bar", Snackbar.LENGTH_LONG)
+//                    .setAction("Action", null).show();
             }
         });
 

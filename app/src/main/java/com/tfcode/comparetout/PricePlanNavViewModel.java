@@ -72,4 +72,8 @@ public class PricePlanNavViewModel extends AndroidViewModel {
     public LiveData<List<Scenario>> getAllScenarios() {
         return toutcRepository.getAllScenarios();
     }
+
+    public void updateScenario(Scenario scenario) {
+        toutcRepository.updateScenario(scenario);
+    }
 }

@@ -86,4 +86,9 @@ public class ToutcRepository {
     public LiveData<List<Scenario>> getAllScenarios() {
         return allScenarios;
     }
+
+    public void updateScenario(Scenario scenario) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                scenarioDAO.updateScenario(scenario));
+    }
 }

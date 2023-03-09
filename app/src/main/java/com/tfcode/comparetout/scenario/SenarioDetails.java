@@ -17,6 +17,8 @@ import com.tfcode.comparetout.R;
  */
 public class SenarioDetails extends Fragment {
 
+    private boolean mEdit = false;
+
     public SenarioDetails() {
         // Required empty public constructor
     }
@@ -36,5 +38,14 @@ public class SenarioDetails extends Fragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_senario_details, container, false);
+    }
+
+    public void setEditMode(boolean ed) {
+        if (!mEdit) {
+            mEdit = ed;
+//            if (!(null == mEditFields)) for (View v : mEditFields) v.setEnabled(true);
+            ScenarioActivity ppa = ((ScenarioActivity) getActivity());
+            if (!(null == ppa)) ppa.setEdit();
+        }
     }
 }

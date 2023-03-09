@@ -1,0 +1,26 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".scenario.ScenarioActivity">
+
+    <item
+        android:id="@+id/edit_scenario"
+        app:showAsAction="ifRoom|withText"
+        android:icon="@android:drawable/ic_menu_edit"
+        android:title="Edit"/>
+    <item
+        android:id="@+id/share_scenario"
+        app:showAsAction="ifRoom|withText"
+        android:icon="@android:drawable/ic_menu_share"
+        android:title="Export"/>
+    <item
+        android:id="@+id/info_scenario"
+        app:showAsAction="always"
+        android:icon="@android:drawable/ic_menu_info_details"
+        android:title="@string/info"/>
+    <item
+        android:id="@+id/save_scenario"
+        app:showAsAction="ifRoom|withText"
+        android:icon="@android:drawable/ic_menu_save"
+        android:title="@string/save_price_plan"/>
+</menu>

@@ -5,6 +5,8 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 
+import com.tfcode.comparetout.priceplan.PricePlanEditDayFragment;
+
 public class ScenarioViewPageAdapter extends FragmentStateAdapter {
     ScenarioOverview mScenarioOverview = ScenarioOverview.newInstance();
     SenarioDetails mScenarioDetails = SenarioDetails.newInstance();
@@ -22,5 +24,11 @@ public class ScenarioViewPageAdapter extends FragmentStateAdapter {
     @Override
     public int getItemCount() {
         return 2;
+    }
+
+
+    public void setEdit(boolean ed) {
+        mScenarioOverview.setEditMode(ed);
+        mScenarioDetails.setEditMode(ed);
     }
 }

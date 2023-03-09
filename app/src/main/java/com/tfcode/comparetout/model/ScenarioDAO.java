@@ -7,6 +7,7 @@ import androidx.room.Query;
 import androidx.room.RewriteQueriesToDropUnusedColumns;
 import androidx.room.Transaction;
 import androidx.room.Update;
+import androidx.room.Upsert;
 
 import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.EVCharge;
@@ -252,4 +253,7 @@ public abstract class ScenarioDAO {
             "WHERE scenarioID = :id AND evdivert.id = evDivertID")
     @RewriteQueriesToDropUnusedColumns
     public abstract EVDivert getEVDivertForScenarioID(long id);
+
+    @Update (entity = Scenario.class)
+    public abstract void updateScenario(Scenario scenario);
 }
