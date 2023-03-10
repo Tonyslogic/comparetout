@@ -5,12 +5,14 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.widget.PopupMenu;
 import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -22,6 +24,7 @@ import android.widget.ImageButton;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.tfcode.comparetout.PricePlanNavViewModel;
@@ -29,6 +32,8 @@ import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Objects;
 
@@ -43,8 +48,6 @@ public class ScenarioOverview extends Fragment {
     private ImageButton mBatteryButton;
     private ImageButton mTankButton;
     private ImageButton mCarButton;
-    private ImageButton mClockButton;
-    private ImageButton mDivertButton;
     private TableLayout mTableLayout;
     private Long mScenarioID;
     private Scenario mScenario;
@@ -65,6 +68,7 @@ public class ScenarioOverview extends Fragment {
         super.onCreate(savedInstanceState);
         mScenarioID = ((ScenarioActivity) requireActivity()).getScenarioID();
         mEdit = ((ScenarioActivity) requireActivity()).getEdit();
+        if (mEdit) ((ScenarioActivity) requireActivity()).setSaveNeeded(true);
 
         mViewModel = new ViewModelProvider(requireActivity()).get(PricePlanNavViewModel.class);
         mViewModel.getAllScenarios().observe(this, scenarios -> {
@@ -137,6 +141,7 @@ public class ScenarioOverview extends Fragment {
                     else {
                         mViewModel.updateScenario(mScenario);
                     }
+                    ((ScenarioActivity) requireActivity()).setSaveNeeded(false);
                     return (false);
                 }
                 return true;
@@ -157,10 +162,132 @@ public class ScenarioOverview extends Fragment {
         mInverterButton = requireView().findViewById(R.id.inverterButton);
         mHouseButton = requireView().findViewById(R.id.houseButton);
         mBatteryButton = requireView().findViewById(R.id.batteryButton);
+        mBatteryButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //Creating the instance of PopupMenu
+                PopupMenu popup = new PopupMenu(requireActivity(), mCarButton, Gravity.CENTER_HORIZONTAL);
+                //Inflating the Popup using xml file
+                popup.getMenuInflater()
+                        .inflate(R.menu.popup_menu_scenario, popup.getMenu());
+                MenuItem divertMenuItem = popup.getMenu().findItem(R.id.divert);
+                divertMenuItem.setVisible(false);
+
+                //registering popup with OnMenuItemClickListener
+                popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                    public boolean onMenuItemClick(MenuItem item) {
+                        Toast.makeText(
+                                requireActivity(),
+                                "You Clicked : " + item.getTitle(),
+                                Toast.LENGTH_SHORT
+                        ).show();
+                        return true;
+                    }
+                });
+                try {
+                    Field[] fields = popup.getClass().getDeclaredFields();
+                    for (Field field : fields) {
+                        if ("mPopup".equals(field.getName())) {
+                            field.setAccessible(true);
+                            Object menuPopupHelper = field.get(popup);
+                            Class<?> classPopupHelper = Class.forName(menuPopupHelper
+                                    .getClass().getName());
+                            Method setForceIcons = classPopupHelper.getMethod(
+                                    "setForceShowIcon", boolean.class);
+                            setForceIcons.invoke(menuPopupHelper, true);
+                            break;
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                popup.show(); //showing popup menu
+            }
+        }); //closing the setOnClickListener method
         mTankButton = requireView().findViewById(R.id.tankButton);
+        mTankButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //Creating the instance of PopupMenu
+                PopupMenu popup = new PopupMenu(requireActivity(), mCarButton);
+                //Inflating the Popup using xml file
+                popup.getMenuInflater()
+                        .inflate(R.menu.popup_menu_scenario, popup.getMenu());
+
+                //registering popup with OnMenuItemClickListener
+                popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                    public boolean onMenuItemClick(MenuItem item) {
+                        Toast.makeText(
+                                requireActivity(),
+                                "You Clicked : " + item.getTitle(),
+                                Toast.LENGTH_SHORT
+                        ).show();
+                        return true;
+                    }
+                });
+                try {
+                    Field[] fields = popup.getClass().getDeclaredFields();
+                    for (Field field : fields) {
+                        if ("mPopup".equals(field.getName())) {
+                            field.setAccessible(true);
+                            Object menuPopupHelper = field.get(popup);
+                            Class<?> classPopupHelper = Class.forName(menuPopupHelper
+                                    .getClass().getName());
+                            Method setForceIcons = classPopupHelper.getMethod(
+                                    "setForceShowIcon", boolean.class);
+                            setForceIcons.invoke(menuPopupHelper, true);
+                            break;
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                popup.show(); //showing popup menu
+            }
+        }); //closing the setOnClickListener method
         mCarButton = requireView().findViewById(R.id.carButton);
-        mClockButton = requireView().findViewById(R.id.clockButton);
-        mDivertButton = requireView().findViewById(R.id.divertButton);
+        mCarButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //Creating the instance of PopupMenu
+                PopupMenu popup = new PopupMenu(requireActivity(), mCarButton);
+                //Inflating the Popup using xml file
+                popup.getMenuInflater()
+                        .inflate(R.menu.popup_menu_scenario, popup.getMenu());
+                MenuItem settingsMenuItem = popup.getMenu().findItem(R.id.settings);
+                settingsMenuItem.setVisible(false);
+
+                //registering popup with OnMenuItemClickListener
+                popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
+                    public boolean onMenuItemClick(MenuItem item) {
+                        Toast.makeText(
+                                requireActivity(),
+                                "You Clicked : " + item.getTitle(),
+                                Toast.LENGTH_SHORT
+                        ).show();
+                        return true;
+                    }
+                });
+                try {
+                    Field[] fields = popup.getClass().getDeclaredFields();
+                    for (Field field : fields) {
+                        if ("mPopup".equals(field.getName())) {
+                            field.setAccessible(true);
+                            Object menuPopupHelper = field.get(popup);
+                            Class<?> classPopupHelper = Class.forName(menuPopupHelper
+                                    .getClass().getName());
+                            Method setForceIcons = classPopupHelper.getMethod(
+                                    "setForceShowIcon", boolean.class);
+                            setForceIcons.invoke(menuPopupHelper, true);
+                            break;
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                popup.show(); //showing popup menu
+            }
+        }); //closing the setOnClickListener method
     }
 
     private void updateView() {
@@ -191,7 +318,7 @@ public class ScenarioOverview extends Fragment {
                     public void afterTextChanged(Editable s) {
                         mScenario.setScenarioName(s.toString());
                         System.out.println("Scenario name changed to : " + mScenario.getScenarioName());
-                        // TODO: update the scenario in the DB
+                        ((ScenarioActivity) requireActivity()).setSaveNeeded(true);
                     }
                 });
                 a.setLayoutParams(scenarioParams);
@@ -224,16 +351,29 @@ public class ScenarioOverview extends Fragment {
         else mInverterButton.setImageResource(R.drawable.inverter);
         if (mScenario.isHasLoadProfiles()) mHouseButton.setImageResource(R.drawable.housetick);
         else mHouseButton.setImageResource(R.drawable.house);
-        if (mScenario.isHasBatteries()) mBatteryButton.setImageResource(R.drawable.batterytick);
-        else mBatteryButton.setImageResource(R.drawable.battery);
-        if (mScenario.isHasHWSystem()) mTankButton.setImageResource(R.drawable.tanktick);
-        else mTankButton.setImageResource(R.drawable.tank);
-        if (mScenario.isHasEVCharges()) mCarButton.setImageResource(R.drawable.cartick);
-        else mCarButton.setImageResource(R.drawable.car);
-        if (mScenario.isHasLoadShifts()) mClockButton.setImageResource(R.drawable.ic_baseline_access_time_24_tick);
-        else mClockButton.setImageResource(R.drawable.ic_baseline_access_time_24);
-        if (mScenario.isHasEVDivert() || mScenario.isHasHWDivert()) mDivertButton.setImageResource(R.drawable.ic_baseline_call_split_24_tick);
-        else mDivertButton.setImageResource(R.drawable.ic_baseline_call_split_24);
+
+        if (mScenario.isHasBatteries()) {
+            mBatteryButton.setImageResource(R.drawable.battery_set);
+            if (mScenario.isHasLoadShifts()) mBatteryButton.setImageResource(R.drawable.battery_scheduled);
+        }
+        else mBatteryButton.setImageResource(R.drawable.battery_not_set);
+
+        if (mScenario.isHasHWSystem()) {
+            mTankButton.setImageResource(R.drawable.tank_set);
+            if (mScenario.isHasHWSchedules()) {
+                mTankButton.setImageResource(R.drawable.tank_set_scheduled);
+                if (mScenario.isHasHWDivert()) mTankButton.setImageResource(R.drawable.tank_set_scheduled_diverted);
+            }
+            else if (mScenario.isHasHWDivert()) mTankButton.setImageResource(R.drawable.tank_set_scheduled_diverted);
+        }
+        else mTankButton.setImageResource(R.drawable.tank_not_set);
+
+        if (mScenario.isHasEVCharges()) {
+            mCarButton.setImageResource(R.drawable.car_scheduled);
+            if (mScenario.isHasEVDivert()) mCarButton.setImageResource(R.drawable.car_scheduled_diverted);
+        }
+        else if (mScenario.isHasEVDivert()) mCarButton.setImageResource(R.drawable.car_diverted);
+        else mCarButton.setImageResource(R.drawable.car_not_set);
     }
 
     public void setEditMode(boolean ed) {

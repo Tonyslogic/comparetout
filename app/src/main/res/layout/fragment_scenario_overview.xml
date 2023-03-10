@@ -89,9 +89,9 @@ tools:context=".scenario.ScenarioOverview">
                     <ImageButton
                         android:id="@+id/batteryButton"
                         android:background="@color/white"
-                        android:src="@drawable/battery"
+                        android:src="@drawable/battery_not_set"
                         android:layout_width="0dp"
-                        android:layout_height="match_parent"
+                        android:layout_height="80dp"
                         android:layout_weight="1"
                         android:adjustViewBounds="true"
                         android:scaleType="fitCenter" />
@@ -99,7 +99,7 @@ tools:context=".scenario.ScenarioOverview">
                     <ImageButton
                         android:id="@+id/tankButton"
                         android:background="@color/white"
-                        android:src="@drawable/tank"
+                        android:src="@drawable/tank_set"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
@@ -109,36 +109,14 @@ tools:context=".scenario.ScenarioOverview">
                     <ImageButton
                         android:id="@+id/carButton"
                         android:background="@color/white"
-                        android:src="@drawable/car"
+                        android:src="@drawable/car_not_set"
                         android:layout_width="0dp"
                         android:layout_height="match_parent"
                         android:layout_weight="1"
                         android:adjustViewBounds="true"
                         android:scaleType="fitCenter"/>
-
-                    <ImageButton
-                        android:id="@+id/clockButton"
-                        android:background="@color/white"
-                        android:src="@drawable/ic_baseline_access_time_24"
-                        android:layout_width="0dp"
-                        android:layout_height="50dp"
-                        android:layout_weight="1"
-                        android:adjustViewBounds="true"
-                        android:scaleType="fitCenter"/>
-
-                    <ImageButton
-                        android:id="@+id/divertButton"
-                        android:background="@color/white"
-                        android:src="@drawable/ic_baseline_call_split_24"
-                        android:layout_width="0dp"
-                        android:layout_height="50dp"
-                        android:layout_weight="1"
-                        android:adjustViewBounds="true"
-                        android:scaleType="fitCenter"/>
                 </TableRow>
             </TableLayout>
-
-
 
             <TableLayout
                 android:id="@+id/editScenarioTable"

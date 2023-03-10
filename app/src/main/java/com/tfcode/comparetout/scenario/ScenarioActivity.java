@@ -8,21 +8,17 @@ import androidx.viewpager2.widget.ViewPager2;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Toast;
 
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.PricePlanNavViewModel;
 import com.tfcode.comparetout.R;
-import com.tfcode.comparetout.model.json.priceplan.DayRateJson;
-import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
-import com.tfcode.comparetout.model.scenario.Scenario;
-import com.tfcode.comparetout.priceplan.PricePlanViewPageAdapter;
 
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Objects;
 
@@ -35,13 +31,16 @@ public class ScenarioActivity extends AppCompatActivity {
     private ActionBar mActionBar;
     private TabLayoutMediator mMediator;
     private Menu mMenu;
+    private boolean mDoubleBackToExitPressedOnce = false;
+    private boolean mUnsavedChanges = false;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Intent intent = getIntent();
         scenarioID = intent.getLongExtra("ScenarioID", 0L);
-        mEdit = intent.getBooleanExtra("edit", false);
+        mEdit = intent.getBooleanExtra("Edit", false);
         setContentView(R.layout.activity_scenario);
 
         viewPager = findViewById(R.id.view_scenario_pager);
@@ -67,7 +66,9 @@ public class ScenarioActivity extends AppCompatActivity {
         MenuItem infoItem = menu.findItem((R.id.info_scenario));
         infoItem.setVisible(false);
         MenuItem saveItem = menu.findItem((R.id.save_scenario));
-        saveItem.setVisible(false);
+        if (!(mEdit)) saveItem.setVisible(false);
+        MenuItem editItem = menu.findItem((R.id.edit_scenario));
+        if (mEdit) editItem.setVisible(false);
         return super.onPrepareOptionsMenu(menu);
     }
 
@@ -96,6 +97,20 @@ public class ScenarioActivity extends AppCompatActivity {
         mMediator.attach();
     }
 
+    @Override
+    public void onBackPressed() {
+        if (mDoubleBackToExitPressedOnce || !(mUnsavedChanges)) {
+            super.onBackPressed();
+            return;
+        }
+
+        this.mDoubleBackToExitPressedOnce = true;
+        Toast.makeText(this, "Unsaved changes. Please click BACK again to discard and exit", Toast.LENGTH_SHORT).show();
+
+        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+            @Override public void run() { mDoubleBackToExitPressedOnce =false;}}, 2000);
+    }
+
     // FRAGMENT ACCESS METHODS
     long getScenarioID() {
         return scenarioID;
@@ -111,5 +126,9 @@ public class ScenarioActivity extends AppCompatActivity {
         editMenuItem.setVisible(false);
         MenuItem saveMenuItem = mMenu.findItem(R.id.save_scenario);
         saveMenuItem.setVisible(true);
+    }
+
+    public void setSaveNeeded(boolean saveNeeded){
+        mUnsavedChanges = saveNeeded;
     }
 }
