@@ -280,6 +280,8 @@ public class ScenarioDAOTest {
             "    \"LoadProfile\": {\n" +
             "      \"AnnualUsage\": 6144.789999999933,\n" +
             "      \"HourlyBaseLoad\": 0.3,\n" +
+            "      \"GridImportMax\": 15.0,\n" +
+            "      \"GridExportMax\": 6.0,\n" +
             "      \"HourlyDistribution\": [\n" +
             "        3.0056773610654353,\n" +
             "        2.824252131263466,\n" +

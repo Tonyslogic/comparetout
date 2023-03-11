@@ -155,12 +155,28 @@ public class ScenarioOverview extends Fragment {
             @Override
             public void onClick(View v) {
                 Snackbar.make(requireActivity().getWindow().getDecorView().getRootView(),
-                  "Launch the panel editor",
+                  "Panel editor to be done",
                    Snackbar.LENGTH_LONG).setAction("Action", null).show();
             }
         });
         mInverterButton = requireView().findViewById(R.id.inverterButton);
+        mInverterButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Snackbar.make(requireActivity().getWindow().getDecorView().getRootView(),
+                        "Inverter editor to be done",
+                        Snackbar.LENGTH_LONG).setAction("Action", null).show();
+            }
+        });
         mHouseButton = requireView().findViewById(R.id.houseButton);
+        mHouseButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Snackbar.make(requireActivity().getWindow().getDecorView().getRootView(),
+                        "Load profile editor to be done",
+                        Snackbar.LENGTH_LONG).setAction("Action", null).show();
+            }
+        });
         mBatteryButton = requireView().findViewById(R.id.batteryButton);
         mBatteryButton.setOnClickListener(new View.OnClickListener() {
             @Override

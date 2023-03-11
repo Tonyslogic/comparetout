@@ -11,6 +11,25 @@ public class LoadProfile {
 
     private double annualUsage = 6200d;
     private double hourlyBaseLoad = 0.3;
+    private double gridImportMax = 15.0;
+
+    public double getGridImportMax() {
+        return gridImportMax;
+    }
+
+    public void setGridImportMax(double gridImportMax) {
+        this.gridImportMax = gridImportMax;
+    }
+
+    public double getGridExportMax() {
+        return gridExportMax;
+    }
+
+    public void setGridExportMax(double gridExportMax) {
+        this.gridExportMax = gridExportMax;
+    }
+
+    private double gridExportMax = 6.0;
     private HourlyDist hourlyDist = new HourlyDist();
     private DOWDist dowDist = new DOWDist();
     private MonthlyDist monthlyDist = new MonthlyDist();

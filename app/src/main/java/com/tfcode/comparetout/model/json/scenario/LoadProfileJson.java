@@ -14,6 +14,14 @@ public class LoadProfileJson {
     public
     Double hourlyBaseLoad;
 
+    @SerializedName("GridImportMax")
+    public
+    Double gridImportMax;
+
+    @SerializedName("GridExportMax")
+    public
+    Double gridExportMax;
+
     @SerializedName("HourlyDistribution")
     public
     ArrayList<Double> hourlyDistribution;

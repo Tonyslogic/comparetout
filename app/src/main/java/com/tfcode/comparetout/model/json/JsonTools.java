@@ -240,6 +240,8 @@ public class JsonTools {
         LoadProfile loadProfile = new LoadProfile();
         loadProfile.setAnnualUsage(lpj.annualUsage);
         loadProfile.setHourlyBaseLoad(lpj.hourlyBaseLoad);
+        loadProfile.setGridImportMax(lpj.gridImportMax);
+        loadProfile.setGridExportMax(lpj.gridExportMax);
         HourlyDist hourlyDist = new HourlyDist();
         hourlyDist.dist = lpj.hourlyDistribution;
         loadProfile.setHourlyDist(hourlyDist);
@@ -480,6 +482,8 @@ public class JsonTools {
         if (!(null == loadProfile)){
             lpj.annualUsage = loadProfile.getAnnualUsage();
             lpj.hourlyBaseLoad = loadProfile.getHourlyBaseLoad();
+            lpj.gridImportMax = loadProfile.getGridImportMax();
+            lpj.gridExportMax = loadProfile.getGridExportMax();
             lpj.hourlyDistribution = (ArrayList<Double>) loadProfile.getHourlyDist().dist;
             DOWDistribution dowd = new DOWDistribution();
             dowd.sun = loadProfile.getDowDist().dowDist.get(0);

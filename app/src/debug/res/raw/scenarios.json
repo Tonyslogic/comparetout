@@ -75,6 +75,8 @@
 		"LoadProfile": {
 			"AnnualUsage": 6144.789999999933,
 			"HourlyBaseLoad": 0.3,
+			"GridImportMax": 15.0,
+			"GridExportMax": 6.0,
 			"HourlyDistribution": [
 				3.0056773610654353,
 				2.824252131263466,
