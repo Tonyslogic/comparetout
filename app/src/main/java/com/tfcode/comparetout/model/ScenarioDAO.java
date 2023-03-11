@@ -256,4 +256,8 @@ public abstract class ScenarioDAO {
 
     @Update (entity = Scenario.class)
     public abstract void updateScenario(Scenario scenario);
+
+    @Query("SELECT * FROM loadprofile, scenario2loadprofile " +
+            "WHERE scenarioID = :scenarioID AND loadProfile.id = loadProfileID")
+    public abstract LiveData<LoadProfile> getLoadProfile(Long scenarioID);
 }

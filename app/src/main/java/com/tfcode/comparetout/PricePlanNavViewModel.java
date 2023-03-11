@@ -8,6 +8,7 @@ import androidx.lifecycle.LiveData;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.ToutcRepository;
+import com.tfcode.comparetout.model.scenario.LoadProfile;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 
@@ -75,5 +76,9 @@ public class PricePlanNavViewModel extends AndroidViewModel {
 
     public void updateScenario(Scenario scenario) {
         toutcRepository.updateScenario(scenario);
+    }
+
+    public LiveData<LoadProfile> getLoadProfile(Long scenarioID) {
+        return toutcRepository.getLoadProfile(scenarioID);
     }
 }

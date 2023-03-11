@@ -1,5 +1,6 @@
 package com.tfcode.comparetout.scenario;
 
+import android.content.Intent;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -31,6 +32,7 @@ import com.tfcode.comparetout.PricePlanNavViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
+import com.tfcode.comparetout.scenario.loadprofile.LoadProfileActivity;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -172,9 +174,18 @@ public class ScenarioOverview extends Fragment {
         mHouseButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Snackbar.make(requireActivity().getWindow().getDecorView().getRootView(),
-                        "Load profile editor to be done",
-                        Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                if (mScenarioID == 0L) {
+                    Snackbar.make(requireActivity().getWindow().getDecorView().getRootView(),
+                            "Save before configuring load profile",
+                            Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                }
+                else {
+                    Intent intent = new Intent(getActivity(), LoadProfileActivity.class);
+                    intent.putExtra("ScenarioID", mScenarioID);
+                    intent.putExtra("ScenarioName", mScenario.getScenarioName());
+                    intent.putExtra("Edit", mEdit);
+                    startActivity(intent);
+                }
             }
         });
         mBatteryButton = requireView().findViewById(R.id.batteryButton);

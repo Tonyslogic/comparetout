@@ -6,6 +6,7 @@ import androidx.lifecycle.LiveData;
 
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
+import com.tfcode.comparetout.model.scenario.LoadProfile;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 
@@ -90,5 +91,9 @@ public class ToutcRepository {
     public void updateScenario(Scenario scenario) {
         ToutcDB.databaseWriteExecutor.execute(() ->
                 scenarioDAO.updateScenario(scenario));
+    }
+
+    public LiveData<LoadProfile> getLoadProfile(Long scenarioID) {
+        return scenarioDAO.getLoadProfile(scenarioID);
     }
 }
