@@ -1,8 +1,8 @@
 package com.tfcode.comparetout.scenario.loadprofile;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 
 import android.content.Intent;
@@ -15,16 +15,14 @@ import android.widget.Toast;
 
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
-import com.tfcode.comparetout.PricePlanNavViewModel;
 import com.tfcode.comparetout.R;
-import com.tfcode.comparetout.scenario.ScenarioViewPageAdapter;
 
 import java.util.ArrayList;
 import java.util.Objects;
 
 public class LoadProfileActivity extends AppCompatActivity {
 
-    ViewPager2 viewPager;
+    ViewPager2 mViewPager;
     private Long scenarioID = 0L;
     private String scenarioName = "";
     private boolean mEdit = false;
@@ -35,6 +33,8 @@ public class LoadProfileActivity extends AppCompatActivity {
     private boolean mDoubleBackToExitPressedOnce = false;
     private boolean mUnsavedChanges = false;
 
+    private String mLoadProfileJson = "";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -44,7 +44,7 @@ public class LoadProfileActivity extends AppCompatActivity {
         mEdit = intent.getBooleanExtra("Edit", false);
         setContentView(R.layout.activity_load_profile);
 
-        viewPager = findViewById(R.id.load_profile_view_pager);
+        mViewPager = findViewById(R.id.load_profile_view_pager);
 
         setupViewPager();
 //
@@ -53,8 +53,82 @@ public class LoadProfileActivity extends AppCompatActivity {
         mActionBar.setTitle("Load profile (" + scenarioName + ")");
     }
 
+    // MENU
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_load_profile, menu);
+        mMenu = menu;
+        return true;
+    }
+
+    @Override
+    public boolean onPrepareOptionsMenu(@NonNull Menu menu) {
+        MenuItem infoItem = menu.findItem((R.id.lp_info));
+        infoItem.setVisible(false);
+        MenuItem saveItem = menu.findItem((R.id.lp_save));
+        if (!(mEdit)) saveItem.setVisible(false);
+        MenuItem editItem = menu.findItem((R.id.lp_edit));
+        if (mEdit) editItem.setVisible(false);
+        return super.onPrepareOptionsMenu(menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        System.out.println("ScenarioActivity.onOptionsItemSelected");
+
+        if (item.getItemId() == R.id.lp_info) {//add the function to perform here
+            System.out.println("Report status");
+            Toast.makeText(this, "Status hint", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        if (item.getItemId() == R.id.lp_edit) {//add the function to perform here
+            System.out.println("Edit attempt");
+            MenuItem saveItem = mMenu.findItem(R.id.lp_save);
+            saveItem.setVisible(true);
+            MenuItem editItem = mMenu.findItem(R.id.lp_edit);
+            editItem.setVisible(false);
+            mEdit = true;
+            ((LoadProfileViewPageAdapter)mViewPager.getAdapter()).setEdit(mEdit);
+            return false;
+        }
+        if (item.getItemId() == R.id.lp_share) {//add the function to perform here
+            System.out.println("Share attempt");
+            Toast.makeText(this, "TODO: Share", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        if (item.getItemId() == R.id.lp_import) {//add the function to perform here
+            System.out.println("Import attempt");
+            Toast.makeText(this, "TODO: Import", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+//        if (item.getItemId() == R.id.lp_save) {//add the function to perform here
+//            System.out.println("Save attempt");
+//            Toast.makeText(this, "TODO: Save", Toast.LENGTH_SHORT).show();
+//            return false;
+//        }
+        if (item.getItemId() == R.id.lp_copy) {//add the function to perform here
+            System.out.println("Copy attempt");
+            Toast.makeText(this, "TODO: Copy", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        if (item.getItemId() == R.id.lp_link) {//add the function to perform here
+            System.out.println("Link attempt");
+            Toast.makeText(this, "TODO: Link", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        if (item.getItemId() == R.id.lp_help) {//add the function to perform here
+            System.out.println("Help attempt");
+            Toast.makeText(this, "TODO: Help", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        return false;
+    }
+
+    // VIEW PAGER
     private void setupViewPager() {
-        viewPager.setAdapter(new LoadProfileViewPageAdapter(this, 4));
+        mViewPager.setAdapter(new LoadProfileViewPageAdapter(this, 4));
+        mViewPager.setOffscreenPageLimit(4);
         ArrayList<String> tabTitlesList = new ArrayList<>();
         tabTitlesList.add("Profile");
         tabTitlesList.add("Daily");
@@ -62,7 +136,7 @@ public class LoadProfileActivity extends AppCompatActivity {
         tabTitlesList.add("Hourly");
         String[] tabTitles = tabTitlesList.toArray(new String[tabTitlesList.size()]);
         TabLayout tabLayout = findViewById(R.id.loadProfile_tab_layout);
-        mMediator = new TabLayoutMediator(tabLayout, viewPager,
+        mMediator = new TabLayoutMediator(tabLayout, mViewPager,
                 (tab, position) -> tab.setText(tabTitles[position])
         );
         mMediator.attach();
@@ -93,13 +167,25 @@ public class LoadProfileActivity extends AppCompatActivity {
 
     public void setEdit() {
         mEdit = true;
-//        MenuItem editMenuItem = mMenu.findItem(R.id.edit_scenario);
-//        editMenuItem.setVisible(false);
-//        MenuItem saveMenuItem = mMenu.findItem(R.id.save_scenario);
-//        saveMenuItem.setVisible(true);
     }
 
     public void setSaveNeeded(boolean saveNeeded){
         mUnsavedChanges = saveNeeded;
+        if (!mUnsavedChanges) {
+            MenuItem saveItem = mMenu.findItem(R.id.lp_save);
+            saveItem.setVisible(true);
+            MenuItem editItem = mMenu.findItem(R.id.lp_edit);
+            editItem.setVisible(false);
+            mEdit = false;
+            ((LoadProfileViewPageAdapter) mViewPager.getAdapter()).setEdit(mEdit);
+        }
+    }
+
+    public String getLoadProfileJson() {
+        return mLoadProfileJson;
+    }
+
+    public void setLoadProfileJson(String mLoadProfileJson) {
+        this.mLoadProfileJson = mLoadProfileJson;
     }
 }

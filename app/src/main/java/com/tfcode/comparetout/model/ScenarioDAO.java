@@ -3,6 +3,7 @@ package com.tfcode.comparetout.model;
 import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
 import androidx.room.Insert;
+import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 import androidx.room.RewriteQueriesToDropUnusedColumns;
 import androidx.room.Transaction;
@@ -82,7 +83,7 @@ public abstract class ScenarioDAO {
     @Insert
     abstract void addNewScenario2HWSystem(Scenario2HWSystem scenario2HWSystem);
 
-    @Insert
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract void addNewScenario2LoadProfile(Scenario2LoadProfile scenario2LoadProfile);
 
     @Insert
@@ -259,5 +260,32 @@ public abstract class ScenarioDAO {
 
     @Query("SELECT * FROM loadprofile, scenario2loadprofile " +
             "WHERE scenarioID = :scenarioID AND loadProfile.id = loadProfileID")
+    @RewriteQueriesToDropUnusedColumns
     public abstract LiveData<LoadProfile> getLoadProfile(Long scenarioID);
+
+    @Update (entity = LoadProfile.class)
+    public abstract void updateLoadProfile(LoadProfile loadProfile);
+
+    @Query("SELECT * FROM scenarios WHERE id = :scenarioID")
+    public abstract Scenario getScenario(long scenarioID);
+
+
+    @Transaction
+    public void saveLoadProfile(Long scenarioID, LoadProfile loadProfile) {
+        long loadProfileID = loadProfile.getId();
+        if (loadProfileID == 0) {
+            loadProfileID = addNewLoadProfile(loadProfile);
+        }
+        else {
+            updateLoadProfile(loadProfile);
+        }
+        Scenario2LoadProfile s2lp = new Scenario2LoadProfile();
+        s2lp.setScenarioID(scenarioID);
+        s2lp.setLoadProfileID(loadProfileID);
+        addNewScenario2LoadProfile(s2lp);
+
+        Scenario scenario = getScenario(scenarioID);
+        scenario.setHasLoadProfiles(true);
+        updateScenario(scenario);
+    }
 }

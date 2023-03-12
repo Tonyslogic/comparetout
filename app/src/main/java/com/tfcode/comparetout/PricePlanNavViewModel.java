@@ -81,4 +81,8 @@ public class PricePlanNavViewModel extends AndroidViewModel {
     public LiveData<LoadProfile> getLoadProfile(Long scenarioID) {
         return toutcRepository.getLoadProfile(scenarioID);
     }
+
+    public void saveLoadProfile(Long scenarioID, LoadProfile loadProfile) {
+        toutcRepository.saveLoadProfile(scenarioID, loadProfile);
+    }
 }

@@ -1,14 +1,34 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fillViewport="true"
     tools:context=".scenario.loadprofile.LoadProfileHourlyDistributionFragment">
 
-    <!-- TODO: Update blank fragment layout -->
-    <TextView
-        android:layout_width="match_parent"
+        <FrameLayout
+            android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:text="@string/hello_blank_fragment" />
+        tools:context=".scenario.loadprofile.LoadProfileHourlyDistributionFragment">
 
-</FrameLayout>
+        <com.github.mikephil.charting.charts.HorizontalBarChart
+            android:id="@+id/hourly_distribution_chart"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+            <TableLayout
+                android:id="@+id/load_profile_edit_hourly"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="0dp"
+                android:stretchColumns="*"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" >
+            </TableLayout>
+
+        </FrameLayout>
+    </androidx.core.widget.NestedScrollView>

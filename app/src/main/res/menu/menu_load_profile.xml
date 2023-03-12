@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context=".scenario.loadprofile.LoadProfileActivity">
+
+    <item
+        android:id="@+id/lp_info"
+        app:showAsAction="always"
+        android:icon="@android:drawable/ic_menu_info_details"
+        android:title="@string/info"/>
+    <item
+        android:id="@+id/lp_edit"
+        app:showAsAction="ifRoom|withText"
+        android:icon="@android:drawable/ic_menu_edit"
+        android:title="@string/edit"/>
+    <item
+        android:id="@+id/lp_share"
+        app:showAsAction="ifRoom|withText"
+        android:icon="@android:drawable/ic_menu_share"
+        android:title="@string/share"/>
+    <item
+        android:id="@+id/lp_save"
+        app:showAsAction="ifRoom|withText"
+        android:icon="@android:drawable/ic_menu_save"
+        android:title="Save"/>
+    <item
+        android:id="@+id/lp_import"
+        app:showAsAction="ifRoom|withText"
+        android:icon="@android:drawable/stat_sys_download"
+        android:title="Import"/>
+    <item
+        android:id="@+id/lp_copy"
+        app:showAsAction="ifRoom|withText"
+        android:icon="@drawable/ic_menu_copy"
+        android:title="Copy"/>
+    <item
+        android:id="@+id/lp_link"
+        app:showAsAction="ifRoom|withText"
+        android:icon="@drawable/ic_baseline_link_24"
+        android:title="Link"/>
+    <item
+        android:id="@+id/lp_help"
+        app:showAsAction="ifRoom|withText"
+        android:icon="@drawable/ic_baseline_help_outline_24"
+        android:title="Help"/>
+</menu>

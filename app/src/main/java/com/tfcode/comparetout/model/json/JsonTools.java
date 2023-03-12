@@ -477,7 +477,7 @@ public class JsonTools {
         return lssj;
     }
 
-    private static LoadProfileJson createLoadProfileJson(LoadProfile loadProfile) {
+    public static LoadProfileJson createLoadProfileJson(LoadProfile loadProfile) {
         LoadProfileJson lpj = new LoadProfileJson();
         if (!(null == loadProfile)){
             lpj.annualUsage = loadProfile.getAnnualUsage();

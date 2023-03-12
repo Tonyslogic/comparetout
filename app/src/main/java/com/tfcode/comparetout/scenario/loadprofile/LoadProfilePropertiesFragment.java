@@ -4,6 +4,7 @@ import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -11,6 +12,9 @@ import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
@@ -18,24 +22,27 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.PricePlanNavViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.json.JsonTools;
+import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
+import com.tfcode.comparetout.model.json.scenario.LoadProfileJson;
+import com.tfcode.comparetout.model.json.scenario.ScenarioJsonFile;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
+import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.priceplan.PricePlanActivity;
 import com.tfcode.comparetout.scenario.ScenarioActivity;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link LoadProfilePropertiesFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
 public class LoadProfilePropertiesFragment extends Fragment {
     private boolean mEdit = false;
     private List<View> mEditFields;
@@ -51,8 +58,6 @@ public class LoadProfilePropertiesFragment extends Fragment {
 
     public static LoadProfilePropertiesFragment newInstance() {
         LoadProfilePropertiesFragment fragment = new LoadProfilePropertiesFragment();
-        Bundle args = new Bundle();
-        fragment.setArguments(args);
         return fragment;
     }
 
@@ -64,8 +69,16 @@ public class LoadProfilePropertiesFragment extends Fragment {
         mEditFields = new ArrayList<>();
         mViewModel = new ViewModelProvider(requireActivity()).get(PricePlanNavViewModel.class);
         mViewModel.getLoadProfile(mScenarioID).observe(this, profile -> {
-            System.out.println("LPPF Observed a change in live profile data " + profile.getId());
-            mLoadProfile = profile;
+            if (!(null == profile)) {
+                System.out.println("LPPF Observed a change in live profile data " + profile.getId());
+                mLoadProfile = profile;
+            }
+            else mLoadProfile = new LoadProfile();
+            LoadProfileJson lpj = JsonTools.createLoadProfileJson(mLoadProfile);
+            Type type = new TypeToken<LoadProfileJson>(){}.getType();
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            String loadProfileJsonString =  gson.toJson(lpj, type);
+            ((LoadProfileActivity) requireActivity()).setLoadProfileJson(loadProfileJsonString);
             updateView();
         });
     }
@@ -80,12 +93,40 @@ public class LoadProfilePropertiesFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        setupMenu();
         mTableLayout = requireView().findViewById(R.id.loadProfileDetails);
         if (!(null == mLoadProfile)) updateView();
     }
 
+    private void setupMenu() {
+        requireActivity().addMenuProvider(new MenuProvider() {
+            @Override
+            public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {}
+
+            @Override
+            public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
+                System.out.println("LPPF.onOptionsItemSelected");
+                if (menuItem.getItemId() == R.id.lp_save) {//add the function to perform here
+                    System.out.println("save attempt");
+
+                    long id = mLoadProfile.getId();
+                    String loadProfileJsonString = ((LoadProfileActivity) requireActivity()).getLoadProfileJson();
+                    Type type = new TypeToken<LoadProfileJson>(){}.getType();
+                    LoadProfileJson lpj = new Gson().fromJson(loadProfileJsonString, type);
+                    mLoadProfile = JsonTools.createLoadProfile(lpj);
+                    mLoadProfile.setId(id);
+
+                    mViewModel.saveLoadProfile(mScenarioID, mLoadProfile);
+                    ((LoadProfileActivity) requireActivity()).setSaveNeeded(false);
+                    return (false);
+                }
+                return true;
+            }
+        });
+    }
+
     private void updateView() {
-        System.out.println("Updating PricePlanEditFragment " + mEdit);
+        System.out.println("Updating LoadProfilePropertiesFragment " + mEdit);
         mTableLayout.removeAllViews();
 
         // CREATE PARAM FOR MARGINING
@@ -186,10 +227,9 @@ public class LoadProfilePropertiesFragment extends Fragment {
 
     public void setEditMode(boolean ed) {
         mEdit = ed;
+        for (View v : mEditFields) {
+            v.setEnabled(mEdit);
+        }
     }
 }
 
-abstract class LocalTextWatcher implements TextWatcher {
-    @Override public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-    @Override public void onTextChanged(CharSequence s, int start, int before, int count) {}
-}

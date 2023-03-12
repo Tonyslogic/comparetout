@@ -96,4 +96,9 @@ public class ToutcRepository {
     public LiveData<LoadProfile> getLoadProfile(Long scenarioID) {
         return scenarioDAO.getLoadProfile(scenarioID);
     }
+
+    public void saveLoadProfile(Long scenarioID, LoadProfile loadProfile) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                scenarioDAO.saveLoadProfile(scenarioID, loadProfile));
+    }
 }
