@@ -26,7 +26,7 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.tfcode.comparetout.PricePlanNavViewModel;
+import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.DoubleHolder;
@@ -49,7 +49,7 @@ import java.util.List;
  */
 public class PricePlanEditDayFragment extends Fragment {
 
-    private PricePlanNavViewModel mViewModel;
+    private ComparisonUIViewModel mViewModel;
     private TableLayout mTableLayout;
 
     private String mFocus;
@@ -81,7 +81,7 @@ public class PricePlanEditDayFragment extends Fragment {
         mEdit = ((PricePlanActivity) requireActivity()).getEdit();
         mEditFields = new ArrayList<>();
         unpackmFocus();
-        mViewModel = new ViewModelProvider(requireActivity()).get(PricePlanNavViewModel.class);
+        mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
     }
 
     private void unpackmFocus() {

@@ -16,7 +16,7 @@ import android.widget.Toast;
 
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
-import com.tfcode.comparetout.PricePlanNavViewModel;
+import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 
 import java.util.ArrayList;
@@ -27,7 +27,7 @@ public class ScenarioActivity extends AppCompatActivity {
     ViewPager2 viewPager;
     private Long scenarioID = 0L;
     private boolean mEdit = false;
-    private PricePlanNavViewModel mViewModel;
+    private ComparisonUIViewModel mViewModel;
     private ActionBar mActionBar;
     private TabLayoutMediator mMediator;
     private Menu mMenu;
@@ -47,7 +47,7 @@ public class ScenarioActivity extends AppCompatActivity {
 
         setupViewPager();
 
-        mViewModel = new ViewModelProvider(this).get(PricePlanNavViewModel.class);
+        mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
         mActionBar = Objects.requireNonNull(getSupportActionBar());
         mActionBar.setTitle("Scenario");
     }

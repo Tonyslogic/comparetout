@@ -18,7 +18,7 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.tfcode.comparetout.PricePlanNavViewModel;
+import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
@@ -36,7 +36,7 @@ public class PricePlanActivity extends AppCompatActivity {
     ViewPager2 viewPager;
     private Menu mMenu;
 
-    private PricePlanNavViewModel mViewModel;
+    private ComparisonUIViewModel mViewModel;
     private Boolean edit = false;
     private Integer mPlanValidity = PricePlan.VALID_PLAN;
     private Long planID = 0L;
@@ -70,7 +70,7 @@ public class PricePlanActivity extends AppCompatActivity {
 
         setupViewPager();
 
-        mViewModel = new ViewModelProvider(this).get(PricePlanNavViewModel.class);
+        mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
         mActionBar = Objects.requireNonNull(getSupportActionBar());
         mActionBar.setTitle("Price plan details");
     }

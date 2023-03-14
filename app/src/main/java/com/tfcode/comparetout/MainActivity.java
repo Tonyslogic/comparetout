@@ -41,7 +41,7 @@ import java.util.Objects;
 public class MainActivity extends AppCompatActivity {
 
     ViewPager2 viewPager;
-    private PricePlanNavViewModel mViewModel;
+    private ComparisonUIViewModel mViewModel;
 
     final ActivityResultLauncher<String> mLoadPricePlansFromFile = registerForActivityResult(new ActivityResultContracts.GetContent(),
             new ActivityResultCallback<Uri>() {
@@ -102,7 +102,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         viewPager = findViewById(R.id.view_pager);
         viewPager.setAdapter(createCardAdapter());
-        mViewModel = new ViewModelProvider(this).get(PricePlanNavViewModel.class);
+        mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
 
         /*
           Add price plan or scenario depending on the visible fragment

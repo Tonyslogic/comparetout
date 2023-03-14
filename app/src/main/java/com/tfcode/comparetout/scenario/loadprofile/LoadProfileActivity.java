@@ -26,7 +26,7 @@ public class LoadProfileActivity extends AppCompatActivity {
     private Long scenarioID = 0L;
     private String scenarioName = "";
     private boolean mEdit = false;
-//    private PricePlanNavViewModel mViewModel;
+//    private ComparisonUIViewModel mViewModel;
     private ActionBar mActionBar;
     private TabLayoutMediator mMediator;
     private Menu mMenu;
@@ -48,7 +48,7 @@ public class LoadProfileActivity extends AppCompatActivity {
 
         setupViewPager();
 //
-//        mViewModel = new ViewModelProvider(this).get(PricePlanNavViewModel.class);
+//        mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
         mActionBar = Objects.requireNonNull(getSupportActionBar());
         mActionBar.setTitle("Load profile (" + scenarioName + ")");
     }

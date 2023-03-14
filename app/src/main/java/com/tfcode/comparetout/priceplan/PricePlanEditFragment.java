@@ -15,14 +15,13 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.view.MenuHost;
 import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.tfcode.comparetout.PricePlanNavViewModel;
+import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
@@ -43,7 +42,7 @@ import java.util.Set;
  */
 public class PricePlanEditFragment extends Fragment {
 
-    private PricePlanNavViewModel mViewModel;
+    private ComparisonUIViewModel mViewModel;
     private Set<PricePlan> mPricePlans = new HashSet<>();
     private TableLayout mTableLayout;
 
@@ -91,7 +90,7 @@ public class PricePlanEditFragment extends Fragment {
             DayRate dr = JsonTools.createDayRate(drj);
             mDayRates.add(dr);
         }
-        mViewModel = new ViewModelProvider(requireActivity()).get(PricePlanNavViewModel.class);
+        mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
         mViewModel.getAllPricePlans().observe(this, plans -> {
             System.out.println("PPEF Observed a change in live plans data " + plans.entrySet().size());
             mPricePlans = plans.keySet();

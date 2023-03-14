@@ -20,16 +20,14 @@ import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
-import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.scenario.Scenario;
-import com.tfcode.comparetout.priceplan.PricePlanActivity;
 import com.tfcode.comparetout.scenario.ScenarioActivity;
 
 import java.util.List;
 
 public class ScenarioNavFragment extends Fragment {
 
-    private PricePlanNavViewModel mViewModel;
+    private ComparisonUIViewModel mViewModel;
     private TableLayout mTableLayout;
 
     public static ScenarioNavFragment newInstance() {
@@ -39,7 +37,7 @@ public class ScenarioNavFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mViewModel = new ViewModelProvider(this).get(PricePlanNavViewModel.class);
+        mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
 //        mViewModel.doAction();
         mViewModel.getAllScenarios().observe(this, scenarios -> {
             System.out.println("Observed a change in live scenario data " + scenarios.size());

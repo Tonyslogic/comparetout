@@ -10,7 +10,6 @@ import androidx.lifecycle.ViewModelProvider;
 
 import android.text.Editable;
 import android.text.InputType;
-import android.text.TextUtils;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -23,37 +22,30 @@ import android.widget.TableRow;
 import android.widget.TextView;
 
 import com.github.mikephil.charting.charts.BarChart;
-import com.github.mikephil.charting.components.AxisBase;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.data.BarData;
 import com.github.mikephil.charting.data.BarDataSet;
 import com.github.mikephil.charting.data.BarEntry;
-import com.github.mikephil.charting.data.Entry;
-import com.github.mikephil.charting.formatter.IAxisValueFormatter;
 import com.github.mikephil.charting.formatter.ValueFormatter;
 import com.github.mikephil.charting.interfaces.datasets.IBarDataSet;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import com.tfcode.comparetout.PricePlanNavViewModel;
+import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.json.scenario.LoadProfileJson;
-import com.tfcode.comparetout.model.priceplan.DoubleHolder;
-import com.tfcode.comparetout.model.priceplan.HourlyRate;
-import com.tfcode.comparetout.model.priceplan.HourlyRateRange;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 public class LoadProfileDailyDistributionFragment extends Fragment {
     private boolean mEdit = false;
     private List<View> mEditFields;
 
-    private PricePlanNavViewModel mViewModel;
+    private ComparisonUIViewModel mViewModel;
     private BarChart mBarChart;
     private TableLayout mEditTable;
     private Long mScenarioID;
@@ -74,7 +66,7 @@ public class LoadProfileDailyDistributionFragment extends Fragment {
         mScenarioID = ((LoadProfileActivity) requireActivity()).getScenarioID();
         mEdit = ((LoadProfileActivity) requireActivity()).getEdit();
 //        mEditFields = new ArrayList<>();
-        mViewModel = new ViewModelProvider(requireActivity()).get(PricePlanNavViewModel.class);
+        mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
         mViewModel.getLoadProfile(mScenarioID).observe(this, profile -> {
             if (!(null == profile)) {
                 System.out.println("LPDDF Observed a change in live profile data " + profile.getId());

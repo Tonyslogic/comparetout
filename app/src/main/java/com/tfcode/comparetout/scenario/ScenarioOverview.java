@@ -28,7 +28,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.material.snackbar.Snackbar;
-import com.tfcode.comparetout.PricePlanNavViewModel;
+import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
@@ -43,7 +43,7 @@ public class ScenarioOverview extends Fragment {
 
     private ActionBar mActionBar;
 
-    private PricePlanNavViewModel mViewModel;
+    private ComparisonUIViewModel mViewModel;
     private ImageButton mPanelButton;
     private ImageButton mInverterButton;
     private ImageButton mHouseButton;
@@ -72,7 +72,7 @@ public class ScenarioOverview extends Fragment {
         mEdit = ((ScenarioActivity) requireActivity()).getEdit();
         if (mEdit) ((ScenarioActivity) requireActivity()).setSaveNeeded(true);
 
-        mViewModel = new ViewModelProvider(requireActivity()).get(PricePlanNavViewModel.class);
+        mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
         mViewModel.getAllScenarios().observe(this, scenarios -> {
             if (mScenarioID == 0) {
                 if (!(mSavingNewScenario)) {

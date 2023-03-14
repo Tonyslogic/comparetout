@@ -32,7 +32,7 @@ import java.util.Map;
 
 public class PricePlanNavFragment extends Fragment {
 
-    private PricePlanNavViewModel mViewModel;
+    private ComparisonUIViewModel mViewModel;
     private TableLayout mTableLayout;
 
     public static PricePlanNavFragment newInstance() {
@@ -42,7 +42,7 @@ public class PricePlanNavFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mViewModel = new ViewModelProvider(requireActivity()).get(PricePlanNavViewModel.class);
+        mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
         mViewModel.getAllPricePlans().observe(this, plans -> {
             System.out.println("Observed a change in live plans data " + plans.entrySet().size());
             updateView(plans);

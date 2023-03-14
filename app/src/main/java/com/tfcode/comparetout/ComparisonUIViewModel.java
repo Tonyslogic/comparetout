@@ -16,14 +16,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class PricePlanNavViewModel extends AndroidViewModel {
+public class ComparisonUIViewModel extends AndroidViewModel {
 
     private final ToutcRepository toutcRepository;
     private final LiveData<Map<PricePlan, List<DayRate>>> allPricePlans;
     private final LiveData<List<Scenario>> allScenarios;
 //    private String focusedPricePlanJson = "[]";
 
-    public PricePlanNavViewModel(Application application) {
+    public ComparisonUIViewModel(Application application) {
         super(application);
         toutcRepository = new ToutcRepository(application);
         allPricePlans = toutcRepository.getAllPricePlans();

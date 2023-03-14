@@ -21,7 +21,6 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
-import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.charts.HorizontalBarChart;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.data.BarData;
@@ -32,7 +31,7 @@ import com.github.mikephil.charting.interfaces.datasets.IBarDataSet;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import com.tfcode.comparetout.PricePlanNavViewModel;
+import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.json.scenario.LoadProfileJson;
@@ -45,7 +44,7 @@ import java.util.List;
 public class LoadProfileMonthlyDistributionFragment extends Fragment {
     private boolean mEdit = false;
 
-    private PricePlanNavViewModel mViewModel;
+    private ComparisonUIViewModel mViewModel;
     private HorizontalBarChart mBarChart;
     private TableLayout mEditTable;
     private Long mScenarioID;
@@ -66,7 +65,7 @@ public class LoadProfileMonthlyDistributionFragment extends Fragment {
         mScenarioID = ((LoadProfileActivity) requireActivity()).getScenarioID();
         mEdit = ((LoadProfileActivity) requireActivity()).getEdit();
 //        mEditFields = new ArrayList<>();
-        mViewModel = new ViewModelProvider(requireActivity()).get(PricePlanNavViewModel.class);
+        mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
         mViewModel.getLoadProfile(mScenarioID).observe(this, profile -> {
             if (!(null == profile)) {
                 System.out.println("LPMDF Observed a change in live profile data " + profile.getId());

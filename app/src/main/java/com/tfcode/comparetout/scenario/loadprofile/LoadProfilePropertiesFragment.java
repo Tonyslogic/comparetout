@@ -10,7 +10,6 @@ import androidx.lifecycle.ViewModelProvider;
 
 import android.text.Editable;
 import android.text.InputType;
-import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -25,29 +24,21 @@ import android.widget.TextView;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
-import com.tfcode.comparetout.PricePlanNavViewModel;
+import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.json.JsonTools;
-import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
 import com.tfcode.comparetout.model.json.scenario.LoadProfileJson;
-import com.tfcode.comparetout.model.json.scenario.ScenarioJsonFile;
-import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
-import com.tfcode.comparetout.model.scenario.ScenarioComponents;
-import com.tfcode.comparetout.priceplan.PricePlanActivity;
-import com.tfcode.comparetout.scenario.ScenarioActivity;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 public class LoadProfilePropertiesFragment extends Fragment {
     private boolean mEdit = false;
     private List<View> mEditFields;
 
-    private PricePlanNavViewModel mViewModel;
+    private ComparisonUIViewModel mViewModel;
     private TableLayout mTableLayout;
     private Long mScenarioID;
     private LoadProfile mLoadProfile;
@@ -67,7 +58,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
         mScenarioID = ((LoadProfileActivity) requireActivity()).getScenarioID();
         mEdit = ((LoadProfileActivity) requireActivity()).getEdit();
         mEditFields = new ArrayList<>();
-        mViewModel = new ViewModelProvider(requireActivity()).get(PricePlanNavViewModel.class);
+        mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
         mViewModel.getLoadProfile(mScenarioID).observe(this, profile -> {
             if (!(null == profile)) {
                 System.out.println("LPPF Observed a change in live profile data " + profile.getId());
