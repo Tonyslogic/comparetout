@@ -7,6 +7,7 @@ import androidx.lifecycle.LiveData;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
+import com.tfcode.comparetout.model.scenario.LoadProfileData;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 
@@ -100,5 +101,22 @@ public class ToutcRepository {
     public void saveLoadProfile(Long scenarioID, LoadProfile loadProfile) {
         ToutcDB.databaseWriteExecutor.execute(() ->
                 scenarioDAO.saveLoadProfile(scenarioID, loadProfile));
+    }
+
+    // Methods for Worker (LoadProfileData)
+    public boolean loadProfileDataCheck(long id) {
+        return (scenarioDAO.loadProfileDataCheck(id) != id);
+    }
+
+    public void deleteLoadProfileData(long id) {
+        scenarioDAO.deleteLoadProfileData(id);
+    }
+
+    public LoadProfile getLoadProfileWithLoadProfileID(long mLoadProfileID) {
+        return scenarioDAO.getLoadProfileWithLoadProfileID(mLoadProfileID);
+    }
+
+    public void createLoadProfileDataEntries(ArrayList<LoadProfileData> rows) {
+        scenarioDAO.createLoadProfileDataEntries(rows);
     }
 }

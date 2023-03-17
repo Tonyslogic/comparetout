@@ -17,6 +17,7 @@ import com.tfcode.comparetout.model.scenario.HWSchedule;
 import com.tfcode.comparetout.model.scenario.HWSystem;
 import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
+import com.tfcode.comparetout.model.scenario.LoadProfileData;
 import com.tfcode.comparetout.model.scenario.LoadShift;
 import com.tfcode.comparetout.model.scenario.Panel;
 import com.tfcode.comparetout.model.scenario.Scenario;
@@ -30,6 +31,7 @@ import com.tfcode.comparetout.model.scenario.Scenario2Inverter;
 import com.tfcode.comparetout.model.scenario.Scenario2LoadProfile;
 import com.tfcode.comparetout.model.scenario.Scenario2LoadShift;
 import com.tfcode.comparetout.model.scenario.Scenario2Panel;
+import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -46,7 +48,8 @@ import java.util.concurrent.Executors;
         EVCharge.class, Scenario2EVCharge.class,
         HWSchedule.class, Scenario2HWSchedule.class,
         HWDivert.class, Scenario2HWDivert.class,
-        EVDivert.class, Scenario2EVDivert.class
+        EVDivert.class, Scenario2EVDivert.class,
+        LoadProfileData.class
         }, version = 1)
 
 @TypeConverters({Converters.class})

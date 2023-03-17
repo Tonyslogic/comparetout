@@ -7,6 +7,10 @@ import androidx.annotation.Nullable;
 import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.work.Data;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
+import androidx.work.WorkRequest;
 
 import android.text.Editable;
 import android.text.InputType;
@@ -43,6 +47,7 @@ import java.util.List;
 public class LoadProfilePropertiesFragment extends Fragment {
     private boolean mEdit = false;
     private List<View> mEditFields;
+    private boolean mSaved = false;
 
     private ComparisonUIViewModel mViewModel;
     private TableLayout mTableLayout;
@@ -69,6 +74,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
                 System.out.println("LPPF Observed a change in live profile data " + profile.getId());
                 mLoadProfile = profile;
                 System.out.println(mLoadProfile.getDistributionSource());
+                checkForDataAndGenerateIfNeeded();
             }
             else mLoadProfile = new LoadProfile();
             LoadProfileJson lpj = JsonTools.createLoadProfileJson(mLoadProfile);
@@ -76,8 +82,22 @@ public class LoadProfilePropertiesFragment extends Fragment {
             Gson gson = new GsonBuilder().setPrettyPrinting().create();
             String loadProfileJsonString =  gson.toJson(lpj, type);
             ((LoadProfileActivity) requireActivity()).setLoadProfileJson(loadProfileJsonString);
+            mSaved = false;
             updateView();
         });
+    }
+
+    private void checkForDataAndGenerateIfNeeded() {
+        Data.Builder builder = new Data.Builder();
+        builder.putLong("LoadProfileID", mLoadProfile.getId());
+        builder.putBoolean("DeleteFirst", mSaved );
+        WorkRequest genLPDataWorkRequest =
+                new OneTimeWorkRequest.Builder(GenerateLoadDataFromProfileWorker.class)
+                        .setInputData(builder.build())
+                        .build();
+        WorkManager
+                .getInstance(getContext())
+                .enqueue(genLPDataWorkRequest);
     }
 
     @Override
@@ -115,7 +135,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
                     mLoadProfile.setMonthlyDist(loadProfile.getMonthlyDist());
 
                     mViewModel.saveLoadProfile(mScenarioID, mLoadProfile);
-                    System.out.println("LPPF1");
+                    mSaved = true;
                     ((LoadProfileActivity) requireActivity()).setSaveNeeded(false);
                     return (false);
                 }

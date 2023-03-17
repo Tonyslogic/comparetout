@@ -18,6 +18,7 @@ import com.tfcode.comparetout.model.scenario.HWSchedule;
 import com.tfcode.comparetout.model.scenario.HWSystem;
 import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
+import com.tfcode.comparetout.model.scenario.LoadProfileData;
 import com.tfcode.comparetout.model.scenario.LoadShift;
 import com.tfcode.comparetout.model.scenario.Panel;
 import com.tfcode.comparetout.model.scenario.Scenario;
@@ -33,6 +34,7 @@ import com.tfcode.comparetout.model.scenario.Scenario2LoadShift;
 import com.tfcode.comparetout.model.scenario.Scenario2Panel;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Dao
@@ -263,6 +265,9 @@ public abstract class ScenarioDAO {
     @RewriteQueriesToDropUnusedColumns
     public abstract LiveData<LoadProfile> getLoadProfile(Long scenarioID);
 
+    @Query("SELECT * FROM loadprofile WHERE id = :id")
+    public abstract LoadProfile getLoadProfileWithLoadProfileID(long id);
+
     @Update (entity = LoadProfile.class)
     public abstract void updateLoadProfile(LoadProfile loadProfile);
 
@@ -288,4 +293,13 @@ public abstract class ScenarioDAO {
         scenario.setHasLoadProfiles(true);
         updateScenario(scenario);
     }
+
+    @Query("SELECT DISTINCT loadProfileID FROM loadprofiledata WHERE loadProfileID = :id")
+    public abstract long loadProfileDataCheck(long id);
+
+    @Query("DELETE FROM loadprofiledata WHERE loadProfileID = :id")
+    public abstract void deleteLoadProfileData(long id);
+
+    @Insert(entity = LoadProfileData.class)
+    public abstract void createLoadProfileDataEntries(ArrayList<LoadProfileData> rows);
 }

@@ -171,7 +171,6 @@ public class LoadProfileActivity extends AppCompatActivity {
 
     public void setSaveNeeded(boolean saveNeeded){
         mUnsavedChanges = saveNeeded;
-        System.out.println("SaveNeeded = " + saveNeeded);
         if (!mUnsavedChanges) {
             MenuItem saveItem = mMenu.findItem(R.id.lp_save);
             saveItem.setVisible(false);

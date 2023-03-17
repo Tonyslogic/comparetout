@@ -347,7 +347,6 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
                         HourlyDist dist = new HourlyDist();
                         dist.dist = doubleHolder.doubles;
                         mLoadProfile.setHourlyDist(dist);
-                        System.out.println("LPHDF1");
                         if(mEdit)((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
                         updateMasterCopy();
                         totalPercent.setText("" + calculatePercentageTotal(doubleHolder));
@@ -366,7 +365,6 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
                     HourlyDist dist = new HourlyDist();
                     dist.dist = doubleHolder.doubles;
                     mLoadProfile.setHourlyDist(dist);
-                    System.out.println("LPHDF2");
                     if(mEdit)((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
                     updateMasterCopy();
                     totalPercent.setText("" + calculatePercentageTotal(doubleHolder));
