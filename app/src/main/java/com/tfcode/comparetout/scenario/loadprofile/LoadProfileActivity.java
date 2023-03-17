@@ -34,6 +34,7 @@ public class LoadProfileActivity extends AppCompatActivity {
     private boolean mUnsavedChanges = false;
 
     private String mLoadProfileJson = "";
+    private String mDistributionSource = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -152,8 +153,7 @@ public class LoadProfileActivity extends AppCompatActivity {
         this.mDoubleBackToExitPressedOnce = true;
         Toast.makeText(this, "Unsaved changes. Please click BACK again to discard and exit", Toast.LENGTH_SHORT).show();
 
-        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-            @Override public void run() { mDoubleBackToExitPressedOnce =false;}}, 2000);
+        new Handler(Looper.getMainLooper()).postDelayed(() -> mDoubleBackToExitPressedOnce =false, 2000);
     }
 
     // FRAGMENT ACCESS METHODS
@@ -171,11 +171,12 @@ public class LoadProfileActivity extends AppCompatActivity {
 
     public void setSaveNeeded(boolean saveNeeded){
         mUnsavedChanges = saveNeeded;
+        System.out.println("SaveNeeded = " + saveNeeded);
         if (!mUnsavedChanges) {
             MenuItem saveItem = mMenu.findItem(R.id.lp_save);
-            saveItem.setVisible(true);
+            saveItem.setVisible(false);
             MenuItem editItem = mMenu.findItem(R.id.lp_edit);
-            editItem.setVisible(false);
+            editItem.setVisible(true);
             mEdit = false;
             ((LoadProfileViewPageAdapter) mViewPager.getAdapter()).setEdit(mEdit);
         }
@@ -187,5 +188,9 @@ public class LoadProfileActivity extends AppCompatActivity {
 
     public void setLoadProfileJson(String mLoadProfileJson) {
         this.mLoadProfileJson = mLoadProfileJson;
+    }
+
+    public void propagateDistribution() {
+        ((LoadProfileViewPageAdapter) mViewPager.getAdapter()).updateDistributionFromLeader();
     }
 }

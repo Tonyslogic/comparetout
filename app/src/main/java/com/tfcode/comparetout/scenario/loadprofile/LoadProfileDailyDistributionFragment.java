@@ -283,4 +283,11 @@ public class LoadProfileDailyDistributionFragment extends Fragment {
         String newLoadProfileJsonString =  gson.toJson(lpj, type);
         ((LoadProfileActivity) requireActivity()).setLoadProfileJson(newLoadProfileJsonString);
     }
+
+    public void updateDistributionFromLeader() {
+        String loadProfileJsonString = ((LoadProfileActivity) requireActivity()).getLoadProfileJson();
+        Type type = new TypeToken<LoadProfileJson>(){}.getType();
+        LoadProfileJson lpj = new Gson().fromJson(loadProfileJsonString, type);
+        mLoadProfile = JsonTools.createLoadProfile(lpj);
+    }
 }

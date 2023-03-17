@@ -12,6 +12,16 @@ public class LoadProfile {
     private double annualUsage = 6200d;
     private double hourlyBaseLoad = 0.3;
     private double gridImportMax = 15.0;
+    private String distributionSource = "Custom";
+    private double gridExportMax = 6.0;
+    private HourlyDist hourlyDist = new HourlyDist();
+    private DOWDist dowDist = new DOWDist();
+    private MonthlyDist monthlyDist = new MonthlyDist();
+
+    public String getDistributionSource() {return distributionSource;}
+
+    public void setDistributionSource(String distributionSource)
+        {this.distributionSource = distributionSource;}
 
     public double getGridImportMax() {
         return gridImportMax;
@@ -28,11 +38,6 @@ public class LoadProfile {
     public void setGridExportMax(double gridExportMax) {
         this.gridExportMax = gridExportMax;
     }
-
-    private double gridExportMax = 6.0;
-    private HourlyDist hourlyDist = new HourlyDist();
-    private DOWDist dowDist = new DOWDist();
-    private MonthlyDist monthlyDist = new MonthlyDist();
 
     public long getId() {
         return id;

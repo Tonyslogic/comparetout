@@ -10,13 +10,14 @@
 
         <FrameLayout
             android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        tools:context=".scenario.loadprofile.LoadProfileHourlyDistributionFragment">
+            android:layout_height="match_parent"
+            tools:context=".scenario.loadprofile.LoadProfileHourlyDistributionFragment"
+            android:id="@+id/fl_hourly_distribution">
 
-        <com.github.mikephil.charting.charts.HorizontalBarChart
-            android:id="@+id/hourly_distribution_chart"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            <com.github.mikephil.charting.charts.BarChart
+                android:id="@+id/hourly_distribution_chart"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" />
 
             <TableLayout
                 android:id="@+id/load_profile_edit_hourly"

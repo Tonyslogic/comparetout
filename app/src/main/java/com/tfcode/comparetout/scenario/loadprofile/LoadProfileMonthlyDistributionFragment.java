@@ -21,6 +21,7 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
+import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.charts.HorizontalBarChart;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.data.BarData;
@@ -45,7 +46,7 @@ public class LoadProfileMonthlyDistributionFragment extends Fragment {
     private boolean mEdit = false;
 
     private ComparisonUIViewModel mViewModel;
-    private HorizontalBarChart mBarChart;
+    private BarChart mBarChart;
     private TableLayout mEditTable;
     private Long mScenarioID;
     private LoadProfile mLoadProfile;
@@ -288,5 +289,12 @@ public class LoadProfileMonthlyDistributionFragment extends Fragment {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         String newLoadProfileJsonString =  gson.toJson(lpj, type);
         ((LoadProfileActivity) requireActivity()).setLoadProfileJson(newLoadProfileJsonString);
+    }
+
+    public void updateDistributionFromLeader() {
+        String loadProfileJsonString = ((LoadProfileActivity) requireActivity()).getLoadProfileJson();
+        Type type = new TypeToken<LoadProfileJson>(){}.getType();
+        LoadProfileJson lpj = new Gson().fromJson(loadProfileJsonString, type);
+        mLoadProfile = JsonTools.createLoadProfile(lpj);
     }
 }

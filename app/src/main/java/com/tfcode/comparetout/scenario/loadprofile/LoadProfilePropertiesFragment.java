@@ -16,11 +16,16 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
+import android.widget.Toast;
 
+import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -32,6 +37,7 @@ import com.tfcode.comparetout.model.scenario.LoadProfile;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class LoadProfilePropertiesFragment extends Fragment {
@@ -48,8 +54,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
     }
 
     public static LoadProfilePropertiesFragment newInstance() {
-        LoadProfilePropertiesFragment fragment = new LoadProfilePropertiesFragment();
-        return fragment;
+        return new LoadProfilePropertiesFragment();
     }
 
     @Override
@@ -63,6 +68,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
             if (!(null == profile)) {
                 System.out.println("LPPF Observed a change in live profile data " + profile.getId());
                 mLoadProfile = profile;
+                System.out.println(mLoadProfile.getDistributionSource());
             }
             else mLoadProfile = new LoadProfile();
             LoadProfileJson lpj = JsonTools.createLoadProfileJson(mLoadProfile);
@@ -97,17 +103,19 @@ public class LoadProfilePropertiesFragment extends Fragment {
             @Override
             public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
                 System.out.println("LPPF.onOptionsItemSelected");
-                if (menuItem.getItemId() == R.id.lp_save) {//add the function to perform here
+                if (menuItem.getItemId() == R.id.lp_save) {
                     System.out.println("save attempt");
 
-                    long id = mLoadProfile.getId();
                     String loadProfileJsonString = ((LoadProfileActivity) requireActivity()).getLoadProfileJson();
                     Type type = new TypeToken<LoadProfileJson>(){}.getType();
                     LoadProfileJson lpj = new Gson().fromJson(loadProfileJsonString, type);
-                    mLoadProfile = JsonTools.createLoadProfile(lpj);
-                    mLoadProfile.setId(id);
+                    LoadProfile loadProfile = JsonTools.createLoadProfile(lpj);
+                    mLoadProfile.setDowDist(loadProfile.getDowDist());
+                    mLoadProfile.setHourlyDist(loadProfile.getHourlyDist());
+                    mLoadProfile.setMonthlyDist(loadProfile.getMonthlyDist());
 
                     mViewModel.saveLoadProfile(mScenarioID, mLoadProfile);
+                    System.out.println("LPPF1");
                     ((LoadProfileActivity) requireActivity()).setSaveNeeded(false);
                     return (false);
                 }
@@ -129,6 +137,56 @@ public class LoadProfilePropertiesFragment extends Fragment {
         // CREATE TABLE ROWS
         TableRow tableRow = new TableRow(getActivity());
         TextView a = new TextView(getActivity());
+        a.setText("Distribution source");
+        Spinner spinner = new Spinner(getActivity());
+        ArrayList<String> spinnerContent = new ArrayList<>();
+        spinnerContent.add("Custom");
+        spinnerContent.addAll(Arrays.asList(StandardLoadProfiles.spls));
+//        {"SLP 24hr Urban", "SLP 24hr Rural", "SLP Nightsaver Urban", "SLP Nightsaver Rural", "SLP Smart Urban", "SLP Smart Rural"};
+        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, spinnerContent);
+        spinner.setAdapter(spinnerAdapter);
+        spinner.setEnabled(mEdit);
+        int index = spinnerContent.indexOf(mLoadProfile.getDistributionSource());
+        System.out.println(mLoadProfile.getDistributionSource() + ", " + index);
+        spinner.setSelection(index);
+
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                String loadProfileJsonString = null;
+                switch (position) {
+                    case 0: break;
+                    case 1: loadProfileJsonString = StandardLoadProfiles.SLP_24hr_urban; break;
+                    case 2: loadProfileJsonString = StandardLoadProfiles.SLP_24hr_rural; break;
+                    case 3: loadProfileJsonString = StandardLoadProfiles.SLP_Nightsaver_urban; break;
+                    case 4: loadProfileJsonString = StandardLoadProfiles.SLP_Nightsaver_rural; break;
+                    case 5: loadProfileJsonString = StandardLoadProfiles.SLP_Smart_urban; break;
+                    case 6: loadProfileJsonString = StandardLoadProfiles.SLP_Smart_rural; break;
+                }
+                if (!(null == loadProfileJsonString)) {
+                    Type type = new TypeToken<LoadProfileJson>() {
+                    }.getType();
+                    LoadProfileJson lpj = new Gson().fromJson(loadProfileJsonString, type);
+                    LoadProfile slProfile = JsonTools.createLoadProfile(lpj);
+                    mLoadProfile.setHourlyDist(slProfile.getHourlyDist());
+                    mLoadProfile.setDowDist(slProfile.getDowDist());
+                    mLoadProfile.setMonthlyDist(slProfile.getMonthlyDist());
+                    mLoadProfile.setDistributionSource(spinnerContent.get(position));
+                    if (mEdit) updateMasterCopy();
+                }
+            }
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                // TODO Auto-generated method stub
+            }
+        });
+        tableRow.addView(a);
+        tableRow.addView(spinner);
+        mTableLayout.addView(tableRow);
+        mEditFields.add(spinner);
+
+        tableRow = new TableRow(getActivity());
+        a = new TextView(getActivity());
         a.setText("Annual usage (kWh)");
         EditText b = new EditText(getActivity());
         b.setText("" + mLoadProfile.getAnnualUsage());
@@ -159,9 +217,11 @@ public class LoadProfilePropertiesFragment extends Fragment {
         b.addTextChangedListener(new LocalTextWatcher() {
             @Override
             public void afterTextChanged(Editable s) {
-                mLoadProfile.setHourlyBaseLoad(Double.parseDouble(s.toString()));
-                System.out.println("Base load changed to : " + mLoadProfile.getAnnualUsage());
-                ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
+                try {
+                    mLoadProfile.setHourlyBaseLoad(Double.parseDouble(s.toString()));
+                    System.out.println("Base load changed to : " + mLoadProfile.getHourlyBaseLoad());
+                    ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
+                } catch (NumberFormatException nfe) {}
             }
         });
         a.setLayoutParams(planParams);
@@ -205,7 +265,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
             public void afterTextChanged(Editable s) {
                 mLoadProfile.setGridExportMax(Double.parseDouble(s.toString()));
                 System.out.println("Max export changed to : " + mLoadProfile.getAnnualUsage());
-                ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
+                if (mEdit) ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
             }
         });
         a.setLayoutParams(planParams);
@@ -221,6 +281,17 @@ public class LoadProfilePropertiesFragment extends Fragment {
         for (View v : mEditFields) {
             v.setEnabled(mEdit);
         }
+    }
+
+    private void updateMasterCopy() {
+        Type type = new TypeToken<LoadProfileJson>(){}.getType();
+        LoadProfileJson lpj = JsonTools.createLoadProfileJson(mLoadProfile);
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        String newLoadProfileJsonString =  gson.toJson(lpj, type);
+        ((LoadProfileActivity) requireActivity()).setLoadProfileJson(newLoadProfileJsonString); //, mLoadProfile.getDistributionSource());
+        System.out.println("LPPF2");
+        ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
+        ((LoadProfileActivity) requireActivity()).propagateDistribution();
     }
 }
 

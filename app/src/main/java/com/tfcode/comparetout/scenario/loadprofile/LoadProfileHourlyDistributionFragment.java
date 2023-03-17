@@ -5,6 +5,7 @@ import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.widget.NestedScrollView;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -15,12 +16,15 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.ImageView;
+import android.widget.RelativeLayout;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
+import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.charts.HorizontalBarChart;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.data.BarData;
@@ -40,14 +44,16 @@ import com.tfcode.comparetout.model.scenario.LoadProfile;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class LoadProfileHourlyDistributionFragment extends Fragment {
     private boolean mEdit = false;
 
     private ComparisonUIViewModel mViewModel;
-    private HorizontalBarChart mBarChart;
+    private BarChart mBarChart;
     private TableLayout mEditTable;
+//    private FrameLayout mFrameLayout;
     private Integer mEditTableHeight = null;
     private Long mScenarioID;
     private LoadProfile mLoadProfile;
@@ -97,39 +103,23 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         mBarChart = requireView().findViewById(R.id.hourly_distribution_chart);
         mEditTable = requireView().findViewById(R.id.load_profile_edit_hourly);
+//        mFrameLayout = requireView().findViewById(R.id.fl_hourly_distribution);
         if (!(null == mBarChart) && !(null == mLoadProfile)) updateView();
     }
 
     private void updateView() {
-        System.out.println("Updating LoadProfileHourlyDistributionFragment " + mEditTable.getHeight());
+        System.out.println("Updating LoadProfileHourlyDistributionFragment " + mEditTableHeight + ", " + mEditTable.getHeight());
+        if (null == mEditTableHeight) mEditTableHeight = mEditTable.getHeight();
+//        else {
+//            FrameLayout.LayoutParams nsvParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, mEditTableHeight);
+//            mFrameLayout.setLayoutParams(nsvParams);
+//        }
         if (!mEdit) {
             mEditTable.setVisibility(View.INVISIBLE);
             mBarChart.setVisibility(View.VISIBLE);
-            final ArrayList<String> xLabel = new ArrayList<>();
-            xLabel.add("00-01");
-            xLabel.add("01-02");
-            xLabel.add("02-03");
-            xLabel.add("03-04");
-            xLabel.add("04-05");
-            xLabel.add("05-06");
-            xLabel.add("06-07");
-            xLabel.add("07-08");
-            xLabel.add("08-09");
-            xLabel.add("09-10");
-            xLabel.add("10-11");
-            xLabel.add("11-12");
-            xLabel.add("12-13");
-            xLabel.add("13-14");
-            xLabel.add("14-15");
-            xLabel.add("15-16");
-            xLabel.add("16-17");
-            xLabel.add("17-18");
-            xLabel.add("18-19");
-            xLabel.add("19-20");
-            xLabel.add("20-21");
-            xLabel.add("21-22");
-            xLabel.add("22-23");
-            xLabel.add("23-24");
+            final String[] xLabels = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12",
+                    "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", };
+            final ArrayList<String> xLabel = new ArrayList<>(Arrays.asList(xLabels));
             XAxis xAxis = mBarChart.getXAxis();
             xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
             xAxis.setDrawGridLines(false);
@@ -139,7 +129,6 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
                     return xLabel.get((int)value);
                 }
             });
-            xAxis.setLabelCount(24, false);
             List<Double> hourlyDist = mLoadProfile.getHourlyDist().dist;
 
             ArrayList<BarEntry> entries = new ArrayList<>();
@@ -168,7 +157,6 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
             mEditTable.setVisibility(View.VISIBLE);
             mBarChart.setVisibility(View.INVISIBLE);
             mEditTable.removeAllViews();
-            if (null == mEditTableHeight) mEditTableHeight = mEditTable.getHeight();
 
             // HOURLY Percentages
             DoubleHolder doubleHolder = new DoubleHolder();
@@ -295,26 +283,6 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
 
                 from.setEnabled(false);
 
-//                from.addTextChangedListener(new LocalTextWatcher() {
-//                    @Override
-//                    public void afterTextChanged(Editable s) {
-//                        try {
-//                            int fr = Integer.parseInt(s.toString());
-//                            int t = Integer.parseInt(to.getText().toString());
-//                            int p = Integer.parseInt((percent.getText().toString()));
-//                            doubleHolder.update(fr, t, (double) p / (t - fr));
-//                            HourlyDist hd = new HourlyDist();
-//                            hd.dist = doubleHolder.doubles;
-//                            mLoadProfile.setHourlyDist(hd);
-//                            System.out.println("From changed to : " + Double.parseDouble(s.toString()));
-//                            ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
-//                            totalPercent.setText("" + calculatePercentageTotal(doubleHolder));
-//                        } catch (NumberFormatException nfe) {}
-//                    }
-//                });
-//                from.setOnFocusChangeListener((v, hasFocus) -> {
-//                    if (!hasFocus) {updateView();}});
-
                 to.addTextChangedListener(new LocalTextWatcher() {
                     @Override
                     public void afterTextChanged(Editable s) {
@@ -327,7 +295,7 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
                             hd.dist = doubleHolder.doubles;
                             mLoadProfile.setHourlyDist(hd);
                             System.out.println("to changed to : " + Double.parseDouble(s.toString()));
-                            ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
+                            if(mEdit) ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
                             updateMasterCopy();
                             totalPercent.setText("" + calculatePercentageTotal(doubleHolder));
                         } catch (NumberFormatException nfe) {}
@@ -348,7 +316,7 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
                             hd.dist = doubleHolder.doubles;
                             mLoadProfile.setHourlyDist(hd);
                             System.out.println("percent changed to : " + Double.parseDouble(s.toString()));
-                            ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
+                            if(mEdit)((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
                             updateMasterCopy();
                             totalPercent.setText("" + calculatePercentageTotal(doubleHolder));
                         } catch (NumberFormatException nfe) {}
@@ -379,7 +347,8 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
                         HourlyDist dist = new HourlyDist();
                         dist.dist = doubleHolder.doubles;
                         mLoadProfile.setHourlyDist(dist);
-                        ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
+                        System.out.println("LPHDF1");
+                        if(mEdit)((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
                         updateMasterCopy();
                         totalPercent.setText("" + calculatePercentageTotal(doubleHolder));
                         updateView();
@@ -397,7 +366,8 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
                     HourlyDist dist = new HourlyDist();
                     dist.dist = doubleHolder.doubles;
                     mLoadProfile.setHourlyDist(dist);
-                    ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
+                    System.out.println("LPHDF2");
+                    if(mEdit)((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
                     updateMasterCopy();
                     totalPercent.setText("" + calculatePercentageTotal(doubleHolder));
                     updateView();
@@ -489,5 +459,12 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         String newLoadProfileJsonString =  gson.toJson(lpj, type);
         ((LoadProfileActivity) requireActivity()).setLoadProfileJson(newLoadProfileJsonString);
+    }
+
+    public void updateDistributionFromLeader() {
+        String loadProfileJsonString = ((LoadProfileActivity) requireActivity()).getLoadProfileJson();
+        Type type = new TypeToken<LoadProfileJson>(){}.getType();
+        LoadProfileJson lpj = new Gson().fromJson(loadProfileJsonString, type);
+        mLoadProfile = JsonTools.createLoadProfile(lpj);
     }
 }

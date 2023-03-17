@@ -35,11 +35,17 @@ public class LoadProfileViewPageAdapter extends FragmentStateAdapter {
         return 4;
     }
 
-
+    // FRAGMENT BROADCAST METHODS
     public void setEdit(boolean ed) {
         loadProfilePropertiesFragment.setEditMode(ed);
         loadProfileDailyDistributionFragment.setEditMode(ed);
         loadProfileMonthlyDistributionFragment.setEditMode(ed);
         loadProfileHourlyDistributionFragment.setEditMode(ed);
+    }
+
+    public void updateDistributionFromLeader() {
+        loadProfileDailyDistributionFragment.updateDistributionFromLeader();
+        loadProfileMonthlyDistributionFragment.updateDistributionFromLeader();
+        loadProfileHourlyDistributionFragment.updateDistributionFromLeader();
     }
 }
