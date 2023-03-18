@@ -43,6 +43,11 @@ public class GenerateLoadDataFromProfileWorker extends Worker {
         if (mDeleteFirst) {
             System.out.println("Deleting load profile data for " + mLoadProfileID);
             mToutcRepository.deleteLoadProfileData(mLoadProfileID);
+            System.out.println("Deleting simulation data for " + mLoadProfileID);
+            mToutcRepository.deleteSimultationDataForProfileID(mLoadProfileID);
+            System.out.println("Deleting costing data for " + mLoadProfileID);
+            mToutcRepository.deleteCostingDataForProfileID(mLoadProfileID);
+            // TODO Delete costings
             needsDataGen = true;
         }
 

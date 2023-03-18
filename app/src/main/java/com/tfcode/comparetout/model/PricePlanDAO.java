@@ -20,7 +20,7 @@ import java.util.Map;
 
 @Dao
 public abstract class PricePlanDAO {
-    @Insert(onConflict = OnConflictStrategy.ABORT)
+    @Insert()
     abstract long addNewPricePlan(PricePlan pp);
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -105,4 +105,10 @@ public abstract class PricePlanDAO {
 
     @Query("SELECT planName FROM PricePlans WHERE id = :id")
     public abstract String getNameForPlanID (long id);
+
+    @Query("SELECT * FROM priceplans")
+    public abstract List<PricePlan> loadPricePlansNow();
+
+    @Query("SELECT * FROM dayrates WHERE pricePlanId = :id")
+    public abstract List<DayRate> getAllDayRatesForPricePlanID(long id);
 }

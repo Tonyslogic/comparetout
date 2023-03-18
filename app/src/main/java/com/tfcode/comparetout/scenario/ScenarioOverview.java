@@ -10,6 +10,11 @@ import androidx.appcompat.widget.PopupMenu;
 import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.work.Data;
+import androidx.work.ExistingWorkPolicy;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
+import androidx.work.WorkRequest;
 
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -30,8 +35,10 @@ import android.widget.Toast;
 import com.google.android.material.snackbar.Snackbar;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
+import com.tfcode.comparetout.SimulatorLauncher;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
+import com.tfcode.comparetout.scenario.loadprofile.GenerateLoadDataFromProfileWorker;
 import com.tfcode.comparetout.scenario.loadprofile.LoadProfileActivity;
 
 import java.lang.reflect.Field;
@@ -114,6 +121,7 @@ public class ScenarioOverview extends Fragment {
         mTableLayout = requireView().findViewById(R.id.editScenarioTable);
         setupButtons();
         setupMenu();
+        SimulatorLauncher.simulateIfNeeded(getContext());
         updateView();
     }
 

@@ -33,6 +33,7 @@ import com.tfcode.comparetout.model.scenario.Scenario2LoadProfile;
 import com.tfcode.comparetout.model.scenario.Scenario2LoadShift;
 import com.tfcode.comparetout.model.scenario.Scenario2Panel;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
+import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -302,4 +303,35 @@ public abstract class ScenarioDAO {
 
     @Insert(entity = LoadProfileData.class)
     public abstract void createLoadProfileDataEntries(ArrayList<LoadProfileData> rows);
+
+    @Query("DELETE FROM scenariosimulationdata WHERE scenarioID = (" +
+            "SELECT scenarioID FROM scenario2loadprofile WHERE loadProfileID = :loadProfileID) ")
+    public abstract void deleteSimulationDataForProfileID(long loadProfileID);
+
+    @Query("DELETE FROM costings WHERE scenarioID = (" +
+            "SELECT scenarioID FROM scenario2loadprofile WHERE loadProfileID = :loadProfileID) ")
+    public abstract void deleteCostingDataForProfileID(long loadProfileID);
+
+    @Query("SELECT id FROM scenarios " +
+            "WHERE id NOT IN (SELECT DISTINCT scenarioID FROM scenariosimulationdata) " +
+            "AND id IN (SELECT DISTINCT scenarioID FROM scenario2loadprofile)")
+    public abstract List<Long> getAllScenariosThatNeedSimulation();
+
+    @Query("SELECT * FROM scenarios WHERE id = :scenarioID")
+    public abstract Scenario getScenarioForID(long scenarioID);
+
+    @Query("SELECT * FROM loadprofiledata WHERE loadProfileID = (" +
+            "SELECT DISTINCT loadProfileID FROM scenario2loadprofile WHERE scenarioID = :scenarioID)")
+    public abstract List<LoadProfileData> getSimulationInput(long scenarioID);
+
+    @Insert(entity = ScenarioSimulationData.class)
+    public abstract void saveSimulationDataForScenario(ArrayList<ScenarioSimulationData> simulationData);
+
+    @Query("SELECT id FROM scenarios " +
+            "WHERE id NOT IN (SELECT scenarioID FROM costings)")
+    public abstract List<Long> getAllScenariosThatNeedCosting();
+
+    @Query("SELECT * FROM scenariosimulationdata WHERE scenarioID = :scenarioID " +
+            "ORDER BY date, minuteOfDay")
+    public abstract List<ScenarioSimulationData> getSimulationDataForScenario(long scenarioID);
 }

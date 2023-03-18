@@ -3,6 +3,7 @@ package com.tfcode.comparetout.model;
 import androidx.room.TypeConverter;
 
 import com.google.gson.Gson;
+import com.tfcode.comparetout.model.costings.SubTotals;
 import com.tfcode.comparetout.model.priceplan.DoubleHolder;
 import com.tfcode.comparetout.model.scenario.ChargeModel;
 import com.tfcode.comparetout.model.scenario.DOWDist;
@@ -97,5 +98,16 @@ public class Converters {
     @TypeConverter
     public static  MonthHolder toMonthHolder(String s) {
         return new Gson().fromJson(s, MonthHolder.class);
+    }
+
+    @TypeConverter
+    public static String fromSubTotals(SubTotals st) {
+        Gson gson = new Gson();
+        return gson.toJson(st);
+    }
+
+    @TypeConverter
+    public static SubTotals toSubTotals(String s) {
+        return new Gson().fromJson(s,SubTotals.class);
     }
 }

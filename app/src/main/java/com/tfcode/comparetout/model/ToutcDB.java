@@ -7,6 +7,7 @@ import androidx.room.Room;
 import androidx.room.RoomDatabase;
 import androidx.room.TypeConverters;
 
+import com.tfcode.comparetout.model.costings.Costings;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.Battery;
@@ -49,7 +50,8 @@ import java.util.concurrent.Executors;
         HWSchedule.class, Scenario2HWSchedule.class,
         HWDivert.class, Scenario2HWDivert.class,
         EVDivert.class, Scenario2EVDivert.class,
-        LoadProfileData.class
+        LoadProfileData.class, ScenarioSimulationData.class,
+        Costings.class
         }, version = 1)
 
 @TypeConverters({Converters.class})
@@ -58,6 +60,7 @@ public abstract class ToutcDB extends RoomDatabase {
 
     public abstract PricePlanDAO pricePlanDAO();
     public abstract ScenarioDAO sceanrioDAO();
+    public abstract CostingDAO costingDAO();
 
     private static volatile ToutcDB INSTANCE;
     private static final int NUMBER_OF_THREADS = 8;

@@ -4,12 +4,14 @@ import android.app.Application;
 
 import androidx.lifecycle.LiveData;
 
+import com.tfcode.comparetout.model.costings.Costings;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
 import com.tfcode.comparetout.model.scenario.LoadProfileData;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
+import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +24,9 @@ public class ToutcRepository {
     private final ScenarioDAO scenarioDAO;
     private final LiveData<List<Scenario>> allScenarios;
 
+    private final CostingDAO costingDAO;
+    private final LiveData<List<Costings>> allCostings;
+
     // Note that in order to unit test the WordRepository, you have to remove the Application
     // dependency. This adds complexity and much more code, and this sample is not about testing.
     // See the BasicSample in the android-architecture-components repository at
@@ -33,6 +38,9 @@ public class ToutcRepository {
 
         scenarioDAO = db.sceanrioDAO();
         allScenarios = scenarioDAO.loadScenarios();
+
+        costingDAO = db.costingDAO();
+        allCostings = costingDAO.loadCostings();
     }
 
     // Room executes all queries on a separate thread.
@@ -118,5 +126,49 @@ public class ToutcRepository {
 
     public void createLoadProfileDataEntries(ArrayList<LoadProfileData> rows) {
         scenarioDAO.createLoadProfileDataEntries(rows);
+    }
+
+    public void deleteSimultationDataForProfileID(long loadProfileID) {
+        scenarioDAO.deleteSimulationDataForProfileID(loadProfileID);
+    }
+
+    public void deleteCostingDataForProfileID(long loadProfileID) {
+        scenarioDAO.deleteCostingDataForProfileID(loadProfileID);
+    }
+
+    public List<Long> getAllScenariosThatNeedSimulation() {
+        return scenarioDAO.getAllScenariosThatNeedSimulation();
+    }
+
+    public Scenario getScenarioForID(long scenarioID) {
+        return scenarioDAO.getScenarioForID(scenarioID);
+    }
+
+    public List<LoadProfileData> getSimulationInput(long scenarioID) {
+        return scenarioDAO.getSimulationInput(scenarioID);
+    }
+
+    public void saveSimulationDataForScenario(ArrayList<ScenarioSimulationData> simulationData) {
+        scenarioDAO.saveSimulationDataForScenario(simulationData);
+    }
+
+    public List<Long> getAllScenariosThatNeedCosting() {
+        return scenarioDAO.getAllScenariosThatNeedCosting();
+    }
+
+    public List<PricePlan> getAllPricePlansNow() {
+        return pricePlanDAO.loadPricePlansNow();
+    }
+
+    public List<ScenarioSimulationData> getSimulationDataForScenario(long scenarioID) {
+        return scenarioDAO.getSimulationDataForScenario(scenarioID);
+    }
+
+    public void saveCosting(Costings costing) {
+        costingDAO.saveCosting(costing);
+    }
+
+    public List<DayRate> getAllDayRatesForPricePlanID(long id) {
+        return pricePlanDAO.getAllDayRatesForPricePlanID(id);
     }
 }

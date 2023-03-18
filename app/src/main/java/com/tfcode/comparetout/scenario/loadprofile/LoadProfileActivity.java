@@ -4,6 +4,9 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager2.widget.ViewPager2;
+import androidx.work.ExistingWorkPolicy;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -16,6 +19,8 @@ import android.widget.Toast;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.R;
+import com.tfcode.comparetout.SimulatorLauncher;
+import com.tfcode.comparetout.scenario.SimulationWorker;
 
 import java.util.ArrayList;
 import java.util.Objects;
@@ -147,6 +152,7 @@ public class LoadProfileActivity extends AppCompatActivity {
     public void onBackPressed() {
         if (mDoubleBackToExitPressedOnce || !(mUnsavedChanges)) {
             super.onBackPressed();
+            SimulatorLauncher.simulateIfNeeded(getApplicationContext());
             return;
         }
 
