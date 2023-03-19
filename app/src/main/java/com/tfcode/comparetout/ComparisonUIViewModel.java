@@ -5,6 +5,7 @@ import android.app.Application;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 
+import com.tfcode.comparetout.model.costings.Costings;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.ToutcRepository;
@@ -84,5 +85,13 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public void saveLoadProfile(Long scenarioID, LoadProfile loadProfile) {
         toutcRepository.saveLoadProfile(scenarioID, loadProfile);
+    }
+
+    public LiveData<List<Costings>> getAllComparisons() {
+        return toutcRepository.getAllCostings();
+    }
+
+    public void updateScenarioActiveStatus(int id, boolean checked) {
+        toutcRepository.updateScenarioActiveStatus(id, checked);
     }
 }

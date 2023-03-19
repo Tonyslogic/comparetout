@@ -89,6 +89,7 @@ public class ScenarioNavFragment extends Fragment {
                 // CREATE TEXTVIEW
 
                 CheckBox a = new CheckBox(getActivity());
+                a.setChecked(scenario.isActive());
                 TextView b = new TextView(getActivity());
                 ImageButton c = new ImageButton(getActivity());
                 ImageButton d = new ImageButton(getActivity());
@@ -130,7 +131,10 @@ public class ScenarioNavFragment extends Fragment {
                 d.setId((int) scenario.getId());
                 e.setId((int) scenario.getId());
 
-                a.setOnClickListener(v -> System.out.println("Select for comparison: " + v.getId()));
+                a.setOnClickListener(v -> {
+                    System.out.println("Select for comparison: " + v.getId() + " " + a.isChecked());
+                    mViewModel.updateScenarioActiveStatus(v.getId(), a.isChecked());
+                });
 
                 c.setOnClickListener(v -> {
                     c.setBackgroundColor(Color.RED);

@@ -10,11 +10,6 @@ import androidx.appcompat.widget.PopupMenu;
 import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.work.Data;
-import androidx.work.ExistingWorkPolicy;
-import androidx.work.OneTimeWorkRequest;
-import androidx.work.WorkManager;
-import androidx.work.WorkRequest;
 
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -38,7 +33,6 @@ import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.SimulatorLauncher;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
-import com.tfcode.comparetout.scenario.loadprofile.GenerateLoadDataFromProfileWorker;
 import com.tfcode.comparetout.scenario.loadprofile.LoadProfileActivity;
 
 import java.lang.reflect.Field;
@@ -161,167 +155,139 @@ public class ScenarioOverview extends Fragment {
 
     private void setupButtons() {
         mPanelButton = requireView().findViewById(R.id.panelButton);
-        mPanelButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Snackbar.make(requireActivity().getWindow().getDecorView().getRootView(),
-                  "Panel editor to be done",
-                   Snackbar.LENGTH_LONG).setAction("Action", null).show();
-            }
-        });
+        mPanelButton.setOnClickListener(v -> Snackbar.make(requireActivity().getWindow().getDecorView().getRootView(),
+          "Panel editor to be done",
+           Snackbar.LENGTH_LONG).setAction("Action", null).show());
         mInverterButton = requireView().findViewById(R.id.inverterButton);
-        mInverterButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
+        mInverterButton.setOnClickListener(v -> Snackbar.make(requireActivity().getWindow().getDecorView().getRootView(),
+                "Inverter editor to be done",
+                Snackbar.LENGTH_LONG).setAction("Action", null).show());
+        mHouseButton = requireView().findViewById(R.id.houseButton);
+        mHouseButton.setOnClickListener(v -> {
+            if (mScenarioID == 0L) {
                 Snackbar.make(requireActivity().getWindow().getDecorView().getRootView(),
-                        "Inverter editor to be done",
+                        "Save before configuring load profile",
                         Snackbar.LENGTH_LONG).setAction("Action", null).show();
             }
-        });
-        mHouseButton = requireView().findViewById(R.id.houseButton);
-        mHouseButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (mScenarioID == 0L) {
-                    Snackbar.make(requireActivity().getWindow().getDecorView().getRootView(),
-                            "Save before configuring load profile",
-                            Snackbar.LENGTH_LONG).setAction("Action", null).show();
-                }
-                else {
-                    Intent intent = new Intent(getActivity(), LoadProfileActivity.class);
-                    intent.putExtra("ScenarioID", mScenarioID);
-                    intent.putExtra("ScenarioName", mScenario.getScenarioName());
-                    intent.putExtra("Edit", mEdit);
-                    startActivity(intent);
-                }
+            else {
+                Intent intent = new Intent(getActivity(), LoadProfileActivity.class);
+                intent.putExtra("ScenarioID", mScenarioID);
+                intent.putExtra("ScenarioName", mScenario.getScenarioName());
+                intent.putExtra("Edit", mEdit);
+                startActivity(intent);
             }
         });
         mBatteryButton = requireView().findViewById(R.id.batteryButton);
-        mBatteryButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                //Creating the instance of PopupMenu
-                PopupMenu popup = new PopupMenu(requireActivity(), mCarButton, Gravity.CENTER_HORIZONTAL);
-                //Inflating the Popup using xml file
-                popup.getMenuInflater()
-                        .inflate(R.menu.popup_menu_scenario, popup.getMenu());
-                MenuItem divertMenuItem = popup.getMenu().findItem(R.id.divert);
-                divertMenuItem.setVisible(false);
+        mBatteryButton.setOnClickListener(v -> {
+            //Creating the instance of PopupMenu
+            PopupMenu popup = new PopupMenu(requireActivity(), mCarButton, Gravity.CENTER_HORIZONTAL);
+            //Inflating the Popup using xml file
+            popup.getMenuInflater()
+                    .inflate(R.menu.popup_menu_scenario, popup.getMenu());
+            MenuItem divertMenuItem = popup.getMenu().findItem(R.id.divert);
+            divertMenuItem.setVisible(false);
 
-                //registering popup with OnMenuItemClickListener
-                popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-                    public boolean onMenuItemClick(MenuItem item) {
-                        Toast.makeText(
-                                requireActivity(),
-                                "You Clicked : " + item.getTitle(),
-                                Toast.LENGTH_SHORT
-                        ).show();
-                        return true;
+            //registering popup with OnMenuItemClickListener
+            popup.setOnMenuItemClickListener(item -> {
+                Toast.makeText(
+                        requireActivity(),
+                        "You Clicked : " + item.getTitle(),
+                        Toast.LENGTH_SHORT
+                ).show();
+                return true;
+            });
+            try {
+                Field[] fields = popup.getClass().getDeclaredFields();
+                for (Field field : fields) {
+                    if ("mPopup".equals(field.getName())) {
+                        field.setAccessible(true);
+                        Object menuPopupHelper = field.get(popup);
+                        Class<?> classPopupHelper = Class.forName(menuPopupHelper
+                                .getClass().getName());
+                        Method setForceIcons = classPopupHelper.getMethod(
+                                "setForceShowIcon", boolean.class);
+                        setForceIcons.invoke(menuPopupHelper, true);
+                        break;
                     }
-                });
-                try {
-                    Field[] fields = popup.getClass().getDeclaredFields();
-                    for (Field field : fields) {
-                        if ("mPopup".equals(field.getName())) {
-                            field.setAccessible(true);
-                            Object menuPopupHelper = field.get(popup);
-                            Class<?> classPopupHelper = Class.forName(menuPopupHelper
-                                    .getClass().getName());
-                            Method setForceIcons = classPopupHelper.getMethod(
-                                    "setForceShowIcon", boolean.class);
-                            setForceIcons.invoke(menuPopupHelper, true);
-                            break;
-                        }
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
                 }
-                popup.show(); //showing popup menu
+            } catch (Exception e) {
+                e.printStackTrace();
             }
+            popup.show(); //showing popup menu
         }); //closing the setOnClickListener method
         mTankButton = requireView().findViewById(R.id.tankButton);
-        mTankButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                //Creating the instance of PopupMenu
-                PopupMenu popup = new PopupMenu(requireActivity(), mCarButton);
-                //Inflating the Popup using xml file
-                popup.getMenuInflater()
-                        .inflate(R.menu.popup_menu_scenario, popup.getMenu());
+        mTankButton.setOnClickListener(v -> {
+            //Creating the instance of PopupMenu
+            PopupMenu popup = new PopupMenu(requireActivity(), mCarButton);
+            //Inflating the Popup using xml file
+            popup.getMenuInflater()
+                    .inflate(R.menu.popup_menu_scenario, popup.getMenu());
 
-                //registering popup with OnMenuItemClickListener
-                popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-                    public boolean onMenuItemClick(MenuItem item) {
-                        Toast.makeText(
-                                requireActivity(),
-                                "You Clicked : " + item.getTitle(),
-                                Toast.LENGTH_SHORT
-                        ).show();
-                        return true;
+            //registering popup with OnMenuItemClickListener
+            popup.setOnMenuItemClickListener(item -> {
+                Toast.makeText(
+                        requireActivity(),
+                        "You Clicked : " + item.getTitle(),
+                        Toast.LENGTH_SHORT
+                ).show();
+                return true;
+            });
+            try {
+                Field[] fields = popup.getClass().getDeclaredFields();
+                for (Field field : fields) {
+                    if ("mPopup".equals(field.getName())) {
+                        field.setAccessible(true);
+                        Object menuPopupHelper = field.get(popup);
+                        Class<?> classPopupHelper = Class.forName(menuPopupHelper
+                                .getClass().getName());
+                        Method setForceIcons = classPopupHelper.getMethod(
+                                "setForceShowIcon", boolean.class);
+                        setForceIcons.invoke(menuPopupHelper, true);
+                        break;
                     }
-                });
-                try {
-                    Field[] fields = popup.getClass().getDeclaredFields();
-                    for (Field field : fields) {
-                        if ("mPopup".equals(field.getName())) {
-                            field.setAccessible(true);
-                            Object menuPopupHelper = field.get(popup);
-                            Class<?> classPopupHelper = Class.forName(menuPopupHelper
-                                    .getClass().getName());
-                            Method setForceIcons = classPopupHelper.getMethod(
-                                    "setForceShowIcon", boolean.class);
-                            setForceIcons.invoke(menuPopupHelper, true);
-                            break;
-                        }
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
                 }
-                popup.show(); //showing popup menu
+            } catch (Exception e) {
+                e.printStackTrace();
             }
+            popup.show(); //showing popup menu
         }); //closing the setOnClickListener method
         mCarButton = requireView().findViewById(R.id.carButton);
-        mCarButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                //Creating the instance of PopupMenu
-                PopupMenu popup = new PopupMenu(requireActivity(), mCarButton);
-                //Inflating the Popup using xml file
-                popup.getMenuInflater()
-                        .inflate(R.menu.popup_menu_scenario, popup.getMenu());
-                MenuItem settingsMenuItem = popup.getMenu().findItem(R.id.settings);
-                settingsMenuItem.setVisible(false);
+        mCarButton.setOnClickListener(v -> {
+            //Creating the instance of PopupMenu
+            PopupMenu popup = new PopupMenu(requireActivity(), mCarButton);
+            //Inflating the Popup using xml file
+            popup.getMenuInflater()
+                    .inflate(R.menu.popup_menu_scenario, popup.getMenu());
+            MenuItem settingsMenuItem = popup.getMenu().findItem(R.id.settings);
+            settingsMenuItem.setVisible(false);
 
-                //registering popup with OnMenuItemClickListener
-                popup.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-                    public boolean onMenuItemClick(MenuItem item) {
-                        Toast.makeText(
-                                requireActivity(),
-                                "You Clicked : " + item.getTitle(),
-                                Toast.LENGTH_SHORT
-                        ).show();
-                        return true;
+            //registering popup with OnMenuItemClickListener
+            popup.setOnMenuItemClickListener(item -> {
+                Toast.makeText(
+                        requireActivity(),
+                        "You Clicked : " + item.getTitle(),
+                        Toast.LENGTH_SHORT
+                ).show();
+                return true;
+            });
+            try {
+                Field[] fields = popup.getClass().getDeclaredFields();
+                for (Field field : fields) {
+                    if ("mPopup".equals(field.getName())) {
+                        field.setAccessible(true);
+                        Object menuPopupHelper = field.get(popup);
+                        Class<?> classPopupHelper = Class.forName(menuPopupHelper
+                                .getClass().getName());
+                        Method setForceIcons = classPopupHelper.getMethod(
+                                "setForceShowIcon", boolean.class);
+                        setForceIcons.invoke(menuPopupHelper, true);
+                        break;
                     }
-                });
-                try {
-                    Field[] fields = popup.getClass().getDeclaredFields();
-                    for (Field field : fields) {
-                        if ("mPopup".equals(field.getName())) {
-                            field.setAccessible(true);
-                            Object menuPopupHelper = field.get(popup);
-                            Class<?> classPopupHelper = Class.forName(menuPopupHelper
-                                    .getClass().getName());
-                            Method setForceIcons = classPopupHelper.getMethod(
-                                    "setForceShowIcon", boolean.class);
-                            setForceIcons.invoke(menuPopupHelper, true);
-                            break;
-                        }
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
                 }
-                popup.show(); //showing popup menu
+            } catch (Exception e) {
+                e.printStackTrace();
             }
+            popup.show(); //showing popup menu
         }); //closing the setOnClickListener method
     }
 

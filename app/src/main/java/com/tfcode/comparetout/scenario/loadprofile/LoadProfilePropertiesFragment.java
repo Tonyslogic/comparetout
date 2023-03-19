@@ -27,9 +27,7 @@ import android.widget.Spinner;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -92,7 +90,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
         builder.putLong("LoadProfileID", mLoadProfile.getId());
         builder.putBoolean("DeleteFirst", mSaved );
         WorkRequest genLPDataWorkRequest =
-                new OneTimeWorkRequest.Builder(GenerateLoadDataFromProfileWorker.class)
+                new OneTimeWorkRequest.Builder(DeleteLoadDataFromProfileWorker.class)
                         .setInputData(builder.build())
                         .build();
         WorkManager

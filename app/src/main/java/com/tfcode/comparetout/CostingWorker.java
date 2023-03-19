@@ -43,9 +43,12 @@ public class CostingWorker extends Worker {
                         mToutcRepository.getAllDayRatesForPricePlanID(pp.getId()));
                 Costings costing = new Costings();
                 costing.setScenarioID(scenarioID);
+                costing.setScenarioName(mToutcRepository.getScenarioForID(scenarioID).getScenarioName());
                 costing.setPricePlanID(pp.getId());
+                costing.setFullPlanName(pp.getSupplier() + ":" + pp.getPlanName());
                 double buy = 0D;
                 double sell = 0D;
+                double nett = 0D;
                 SubTotals subTotals = new SubTotals();
                 for (ScenarioSimulationData row : scenarioData) {
                     double price = lookup.getRate(row.getDate(), row.getMinuteOfDay(), row.getDayOfWeek());
@@ -57,6 +60,9 @@ public class CostingWorker extends Worker {
                 costing.setBuy(buy);
                 costing.setSell(sell);
                 costing.setSubTotals(subTotals);
+                int days = 365; // TODO look at the biggest & smallest dates in the simdata
+                nett = buy - sell + pp.getStandingCharges() * 100 * (days/365) - pp.getSignUpBonus() * 100;
+                costing.setNett(nett);
                 // store in comparison table
                 System.out.println("Storing " + costing);
                 mToutcRepository.saveCosting(costing);

@@ -4,6 +4,7 @@ import android.app.Application;
 import android.content.Context;
 
 import androidx.annotation.NonNull;
+import androidx.work.ListenableWorker;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
@@ -19,41 +20,26 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
+import java.util.List;
 
-public class GenerateLoadDataFromProfileWorker extends Worker {
+public class GenerateMissingLoadDataWorker extends Worker {
 
-    private final long mLoadProfileID;
     private final ToutcRepository mToutcRepository;
-    private LoadProfile mLoadProfile;
-    private final boolean mDeleteFirst;
 
-    public GenerateLoadDataFromProfileWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
+    public GenerateMissingLoadDataWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
-        mLoadProfileID = workerParams.getInputData().getLong("LoadProfileID", 0L);
-        mDeleteFirst = workerParams.getInputData().getBoolean("DeleteFirst", false);
         mToutcRepository = new ToutcRepository((Application) context);
     }
 
     @NonNull
     @Override
-    public Result doWork() {
-        boolean needsDataGen = mToutcRepository.loadProfileDataCheck(mLoadProfileID);
-        System.out.println("checkForDataAndGenerateIfNeeded ==> " + needsDataGen);
+    public ListenableWorker.Result doWork() {
+        List<Long> missing = mToutcRepository.checkForMissingLoadProfileData();
+        System.out.println("checkForDataAndGenerateIfNeeded found ==> " + missing.size());
 
-        if (mDeleteFirst) {
-            System.out.println("Deleting load profile data for " + mLoadProfileID);
-            mToutcRepository.deleteLoadProfileData(mLoadProfileID);
-            System.out.println("Deleting simulation data for " + mLoadProfileID);
-            mToutcRepository.deleteSimultationDataForProfileID(mLoadProfileID);
-            System.out.println("Deleting costing data for " + mLoadProfileID);
-            mToutcRepository.deleteCostingDataForProfileID(mLoadProfileID);
-            // TODO Delete costings
-            needsDataGen = true;
-        }
-
-        if (needsDataGen) {
-            System.out.println("*********** WORKING on " + mLoadProfileID + " *******************");
-            mLoadProfile = mToutcRepository.getLoadProfileWithLoadProfileID(mLoadProfileID);
+        for(long loadProfileID: missing) {
+            System.out.println("*** Generating missing load data for " + loadProfileID + " *******");
+            LoadProfile mLoadProfile = mToutcRepository.getLoadProfileWithLoadProfileID(loadProfileID);
             ArrayList<LoadProfileData> rows = new ArrayList<>();
             LocalDateTime active = LocalDateTime.of(2001, 1, 1, 0, 0);
             LocalDateTime end = LocalDateTime.of(2002,1,1, 0, 0);
@@ -61,38 +47,38 @@ public class GenerateLoadDataFromProfileWorker extends Worker {
             DateTimeFormatter minFormat = DateTimeFormatter.ofPattern("HH:mm");
             while (active.isBefore(end)) {
                 LoadProfileData row = new LoadProfileData();
-                row.setLoadProfileID(mLoadProfileID);
+                row.setLoadProfileID(loadProfileID);
                 row.setDate(active.format(dateFormat));
                 row.setMinute(active.format(minFormat));
                 row.setDow(active.getDayOfWeek().getValue());
                 row.setMod(active.getHour() * 60  + active.getMinute());
-                row.setLoad(genLoad(active.getMonth().getValue(),
+                row.setLoad(genLoad(mLoadProfile, active.getMonth().getValue(),
                         active.getDayOfWeek().getValue(), active.getHour()));
                 rows.add(row);
                 active = active.plusMinutes(5);
             }
-            System.out.println("adding " + rows.size() + " rows to DB for Load Profile: " + mLoadProfileID);
+            System.out.println("adding " + rows.size() + " rows to DB for Load Profile: " + loadProfileID);
             mToutcRepository.createLoadProfileDataEntries(rows);
         }
-        return Result.success();
+        return ListenableWorker.Result.success();
     }
 
-    private double genLoad(int month, int dow, int hod) {
+    private double genLoad(LoadProfile loadProfile, int month, int dow, int hod) {
         double load;
         int totalXXXDaysInMonth = countDayOccurrenceInMonth(DayOfWeek.of(dow), YearMonth.of(2010, month));
 
-        double distMonth = mLoadProfile.getMonthlyDist().monthlyDist.get(month -1)/100;
+        double distMonth = loadProfile.getMonthlyDist().monthlyDist.get(month -1)/100;
         if (dow == 7) dow = 0; //Index 0 is used for Sun in the loadProfile...dowDist
-        double distDOW = mLoadProfile.getDowDist().dowDist.get(dow)/100;
-        double distHOD = mLoadProfile.getHourlyDist().dist.get(hod)/100;
+        double distDOW = loadProfile.getDowDist().dowDist.get(dow)/100;
+        double distHOD = loadProfile.getHourlyDist().dist.get(hod)/100;
 
-        double monthuse = mLoadProfile.getAnnualUsage() * distMonth;
+        double monthuse = loadProfile.getAnnualUsage() * distMonth;
         double dayuse = (monthuse / totalXXXDaysInMonth) * distDOW;
         double houruse = dayuse * distHOD;
 
         load = houruse/12;
 
-    return load;
+        return load;
     }
 
     public static int countDayOccurrenceInMonth(DayOfWeek dow, YearMonth month) {

@@ -8,7 +8,6 @@ import androidx.room.Query;
 import androidx.room.RewriteQueriesToDropUnusedColumns;
 import androidx.room.Transaction;
 import androidx.room.Update;
-import androidx.room.Upsert;
 
 import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.EVCharge;
@@ -334,4 +333,11 @@ public abstract class ScenarioDAO {
     @Query("SELECT * FROM scenariosimulationdata WHERE scenarioID = :scenarioID " +
             "ORDER BY date, minuteOfDay")
     public abstract List<ScenarioSimulationData> getSimulationDataForScenario(long scenarioID);
+
+    @Query("UPDATE scenarios SET isActive = :checked WHERE id = :id")
+    public abstract void updateScenarioActiveStatus(int id, boolean checked);
+
+    @Query("SELECT id FROM loadprofile WHERE id NOT IN " +
+            "(SELECT DISTINCT loadProfileID FROM loadprofiledata)")
+    public abstract List<Long> checkForMissingLoadProfileData();
 }

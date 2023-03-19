@@ -10,6 +10,7 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
     private static final int CARD_ITEM_SIZE = 3;
     private final PricePlanNavFragment pricePlanNavFragment = PricePlanNavFragment.newInstance();
     private final ScenarioNavFragment scenarioNavFragment = ScenarioNavFragment.newInstance();
+    private final ComparisonFragment comparisonFragment = ComparisonFragment.newInstance();
 
     public ViewPagerAdapter(@NonNull FragmentActivity fragmentActivity) {
         super(fragmentActivity);
@@ -21,7 +22,10 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
         if (position == 1) {
             return scenarioNavFragment;
         }
-        return CardFragment.newInstance(position);
+        if (position == 2) {
+            return comparisonFragment;
+        }
+        return pricePlanNavFragment;
     }
     @Override public int getItemCount() {
         return CARD_ITEM_SIZE;

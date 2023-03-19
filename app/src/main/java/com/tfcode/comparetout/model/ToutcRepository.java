@@ -168,7 +168,20 @@ public class ToutcRepository {
         costingDAO.saveCosting(costing);
     }
 
+    public LiveData<List<Costings>> getAllCostings() {
+        return allCostings;
+    }
+
     public List<DayRate> getAllDayRatesForPricePlanID(long id) {
         return pricePlanDAO.getAllDayRatesForPricePlanID(id);
+    }
+
+    public void updateScenarioActiveStatus(int id, boolean checked) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                scenarioDAO.updateScenarioActiveStatus(id, checked));
+    }
+
+    public List<Long> checkForMissingLoadProfileData() {
+        return scenarioDAO.checkForMissingLoadProfileData();
     }
 }
