@@ -137,8 +137,14 @@ public class ScenarioNavFragment extends Fragment {
                 });
 
                 c.setOnClickListener(v -> {
+                    tableRow.setBackgroundColor(Color.RED);
+                    a.setBackgroundColor(Color.RED);
+                    b.setBackgroundColor(Color.RED);
                     c.setBackgroundColor(Color.RED);
+                    d.setBackgroundColor(Color.RED);
+                    e.setBackgroundColor(Color.RED);
                     System.out.println("Delete: " + v.getId());
+                    mViewModel.deleteScenario(v.getId());
                 });
 
                 d.setOnClickListener(v -> System.out.println("Copy/Add: " + v.getId()));

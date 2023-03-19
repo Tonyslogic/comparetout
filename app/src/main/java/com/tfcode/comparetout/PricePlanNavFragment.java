@@ -141,6 +141,7 @@ public class PricePlanNavFragment extends Fragment {
                 });
 
                 c.setOnClickListener(v -> {
+                    tableRow.setBackgroundColor(Color.RED);
                     a.setBackgroundColor(Color.RED);
                     b.setBackgroundColor(Color.RED);
                     c.setBackgroundColor(Color.RED);

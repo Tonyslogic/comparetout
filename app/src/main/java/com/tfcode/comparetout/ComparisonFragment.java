@@ -152,6 +152,7 @@ public class ComparisonFragment extends Fragment {
             for (Costings costing : mCostings) {
                 Scenario scenario = findScenarioByID(costing.getScenarioID());
                 PricePlan pricePlan = findPricePlanByID(costing.getPricePlanID());
+                if ((null == pricePlan) || (null == scenario)) continue;
                 if (pricePlan.isActive() && scenario.isActive()) {
                     Row row = new Row();
                     row.scenario = costing.getScenarioName();

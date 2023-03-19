@@ -184,4 +184,9 @@ public class ToutcRepository {
     public List<Long> checkForMissingLoadProfileData() {
         return scenarioDAO.checkForMissingLoadProfileData();
     }
+
+    public void deleteScenario(int id) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                scenarioDAO.deleteScenario(id));
+    }
 }

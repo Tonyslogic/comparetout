@@ -94,4 +94,8 @@ public class ComparisonUIViewModel extends AndroidViewModel {
     public void updateScenarioActiveStatus(int id, boolean checked) {
         toutcRepository.updateScenarioActiveStatus(id, checked);
     }
+
+    public void deleteScenario(int id) {
+        toutcRepository.deleteScenario(id);
+    }
 }

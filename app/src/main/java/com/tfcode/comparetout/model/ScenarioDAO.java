@@ -2,6 +2,7 @@ package com.tfcode.comparetout.model;
 
 import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
+import androidx.room.Delete;
 import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
@@ -340,4 +341,101 @@ public abstract class ScenarioDAO {
     @Query("SELECT id FROM loadprofile WHERE id NOT IN " +
             "(SELECT DISTINCT loadProfileID FROM loadprofiledata)")
     public abstract List<Long> checkForMissingLoadProfileData();
+
+    @Transaction
+    public void deleteScenario(int id) {
+        deleteScenarioRow(id);
+        deleteBatteryRelationsForScenario(id);
+        deleteEVChargeRelationsForScenario(id);
+        deleteEVDivertRelationsForScenario(id);
+        deleteHWDivertRelationsForScenario(id);
+        deleteHWScheduleRelationsForScenario(id);
+        deleteHWSystemRelationsForScenario(id);
+        deleteInverterRelationsForScenario(id);
+        deleteLoadProfileRelationsForScenario(id);
+        deleteLoadShiftRelationsForScenario(id);
+        deletePanelRelationsForScenario(id);
+
+        // Delete orphans e.g. any battery id not in s2b
+        deleteOrphanBatteries();
+        deleteOrphanEVCharges();
+        deleteOrphanEVDiverts();
+        deleteOrphanHWDiverts();
+        deleteOrphanHWSchedules();
+        deleteOrphanHWSystems();
+        deleteOrphanInverters();
+        deleteOrphanLoadProfiles();
+        deleteOrphanLoadShifts();
+        deleteOrphanPanels();
+
+        deleteOrphanLoadProfileData();
+
+    }
+
+    @Query("DELETE FROM batteries WHERE id NOT IN (SELECT batteryID FROM scenario2battery)")
+    public abstract void deleteOrphanBatteries();
+
+    @Query("DELETE FROM evcharge WHERE id NOT IN (SELECT evChargeID FROM scenario2evcharge)")
+    public abstract void deleteOrphanEVCharges();
+
+    @Query("DELETE FROM evdivert WHERE id NOT IN (SELECT evDivertID FROM scenario2evdivert)")
+    public abstract void deleteOrphanEVDiverts();
+
+    @Query("DELETE FROM hwdivert WHERE id NOT IN (SELECT hwDivertID FROM scenario2hwdivert)")
+    public abstract void deleteOrphanHWDiverts();
+
+    @Query("DELETE FROM hwschedule WHERE id NOT IN (SELECT hwScheduleID FROM scenario2hwschedule)")
+    public abstract void deleteOrphanHWSchedules();
+
+    @Query("DELETE FROM hwsystem WHERE id NOT IN (SELECT hwSystemID FROM scenario2hwsystem)")
+    public abstract void deleteOrphanHWSystems();
+
+    @Query("DELETE FROM inverters WHERE id NOT IN (SELECT inverterID FROM scenario2inverter)")
+    public abstract void deleteOrphanInverters();
+
+    @Query("DELETE FROM loadprofile WHERE id NOT IN (SELECT loadProfileID FROM scenario2loadprofile)")
+    public abstract void deleteOrphanLoadProfiles();
+
+    @Query("DELETE FROM loadshift WHERE id NOT IN (SELECT loadShiftID FROM scenario2loadshift)")
+    public abstract void deleteOrphanLoadShifts();
+
+    @Query("DELETE FROM panels WHERE id NOT IN (SELECT panelID FROM scenario2panel)")
+    public abstract void deleteOrphanPanels();
+
+    @Query("DELETE FROM loadprofiledata WHERE loadProfileID NOT IN (SELECT loadProfileID FROM scenario2loadprofile)")
+    public abstract void deleteOrphanLoadProfileData();
+
+    @Query("DELETE FROM scenarios WHERE id = :id")
+    public abstract void deleteScenarioRow(int id);
+
+    @Query("DELETE FROM scenario2battery WHERE scenarioID = :id")
+    public abstract void deleteBatteryRelationsForScenario(int id);
+
+    @Query("DELETE FROM scenario2evcharge WHERE scenarioID = :id")
+    public abstract void deleteEVChargeRelationsForScenario(int id);
+
+    @Query("DELETE FROM scenario2evdivert WHERE scenarioID = :id")
+    public abstract void deleteEVDivertRelationsForScenario(int id);
+
+    @Query("DELETE FROM scenario2hwdivert WHERE scenarioID = :id")
+    public abstract void deleteHWDivertRelationsForScenario(int id);
+
+    @Query("DELETE FROM scenario2hwschedule WHERE scenarioID = :id")
+    public abstract void deleteHWScheduleRelationsForScenario(int id);
+
+    @Query("DELETE FROM scenario2hwsystem WHERE scenarioID = :id")
+    public abstract void deleteHWSystemRelationsForScenario(int id);
+
+    @Query("DELETE FROM scenario2inverter WHERE scenarioID = :id")
+    public abstract void deleteInverterRelationsForScenario(int id);
+
+    @Query("DELETE FROM scenario2loadprofile WHERE scenarioID = :id")
+    public abstract void deleteLoadProfileRelationsForScenario(int id);
+
+    @Query("DELETE FROM scenario2loadshift WHERE scenarioID = :id")
+    public abstract void deleteLoadShiftRelationsForScenario(int id);
+
+    @Query("DELETE FROM scenario2panel WHERE scenarioID = :id")
+    public abstract void deletePanelRelationsForScenario(int id);
+
 }
