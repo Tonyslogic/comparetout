@@ -149,6 +149,7 @@ public class PricePlanNavFragment extends Fragment {
                     e.setBackgroundColor(Color.RED);
                     System.out.println("Delete: " + v.getId());
                     mViewModel.deletePricePlan(v.getId());
+                    mViewModel.deleteRelatedCostings(v.getId());
                 });
 
                 d.setOnClickListener(v -> {

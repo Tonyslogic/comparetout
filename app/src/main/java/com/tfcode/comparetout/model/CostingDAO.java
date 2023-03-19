@@ -17,4 +17,7 @@ public abstract class CostingDAO {
 
     @Insert
     public abstract void saveCosting(Costings costing);
+
+    @Query("DELETE FROM costings WHERE pricePlanID = :id")
+    public abstract void deleteRelatedCostings(int id);
 }

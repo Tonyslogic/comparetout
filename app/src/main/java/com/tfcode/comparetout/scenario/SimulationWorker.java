@@ -1,12 +1,17 @@
 package com.tfcode.comparetout.scenario;
 
+import static com.tfcode.comparetout.MainActivity.CHANNEL_ID;
+
 import android.app.Application;
 import android.content.Context;
 
 import androidx.annotation.NonNull;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
+import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.scenario.LoadProfileData;
 import com.tfcode.comparetout.model.scenario.Scenario;
@@ -29,6 +34,25 @@ public class SimulationWorker extends Worker {
     public Result doWork() {
         List<Long> scenarioIDs = mToutcRepository.getAllScenariosThatNeedSimulation();
         System.out.println("Found " + scenarioIDs.size() + " scenarios that need simulation");
+
+        // NOTIFICATION SETUP
+        int notificationId = 1;
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
+        builder.setContentTitle("Simulating scenarios")
+                .setContentText("Simulation in progress")
+                .setSmallIcon(R.drawable.house)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setTimeoutAfter(20000);
+        // Issue the initial notification with zero progress
+        int PROGRESS_MAX = 100;
+        int PROGRESS_CURRENT = 0;
+        int PROGRESS_CHUNK = PROGRESS_MAX;
+        if (scenarioIDs.size() > 0) {
+            PROGRESS_CHUNK = PROGRESS_MAX / scenarioIDs.size();
+            builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
+            notificationManager.notify(notificationId, builder.build());
+        }
 
         for (long scenarioID: scenarioIDs) {
             Scenario scenario = mToutcRepository.getScenarioForID(scenarioID);
@@ -60,6 +84,18 @@ public class SimulationWorker extends Worker {
             }
             System.out.println("adding " + outputRows.size() + " rows to DB for simulation: " + scenario.getScenarioName());
             mToutcRepository.saveSimulationDataForScenario(outputRows);
+
+            // NOTIFICATION PROGRESS
+            PROGRESS_CURRENT += PROGRESS_CHUNK;
+            builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
+            notificationManager.notify(notificationId, builder.build());
+        }
+
+        if (scenarioIDs.size() > 0) {
+            // NOTIFICATION COMPLETE
+            builder.setContentText("Simulation complete")
+                    .setProgress(0, 0, false);
+            notificationManager.notify(notificationId, builder.build());
         }
         return Result.success();
     }

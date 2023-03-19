@@ -1,9 +1,13 @@
 package com.tfcode.comparetout;
 
+import static com.tfcode.comparetout.MainActivity.CHANNEL_ID;
+
 import android.app.Application;
 import android.content.Context;
 
 import androidx.annotation.NonNull;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
@@ -31,9 +35,30 @@ public class CostingWorker extends Worker {
         // Find distinct scenarios
         List<Long> scenarioIDs = mToutcRepository.getAllScenariosThatNeedCosting();
         System.out.println("Found " + scenarioIDs.size() + " scenarios that need costing");
+
+        // NOTIFICATION SETUP
+        int notificationId = 1;
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
+        builder.setContentTitle("Calculating costs")
+                .setContentText("Calculation in progress")
+                .setSmallIcon(R.drawable.house)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setTimeoutAfter(20000);
+        int PROGRESS_MAX = 100;
+        int PROGRESS_CURRENT = 0;
+
         // Load PricePlans
         List<PricePlan> plans = mToutcRepository.getAllPricePlansNow();
         System.out.println("Found " + plans.size() + " plans to calculate costs for");
+        int PROGRESS_CHUNK = PROGRESS_MAX;
+        if ((scenarioIDs.size() > 0) && (plans.size() > 0)) {
+            PROGRESS_CHUNK = PROGRESS_MAX / (scenarioIDs.size() * plans.size());
+            // Issue the initial notification with zero progress
+            builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
+            notificationManager.notify(notificationId, builder.build());
+        }
+
         // For each scenario -> load; For each priceplan -> apply costs
         for (long scenarioID : scenarioIDs) {
             // Get the simulation output
@@ -66,9 +91,19 @@ public class CostingWorker extends Worker {
                 // store in comparison table
                 System.out.println("Storing " + costing);
                 mToutcRepository.saveCosting(costing);
+                // NOTIFICATION PROGRESS
+                PROGRESS_CURRENT += PROGRESS_CHUNK;
+                builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
+                notificationManager.notify(notificationId, builder.build());
             }
         }
 
+        if ((scenarioIDs.size() > 0) && (plans.size() > 0)) {
+            // NOTIFICATION COMPLETE
+            builder.setContentText("Calculation complete")
+                    .setProgress(0, 0, false);
+            notificationManager.notify(notificationId, builder.build());
+        }
         return Result.success();
     }
 }

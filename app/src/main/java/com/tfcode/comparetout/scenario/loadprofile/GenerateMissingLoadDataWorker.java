@@ -1,13 +1,18 @@
 package com.tfcode.comparetout.scenario.loadprofile;
 
+import static com.tfcode.comparetout.MainActivity.CHANNEL_ID;
+
 import android.app.Application;
 import android.content.Context;
 
 import androidx.annotation.NonNull;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.work.ListenableWorker;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
+import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
 import com.tfcode.comparetout.model.scenario.LoadProfileData;
@@ -37,6 +42,25 @@ public class GenerateMissingLoadDataWorker extends Worker {
         List<Long> missing = mToutcRepository.checkForMissingLoadProfileData();
         System.out.println("checkForDataAndGenerateIfNeeded found ==> " + missing.size());
 
+        // NOTIFICATION SETUP
+        int notificationId = 1;
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
+        builder.setContentTitle("Generating load data")
+                .setContentText("Generation in progress")
+                .setSmallIcon(R.drawable.house)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setTimeoutAfter(20000);
+        // Issue the initial notification with zero progress
+        int PROGRESS_MAX = 100;
+        int PROGRESS_CURRENT = 0;
+        int PROGRESS_CHUNK = PROGRESS_MAX;
+        if(missing.size() > 0) {
+            PROGRESS_CHUNK = PROGRESS_MAX / missing.size();
+            builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
+            notificationManager.notify(notificationId, builder.build());
+        }
+
         for(long loadProfileID: missing) {
             System.out.println("*** Generating missing load data for " + loadProfileID + " *******");
             LoadProfile mLoadProfile = mToutcRepository.getLoadProfileWithLoadProfileID(loadProfileID);
@@ -59,7 +83,20 @@ public class GenerateMissingLoadDataWorker extends Worker {
             }
             System.out.println("adding " + rows.size() + " rows to DB for Load Profile: " + loadProfileID);
             mToutcRepository.createLoadProfileDataEntries(rows);
+
+            // NOTIFICATION PROGRESS
+            PROGRESS_CURRENT += PROGRESS_CHUNK;
+            builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
+            notificationManager.notify(notificationId, builder.build());
         }
+
+        if(missing.size() > 0) {
+            // NOTIFICATION COMPLETE
+            builder.setContentText("Generation complete")
+                    .setProgress(0,0,false);
+            notificationManager.notify(notificationId, builder.build());
+        }
+
         return ListenableWorker.Result.success();
     }
 

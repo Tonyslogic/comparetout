@@ -189,4 +189,9 @@ public class ToutcRepository {
         ToutcDB.databaseWriteExecutor.execute(() ->
                 scenarioDAO.deleteScenario(id));
     }
+
+    public void deleteRelatedCostings(int id) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                costingDAO.deleteRelatedCostings(id));
+    }
 }
