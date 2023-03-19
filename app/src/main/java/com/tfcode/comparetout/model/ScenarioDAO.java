@@ -438,4 +438,36 @@ public abstract class ScenarioDAO {
     @Query("DELETE FROM scenario2panel WHERE scenarioID = :id")
     public abstract void deletePanelRelationsForScenario(int id);
 
+    @Transaction
+    public void copyScenario(int id) {
+        Scenario scenario = getScenarioForID(id);
+        List<Battery> batteries = getBatteriesForScenarioID(id);
+        List<EVCharge> evCharges = getEVChargesForScenarioID(id);
+        EVDivert evDivert = getEVDivertForScenarioID(id);
+        HWDivert hwDivert = getHWDivertForScenarioID(id);
+        List<HWSchedule> hwSchedules = getHWSchedulesForScenarioID(id);
+        HWSystem hwSystem = getHWSystemForScenarioID(id);
+        List<Inverter> inverters = getInvertersForScenarioID(id);
+        LoadProfile loadProfile = getLoadProfileForScenarioID(id);
+        List<LoadShift> loadShifts = getLoadShiftsForScenarioID(id);
+        List<Panel> panels = getPanelsForScenarioID(id);
+
+        scenario.setScenarioName(scenario.getScenarioName() + "_copy");
+        scenario.setId(0);
+        for (Battery b : batteries) b.setId(0);
+        for (EVCharge e : evCharges) e.setId(0);
+        evDivert.setId(0);
+        hwDivert.setId(0);
+        for (HWSchedule h : hwSchedules) h.setId(0);
+        hwSystem.setId(0);
+        for (Inverter i : inverters) i.setId(0);
+        loadProfile.setId(0);
+        for (LoadShift l : loadShifts) l.setId(0);
+        for (Panel p : panels) p.setId(0);
+
+        addNewScenarioWithComponents(scenario, new ScenarioComponents(
+                scenario, inverters, batteries, panels, hwSystem,
+                loadProfile, loadShifts, evCharges, hwSchedules,
+                hwDivert, evDivert));
+    }
 }

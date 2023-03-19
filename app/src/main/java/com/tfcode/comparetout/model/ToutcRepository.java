@@ -194,4 +194,9 @@ public class ToutcRepository {
         ToutcDB.databaseWriteExecutor.execute(() ->
                 costingDAO.deleteRelatedCostings(id));
     }
+
+    public void copyScenario(int id) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                scenarioDAO.copyScenario(id));
+    }
 }

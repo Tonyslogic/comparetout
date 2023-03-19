@@ -232,8 +232,7 @@ public class MainActivity extends AppCompatActivity {
                     for (ScenarioComponents sc : scs) {
                         mViewModel.insertScenario(sc);
                     }
-                    Snackbar.make(viewPager.getRootView(), "TODO Scenario download", Snackbar.LENGTH_LONG)
-                            .setAction("Action", null).show();
+
                     return(true);
                 }
                 if (pos == 2) {

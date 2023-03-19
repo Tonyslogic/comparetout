@@ -102,4 +102,8 @@ public class ComparisonUIViewModel extends AndroidViewModel {
     public void deleteRelatedCostings(int id) {
         toutcRepository.deleteRelatedCostings(id);
     }
+
+    public void copyScenario(int id) {
+        toutcRepository.copyScenario(id);
+    }
 }

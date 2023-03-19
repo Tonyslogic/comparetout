@@ -54,6 +54,7 @@ public class ScenarioOverview extends Fragment {
     private TableLayout mTableLayout;
     private Long mScenarioID;
     private Scenario mScenario;
+    private List<Scenario> mScenarios;
     private boolean mEdit = false;
     private boolean mSavingNewScenario = false;
 
@@ -75,6 +76,7 @@ public class ScenarioOverview extends Fragment {
 
         mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
         mViewModel.getAllScenarios().observe(this, scenarios -> {
+            mScenarios = scenarios;
             if (mScenarioID == 0) {
                 if (!(mSavingNewScenario)) {
                     mScenario = new Scenario();
@@ -319,6 +321,11 @@ public class ScenarioOverview extends Fragment {
                     public void afterTextChanged(Editable s) {
                         mScenario.setScenarioName(s.toString());
                         System.out.println("Scenario name changed to : " + mScenario.getScenarioName());
+                        if (findByName(mScenarios,s.toString()) != 0) {
+                            Snackbar.make(getView(),
+                                s.toString() + " already exists. Change before saving", Snackbar.LENGTH_LONG)
+                                .setAction("Action", null).show();
+                        }
                         ((ScenarioActivity) requireActivity()).setSaveNeeded(true);
                     }
                 });

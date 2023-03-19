@@ -42,7 +42,7 @@ public class CostingWorker extends Worker {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
         builder.setContentTitle("Calculating costs")
                 .setContentText("Calculation in progress")
-                .setSmallIcon(R.drawable.house)
+                .setSmallIcon(R.drawable.housetick)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setTimeoutAfter(20000);
         int PROGRESS_MAX = 100;

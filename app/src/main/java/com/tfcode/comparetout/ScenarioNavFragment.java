@@ -147,7 +147,10 @@ public class ScenarioNavFragment extends Fragment {
                     mViewModel.deleteScenario(v.getId());
                 });
 
-                d.setOnClickListener(v -> System.out.println("Copy/Add: " + v.getId()));
+                d.setOnClickListener(v -> {
+                    System.out.println("Copy/Add: " + v.getId());
+                    mViewModel.copyScenario(v.getId());
+                });
 
                 e.setOnClickListener(v -> {
                     System.out.println("View: " + v.getId());

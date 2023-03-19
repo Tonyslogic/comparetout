@@ -3,9 +3,11 @@ package com.tfcode.comparetout.model.scenario;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.room.Entity;
+import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
-@Entity(tableName = "scenarios")
+@Entity(tableName = "scenarios", indices = {
+        @Index(value = {"scenarioName"}, unique = true) })
 public class Scenario {
 
     @PrimaryKey(autoGenerate = true)
@@ -19,6 +21,13 @@ public class Scenario {
     private boolean hasPanels = false;
     private boolean hasIRData = false;
     private boolean hasHWSystem = false;
+    private boolean hasLoadProfiles = false;
+    private boolean hasLoadShifts = false;
+    private boolean hasEVCharges = false;
+    private boolean hasHWSchedules = false;
+    private boolean hasHWDivert = false;
+    private boolean hasEVDivert = false;
+    private boolean isActive = false;
 
     public boolean isHasInverters() {
         return hasInverters;
@@ -115,15 +124,6 @@ public class Scenario {
     public void setActive(boolean active) {
         isActive = active;
     }
-
-    private boolean hasLoadProfiles = false;
-    private boolean hasLoadShifts = false;
-    private boolean hasEVCharges = false;
-    private boolean hasHWSchedules = false;
-    private boolean hasHWDivert = false;
-    private boolean hasEVDivert = false;
-    private boolean isActive = false;
-
 
     @Override
     public boolean equals(@Nullable Object object)

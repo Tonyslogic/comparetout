@@ -41,7 +41,7 @@ public class SimulationWorker extends Worker {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
         builder.setContentTitle("Simulating scenarios")
                 .setContentText("Simulation in progress")
-                .setSmallIcon(R.drawable.house)
+                .setSmallIcon(R.drawable.housetick)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setTimeoutAfter(20000);
         // Issue the initial notification with zero progress
