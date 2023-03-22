@@ -1,6 +1,7 @@
 package com.tfcode.comparetout.scenario;
 
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -13,6 +14,7 @@ import androidx.lifecycle.ViewModelProvider;
 
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -90,7 +92,7 @@ public class ScenarioOverview extends Fragment {
                 mScenario = findByID(scenarios, mScenarioID);
             }
             mActionBar = Objects.requireNonNull(((ScenarioActivity)requireActivity()).getSupportActionBar());
-            mActionBar.setTitle("Scenario: " + mScenario.getScenarioName());
+            mActionBar.setTitle("Usage: " + mScenario.getScenarioName());
             updateView();
         });
     }
@@ -147,7 +149,7 @@ public class ScenarioOverview extends Fragment {
                     else {
                         mViewModel.updateScenario(mScenario);
                     }
-                    ((ScenarioActivity) requireActivity()).setSaveNeeded(false);
+                   ((ScenarioActivity) requireActivity()).setSaveNeeded(false);
                     return (false);
                 }
                 return true;
@@ -182,7 +184,7 @@ public class ScenarioOverview extends Fragment {
         mBatteryButton = requireView().findViewById(R.id.batteryButton);
         mBatteryButton.setOnClickListener(v -> {
             //Creating the instance of PopupMenu
-            PopupMenu popup = new PopupMenu(requireActivity(), mCarButton, Gravity.CENTER_HORIZONTAL);
+            PopupMenu popup = new PopupMenu(requireActivity(), mBatteryButton, Gravity.CENTER_HORIZONTAL);
             //Inflating the Popup using xml file
             popup.getMenuInflater()
                     .inflate(R.menu.popup_menu_scenario, popup.getMenu());
@@ -220,7 +222,7 @@ public class ScenarioOverview extends Fragment {
         mTankButton = requireView().findViewById(R.id.tankButton);
         mTankButton.setOnClickListener(v -> {
             //Creating the instance of PopupMenu
-            PopupMenu popup = new PopupMenu(requireActivity(), mCarButton);
+            PopupMenu popup = new PopupMenu(requireActivity(), mTankButton);
             //Inflating the Popup using xml file
             popup.getMenuInflater()
                     .inflate(R.menu.popup_menu_scenario, popup.getMenu());
@@ -302,52 +304,81 @@ public class ScenarioOverview extends Fragment {
             scenarioParams.topMargin = 10;
             scenarioParams.rightMargin = 10;
 
-            if (mEdit) {
-                // CREATE TABLE ROWS
-                TableRow tableRow = new TableRow(getActivity());
-                TextView a = new TextView(getActivity());
-                a.setText("Scenario");
-                EditText b = new EditText(getActivity());
-                b.setText(mScenario.getScenarioName());
-                b.setEnabled(true);
-                b.addTextChangedListener(new TextWatcher() {
-                    @Override
-                    public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-
-                    @Override
-                    public void onTextChanged(CharSequence s, int start, int before, int count) {}
-
-                    @Override
-                    public void afterTextChanged(Editable s) {
-                        mScenario.setScenarioName(s.toString());
-                        System.out.println("Scenario name changed to : " + mScenario.getScenarioName());
-                        if (findByName(mScenarios,s.toString()) != 0) {
-                            Snackbar.make(getView(),
-                                s.toString() + " already exists. Change before saving", Snackbar.LENGTH_LONG)
-                                .setAction("Action", null).show();
+            if (mScenario.isHasLoadProfiles()) {
+                if (mEdit) {
+                    // CREATE TABLE ROWS
+                    TableRow tableRow = new TableRow(getActivity());
+                    TextView a = new TextView(getActivity());
+                    a.setText("Scenario");
+                    EditText b = new EditText(getActivity());
+                    b.setText(mScenario.getScenarioName());
+                    b.setEnabled(true);
+                    b.addTextChangedListener(new TextWatcher() {
+                        @Override
+                        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
                         }
-                        ((ScenarioActivity) requireActivity()).setSaveNeeded(true);
-                    }
-                });
-                a.setLayoutParams(scenarioParams);
-                b.setLayoutParams(scenarioParams);
-                tableRow.addView(a);
-                tableRow.addView(b);
-                mTableLayout.addView(tableRow);
+
+                        @Override
+                        public void onTextChanged(CharSequence s, int start, int before, int count) {
+                        }
+
+                        @Override
+                        public void afterTextChanged(Editable s) {
+                            mScenario.setScenarioName(s.toString());
+                            System.out.println("Scenario name changed to : " + mScenario.getScenarioName());
+                            if (findByName(mScenarios, s.toString()) != 0) {
+                                Snackbar.make(getView(),
+                                                s.toString() + " already exists. Change before saving", Snackbar.LENGTH_LONG)
+                                        .setAction("Action", null).show();
+                            }
+                            ((ScenarioActivity) requireActivity()).setSaveNeeded(true);
+                        }
+                    });
+                    a.setLayoutParams(scenarioParams);
+                    b.setLayoutParams(scenarioParams);
+                    tableRow.addView(a);
+                    tableRow.addView(b);
+                    mTableLayout.addView(tableRow);
+                }
+                else {
+                    // TODO show the prices for this scenario
+                    // CREATE TABLE ROWS
+                    TableRow tableRow = new TableRow(getActivity());
+                    TextView a = new TextView(getActivity());
+                    a.setText("Supplier, Plan");
+                    TextView b = new TextView(getActivity());
+                    b.setText("€200.00");
+                    a.setLayoutParams(scenarioParams);
+                    b.setLayoutParams(scenarioParams);
+                    tableRow.addView(a);
+                    tableRow.addView(b);
+                    mTableLayout.addView(tableRow);
+                }
             }
             else {
-                // TODO show the prices for this scenario
-                // CREATE TABLE ROWS
-                TableRow tableRow = new TableRow(getActivity());
-                TextView a = new TextView(getActivity());
-                a.setText("Supplier, Plan");
-                TextView b = new TextView(getActivity());
-                b.setText("€200.00");
-                a.setLayoutParams(scenarioParams);
-                b.setLayoutParams(scenarioParams);
-                tableRow.addView(a);
-                tableRow.addView(b);
-                mTableLayout.addView(tableRow);
+                mTableLayout.setShrinkAllColumns(true);
+                mTableLayout.setStretchAllColumns(false);
+
+                TextView help = new TextView(getActivity());
+                help.setSingleLine(false);
+                help.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f);
+
+                help.setText(new StringBuilder()
+                    .append("The usage profile captures how electricity is used. ")
+                    .append("Use the six buttons to configure the usage profile.\n\n")
+                    .append("Usage profiles must include at least a load profile for the house ")
+                    .append("(yellow highlight when missing). ")
+                    .append("Where you specify hourly, daily and monthly distribution as well as the ")
+                    .append("annual and base loads. There are several sources for distribution.\n\n")
+                    .append("This tab is also where you can describe your (planned) solar installation.")
+                    .append("Panel(s) and inverter(s) are needed for electricity generation. \n\n")
+                    .append("Batteries, hot water systems and electric vehicles can also be ")
+                    .append("configured, scheduled and, for water and EV's, diverted.\n\n")
+                    .append("Once configured and saved, a simulation will run. Simulation results will  ")
+                    .append("appear in the details tab shortly after. Simulation progress is ")
+                    .append("visible in the notification area. ").toString());
+
+                mTableLayout.addView(help);
             }
         }
     }
@@ -357,8 +388,14 @@ public class ScenarioOverview extends Fragment {
         else mPanelButton.setImageResource(R.drawable.solarpanel);
         if (mScenario.isHasInverters()) mInverterButton.setImageResource(R.drawable.invertertick);
         else mInverterButton.setImageResource(R.drawable.inverter);
-        if (mScenario.isHasLoadProfiles()) mHouseButton.setImageResource(R.drawable.housetick);
-        else mHouseButton.setImageResource(R.drawable.house);
+        if (mScenario.isHasLoadProfiles()) {
+            mHouseButton.setImageResource(R.drawable.housetick);
+            mHouseButton.setBackgroundColor(Color.WHITE);
+        }
+        else {
+            mHouseButton.setImageResource(R.drawable.house);
+            mHouseButton.setBackgroundColor(Color.YELLOW);
+        }
 
         if (mScenario.isHasBatteries()) {
             mBatteryButton.setImageResource(R.drawable.battery_set);
@@ -387,8 +424,7 @@ public class ScenarioOverview extends Fragment {
     public void setEditMode(boolean ed) {
         if (!mEdit) {
             mEdit = ed;
-//            if (!(null == mEditFields)) for (View v : mEditFields) v.setEnabled(true);
-          ScenarioActivity scenarioActivity = ((ScenarioActivity) getActivity());
+            ScenarioActivity scenarioActivity = ((ScenarioActivity) getActivity());
             if (!(null == scenarioActivity)) scenarioActivity.setEdit();
         }
     }

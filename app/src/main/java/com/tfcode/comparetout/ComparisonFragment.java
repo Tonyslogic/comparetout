@@ -6,11 +6,15 @@ import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.PopupMenu;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 
+import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -22,22 +26,13 @@ import android.widget.TextView;
 
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.model.costings.Costings;
-import com.tfcode.comparetout.model.json.JsonTools;
-import com.tfcode.comparetout.model.json.scenario.LoadProfileJson;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
-import com.tfcode.comparetout.model.scenario.LoadProfile;
 import com.tfcode.comparetout.model.scenario.Scenario;
-import com.tfcode.comparetout.scenario.loadprofile.StandardLoadProfiles;
 
-import java.lang.reflect.Type;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 public class ComparisonFragment extends Fragment {
@@ -48,7 +43,14 @@ public class ComparisonFragment extends Fragment {
     private List<Scenario> mScenarios;
     private List<PricePlan> mPricePlans;
     private List<Costings> mCostings;
-    private String mSortBy = "Nett";
+    private String mSortBy = "SortBy: Nett";
+
+    private PopupMenu mPopup;
+    private MenuItem mShowScenario;
+    private MenuItem mShowPlan;
+    private MenuItem mShowNett;
+    private MenuItem mShowBuy;
+    private MenuItem mShowSell;
 
     public ComparisonFragment() {
         // Required empty public constructor
@@ -88,10 +90,6 @@ public class ComparisonFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         mTableLayout = requireView().findViewById(R.id.comparisonTable);
-        mTableLayout.setShrinkAllColumns(false);
-        mTableLayout.setStretchAllColumns(true);
-        mTableLayout.setColumnShrinkable(1, true);
-        mTableLayout.setColumnStretchable(1, false);
 
         mControlTableLayout = requireView().findViewById(R.id.comparisonControl);
         updateControl();
@@ -99,7 +97,9 @@ public class ComparisonFragment extends Fragment {
         TabLayout tabLayout = requireActivity().findViewById(R.id.tab_layout);
         ViewPager2 viewPager = requireActivity().findViewById(R.id.view_pager);
 
-        String[] tabTitles = {"Prices", "Scenarios", "Compare"};
+        String[] tabTitles = {getString(R.string.main_activity_usage),
+                getString(R.string.main_activity_costs),
+                getString(R.string.main_activity_compare)};
         new TabLayoutMediator(tabLayout, viewPager,
                 (tab, position) -> tab.setText(tabTitles[position])
         ).attach();
@@ -107,6 +107,7 @@ public class ComparisonFragment extends Fragment {
 
     private void updateControl() {
         mControlTableLayout.removeAllViews();
+
         // CREATE PARAM FOR MARGINING
         TableRow.LayoutParams planParams = new TableRow.LayoutParams(
                 TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
@@ -116,9 +117,49 @@ public class ComparisonFragment extends Fragment {
         // CREATE TABLE ROWS
         TableRow tableRow = new TableRow(getActivity());
         TextView a = new TextView(getActivity());
-        a.setText("SortBy: ");
+        a.setText("Show columns... ");
+
+        if (null == mPopup) {
+            //Creating the instance of PopupMenu
+            mPopup = new PopupMenu(requireActivity(), a, Gravity.CENTER_HORIZONTAL);
+            mPopup.getMenuInflater()
+                    .inflate(R.menu.popup_menu_compare, mPopup.getMenu());
+            mShowScenario = mPopup.getMenu().findItem(R.id.scenario);
+            mShowPlan = mPopup.getMenu().findItem(R.id.plan);
+            mShowNett = mPopup.getMenu().findItem(R.id.nett);
+            mShowBuy = mPopup.getMenu().findItem(R.id.buy);
+            mShowSell = mPopup.getMenu().findItem(R.id.sell);
+        }
+
+        a.setOnClickListener(v -> {
+            mPopup.setOnMenuItemClickListener(item -> {
+                if (item.isChecked()) item.setChecked(false);
+                else item.setChecked(true);
+
+                switch (item.getItemId()){
+                    case R.id.scenario:
+                        mTableLayout.setColumnCollapsed(0, !item.isChecked());
+                        break;
+                    case R.id.plan:
+                        mTableLayout.setColumnCollapsed(1, !item.isChecked());
+                        break;
+                    case R.id.nett:
+                        mTableLayout.setColumnCollapsed(2, !item.isChecked());
+                        break;
+                    case R.id.buy:
+                        mTableLayout.setColumnCollapsed(3, !item.isChecked());
+                        break;
+                    case R.id.sell:
+                        mTableLayout.setColumnCollapsed(4, !item.isChecked());
+                        break;
+                }
+                return true;
+            });
+            mPopup.show();
+        });
+
         Spinner spinner = new Spinner(getActivity());
-        String[] fields = {"Scenario", "Plan", "Nett", "Buy", "Sell"};
+        String[] fields = {"SortBy: Scenario", "SortBy: Plan", "SortBy: Nett", "SortBy: Buy", "SortBy: Sell"};
         ArrayList<String> spinnerContent = new ArrayList<>(Arrays.asList(fields));
         ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, spinnerContent);
         spinner.setAdapter(spinnerAdapter);
@@ -146,7 +187,35 @@ public class ComparisonFragment extends Fragment {
     private void updateView() {
         mTableLayout.removeAllViews();
 
-        if (!(null == mCostings) && !(null == mPricePlans) && !(null == mScenarios) ) {
+        if (!(null == mCostings)  && (mCostings.size() > 0)
+                && !(null == mPricePlans) && (mPricePlans.size() > 0)
+                && !(null == mScenarios) && mScenarios.size() > 0) {
+            //TODO adapt this based on colum selection
+//            int planIndex = 1;
+//            if (null == mShowScenario) planIndex = 0;
+//            else if (!mShowScenario.isChecked()) planIndex = 0;
+            mTableLayout.setShrinkAllColumns(false);
+            mTableLayout.setStretchAllColumns(true);
+            mTableLayout.setColumnShrinkable(1, true);
+            mTableLayout.setColumnStretchable(1, false);
+//            if ((null == mShowScenario)  || (!mShowScenario.isChecked()) ) mTableLayout.setColumnCollapsed(0,false);
+//            else mTableLayout.setColumnCollapsed(0,true);
+//            if ((null == mShowPlan)  || (!mShowPlan.isChecked()) ) mTableLayout.setColumnCollapsed(1,false);
+//            else mTableLayout.setColumnCollapsed(0,true);
+//            if ((null == mShowNett)  || (!mShowNett.isChecked()) ) mTableLayout.setColumnCollapsed(2,false);
+//            else mTableLayout.setColumnCollapsed(0,true);
+//            if ((null == mShowBuy)  || (!mShowBuy.isChecked()) ) mTableLayout.setColumnCollapsed(3,false);
+//            else mTableLayout.setColumnCollapsed(0,true);
+//            if ((null == mShowSell)  || (!mShowSell.isChecked()) ) mTableLayout.setColumnCollapsed(4,false);
+//            else mTableLayout.setColumnCollapsed(0,true);
+//
+//            if ((null == mShowScenario) || !mShowScenario.isChecked()) {
+//                mTableLayout.setShrinkAllColumns(false);
+//                mTableLayout.setStretchAllColumns(true);
+//                mTableLayout.setColumnShrinkable(0, true);
+//                mTableLayout.setColumnStretchable(0, false);
+//            }
+
             createRow("Scenario", "Supplier:Plan", "Nett(€)", "Buy(€)","Sell(€)", true);
             ArrayList<Row> rows = new ArrayList<>();
             for (Costings costing : mCostings) {
@@ -167,21 +236,40 @@ public class ComparisonFragment extends Fragment {
             // TODO sort rows {"Scenario", "Plan", "Nett", "Buy", "Sell"}
             rows.sort((row1, row2) -> {
                 int ret = 0;
-                if (mSortBy.equals("Scenario")) ret = row1.scenario.compareTo(row2.scenario);
-                if (mSortBy.equals("Plan")) ret = row1.fullName.compareTo(row2.fullName);
-                if (mSortBy.equals("Nett")) ret = row1.nett.compareTo(row2.nett);
-                if (mSortBy.equals("Buy")) ret = row1.buy.compareTo(row2.buy);
-                if (mSortBy.equals("Sell")) ret = row1.sell.compareTo(row2.sell);
+                if (mSortBy.equals("SortBy: Scenario")) ret = row1.scenario.compareTo(row2.scenario);
+                if (mSortBy.equals("SortBy: Plan")) ret = row1.fullName.compareTo(row2.fullName);
+                if (mSortBy.equals("SortBy: Nett")) ret = row1.nett.compareTo(row2.nett);
+                if (mSortBy.equals("SortBy: Buy")) ret = row1.buy.compareTo(row2.buy);
+                if (mSortBy.equals("SortBy: Sell")) ret = row1.sell.compareTo(row2.sell);
                 return ret;
             });
             for (Row row: rows){
                 createRow(row.scenario, row.fullName, row.nett, row.buy, row.sell, false);
             }
         }
+        else {
+
+            mTableLayout.setShrinkAllColumns(true);
+            mTableLayout.setStretchAllColumns(false);
+
+            TextView help = new TextView(getActivity());
+            help.setSingleLine(false);
+            help.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f);
+
+            help.setText(new StringBuilder()
+                    .append("Price comparisons will appear here. \n\n")
+                    .append("Select usage(s) and costs from the other tabs to control the content of this tab\n\n")
+                    .append("You can sort the table, and select the fields to show.\n\n")
+                    .append("Tilting the screen (landscape) will better fit more fields.\n\n")
+                    .append("Progress of recently added costs and usages can be seen in the notification area.\n\n")
+                    .append("Selecting a comparison will pop up a usage graph (pie chart) that shows how much electricity was purchased at each rate").toString());
+
+            mTableLayout.addView(help);
+        }
     }
 
     private void createRow(String a1, String b1, String c1, String d1, String e1, boolean title) {
-        // Headers
+
         TableRow tableRow;
         tableRow = new TableRow(getActivity());
 
@@ -231,15 +319,32 @@ public class ComparisonFragment extends Fragment {
         d.setText(d1);
         e.setText(e1);
 
+        int colIndex = 0;
         // ADD TEXTVIEW TO TABLEROW
-        tableRow.addView(a);
-        tableRow.addView(b);
-        tableRow.addView(c);
-        tableRow.addView(d);
-        tableRow.addView(e);
-
+        colIndex = addColAndSetStretch(mShowScenario, tableRow, a, colIndex, false, false);
+        colIndex = addColAndSetStretch(mShowPlan, tableRow, b, colIndex, true, false);
+        colIndex = addColAndSetStretch(mShowNett, tableRow, c, colIndex, false, false);
+        colIndex = addColAndSetStretch(mShowBuy, tableRow, d, colIndex, false, false);
+        colIndex = addColAndSetStretch(mShowSell, tableRow, e, colIndex, false, false);
         // ADD TABLEROW TO TABLELAYOUT
         mTableLayout.addView(tableRow);
+    }
+
+    private int addColAndSetStretch(MenuItem checkbox, TableRow tableRow, TextView a, int colIndex, boolean shrink, boolean stretch) {
+        tableRow.addView(a);
+//        if (!(null == checkbox) && checkbox.isChecked()){
+//            tableRow.addView(a);
+////            mTableLayout.setColumnShrinkable(colIndex, shrink);
+////            mTableLayout.setColumnStretchable(colIndex, stretch);
+//            colIndex++;
+//        }
+//        else if (null == checkbox){
+//            tableRow.addView(a);
+////            mTableLayout.setColumnShrinkable(colIndex, shrink);
+////            mTableLayout.setColumnStretchable(colIndex, stretch);
+//            colIndex++;
+//        }
+        return colIndex;
     }
 
     private Scenario findScenarioByID(Long id) {

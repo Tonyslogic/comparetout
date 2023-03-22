@@ -3,6 +3,7 @@ package com.tfcode.comparetout;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -57,15 +58,13 @@ public class ScenarioNavFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         mTableLayout = requireView().findViewById(R.id.scenarioTable);
-        mTableLayout.setShrinkAllColumns(false);
-        mTableLayout.setStretchAllColumns(true);
-        mTableLayout.setColumnShrinkable(1, true);
-        mTableLayout.setColumnStretchable(1, false);
 
         TabLayout tabLayout = requireActivity().findViewById(R.id.tab_layout);
         ViewPager2 viewPager = requireActivity().findViewById(R.id.view_pager);
 
-        String[] tabTitles = {"Prices", "Scenarios", "Compare"};
+        String[] tabTitles = {getString(R.string.main_activity_usage),
+                getString(R.string.main_activity_costs),
+                getString(R.string.main_activity_compare)};
         new TabLayoutMediator(tabLayout, viewPager,
                 (tab, position) -> tab.setText(tabTitles[position])
         ).attach();
@@ -74,7 +73,11 @@ public class ScenarioNavFragment extends Fragment {
     private void updateView(List<Scenario> scenarios) {
         mTableLayout.removeAllViews();
 
-        if (scenarios != null) {
+        if (scenarios != null && scenarios.size() > 0) {
+            mTableLayout.setShrinkAllColumns(false);
+            mTableLayout.setStretchAllColumns(true);
+            mTableLayout.setColumnShrinkable(1, true);
+            mTableLayout.setColumnStretchable(1, false);
             for (Scenario scenario : scenarios) {
 
                 // CREATE TABLE ROW
@@ -170,6 +173,27 @@ public class ScenarioNavFragment extends Fragment {
                 // ADD TABLEROW TO TABLELAYOUT
                 mTableLayout.addView(tableRow);
             }
+        }
+        else {
+            //TODO Popup help
+            mTableLayout.setShrinkAllColumns(true);
+            mTableLayout.setStretchAllColumns(false);
+
+            TextView help = new TextView(getActivity());
+            help.setSingleLine(false);
+            help.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f);
+
+            help.setText(new StringBuilder()
+                .append("There are no usage profiles created.\n\nAt least one usage profile ")
+                .append("is needed for the application to simulate and compare. \n\nUsage profiles ")
+                .append("allow you to describe how you use electricity. You can add as many usage ")
+                .append("profiles as you like.")
+                .append("\n\nYou can add a usage profile manually using the '+' button in the bottom right, ")
+                .append("and using the menu, download or load from a file. \n\nOnce created, you ")
+                .append("can delete, copy and view/edit usage profiles from this tab. \n\n")
+                .append("Selecting a usage will add it to the comparison tab.").toString());
+
+            mTableLayout.addView(help);
         }
     }
 

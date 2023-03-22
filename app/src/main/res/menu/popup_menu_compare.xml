@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/scenario"
+        android:title="Scenario"
+        android:checked="true"
+        android:checkable="true"/>
+    <item
+        android:id="@+id/plan"
+        android:checked="true"
+        android:title="Supplier:Plan"
+        android:checkable="true"/>
+    <item
+        android:id="@+id/nett"
+        android:checked="true"
+        android:title="Nett"
+        android:checkable="true"/>
+    <item
+        android:id="@+id/buy"
+        android:checked="true"
+        android:title="Buy"
+        android:checkable="true"/>
+    <item
+        android:id="@+id/sell"
+        android:checked="true"
+        android:title="Sell"
+        android:checkable="true"/>
+</menu>

@@ -5,9 +5,9 @@
 
     <item
         android:id="@+id/load"
-        app:showAsAction="ifRoom|withText"
-        android:icon="@android:drawable/stat_notify_sdcard"
-        android:title="Load"/>
+        android:icon="@drawable/ic_baseline_file_open_24"
+        android:title="Load"
+        app:showAsAction="ifRoom|withText" />
     <item
         android:id="@+id/download"
         app:showAsAction="ifRoom|withText"

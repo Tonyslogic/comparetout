@@ -44,6 +44,10 @@ import java.util.Objects;
 public class MainActivity extends AppCompatActivity {
 
     public static final String CHANNEL_ID = "TOUTC-PROGRESS";
+    public static final int USAGE_FRAGMENT = 0;
+    public static final int COSTS_FRAGMENT = 1;
+    public static final int COMPARE_FRAGMENT = 2;
+
     ViewPager2 viewPager;
     private ComparisonUIViewModel mViewModel;
 
@@ -115,7 +119,7 @@ public class MainActivity extends AppCompatActivity {
         FloatingActionButton fab = findViewById(R.id.addSomething);
         fab.setOnClickListener(view -> {
             int pos = viewPager.getCurrentItem();
-            if (pos == 0) {
+            if (pos == COSTS_FRAGMENT) {
                 Intent intent = new Intent(MainActivity.this, PricePlanActivity.class);
                 intent.putExtra("PlanID", 0L);
                 intent.putExtra("Edit", false);
@@ -123,7 +127,7 @@ public class MainActivity extends AppCompatActivity {
                         new PricePlan(), new ArrayList<>()));
                 startActivity(intent);
             }
-            if (pos == 1) {
+            if (pos == USAGE_FRAGMENT) {
                 Intent intent = new Intent(MainActivity.this, ScenarioActivity.class);
                 intent.putExtra("ScenarioID", 0L);
                 intent.putExtra("Edit", true);
@@ -141,8 +145,8 @@ public class MainActivity extends AppCompatActivity {
             public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
                 super.onPageScrolled(position, positionOffset, positionOffsetPixels);
                 switch (position) {
-                    case 0:
-                    case 1:
+                    case COSTS_FRAGMENT:
+                    case USAGE_FRAGMENT:
                         showFAB();
                         break;
                     default:
@@ -181,15 +185,15 @@ public class MainActivity extends AppCompatActivity {
             case R.id.load:
                 //add the function to perform here
                 System.out.println("Import attempt");
-                if (pos == 0) {
+                if (pos == COSTS_FRAGMENT) {
                     mLoadPricePlansFromFile.launch("*/*");
                     return (true);
                 }
-                if (pos == 1) {
+                if (pos == USAGE_FRAGMENT) {
                     mLoadScenariosFromFile.launch("*/*");
                     return true;
                 }
-                if (pos == 2) {
+                if (pos == COMPARE_FRAGMENT) {
                     Snackbar.make(viewPager.getRootView(), "TODO disable file on compare tab", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
                     return true;
@@ -198,7 +202,7 @@ public class MainActivity extends AppCompatActivity {
             case R.id.download:
                 //add the function to perform here
                 System.out.println("Download attempt");
-                if (pos == 0) {
+                if (pos == COSTS_FRAGMENT) {
                     new Thread(() -> {
                         URL url;
                         try {
@@ -222,7 +226,7 @@ public class MainActivity extends AppCompatActivity {
                     }).start();
                     return(true);
                 }
-                if (pos == 1) {
+                if (pos == USAGE_FRAGMENT) {
                     InputStream ins = getResources().openRawResource(
                             getResources().getIdentifier("scenarios","raw", getPackageName()));
                     InputStreamReader reader = new InputStreamReader(ins, StandardCharsets.UTF_8);
@@ -235,7 +239,7 @@ public class MainActivity extends AppCompatActivity {
 
                     return(true);
                 }
-                if (pos == 2) {
+                if (pos == COMPARE_FRAGMENT) {
                     Snackbar.make(viewPager.getRootView(), "TODO Hide download on compare tab", Snackbar.LENGTH_LONG)
                             .setAction("Action", null).show();
                     return(true);

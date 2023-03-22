@@ -16,16 +16,16 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
         super(fragmentActivity);
     }
     @NonNull @Override public Fragment createFragment(int position) {
-        if (position == 0) {
+        if (position == MainActivity.COSTS_FRAGMENT) {
             return pricePlanNavFragment;
         }
-        if (position == 1) {
+        if (position == MainActivity.USAGE_FRAGMENT) {
             return scenarioNavFragment;
         }
-        if (position == 2) {
+        if (position == MainActivity.COMPARE_FRAGMENT) {
             return comparisonFragment;
         }
-        return pricePlanNavFragment;
+        return scenarioNavFragment;
     }
     @Override public int getItemCount() {
         return CARD_ITEM_SIZE;

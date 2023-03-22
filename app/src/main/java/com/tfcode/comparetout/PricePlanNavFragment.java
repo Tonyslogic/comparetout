@@ -11,6 +11,7 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.viewpager2.widget.ViewPager2;
 
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -60,15 +61,13 @@ public class PricePlanNavFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         mTableLayout = requireView().findViewById(R.id.planTable);
-        mTableLayout.setShrinkAllColumns(false);
-        mTableLayout.setStretchAllColumns(true);
-        mTableLayout.setColumnShrinkable(1, true);
-        mTableLayout.setColumnStretchable(1, false);
 
         TabLayout tabLayout = requireActivity().findViewById(R.id.tab_layout);
         ViewPager2 viewPager = requireActivity().findViewById(R.id.view_pager);
 
-        String[] tabTitles = {"Prices", "Scenarios", "Compare"};
+        String[] tabTitles = {getString(R.string.main_activity_usage),
+                getString(R.string.main_activity_costs),
+                getString(R.string.main_activity_compare)};
         new TabLayoutMediator(tabLayout, viewPager,
                 (tab, position) -> tab.setText(tabTitles[position])
         ).attach();
@@ -76,7 +75,12 @@ public class PricePlanNavFragment extends Fragment {
 
     public void updateView(Map<PricePlan, List<DayRate>> plans) {
         mTableLayout.removeAllViews();
-        if (plans != null) {
+        if ((plans != null) && (plans.entrySet().size() > 0)) {
+            mTableLayout.setShrinkAllColumns(false);
+            mTableLayout.setStretchAllColumns(true);
+            mTableLayout.setColumnShrinkable(1, true);
+            mTableLayout.setColumnStretchable(1, false);
+
             for (Map.Entry<PricePlan, List<DayRate>> entry : plans.entrySet()) {
                 PricePlan p = entry.getKey();
 
@@ -186,6 +190,28 @@ public class PricePlanNavFragment extends Fragment {
                 // ADD TABLEROW TO TABLELAYOUT
                 mTableLayout.addView(tableRow);
             }
+        }
+        else {
+            //TODO Popup help
+            mTableLayout.setShrinkAllColumns(true);
+            mTableLayout.setStretchAllColumns(false);
+
+            TextView help = new TextView(getActivity());
+            help.setSingleLine(false);
+            help.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f);
+
+            help.setText(new StringBuilder()
+                    .append("There are no price plans created.\n\nAt least one usage price plan ")
+                    .append("is needed for the application to simulate and compare. \n\nPrice plans ")
+                    .append("are a standard way to describe the contract with your supplier. You can add as many ")
+                    .append("suppliers and plans as you like. ")
+                    .append("\n\nYou can add a price plans manually using the '+' button in the bottom right, ")
+                    .append("and using the menu, download or load from a file. \n\nOnce created, you ")
+                    .append("can delete, copy and view/edit usage profiles from this tab. \n\n")
+                    .append("Selecting a usage will add it to the comparison tab.").toString());
+
+            mTableLayout.addView(help);
+
         }
     }
 
