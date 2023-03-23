@@ -73,20 +73,20 @@ public class CostingWorker extends Worker {
                 costing.setFullPlanName(pp.getSupplier() + ":" + pp.getPlanName());
                 double buy = 0D;
                 double sell = 0D;
-                double nett = 0D;
+                double nett;
                 SubTotals subTotals = new SubTotals();
                 for (ScenarioSimulationData row : scenarioData) {
                     double price = lookup.getRate(row.getDate(), row.getMinuteOfDay(), row.getDayOfWeek());
                     double rowBuy = price * row.getBuy();
                     buy += rowBuy;
                     sell += pp.getFeed() * row.getFeed();
-                    subTotals.addToPrice(price, rowBuy);
+                    subTotals.addToPrice(price, row.getBuy()); // This is the number of units
                 }
                 costing.setBuy(buy);
                 costing.setSell(sell);
                 costing.setSubTotals(subTotals);
-                int days = 365; // TODO look at the biggest & smallest dates in the simdata
-                nett = buy - sell + pp.getStandingCharges() * 100 * (days/365) - pp.getSignUpBonus() * 100;
+                double days = 365; // TODO look at the biggest & smallest dates in the simdata
+                nett = ((buy - sell) + (pp.getStandingCharges() * 100 * (days / 365))) - (pp.getSignUpBonus() * 100);
                 costing.setNett(nett);
                 // store in comparison table
                 System.out.println("Storing " + costing);

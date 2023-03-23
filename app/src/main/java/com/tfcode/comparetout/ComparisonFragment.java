@@ -2,6 +2,9 @@ package com.tfcode.comparetout;
 
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.ColorDrawable;
+import android.os.Build;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -15,25 +18,39 @@ import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.Spinner;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
+import com.github.mikephil.charting.charts.PieChart;
+import com.github.mikephil.charting.data.PieData;
+import com.github.mikephil.charting.data.PieDataSet;
+import com.github.mikephil.charting.data.PieEntry;
+import com.github.mikephil.charting.formatter.PercentFormatter;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.model.costings.Costings;
+import com.tfcode.comparetout.model.costings.SubTotals;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.Scenario;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 public class ComparisonFragment extends Fragment {
 
@@ -46,11 +63,9 @@ public class ComparisonFragment extends Fragment {
     private String mSortBy = "SortBy: Nett";
 
     private PopupMenu mPopup;
-    private MenuItem mShowScenario;
-    private MenuItem mShowPlan;
-    private MenuItem mShowNett;
-    private MenuItem mShowBuy;
-    private MenuItem mShowSell;
+
+    private View mPopupView;
+    private PopupWindow mPieChartWindow;
 
     public ComparisonFragment() {
         // Required empty public constructor
@@ -82,6 +97,13 @@ public class ComparisonFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
+        mPopupView = inflater.inflate(R.layout.popup_compare, container);
+        // create the popup window
+        int width = LinearLayout.LayoutParams.WRAP_CONTENT;
+        int height = LinearLayout.LayoutParams.WRAP_CONTENT;
+        boolean focusable = true; // lets taps outside the popup also dismiss it
+        mPieChartWindow = new PopupWindow(mPopupView, width, height, focusable);
+
         return inflater.inflate(R.layout.fragment_comparison, container, false);
     }
 
@@ -97,9 +119,7 @@ public class ComparisonFragment extends Fragment {
         TabLayout tabLayout = requireActivity().findViewById(R.id.tab_layout);
         ViewPager2 viewPager = requireActivity().findViewById(R.id.view_pager);
 
-        String[] tabTitles = {getString(R.string.main_activity_usage),
-                getString(R.string.main_activity_costs),
-                getString(R.string.main_activity_compare)};
+        String[] tabTitles = {getString(R.string.main_activity_usage), getString(R.string.main_activity_costs), getString(R.string.main_activity_compare)};
         new TabLayoutMediator(tabLayout, viewPager,
                 (tab, position) -> tab.setText(tabTitles[position])
         ).attach();
@@ -117,6 +137,7 @@ public class ComparisonFragment extends Fragment {
         // CREATE TABLE ROWS
         TableRow tableRow = new TableRow(getActivity());
         TextView a = new TextView(getActivity());
+        a.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f);
         a.setText("Show columns... ");
 
         if (null == mPopup) {
@@ -124,17 +145,11 @@ public class ComparisonFragment extends Fragment {
             mPopup = new PopupMenu(requireActivity(), a, Gravity.CENTER_HORIZONTAL);
             mPopup.getMenuInflater()
                     .inflate(R.menu.popup_menu_compare, mPopup.getMenu());
-            mShowScenario = mPopup.getMenu().findItem(R.id.scenario);
-            mShowPlan = mPopup.getMenu().findItem(R.id.plan);
-            mShowNett = mPopup.getMenu().findItem(R.id.nett);
-            mShowBuy = mPopup.getMenu().findItem(R.id.buy);
-            mShowSell = mPopup.getMenu().findItem(R.id.sell);
         }
 
         a.setOnClickListener(v -> {
             mPopup.setOnMenuItemClickListener(item -> {
-                if (item.isChecked()) item.setChecked(false);
-                else item.setChecked(true);
+                item.setChecked(!item.isChecked());
 
                 switch (item.getItemId()){
                     case R.id.scenario:
@@ -176,7 +191,7 @@ public class ComparisonFragment extends Fragment {
             }
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
-                // TODO Auto-generated method stub
+                // Auto-generated method stub
             }
         });
         tableRow.addView(a);
@@ -190,33 +205,12 @@ public class ComparisonFragment extends Fragment {
         if (!(null == mCostings)  && (mCostings.size() > 0)
                 && !(null == mPricePlans) && (mPricePlans.size() > 0)
                 && !(null == mScenarios) && mScenarios.size() > 0) {
-            //TODO adapt this based on colum selection
-//            int planIndex = 1;
-//            if (null == mShowScenario) planIndex = 0;
-//            else if (!mShowScenario.isChecked()) planIndex = 0;
             mTableLayout.setShrinkAllColumns(false);
             mTableLayout.setStretchAllColumns(true);
             mTableLayout.setColumnShrinkable(1, true);
             mTableLayout.setColumnStretchable(1, false);
-//            if ((null == mShowScenario)  || (!mShowScenario.isChecked()) ) mTableLayout.setColumnCollapsed(0,false);
-//            else mTableLayout.setColumnCollapsed(0,true);
-//            if ((null == mShowPlan)  || (!mShowPlan.isChecked()) ) mTableLayout.setColumnCollapsed(1,false);
-//            else mTableLayout.setColumnCollapsed(0,true);
-//            if ((null == mShowNett)  || (!mShowNett.isChecked()) ) mTableLayout.setColumnCollapsed(2,false);
-//            else mTableLayout.setColumnCollapsed(0,true);
-//            if ((null == mShowBuy)  || (!mShowBuy.isChecked()) ) mTableLayout.setColumnCollapsed(3,false);
-//            else mTableLayout.setColumnCollapsed(0,true);
-//            if ((null == mShowSell)  || (!mShowSell.isChecked()) ) mTableLayout.setColumnCollapsed(4,false);
-//            else mTableLayout.setColumnCollapsed(0,true);
-//
-//            if ((null == mShowScenario) || !mShowScenario.isChecked()) {
-//                mTableLayout.setShrinkAllColumns(false);
-//                mTableLayout.setStretchAllColumns(true);
-//                mTableLayout.setColumnShrinkable(0, true);
-//                mTableLayout.setColumnStretchable(0, false);
-//            }
 
-            createRow("Scenario", "Supplier:Plan", "Nett(€)", "Buy(€)","Sell(€)", true);
+            createRow("Scenario", "Supplier:Plan", "Nett(€)", "Buy(€)","Sell(€)", true, null);
             ArrayList<Row> rows = new ArrayList<>();
             for (Costings costing : mCostings) {
                 Scenario scenario = findScenarioByID(costing.getScenarioID());
@@ -230,10 +224,11 @@ public class ComparisonFragment extends Fragment {
                     row.nett = df.format(costing.getNett() /100);
                     row.buy = df.format(costing.getBuy() / 100);
                     row.sell = df.format(costing.getSell() / 100);
+                    row.subTotals = costing.getSubTotals();
                     rows.add(row);
                 }
             }
-            // TODO sort rows {"Scenario", "Plan", "Nett", "Buy", "Sell"}
+            // sort rows {"Scenario", "Plan", "Nett", "Buy", "Sell"}
             rows.sort((row1, row2) -> {
                 int ret = 0;
                 if (mSortBy.equals("SortBy: Scenario")) ret = row1.scenario.compareTo(row2.scenario);
@@ -244,7 +239,7 @@ public class ComparisonFragment extends Fragment {
                 return ret;
             });
             for (Row row: rows){
-                createRow(row.scenario, row.fullName, row.nett, row.buy, row.sell, false);
+                createRow(row.scenario, row.fullName, row.nett, row.buy, row.sell, false, row.subTotals);
             }
         }
         else {
@@ -268,7 +263,7 @@ public class ComparisonFragment extends Fragment {
         }
     }
 
-    private void createRow(String a1, String b1, String c1, String d1, String e1, boolean title) {
+    private void createRow(String a1, String b1, String c1, String d1, String e1, boolean title, SubTotals subTotals) {
 
         TableRow tableRow;
         tableRow = new TableRow(getActivity());
@@ -290,6 +285,9 @@ public class ComparisonFragment extends Fragment {
             c.setTypeface(c.getTypeface(), Typeface.BOLD);
             d.setTypeface(d.getTypeface(), Typeface.BOLD);
             e.setTypeface(e.getTypeface(), Typeface.BOLD);
+        }
+        else {
+            tableRow.setOnClickListener(v -> showPieChart(subTotals));
         }
 
         // SET PARAMS
@@ -319,32 +317,56 @@ public class ComparisonFragment extends Fragment {
         d.setText(d1);
         e.setText(e1);
 
-        int colIndex = 0;
-        // ADD TEXTVIEW TO TABLEROW
-        colIndex = addColAndSetStretch(mShowScenario, tableRow, a, colIndex, false, false);
-        colIndex = addColAndSetStretch(mShowPlan, tableRow, b, colIndex, true, false);
-        colIndex = addColAndSetStretch(mShowNett, tableRow, c, colIndex, false, false);
-        colIndex = addColAndSetStretch(mShowBuy, tableRow, d, colIndex, false, false);
-        colIndex = addColAndSetStretch(mShowSell, tableRow, e, colIndex, false, false);
+        tableRow.addView(a);
+        tableRow.addView(b);
+        tableRow.addView(c);
+        tableRow.addView(d);
+        tableRow.addView(e);
+
         // ADD TABLEROW TO TABLELAYOUT
         mTableLayout.addView(tableRow);
     }
 
-    private int addColAndSetStretch(MenuItem checkbox, TableRow tableRow, TextView a, int colIndex, boolean shrink, boolean stretch) {
-        tableRow.addView(a);
-//        if (!(null == checkbox) && checkbox.isChecked()){
-//            tableRow.addView(a);
-////            mTableLayout.setColumnShrinkable(colIndex, shrink);
-////            mTableLayout.setColumnStretchable(colIndex, stretch);
-//            colIndex++;
-//        }
-//        else if (null == checkbox){
-//            tableRow.addView(a);
-////            mTableLayout.setColumnShrinkable(colIndex, shrink);
-////            mTableLayout.setColumnStretchable(colIndex, stretch);
-//            colIndex++;
-//        }
-        return colIndex;
+    private void showPieChart(SubTotals subTotals) {
+        mPieChartWindow.setHeight((int) (requireActivity().getWindow().getDecorView().getHeight()*0.6));
+        mPieChartWindow.showAtLocation(mTableLayout, Gravity.CENTER, 0, 0);
+        PieChart mPieChart = mPopupView.findViewById(R.id.price_breakdown);
+
+        mPieChart.getDescription().setEnabled(false);
+        mPieChart.setRotationEnabled(true);
+        mPieChart.setDragDecelerationFrictionCoef(0.9f);
+        mPieChart.setRotationAngle(0);
+        mPieChart.setHighlightPerTapEnabled(true);
+        mPieChart.setHoleColor(Color.parseColor("#000000"));
+
+        ArrayList<PieEntry> pieEntries = new ArrayList<>();
+        String label = "Cost/kWh";
+
+        Map<String, Double> priceUnitsMap = new HashMap<>();
+        for (Double price : subTotals.getPrices()) {
+            priceUnitsMap.put(price.toString() + "¢", subTotals.getSubTotalForPrice(price));
+        }
+        ArrayList<Integer> colors = new ArrayList<>();
+        colors.add(Color.parseColor("#304567"));
+        colors.add(Color.parseColor("#309967"));
+        colors.add(Color.parseColor("#476567"));
+        colors.add(Color.parseColor("#890567"));
+        colors.add(Color.parseColor("#a35567"));
+        colors.add(Color.parseColor("#ff5f67"));
+        colors.add(Color.parseColor("#3ca567"));
+
+        for(String type: priceUnitsMap.keySet()){
+            pieEntries.add(new PieEntry(Objects.requireNonNull(priceUnitsMap.get(type)).floatValue(), type));
+        }
+        PieDataSet pieDataSet = new PieDataSet(pieEntries,label);
+        pieDataSet.setValueTextSize(12f);
+        pieDataSet.setColors(colors);
+        PieData pieData = new PieData(pieDataSet);
+        pieData.setDrawValues(true);
+        pieData.setValueFormatter(new PercentFormatter(mPieChart));
+        mPieChart.setData(pieData);
+        mPieChart.setUsePercentValues(true);
+        mPieChart.invalidate();
     }
 
     private Scenario findScenarioByID(Long id) {
@@ -364,4 +386,5 @@ class Row {
     String nett;
     String buy;
     String sell;
+    SubTotals subTotals;
 }
