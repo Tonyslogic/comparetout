@@ -14,6 +14,11 @@ public class LoadProfileData {
     private double load;
     private int mod; // 1-1435
     private int dow; // the day-of-week, from 1 (Monday) to 7 (Sunday) https://docs.oracle.com/javase/8/docs/api/java/time/LocalDate.html
+    private int do2001;
+
+    public int getDo2001() { return do2001;}
+
+    public void setDo2001(int do2001) { this.do2001 = do2001;}
 
     public long getLoadProfileID() {
         return loadProfileID;
@@ -23,19 +28,21 @@ public class LoadProfileData {
         this.loadProfileID = loadProfileID;
     }
 
+    @NonNull
     public String getDate() {
         return date;
     }
 
-    public void setDate(String date) {
+    public void setDate(@NonNull String date) {
         this.date = date;
     }
 
+    @NonNull
     public String getMinute() {
         return minute;
     }
 
-    public void setMinute(String minute) {
+    public void setMinute(@NonNull String minute) {
         this.minute = minute;
     }
 
@@ -63,6 +70,7 @@ public class LoadProfileData {
         this.dow = dow;
     }
 
+    @NonNull
     @Override
     public String toString() {
         return "[" + date + ", " + minute + ", " + load + ", " + mod + ", " + dow + ", " + loadProfileID + "]";

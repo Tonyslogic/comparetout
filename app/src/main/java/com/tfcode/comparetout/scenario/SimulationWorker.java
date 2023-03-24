@@ -54,6 +54,7 @@ public class SimulationWorker extends Worker {
             notificationManager.notify(notificationId, builder.build());
         }
 
+        long startTime = System.nanoTime();
         for (long scenarioID: scenarioIDs) {
             Scenario scenario = mToutcRepository.getScenarioForID(scenarioID);
             System.out.println("Working on scenario " + scenario.getScenarioName());
@@ -66,6 +67,7 @@ public class SimulationWorker extends Worker {
                 outputRow.setDate(inputRow.getDate());
                 outputRow.setMinuteOfDay(inputRow.getMod());
                 outputRow.setDayOfWeek(inputRow.getDow());
+                outputRow.setDayOf2001((inputRow.getDo2001()));
                 // TODO use the 'places electricity can come from and go to'
                 outputRow.setFeed(0);
                 outputRow.setBuy(inputRow.getLoad());
@@ -90,6 +92,8 @@ public class SimulationWorker extends Worker {
             builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
             notificationManager.notify(notificationId, builder.build());
         }
+        long endTime = System.nanoTime();
+        System.out.println("Took " + (endTime-startTime)/1000000 + "mS to simulate " + scenarioIDs.size() + " scenarios" );
 
         if (scenarioIDs.size() > 0) {
             // NOTIFICATION COMPLETE

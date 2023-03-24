@@ -12,6 +12,7 @@ public class ScenarioSimulationData {
     private String date = "2001-01-01";
     private int minuteOfDay;
     private int dayOfWeek;
+    private int dayOf2001;
     private double Feed;
     private double Buy;
     private double SOC;
@@ -24,6 +25,14 @@ public class ScenarioSimulationData {
     private double batToLoad;
     private double pv;
     private double immersionLoad;
+
+    public int getDayOf2001() {
+        return dayOf2001;
+    }
+
+    public void setDayOf2001(int dayOf2001) {
+        this.dayOf2001 = dayOf2001;
+    }
 
     public long getScenarioID() {
         return scenarioID;

@@ -46,6 +46,7 @@ public class PricePlanNavFragment extends Fragment {
         mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
         mViewModel.getAllPricePlans().observe(this, plans -> {
             System.out.println("Observed a change in live plans data " + plans.entrySet().size());
+            SimulatorLauncher.simulateIfNeeded(getContext());
             updateView(plans);
         });
     }

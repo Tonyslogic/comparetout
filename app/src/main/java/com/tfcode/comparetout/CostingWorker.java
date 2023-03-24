@@ -18,15 +18,20 @@ import com.tfcode.comparetout.model.costings.SubTotals;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
 
+import java.lang.invoke.MethodHandles;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class CostingWorker extends Worker {
 
     private final ToutcRepository mToutcRepository;
+    private final Map<Long, RateLookup> mLookups;
 
     public CostingWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
         mToutcRepository = new ToutcRepository((Application) context);
+        mLookups = new HashMap<>();
     }
 
     @NonNull
@@ -63,9 +68,14 @@ public class CostingWorker extends Worker {
         for (long scenarioID : scenarioIDs) {
             // Get the simulation output
             List<ScenarioSimulationData> scenarioData = mToutcRepository.getSimulationDataForScenario(scenarioID);
+            long startTime = System.nanoTime();
             for (PricePlan pp : plans) {
-                RateLookup lookup = new RateLookup(
-                        mToutcRepository.getAllDayRatesForPricePlanID(pp.getId()));
+                RateLookup lookup = mLookups.get(pp.getId());
+                if (null == lookup) {
+                    lookup = new RateLookup(
+                            mToutcRepository.getAllDayRatesForPricePlanID(pp.getId()));
+                    mLookups.put(pp.getId(), lookup);
+                }
                 Costings costing = new Costings();
                 costing.setScenarioID(scenarioID);
                 costing.setScenarioName(mToutcRepository.getScenarioForID(scenarioID).getScenarioName());
@@ -76,7 +86,7 @@ public class CostingWorker extends Worker {
                 double nett;
                 SubTotals subTotals = new SubTotals();
                 for (ScenarioSimulationData row : scenarioData) {
-                    double price = lookup.getRate(row.getDate(), row.getMinuteOfDay(), row.getDayOfWeek());
+                    double price = lookup.getRate(row.getDayOf2001(), row.getMinuteOfDay(), row.getDayOfWeek());
                     double rowBuy = price * row.getBuy();
                     buy += rowBuy;
                     sell += pp.getFeed() * row.getFeed();
@@ -96,6 +106,8 @@ public class CostingWorker extends Worker {
                 builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
                 notificationManager.notify(notificationId, builder.build());
             }
+            long endTime = System.nanoTime();
+            System.out.println("Took " + (endTime-startTime)/1000000 + "mS to cost " + plans.size() + " plans" );
         }
 
         if ((scenarioIDs.size() > 0) && (plans.size() > 0)) {

@@ -71,6 +71,7 @@ public class GenerateMissingLoadDataWorker extends Worker {
             DateTimeFormatter minFormat = DateTimeFormatter.ofPattern("HH:mm");
             while (active.isBefore(end)) {
                 LoadProfileData row = new LoadProfileData();
+                row.setDo2001(active.getDayOfYear());
                 row.setLoadProfileID(loadProfileID);
                 row.setDate(active.format(dateFormat));
                 row.setMinute(active.format(minFormat));
