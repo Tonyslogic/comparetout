@@ -33,5 +33,5 @@
         android:id="@+id/save_a_plan"
         app:showAsAction="ifRoom|withText"
         android:icon="@android:drawable/ic_menu_save"
-        android:title="@string/save_price_plan"/>
+        android:title="@string/save"/>
 </menu>

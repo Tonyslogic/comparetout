@@ -199,4 +199,12 @@ public class ToutcRepository {
         ToutcDB.databaseWriteExecutor.execute(() ->
                 scenarioDAO.copyScenario(id));
     }
+
+    public List<ScenarioComponents> getAllScenariosForExport() {
+        return scenarioDAO.getAllScenariosForExport();
+    }
+
+    public Map<PricePlan, List<DayRate>> getAllPricePlansForExport() {
+        return pricePlanDAO.getAllPricePlansForExport();
+    }
 }

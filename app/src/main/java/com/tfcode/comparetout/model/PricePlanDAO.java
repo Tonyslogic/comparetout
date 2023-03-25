@@ -111,4 +111,8 @@ public abstract class PricePlanDAO {
 
     @Query("SELECT * FROM dayrates WHERE pricePlanId = :id")
     public abstract List<DayRate> getAllDayRatesForPricePlanID(long id);
+
+
+    @Query("SELECT * FROM PricePlans JOIN DayRates ON PricePlans.id = DayRates.pricePlanId ORDER BY PricePlans.supplier ASC, PricePlans.planName ASC ")
+    public abstract Map<PricePlan, List<DayRate>> getAllPricePlansForExport();
 }

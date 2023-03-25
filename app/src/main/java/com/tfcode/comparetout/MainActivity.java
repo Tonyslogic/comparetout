@@ -2,19 +2,28 @@ package com.tfcode.comparetout;
 
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.app.ProgressDialog;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.ProgressBar;
+import android.widget.RelativeLayout;
 
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 
@@ -53,6 +62,8 @@ public class MainActivity extends AppCompatActivity {
     ViewPager2 viewPager;
     private ComparisonUIViewModel mViewModel;
     private Menu mMainMenu;
+    private ProgressBar mProgressBar;
+    private Handler mMainHandler;
 
     final ActivityResultLauncher<String> mLoadPricePlansFromFile = registerForActivityResult(new ActivityResultContracts.GetContent(),
             new ActivityResultCallback<Uri>() {
@@ -112,6 +123,7 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         createNotificationChannel();
         setContentView(R.layout.activity_main);
+        createProgressBar();
         viewPager = findViewById(R.id.view_pager);
         viewPager.setAdapter(createCardAdapter());
         mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
@@ -266,20 +278,41 @@ public class MainActivity extends AppCompatActivity {
                 //add the function to perform here
                 System.out.println("Export attempt ");
 
-                String toShare = JsonTools.createPricePlanJson(Objects.requireNonNull(mViewModel.getAllPricePlans().getValue()));
+                mProgressBar.setVisibility(View.VISIBLE);
 
-                Intent sendIntent = new Intent();
-                sendIntent.setAction(Intent.ACTION_SEND);
-                sendIntent.putExtra(Intent.EXTRA_TEXT, toShare);
-                sendIntent.setType("text/json");
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        String plansToShare = JsonTools.createPricePlanJson(mViewModel.getAllPricePlansForExport());
+                        mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
+                        Intent sendIntent = new Intent();
+                        sendIntent.setAction(Intent.ACTION_SEND);
+                        sendIntent.putExtra(Intent.EXTRA_TEXT, plansToShare);
+                        sendIntent.setType("text/json");
 
-                Intent shareIntent = Intent.createChooser(sendIntent, null);
-                startActivity(shareIntent);
+                        Intent shareIntent = Intent.createChooser(sendIntent, null);
+                        startActivity(shareIntent);
+                    }
+                }).start();
                 return(true);
 
             case R.id.share_scenarios:
-                Snackbar.make(viewPager.getRootView(), "TODO: Export scenarios", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                mProgressBar.setVisibility(View.VISIBLE);
+
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        String scenariosToShare = JsonTools.createScenarioList(Objects.requireNonNull(mViewModel.getAllScenariosForExport()));
+                        mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
+                        Intent sendIntent = new Intent();
+                        sendIntent.setAction(Intent.ACTION_SEND);
+                        sendIntent.putExtra(Intent.EXTRA_TEXT, scenariosToShare);
+                        sendIntent.setType("text/json");
+
+                        Intent shareIntent = Intent.createChooser(sendIntent, null);
+                        startActivity(shareIntent);
+                    }
+                }).start();
                 return(true);
 
             case R.id.share_comparison:
@@ -288,6 +321,24 @@ public class MainActivity extends AppCompatActivity {
                 return(true);
         }
         return(super.onOptionsItemSelected(item));
+    }
+
+    private void createProgressBar() {
+        mProgressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleLarge);
+        ConstraintLayout constraintLayout = findViewById(R.id.main_activity);
+        ConstraintSet set = new ConstraintSet();
+
+        mProgressBar.setId(View.generateViewId());  // cannot set id after add
+        constraintLayout.addView(mProgressBar,0);
+        set.clone(constraintLayout);
+        set.connect(mProgressBar.getId(), ConstraintSet.TOP, constraintLayout.getId(), ConstraintSet.TOP, 60);
+        set.connect(mProgressBar.getId(), ConstraintSet.BOTTOM, constraintLayout.getId(), ConstraintSet.BOTTOM, 60);
+        set.connect(mProgressBar.getId(), ConstraintSet.RIGHT, constraintLayout.getId(), ConstraintSet.RIGHT, 60);
+        set.connect(mProgressBar.getId(), ConstraintSet.LEFT, constraintLayout.getId(), ConstraintSet.LEFT, 60);
+        set.applyTo(constraintLayout);
+        mProgressBar.setVisibility(View.GONE);
+
+        mMainHandler = new Handler(Looper.getMainLooper());
     }
 
     private void createNotificationChannel() {

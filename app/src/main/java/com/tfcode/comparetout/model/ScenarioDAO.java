@@ -470,4 +470,29 @@ public abstract class ScenarioDAO {
                 loadProfile, loadShifts, evCharges, hwSchedules,
                 hwDivert, evDivert));
     }
+
+    @Transaction
+    public List<ScenarioComponents> getAllScenariosForExport() {
+        List<ScenarioComponents> ret = new ArrayList<>();
+        List<Scenario> scenarios = getScenarios();
+        for (Scenario scenario: scenarios){
+            ScenarioComponents scenarioComponents = new ScenarioComponents(scenario,
+                    getInvertersForScenarioID(scenario.getId()),
+                    getBatteriesForScenarioID(scenario.getId()),
+                    getPanelsForScenarioID(scenario.getId()),
+                    getHWSystemForScenarioID(scenario.getId()),
+                    getLoadProfileForScenarioID(scenario.getId()),
+                    getLoadShiftsForScenarioID(scenario.getId()),
+                    getEVChargesForScenarioID(scenario.getId()),
+                    getHWSchedulesForScenarioID(scenario.getId()),
+                    getHWDivertForScenarioID(scenario.getId()),
+                    getEVDivertForScenarioID(scenario.getId())
+            );
+            ret.add(scenarioComponents);
+        }
+        return ret;
+    }
+
+    @Query("SELECT * FROM scenarios")
+    public abstract List<Scenario> getScenarios();
 }
