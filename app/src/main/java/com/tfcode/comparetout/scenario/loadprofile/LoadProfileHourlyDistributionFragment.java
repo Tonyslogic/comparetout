@@ -131,6 +131,12 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
             });
             List<Double> hourlyDist = mLoadProfile.getHourlyDist().dist;
 
+            mBarChart.getAxisLeft().setTextColor(com.google.android.material.R.attr.colorPrimary); // left y-axis
+            mBarChart.getAxisRight().setTextColor(com.google.android.material.R.attr.colorPrimary); // right y-axis
+            mBarChart.getXAxis().setTextColor(com.google.android.material.R.attr.colorPrimary);
+            mBarChart.getLegend().setTextColor(com.google.android.material.R.attr.colorPrimary);
+            mBarChart.getDescription().setTextColor(com.google.android.material.R.attr.colorPrimary);
+
             ArrayList<BarEntry> entries = new ArrayList<>();
             for (int i = 23; i > -1; i--) entries.add(new BarEntry(i, hourlyDist.get(i).floatValue()));
 
@@ -268,18 +274,18 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
                 percent.setEnabled(mEdit);
 
                 minus.setImageResource(android.R.drawable.btn_minus);
-                minus.setBackgroundColor(Color.WHITE);
+                minus.setBackgroundColor(0);
                 minus.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 minus.setAdjustViewBounds(true);
                 plus.setImageResource(android.R.drawable.btn_plus);
-                plus.setBackgroundColor(Color.WHITE);
+                plus.setBackgroundColor(0);
                 plus.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 plus.setAdjustViewBounds(true);
                 del.setImageResource(android.R.drawable.ic_menu_delete);
-                del.setBackgroundColor(Color.WHITE);
+                del.setBackgroundColor(0);
                 del.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 add.setImageResource(android.R.drawable.ic_menu_add);
-                add.setBackgroundColor(Color.WHITE);
+                add.setBackgroundColor(0);
 
                 from.setEnabled(false);
 

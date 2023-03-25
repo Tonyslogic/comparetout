@@ -22,6 +22,7 @@ import android.widget.TableRow;
 import android.widget.TextView;
 
 import com.github.mikephil.charting.charts.BarChart;
+import com.github.mikephil.charting.charts.Chart;
 import com.github.mikephil.charting.charts.HorizontalBarChart;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.data.BarData;
@@ -102,6 +103,8 @@ public class LoadProfileMonthlyDistributionFragment extends Fragment {
         if (!mEdit) {
             mEditTable.setVisibility(View.INVISIBLE);
             mBarChart.setVisibility(View.VISIBLE);
+
+//            mBarChart.getPaint(Chart.PAINT_LEGEND_LABEL).setColor(com.google.android.material.R.attr.colorControlNormal);
             final ArrayList<String> xLabel = new ArrayList<>();
             xLabel.add("Jan");
             xLabel.add("Feb");
@@ -126,6 +129,12 @@ public class LoadProfileMonthlyDistributionFragment extends Fragment {
             });
             xAxis.setLabelCount(12, false);
             List<Double> monthlyDist = mLoadProfile.getMonthlyDist().monthlyDist;
+
+            mBarChart.getAxisLeft().setTextColor(com.google.android.material.R.attr.colorPrimary); // left y-axis
+            mBarChart.getAxisRight().setTextColor(com.google.android.material.R.attr.colorPrimary); // right y-axis
+            mBarChart.getXAxis().setTextColor(com.google.android.material.R.attr.colorPrimary);
+            mBarChart.getLegend().setTextColor(com.google.android.material.R.attr.colorPrimary);
+            mBarChart.getDescription().setTextColor(com.google.android.material.R.attr.colorPrimary);
 
             ArrayList<BarEntry> entries = new ArrayList<>();
             for (int i = 0; i < 12; i++) entries.add(new BarEntry(i, monthlyDist.get(i).floatValue()));
@@ -207,11 +216,11 @@ public class LoadProfileMonthlyDistributionFragment extends Fragment {
                 });
 
                 minus.setImageResource(android.R.drawable.btn_minus);
-                minus.setBackgroundColor(Color.WHITE);
+                minus.setBackgroundColor(0);
                 minus.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 minus.setAdjustViewBounds(true);
                 plus.setImageResource(android.R.drawable.btn_plus);
-                plus.setBackgroundColor(Color.WHITE);
+                plus.setBackgroundColor(0);
                 plus.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 plus.setAdjustViewBounds(true);
 

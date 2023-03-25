@@ -121,6 +121,12 @@ public class LoadProfileDailyDistributionFragment extends Fragment {
             });
             List<Double> dowDist = mLoadProfile.getDowDist().dowDist;
 
+            mBarChart.getAxisLeft().setTextColor(com.google.android.material.R.attr.colorPrimary); // left y-axis
+            mBarChart.getAxisRight().setTextColor(com.google.android.material.R.attr.colorPrimary); // right y-axis
+            mBarChart.getXAxis().setTextColor(com.google.android.material.R.attr.colorPrimary);
+            mBarChart.getLegend().setTextColor(com.google.android.material.R.attr.colorPrimary);
+            mBarChart.getDescription().setTextColor(com.google.android.material.R.attr.colorPrimary);
+
             ArrayList<BarEntry> entries = new ArrayList<>();
             for (int i = 0; i < 7; i++) entries.add(new BarEntry(i, dowDist.get(i).floatValue()));
 
@@ -200,11 +206,11 @@ public class LoadProfileDailyDistributionFragment extends Fragment {
                 });
 
                 minus.setImageResource(android.R.drawable.btn_minus);
-                minus.setBackgroundColor(Color.WHITE);
+                minus.setBackgroundColor(0);
                 minus.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 minus.setAdjustViewBounds(true);
                 plus.setImageResource(android.R.drawable.btn_plus);
-                plus.setBackgroundColor(Color.WHITE);
+                plus.setBackgroundColor(0);
                 plus.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 plus.setAdjustViewBounds(true);
 
