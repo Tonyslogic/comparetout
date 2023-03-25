@@ -11,12 +11,12 @@
     <item
         android:id="@+id/download"
         app:showAsAction="ifRoom|withText"
-        android:icon="@android:drawable/stat_sys_download"
+        android:icon="@drawable/ic_baseline_download_24"
         android:title="@string/fetch"/>
     <item
         android:id="@+id/export"
         app:showAsAction="ifRoom|withText"
-        android:icon="@android:drawable/ic_menu_share"
+        android:icon="@drawable/ic_baseline_share_24"
         android:title="@string/export">
         <menu>
             <group android:checkableBehavior="single">

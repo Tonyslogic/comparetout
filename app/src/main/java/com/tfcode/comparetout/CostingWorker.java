@@ -117,12 +117,11 @@ public class CostingWorker extends Worker {
             System.out.println("Took " + (endTime-startTime)/1000000 + "mS to cost " + plans.size() + " plans" );
         }
 
-        if ((scenarioIDs.size() > 0) && (plans.size() > 0)) {
-            // NOTIFICATION COMPLETE
-            builder.setContentText("Calculation complete")
-                    .setProgress(0, 0, false);
-            notificationManager.notify(notificationId, builder.build());
-        }
+        // NOTIFICATION COMPLETE
+        builder.setContentText("Calculation complete")
+                .setProgress(0, 0, false);
+        notificationManager.notify(notificationId, builder.build());
+
         return Result.success();
     }
 }

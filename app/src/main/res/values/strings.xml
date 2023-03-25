@@ -4,7 +4,7 @@
     <string name="edit">Edit</string>
     <string name="add_day_rate">Add day rate</string>
     <string name="info">Info</string>
-    <string name="save_price_plan">Save price plan</string>
+    <string name="save">Save</string>
     <string name="delete_day_rate">Delete day rate</string>
     <!-- TODO: Remove or change this placeholder text -->
     <string name="main_activity_usage">Usage(s)</string>
@@ -26,4 +26,7 @@
     <string name="plans">Plans</string>
     <string name="scenarios">Scenarios</string>
     <string name="comparisons">Comparisons</string>
+    <string name="copy">Copy</string>
+    <string name="link">Link</string>
+    <string name="help">Help</string>
 </resources>

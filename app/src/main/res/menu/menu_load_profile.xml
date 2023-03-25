@@ -7,41 +7,41 @@
     <item
         android:id="@+id/lp_info"
         app:showAsAction="always"
-        android:icon="@android:drawable/ic_menu_info_details"
+        android:icon="@drawable/ic_baseline_info_24"
         android:title="@string/info"/>
     <item
         android:id="@+id/lp_edit"
         app:showAsAction="ifRoom|withText"
-        android:icon="@android:drawable/ic_menu_edit"
+        android:icon="@drawable/ic_baseline_edit_24"
         android:title="@string/edit"/>
     <item
         android:id="@+id/lp_share"
-        app:showAsAction="ifRoom|withText"
-        android:icon="@android:drawable/ic_menu_share"
-        android:title="@string/share"/>
+        android:icon="@drawable/ic_baseline_share_24"
+        android:title="@string/share"
+        app:showAsAction="ifRoom|withText" />
     <item
         android:id="@+id/lp_save"
         app:showAsAction="ifRoom|withText"
-        android:icon="@android:drawable/ic_menu_save"
-        android:title="Save"/>
+        android:icon="@drawable/ic_baseline_save_24"
+        android:title="@string/save"/>
     <item
         android:id="@+id/lp_import"
         app:showAsAction="ifRoom|withText"
-        android:icon="@android:drawable/stat_sys_download"
-        android:title="Import"/>
+        android:icon="@drawable/ic_baseline_download_24"
+        android:title="@string/export"/>
     <item
         android:id="@+id/lp_copy"
         app:showAsAction="ifRoom|withText"
-        android:icon="@drawable/ic_menu_copy"
-        android:title="Copy"/>
+        android:icon="@drawable/ic_baseline_content_copy_24"
+        android:title="@string/copy"/>
     <item
         android:id="@+id/lp_link"
         app:showAsAction="ifRoom|withText"
         android:icon="@drawable/ic_baseline_link_24"
-        android:title="Link"/>
+        android:title="@string/link"/>
     <item
         android:id="@+id/lp_help"
         app:showAsAction="ifRoom|withText"
         android:icon="@drawable/ic_baseline_help_outline_24"
-        android:title="Help"/>
+        android:title="@string/help"/>
 </menu>

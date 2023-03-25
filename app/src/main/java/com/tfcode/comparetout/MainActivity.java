@@ -3,6 +3,8 @@ package com.tfcode.comparetout;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -185,6 +187,10 @@ public class MainActivity extends AppCompatActivity {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_prices, menu);
         mMainMenu = menu;
+        int colour = Color.parseColor("White");
+        mMainMenu.findItem(R.id.load).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        mMainMenu.findItem(R.id.download).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        mMainMenu.findItem(R.id.export).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         return true;
     }
 

@@ -149,7 +149,7 @@ public class ScenarioOverview extends Fragment {
                     else {
                         mViewModel.updateScenario(mScenario);
                     }
-                   ((ScenarioActivity) requireActivity()).setSaveNeeded(false);
+                    ((ScenarioActivity) requireActivity()).setSaveNeeded(false);
                     return (false);
                 }
                 return true;

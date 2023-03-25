@@ -7,6 +7,8 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -58,6 +60,11 @@ public class ScenarioActivity extends AppCompatActivity {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_scenarios, menu);
         mMenu = menu;
+        int colour = Color.parseColor("White");
+        mMenu.findItem(R.id.edit_scenario).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        mMenu.findItem(R.id.share_scenario).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        mMenu.findItem(R.id.info_scenario).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        mMenu.findItem(R.id.save_scenario).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         return true;
     }
 
@@ -78,6 +85,7 @@ public class ScenarioActivity extends AppCompatActivity {
 
         if (item.getItemId() == R.id.share_scenario) {//add the function to perform here
             System.out.println("Share attempt");
+            Toast.makeText(this, "TODO: Share", Toast.LENGTH_SHORT).show();
             return false;
         }
         return false;
