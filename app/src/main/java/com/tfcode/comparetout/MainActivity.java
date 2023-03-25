@@ -51,6 +51,12 @@ public class MainActivity extends AppCompatActivity {
     ViewPager2 viewPager;
     private ComparisonUIViewModel mViewModel;
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        System.out.println("Orientation = " + this.getResources().getConfiguration().orientation);
+    }
+
     final ActivityResultLauncher<String> mLoadPricePlansFromFile = registerForActivityResult(new ActivityResultContracts.GetContent(),
             new ActivityResultCallback<Uri>() {
                 @Override

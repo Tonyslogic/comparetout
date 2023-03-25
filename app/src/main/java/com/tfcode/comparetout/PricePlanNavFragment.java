@@ -2,7 +2,9 @@ package com.tfcode.comparetout;
 
 import androidx.lifecycle.ViewModelProvider;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.os.Bundle;
 
@@ -40,6 +42,12 @@ public class PricePlanNavFragment extends Fragment {
         return new PricePlanNavFragment();
     }
 
+    @SuppressLint("SourceLockedOrientationActivity")
+    @Override
+    public void onResume() {
+        super.onResume();
+        requireActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+    }
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);

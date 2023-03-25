@@ -2,27 +2,37 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/scenario"
-        android:title="Scenario"
+        android:title="@string/scenario"
         android:checked="true"
         android:checkable="true"/>
     <item
         android:id="@+id/plan"
         android:checked="true"
-        android:title="Supplier:Plan"
+        android:title="@string/supplier_plan"
         android:checkable="true"/>
     <item
         android:id="@+id/nett"
         android:checked="true"
-        android:title="Nett"
+        android:title="@string/nett"
         android:checkable="true"/>
     <item
         android:id="@+id/buy"
         android:checked="true"
-        android:title="Buy"
+        android:title="@string/buy"
         android:checkable="true"/>
     <item
         android:id="@+id/sell"
         android:checked="true"
-        android:title="Sell"
+        android:title="@string/sell"
+        android:checkable="true"/>
+    <item
+        android:id="@+id/bonus"
+        android:checked="false"
+        android:title="@string/bonus"
+        android:checkable="true"/>
+    <item
+        android:id="@+id/fixed"
+        android:checked="false"
+        android:title="@string/fixed"
         android:checkable="true"/>
 </menu>

@@ -1,6 +1,8 @@
 package com.tfcode.comparetout;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.TypedValue;
@@ -25,6 +27,7 @@ import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.scenario.ScenarioActivity;
 
 import java.util.List;
+import java.util.Objects;
 
 public class ScenarioNavFragment extends Fragment {
 
@@ -33,6 +36,13 @@ public class ScenarioNavFragment extends Fragment {
 
     public static ScenarioNavFragment newInstance() {
         return new ScenarioNavFragment();
+    }
+
+    @SuppressLint("SourceLockedOrientationActivity")
+    @Override
+    public void onResume() {
+        super.onResume();
+        requireActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 
     @Override
