@@ -1,15 +1,22 @@
 package com.tfcode.comparetout.priceplan;
 
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.ProgressBar;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 
@@ -43,7 +50,8 @@ public class PricePlanActivity extends AppCompatActivity {
     private String focusedPlan = "{}";
     private TabLayoutMediator mMediator;
     private ActionBar mActionBar;
-    private ProgressBar mProgressBar;
+//    private ProgressBar mProgressBar;
+//    private Handler mMainHandler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,25 +63,32 @@ public class PricePlanActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_price_plan);
         viewPager = findViewById(R.id.view_plan_pager);
-//        mProgressBar = findViewById(R.id.startup);
-//
-//        mProgressBar.setVisibility(View.VISIBLE);
-//        final Handler handler = new Handler();
-//        handler.postDelayed(new Runnable() {
-//            @Override
-//            public void run() {
-//                setupViewPager();
-//                mProgressBar.setVisibility(View.INVISIBLE);
-//            }
-//
-//        }, 5000);
 
+//        createProgressBar();
         setupViewPager();
 
         mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
         mActionBar = Objects.requireNonNull(getSupportActionBar());
         mActionBar.setTitle("Price plan details");
     }
+
+//    private void createProgressBar() {
+//        mProgressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleLarge);
+//        ConstraintLayout constraintLayout = findViewById(R.id.pp_activity);
+//        ConstraintSet set = new ConstraintSet();
+//
+//        mProgressBar.setId(View.generateViewId());  // cannot set id after add
+//        constraintLayout.addView(mProgressBar,0);
+//        set.clone(constraintLayout);
+//        set.connect(mProgressBar.getId(), ConstraintSet.TOP, constraintLayout.getId(), ConstraintSet.TOP, 60);
+//        set.connect(mProgressBar.getId(), ConstraintSet.BOTTOM, constraintLayout.getId(), ConstraintSet.BOTTOM, 60);
+//        set.connect(mProgressBar.getId(), ConstraintSet.RIGHT, constraintLayout.getId(), ConstraintSet.RIGHT, 60);
+//        set.connect(mProgressBar.getId(), ConstraintSet.LEFT, constraintLayout.getId(), ConstraintSet.LEFT, 60);
+//        set.applyTo(constraintLayout);
+//        mProgressBar.setVisibility(View.GONE);
+//
+//        mMainHandler = new Handler(Looper.getMainLooper());
+//    }
 
     // PAGE ADAPTER PAGE ADAPTER PAGE ADAPTER PAGE ADAPTER PAGE ADAPTER
     private void setupViewPager() {
@@ -106,6 +121,13 @@ public class PricePlanActivity extends AppCompatActivity {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_plans, menu);
         mMenu = menu;
+        int colour = Color.parseColor("White");
+        mMenu.findItem(R.id.info).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        mMenu.findItem(R.id.edit_a_plan).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        mMenu.findItem(R.id.add_a_day_rate).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        mMenu.findItem(R.id.export_a_plan).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        mMenu.findItem(R.id.del_a_day_rate).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        mMenu.findItem(R.id.save_a_plan).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         return true;
     }
 
@@ -306,4 +328,8 @@ public class PricePlanActivity extends AppCompatActivity {
             infoItem.setVisible(false);
         }
     }
+
+//    public void startProgressIndicator() {mProgressBar.setVisibility(View.VISIBLE);}
+//
+//    public void stopProgressIndicator() {mProgressBar.setVisibility(View.GONE);}
 }

@@ -3,6 +3,7 @@ package com.tfcode.comparetout;
 import androidx.lifecycle.ViewModelProvider;
 
 import android.annotation.SuppressLint;
+import android.app.ActivityOptions;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
@@ -52,10 +53,12 @@ public class PricePlanNavFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
+        ((MainActivity)requireActivity()).startProgressIndicator();
         mViewModel.getAllPricePlans().observe(this, plans -> {
             System.out.println("Observed a change in live plans data " + plans.entrySet().size());
             SimulatorLauncher.simulateIfNeeded(getContext());
             updateView(plans);
+            ((MainActivity)requireActivity()).stopProgressIndicator();
         });
     }
 
@@ -186,6 +189,7 @@ public class PricePlanNavFragment extends Fragment {
                     intent.putExtra("Edit", false);
                     intent.putExtra("Focus", JsonTools.createSinglePricePlanJsonObject(p, entry.getValue()));
                     startActivity(intent);
+//                    startActivity(intent, ActivityOptions.makeSceneTransitionAnimation(requireActivity()).toBundle());
                 });
 
                 // ADD TEXTVIEW TO TABLEROW

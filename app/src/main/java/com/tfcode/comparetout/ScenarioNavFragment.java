@@ -50,10 +50,12 @@ public class ScenarioNavFragment extends Fragment {
         super.onCreate(savedInstanceState);
         mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
 //        mViewModel.doAction();
+        ((MainActivity)requireActivity()).startProgressIndicator();
         mViewModel.getAllScenarios().observe(this, scenarios -> {
             System.out.println("Observed a change in live scenario data " + scenarios.size());
             SimulatorLauncher.simulateIfNeeded(getContext());
             updateView(scenarios);
+            ((MainActivity)requireActivity()).stopProgressIndicator();
         });
     }
 

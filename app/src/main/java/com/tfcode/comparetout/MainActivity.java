@@ -4,6 +4,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.ProgressDialog;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.net.Uri;
@@ -11,10 +12,12 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.transition.Explode;
 import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.Window;
 import android.widget.ProgressBar;
 import android.widget.RelativeLayout;
 
@@ -126,8 +129,17 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         createNotificationChannel();
+
+
+//        // Inside your activity (if you did not enable transitions in your theme)
+//        getWindow().requestFeature(Window.FEATURE_ACTIVITY_TRANSITIONS);
+//
+//        // Set an exit transition
+//        getWindow().setExitTransition(new Explode());
+
         setContentView(R.layout.activity_main);
         createProgressBar();
+
         viewPager = findViewById(R.id.view_pager);
         viewPager.setAdapter(createCardAdapter());
         mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
@@ -207,6 +219,10 @@ public class MainActivity extends AppCompatActivity {
         mMainMenu.findItem(R.id.load).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         mMainMenu.findItem(R.id.download).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         mMainMenu.findItem(R.id.export).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        if (viewPager.getCurrentItem() == COMPARE_FRAGMENT) {
+            mMainMenu.findItem(R.id.load).setVisible(false);
+            mMainMenu.findItem(R.id.download).setVisible(false);
+        }
         return true;
     }
 
@@ -369,4 +385,8 @@ public class MainActivity extends AppCompatActivity {
             notificationManager.createNotificationChannel(channel);
         }
     }
+
+    public void startProgressIndicator() {mProgressBar.setVisibility(View.VISIBLE);}
+
+    public void stopProgressIndicator() {mProgressBar.setVisibility(View.GONE);}
 }

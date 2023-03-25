@@ -7,31 +7,31 @@
     <item
         android:id="@+id/info"
         app:showAsAction="always"
-        android:icon="@android:drawable/ic_menu_info_details"
+        android:icon="@drawable/ic_baseline_info_24"
         android:title="@string/info"/>
     <item
         android:id="@+id/edit_a_plan"
         app:showAsAction="ifRoom|withText"
-        android:icon="@android:drawable/ic_menu_edit"
+        android:icon="@drawable/ic_baseline_edit_24"
         android:title="@string/edit"/>
     <item
         android:id="@+id/add_a_day_rate"
         app:showAsAction="ifRoom|withText"
-        android:icon="@android:drawable/ic_menu_add"
+        android:icon="@drawable/ic_baseline_post_add_24"
         android:title="@string/add_day_rate"/>
     <item
         android:id="@+id/export_a_plan"
         app:showAsAction="ifRoom|withText"
-        android:icon="@android:drawable/ic_menu_share"
+        android:icon="@drawable/ic_baseline_share_24"
         android:title="@string/share"/>
     <item
         android:id="@+id/del_a_day_rate"
         app:showAsAction="ifRoom|withText"
-        android:icon="@android:drawable/ic_menu_delete"
+        android:icon="@drawable/ic_baseline_delete_24"
         android:title="@string/delete_day_rate"/>
     <item
         android:id="@+id/save_a_plan"
         app:showAsAction="ifRoom|withText"
-        android:icon="@android:drawable/ic_menu_save"
+        android:icon="@drawable/ic_baseline_save_24"
         android:title="@string/save"/>
 </menu>

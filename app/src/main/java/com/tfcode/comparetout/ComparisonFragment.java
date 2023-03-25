@@ -132,19 +132,26 @@ public class ComparisonFragment extends Fragment {
             if (mShowFixed) mVisibleColCount++;
         }
         mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
+        ((MainActivity)requireActivity()).startProgressIndicator();
         mViewModel.getAllComparisons().observe(this, costings -> {
             System.out.println("Observed a change in live comparison data " + costings.size());
             mCostings = costings;
             updateView();
+            if (!(null == mScenarios) && !(null == mPricePlans))
+                ((MainActivity)requireActivity()).stopProgressIndicator();
         });
         mViewModel.getAllScenarios().observe(this, scenarios -> {
             mScenarios = scenarios;
             updateView();
+            if (!(null == mCostings) && !(null == mPricePlans))
+                ((MainActivity)requireActivity()).stopProgressIndicator();
         });
         mViewModel.getAllPricePlans().observe(this, plans -> {
             mPricePlans = new ArrayList<>();
             mPricePlans.addAll(plans.keySet());
             updateView();
+            if (!(null == mScenarios) && !(null == mCostings))
+                ((MainActivity)requireActivity()).stopProgressIndicator();
         });
     }
 
