@@ -2,6 +2,7 @@ package com.tfcode.comparetout.scenario;
 
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -386,11 +387,14 @@ public class ScenarioOverview extends Fragment {
     private void updateButtons() {
         if (mScenario.isHasPanels()) mPanelButton.setImageResource(R.drawable.solarpaneltick);
         else mPanelButton.setImageResource(R.drawable.solarpanel);
+        mPanelButton.setBackgroundColor(0);
         if (mScenario.isHasInverters()) mInverterButton.setImageResource(R.drawable.invertertick);
         else mInverterButton.setImageResource(R.drawable.inverter);
+        mInverterButton.setBackgroundColor(0);
         if (mScenario.isHasLoadProfiles()) {
             mHouseButton.setImageResource(R.drawable.housetick);
-            mHouseButton.setBackgroundColor(Color.WHITE);
+            mHouseButton.setBackgroundColor(0);
+//            mHouseButton.setColorFilter(getResources().getColor(R.color.blue_300));
         }
         else {
             mHouseButton.setImageResource(R.drawable.house);
@@ -402,6 +406,7 @@ public class ScenarioOverview extends Fragment {
             if (mScenario.isHasLoadShifts()) mBatteryButton.setImageResource(R.drawable.battery_scheduled);
         }
         else mBatteryButton.setImageResource(R.drawable.battery_not_set);
+        mBatteryButton.setBackgroundColor(0);
 
         if (mScenario.isHasHWSystem()) {
             mTankButton.setImageResource(R.drawable.tank_set);
@@ -412,6 +417,7 @@ public class ScenarioOverview extends Fragment {
             else if (mScenario.isHasHWDivert()) mTankButton.setImageResource(R.drawable.tank_set_scheduled_diverted);
         }
         else mTankButton.setImageResource(R.drawable.tank_not_set);
+        mTankButton.setBackgroundColor(0);
 
         if (mScenario.isHasEVCharges()) {
             mCarButton.setImageResource(R.drawable.car_scheduled);
@@ -419,6 +425,9 @@ public class ScenarioOverview extends Fragment {
         }
         else if (mScenario.isHasEVDivert()) mCarButton.setImageResource(R.drawable.car_diverted);
         else mCarButton.setImageResource(R.drawable.car_not_set);
+        mCarButton.setBackgroundColor(0);
+//        mCarButton.setImageTintMode(PorterDuff.Mode.DST_OVER);
+//        mCarButton.setColorFilter(androidx.appcompat.R.attr.color, PorterDuff.Mode.DST);
     }
 
     public void setEditMode(boolean ed) {

@@ -386,7 +386,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public void startProgressIndicator() {mProgressBar.setVisibility(View.VISIBLE);}
-
-    public void stopProgressIndicator() {mProgressBar.setVisibility(View.GONE);}
+//    public void startProgressIndicator() {mProgressBar.setVisibility(View.VISIBLE);}
+//
+//    public void stopProgressIndicator() {mProgressBar.setVisibility(View.GONE);}
 }

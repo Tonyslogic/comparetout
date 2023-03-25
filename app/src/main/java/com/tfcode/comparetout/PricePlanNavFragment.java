@@ -53,12 +53,12 @@ public class PricePlanNavFragment extends Fragment {
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
-        ((MainActivity)requireActivity()).startProgressIndicator();
+//        ((MainActivity)requireActivity()).startProgressIndicator();
         mViewModel.getAllPricePlans().observe(this, plans -> {
             System.out.println("Observed a change in live plans data " + plans.entrySet().size());
             SimulatorLauncher.simulateIfNeeded(getContext());
             updateView(plans);
-            ((MainActivity)requireActivity()).stopProgressIndicator();
+//            ((MainActivity)requireActivity()).stopProgressIndicator();
         });
     }
 
@@ -124,11 +124,11 @@ public class PricePlanNavFragment extends Fragment {
 
                 // SET BACKGROUND COLOR
 
-                a.setBackgroundColor(Color.WHITE);
-                b.setBackgroundColor(Color.WHITE);
-                c.setBackgroundColor(Color.WHITE);
-                d.setBackgroundColor(Color.WHITE);
-                e.setBackgroundColor(Color.WHITE);
+//                a.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
+//                b.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
+                c.setBackgroundColor(0);
+                d.setBackgroundColor(0);
+                e.setBackgroundColor(0);
 
                 // SET PADDING
 
@@ -142,7 +142,7 @@ public class PricePlanNavFragment extends Fragment {
 
                 b.setText(p.getSupplier() + ":"+ p.getPlanName() + " (" + p.getLastUpdate() + ")");
                 c.setImageResource(android.R.drawable.ic_menu_delete);
-                d.setImageResource(R.drawable.ic_menu_copy);
+                d.setImageResource(R.drawable.baseline_content_copy_24);
                 e.setImageResource(android.R.drawable.ic_menu_view);
 
                 a.setId((int) p.getId());
@@ -199,6 +199,7 @@ public class PricePlanNavFragment extends Fragment {
                 tableRow.addView(c);
                 tableRow.addView(d);
                 tableRow.addView(e);
+//                tableRow.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
 
                 // ADD TABLEROW TO TABLELAYOUT
                 mTableLayout.addView(tableRow);

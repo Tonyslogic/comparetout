@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
@@ -50,12 +51,12 @@ public class ScenarioNavFragment extends Fragment {
         super.onCreate(savedInstanceState);
         mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
 //        mViewModel.doAction();
-        ((MainActivity)requireActivity()).startProgressIndicator();
+//        ((MainActivity)requireActivity()).startProgressIndicator();
         mViewModel.getAllScenarios().observe(this, scenarios -> {
             System.out.println("Observed a change in live scenario data " + scenarios.size());
             SimulatorLauncher.simulateIfNeeded(getContext());
             updateView(scenarios);
-            ((MainActivity)requireActivity()).stopProgressIndicator();
+//            ((MainActivity)requireActivity()).stopProgressIndicator();
         });
     }
 
@@ -120,11 +121,11 @@ public class ScenarioNavFragment extends Fragment {
 
                 // SET BACKGROUND COLOR
 
-                a.setBackgroundColor(Color.WHITE);
-                b.setBackgroundColor(Color.WHITE);
-                c.setBackgroundColor(Color.WHITE);
-                d.setBackgroundColor(Color.WHITE);
-                e.setBackgroundColor(Color.WHITE);
+//                a.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
+//                b.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
+                c.setBackgroundColor(0);
+                d.setBackgroundColor(0);
+                e.setBackgroundColor(0);
 
                 // SET PADDING
 
@@ -138,7 +139,7 @@ public class ScenarioNavFragment extends Fragment {
 
                 b.setText(scenario.getScenarioName());
                 c.setImageResource(android.R.drawable.ic_menu_delete);
-                d.setImageResource(R.drawable.ic_menu_copy);
+                d.setImageResource(R.drawable.baseline_content_copy_24 );
                 e.setImageResource(android.R.drawable.ic_menu_view);
 
                 a.setId((int) scenario.getId());
@@ -181,6 +182,8 @@ public class ScenarioNavFragment extends Fragment {
                 tableRow.addView(c);
                 tableRow.addView(d);
                 tableRow.addView(e);
+
+//                tableRow.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
 
                 // ADD TABLEROW TO TABLELAYOUT
                 mTableLayout.addView(tableRow);

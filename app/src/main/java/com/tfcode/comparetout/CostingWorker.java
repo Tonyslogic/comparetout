@@ -49,7 +49,8 @@ public class CostingWorker extends Worker {
                 .setContentText("Calculation in progress")
                 .setSmallIcon(R.drawable.housetick)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
-                .setTimeoutAfter(20000);
+                .setTimeoutAfter(20000)
+                .setSilent(true);
         int PROGRESS_MAX = 100;
         int PROGRESS_CURRENT = 0;
 

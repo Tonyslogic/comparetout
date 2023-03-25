@@ -23,8 +23,8 @@
     <string name="open">Open</string>
     <string name="fetch">Fetch</string>
     <string name="export">Export</string>
-    <string name="plans">Plans</string>
-    <string name="scenarios">Scenarios</string>
+    <string name="plans">Costs</string>
+    <string name="scenarios">Usage(s)</string>
     <string name="comparisons">Comparisons</string>
     <string name="copy">Copy</string>
     <string name="link">Link</string>

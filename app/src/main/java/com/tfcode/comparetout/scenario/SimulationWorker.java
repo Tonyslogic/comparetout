@@ -43,7 +43,8 @@ public class SimulationWorker extends Worker {
                 .setContentText("Simulation in progress")
                 .setSmallIcon(R.drawable.housetick)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
-                .setTimeoutAfter(20000);
+                .setTimeoutAfter(20000)
+                .setSilent(true);
         // Issue the initial notification with zero progress
         int PROGRESS_MAX = 100;
         int PROGRESS_CURRENT = 0;

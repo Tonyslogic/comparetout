@@ -4,6 +4,8 @@ import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
+import android.os.Build;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -80,6 +82,7 @@ public class ComparisonFragment extends Fragment {
     private PopupWindow mPieChartWindow;
 
     private int mOrientation = Configuration.ORIENTATION_PORTRAIT;
+    private boolean darkMode = false;
 
     public ComparisonFragment() {
         // Required empty public constructor
@@ -95,6 +98,25 @@ public class ComparisonFragment extends Fragment {
         else
             getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         mOrientation = getActivity().getResources().getConfiguration().orientation;
+        switch (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) {
+            case Configuration.UI_MODE_NIGHT_YES:
+                darkMode = true;
+                break;
+            case Configuration.UI_MODE_NIGHT_NO:
+                darkMode = false;
+                break;
+        }
+//        TypedValue a = new TypedValue();
+//        requireActivity().getApplication().getTheme().resolveAttribute(android.R.attr.windowBackground, a, true);
+//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+//            if (a.isColorType()) {
+//                // windowBackground is a color
+//                int color = a.data;
+//            } else {
+//                // windowBackground is not a color, probably a drawable
+//                Drawable d = requireActivity().getResources().getDrawable(a.resourceId);
+//            }
+//        }
     }
 
     @Override
@@ -132,26 +154,26 @@ public class ComparisonFragment extends Fragment {
             if (mShowFixed) mVisibleColCount++;
         }
         mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
-        ((MainActivity)requireActivity()).startProgressIndicator();
+//        ((MainActivity)requireActivity()).startProgressIndicator();
         mViewModel.getAllComparisons().observe(this, costings -> {
             System.out.println("Observed a change in live comparison data " + costings.size());
             mCostings = costings;
             updateView();
-            if (!(null == mScenarios) && !(null == mPricePlans))
-                ((MainActivity)requireActivity()).stopProgressIndicator();
+//            if (!(null == mScenarios) && !(null == mPricePlans))
+//                ((MainActivity)requireActivity()).stopProgressIndicator();
         });
         mViewModel.getAllScenarios().observe(this, scenarios -> {
             mScenarios = scenarios;
             updateView();
-            if (!(null == mCostings) && !(null == mPricePlans))
-                ((MainActivity)requireActivity()).stopProgressIndicator();
+//            if (!(null == mCostings) && !(null == mPricePlans))
+//                ((MainActivity)requireActivity()).stopProgressIndicator();
         });
         mViewModel.getAllPricePlans().observe(this, plans -> {
             mPricePlans = new ArrayList<>();
             mPricePlans.addAll(plans.keySet());
             updateView();
-            if (!(null == mScenarios) && !(null == mCostings))
-                ((MainActivity)requireActivity()).stopProgressIndicator();
+//            if (!(null == mScenarios) && !(null == mCostings))
+//                ((MainActivity)requireActivity()).stopProgressIndicator();
         });
     }
 
@@ -269,7 +291,7 @@ public class ComparisonFragment extends Fragment {
         int index = spinnerContent.indexOf(mSortBy);
         spinner.setSelection(index);
 
-        tableRow.setBackgroundColor(Color.LTGRAY);
+        tableRow.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
 
         spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
             @Override
@@ -406,13 +428,13 @@ public class ComparisonFragment extends Fragment {
         g.setLayoutParams(planParams);
 
         // SET BACKGROUND COLOR
-        a.setBackgroundColor(Color.WHITE);
-        b.setBackgroundColor(Color.WHITE);
-        c.setBackgroundColor(Color.WHITE);
-        d.setBackgroundColor(Color.WHITE);
-        e.setBackgroundColor(Color.WHITE);
-        f.setBackgroundColor(Color.WHITE);
-        g.setBackgroundColor(Color.WHITE);
+//        a.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
+//        b.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
+//        c.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
+//        d.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
+//        e.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
+//        f.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
+//        g.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
 
         // SET PADDING
         a.setPadding(10, 10, 10, 10);
@@ -438,6 +460,7 @@ public class ComparisonFragment extends Fragment {
         tableRow.addView(e);
         tableRow.addView(f);
         tableRow.addView(g);
+//        tableRow.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
 
         // ADD TABLEROW TO TABLELAYOUT
         mTableLayout.addView(tableRow);

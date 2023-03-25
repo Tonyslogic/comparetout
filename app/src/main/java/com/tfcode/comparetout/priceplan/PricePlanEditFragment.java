@@ -58,13 +58,6 @@ public class PricePlanEditFragment extends Fragment {
         // Required empty public constructor
     }
 
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @return A new instance of fragment PricePlanEditFragment.
-     */
-    // TODO: Rename and change types and number of parameters
     public static PricePlanEditFragment newInstance() {
         PricePlanEditFragment fragment = new PricePlanEditFragment();
         Bundle args = new Bundle();
@@ -75,7 +68,6 @@ public class PricePlanEditFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-//        setHasOptionsMenu(true);
         mPlanID = ((PricePlanActivity) requireActivity()).getPlanID();
         mFocus = ((PricePlanActivity) requireActivity()).getFocusedPlan();
         mEdit = ((PricePlanActivity) requireActivity()).getEdit();

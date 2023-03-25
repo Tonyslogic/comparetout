@@ -445,7 +445,7 @@ public class PricePlanEditDayFragment extends Fragment {
                     updateFocusAndValidate();
                     updateView();
                 });
-                del.setBackgroundColor(Color.WHITE);
+                del.setBackgroundColor(0);
                 priceRow.addView(del);
                 del.setEnabled(mEdit);
                 mEditFields.add(del);
@@ -500,7 +500,7 @@ public class PricePlanEditDayFragment extends Fragment {
             to.setInputType(InputType.TYPE_CLASS_NUMBER);
             price.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
             add.setImageResource(android.R.drawable.ic_menu_add);
-            add.setBackgroundColor(Color.WHITE);
+            add.setBackgroundColor(0);
             add.setOnClickListener(v -> {
                 Double buyPrice = Double.parseDouble(price.getText().toString());
                 Integer toValue = Integer.parseInt(to.getText().toString());
