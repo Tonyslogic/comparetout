@@ -58,6 +58,8 @@ public class SimulationWorker extends Worker {
         for (long scenarioID: scenarioIDs) {
             Scenario scenario = mToutcRepository.getScenarioForID(scenarioID);
             System.out.println("Working on scenario " + scenario.getScenarioName());
+            builder.setContentText(scenario.getScenarioName());
+            notificationManager.notify(notificationId, builder.build());
             List<LoadProfileData> inputRows = mToutcRepository.getSimulationInput(scenarioID);
             //TODO Load from the DB all the places electricity can come from and go to
             ArrayList<ScenarioSimulationData> outputRows = new ArrayList<>();
@@ -85,6 +87,10 @@ public class SimulationWorker extends Worker {
                 outputRows.add(outputRow);
             }
             System.out.println("adding " + outputRows.size() + " rows to DB for simulation: " + scenario.getScenarioName());
+
+            builder.setContentText("Saving data");
+            notificationManager.notify(notificationId, builder.build());
+
             mToutcRepository.saveSimulationDataForScenario(outputRows);
 
             // NOTIFICATION PROGRESS

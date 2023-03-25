@@ -67,9 +67,13 @@ public class CostingWorker extends Worker {
         // For each scenario -> load; For each priceplan -> apply costs
         for (long scenarioID : scenarioIDs) {
             // Get the simulation output
+            builder.setContentText("Loading data");
+            notificationManager.notify(notificationId, builder.build());
             List<ScenarioSimulationData> scenarioData = mToutcRepository.getSimulationDataForScenario(scenarioID);
             long startTime = System.nanoTime();
             for (PricePlan pp : plans) {
+                builder.setContentText(pp.getPlanName());
+                notificationManager.notify(notificationId, builder.build());
                 RateLookup lookup = mLookups.get(pp.getId());
                 if (null == lookup) {
                     lookup = new RateLookup(
@@ -100,10 +104,13 @@ public class CostingWorker extends Worker {
                 costing.setNett(nett);
                 // store in comparison table
                 System.out.println("Storing " + costing);
+                builder.setContentText("Saving data");
+                notificationManager.notify(notificationId, builder.build());
                 mToutcRepository.saveCosting(costing);
                 // NOTIFICATION PROGRESS
                 PROGRESS_CURRENT += PROGRESS_CHUNK;
                 builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
+                builder.setContentText("Data saved");
                 notificationManager.notify(notificationId, builder.build());
             }
             long endTime = System.nanoTime();

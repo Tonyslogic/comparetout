@@ -63,6 +63,10 @@ public class GenerateMissingLoadDataWorker extends Worker {
 
         for(long loadProfileID: missing) {
             System.out.println("*** Generating missing load data for " + loadProfileID + " *******");
+
+            builder.setContentText("Generating data");
+            notificationManager.notify(notificationId, builder.build());
+
             LoadProfile mLoadProfile = mToutcRepository.getLoadProfileWithLoadProfileID(loadProfileID);
             ArrayList<LoadProfileData> rows = new ArrayList<>();
             LocalDateTime active = LocalDateTime.of(2001, 1, 1, 0, 0);
@@ -83,6 +87,10 @@ public class GenerateMissingLoadDataWorker extends Worker {
                 active = active.plusMinutes(5);
             }
             System.out.println("adding " + rows.size() + " rows to DB for Load Profile: " + loadProfileID);
+
+            builder.setContentText("Saving data");
+            notificationManager.notify(notificationId, builder.build());
+
             mToutcRepository.createLoadProfileDataEntries(rows);
 
             // NOTIFICATION PROGRESS
