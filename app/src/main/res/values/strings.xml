@@ -29,4 +29,5 @@
     <string name="copy">Copy</string>
     <string name="link">Link</string>
     <string name="help">Help</string>
+    <string name="add_a_new_supplier_plan">Add a new supplier plan</string>
 </resources>

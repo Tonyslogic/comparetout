@@ -71,6 +71,7 @@ public class MainActivity extends AppCompatActivity {
                 public void onActivityResult(Uri uri) {
                     // Handle the returned Uri
                     if (uri == null) return;
+                    mProgressBar.setVisibility(View.VISIBLE);
                     InputStream is;
                     try {
                         is = getContentResolver().openInputStream(uri);
@@ -90,6 +91,7 @@ public class MainActivity extends AppCompatActivity {
                     } catch (FileNotFoundException e) {
                         e.printStackTrace();
                     }
+                    mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
                 }
             });
 
@@ -99,6 +101,7 @@ public class MainActivity extends AppCompatActivity {
                 public void onActivityResult(Uri uri) {
                     // Handle the returned Uri
                     if (uri == null) return;
+                    mProgressBar.setVisibility(View.VISIBLE);
                     InputStream is;
                     try {
                         is = getContentResolver().openInputStream(uri);
@@ -115,6 +118,7 @@ public class MainActivity extends AppCompatActivity {
                         Snackbar.make(viewPager.getRootView(), "File did not parse", Snackbar.LENGTH_LONG)
                                 .setAction("Action", null).show();
                     }
+                    mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
                 }
             });
 
@@ -222,7 +226,7 @@ public class MainActivity extends AppCompatActivity {
                     return true;
                 }
                 if (pos == COMPARE_FRAGMENT) {
-                    Snackbar.make(viewPager.getRootView(), "TODO disable file on compare tab", Snackbar.LENGTH_LONG)
+                    Snackbar.make(viewPager.getRootView(), "This should never happen", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
                     return true;
                 }
@@ -230,6 +234,7 @@ public class MainActivity extends AppCompatActivity {
             case R.id.download:
                 //add the function to perform here
                 System.out.println("Download attempt");
+                mProgressBar.setVisibility(View.VISIBLE);
                 if (pos == COSTS_FRAGMENT) {
                     new Thread(() -> {
                         URL url;
@@ -251,19 +256,27 @@ public class MainActivity extends AppCompatActivity {
                         } catch (IOException e) {
                             e.printStackTrace();
                         }
+                        mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
                     }).start();
                     return(true);
                 }
                 if (pos == USAGE_FRAGMENT) {
-                    InputStream ins = getResources().openRawResource(
-                            getResources().getIdentifier("scenarios","raw", getPackageName()));
-                    InputStreamReader reader = new InputStreamReader(ins, StandardCharsets.UTF_8);
-                    Type type = new TypeToken<List<ScenarioJsonFile>>() {}.getType();
-                    List<ScenarioJsonFile> scenarioJsonFiles = new Gson().fromJson(reader, type);
-                    List<ScenarioComponents> scs = JsonTools.createScenarioComponentList(scenarioJsonFiles);
-                    for (ScenarioComponents sc : scs) {
-                        mViewModel.insertScenario(sc);
-                    }
+                    mProgressBar.setVisibility(View.VISIBLE);
+                    new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                        InputStream ins = getResources().openRawResource(
+                                getResources().getIdentifier("scenarios", "raw", getPackageName()));
+                        InputStreamReader reader = new InputStreamReader(ins, StandardCharsets.UTF_8);
+                        Type type = new TypeToken<List<ScenarioJsonFile>>() {
+                        }.getType();
+                        List<ScenarioJsonFile> scenarioJsonFiles = new Gson().fromJson(reader, type);
+                        List<ScenarioComponents> scs = JsonTools.createScenarioComponentList(scenarioJsonFiles);
+                        for (ScenarioComponents sc : scs) {
+                            mViewModel.insertScenario(sc);
+                        }
+                        mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
+                    }}).start();
 
                     return(true);
                 }
