@@ -50,12 +50,7 @@ public class MainActivity extends AppCompatActivity {
 
     ViewPager2 viewPager;
     private ComparisonUIViewModel mViewModel;
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        System.out.println("Orientation = " + this.getResources().getConfiguration().orientation);
-    }
+    private Menu mMainMenu;
 
     final ActivityResultLauncher<String> mLoadPricePlansFromFile = registerForActivityResult(new ActivityResultContracts.GetContent(),
             new ActivityResultCallback<Uri>() {
@@ -154,9 +149,17 @@ public class MainActivity extends AppCompatActivity {
                     case COSTS_FRAGMENT:
                     case USAGE_FRAGMENT:
                         showFAB();
+                        if (!(null == mMainMenu)) {
+                            mMainMenu.findItem(R.id.load).setVisible(true);
+                            mMainMenu.findItem(R.id.download).setVisible(true);
+                        }
                         break;
                     default:
                         hideFAB();
+                        if (!(null == mMainMenu)) {
+                            mMainMenu.findItem(R.id.load).setVisible(false);
+                            mMainMenu.findItem(R.id.download).setVisible(false);
+                        }
                         break;
                 }
             }
@@ -181,6 +184,7 @@ public class MainActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_prices, menu);
+        mMainMenu = menu;
         return true;
     }
 
