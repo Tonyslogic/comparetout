@@ -2,9 +2,7 @@ package com.tfcode.comparetout.model;
 
 import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
-import androidx.room.Delete;
 import androidx.room.Insert;
-import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 import androidx.room.RewriteQueriesToDropUnusedColumns;
 import androidx.room.Transaction;
@@ -86,7 +84,7 @@ public abstract class ScenarioDAO {
     @Insert
     abstract void addNewScenario2HWSystem(Scenario2HWSystem scenario2HWSystem);
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert
     abstract void addNewScenario2LoadProfile(Scenario2LoadProfile scenario2LoadProfile);
 
     @Insert
@@ -209,52 +207,52 @@ public abstract class ScenarioDAO {
     public abstract LiveData<List<Scenario>> loadScenarios();
 
     @Query("SELECT * FROM inverters, scenario2inverter " +
-            "WHERE scenarioID = :id AND inverters.id = scenario2inverter.inverterID")
+            "WHERE scenarioID = :id AND inverters.inverterIndex = scenario2inverter.inverterID")
     @RewriteQueriesToDropUnusedColumns
     public abstract List<Inverter> getInvertersForScenarioID (long id);
 
     @Query("SELECT * FROM batteries, scenario2battery " +
-            "WHERE scenarioID = :id AND batteries.id = scenario2battery.batteryID")
+            "WHERE scenarioID = :id AND batteries.batteryIndex = scenario2battery.batteryID")
     @RewriteQueriesToDropUnusedColumns
     public abstract List<Battery> getBatteriesForScenarioID(long id);
 
     @Query("SELECT * FROM panels, scenario2panel " +
-            "WHERE scenarioID = :id AND panels.id = scenario2panel.panelID")
+            "WHERE scenarioID = :id AND panels.panelIndex = scenario2panel.panelID")
     @RewriteQueriesToDropUnusedColumns
     public abstract List<Panel> getPanelsForScenarioID(long id);
 
     @Query("SELECT * FROM hwsystem, scenario2hwsystem " +
-            "WHERE scenarioID = :id AND hwsystem.id = scenario2hwsystem.hwSystemID")
+            "WHERE scenarioID = :id AND hwsystem.hwSystemIndex = scenario2hwsystem.hwSystemID")
     @RewriteQueriesToDropUnusedColumns
     public abstract HWSystem getHWSystemForScenarioID(long id);
 
     @Query("SELECT * FROM loadprofile, scenario2loadprofile " +
-            "WHERE scenarioID = :id AND loadprofile.id = loadProfileID")
+            "WHERE scenarioID = :id AND loadprofile.loadProfileIndex = loadProfileID")
     @RewriteQueriesToDropUnusedColumns
     public abstract LoadProfile getLoadProfileForScenarioID(long id);
 
     @Query("SELECT * FROM loadshift, scenario2loadshift " +
-            "WHERE scenarioID = :id AND loadshift.id = loadShiftID")
+            "WHERE scenarioID = :id AND loadshift.loadShiftIndex = loadShiftID")
     @RewriteQueriesToDropUnusedColumns
     public abstract List<LoadShift> getLoadShiftsForScenarioID(long id);
 
     @Query("SELECT * FROM evcharge, scenario2evcharge " +
-            "WHERE scenarioID = :id AND evcharge.id = evChargeID")
+            "WHERE scenarioID = :id AND evcharge.evChargeIndex = evChargeID")
     @RewriteQueriesToDropUnusedColumns
     public abstract List<EVCharge> getEVChargesForScenarioID(long id);
 
     @Query("SELECT * FROM hwschedule, scenario2hwschedule " +
-            "WHERE scenarioID = :id AND hwschedule.id = hwScheduleID")
+            "WHERE scenarioID = :id AND hwschedule.hwScheduleIndex = hwScheduleID")
     @RewriteQueriesToDropUnusedColumns
     public abstract List<HWSchedule> getHWSchedulesForScenarioID(long id);
 
     @Query("SELECT * FROM hwdivert, scenario2hwdivert " +
-            "WHERE scenarioID = :id AND hwdivert.id = hwDivertID")
+            "WHERE scenarioID = :id AND hwdivert.hwDivertIndex = hwDivertID")
     @RewriteQueriesToDropUnusedColumns
     public abstract HWDivert getHWDivertForScenarioID(long id);
 
     @Query("SELECT * FROM evdivert, scenario2evdivert " +
-            "WHERE scenarioID = :id AND evdivert.id = evDivertID")
+            "WHERE scenarioID = :id AND evdivert.evDivertIndex = evDivertID")
     @RewriteQueriesToDropUnusedColumns
     public abstract EVDivert getEVDivertForScenarioID(long id);
 
@@ -262,23 +260,23 @@ public abstract class ScenarioDAO {
     public abstract void updateScenario(Scenario scenario);
 
     @Query("SELECT * FROM loadprofile, scenario2loadprofile " +
-            "WHERE scenarioID = :scenarioID AND loadProfile.id = loadProfileID")
+            "WHERE scenarioID = :scenarioID AND loadProfile.loadProfileIndex = loadProfileID")
     @RewriteQueriesToDropUnusedColumns
     public abstract LiveData<LoadProfile> getLoadProfile(Long scenarioID);
 
-    @Query("SELECT * FROM loadprofile WHERE id = :id")
+    @Query("SELECT * FROM loadprofile WHERE loadProfileIndex = :id")
     public abstract LoadProfile getLoadProfileWithLoadProfileID(long id);
 
     @Update (entity = LoadProfile.class)
     public abstract void updateLoadProfile(LoadProfile loadProfile);
 
-    @Query("SELECT * FROM scenarios WHERE id = :scenarioID")
+    @Query("SELECT * FROM scenarios WHERE scenarioIndex = :scenarioID")
     public abstract Scenario getScenario(long scenarioID);
 
 
     @Transaction
     public void saveLoadProfile(Long scenarioID, LoadProfile loadProfile) {
-        long loadProfileID = loadProfile.getId();
+        long loadProfileID = loadProfile.getLoadProfileIndex();
         if (loadProfileID == 0) {
             loadProfileID = addNewLoadProfile(loadProfile);
         }
@@ -312,12 +310,12 @@ public abstract class ScenarioDAO {
             "SELECT scenarioID FROM scenario2loadprofile WHERE loadProfileID = :loadProfileID) ")
     public abstract void deleteCostingDataForProfileID(long loadProfileID);
 
-    @Query("SELECT id FROM scenarios " +
-            "WHERE id NOT IN (SELECT DISTINCT scenarioID FROM scenariosimulationdata) " +
-            "AND id IN (SELECT DISTINCT scenarioID FROM scenario2loadprofile)")
+    @Query("SELECT scenarioIndex FROM scenarios " +
+            "WHERE scenarioIndex NOT IN (SELECT DISTINCT scenarioID FROM scenariosimulationdata) " +
+            "AND scenarioIndex IN (SELECT DISTINCT scenarioID FROM scenario2loadprofile)")
     public abstract List<Long> getAllScenariosThatNeedSimulation();
 
-    @Query("SELECT * FROM scenarios WHERE id = :scenarioID")
+    @Query("SELECT * FROM scenarios WHERE scenarioIndex = :scenarioID")
     public abstract Scenario getScenarioForID(long scenarioID);
 
     @Query("SELECT * FROM loadprofiledata WHERE loadProfileID = (" +
@@ -327,18 +325,18 @@ public abstract class ScenarioDAO {
     @Insert(entity = ScenarioSimulationData.class)
     public abstract void saveSimulationDataForScenario(ArrayList<ScenarioSimulationData> simulationData);
 
-    @Query("SELECT id FROM scenarios " +
-            "WHERE id NOT IN (SELECT scenarioID FROM costings)")
+    @Query("SELECT scenarioIndex FROM scenarios " +
+            "WHERE scenarioIndex NOT IN (SELECT scenarioID FROM costings)")
     public abstract List<Long> getAllScenariosThatNeedCosting();
 
     @Query("SELECT * FROM scenariosimulationdata WHERE scenarioID = :scenarioID " +
             "ORDER BY date, minuteOfDay")
     public abstract List<ScenarioSimulationData> getSimulationDataForScenario(long scenarioID);
 
-    @Query("UPDATE scenarios SET isActive = :checked WHERE id = :id")
+    @Query("UPDATE scenarios SET isActive = :checked WHERE scenarioIndex = :id")
     public abstract void updateScenarioActiveStatus(int id, boolean checked);
 
-    @Query("SELECT id FROM loadprofile WHERE id NOT IN " +
+    @Query("SELECT loadProfileIndex FROM loadprofile WHERE loadProfileIndex NOT IN " +
             "(SELECT DISTINCT loadProfileID FROM loadprofiledata)")
     public abstract List<Long> checkForMissingLoadProfileData();
 
@@ -372,40 +370,40 @@ public abstract class ScenarioDAO {
 
     }
 
-    @Query("DELETE FROM batteries WHERE id NOT IN (SELECT batteryID FROM scenario2battery)")
+    @Query("DELETE FROM batteries WHERE batteryIndex NOT IN (SELECT batteryID FROM scenario2battery)")
     public abstract void deleteOrphanBatteries();
 
-    @Query("DELETE FROM evcharge WHERE id NOT IN (SELECT evChargeID FROM scenario2evcharge)")
+    @Query("DELETE FROM evcharge WHERE evChargeIndex NOT IN (SELECT evChargeID FROM scenario2evcharge)")
     public abstract void deleteOrphanEVCharges();
 
-    @Query("DELETE FROM evdivert WHERE id NOT IN (SELECT evDivertID FROM scenario2evdivert)")
+    @Query("DELETE FROM evdivert WHERE evDivertIndex NOT IN (SELECT evDivertID FROM scenario2evdivert)")
     public abstract void deleteOrphanEVDiverts();
 
-    @Query("DELETE FROM hwdivert WHERE id NOT IN (SELECT hwDivertID FROM scenario2hwdivert)")
+    @Query("DELETE FROM hwdivert WHERE hwDivertIndex NOT IN (SELECT hwDivertID FROM scenario2hwdivert)")
     public abstract void deleteOrphanHWDiverts();
 
-    @Query("DELETE FROM hwschedule WHERE id NOT IN (SELECT hwScheduleID FROM scenario2hwschedule)")
+    @Query("DELETE FROM hwschedule WHERE hwScheduleIndex NOT IN (SELECT hwScheduleID FROM scenario2hwschedule)")
     public abstract void deleteOrphanHWSchedules();
 
-    @Query("DELETE FROM hwsystem WHERE id NOT IN (SELECT hwSystemID FROM scenario2hwsystem)")
+    @Query("DELETE FROM hwsystem WHERE hwSystemIndex NOT IN (SELECT hwSystemID FROM scenario2hwsystem)")
     public abstract void deleteOrphanHWSystems();
 
-    @Query("DELETE FROM inverters WHERE id NOT IN (SELECT inverterID FROM scenario2inverter)")
+    @Query("DELETE FROM inverters WHERE inverterIndex NOT IN (SELECT inverterID FROM scenario2inverter)")
     public abstract void deleteOrphanInverters();
 
-    @Query("DELETE FROM loadprofile WHERE id NOT IN (SELECT loadProfileID FROM scenario2loadprofile)")
+    @Query("DELETE FROM loadprofile WHERE loadProfileIndex NOT IN (SELECT loadProfileID FROM scenario2loadprofile)")
     public abstract void deleteOrphanLoadProfiles();
 
-    @Query("DELETE FROM loadshift WHERE id NOT IN (SELECT loadShiftID FROM scenario2loadshift)")
+    @Query("DELETE FROM loadshift WHERE loadShiftIndex NOT IN (SELECT loadShiftID FROM scenario2loadshift)")
     public abstract void deleteOrphanLoadShifts();
 
-    @Query("DELETE FROM panels WHERE id NOT IN (SELECT panelID FROM scenario2panel)")
+    @Query("DELETE FROM panels WHERE panelIndex NOT IN (SELECT panelID FROM scenario2panel)")
     public abstract void deleteOrphanPanels();
 
     @Query("DELETE FROM loadprofiledata WHERE loadProfileID NOT IN (SELECT loadProfileID FROM scenario2loadprofile)")
     public abstract void deleteOrphanLoadProfileData();
 
-    @Query("DELETE FROM scenarios WHERE id = :id")
+    @Query("DELETE FROM scenarios WHERE scenarioIndex = :id")
     public abstract void deleteScenarioRow(int id);
 
     @Query("DELETE FROM scenario2battery WHERE scenarioID = :id")
@@ -453,17 +451,17 @@ public abstract class ScenarioDAO {
         List<Panel> panels = getPanelsForScenarioID(id);
 
         scenario.setScenarioName(scenario.getScenarioName() + "_copy");
-        scenario.setId(0);
-        for (Battery b : batteries) b.setId(0);
-        for (EVCharge e : evCharges) e.setId(0);
-        evDivert.setId(0);
-        hwDivert.setId(0);
-        for (HWSchedule h : hwSchedules) h.setId(0);
-        hwSystem.setId(0);
-        for (Inverter i : inverters) i.setId(0);
-        loadProfile.setId(0);
-        for (LoadShift l : loadShifts) l.setId(0);
-        for (Panel p : panels) p.setId(0);
+        scenario.setScenarioIndex(0);
+        for (Battery b : batteries) b.setBatteryIndex(0);
+        for (EVCharge e : evCharges) e.setEvChargeIndex(0);
+        evDivert.setEvDivertIndex(0);
+        hwDivert.setHwDivertIndex(0);
+        for (HWSchedule h : hwSchedules) h.setHwScheduleIndex(0);
+        hwSystem.setHwSystemIndex(0);
+        for (Inverter i : inverters) i.setInverterIndex(0);
+        loadProfile.setLoadProfileIndex(0);
+        for (LoadShift l : loadShifts) l.setLoadShiftIndex(0);
+        for (Panel p : panels) p.setPanelIndex(0);
 
         addNewScenarioWithComponents(scenario, new ScenarioComponents(
                 scenario, inverters, batteries, panels, hwSystem,
@@ -477,16 +475,16 @@ public abstract class ScenarioDAO {
         List<Scenario> scenarios = getScenarios();
         for (Scenario scenario: scenarios){
             ScenarioComponents scenarioComponents = new ScenarioComponents(scenario,
-                    getInvertersForScenarioID(scenario.getId()),
-                    getBatteriesForScenarioID(scenario.getId()),
-                    getPanelsForScenarioID(scenario.getId()),
-                    getHWSystemForScenarioID(scenario.getId()),
-                    getLoadProfileForScenarioID(scenario.getId()),
-                    getLoadShiftsForScenarioID(scenario.getId()),
-                    getEVChargesForScenarioID(scenario.getId()),
-                    getHWSchedulesForScenarioID(scenario.getId()),
-                    getHWDivertForScenarioID(scenario.getId()),
-                    getEVDivertForScenarioID(scenario.getId())
+                    getInvertersForScenarioID(scenario.getScenarioIndex()),
+                    getBatteriesForScenarioID(scenario.getScenarioIndex()),
+                    getPanelsForScenarioID(scenario.getScenarioIndex()),
+                    getHWSystemForScenarioID(scenario.getScenarioIndex()),
+                    getLoadProfileForScenarioID(scenario.getScenarioIndex()),
+                    getLoadShiftsForScenarioID(scenario.getScenarioIndex()),
+                    getEVChargesForScenarioID(scenario.getScenarioIndex()),
+                    getHWSchedulesForScenarioID(scenario.getScenarioIndex()),
+                    getHWDivertForScenarioID(scenario.getScenarioIndex()),
+                    getEVDivertForScenarioID(scenario.getScenarioIndex())
             );
             ret.add(scenarioComponents);
         }
@@ -495,4 +493,62 @@ public abstract class ScenarioDAO {
 
     @Query("SELECT * FROM scenarios")
     public abstract List<Scenario> getScenarios();
+
+    @Transaction
+    public void copyLoadProfileFromScenario(long fromScenarioID, Long toScenarioID) {
+        LoadProfile lp = getLoadProfileForScenarioID(fromScenarioID);
+        lp.setLoadProfileIndex(0L);
+        long newLoadProfileID = addNewLoadProfile(lp);
+
+        System.out.println("copyLoadProfileFromScenario, new LPID=" + newLoadProfileID);
+
+        deleteLoadProfileRelationsForScenario(Math.toIntExact(toScenarioID));
+        Scenario2LoadProfile s2lp = new Scenario2LoadProfile();
+        s2lp.setScenarioID(toScenarioID);
+        s2lp.setLoadProfileID(newLoadProfileID);
+        addNewScenario2LoadProfile(s2lp);
+
+        Scenario toScenario = getScenario(toScenarioID);
+        toScenario.setHasLoadProfiles(true);
+        updateScenario(toScenario);
+
+        deleteOrphanLoadProfiles();
+    }
+
+    //DEBUG
+    @Query("SELECT * FROM scenario2loadprofile")
+    public abstract List<Scenario2LoadProfile> getS2LP();
+
+    @Query("SELECT * FROM loadprofile")
+    public abstract List<LoadProfile> getLP();
+
+    @Query("SELECT * FROM scenarios")
+    public abstract List<Scenario> getScen();
+
+    @Query("SELECT loadprofile.loadProfileIndex, annualUsage, hourlyBaseLoad," +
+            "gridImportMax, distributionSource, gridExportMax, hourlyDist, dowDist, monthlyDist FROM loadprofile, scenario2loadprofile " +
+            "WHERE scenarioID = :scenarioID AND loadProfile.loadProfileIndex = loadProfileID")
+    public abstract List<LoadProfile> get1LP(long scenarioID);
+
+    // END DEBUG
+
+    @Transaction
+    public void linkLoadProfileFromScenario(long fromScenarioID, Long toScenarioID) {
+        LoadProfile lp = getLoadProfileForScenarioID(fromScenarioID);
+        System.out.println("Linking LP with id= " + lp.getLoadProfileIndex());
+
+        deleteLoadProfileRelationsForScenario(Math.toIntExact(toScenarioID));
+
+        Scenario2LoadProfile scenario2LoadProfile = new Scenario2LoadProfile();
+        scenario2LoadProfile.setScenarioID(toScenarioID);
+        scenario2LoadProfile.setLoadProfileID(lp.getLoadProfileIndex());
+        System.out.println("prep:" +scenario2LoadProfile.getS2lpID() + ", " + scenario2LoadProfile.getLoadProfileID() + ", " + scenario2LoadProfile.getScenarioID());
+        addNewScenario2LoadProfile(scenario2LoadProfile);
+
+        Scenario toScenario = getScenario(toScenarioID);
+        toScenario.setHasLoadProfiles(true);
+        updateScenario(toScenario);
+
+        deleteOrphanLoadProfiles();
+    }
 }

@@ -9,7 +9,7 @@ import com.tfcode.comparetout.model.IntHolder;
 public class EVDivert {
 
     @PrimaryKey(autoGenerate = true)
-    private long id ;
+    private long evDivertIndex;
 
     private String name = "Afternoon-nap";
     private boolean active = true;
@@ -20,12 +20,12 @@ public class EVDivert {
     private MonthHolder months = new MonthHolder();
     private IntHolder days = new IntHolder();
 
-    public long getId() {
-        return id;
+    public long getEvDivertIndex() {
+        return evDivertIndex;
     }
 
-    public void setId(long id) {
-        this.id = id;
+    public void setEvDivertIndex(long evDivertIndex) {
+        this.evDivertIndex = evDivertIndex;
     }
 
     public String getName() {

@@ -5,9 +5,18 @@ import androidx.room.PrimaryKey;
 
 @Entity(tableName = "scenario2hwdivert")
 public class Scenario2HWDivert {
-    @PrimaryKey
+    @PrimaryKey(autoGenerate = true)
+    private long s2hwdID;
     private long hwDivertID;
     private long scenarioID;
+
+    public long getS2hwdID() {
+        return s2hwdID;
+    }
+
+    public void setS2hwdID(long s2hwdID) {
+        this.s2hwdID = s2hwdID;
+    }
 
     public long getScenarioID() {
         return scenarioID;

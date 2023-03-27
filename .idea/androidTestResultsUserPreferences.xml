@@ -3,6 +3,20 @@
   <component name="AndroidTestResultsUserPreferences">
     <option name="androidTestResultsTableState">
       <map>
+        <entry key="-2094666277">
+          <value>
+            <AndroidTestResultsTableState>
+              <option name="preferredColumnWidths">
+                <map>
+                  <entry key="Duration" value="90" />
+                  <entry key="Tests" value="360" />
+                  <entry key="Xiaomi&#10; Mi A1" value="120" />
+                  <entry key="d799ccf80404" value="120" />
+                </map>
+              </option>
+            </AndroidTestResultsTableState>
+          </value>
+        </entry>
         <entry key="-2094511660">
           <value>
             <AndroidTestResultsTableState>
@@ -61,6 +75,20 @@
           </value>
         </entry>
         <entry key="-185897052">
+          <value>
+            <AndroidTestResultsTableState>
+              <option name="preferredColumnWidths">
+                <map>
+                  <entry key="Duration" value="90" />
+                  <entry key="Tests" value="360" />
+                  <entry key="Xiaomi&#10; Mi A1" value="120" />
+                  <entry key="d799ccf80404" value="120" />
+                </map>
+              </option>
+            </AndroidTestResultsTableState>
+          </value>
+        </entry>
+        <entry key="52771059">
           <value>
             <AndroidTestResultsTableState>
               <option name="preferredColumnWidths">
@@ -167,6 +195,20 @@
                   <entry key="Duration" value="90" />
                   <entry key="Tests" value="360" />
                   <entry key="Xiaomi" value="120" />
+                  <entry key="Xiaomi&#10; Mi A1" value="120" />
+                  <entry key="d799ccf80404" value="120" />
+                </map>
+              </option>
+            </AndroidTestResultsTableState>
+          </value>
+        </entry>
+        <entry key="835302134">
+          <value>
+            <AndroidTestResultsTableState>
+              <option name="preferredColumnWidths">
+                <map>
+                  <entry key="Duration" value="90" />
+                  <entry key="Tests" value="360" />
                   <entry key="Xiaomi&#10; Mi A1" value="120" />
                   <entry key="d799ccf80404" value="120" />
                 </map>

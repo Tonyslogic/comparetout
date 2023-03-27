@@ -1,6 +1,5 @@
 package com.tfcode.comparetout.scenario.loadprofile;
 
-import android.graphics.Color;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -69,7 +68,7 @@ public class LoadProfileDailyDistributionFragment extends Fragment {
         mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
         mViewModel.getLoadProfile(mScenarioID).observe(this, profile -> {
             if (!(null == profile)) {
-                System.out.println("LPDDF Observed a change in live profile data " + profile.getId());
+                System.out.println("LPDDF Observed a change in live profile data " + profile.getLoadProfileIndex());
                 mLoadProfile = profile;
                 updateView();
             }

@@ -2,7 +2,6 @@ package com.tfcode.comparetout.scenario;
 
 import android.content.Intent;
 import android.graphics.Color;
-import android.graphics.PorterDuff;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -99,12 +98,12 @@ public class ScenarioOverview extends Fragment {
     }
 
     private static Scenario findByID(List<Scenario> scenarios, Long id) {
-        return scenarios.stream().filter(s -> id.equals(s.getId())).findFirst().orElse(null);
+        return scenarios.stream().filter(s -> id.equals(s.getScenarioIndex())).findFirst().orElse(null);
     }
 
     private static long findByName(List<Scenario> scenarios, String name) {
         Scenario scenario = scenarios.stream().filter(s -> name.equals(s.getScenarioName())).findFirst().orElse(null);
-        if (!(scenario == null)) return scenario.getId();
+        if (!(scenario == null)) return scenario.getScenarioIndex();
         else return 0L;
     }
 

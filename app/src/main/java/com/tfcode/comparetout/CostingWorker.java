@@ -18,7 +18,6 @@ import com.tfcode.comparetout.model.costings.SubTotals;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
 
-import java.lang.invoke.MethodHandles;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -75,16 +74,16 @@ public class CostingWorker extends Worker {
             for (PricePlan pp : plans) {
                 builder.setContentText(pp.getPlanName());
                 notificationManager.notify(notificationId, builder.build());
-                RateLookup lookup = mLookups.get(pp.getId());
+                RateLookup lookup = mLookups.get(pp.getPricePlanIndex());
                 if (null == lookup) {
                     lookup = new RateLookup(
-                            mToutcRepository.getAllDayRatesForPricePlanID(pp.getId()));
-                    mLookups.put(pp.getId(), lookup);
+                            mToutcRepository.getAllDayRatesForPricePlanID(pp.getPricePlanIndex()));
+                    mLookups.put(pp.getPricePlanIndex(), lookup);
                 }
                 Costings costing = new Costings();
                 costing.setScenarioID(scenarioID);
                 costing.setScenarioName(mToutcRepository.getScenarioForID(scenarioID).getScenarioName());
-                costing.setPricePlanID(pp.getId());
+                costing.setPricePlanID(pp.getPricePlanIndex());
                 costing.setFullPlanName(pp.getSupplier() + ":" + pp.getPlanName());
                 double buy = 0D;
                 double sell = 0D;

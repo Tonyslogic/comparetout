@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey;
 public class Battery {
 
     @PrimaryKey(autoGenerate = true)
-    private long id ;
+    private long batteryIndex;
 
     private double batterySize = 5.7;
     private double dischargeStop = 19.6;
@@ -17,12 +17,12 @@ public class Battery {
     private double storageLoss = 1.0;
     private String inverter = "AlphaESS";
 
-    public long getId() {
-        return id;
+    public long getBatteryIndex() {
+        return batteryIndex;
     }
 
-    public void setId(long id) {
-        this.id = id;
+    public void setBatteryIndex(long batteryIndex) {
+        this.batteryIndex = batteryIndex;
     }
 
     public double getBatterySize() {

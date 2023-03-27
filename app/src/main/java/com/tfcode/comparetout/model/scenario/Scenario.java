@@ -11,7 +11,7 @@ import androidx.room.PrimaryKey;
 public class Scenario {
 
     @PrimaryKey(autoGenerate = true)
-    private long id ;
+    private long scenarioIndex;
 
     @NonNull
     private String scenarioName = "<SCENARIO>";
@@ -144,12 +144,12 @@ public class Scenario {
         return scenarioName.hashCode();
     }
 
-    public long getId() {
-        return id;
+    public long getScenarioIndex() {
+        return scenarioIndex;
     }
 
-    public void setId(long id) {
-        this.id = id;
+    public void setScenarioIndex(long scenarioIndex) {
+        this.scenarioIndex = scenarioIndex;
     }
 
     @NonNull

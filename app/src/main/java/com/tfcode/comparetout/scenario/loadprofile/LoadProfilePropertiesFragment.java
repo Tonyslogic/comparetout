@@ -51,6 +51,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
     private TableLayout mTableLayout;
     private Long mScenarioID;
     private LoadProfile mLoadProfile;
+    private Long mLoadProfileID = 0L;
 
     public LoadProfilePropertiesFragment() {
         // Required empty public constructor
@@ -69,9 +70,8 @@ public class LoadProfilePropertiesFragment extends Fragment {
         mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
         mViewModel.getLoadProfile(mScenarioID).observe(this, profile -> {
             if (!(null == profile)) {
-                System.out.println("LPPF Observed a change in live profile data " + profile.getId());
+                System.out.println("LPPF Observed a change in live profile data " + profile.getLoadProfileIndex());
                 mLoadProfile = profile;
-                System.out.println(mLoadProfile.getDistributionSource());
                 checkForDataAndGenerateIfNeeded();
             }
             else mLoadProfile = new LoadProfile();
@@ -81,13 +81,17 @@ public class LoadProfilePropertiesFragment extends Fragment {
             String loadProfileJsonString =  gson.toJson(lpj, type);
             ((LoadProfileActivity) requireActivity()).setLoadProfileJson(loadProfileJsonString);
             mSaved = false;
+            if (!mLoadProfileID.equals(mLoadProfile.getLoadProfileIndex())) {
+                System.out.println("LPID Was " + mLoadProfileID + ", now "+ mLoadProfile.getLoadProfileIndex());
+                mLoadProfileID = mLoadProfile.getLoadProfileIndex();
+            }
             updateView();
         });
     }
 
     private void checkForDataAndGenerateIfNeeded() {
         Data.Builder builder = new Data.Builder();
-        builder.putLong("LoadProfileID", mLoadProfile.getId());
+        builder.putLong("LoadProfileID", mLoadProfile.getLoadProfileIndex());
         builder.putBoolean("DeleteFirst", mSaved );
         WorkRequest genLPDataWorkRequest =
                 new OneTimeWorkRequest.Builder(DeleteLoadDataFromProfileWorker.class)
@@ -165,7 +169,6 @@ public class LoadProfilePropertiesFragment extends Fragment {
         spinner.setAdapter(spinnerAdapter);
         spinner.setEnabled(mEdit);
         int index = spinnerContent.indexOf(mLoadProfile.getDistributionSource());
-        System.out.println(mLoadProfile.getDistributionSource() + ", " + index);
         spinner.setSelection(index);
 
         spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
@@ -307,7 +310,6 @@ public class LoadProfilePropertiesFragment extends Fragment {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         String newLoadProfileJsonString =  gson.toJson(lpj, type);
         ((LoadProfileActivity) requireActivity()).setLoadProfileJson(newLoadProfileJsonString); //, mLoadProfile.getDistributionSource());
-        System.out.println("LPPF2");
         ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
         ((LoadProfileActivity) requireActivity()).propagateDistribution();
     }

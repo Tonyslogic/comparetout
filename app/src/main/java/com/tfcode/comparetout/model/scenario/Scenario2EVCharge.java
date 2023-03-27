@@ -5,9 +5,18 @@ import androidx.room.PrimaryKey;
 
 @Entity(tableName = "scenario2evcharge")
 public class Scenario2EVCharge {
-    @PrimaryKey
+    @PrimaryKey(autoGenerate = true)
+    private long s2evcID;
     private long evChargeID;
     private long scenarioID;
+
+    public long getS2evcID() {
+        return s2evcID;
+    }
+
+    public void setS2evcID(long s2evcID) {
+        this.s2evcID = s2evcID;
+    }
 
     public long getScenarioID() {
         return scenarioID;

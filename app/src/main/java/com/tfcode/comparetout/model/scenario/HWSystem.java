@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey;
 public class HWSystem {
 
     @PrimaryKey(autoGenerate = true)
-    private long id ;
+    private long hwSystemIndex;
 
     private int hwCapacity = 165;
     private int hwUsage = 200;
@@ -17,12 +17,12 @@ public class HWSystem {
     private double hwRate = 2.5;
     private HWUse hwUse = new HWUse();
 
-    public long getId() {
-        return id;
+    public long getHwSystemIndex() {
+        return hwSystemIndex;
     }
 
-    public void setId(long id) {
-        this.id = id;
+    public void setHwSystemIndex(long hwSystemIndex) {
+        this.hwSystemIndex = hwSystemIndex;
     }
 
     public int getHwCapacity() {

@@ -9,7 +9,7 @@ import com.tfcode.comparetout.model.IntHolder;
 public class EVCharge {
 
     @PrimaryKey(autoGenerate = true)
-    private long id ;
+    private long evChargeIndex;
 
     private String name = "EV Schedule";
     private int begin = 2;
@@ -18,12 +18,12 @@ public class EVCharge {
     private MonthHolder months = new MonthHolder();
     private IntHolder days = new IntHolder();
 
-    public long getId() {
-        return id;
+    public long getEvChargeIndex() {
+        return evChargeIndex;
     }
 
-    public void setId(long id) {
-        this.id = id;
+    public void setEvChargeIndex(long evChargeIndex) {
+        this.evChargeIndex = evChargeIndex;
     }
 
     public String getName() {

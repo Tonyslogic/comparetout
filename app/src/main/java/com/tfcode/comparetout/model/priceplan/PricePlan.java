@@ -23,7 +23,7 @@ import java.util.Set;
         @Index(value = {"supplier","planName"}, unique = true) })
 public class PricePlan {
     @PrimaryKey(autoGenerate = true)
-    private long id;
+    private long pricePlanIndex;
     @NonNull
     @ColumnInfo(name = "supplier")
     private String supplier = "<SUPPLIER>";
@@ -62,12 +62,12 @@ public class PricePlan {
     }
 
 
-    public long getId() {
-        return id;
+    public long getPricePlanIndex() {
+        return pricePlanIndex;
     }
 
-    public void setId(long id) {
-        this.id = id;
+    public void setPricePlanIndex(long pricePlanIndex) {
+        this.pricePlanIndex = pricePlanIndex;
     }
 
 
@@ -149,7 +149,7 @@ public class PricePlan {
         copy.lastUpdate = lastUpdate;
         copy.reference = reference;
         copy.active = active;
-        copy.id = 0;
+        copy.pricePlanIndex = 0;
         return copy;
     }
 
@@ -213,8 +213,8 @@ public class PricePlan {
 
     public int checkNameUsageIn(Set<PricePlan> plans){
         for (PricePlan pp: plans) {
-            if (this.equals(pp) && this.id != pp.getId()) {
-                System.out.println("PP " + pp.supplier + " " + pp.planName + " " + pp.id);
+            if (this.equals(pp) && this.pricePlanIndex != pp.getPricePlanIndex()) {
+                System.out.println("PP " + pp.supplier + " " + pp.planName + " " + pp.pricePlanIndex);
                 return INVALID_PLAN_NAME_IN_USE;
             }
         }

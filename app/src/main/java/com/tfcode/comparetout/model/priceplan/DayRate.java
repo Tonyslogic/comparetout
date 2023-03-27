@@ -12,7 +12,7 @@ import java.time.LocalDate;
 public class DayRate {
 
     @PrimaryKey(autoGenerate = true)
-    private long id ;
+    private long dayRateIndex;
 
     private long pricePlanId = 0L;
 
@@ -21,12 +21,12 @@ public class DayRate {
     @NonNull private String startDate = "01/01";
     @NonNull private String endDate = "12/31";
 
-    public long getId() {
-        return id;
+    public long getDayRateIndex() {
+        return dayRateIndex;
     }
 
-    public void setId(long id) {
-        this.id = id;
+    public void setDayRateIndex(long dayRateIndex) {
+        this.dayRateIndex = dayRateIndex;
     }
     public long getPricePlanId() {
         return pricePlanId;

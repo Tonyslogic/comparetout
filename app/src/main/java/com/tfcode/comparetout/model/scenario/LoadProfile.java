@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey;
 public class LoadProfile {
 
     @PrimaryKey(autoGenerate = true)
-    private long id ;
+    private long loadProfileIndex;
 
     private double annualUsage = 6200d;
     private double hourlyBaseLoad = 0.3;
@@ -39,12 +39,12 @@ public class LoadProfile {
         this.gridExportMax = gridExportMax;
     }
 
-    public long getId() {
-        return id;
+    public long getLoadProfileIndex() {
+        return loadProfileIndex;
     }
 
-    public void setId(long id) {
-        this.id = id;
+    public void setLoadProfileIndex(long loadProfileIndex) {
+        this.loadProfileIndex = loadProfileIndex;
     }
 
     public double getAnnualUsage() {

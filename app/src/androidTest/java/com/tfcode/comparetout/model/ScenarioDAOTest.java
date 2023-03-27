@@ -1,6 +1,9 @@
 package com.tfcode.comparetout.model;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
 import android.content.Intent;
@@ -68,6 +71,142 @@ public class ScenarioDAOTest {
     }
 
     @Test
+    public void copyScenario() throws InterruptedException {
+        Scenario scenario1 = new Scenario();
+        scenario1.setScenarioName("First");
+        LoadProfile loadProfile = new LoadProfile();
+        loadProfile.setAnnualUsage(100.00);
+        scenarioDAO.addNewScenarioWithComponents(scenario1, new ScenarioComponents(
+                scenario1, null, null, null, null, loadProfile,
+                null, null, null, null, null));
+
+        List<Scenario> scenarioOutList = LiveDataTestUtil.getValue(scenarioDAO.loadScenarios());
+        Scenario scenario1o = scenarioOutList.get(0);
+        long scenario1ID = scenario1o.getScenarioIndex();
+        assertEquals("First", scenario1.getScenarioName());
+        assertTrue(scenario1o.isHasLoadProfiles());
+
+        LoadProfile loadProfile1o = LiveDataTestUtil.getValue(scenarioDAO.getLoadProfile(scenario1ID));
+        long loadProfile1ID = loadProfile1o.getLoadProfileIndex();
+        assertEquals(100.00, loadProfile1o.getAnnualUsage(), 0);
+
+        Scenario scenario2 = new Scenario();
+        scenario2.setScenarioName("Second");
+        scenarioDAO.addNewScenarioWithComponents(scenario2, new ScenarioComponents(
+                scenario2, null, null, null, null, null,
+                null, null, null, null, null));
+
+        scenarioOutList = LiveDataTestUtil.getValue(scenarioDAO.loadScenarios());
+        Scenario scenario2o = scenarioOutList.get(1);
+        long scenario2ID = scenario2o.getScenarioIndex();
+        assertEquals("Second", scenario2.getScenarioName());
+        LoadProfile loadProfile2o = LiveDataTestUtil.getValue(scenarioDAO.getLoadProfile(scenario2ID));
+        assertNull(loadProfile2o);
+
+        scenarioDAO.copyLoadProfileFromScenario(scenario1ID, scenario2ID);
+
+        scenarioOutList = LiveDataTestUtil.getValue(scenarioDAO.loadScenarios());
+        Scenario scenario2o2 = scenarioOutList.get(1);
+        long scenario22ID = scenario2o2.getScenarioIndex();
+        assertEquals("Second", scenario2.getScenarioName());
+        assertEquals(scenario22ID, scenario2ID);
+        LoadProfile loadProfile2o2 = LiveDataTestUtil.getValue(scenarioDAO.getLoadProfile(scenario22ID));
+        assertEquals(100.00, loadProfile2o2.getAnnualUsage(), 0);
+        assertNotEquals(loadProfile2o2.getLoadProfileIndex(), loadProfile1o.getLoadProfileIndex());
+    }
+
+    @Test
+    public void updateLP() throws InterruptedException {
+        Scenario scenario1 = new Scenario();
+        scenario1.setScenarioName("First");
+        LoadProfile loadProfile = new LoadProfile();
+        loadProfile.setAnnualUsage(100.00);
+        scenarioDAO.addNewScenarioWithComponents(scenario1, new ScenarioComponents(
+                scenario1, null, null, null, null, loadProfile,
+                null, null, null, null, null));
+
+
+        List<Scenario> scenarioOutList = LiveDataTestUtil.getValue(scenarioDAO.loadScenarios());
+        Scenario scenario1o = scenarioOutList.get(0);
+        long scenario1ID = scenario1o.getScenarioIndex();
+        assertEquals("First", scenario1.getScenarioName());
+        assertTrue(scenario1o.isHasLoadProfiles());
+
+        LoadProfile loadProfile1o = LiveDataTestUtil.getValue(scenarioDAO.getLoadProfile(scenario1ID));
+        assertEquals(100.00, loadProfile1o.getAnnualUsage(), 0);
+
+        loadProfile1o.setAnnualUsage(200.00);
+        scenarioDAO.updateLoadProfile(loadProfile1o);
+
+        loadProfile1o = LiveDataTestUtil.getValue(scenarioDAO.getLoadProfile(scenario1ID));
+        assertEquals(200.00, loadProfile1o.getAnnualUsage(), 0);
+    }
+
+    @Test
+    public void linkScenario() throws InterruptedException {
+        Scenario scenario1 = new Scenario();
+        scenario1.setScenarioName("First");
+        LoadProfile loadProfile = new LoadProfile();
+        loadProfile.setAnnualUsage(100.00);
+        scenarioDAO.addNewScenarioWithComponents(scenario1, new ScenarioComponents(
+                scenario1, null, null, null, null, loadProfile,
+                null, null, null, null, null));
+
+        List<Scenario> scenarioOutList = LiveDataTestUtil.getValue(scenarioDAO.loadScenarios());
+        Scenario scenario1o = scenarioOutList.get(0);
+        long scenario1ID = scenario1o.getScenarioIndex();
+        assertEquals("First", scenario1.getScenarioName());
+        assertTrue(scenario1o.isHasLoadProfiles());
+
+        LoadProfile loadProfile1o = LiveDataTestUtil.getValue(scenarioDAO.getLoadProfile(scenario1ID));
+        long loadProfile1ID = loadProfile1o.getLoadProfileIndex();
+        assertEquals(100.00, loadProfile1o.getAnnualUsage(), 0);
+
+        Scenario scenario2 = new Scenario();
+        scenario2.setScenarioName("Second");
+        scenarioDAO.addNewScenarioWithComponents(scenario2, new ScenarioComponents(
+                scenario2, null, null, null, null, null,
+                null, null, null, null, null));
+
+        scenarioOutList = LiveDataTestUtil.getValue(scenarioDAO.loadScenarios());
+        Scenario scenario2o = scenarioOutList.get(1);
+        long scenario2ID = scenario2o.getScenarioIndex();
+        assertEquals("Second", scenario2.getScenarioName());
+        LoadProfile loadProfile2o = LiveDataTestUtil.getValue(scenarioDAO.getLoadProfile(scenario2ID));
+        assertNull(loadProfile2o);
+
+        scenarioDAO.linkLoadProfileFromScenario(scenario1ID, scenario2ID);
+
+        scenarioOutList = LiveDataTestUtil.getValue(scenarioDAO.loadScenarios());
+        Scenario scenario1o2 = scenarioOutList.get(0);
+        assertEquals(scenario1o2.getScenarioIndex(), scenario1ID);
+        LoadProfile loadProfile1o2 = LiveDataTestUtil.getValue(scenarioDAO.getLoadProfile(scenario1ID));
+        assertEquals(loadProfile1o2.getLoadProfileIndex(), loadProfile1ID);
+        assertEquals(100.00, loadProfile1o2.getAnnualUsage(), 0);
+
+        Scenario scenario2o2 = scenarioOutList.get(1);
+        long scenario22ID = scenario2o2.getScenarioIndex();
+        assertEquals("Second", scenario2o2.getScenarioName());
+        assertEquals(scenario22ID, scenario2ID);
+        LoadProfile loadProfile2o2 = LiveDataTestUtil.getValue(scenarioDAO.getLoadProfile(scenario22ID));
+        System.out.println("LPID " + loadProfile2o2.getLoadProfileIndex() + " found for scenario " + scenario22ID);
+        assertEquals(100.00, loadProfile2o2.getAnnualUsage(), 0);
+
+        assertEquals(loadProfile2o2.getLoadProfileIndex(), loadProfile1o2.getLoadProfileIndex());
+
+        // Confirm that a change made to the LP retrieved from Scenario2 is visible from Scenario1
+        loadProfile2o2.setAnnualUsage(200.00);
+        scenarioDAO.updateLoadProfile(loadProfile2o2);
+
+        scenarioOutList = LiveDataTestUtil.getValue(scenarioDAO.loadScenarios());
+        Scenario scenario1o3 = scenarioOutList.get(0);
+        assertEquals(scenario1o3.getScenarioIndex(), scenario1ID);
+        LoadProfile loadProfile1o3 = LiveDataTestUtil.getValue(scenarioDAO.getLoadProfile(scenario1ID));
+        assertEquals(loadProfile1o3.getLoadProfileIndex(), loadProfile1ID);
+        assertEquals(200.00, loadProfile1o3.getAnnualUsage(), 0);
+    }
+
+    @Test
     public void roundTrip() throws InterruptedException {
         Type type = new TypeToken<List<ScenarioJsonFile>>() {}.getType();
         List<ScenarioJsonFile> scenarioList = new Gson().fromJson(testData, type);
@@ -76,7 +215,7 @@ public class ScenarioDAOTest {
         scenarioDAO.addNewScenarioWithComponents(json.scenario, json);
         List<Scenario> scenarioOutList = LiveDataTestUtil.getValue(scenarioDAO.loadScenarios());
         Scenario scenario = scenarioOutList.get(0);
-        long scenarioID = scenario.getId();
+        long scenarioID = scenario.getScenarioIndex();
         List<Inverter> inverters = scenarioDAO.getInvertersForScenarioID(scenarioID);
         List<Battery> batteries = scenarioDAO.getBatteriesForScenarioID(scenarioID);
         List<Panel> panels = scenarioDAO.getPanelsForScenarioID(scenarioID);
@@ -114,7 +253,7 @@ public class ScenarioDAOTest {
         loadTestData(testData);
         List<Scenario> scenarioList = LiveDataTestUtil.getValue(scenarioDAO.loadScenarios());
         assertEquals(1, scenarioList.size());
-        long scenarioID = scenarioList.get(0).getId();
+        long scenarioID = scenarioList.get(0).getScenarioIndex();
         System.out.println("1st Scenario ID = " + scenarioID);
         List<Inverter> inverters = scenarioDAO.getInvertersForScenarioID(scenarioID);
         assertEquals(1, inverters.size());

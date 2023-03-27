@@ -5,18 +5,12 @@ import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.ProgressBar;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.constraintlayout.widget.ConstraintLayout;
-import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 
@@ -195,7 +189,7 @@ public class PricePlanActivity extends AppCompatActivity {
             PricePlanJsonFile pp = new Gson().fromJson(focusedPlan, type);
             System.out.println(pp.plan);
             PricePlan p = JsonTools.createPricePlan(pp);
-            p.setId(planID);
+            p.setPricePlanIndex(planID);
             ArrayList<DayRate> drs = new ArrayList<>();
             for (DayRateJson drj : pp.rates) {
                 DayRate dr = JsonTools.createDayRate(drj);
@@ -253,7 +247,7 @@ public class PricePlanActivity extends AppCompatActivity {
                 dayRates.add(JsonTools.createDayRate(drj));
             }
             DayRate newDayRate = new DayRate();
-            newDayRate.setPricePlanId(pricePlan.getId());
+            newDayRate.setPricePlanId(pricePlan.getPricePlanIndex());
             dayRates.add(newDayRate);
 
             focusedPlan = JsonTools.createSinglePricePlanJsonObject(pricePlan, dayRates);

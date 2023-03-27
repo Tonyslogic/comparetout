@@ -4,7 +4,6 @@ import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
@@ -28,7 +27,6 @@ import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.scenario.ScenarioActivity;
 
 import java.util.List;
-import java.util.Objects;
 
 public class ScenarioNavFragment extends Fragment {
 
@@ -142,10 +140,10 @@ public class ScenarioNavFragment extends Fragment {
                 d.setImageResource(R.drawable.baseline_content_copy_24 );
                 e.setImageResource(android.R.drawable.ic_menu_view);
 
-                a.setId((int) scenario.getId());
-                c.setId((int) scenario.getId());
-                d.setId((int) scenario.getId());
-                e.setId((int) scenario.getId());
+                a.setId((int) scenario.getScenarioIndex());
+                c.setId((int) scenario.getScenarioIndex());
+                d.setId((int) scenario.getScenarioIndex());
+                e.setId((int) scenario.getScenarioIndex());
 
                 a.setOnClickListener(v -> {
                     System.out.println("Select for comparison: " + v.getId() + " " + a.isChecked());

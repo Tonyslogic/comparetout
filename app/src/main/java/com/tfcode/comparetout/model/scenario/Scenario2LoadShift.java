@@ -5,9 +5,18 @@ import androidx.room.PrimaryKey;
 
 @Entity(tableName = "scenario2loadshift")
 public class Scenario2LoadShift {
-    @PrimaryKey
+    @PrimaryKey(autoGenerate = true)
+    private long s2lsID;
     private long loadShiftID;
     private long scenarioID;
+
+    public long getS2lsID() {
+        return s2lsID;
+    }
+
+    public void setS2lsID(long s2lsID) {
+        this.s2lsID = s2lsID;
+    }
 
     public long getScenarioID() {
         return scenarioID;

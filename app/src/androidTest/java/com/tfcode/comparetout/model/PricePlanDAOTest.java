@@ -178,7 +178,7 @@ public class PricePlanDAOTest {
         assert p != null;
         PricePlan pp = mpp.keySet().stream().filter(p::equals).findAny().orElse(null);
         assert pp != null;
-        long ppID = pp.getId();
+        long ppID = pp.getPricePlanIndex();
         System.out.println("Got ID for " + pp.getPlanName() + " as " + ppID);
 
         pricePlanDAO.deletePricePlan(ppID);

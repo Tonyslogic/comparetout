@@ -7,16 +7,16 @@ import androidx.room.PrimaryKey;
 public class HWDivert {
 
     @PrimaryKey(autoGenerate = true)
-    private long id ;
+    private long hwDivertIndex;
 
     private boolean active = true;
 
-    public long getId() {
-        return id;
+    public long getHwDivertIndex() {
+        return hwDivertIndex;
     }
 
-    public void setId(long id) {
-        this.id = id;
+    public void setHwDivertIndex(long hwDivertIndex) {
+        this.hwDivertIndex = hwDivertIndex;
     }
 
     public boolean isActive() {

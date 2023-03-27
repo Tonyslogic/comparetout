@@ -9,7 +9,7 @@ import com.tfcode.comparetout.model.IntHolder;
 public class LoadShift {
 
     @PrimaryKey(autoGenerate = true)
-    private long id ;
+    private long loadShiftIndex;
 
     private String name = "Load-shift-name";
     private int begin = 2;
@@ -18,12 +18,12 @@ public class LoadShift {
     private MonthHolder months = new MonthHolder();
     private IntHolder days = new IntHolder();
 
-    public long getId() {
-        return id;
+    public long getLoadShiftIndex() {
+        return loadShiftIndex;
     }
 
-    public void setId(long id) {
-        this.id = id;
+    public void setLoadShiftIndex(long loadShiftIndex) {
+        this.loadShiftIndex = loadShiftIndex;
     }
 
     public String getName() {

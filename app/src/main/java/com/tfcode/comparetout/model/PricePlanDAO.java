@@ -31,7 +31,7 @@ public abstract class PricePlanDAO {
         try {
             long pricePlanID = addNewPricePlan(pp);
             for (DayRate dr : drs) {
-                dr.setId(0);
+                dr.setDayRateIndex(0);
                 dr.setPricePlanId(pricePlanID);
                 addNewDayRate(dr);
             }
@@ -53,10 +53,10 @@ public abstract class PricePlanDAO {
     @Query("DELETE FROM PricePlans")
     abstract void clearPricePlans();
 
-    @Query("SELECT * FROM PricePlans JOIN DayRates ON PricePlans.id = DayRates.pricePlanId ORDER BY PricePlans.supplier ASC, PricePlans.planName ASC ")
+    @Query("SELECT * FROM PricePlans JOIN DayRates ON PricePlans.pricePlanIndex = DayRates.pricePlanId ORDER BY PricePlans.supplier ASC, PricePlans.planName ASC ")
     public abstract LiveData<Map<PricePlan, List<DayRate>>> loadPricePlans();
 
-    @Query("SELECT * FROM PricePlans JOIN DayRates ON PricePlans.id = DayRates.pricePlanId WHERE PricePlans.id = :id")
+    @Query("SELECT * FROM PricePlans JOIN DayRates ON PricePlans.pricePlanIndex = DayRates.pricePlanId WHERE PricePlans.pricePlanIndex = :id")
     public abstract Map<PricePlan, List<DayRate>> loadPricePlan(long id);
 
     @Transaction
@@ -72,13 +72,13 @@ public abstract class PricePlanDAO {
     @Query("DELETE FROM DayRates WHERE pricePlanId = :id")
     public abstract int deleteDayRates(long id);
 
-    @Query("DELETE FROM PricePlans WHERE id = :id")
+    @Query("DELETE FROM PricePlans WHERE pricePlanIndex = :id")
     public abstract int deletePricePlanRow(long id);
 
     @Delete
     public abstract void delpp(PricePlan pp);
 
-    @Query("UPDATE PricePlans SET active = :checked WHERE id = :id")
+    @Query("UPDATE PricePlans SET active = :checked WHERE pricePlanIndex = :id")
     public abstract void updatePricePlanActiveStatus(int id, boolean checked);
 
     @Upsert(entity = PricePlan.class )
@@ -89,21 +89,21 @@ public abstract class PricePlanDAO {
 
     @Transaction
     public void updatePricePlanWithDayRates(PricePlan pp, ArrayList<DayRate> drs) {
-        System.out.println("DAO Updating " + pp.getPlanName() + "," + pp.getId());
-        if (pp.getId() == 0) {
+        System.out.println("DAO Updating " + pp.getPlanName() + "," + pp.getPricePlanIndex());
+        if (pp.getPricePlanIndex() == 0) {
             System.out.println("DAO creation from Update ");
             addNewPricePlanWithDayRates(pp, drs);
         }
         else {
             updatePricePlan(pp);
-            System.out.println("DAO read " + getNameForPlanID(pp.getId()) + " for " + pp.getId());
+            System.out.println("DAO read " + getNameForPlanID(pp.getPricePlanIndex()) + " for " + pp.getPricePlanIndex());
             System.out.println("DAO count of dayRates = " + drs.size());
             updateDayRate(drs);
         }
 
     }
 
-    @Query("SELECT planName FROM PricePlans WHERE id = :id")
+    @Query("SELECT planName FROM PricePlans WHERE pricePlanIndex = :id")
     public abstract String getNameForPlanID (long id);
 
     @Query("SELECT * FROM priceplans")
@@ -113,6 +113,6 @@ public abstract class PricePlanDAO {
     public abstract List<DayRate> getAllDayRatesForPricePlanID(long id);
 
 
-    @Query("SELECT * FROM PricePlans JOIN DayRates ON PricePlans.id = DayRates.pricePlanId ORDER BY PricePlans.supplier ASC, PricePlans.planName ASC ")
+    @Query("SELECT * FROM PricePlans JOIN DayRates ON PricePlans.pricePlanIndex = DayRates.pricePlanId ORDER BY PricePlans.supplier ASC, PricePlans.planName ASC ")
     public abstract Map<PricePlan, List<DayRate>> getAllPricePlansForExport();
 }

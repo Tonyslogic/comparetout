@@ -75,8 +75,8 @@ public class JsonTools {
         DoubleHolder dh = new DoubleHolder();
         dh.doubles = drj.hours;
         dr.setHours(dh);
-        if (drj.dbID == null) dr.setId(0L);
-        else dr.setId(drj.dbID);
+        if (drj.dbID == null) dr.setDayRateIndex(0L);
+        else dr.setDayRateIndex(drj.dbID);
         return dr;
     }
 
@@ -90,7 +90,7 @@ public class JsonTools {
                     drj.endDate = dr.getEndDate();
                     drj.days = (ArrayList<Integer>) dr.getDays().ints;
                     drj.hours = (ArrayList<Double>) dr.getHours().doubles;
-                    drj.dbID = dr.getId();
+                    drj.dbID = dr.getDayRateIndex();
                     dayRateJsons.add(drj);
                 }
                 PricePlanJsonFile ppj = new PricePlanJsonFile();
@@ -118,7 +118,7 @@ public class JsonTools {
             drj.endDate = dr.getEndDate();
             drj.days = (ArrayList<Integer>) dr.getDays().ints;
             drj.hours = (ArrayList<Double>) dr.getHours().doubles;
-            drj.dbID = dr.getId();
+            drj.dbID = dr.getDayRateIndex();
             dayRateJsons.add(drj);
         }
         PricePlanJsonFile ppj = new PricePlanJsonFile();

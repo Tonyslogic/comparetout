@@ -8,7 +8,7 @@ import androidx.room.PrimaryKey;
 public class Inverter {
 
     @PrimaryKey(autoGenerate = true)
-    private long id ;
+    private long inverterIndex;
 
     @NonNull
     private String inverterName = "<INVERTER>";
@@ -20,12 +20,12 @@ public class Inverter {
     private int dc2acLoss = 5;
     private int dc2dcLoss = 0;
 
-    public long getId() {
-        return id;
+    public long getInverterIndex() {
+        return inverterIndex;
     }
 
-    public void setId(long id) {
-        this.id = id;
+    public void setInverterIndex(long inverterIndex) {
+        this.inverterIndex = inverterIndex;
     }
 
     @NonNull

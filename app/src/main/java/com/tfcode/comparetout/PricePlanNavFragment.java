@@ -3,7 +3,6 @@ package com.tfcode.comparetout;
 import androidx.lifecycle.ViewModelProvider;
 
 import android.annotation.SuppressLint;
-import android.app.ActivityOptions;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
@@ -145,10 +144,10 @@ public class PricePlanNavFragment extends Fragment {
                 d.setImageResource(R.drawable.baseline_content_copy_24);
                 e.setImageResource(android.R.drawable.ic_menu_view);
 
-                a.setId((int) p.getId());
-                c.setId((int) p.getId());
-                d.setId((int) p.getId());
-                e.setId((int) p.getId());
+                a.setId((int) p.getPricePlanIndex());
+                c.setId((int) p.getPricePlanIndex());
+                d.setId((int) p.getPricePlanIndex());
+                e.setId((int) p.getPricePlanIndex());
 
                 a.setOnClickListener(v -> {
                     System.out.println("Select for comparison: " + v.getId() + " " + a.isChecked());
@@ -173,8 +172,8 @@ public class PricePlanNavFragment extends Fragment {
                     Map<PricePlan, List<DayRate>> pricePlanMap = mViewModel.getAllPricePlans().getValue();
                     if (pricePlanMap != null) {
                         for (PricePlan pp : pricePlanMap.keySet()) {
-                            if (pp.getId() == v.getId()) {
-                                System.out.println(pp.getId() + "  " + v.getId());
+                            if (pp.getPricePlanIndex() == v.getId()) {
+                                System.out.println(pp.getPricePlanIndex() + "  " + v.getId());
                                 PricePlan newPP = pp.copy();
                                 mViewModel.insertPricePlan(newPP, pricePlanMap.get(pp));
                             }

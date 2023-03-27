@@ -3,6 +3,7 @@ package com.tfcode.comparetout.scenario.loadprofile;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 import androidx.work.ExistingWorkPolicy;
 import androidx.work.OneTimeWorkRequest;
@@ -22,8 +23,11 @@ import android.widget.Toast;
 
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
+import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.SimulatorLauncher;
+import com.tfcode.comparetout.scenario.ScenarioSelectDialog;
+import com.tfcode.comparetout.scenario.ScenarioSelectDialogListener;
 import com.tfcode.comparetout.scenario.SimulationWorker;
 
 import java.lang.reflect.Method;
@@ -36,7 +40,7 @@ public class LoadProfileActivity extends AppCompatActivity {
     private Long scenarioID = 0L;
     private String scenarioName = "";
     private boolean mEdit = false;
-//    private ComparisonUIViewModel mViewModel;
+    private ComparisonUIViewModel mViewModel;
     private ActionBar mActionBar;
     private TabLayoutMediator mMediator;
     private Menu mMenu;
@@ -58,8 +62,8 @@ public class LoadProfileActivity extends AppCompatActivity {
         mViewPager = findViewById(R.id.load_profile_view_pager);
 
         setupViewPager();
-//
-//        mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
+
+        mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
         mActionBar = Objects.requireNonNull(getSupportActionBar());
         mActionBar.setTitle("Load profile (" + scenarioName + ")");
     }
@@ -129,12 +133,20 @@ public class LoadProfileActivity extends AppCompatActivity {
 //        }
         if (item.getItemId() == R.id.lp_copy) {//add the function to perform here
             System.out.println("Copy attempt");
-            Toast.makeText(this, "TODO: Copy", Toast.LENGTH_SHORT).show();
+            ScenarioSelectDialog scenarioSelectDialog =
+                    new ScenarioSelectDialog(LoadProfileActivity.this,
+                            ScenarioSelectDialog.LOAD_PROFILE,
+                            fromScenarioID -> mViewModel.copyLoadProfileFromScenario(fromScenarioID, scenarioID));
+            scenarioSelectDialog.show();
             return false;
         }
         if (item.getItemId() == R.id.lp_link) {//add the function to perform here
             System.out.println("Link attempt");
-            Toast.makeText(this, "TODO: Link", Toast.LENGTH_SHORT).show();
+            ScenarioSelectDialog scenarioSelectDialog =
+                    new ScenarioSelectDialog(LoadProfileActivity.this,
+                            ScenarioSelectDialog.LOAD_PROFILE,
+                            fromScenarioID -> mViewModel.linkLoadProfileFromScenario(fromScenarioID, scenarioID));
+            scenarioSelectDialog.show();
             return false;
         }
         if (item.getItemId() == R.id.lp_help) {//add the function to perform here

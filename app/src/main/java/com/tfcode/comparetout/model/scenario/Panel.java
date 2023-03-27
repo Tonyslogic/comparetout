@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey;
 public class Panel {
 
     @PrimaryKey(autoGenerate = true)
-    private long id ;
+    private long panelIndex;
 
     private int panelCount = 7;
     private int panelkWp = 325;
@@ -18,12 +18,12 @@ public class Panel {
     private String inverter = "AplhaESS";
     private int mppt = 1;
 
-    public long getId() {
-        return id;
+    public long getPanelIndex() {
+        return panelIndex;
     }
 
-    public void setId(long id) {
-        this.id = id;
+    public void setPanelIndex(long panelIndex) {
+        this.panelIndex = panelIndex;
     }
 
     public int getPanelCount() {

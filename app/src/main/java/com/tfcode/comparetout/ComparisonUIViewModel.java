@@ -114,4 +114,12 @@ public class ComparisonUIViewModel extends AndroidViewModel {
     public Map<PricePlan, List<DayRate>> getAllPricePlansForExport() {
         return toutcRepository.getAllPricePlansForExport();
     }
+
+    public void copyLoadProfileFromScenario(long fromScenarioID, Long toScenarioID) {
+        toutcRepository.copyLoadProfileFromScenario(fromScenarioID, toScenarioID);
+    }
+
+    public void linkLoadProfileFromScenario(long fromScenarioID, Long toScenarioID) {
+        toutcRepository.linkLoadProfileFromScenario(fromScenarioID, toScenarioID);
+    }
 }

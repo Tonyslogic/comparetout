@@ -207,4 +207,18 @@ public class ToutcRepository {
     public Map<PricePlan, List<DayRate>> getAllPricePlansForExport() {
         return pricePlanDAO.getAllPricePlansForExport();
     }
+
+    public List<Scenario> getScenarios() {
+        return scenarioDAO.getScenarios();
+    }
+
+    public void copyLoadProfileFromScenario(long fromScenarioID, Long toScenarioID) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+        scenarioDAO.copyLoadProfileFromScenario(fromScenarioID, toScenarioID));
+    }
+
+    public void linkLoadProfileFromScenario(long fromScenarioID, Long toScenarioID) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                scenarioDAO.linkLoadProfileFromScenario(fromScenarioID, toScenarioID));
+    }
 }

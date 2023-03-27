@@ -4,8 +4,6 @@ import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.Typeface;
-import android.graphics.drawable.Drawable;
-import android.os.Build;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -513,12 +511,12 @@ public class ComparisonFragment extends Fragment {
 
     private Scenario findScenarioByID(Long id) {
         if (null == mScenarios) return null;
-        return mScenarios.stream().filter(s -> id.equals(s.getId())).findFirst().orElse(null);
+        return mScenarios.stream().filter(s -> id.equals(s.getScenarioIndex())).findFirst().orElse(null);
     }
 
     private PricePlan findPricePlanByID(Long id) {
         if (null == mPricePlans) return null;
-        return mPricePlans.stream().filter(s -> id.equals(s.getId())).findFirst().orElse(null);
+        return mPricePlans.stream().filter(s -> id.equals(s.getPricePlanIndex())).findFirst().orElse(null);
     }
 }
 
