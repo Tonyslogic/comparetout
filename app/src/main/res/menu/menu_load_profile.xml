@@ -27,8 +27,8 @@
     <item
         android:id="@+id/lp_import"
         app:showAsAction="ifRoom|withText"
-        android:icon="@drawable/ic_baseline_download_24"
-        android:title="@string/export"/>
+        android:icon="@drawable/ic_baseline_file_open_24"
+        android:title="@string/importlp"/>
     <item
         android:id="@+id/lp_copy"
         app:showAsAction="ifRoom|withText"

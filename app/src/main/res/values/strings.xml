@@ -33,4 +33,5 @@
     <string name="scenario_capability">Aspect</string>
     <string name="scenario_with_aspect">Eligible scenarios</string>
     <string name="cancel">Cancel</string>
+    <string name="importlp">Import</string>
 </resources>

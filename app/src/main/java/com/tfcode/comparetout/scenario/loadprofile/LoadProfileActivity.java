@@ -1,5 +1,8 @@
 package com.tfcode.comparetout.scenario.loadprofile;
 
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
@@ -12,26 +15,43 @@ import androidx.work.WorkManager;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.view.Window;
 import android.widget.Toast;
 
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.SimulatorLauncher;
+import com.tfcode.comparetout.model.json.JsonTools;
+import com.tfcode.comparetout.model.json.priceplan.DayRateJson;
+import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
+import com.tfcode.comparetout.model.json.scenario.LoadProfileJson;
+import com.tfcode.comparetout.model.priceplan.DayRate;
+import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.scenario.ScenarioSelectDialog;
 import com.tfcode.comparetout.scenario.ScenarioSelectDialogListener;
 import com.tfcode.comparetout.scenario.SimulationWorker;
 
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Method;
+import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public class LoadProfileActivity extends AppCompatActivity {
@@ -49,6 +69,24 @@ public class LoadProfileActivity extends AppCompatActivity {
 
     private String mLoadProfileJson = "";
     private String mDistributionSource = "";
+
+//    final ActivityResultLauncher<String> mLoadLoadProfileFile =
+//            registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
+//                // Handle the returned Uri
+//                if (uri == null) return;
+//                InputStream is;
+//                try {
+//                    is = getContentResolver().openInputStream(uri);
+//                    InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
+//                    Type type = new TypeToken<LoadProfileJson>() {}.getType();
+//                    LoadProfileJson lpj  = new Gson().fromJson(reader, type);
+//                    Gson gson = new GsonBuilder().setPrettyPrinting().create();
+//                    mLoadProfileJson =  gson.toJson(lpj, type);
+//                    propagateDistribution();
+//                } catch (FileNotFoundException e) {
+//                    e.printStackTrace();
+//                }
+//            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -92,6 +130,12 @@ public class LoadProfileActivity extends AppCompatActivity {
         infoItem.setVisible(false);
         MenuItem saveItem = menu.findItem((R.id.lp_save));
         if (!(mEdit)) saveItem.setVisible(false);
+        MenuItem loadItem = menu.findItem((R.id.lp_import));
+        if (!(mEdit)) loadItem.setVisible(false);
+        MenuItem copyItem = menu.findItem((R.id.lp_copy));
+        if (!(mEdit)) copyItem.setVisible(false);
+        MenuItem linkItem = menu.findItem((R.id.lp_link));
+        if (!(mEdit)) linkItem.setVisible(false);
         MenuItem editItem = menu.findItem((R.id.lp_edit));
         if (mEdit) editItem.setVisible(false);
         return super.onPrepareOptionsMenu(menu);
@@ -110,6 +154,12 @@ public class LoadProfileActivity extends AppCompatActivity {
             System.out.println("Edit attempt");
             MenuItem saveItem = mMenu.findItem(R.id.lp_save);
             saveItem.setVisible(true);
+            MenuItem loadItem = mMenu.findItem(R.id.lp_import);
+            loadItem.setVisible(true);
+            MenuItem copyItem = mMenu.findItem(R.id.lp_copy);
+            copyItem.setVisible(true);
+            MenuItem linkItem = mMenu.findItem(R.id.lp_link);
+            linkItem.setVisible(true);
             MenuItem editItem = mMenu.findItem(R.id.lp_edit);
             editItem.setVisible(false);
             mEdit = true;
@@ -118,14 +168,24 @@ public class LoadProfileActivity extends AppCompatActivity {
         }
         if (item.getItemId() == R.id.lp_share) {//add the function to perform here
             System.out.println("Share attempt");
-            Toast.makeText(this, "TODO: Share", Toast.LENGTH_SHORT).show();
-            return false;
+
+            Intent sendIntent = new Intent();
+            sendIntent.setAction(Intent.ACTION_SEND);
+            sendIntent.putExtra(Intent.EXTRA_TEXT, mLoadProfileJson);
+            sendIntent.setType("text/json");
+
+            Intent shareIntent = Intent.createChooser(sendIntent, null);
+            startActivity(shareIntent);
+
+            return true;
         }
-        if (item.getItemId() == R.id.lp_import) {//add the function to perform here
-            System.out.println("Import attempt");
-            Toast.makeText(this, "TODO: Import", Toast.LENGTH_SHORT).show();
-            return false;
-        }
+//        if (item.getItemId() == R.id.lp_import) {//add the function to perform here
+//            System.out.println("Import attempt");
+//
+//            mLoadLoadProfileFile.launch("*/*");
+//
+//            return true;
+//        }
 //        if (item.getItemId() == R.id.lp_save) {//add the function to perform here
 //            System.out.println("Save attempt");
 //            Toast.makeText(this, "TODO: Save", Toast.LENGTH_SHORT).show();
@@ -206,6 +266,12 @@ public class LoadProfileActivity extends AppCompatActivity {
         if (!mUnsavedChanges) {
             MenuItem saveItem = mMenu.findItem(R.id.lp_save);
             saveItem.setVisible(false);
+            MenuItem loadItem = mMenu.findItem(R.id.lp_import);
+            loadItem.setVisible(false);
+            MenuItem copyItem = mMenu.findItem(R.id.lp_copy);
+            copyItem.setVisible(false);
+            MenuItem linkItem = mMenu.findItem(R.id.lp_link);
+            linkItem.setVisible(false);
             MenuItem editItem = mMenu.findItem(R.id.lp_edit);
             editItem.setVisible(true);
             mEdit = false;

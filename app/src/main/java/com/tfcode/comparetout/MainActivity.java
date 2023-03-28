@@ -278,21 +278,18 @@ public class MainActivity extends AppCompatActivity {
                 }
                 if (pos == USAGE_FRAGMENT) {
                     mProgressBar.setVisibility(View.VISIBLE);
-                    new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                        InputStream ins = getResources().openRawResource(
-                                getResources().getIdentifier("scenarios", "raw", getPackageName()));
-                        InputStreamReader reader = new InputStreamReader(ins, StandardCharsets.UTF_8);
-                        Type type = new TypeToken<List<ScenarioJsonFile>>() {
-                        }.getType();
-                        List<ScenarioJsonFile> scenarioJsonFiles = new Gson().fromJson(reader, type);
-                        List<ScenarioComponents> scs = JsonTools.createScenarioComponentList(scenarioJsonFiles);
-                        for (ScenarioComponents sc : scs) {
-                            mViewModel.insertScenario(sc);
-                        }
-                        mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
-                    }}).start();
+                    new Thread(() -> {
+                    InputStream ins = getResources().openRawResource(
+                            getResources().getIdentifier("scenarios", "raw", getPackageName()));
+                    InputStreamReader reader = new InputStreamReader(ins, StandardCharsets.UTF_8);
+                    Type type = new TypeToken<List<ScenarioJsonFile>>() {}.getType();
+                    List<ScenarioJsonFile> scenarioJsonFiles = new Gson().fromJson(reader, type);
+                    List<ScenarioComponents> scs = JsonTools.createScenarioComponentList(scenarioJsonFiles);
+                    for (ScenarioComponents sc : scs) {
+                        mViewModel.insertScenario(sc);
+                    }
+                    mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
+                }).start();
 
                     return(true);
                 }
@@ -309,38 +306,32 @@ public class MainActivity extends AppCompatActivity {
 
                 mProgressBar.setVisibility(View.VISIBLE);
 
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        String plansToShare = JsonTools.createPricePlanJson(mViewModel.getAllPricePlansForExport());
-                        mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
-                        Intent sendIntent = new Intent();
-                        sendIntent.setAction(Intent.ACTION_SEND);
-                        sendIntent.putExtra(Intent.EXTRA_TEXT, plansToShare);
-                        sendIntent.setType("text/json");
+                new Thread(() -> {
+                    String plansToShare = JsonTools.createPricePlanJson(mViewModel.getAllPricePlansForExport());
+                    mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
+                    Intent sendIntent = new Intent();
+                    sendIntent.setAction(Intent.ACTION_SEND);
+                    sendIntent.putExtra(Intent.EXTRA_TEXT, plansToShare);
+                    sendIntent.setType("text/json");
 
-                        Intent shareIntent = Intent.createChooser(sendIntent, null);
-                        startActivity(shareIntent);
-                    }
+                    Intent shareIntent = Intent.createChooser(sendIntent, null);
+                    startActivity(shareIntent);
                 }).start();
                 return(true);
 
             case R.id.share_scenarios:
                 mProgressBar.setVisibility(View.VISIBLE);
 
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-                        String scenariosToShare = JsonTools.createScenarioList(Objects.requireNonNull(mViewModel.getAllScenariosForExport()));
-                        mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
-                        Intent sendIntent = new Intent();
-                        sendIntent.setAction(Intent.ACTION_SEND);
-                        sendIntent.putExtra(Intent.EXTRA_TEXT, scenariosToShare);
-                        sendIntent.setType("text/json");
+                new Thread(() -> {
+                    String scenariosToShare = JsonTools.createScenarioList(Objects.requireNonNull(mViewModel.getAllScenariosForExport()));
+                    mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
+                    Intent sendIntent = new Intent();
+                    sendIntent.setAction(Intent.ACTION_SEND);
+                    sendIntent.putExtra(Intent.EXTRA_TEXT, scenariosToShare);
+                    sendIntent.setType("text/json");
 
-                        Intent shareIntent = Intent.createChooser(sendIntent, null);
-                        startActivity(shareIntent);
-                    }
+                    Intent shareIntent = Intent.createChooser(sendIntent, null);
+                    startActivity(shareIntent);
                 }).start();
                 return(true);
 

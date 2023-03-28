@@ -104,7 +104,7 @@ public class ScenarioOverview extends Fragment {
     private static long findByName(List<Scenario> scenarios, String name) {
         Scenario scenario = scenarios.stream().filter(s -> name.equals(s.getScenarioName())).findFirst().orElse(null);
         if (!(scenario == null)) return scenario.getScenarioIndex();
-        else return 0L;
+        else return -1L;
     }
 
     @Override
@@ -315,20 +315,16 @@ public class ScenarioOverview extends Fragment {
                     b.setEnabled(true);
                     b.addTextChangedListener(new TextWatcher() {
                         @Override
-                        public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-                        }
-
+                        public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
                         @Override
-                        public void onTextChanged(CharSequence s, int start, int before, int count) {
-                        }
-
+                        public void onTextChanged(CharSequence s, int start, int before, int count) {}
                         @Override
                         public void afterTextChanged(Editable s) {
                             mScenario.setScenarioName(s.toString());
                             System.out.println("Scenario name changed to : " + mScenario.getScenarioName());
-                            if (findByName(mScenarios, s.toString()) != 0) {
+                            if (findByName(mScenarios, s.toString()) == -1) {
                                 Snackbar.make(getView(),
-                                                s.toString() + " already exists. Change before saving", Snackbar.LENGTH_LONG)
+                                                s + " already exists. Change before saving", Snackbar.LENGTH_LONG)
                                         .setAction("Action", null).show();
                             }
                             ((ScenarioActivity) requireActivity()).setSaveNeeded(true);

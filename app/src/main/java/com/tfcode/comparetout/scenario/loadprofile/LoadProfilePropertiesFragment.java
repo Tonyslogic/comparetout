@@ -2,6 +2,8 @@ package com.tfcode.comparetout.scenario.loadprofile;
 
 import android.os.Bundle;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.view.MenuProvider;
@@ -37,7 +39,11 @@ import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.json.scenario.LoadProfileJson;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
 
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Type;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -52,6 +58,27 @@ public class LoadProfilePropertiesFragment extends Fragment {
     private Long mScenarioID;
     private LoadProfile mLoadProfile;
     private Long mLoadProfileID = 0L;
+
+    final ActivityResultLauncher<String> mLoadLoadProfileFile =
+            registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
+                // Handle the returned Uri
+                if (uri == null) return;
+                InputStream is;
+                try {
+                    System.out.println("mLoadProfile baseload: " + mLoadProfile.getHourlyBaseLoad());
+                    is = requireActivity().getContentResolver().openInputStream(uri);
+                    InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
+                    Type type = new TypeToken<LoadProfileJson>() {}.getType();
+                    LoadProfileJson lpj  = new Gson().fromJson(reader, type);
+                    mLoadProfile = JsonTools.createLoadProfile(lpj);
+                    mLoadProfile.setLoadProfileIndex(mLoadProfileID);
+                    System.out.println("mLoadProfile baseload: " + mLoadProfile.getHourlyBaseLoad());
+                    updateView();
+                    updateMasterCopy();
+                } catch (FileNotFoundException e) {
+                    e.printStackTrace();
+                }
+            });
 
     public LoadProfilePropertiesFragment() {
         // Required empty public constructor
@@ -141,6 +168,14 @@ public class LoadProfilePropertiesFragment extends Fragment {
                     ((LoadProfileActivity) requireActivity()).setSaveNeeded(false);
                     return (false);
                 }
+
+                if (menuItem.getItemId() == R.id.lp_import) {//add the function to perform here
+                    System.out.println("Import attempt");
+
+                    mLoadLoadProfileFile.launch("*/*");
+
+                    return true;
+                }
                 return true;
             }
         });
@@ -185,8 +220,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
                     case 6: loadProfileJsonString = StandardLoadProfiles.SLP_Smart_rural; break;
                 }
                 if (!(null == loadProfileJsonString)) {
-                    Type type = new TypeToken<LoadProfileJson>() {
-                    }.getType();
+                    Type type = new TypeToken<LoadProfileJson>() {}.getType();
                     LoadProfileJson lpj = new Gson().fromJson(loadProfileJsonString, type);
                     LoadProfile slProfile = JsonTools.createLoadProfile(lpj);
                     mLoadProfile.setHourlyDist(slProfile.getHourlyDist());
