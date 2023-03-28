@@ -1,6 +1,7 @@
 package com.tfcode.comparetout.scenario;
 
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Bundle;
 
@@ -8,10 +9,13 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.widget.PopupMenu;
+import androidx.core.content.ContextCompat;
 import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
+import android.os.Handler;
+import android.os.Looper;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.TypedValue;
@@ -29,22 +33,37 @@ import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.github.mikephil.charting.charts.PieChart;
+import com.github.mikephil.charting.components.Legend;
+import com.github.mikephil.charting.data.PieData;
+import com.github.mikephil.charting.data.PieDataSet;
+import com.github.mikephil.charting.data.PieEntry;
+import com.github.mikephil.charting.formatter.PercentFormatter;
 import com.google.android.material.snackbar.Snackbar;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.SimulatorLauncher;
+import com.tfcode.comparetout.model.costings.Costings;
+import com.tfcode.comparetout.model.costings.SubTotals;
+import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
+import com.tfcode.comparetout.model.scenario.SimKPIs;
 import com.tfcode.comparetout.scenario.loadprofile.LoadProfileActivity;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.text.DecimalFormat;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 public class ScenarioOverview extends Fragment {
 
     private ActionBar mActionBar;
+    private Handler mMainHandler;
 
     private ComparisonUIViewModel mViewModel;
     private ImageButton mPanelButton;
@@ -54,9 +73,13 @@ public class ScenarioOverview extends Fragment {
     private ImageButton mTankButton;
     private ImageButton mCarButton;
     private TableLayout mTableLayout;
+    private TableLayout mHelpTable;
     private Long mScenarioID;
     private Scenario mScenario;
     private List<Scenario> mScenarios;
+
+    private SimKPIs mSimKPIs;
+    private Costings mBestCosting;
     private boolean mEdit = false;
     private boolean mSavingNewScenario = false;
 
@@ -94,7 +117,16 @@ public class ScenarioOverview extends Fragment {
             mActionBar = Objects.requireNonNull(((ScenarioActivity)requireActivity()).getSupportActionBar());
             mActionBar.setTitle("Usage: " + mScenario.getScenarioName());
             updateView();
+            updateKPIs();
         });
+    }
+
+    private void updateKPIs() {
+        new Thread(() -> {
+            mSimKPIs = mViewModel.getSimKPIsForScenario(mScenarioID);
+            mBestCosting = mViewModel.getBestCostingForScenario(mScenarioID);
+            mMainHandler.post(() -> updateView());
+        }).start();
     }
 
     private static Scenario findByID(List<Scenario> scenarios, Long id) {
@@ -117,6 +149,8 @@ public class ScenarioOverview extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         mTableLayout = requireView().findViewById(R.id.editScenarioTable);
+        mHelpTable = requireView().findViewById(R.id.scenarioHelpTable);
+        mMainHandler = new Handler(Looper.getMainLooper());
         setupButtons();
         setupMenu();
         SimulatorLauncher.simulateIfNeeded(getContext());
@@ -145,9 +179,12 @@ public class ScenarioOverview extends Fragment {
                                 null, null, null, null, null);
                         mViewModel.insertScenario(scenarioComponents);
                         mSavingNewScenario = true;
+                        mEdit = false;
                     }
                     else {
                         mViewModel.updateScenario(mScenario);
+                        mSavingNewScenario = true;
+                        mEdit = false;
                     }
                     ((ScenarioActivity) requireActivity()).setSaveNeeded(false);
                     return (false);
@@ -304,56 +341,9 @@ public class ScenarioOverview extends Fragment {
             scenarioParams.topMargin = 10;
             scenarioParams.rightMargin = 10;
 
-            if (mScenario.isHasLoadProfiles()) {
-                if (mEdit) {
-                    // CREATE TABLE ROWS
-                    TableRow tableRow = new TableRow(getActivity());
-                    TextView a = new TextView(getActivity());
-                    a.setText("Scenario");
-                    EditText b = new EditText(getActivity());
-                    b.setText(mScenario.getScenarioName());
-                    b.setEnabled(true);
-                    b.addTextChangedListener(new TextWatcher() {
-                        @Override
-                        public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
-                        @Override
-                        public void onTextChanged(CharSequence s, int start, int before, int count) {}
-                        @Override
-                        public void afterTextChanged(Editable s) {
-                            mScenario.setScenarioName(s.toString());
-                            System.out.println("Scenario name changed to : " + mScenario.getScenarioName());
-                            if (findByName(mScenarios, s.toString()) == -1) {
-                                Snackbar.make(getView(),
-                                                s + " already exists. Change before saving", Snackbar.LENGTH_LONG)
-                                        .setAction("Action", null).show();
-                            }
-                            ((ScenarioActivity) requireActivity()).setSaveNeeded(true);
-                        }
-                    });
-                    a.setLayoutParams(scenarioParams);
-                    b.setLayoutParams(scenarioParams);
-                    tableRow.addView(a);
-                    tableRow.addView(b);
-                    mTableLayout.addView(tableRow);
-                }
-                else {
-                    // TODO show the prices for this scenario
-                    // CREATE TABLE ROWS
-                    TableRow tableRow = new TableRow(getActivity());
-                    TextView a = new TextView(getActivity());
-                    a.setText("Supplier, Plan");
-                    TextView b = new TextView(getActivity());
-                    b.setText("€200.00");
-                    a.setLayoutParams(scenarioParams);
-                    b.setLayoutParams(scenarioParams);
-                    tableRow.addView(a);
-                    tableRow.addView(b);
-                    mTableLayout.addView(tableRow);
-                }
-            }
-            else {
-                mTableLayout.setShrinkAllColumns(true);
-                mTableLayout.setStretchAllColumns(false);
+            if (!mScenario.isHasLoadProfiles()) {
+                mHelpTable.setShrinkAllColumns(true);
+                mHelpTable.setStretchAllColumns(false);
 
                 TextView help = new TextView(getActivity());
                 help.setSingleLine(false);
@@ -374,9 +364,124 @@ public class ScenarioOverview extends Fragment {
                     .append("appear in the details tab shortly after. Simulation progress is ")
                     .append("visible in the notification area. ").toString());
 
-                mTableLayout.addView(help);
+                mHelpTable.addView(help);
+            }
+            else mHelpTable.removeAllViews();
+
+            if (mEdit) {
+                // CREATE TABLE ROWS
+                TableRow tableRow = new TableRow(getActivity());
+                TextView a = new TextView(getActivity());
+                a.setText("Scenario");
+                EditText b = new EditText(getActivity());
+                b.setText(mScenario.getScenarioName());
+                b.setEnabled(true);
+                b.addTextChangedListener(new TextWatcher() {
+                    @Override
+                    public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+                    @Override
+                    public void onTextChanged(CharSequence s, int start, int before, int count) {}
+                    @Override
+                    public void afterTextChanged(Editable s) {
+                        mScenario.setScenarioName(s.toString());
+                        System.out.println("Scenario name changed to : " + mScenario.getScenarioName());
+                        if (findByName(mScenarios, s.toString()) == -1) {
+                            Snackbar.make(getView(),
+                                            s + " already exists. Change before saving", Snackbar.LENGTH_LONG)
+                                    .setAction("Action", null).show();
+                        }
+                        ((ScenarioActivity) requireActivity()).setSaveNeeded(true);
+                    }
+                });
+                a.setLayoutParams(scenarioParams);
+                b.setLayoutParams(scenarioParams);
+                tableRow.addView(a);
+                tableRow.addView(b);
+                mTableLayout.addView(tableRow);
+            }
+            else {
+                // TODO show the prices for this scenario
+                // CREATE TABLE ROWS
+                TableRow tableRow = new TableRow(getActivity());
+                TextView a = new TextView(getActivity());
+                TextView b = new TextView(getActivity());
+                b.setSingleLine(false);
+                if (!(null == mBestCosting)) {
+                    DecimalFormat df = new DecimalFormat("#.00");
+                    String price =  "Best cost, €" + df.format(mBestCosting.getNett() /100);
+                    a.setText(price);
+                    String value = mBestCosting.getFullPlanName();
+                    b.setText(value);
+                }
+                else {
+                    a.setText("Best cost = €???.??");
+                    b.setText("Best supplier");
+                }
+                a.setLayoutParams(scenarioParams);
+                b.setLayoutParams(scenarioParams);
+                tableRow.addView(a);
+                tableRow.addView(b);
+                mTableLayout.addView(tableRow);
+
+                if (!(null == mSimKPIs)) {
+                    tableRow = new TableRow(getActivity());
+//                    PieChart pc = getPieChart("Self Consume", mSimKPIs.sold, "Sold", mSimKPIs.generated);
+                    PieChart pc = getPieChart("Self Consume", 300, "Sold", 900);
+                    tableRow.addView(pc);
+                    PieChart pc2 = getPieChart("Self supplied", mSimKPIs.bought, "Bought", mSimKPIs.totalLoad);
+                    tableRow.addView(pc2);
+                    mTableLayout.addView(tableRow);
+
+                    System.out.println(mSimKPIs.bought);
+                }
             }
         }
+    }
+
+    private PieChart getPieChart(String sdiff, double diff, String stot, double tot) {
+        PieChart pieChart = new PieChart(getActivity());
+
+        pieChart.getDescription().setEnabled(false);
+        pieChart.setRotationEnabled(true);
+        pieChart.setDragDecelerationFrictionCoef(0.9f);
+        pieChart.setRotationAngle(270);
+        pieChart.setHighlightPerTapEnabled(true);
+        pieChart.setHoleColor(Color.parseColor("#000000"));
+
+        ArrayList<PieEntry> pieEntries = new ArrayList<>();
+//        String label = "Cost/kWh";
+
+        Map<String, Double> pieMap = new HashMap<>();
+        pieMap.put(sdiff, tot - diff);
+        pieMap.put(stot, diff);
+        ArrayList<Integer> colors = new ArrayList<>();
+        colors.add(Color.parseColor("#304567"));
+        colors.add(Color.parseColor("#309967"));
+        colors.add(Color.parseColor("#476567"));
+        colors.add(Color.parseColor("#890567"));
+        colors.add(Color.parseColor("#a35567"));
+        colors.add(Color.parseColor("#ff5f67"));
+        colors.add(Color.parseColor("#3ca567"));
+
+        for(String type: pieMap.keySet()){
+            pieEntries.add(new PieEntry(Objects.requireNonNull(pieMap.get(type)).floatValue(), type));
+        }
+        PieDataSet pieDataSet = new PieDataSet(pieEntries,"");
+        pieDataSet.setValueTextSize(12f);
+        pieDataSet.setColors(colors);
+        PieData pieData = new PieData(pieDataSet);
+        pieData.setDrawValues(true);
+        pieData.setValueFormatter(new PercentFormatter(pieChart));
+        pieChart.setData(pieData);
+        pieChart.setUsePercentValues(true);
+        pieChart.setDrawEntryLabels(false);
+        Legend legend = pieChart.getLegend();
+//        int color = Color.getColor("?android:textColorPrimary");
+        int color = ContextCompat.getColor(getContext(), R.color.colorPrimaryDark);
+        legend.setTextColor(color);
+        pieChart.invalidate();
+        pieChart.setMinimumHeight(500);
+        return pieChart;
     }
 
     private void updateButtons() {

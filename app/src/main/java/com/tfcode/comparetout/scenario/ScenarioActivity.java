@@ -138,5 +138,11 @@ public class ScenarioActivity extends AppCompatActivity {
 
     public void setSaveNeeded(boolean saveNeeded){
         mUnsavedChanges = saveNeeded;
+        if (!saveNeeded){
+            MenuItem editMenuItem = mMenu.findItem(R.id.edit_scenario);
+            editMenuItem.setVisible(true);
+            MenuItem saveMenuItem = mMenu.findItem(R.id.save_scenario);
+            saveMenuItem.setVisible(false);
+        }
     }
 }

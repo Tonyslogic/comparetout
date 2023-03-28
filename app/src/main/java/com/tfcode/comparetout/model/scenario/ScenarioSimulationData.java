@@ -13,6 +13,7 @@ public class ScenarioSimulationData {
     private int minuteOfDay;
     private int dayOfWeek;
     private int dayOf2001;
+    private double load;
     private double Feed;
     private double Buy;
     private double SOC;
@@ -25,6 +26,14 @@ public class ScenarioSimulationData {
     private double batToLoad;
     private double pv;
     private double immersionLoad;
+
+    public double getLoad() {
+        return load;
+    }
+
+    public void setLoad(double load) {
+        this.load = load;
+    }
 
     public int getDayOf2001() {
         return dayOf2001;

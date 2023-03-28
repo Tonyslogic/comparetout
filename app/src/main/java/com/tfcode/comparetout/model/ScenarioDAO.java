@@ -32,6 +32,7 @@ import com.tfcode.comparetout.model.scenario.Scenario2LoadShift;
 import com.tfcode.comparetout.model.scenario.Scenario2Panel;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
+import com.tfcode.comparetout.model.scenario.SimKPIs;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -551,4 +552,8 @@ public abstract class ScenarioDAO {
 
         deleteOrphanLoadProfiles();
     }
+
+    @Query("SELECT sum(pv) AS gen, SUM(Feed) AS sold, SUM(load) AS load, SUM(Buy) AS bought " +
+            "FROM scenariosimulationdata WHERE scenarioID = :scenarioID")
+    public abstract SimKPIs getSimKPIsForScenario(Long scenarioID);
 }

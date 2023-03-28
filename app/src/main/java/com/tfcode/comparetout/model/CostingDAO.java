@@ -20,4 +20,9 @@ public abstract class CostingDAO {
 
     @Query("DELETE FROM costings WHERE pricePlanID = :id")
     public abstract void deleteRelatedCostings(int id);
+
+    @Query("SELECT * FROM costings " +
+            "WHERE (nett = (SELECT MIN(nett) AS bignett FROM costings AS costings_1 WHERE scenarioID = :scenarioID))" +
+            "AND scenarioID = :scenarioID")
+    public abstract Costings getBestCostingForScenario(Long scenarioID);
 }

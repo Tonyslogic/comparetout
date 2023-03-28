@@ -12,6 +12,7 @@ import com.tfcode.comparetout.model.scenario.LoadProfileData;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
+import com.tfcode.comparetout.model.scenario.SimKPIs;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -220,5 +221,13 @@ public class ToutcRepository {
     public void linkLoadProfileFromScenario(long fromScenarioID, Long toScenarioID) {
         ToutcDB.databaseWriteExecutor.execute(() ->
                 scenarioDAO.linkLoadProfileFromScenario(fromScenarioID, toScenarioID));
+    }
+
+    public SimKPIs getSimKPIsForScenario(Long scenarioID) {
+        return scenarioDAO.getSimKPIsForScenario(scenarioID);
+    }
+
+    public Costings getBestCostingForScenario(Long scenarioID) {
+        return costingDAO.getBestCostingForScenario(scenarioID);
     }
 }

@@ -12,6 +12,7 @@ import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
+import com.tfcode.comparetout.model.scenario.SimKPIs;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -121,5 +122,13 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public void linkLoadProfileFromScenario(long fromScenarioID, Long toScenarioID) {
         toutcRepository.linkLoadProfileFromScenario(fromScenarioID, toScenarioID);
+    }
+
+    public SimKPIs getSimKPIsForScenario(Long scenarioID) {
+        return toutcRepository.getSimKPIsForScenario (scenarioID);
+    }
+
+    public Costings getBestCostingForScenario(Long scenarioID) {
+        return toutcRepository.getBestCostingForScenario(scenarioID);
     }
 }

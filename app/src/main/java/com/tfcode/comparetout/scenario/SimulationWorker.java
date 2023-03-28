@@ -72,6 +72,7 @@ public class SimulationWorker extends Worker {
                 outputRow.setDayOfWeek(inputRow.getDow());
                 outputRow.setDayOf2001((inputRow.getDo2001()));
                 // TODO use the 'places electricity can come from and go to'
+                outputRow.setLoad(inputRow.getLoad());
                 outputRow.setFeed(0);
                 outputRow.setBuy(inputRow.getLoad());
                 outputRow.setSOC(0);

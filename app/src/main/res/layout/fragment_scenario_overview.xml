@@ -13,23 +13,6 @@ tools:context=".scenario.ScenarioOverview">
         android:layout_height="match_parent"
         tools:context=".scenario.ScenarioOverview">
 
-
-
-        <!--        <TableLayout-->
-        <!--            android:id="@+id/scenarioEditTable"-->
-        <!--            android:layout_width="match_parent"-->
-        <!--            android:layout_height="match_parent"-->
-        <!--            android:padding="0dp"-->
-        <!--            android:stretchColumns="*"-->
-        <!--            app:layout_constraintBottom_toBottomOf="parent"-->
-        <!--            app:layout_constraintEnd_toEndOf="parent"-->
-        <!--            app:layout_constraintHorizontal_bias="1.0"-->
-        <!--            app:layout_constraintStart_toStartOf="parent"-->
-        <!--            app:layout_constraintTop_toBottomOf="@+id/imageButton4"-->
-        <!--            app:layout_constraintVertical_bias="1.0">-->
-
-        <!--        </TableLayout>-->
-
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -120,6 +103,7 @@ tools:context=".scenario.ScenarioOverview">
 
             <TableLayout
                 android:id="@+id/editScenarioTable"
+                android:layout_marginTop="40dp"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:padding="0dp"
@@ -128,6 +112,12 @@ tools:context=".scenario.ScenarioOverview">
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" >
+            </TableLayout>
+
+            <TableLayout
+                android:id="@+id/scenarioHelpTable"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
             </TableLayout>
 
         </LinearLayout>
