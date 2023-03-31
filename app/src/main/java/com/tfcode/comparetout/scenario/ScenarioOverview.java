@@ -1,6 +1,7 @@
 package com.tfcode.comparetout.scenario;
 
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -77,6 +78,7 @@ public class ScenarioOverview extends Fragment {
     private Long mScenarioID;
     private Scenario mScenario;
     private List<Scenario> mScenarios;
+    private List<String> mScenarioNames;
 
     private SimKPIs mSimKPIs;
     private Costings mBestCosting;
@@ -102,6 +104,8 @@ public class ScenarioOverview extends Fragment {
         mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
         mViewModel.getAllScenarios().observe(this, scenarios -> {
             mScenarios = scenarios;
+            mScenarioNames = new ArrayList<>();
+            for (Scenario s : scenarios) mScenarioNames.add(s.getScenarioName());
             if (mScenarioID == 0) {
                 if (!(mSavingNewScenario)) {
                     mScenario = new Scenario();
@@ -109,11 +113,13 @@ public class ScenarioOverview extends Fragment {
                 }
                 else {
                     mScenarioID = findByName(scenarios, mScenario.getScenarioName());
+                    if (mScenarioID == null) mScenarioID = 0L;
                 }
             }
             else{
                 mScenario = findByID(scenarios, mScenarioID);
             }
+            mScenarioNames.remove(mScenario.getScenarioName());
             mActionBar = Objects.requireNonNull(((ScenarioActivity)requireActivity()).getSupportActionBar());
             mActionBar.setTitle("Usage: " + mScenario.getScenarioName());
             updateView();
@@ -125,7 +131,7 @@ public class ScenarioOverview extends Fragment {
         new Thread(() -> {
             mSimKPIs = mViewModel.getSimKPIsForScenario(mScenarioID);
             mBestCosting = mViewModel.getBestCostingForScenario(mScenarioID);
-            mMainHandler.post(() -> updateView());
+            mMainHandler.post(this::updateView);
         }).start();
     }
 
@@ -133,10 +139,13 @@ public class ScenarioOverview extends Fragment {
         return scenarios.stream().filter(s -> id.equals(s.getScenarioIndex())).findFirst().orElse(null);
     }
 
-    private static long findByName(List<Scenario> scenarios, String name) {
+    private static Long findByName(List<Scenario> scenarios, String name) {
         Scenario scenario = scenarios.stream().filter(s -> name.equals(s.getScenarioName())).findFirst().orElse(null);
-        if (!(scenario == null)) return scenario.getScenarioIndex();
-        else return -1L;
+        if (!(scenario == null)) {
+            System.out.println("Found id " + scenario.getScenarioIndex() + " for " + name);
+            return scenario.getScenarioIndex();
+        }
+        else return null;
     }
 
     @Override
@@ -155,6 +164,12 @@ public class ScenarioOverview extends Fragment {
         setupMenu();
         SimulatorLauncher.simulateIfNeeded(getContext());
         updateView();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 
     private void setupMenu() {
@@ -385,7 +400,7 @@ public class ScenarioOverview extends Fragment {
                     public void afterTextChanged(Editable s) {
                         mScenario.setScenarioName(s.toString());
                         System.out.println("Scenario name changed to : " + mScenario.getScenarioName());
-                        if (findByName(mScenarios, s.toString()) == -1) {
+                        if (mScenarioNames.contains(s.toString())) {
                             Snackbar.make(getView(),
                                             s + " already exists. Change before saving", Snackbar.LENGTH_LONG)
                                     .setAction("Action", null).show();
@@ -400,7 +415,6 @@ public class ScenarioOverview extends Fragment {
                 mTableLayout.addView(tableRow);
             }
             else {
-                // TODO show the prices for this scenario
                 // CREATE TABLE ROWS
                 TableRow tableRow = new TableRow(getActivity());
                 TextView a = new TextView(getActivity());

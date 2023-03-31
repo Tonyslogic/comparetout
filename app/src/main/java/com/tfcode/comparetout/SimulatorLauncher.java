@@ -27,7 +27,7 @@ public class SimulatorLauncher {
 
         WorkManager
                 .getInstance(context)
-                .beginUniqueWork("Simulation", ExistingWorkPolicy.APPEND_OR_REPLACE,  generateLoadData)
+                .beginUniqueWork("Simulation", ExistingWorkPolicy.APPEND,  generateLoadData)
                 .then(simulate)
                 .then(cost)
                 .enqueue();

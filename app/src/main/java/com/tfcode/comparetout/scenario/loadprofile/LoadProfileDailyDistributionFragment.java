@@ -1,5 +1,6 @@
 package com.tfcode.comparetout.scenario.loadprofile;
 
+import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -35,6 +36,7 @@ import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.json.scenario.LoadProfileJson;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
+import com.tfcode.comparetout.util.AbstractTextWatcher;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -94,6 +96,12 @@ public class LoadProfileDailyDistributionFragment extends Fragment {
         mBarChart = requireView().findViewById(R.id.daily_distribution_chart);
         mEditTable = requireView().findViewById(R.id.load_profile_edit_daily);
         if (!(null == mBarChart) && !(null == mLoadProfile)) updateView();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 
     private void updateView() {
@@ -193,11 +201,11 @@ public class LoadProfileDailyDistributionFragment extends Fragment {
                 percent.setInputType(InputType.TYPE_CLASS_NUMBER);
                 percent.setEnabled(mEdit);
                 int finalDayIndex = dayIndex;
-                percent.addTextChangedListener(new LocalTextWatcher() {
+                percent.addTextChangedListener(new AbstractTextWatcher() {
                     @Override
                     public void afterTextChanged(Editable s) {
-                        mLoadProfile.getDowDist().dowDist.set(finalDayIndex, Double.parseDouble(s.toString()));
-                        System.out.println(day + "changed to : " + Double.parseDouble(s.toString()));
+                        mLoadProfile.getDowDist().dowDist.set(finalDayIndex, getDoubleOrZero(s));
+                        System.out.println(day + "changed to : " + getDoubleOrZero(s));
                         ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
                         updateMasterCopy();
                         totalPercent.setText("" + calculateTotalPercentValue(mLoadProfile.getDowDist().dowDist));

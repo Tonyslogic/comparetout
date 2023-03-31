@@ -1,6 +1,8 @@
 package com.tfcode.comparetout.priceplan;
 
+import android.content.pm.ActivityInfo;
 import android.os.Bundle;
+import android.text.Editable;
 import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -28,6 +30,7 @@ import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.json.priceplan.DayRateJson;
 import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
+import com.tfcode.comparetout.util.AbstractTextWatcher;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -102,6 +105,12 @@ public class PricePlanEditFragment extends Fragment {
         mTableLayout = requireView().findViewById(R.id.planEditTable);
         updateView();
         setupMenu();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 
     private void setupMenu() {
@@ -215,10 +224,11 @@ public class PricePlanEditFragment extends Fragment {
         b.setEnabled(mEdit);
         b.setText("" + mPricePlan.getFeed());
         b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        b.setOnFocusChangeListener((v, hasFocus) -> {
-            if (!hasFocus) {
+        b.addTextChangedListener(new AbstractTextWatcher() {
+            @Override
+            public void afterTextChanged(Editable s) {
                 System.out.println("Feed edit lost focus");
-                mPricePlan.setFeed( Double.parseDouble(((EditText)v).getText().toString()));
+                mPricePlan.setFeed( getDoubleOrZero(s));
                 ((PricePlanActivity)requireActivity()).updateFocusedPlan(
                         JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
             }
@@ -237,10 +247,11 @@ public class PricePlanEditFragment extends Fragment {
         b.setEnabled(mEdit);
         b.setText("" + mPricePlan.getStandingCharges());
         b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        b.setOnFocusChangeListener((v, hasFocus) -> {
-            if (!hasFocus) {
+        b.addTextChangedListener(new AbstractTextWatcher() {
+            @Override
+            public void afterTextChanged(Editable s) {
                 System.out.println("Standing charged edit lost focus");
-                mPricePlan.setStandingCharges( Double.parseDouble(((EditText)v).getText().toString()));
+                mPricePlan.setStandingCharges( getDoubleOrZero(s));
                 ((PricePlanActivity)requireActivity()).updateFocusedPlan(
                         JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
             }
@@ -259,10 +270,11 @@ public class PricePlanEditFragment extends Fragment {
         b.setEnabled(mEdit);
         b.setText("" + mPricePlan.getSignUpBonus());
         b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        b.setOnFocusChangeListener((v, hasFocus) -> {
-            if (!hasFocus) {
+        b.addTextChangedListener(new AbstractTextWatcher() {
+            @Override
+            public void afterTextChanged(Editable s) {
                 System.out.println("Bonus edit lost focus");
-                mPricePlan.setSignUpBonus( Double.parseDouble(((EditText)v).getText().toString()));
+                mPricePlan.setSignUpBonus(getDoubleOrZero(s));
                 ((PricePlanActivity)requireActivity()).updateFocusedPlan(
                         JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
             }

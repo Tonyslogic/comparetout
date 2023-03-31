@@ -42,69 +42,71 @@ public class GenerateMissingLoadDataWorker extends Worker {
         List<Long> missing = mToutcRepository.checkForMissingLoadProfileData();
         System.out.println("checkForDataAndGenerateIfNeeded found ==> " + missing.size());
 
-        // NOTIFICATION SETUP
-        int notificationId = 1;
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
-        builder.setContentTitle("Generating load data")
-                .setContentText("Generation in progress")
-                .setSmallIcon(R.drawable.house)
-                .setPriority(NotificationCompat.PRIORITY_LOW)
-                .setTimeoutAfter(20000)
-                .setSilent(true);
-        // Issue the initial notification with zero progress
-        int PROGRESS_MAX = 100;
-        int PROGRESS_CURRENT = 0;
-        int PROGRESS_CHUNK = PROGRESS_MAX;
-        if(missing.size() > 0) {
-            PROGRESS_CHUNK = PROGRESS_MAX / missing.size();
-            builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
-            notificationManager.notify(notificationId, builder.build());
-        }
-
-        for(long loadProfileID: missing) {
-            System.out.println("*** Generating missing load data for " + loadProfileID + " *******");
-
-            builder.setContentText("Generating data");
-            notificationManager.notify(notificationId, builder.build());
-
-            LoadProfile mLoadProfile = mToutcRepository.getLoadProfileWithLoadProfileID(loadProfileID);
-            ArrayList<LoadProfileData> rows = new ArrayList<>();
-            LocalDateTime active = LocalDateTime.of(2001, 1, 1, 0, 0);
-            LocalDateTime end = LocalDateTime.of(2002,1,1, 0, 0);
-            DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-            DateTimeFormatter minFormat = DateTimeFormatter.ofPattern("HH:mm");
-            while (active.isBefore(end)) {
-                LoadProfileData row = new LoadProfileData();
-                row.setDo2001(active.getDayOfYear());
-                row.setLoadProfileID(loadProfileID);
-                row.setDate(active.format(dateFormat));
-                row.setMinute(active.format(minFormat));
-                row.setDow(active.getDayOfWeek().getValue());
-                row.setMod(active.getHour() * 60  + active.getMinute());
-                row.setLoad(genLoad(mLoadProfile, active.getMonth().getValue(),
-                        active.getDayOfWeek().getValue(), active.getHour()));
-                rows.add(row);
-                active = active.plusMinutes(5);
+        if (missing.size() > 0) {
+            // NOTIFICATION SETUP
+            int notificationId = 1;
+            NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
+            builder.setContentTitle("Generating load data")
+                    .setContentText("Generation in progress")
+                    .setSmallIcon(R.drawable.house)
+                    .setPriority(NotificationCompat.PRIORITY_LOW)
+                    .setTimeoutAfter(20000)
+                    .setSilent(true);
+            // Issue the initial notification with zero progress
+            int PROGRESS_MAX = 100;
+            int PROGRESS_CURRENT = 0;
+            int PROGRESS_CHUNK = PROGRESS_MAX;
+            if (missing.size() > 0) {
+                PROGRESS_CHUNK = PROGRESS_MAX / missing.size();
+                builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
+                notificationManager.notify(notificationId, builder.build());
             }
-            System.out.println("adding " + rows.size() + " rows to DB for Load Profile: " + loadProfileID);
 
-            builder.setContentText("Saving data");
-            notificationManager.notify(notificationId, builder.build());
+            for (long loadProfileID : missing) {
+                System.out.println("*** Generating missing load data for " + loadProfileID + " *******");
 
-            mToutcRepository.createLoadProfileDataEntries(rows);
+                builder.setContentText("Generating data");
+                notificationManager.notify(notificationId, builder.build());
 
-            // NOTIFICATION PROGRESS
-            PROGRESS_CURRENT += PROGRESS_CHUNK;
-            builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
-            notificationManager.notify(notificationId, builder.build());
-        }
+                LoadProfile mLoadProfile = mToutcRepository.getLoadProfileWithLoadProfileID(loadProfileID);
+                ArrayList<LoadProfileData> rows = new ArrayList<>();
+                LocalDateTime active = LocalDateTime.of(2001, 1, 1, 0, 0);
+                LocalDateTime end = LocalDateTime.of(2002, 1, 1, 0, 0);
+                DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+                DateTimeFormatter minFormat = DateTimeFormatter.ofPattern("HH:mm");
+                while (active.isBefore(end)) {
+                    LoadProfileData row = new LoadProfileData();
+                    row.setDo2001(active.getDayOfYear());
+                    row.setLoadProfileID(loadProfileID);
+                    row.setDate(active.format(dateFormat));
+                    row.setMinute(active.format(minFormat));
+                    row.setDow(active.getDayOfWeek().getValue());
+                    row.setMod(active.getHour() * 60 + active.getMinute());
+                    row.setLoad(genLoad(mLoadProfile, active.getMonth().getValue(),
+                            active.getDayOfWeek().getValue(), active.getHour()));
+                    rows.add(row);
+                    active = active.plusMinutes(5);
+                }
+                System.out.println("adding " + rows.size() + " rows to DB for Load Profile: " + loadProfileID);
 
-        if(missing.size() > 0) {
-            // NOTIFICATION COMPLETE
-            builder.setContentText("Generation complete")
-                    .setProgress(0,0,false);
-            notificationManager.notify(notificationId, builder.build());
+                builder.setContentText("Saving data");
+                notificationManager.notify(notificationId, builder.build());
+
+                mToutcRepository.createLoadProfileDataEntries(rows);
+
+                // NOTIFICATION PROGRESS
+                PROGRESS_CURRENT += PROGRESS_CHUNK;
+                builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
+                notificationManager.notify(notificationId, builder.build());
+            }
+
+            if (missing.size() > 0) {
+                // NOTIFICATION COMPLETE
+                builder.setContentText("Generation complete")
+                        .setProgress(0, 0, false);
+                notificationManager.notify(notificationId, builder.build());
+            }
         }
 
         return ListenableWorker.Result.success();

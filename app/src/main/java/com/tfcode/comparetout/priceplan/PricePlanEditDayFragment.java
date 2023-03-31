@@ -1,7 +1,9 @@
 package com.tfcode.comparetout.priceplan;
 
+import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.text.Editable;
 import android.text.InputType;
 import android.text.TextUtils;
 import android.view.Gravity;
@@ -36,6 +38,7 @@ import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.json.priceplan.DayRateJson;
 import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
+import com.tfcode.comparetout.util.AbstractTextWatcher;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -129,9 +132,11 @@ public class PricePlanEditDayFragment extends Fragment {
             }
         });
     }
+
     @Override
     public void onResume() {
         super.onResume();
+        getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         System.out.println("PPEDF::onResume");
         try {
             DayRate thisFragmentsDayRate = mDayRates.get(mRateIndex);
@@ -385,9 +390,10 @@ public class PricePlanEditDayFragment extends Fragment {
                 to.setEnabled(mEdit);
                 mEditFields.add(to);
                 EditText finalNextFrom = nextFrom;
-                to.setOnFocusChangeListener((v, hasFocus) -> {
-                    if (!hasFocus) {
-                        Integer newToValue = Integer.parseInt(((EditText)v).getText().toString());
+                to.addTextChangedListener(new AbstractTextWatcher() {
+                    @Override
+                    public void afterTextChanged(Editable s) {
+                        Integer newToValue = getIntegerOrZero(s);
                         Integer fromValue = Integer.parseInt(from.getText().toString());
                         Double rate = Double.parseDouble((price.getText().toString()));
                         ratesList.update(fromValue, newToValue, rate);
@@ -402,25 +408,10 @@ public class PricePlanEditDayFragment extends Fragment {
                 price.setText("" + hourlyRate.getPrice());
                 price.setEnabled(mEdit);
                 mEditFields.add(price);
-//                price.addTextChangedListener(new TextWatcher() {
-//                    @Override
-//                    public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-//
-//                    }
-//
-//                    @Override
-//                    public void onTextChanged(CharSequence s, int start, int before, int count) {
-//
-//                    }
-//
-//                    @Override
-//                    public void afterTextChanged(Editable s) {
-//
-//                    }
-//                });
-                price.setOnFocusChangeListener((v, hasFocus) -> {
-                    if (!hasFocus) {
-                        Double newValue = Double.parseDouble(((EditText)v).getText().toString());
+                price.addTextChangedListener(new AbstractTextWatcher() {
+                    @Override
+                    public void afterTextChanged(Editable s) {
+                        Double newValue = getDoubleOrZero(s);
                         Integer toValue = Integer.parseInt(to.getText().toString());
                         Integer fromValue = Integer.parseInt(from.getText().toString());
                         ratesList.update(fromValue, toValue, newValue);

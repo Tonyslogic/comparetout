@@ -35,79 +35,81 @@ public class SimulationWorker extends Worker {
         List<Long> scenarioIDs = mToutcRepository.getAllScenariosThatNeedSimulation();
         System.out.println("Found " + scenarioIDs.size() + " scenarios that need simulation");
 
-        // NOTIFICATION SETUP
-        int notificationId = 1;
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
-        builder.setContentTitle("Simulating scenarios")
-                .setContentText("Simulation in progress")
-                .setSmallIcon(R.drawable.housetick)
-                .setPriority(NotificationCompat.PRIORITY_LOW)
-                .setTimeoutAfter(20000)
-                .setSilent(true);
-        // Issue the initial notification with zero progress
-        int PROGRESS_MAX = 100;
-        int PROGRESS_CURRENT = 0;
-        int PROGRESS_CHUNK = PROGRESS_MAX;
         if (scenarioIDs.size() > 0) {
-            PROGRESS_CHUNK = PROGRESS_MAX / scenarioIDs.size();
-            builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
-            notificationManager.notify(notificationId, builder.build());
-        }
-
-        long startTime = System.nanoTime();
-        for (long scenarioID: scenarioIDs) {
-            Scenario scenario = mToutcRepository.getScenarioForID(scenarioID);
-            System.out.println("Working on scenario " + scenario.getScenarioName());
-            builder.setContentText(scenario.getScenarioName());
-            notificationManager.notify(notificationId, builder.build());
-            List<LoadProfileData> inputRows = mToutcRepository.getSimulationInput(scenarioID);
-            //TODO Load from the DB all the places electricity can come from and go to
-            ArrayList<ScenarioSimulationData> outputRows = new ArrayList<>();
-            for (LoadProfileData inputRow : inputRows) {
-                ScenarioSimulationData outputRow = new ScenarioSimulationData();
-                outputRow.setScenarioID(scenarioID);
-                outputRow.setDate(inputRow.getDate());
-                outputRow.setMinuteOfDay(inputRow.getMod());
-                outputRow.setDayOfWeek(inputRow.getDow());
-                outputRow.setDayOf2001((inputRow.getDo2001()));
-                // TODO use the 'places electricity can come from and go to'
-                outputRow.setLoad(inputRow.getLoad());
-                outputRow.setFeed(0);
-                outputRow.setBuy(inputRow.getLoad());
-                outputRow.setSOC(0);
-                outputRow.setDirectEVcharge(0);
-                outputRow.setWaterTemp(0);
-                outputRow.setKWHDivToWater(0);
-                outputRow.setKWHDivToEV(0);
-                outputRow.setPvToCharge(0);
-                outputRow.setPvToLoad(0);
-                outputRow.setBatToLoad(0);
-                outputRow.setPv(0);
-                outputRow.setImmersionLoad(0);
-
-                outputRows.add(outputRow);
+            // NOTIFICATION SETUP
+            int notificationId = 1;
+            NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
+            builder.setContentTitle("Simulating scenarios")
+                    .setContentText("Simulation in progress")
+                    .setSmallIcon(R.drawable.housetick)
+                    .setPriority(NotificationCompat.PRIORITY_LOW)
+                    .setTimeoutAfter(20000)
+                    .setSilent(true);
+            // Issue the initial notification with zero progress
+            int PROGRESS_MAX = 100;
+            int PROGRESS_CURRENT = 0;
+            int PROGRESS_CHUNK = PROGRESS_MAX;
+            if (scenarioIDs.size() > 0) {
+                PROGRESS_CHUNK = PROGRESS_MAX / scenarioIDs.size();
+                builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
+                notificationManager.notify(notificationId, builder.build());
             }
-            System.out.println("adding " + outputRows.size() + " rows to DB for simulation: " + scenario.getScenarioName());
 
-            builder.setContentText("Saving data");
-            notificationManager.notify(notificationId, builder.build());
+            long startTime = System.nanoTime();
+            for (long scenarioID : scenarioIDs) {
+                Scenario scenario = mToutcRepository.getScenarioForID(scenarioID);
+                System.out.println("Working on scenario " + scenario.getScenarioName());
+                builder.setContentText(scenario.getScenarioName());
+                notificationManager.notify(notificationId, builder.build());
+                List<LoadProfileData> inputRows = mToutcRepository.getSimulationInput(scenarioID);
+                //TODO Load from the DB all the places electricity can come from and go to
+                ArrayList<ScenarioSimulationData> outputRows = new ArrayList<>();
+                for (LoadProfileData inputRow : inputRows) {
+                    ScenarioSimulationData outputRow = new ScenarioSimulationData();
+                    outputRow.setScenarioID(scenarioID);
+                    outputRow.setDate(inputRow.getDate());
+                    outputRow.setMinuteOfDay(inputRow.getMod());
+                    outputRow.setDayOfWeek(inputRow.getDow());
+                    outputRow.setDayOf2001((inputRow.getDo2001()));
+                    // TODO use the 'places electricity can come from and go to'
+                    outputRow.setLoad(inputRow.getLoad());
+                    outputRow.setFeed(0);
+                    outputRow.setBuy(inputRow.getLoad());
+                    outputRow.setSOC(0);
+                    outputRow.setDirectEVcharge(0);
+                    outputRow.setWaterTemp(0);
+                    outputRow.setKWHDivToWater(0);
+                    outputRow.setKWHDivToEV(0);
+                    outputRow.setPvToCharge(0);
+                    outputRow.setPvToLoad(0);
+                    outputRow.setBatToLoad(0);
+                    outputRow.setPv(0);
+                    outputRow.setImmersionLoad(0);
 
-            mToutcRepository.saveSimulationDataForScenario(outputRows);
+                    outputRows.add(outputRow);
+                }
+                System.out.println("adding " + outputRows.size() + " rows to DB for simulation: " + scenario.getScenarioName());
 
-            // NOTIFICATION PROGRESS
-            PROGRESS_CURRENT += PROGRESS_CHUNK;
-            builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
-            notificationManager.notify(notificationId, builder.build());
-        }
-        long endTime = System.nanoTime();
-        System.out.println("Took " + (endTime-startTime)/1000000 + "mS to simulate " + scenarioIDs.size() + " scenarios" );
+                builder.setContentText("Saving data");
+                notificationManager.notify(notificationId, builder.build());
 
-        if (scenarioIDs.size() > 0) {
-            // NOTIFICATION COMPLETE
-            builder.setContentText("Simulation complete")
-                    .setProgress(0, 0, false);
-            notificationManager.notify(notificationId, builder.build());
+                mToutcRepository.saveSimulationDataForScenario(outputRows);
+
+                // NOTIFICATION PROGRESS
+                PROGRESS_CURRENT += PROGRESS_CHUNK;
+                builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
+                notificationManager.notify(notificationId, builder.build());
+            }
+            long endTime = System.nanoTime();
+            System.out.println("Took " + (endTime - startTime) / 1000000 + "mS to simulate " + scenarioIDs.size() + " scenarios");
+
+            if (scenarioIDs.size() > 0) {
+                // NOTIFICATION COMPLETE
+                builder.setContentText("Simulation complete")
+                        .setProgress(0, 0, false);
+                notificationManager.notify(notificationId, builder.build());
+            }
         }
         return Result.success();
     }

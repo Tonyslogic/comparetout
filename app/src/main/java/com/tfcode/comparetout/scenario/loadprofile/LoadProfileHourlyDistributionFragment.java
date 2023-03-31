@@ -1,5 +1,6 @@
 package com.tfcode.comparetout.scenario.loadprofile;
 
+import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -36,6 +37,7 @@ import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.json.scenario.LoadProfileJson;
 import com.tfcode.comparetout.model.scenario.HourlyDist;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
+import com.tfcode.comparetout.util.AbstractTextWatcher;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -100,6 +102,12 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
         mEditTable = requireView().findViewById(R.id.load_profile_edit_hourly);
 //        mFrameLayout = requireView().findViewById(R.id.fl_hourly_distribution);
         if (!(null == mBarChart) && !(null == mLoadProfile)) updateView();
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 
     private void updateView() {
@@ -284,7 +292,7 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
 
                 from.setEnabled(false);
 
-                to.addTextChangedListener(new LocalTextWatcher() {
+                to.addTextChangedListener(new AbstractTextWatcher() {
                     @Override
                     public void afterTextChanged(Editable s) {
                         try {
@@ -295,7 +303,7 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
                             HourlyDist hd = new HourlyDist();
                             hd.dist = doubleHolder.doubles;
                             mLoadProfile.setHourlyDist(hd);
-                            System.out.println("to changed to : " + Double.parseDouble(s.toString()));
+                            System.out.println("to changed to : " + getDoubleOrZero(s));
                             if(mEdit) ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
                             updateMasterCopy();
                             totalPercent.setText("" + calculatePercentageTotal(doubleHolder));
@@ -305,18 +313,18 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
                 to.setOnFocusChangeListener((v, hasFocus) -> {
                     if (!hasFocus) {updateView();}});
 
-                percent.addTextChangedListener(new LocalTextWatcher() {
+                percent.addTextChangedListener(new AbstractTextWatcher() {
                     @Override
                     public void afterTextChanged(Editable s) {
                         try {
-                            int p = Integer.parseInt(s.toString());
+                            int p = getIntegerOrZero(s);
                             int fr = Integer.parseInt(from.getText().toString());
                             int t = Integer.parseInt((to.getText().toString()));
                             doubleHolder.update(fr, t, (double) p/(t-fr));
                             HourlyDist hd = new HourlyDist();
                             hd.dist = doubleHolder.doubles;
                             mLoadProfile.setHourlyDist(hd);
-                            System.out.println("percent changed to : " + Double.parseDouble(s.toString()));
+                            System.out.println("percent changed to : " + getIntegerOrZero(s));
                             if(mEdit)((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
                             updateMasterCopy();
                             totalPercent.setText("" + calculatePercentageTotal(doubleHolder));

@@ -1,5 +1,6 @@
 package com.tfcode.comparetout.scenario.loadprofile;
 
+import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -38,6 +39,7 @@ import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.json.scenario.LoadProfileJson;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
+import com.tfcode.comparetout.util.AbstractTextWatcher;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
@@ -144,6 +146,12 @@ public class LoadProfilePropertiesFragment extends Fragment {
         if (!(null == mLoadProfile)) updateView();
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+    }
+
     private void setupMenu() {
         requireActivity().addMenuProvider(new MenuProvider() {
             @Override
@@ -247,10 +255,10 @@ public class LoadProfilePropertiesFragment extends Fragment {
         b.setText("" + mLoadProfile.getAnnualUsage());
         b.setEnabled(mEdit);
         b.setInputType(InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        b.addTextChangedListener(new LocalTextWatcher() {
+        b.addTextChangedListener(new AbstractTextWatcher() {
             @Override
             public void afterTextChanged(Editable s) {
-                mLoadProfile.setAnnualUsage(Double.parseDouble(s.toString()));
+                mLoadProfile.setAnnualUsage(getDoubleOrZero(s));
                 System.out.println("Annual usage changed to : " + mLoadProfile.getAnnualUsage());
                 ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
             }
@@ -269,11 +277,11 @@ public class LoadProfilePropertiesFragment extends Fragment {
         b.setEnabled(mEdit);
         b.setText("" + mLoadProfile.getHourlyBaseLoad());
         b.setInputType(InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        b.addTextChangedListener(new LocalTextWatcher() {
+        b.addTextChangedListener(new AbstractTextWatcher() {
             @Override
             public void afterTextChanged(Editable s) {
                 try {
-                    mLoadProfile.setHourlyBaseLoad(Double.parseDouble(s.toString()));
+                    mLoadProfile.setHourlyBaseLoad(getDoubleOrZero(s));
                     System.out.println("Base load changed to : " + mLoadProfile.getHourlyBaseLoad());
                     ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
                 } catch (NumberFormatException nfe) {}
@@ -293,10 +301,10 @@ public class LoadProfilePropertiesFragment extends Fragment {
         b.setEnabled(mEdit);
         b.setText("" + mLoadProfile.getGridImportMax());
         b.setInputType(InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        b.addTextChangedListener(new LocalTextWatcher() {
+        b.addTextChangedListener(new AbstractTextWatcher() {
             @Override
             public void afterTextChanged(Editable s) {
-                mLoadProfile.setGridImportMax(Double.parseDouble(s.toString()));
+                mLoadProfile.setGridImportMax(getDoubleOrZero(s));
                 System.out.println("Max import changed to : " + mLoadProfile.getAnnualUsage());
                 ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
             }
@@ -315,10 +323,10 @@ public class LoadProfilePropertiesFragment extends Fragment {
         b.setEnabled(mEdit);
         b.setText("" + mLoadProfile.getGridExportMax());
         b.setInputType(InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        b.addTextChangedListener(new LocalTextWatcher() {
+        b.addTextChangedListener(new AbstractTextWatcher() {
             @Override
             public void afterTextChanged(Editable s) {
-                mLoadProfile.setGridExportMax(Double.parseDouble(s.toString()));
+                mLoadProfile.setGridExportMax(getDoubleOrZero(s));
                 System.out.println("Max export changed to : " + mLoadProfile.getAnnualUsage());
                 if (mEdit) ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
             }
