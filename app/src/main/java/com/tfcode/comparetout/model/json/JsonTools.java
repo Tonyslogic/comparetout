@@ -1,5 +1,7 @@
 package com.tfcode.comparetout.model.json;
 
+import androidx.annotation.NonNull;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -568,22 +570,28 @@ public class JsonTools {
         return bjs;
     }
 
-    private static ArrayList<InverterJson> createInverterListJson(List<Inverter> inverters) {
+    public static ArrayList<InverterJson> createInverterListJson(List<Inverter> inverters) {
         ArrayList<InverterJson> ijs = new ArrayList<>();
         if (!(null == inverters)) {
             for (Inverter i : inverters) {
-                InverterJson ij = new InverterJson();
-                ij.name = i.getInverterName();
-                ij.minExcess = i.getMinExcess();
-                ij.maxInverterLoad = i.getMaxInverterLoad();
-                ij.mPPTCount = i.getMpptCount();
-                ij.ac2dcLoss = i.getAc2dcLoss();
-                ij.dc2acLoss = i.getDc2acLoss();
-                ij.dc2dcLoss = i.getDc2dcLoss();
+                InverterJson ij = createInverterJson(i);
                 ijs.add(ij);
             }
         }
         return ijs;
+    }
+
+    @NonNull
+    public static InverterJson createInverterJson(Inverter i) {
+        InverterJson ij = new InverterJson();
+        ij.name = i.getInverterName();
+        ij.minExcess = i.getMinExcess();
+        ij.maxInverterLoad = i.getMaxInverterLoad();
+        ij.mPPTCount = i.getMpptCount();
+        ij.ac2dcLoss = i.getAc2dcLoss();
+        ij.dc2acLoss = i.getDc2acLoss();
+        ij.dc2dcLoss = i.getDc2dcLoss();
+        return ij;
     }
 
     public static String createScenarioList(List<ScenarioComponents> scenarios) {

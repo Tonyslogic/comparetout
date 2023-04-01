@@ -50,6 +50,7 @@ import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.model.scenario.SimKPIs;
+import com.tfcode.comparetout.scenario.inverter.InverterActivity;
 import com.tfcode.comparetout.scenario.loadprofile.LoadProfileActivity;
 
 import java.lang.reflect.Field;
@@ -215,9 +216,13 @@ public class ScenarioOverview extends Fragment {
           "Panel editor to be done",
            Snackbar.LENGTH_LONG).setAction("Action", null).show());
         mInverterButton = requireView().findViewById(R.id.inverterButton);
-        mInverterButton.setOnClickListener(v -> Snackbar.make(requireActivity().getWindow().getDecorView().getRootView(),
-                "Inverter editor to be done",
-                Snackbar.LENGTH_LONG).setAction("Action", null).show());
+        mInverterButton.setOnClickListener(v -> {
+            Intent intent = new Intent(getActivity(), InverterActivity.class);
+            intent.putExtra("ScenarioID", mScenarioID);
+            intent.putExtra("ScenarioName", mScenario.getScenarioName());
+            intent.putExtra("Edit", mEdit);
+            startActivity(intent);
+        });
         mHouseButton = requireView().findViewById(R.id.houseButton);
         mHouseButton.setOnClickListener(v -> {
             if (mScenarioID == 0L) {

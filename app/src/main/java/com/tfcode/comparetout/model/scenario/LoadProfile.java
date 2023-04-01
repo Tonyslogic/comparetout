@@ -13,7 +13,7 @@ public class LoadProfile {
     private double hourlyBaseLoad = 0.3;
     private double gridImportMax = 15.0;
     private String distributionSource = "Custom";
-    private double gridExportMax = 6.0;
+    private double gridExportMax = 5.0;
     private HourlyDist hourlyDist = new HourlyDist();
     private DOWDist dowDist = new DOWDist();
     private MonthlyDist monthlyDist = new MonthlyDist();

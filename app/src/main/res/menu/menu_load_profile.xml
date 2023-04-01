@@ -44,4 +44,10 @@
         app:showAsAction="ifRoom|withText"
         android:icon="@drawable/ic_baseline_help_outline_24"
         android:title="@string/help"/>
+    <item
+        android:id="@+id/lp_delete"
+        app:showAsAction="ifRoom|withText"
+        android:icon="@drawable/ic_baseline_delete_24"
+        android:title="@string/delete"
+        android:visible="false"/>
 </menu>

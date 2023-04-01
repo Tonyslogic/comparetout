@@ -294,6 +294,28 @@ public abstract class ScenarioDAO {
         updateScenario(scenario);
     }
 
+    @Update (entity = Inverter.class)
+    public abstract void updateInverter(Inverter inverter);
+
+    @Transaction
+    public void saveInverter(Long scenarioID, Inverter inverter){
+        long inverterID = inverter.getInverterIndex();
+        if (inverterID == 0) {
+            inverterID = addNewInverter(inverter);
+            Scenario2Inverter s2i = new Scenario2Inverter();
+            s2i.setScenarioID(scenarioID);
+            s2i.setInverterID(inverterID);
+            addNewScenario2Inverter(s2i);
+
+            Scenario scenario = getScenario(scenarioID);
+            scenario.setHasInverters(true);
+            updateScenario(scenario);
+        }
+        else {
+            updateInverter(inverter);
+        }
+    }
+
     @Query("SELECT DISTINCT loadProfileID FROM loadprofiledata WHERE loadProfileID = :id")
     public abstract long loadProfileDataCheck(long id);
 
@@ -556,4 +578,62 @@ public abstract class ScenarioDAO {
     @Query("SELECT sum(pv) AS gen, SUM(Feed) AS sold, SUM(load) AS load, SUM(Buy) AS bought " +
             "FROM scenariosimulationdata WHERE scenarioID = :scenarioID")
     public abstract SimKPIs getSimKPIsForScenario(Long scenarioID);
+
+    @Query("DELETE FROM scenario2inverter WHERE scenarioID = :scenarioID AND inverterID = :inverterID")
+    public abstract void removeScenario2Inverter(Long inverterID, Long scenarioID);
+
+    @Transaction
+    public void deleteInverterFromScenario(Long inverterID, Long scenarioID) {
+        removeScenario2Inverter(inverterID, scenarioID);
+        deleteOrphanInverters();
+        List<Inverter> inverters = getInvertersForScenarioID(scenarioID);
+        if (inverters.size() == 0) {
+            Scenario scenario = getScenario(scenarioID);
+            scenario.setHasInverters(false);
+            updateScenario(scenario);
+        }
+    }
+
+    public void copyInverterFromScenario(long fromScenarioID, Long toScenarioID) {
+        List<Inverter> inverters = getInvertersForScenarioID(fromScenarioID);
+        for (Inverter inverter: inverters) {
+            inverter.setInverterIndex(0L);
+            long newInverterID = addNewInverter(inverter);
+
+            System.out.println("copyInverterFromScenario, new IID=" + newInverterID);
+
+            Scenario2Inverter s2i = new Scenario2Inverter();
+            s2i.setScenarioID(toScenarioID);
+            s2i.setInverterID(newInverterID);
+            addNewScenario2Inverter(s2i);
+
+            Scenario toScenario = getScenario(toScenarioID);
+            toScenario.setHasInverters(true);
+            updateScenario(toScenario);
+        }
+
+        deleteOrphanLoadProfiles();
+    }
+
+    @Query("SELECT * FROM scenario2inverter")
+    public abstract LiveData<List<Scenario2Inverter>> loadInverterRelations();
+
+    @Transaction
+    public void linkInverterFromScenario(long fromScenarioID, Long toScenarioID) {
+        List<Inverter> inverters = getInvertersForScenarioID(fromScenarioID);
+        for (Inverter lp: inverters) {
+            System.out.println("Linking inverter with id= " + lp.getInverterIndex());
+
+            Scenario2Inverter scenario2Inverter = new Scenario2Inverter();
+            scenario2Inverter.setScenarioID(toScenarioID);
+            scenario2Inverter.setInverterID(lp.getInverterIndex());
+            addNewScenario2Inverter(scenario2Inverter);
+
+            Scenario toScenario = getScenario(toScenarioID);
+            toScenario.setHasInverters(true);
+            updateScenario(toScenario);
+        }
+
+        deleteOrphanLoadProfiles();
+    }
 }

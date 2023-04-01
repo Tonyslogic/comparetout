@@ -45,11 +45,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link PricePlanEditDayFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
 public class PricePlanEditDayFragment extends Fragment {
 
     private ComparisonUIViewModel mViewModel;

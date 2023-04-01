@@ -9,8 +9,10 @@ import com.tfcode.comparetout.model.costings.Costings;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.ToutcRepository;
+import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
 import com.tfcode.comparetout.model.scenario.Scenario;
+import com.tfcode.comparetout.model.scenario.Scenario2Inverter;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.model.scenario.SimKPIs;
 
@@ -130,5 +132,29 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public Costings getBestCostingForScenario(Long scenarioID) {
         return toutcRepository.getBestCostingForScenario(scenarioID);
+    }
+
+    public List<Inverter> getInvertersForScenario(Long scenarioID) {
+        return toutcRepository.getInvertersForScenario(scenarioID);
+    }
+
+    public void saveInverterForScenario(Long scenarioID, Inverter inverter) {
+        toutcRepository.saveInverter(scenarioID, inverter);
+    }
+
+    public void deleteInverterFromScenario(Long inverterID, Long scenarioID) {
+        toutcRepository.deleteInverterFromScenario(inverterID, scenarioID);
+    }
+
+    public void copyInverterFromScenario(long fromScenarioID, Long toScenarioID) {
+        toutcRepository.copyInverterFromScenario(fromScenarioID, toScenarioID);
+    }
+
+    public LiveData<List<Scenario2Inverter>> getAllInverterRelations() {
+        return toutcRepository.getAllInverterRelations();
+    }
+
+    public void linkInverterFromScenario(long fromScenarioID, Long toScenarioID) {
+        toutcRepository.linkInverterFromScenario(fromScenarioID, toScenarioID);
     }
 }

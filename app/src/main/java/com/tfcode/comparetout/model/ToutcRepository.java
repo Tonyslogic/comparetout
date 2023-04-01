@@ -7,9 +7,11 @@ import androidx.lifecycle.LiveData;
 import com.tfcode.comparetout.model.costings.Costings;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
+import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
 import com.tfcode.comparetout.model.scenario.LoadProfileData;
 import com.tfcode.comparetout.model.scenario.Scenario;
+import com.tfcode.comparetout.model.scenario.Scenario2Inverter;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
 import com.tfcode.comparetout.model.scenario.SimKPIs;
@@ -24,6 +26,7 @@ public class ToutcRepository {
 
     private final ScenarioDAO scenarioDAO;
     private final LiveData<List<Scenario>> allScenarios;
+    private final LiveData<List<Scenario2Inverter>> inverterRelations;
 
     private final CostingDAO costingDAO;
     private final LiveData<List<Costings>> allCostings;
@@ -39,6 +42,7 @@ public class ToutcRepository {
 
         scenarioDAO = db.sceanrioDAO();
         allScenarios = scenarioDAO.loadScenarios();
+        inverterRelations = scenarioDAO.loadInverterRelations();
 
         costingDAO = db.costingDAO();
         allCostings = costingDAO.loadCostings();
@@ -229,5 +233,31 @@ public class ToutcRepository {
 
     public Costings getBestCostingForScenario(Long scenarioID) {
         return costingDAO.getBestCostingForScenario(scenarioID);
+    }
+
+    public List<Inverter> getInvertersForScenario(Long scenarioID) {
+        return scenarioDAO.getInvertersForScenarioID(scenarioID);
+    }
+
+    public void saveInverter(Long scenarioID, Inverter inverter) {
+        scenarioDAO.saveInverter(scenarioID, inverter);
+    }
+
+    public void deleteInverterFromScenario(Long inverterID, Long scenarioID) {
+        scenarioDAO.deleteInverterFromScenario(inverterID, scenarioID);
+    }
+
+    public void copyInverterFromScenario(long fromScenarioID, Long toScenarioID) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                scenarioDAO.copyInverterFromScenario(fromScenarioID, toScenarioID));
+    }
+
+    public LiveData<List<Scenario2Inverter>> getAllInverterRelations() {
+        return inverterRelations;
+    }
+
+    public void linkInverterFromScenario(long fromScenarioID, Long toScenarioID) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                scenarioDAO.linkInverterFromScenario(fromScenarioID, toScenarioID));
     }
 }
