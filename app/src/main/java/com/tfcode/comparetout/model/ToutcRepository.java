@@ -10,8 +10,10 @@ import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
 import com.tfcode.comparetout.model.scenario.LoadProfileData;
+import com.tfcode.comparetout.model.scenario.Panel;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.Scenario2Inverter;
+import com.tfcode.comparetout.model.scenario.Scenario2Panel;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
 import com.tfcode.comparetout.model.scenario.SimKPIs;
@@ -27,6 +29,7 @@ public class ToutcRepository {
     private final ScenarioDAO scenarioDAO;
     private final LiveData<List<Scenario>> allScenarios;
     private final LiveData<List<Scenario2Inverter>> inverterRelations;
+    private final LiveData<List<Scenario2Panel>> panelRelations;
 
     private final CostingDAO costingDAO;
     private final LiveData<List<Costings>> allCostings;
@@ -43,6 +46,7 @@ public class ToutcRepository {
         scenarioDAO = db.sceanrioDAO();
         allScenarios = scenarioDAO.loadScenarios();
         inverterRelations = scenarioDAO.loadInverterRelations();
+        panelRelations = scenarioDAO.loadPanelRelations();
 
         costingDAO = db.costingDAO();
         allCostings = costingDAO.loadCostings();
@@ -259,5 +263,31 @@ public class ToutcRepository {
     public void linkInverterFromScenario(long fromScenarioID, Long toScenarioID) {
         ToutcDB.databaseWriteExecutor.execute(() ->
                 scenarioDAO.linkInverterFromScenario(fromScenarioID, toScenarioID));
+    }
+
+    public LiveData<List<Scenario2Panel>> getAllPanelRelations() {
+        return panelRelations;
+    }
+
+    public List<Panel> getPanelsForScenario(Long scenarioID) {
+        return scenarioDAO.getPanelsForScenarioID(scenarioID);
+    }
+
+    public void deletePanelFromScenario(Long panelID, Long scenarioID) {
+        scenarioDAO.deletePanelFromScenario(panelID, scenarioID);
+    }
+
+    public void savePanel(Long scenarioID, Panel panel) {
+        scenarioDAO.savePanel(scenarioID, panel);
+    }
+
+    public void copyPanelFromScenario(long fromScenarioID, Long toScenarioID) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                scenarioDAO.copyPanelFromScenario(fromScenarioID, toScenarioID));
+    }
+
+    public void linkPanelFromScenario(long fromScenarioID, Long toScenarioID) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                scenarioDAO.linkPanelFromScenario(fromScenarioID, toScenarioID));
     }
 }

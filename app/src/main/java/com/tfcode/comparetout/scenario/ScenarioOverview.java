@@ -52,6 +52,7 @@ import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.model.scenario.SimKPIs;
 import com.tfcode.comparetout.scenario.inverter.InverterActivity;
 import com.tfcode.comparetout.scenario.loadprofile.LoadProfileActivity;
+import com.tfcode.comparetout.scenario.panel.PanelActivity;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -212,9 +213,14 @@ public class ScenarioOverview extends Fragment {
 
     private void setupButtons() {
         mPanelButton = requireView().findViewById(R.id.panelButton);
-        mPanelButton.setOnClickListener(v -> Snackbar.make(requireActivity().getWindow().getDecorView().getRootView(),
-          "Panel editor to be done",
-           Snackbar.LENGTH_LONG).setAction("Action", null).show());
+        mPanelButton.setOnClickListener(v -> {
+            Intent intent = new Intent(getActivity(), PanelActivity.class);
+            intent.putExtra("ScenarioID", mScenarioID);
+            intent.putExtra("ScenarioName", mScenario.getScenarioName());
+            intent.putExtra("Edit", mEdit);
+            startActivity(intent);
+        });
+
         mInverterButton = requireView().findViewById(R.id.inverterButton);
         mInverterButton.setOnClickListener(v -> {
             Intent intent = new Intent(getActivity(), InverterActivity.class);
@@ -223,6 +229,7 @@ public class ScenarioOverview extends Fragment {
             intent.putExtra("Edit", mEdit);
             startActivity(intent);
         });
+
         mHouseButton = requireView().findViewById(R.id.houseButton);
         mHouseButton.setOnClickListener(v -> {
             if (mScenarioID == 0L) {
@@ -238,6 +245,7 @@ public class ScenarioOverview extends Fragment {
                 startActivity(intent);
             }
         });
+
         mBatteryButton = requireView().findViewById(R.id.batteryButton);
         mBatteryButton.setOnClickListener(v -> {
             //Creating the instance of PopupMenu
@@ -276,6 +284,7 @@ public class ScenarioOverview extends Fragment {
             }
             popup.show(); //showing popup menu
         }); //closing the setOnClickListener method
+
         mTankButton = requireView().findViewById(R.id.tankButton);
         mTankButton.setOnClickListener(v -> {
             //Creating the instance of PopupMenu
@@ -312,6 +321,7 @@ public class ScenarioOverview extends Fragment {
             }
             popup.show(); //showing popup menu
         }); //closing the setOnClickListener method
+
         mCarButton = requireView().findViewById(R.id.carButton);
         mCarButton.setOnClickListener(v -> {
             //Creating the instance of PopupMenu

@@ -528,7 +528,7 @@ public class JsonTools {
         return hwsj;
     }
 
-    private static ArrayList<PanelJson> createPanelListJson(List<Panel> panels) {
+    public static ArrayList<PanelJson> createPanelListJson(List<Panel> panels) {
         ArrayList<PanelJson> pjs = new ArrayList<>();
         if (!(null == panels)){
             for (Panel p : panels){

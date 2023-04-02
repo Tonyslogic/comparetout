@@ -297,6 +297,9 @@ public abstract class ScenarioDAO {
     @Update (entity = Inverter.class)
     public abstract void updateInverter(Inverter inverter);
 
+    @Update (entity = Panel.class)
+    public abstract void updatePanel(Panel panel);
+
     @Transaction
     public void saveInverter(Long scenarioID, Inverter inverter){
         long inverterID = inverter.getInverterIndex();
@@ -612,7 +615,7 @@ public abstract class ScenarioDAO {
             updateScenario(toScenario);
         }
 
-        deleteOrphanLoadProfiles();
+        deleteOrphanInverters();
     }
 
     @Query("SELECT * FROM scenario2inverter")
@@ -634,6 +637,82 @@ public abstract class ScenarioDAO {
             updateScenario(toScenario);
         }
 
-        deleteOrphanLoadProfiles();
+        deleteOrphanInverters();
+    }
+
+    @Query("SELECT * FROM scenario2panel")
+    public abstract LiveData<List<Scenario2Panel>> loadPanelRelations();
+
+    @Query("DELETE FROM scenario2panel WHERE scenarioID = :scenarioID AND panelID = :panelID")
+    public abstract void removeScenario2Panel(Long panelID, Long scenarioID);
+
+    @Transaction
+    public void deletePanelFromScenario(Long panelID, Long scenarioID) {
+        removeScenario2Panel(panelID, scenarioID);
+        deleteOrphanPanels();
+        List<Panel> panels = getPanelsForScenarioID(scenarioID);
+        if (panels.size() == 0) {
+            Scenario scenario = getScenario(scenarioID);
+            scenario.setHasInverters(false);
+            updateScenario(scenario);
+        }
+    }
+    @Transaction
+    public void savePanel(Long scenarioID, Panel panel) {
+        long panleID = panel.getPanelIndex();
+        if (panleID == 0) {
+            panleID = addNewPanels(panel);
+            Scenario2Panel s2p = new Scenario2Panel();
+            s2p.setScenarioID(scenarioID);
+            s2p.setPanelID(panleID);
+            addNewScenario2Panel(s2p);
+
+            Scenario scenario = getScenario(scenarioID);
+            scenario.setHasInverters(true);
+            updateScenario(scenario);
+        }
+        else {
+            updatePanel(panel);
+        }
+    }
+
+    public void copyPanelFromScenario(long fromScenarioID, Long toScenarioID) {
+        List<Panel> panels = getPanelsForScenarioID(fromScenarioID);
+        for (Panel panel: panels) {
+            panel.setPanelIndex(0L);
+            long newPanelID = addNewPanels(panel);
+
+            System.out.println("copyPanelFromScenario, new IID=" + newPanelID);
+
+            Scenario2Panel s2p = new Scenario2Panel();
+            s2p.setScenarioID(toScenarioID);
+            s2p.setPanelID(newPanelID);
+            addNewScenario2Panel(s2p);
+
+            Scenario toScenario = getScenario(toScenarioID);
+            toScenario.setHasPanels(true);
+            updateScenario(toScenario);
+        }
+
+        deleteOrphanPanels();
+    }
+
+    @Transaction
+    public void linkPanelFromScenario(long fromScenarioID, Long toScenarioID) {
+        List<Panel> panels = getPanelsForScenarioID(fromScenarioID);
+        for (Panel panel: panels) {
+            System.out.println("Linking panel with id= " + panel.getPanelIndex());
+
+            Scenario2Panel scenario2Panel = new Scenario2Panel();
+            scenario2Panel.setScenarioID(toScenarioID);
+            scenario2Panel.setPanelID(panel.getPanelIndex());
+            addNewScenario2Panel(scenario2Panel);
+
+            Scenario toScenario = getScenario(toScenarioID);
+            toScenario.setHasPanels(true);
+            updateScenario(toScenario);
+        }
+
+        deleteOrphanPanels();
     }
 }

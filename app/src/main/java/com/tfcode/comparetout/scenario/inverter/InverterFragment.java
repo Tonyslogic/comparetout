@@ -226,7 +226,4 @@ public class InverterFragment extends Fragment {
         mEdit = ed;
         for (View view: mEditFields) view.setEnabled(mEdit);
     }
-
-    public void update() {
-    }
 }

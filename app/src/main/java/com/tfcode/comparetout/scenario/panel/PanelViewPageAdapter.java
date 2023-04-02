@@ -1,25 +1,27 @@
-package com.tfcode.comparetout.scenario.inverter;
+package com.tfcode.comparetout.scenario.panel;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 
+import com.tfcode.comparetout.scenario.inverter.InverterFragment;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 
-public class InverterViewPageAdapter extends FragmentStateAdapter {
+public class PanelViewPageAdapter extends FragmentStateAdapter {
 
-    private int mInverterCount;
-    private Map<Integer, InverterFragment> mInverterFragments = new HashMap<>();
+    private int mPanelCount;
+    private Map<Integer, PanelFragment> mPanelFragments = new HashMap<>();
     private final Map<Long, Fragment> mFragmentIDMap = new HashMap<>();
     private Map<Integer, Long> mPos2ID = new HashMap<>();
     private long mLastID = 0L;
 
-    public InverterViewPageAdapter(@NonNull FragmentActivity fragmentActivity, int count) {
+    public PanelViewPageAdapter(@NonNull FragmentActivity fragmentActivity, int count) {
         super(fragmentActivity);
-        mInverterCount = count;
+        mPanelCount = count;
     }
 
     @NonNull
@@ -27,19 +29,19 @@ public class InverterViewPageAdapter extends FragmentStateAdapter {
     public Fragment createFragment(int position) {
         Long id = mPos2ID.get(position);
         if (id == null) {
-            InverterFragment dayRateFragment = InverterFragment.newInstance(position);
-            mInverterFragments.put(position, dayRateFragment);
+            PanelFragment dayRateFragment = PanelFragment.newInstance(position);
+            mPanelFragments.put(position, dayRateFragment);
             mLastID++;
             mFragmentIDMap.put(mLastID, dayRateFragment);
             mPos2ID.put(position, mLastID);
             return dayRateFragment;
         }
-        else return Objects.requireNonNull(mInverterFragments.get(position));
+        else return Objects.requireNonNull(mPanelFragments.get(position));
     }
 
     @Override
     public int getItemCount() {
-        return mInverterCount;
+        return mPanelCount;
     }
 
     @Override
@@ -53,43 +55,43 @@ public class InverterViewPageAdapter extends FragmentStateAdapter {
     }
 
     public void add(int index) {
-        System.out.println("Adding inverter at " + index);
-        InverterFragment inverterFragment = InverterFragment.newInstance(index);
-        for (InverterFragment frag : mInverterFragments.values()) frag.refreshFocus();
-        mInverterFragments.put(index,inverterFragment);
+        System.out.println("Adding panel at " + index);
+        PanelFragment panelFragment = PanelFragment.newInstance(index);
+        for (PanelFragment frag : mPanelFragments.values()) frag.refreshFocus();
+        mPanelFragments.put(index,panelFragment);
         mLastID++;
-        mFragmentIDMap.put(mLastID, inverterFragment);
+        mFragmentIDMap.put(mLastID, panelFragment);
         mPos2ID.put(index, mLastID);
-        mInverterCount++;
+        mPanelCount++;
         notifyItemInserted(index);
     }
 
     public void delete(int pos) {
-        Map<Integer, InverterFragment> newInverterFragments = new HashMap<>();
+        Map<Integer, PanelFragment> newPanelFragments = new HashMap<>();
         Map<Integer, Long> newPos2ID = new HashMap<>();
         newPos2ID.put(0, 0L);
-        for (int key: mInverterFragments.keySet()){
-            InverterFragment inverterFragment = mInverterFragments.get(key);
+        for (int key: mPanelFragments.keySet()){
+            PanelFragment panelFragment = mPanelFragments.get(key);
             if (key < pos) {
-                newInverterFragments.put(key, mInverterFragments.get(key));
-                inverterFragment.refreshFocus();
+                newPanelFragments.put(key, mPanelFragments.get(key));
+                panelFragment.refreshFocus();
                 newPos2ID.put(key, mPos2ID.get(key));
             }
             if (key > pos) {
-                newInverterFragments.put(key - 1, inverterFragment);
-                inverterFragment.inverterDeleted(key - 1);
+                newPanelFragments.put(key - 1, panelFragment);
+                panelFragment.panelDeleted(key - 1);
                 newPos2ID.put(key - 1, mPos2ID.get(key));
             }
         }
-        mInverterFragments = newInverterFragments;
+        mPanelFragments = newPanelFragments;
         mFragmentIDMap.remove(mPos2ID.get(pos));
         mPos2ID = newPos2ID;
-        mInverterCount--;
+        mPanelCount--;
         notifyItemRemoved(pos);
     }
 
     // FRAGMENT BROADCAST METHODS
     public void setEdit(boolean ed) {
-        for (InverterFragment inverterFragment: mInverterFragments.values()) inverterFragment.setEditMode(ed);
+        for (PanelFragment panelFragment: mPanelFragments.values()) panelFragment.setEditMode(ed);
     }
 }

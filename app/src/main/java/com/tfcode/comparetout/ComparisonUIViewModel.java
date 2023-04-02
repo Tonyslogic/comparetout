@@ -11,8 +11,10 @@ import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
+import com.tfcode.comparetout.model.scenario.Panel;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.Scenario2Inverter;
+import com.tfcode.comparetout.model.scenario.Scenario2Panel;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.model.scenario.SimKPIs;
 
@@ -156,5 +158,29 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public void linkInverterFromScenario(long fromScenarioID, Long toScenarioID) {
         toutcRepository.linkInverterFromScenario(fromScenarioID, toScenarioID);
+    }
+
+    public LiveData<List<Scenario2Panel>> getAllPanelRelations() {
+        return toutcRepository.getAllPanelRelations();
+    }
+
+    public List<Panel> getPanelsForScenario(Long scenarioID) {
+        return toutcRepository.getPanelsForScenario(scenarioID);
+    }
+
+    public void deletePanelFromScenario(Long panelID, Long scenarioID) {
+        toutcRepository.deletePanelFromScenario(panelID, scenarioID);
+    }
+
+    public void savePanelForScenario(Long scenarioID, Panel panel) {
+        toutcRepository.savePanel(scenarioID, panel);
+    }
+
+    public void copyPanelFromScenario(long fromScenarioID, Long toScenarioID) {
+        toutcRepository.copyPanelFromScenario(fromScenarioID, toScenarioID);
+    }
+
+    public void linkPanelFromScenario(long fromScenarioID, Long toScenarioID) {
+        toutcRepository.linkPanelFromScenario(fromScenarioID, toScenarioID);
     }
 }
