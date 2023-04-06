@@ -254,7 +254,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
         EditText b = new EditText(getActivity());
         b.setText("" + mLoadProfile.getAnnualUsage());
         b.setEnabled(mEdit);
-        b.setInputType(InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
         b.addTextChangedListener(new AbstractTextWatcher() {
             @Override
             public void afterTextChanged(Editable s) {
@@ -276,7 +276,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
         b = new EditText(getActivity());
         b.setEnabled(mEdit);
         b.setText("" + mLoadProfile.getHourlyBaseLoad());
-        b.setInputType(InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
         b.addTextChangedListener(new AbstractTextWatcher() {
             @Override
             public void afterTextChanged(Editable s) {
@@ -300,7 +300,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
         b = new EditText(getActivity());
         b.setEnabled(mEdit);
         b.setText("" + mLoadProfile.getGridImportMax());
-        b.setInputType(InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
         b.addTextChangedListener(new AbstractTextWatcher() {
             @Override
             public void afterTextChanged(Editable s) {
@@ -322,7 +322,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
         b = new EditText(getActivity());
         b.setEnabled(mEdit);
         b.setText("" + mLoadProfile.getGridExportMax());
-        b.setInputType(InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
         b.addTextChangedListener(new AbstractTextWatcher() {
             @Override
             public void afterTextChanged(Editable s) {

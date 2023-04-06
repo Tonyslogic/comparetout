@@ -71,51 +71,61 @@ public class CostingWorker extends Worker {
                 builder.setContentText("Loading data");
                 notificationManager.notify(notificationId, builder.build());
                 List<ScenarioSimulationData> scenarioData = mToutcRepository.getSimulationDataForScenario(scenarioID);
-                long startTime = System.nanoTime();
-                for (PricePlan pp : plans) {
-                    builder.setContentText(pp.getPlanName());
-                    notificationManager.notify(notificationId, builder.build());
-                    RateLookup lookup = mLookups.get(pp.getPricePlanIndex());
-                    if (null == lookup) {
-                        lookup = new RateLookup(
-                                mToutcRepository.getAllDayRatesForPricePlanID(pp.getPricePlanIndex()));
-                        mLookups.put(pp.getPricePlanIndex(), lookup);
+                System.out.println("Retrieved " + scenarioData.size() + " rows of simulation data for " + scenarioID);
+                if (scenarioData.size() > 0) {
+                    long startTime = System.nanoTime();
+                    for (PricePlan pp : plans) {
+                        builder.setContentText(pp.getPlanName());
+                        notificationManager.notify(notificationId, builder.build());
+                        RateLookup lookup = mLookups.get(pp.getPricePlanIndex());
+                        if (null == lookup) {
+                            lookup = new RateLookup(
+                                    mToutcRepository.getAllDayRatesForPricePlanID(pp.getPricePlanIndex()));
+                            mLookups.put(pp.getPricePlanIndex(), lookup);
+                        }
+                        Costings costing = new Costings();
+                        costing.setScenarioID(scenarioID);
+                        costing.setScenarioName(mToutcRepository.getScenarioForID(scenarioID).getScenarioName());
+                        costing.setPricePlanID(pp.getPricePlanIndex());
+                        costing.setFullPlanName(pp.getSupplier() + ":" + pp.getPlanName());
+                        double buy = 0D;
+                        double sell = 0D;
+                        double nett;
+                        SubTotals subTotals = new SubTotals();
+                        for (ScenarioSimulationData row : scenarioData) {
+                            double price = lookup.getRate(row.getDayOf2001(), row.getMinuteOfDay(), row.getDayOfWeek());
+                            double rowBuy = price * row.getBuy();
+                            buy += rowBuy;
+                            sell += pp.getFeed() * row.getFeed();
+                            subTotals.addToPrice(price, row.getBuy()); // This is the number of units
+                        }
+                        costing.setBuy(buy);
+                        costing.setSell(sell);
+                        costing.setSubTotals(subTotals);
+                        double days = 365; // TODO look at the biggest & smallest dates in the simdata
+                        nett = ((buy - sell) + (pp.getStandingCharges() * 100 * (days / 365))) - (pp.getSignUpBonus() * 100);
+                        costing.setNett(nett);
+                        // store in comparison table
+                        System.out.println("Storing " + costing);
+                        builder.setContentText("Saving data");
+                        notificationManager.notify(notificationId, builder.build());
+                        mToutcRepository.saveCosting(costing);
+                        // NOTIFICATION PROGRESS
+                        PROGRESS_CURRENT += PROGRESS_CHUNK;
+                        builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
+                        builder.setContentText("Data saved");
+                        notificationManager.notify(notificationId, builder.build());
                     }
-                    Costings costing = new Costings();
-                    costing.setScenarioID(scenarioID);
-                    costing.setScenarioName(mToutcRepository.getScenarioForID(scenarioID).getScenarioName());
-                    costing.setPricePlanID(pp.getPricePlanIndex());
-                    costing.setFullPlanName(pp.getSupplier() + ":" + pp.getPlanName());
-                    double buy = 0D;
-                    double sell = 0D;
-                    double nett;
-                    SubTotals subTotals = new SubTotals();
-                    for (ScenarioSimulationData row : scenarioData) {
-                        double price = lookup.getRate(row.getDayOf2001(), row.getMinuteOfDay(), row.getDayOfWeek());
-                        double rowBuy = price * row.getBuy();
-                        buy += rowBuy;
-                        sell += pp.getFeed() * row.getFeed();
-                        subTotals.addToPrice(price, row.getBuy()); // This is the number of units
-                    }
-                    costing.setBuy(buy);
-                    costing.setSell(sell);
-                    costing.setSubTotals(subTotals);
-                    double days = 365; // TODO look at the biggest & smallest dates in the simdata
-                    nett = ((buy - sell) + (pp.getStandingCharges() * 100 * (days / 365))) - (pp.getSignUpBonus() * 100);
-                    costing.setNett(nett);
-                    // store in comparison table
-                    System.out.println("Storing " + costing);
-                    builder.setContentText("Saving data");
+                    long endTime = System.nanoTime();
+                    System.out.println("Took " + (endTime - startTime) / 1000000 + "mS to cost " + plans.size() + " plans");
+                }
+                else {
+                    builder.setContentText("Missing panel data");
                     notificationManager.notify(notificationId, builder.build());
-                    mToutcRepository.saveCosting(costing);
-                    // NOTIFICATION PROGRESS
                     PROGRESS_CURRENT += PROGRESS_CHUNK;
                     builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
-                    builder.setContentText("Data saved");
                     notificationManager.notify(notificationId, builder.build());
                 }
-                long endTime = System.nanoTime();
-                System.out.println("Took " + (endTime - startTime) / 1000000 + "mS to cost " + plans.size() + " plans");
             }
 
             // NOTIFICATION COMPLETE

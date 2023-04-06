@@ -162,6 +162,8 @@ public class LoadProfileMonthlyDistributionFragment extends Fragment {
                 mBarChart.getDescription().setEnabled(false);
                 mBarChart.setData(data);
             }
+            mBarChart.invalidate();
+            mBarChart.refreshDrawableState();
         }
         else {
             mEditTable.setVisibility(View.VISIBLE);

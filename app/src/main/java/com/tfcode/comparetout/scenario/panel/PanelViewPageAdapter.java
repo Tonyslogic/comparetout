@@ -94,4 +94,8 @@ public class PanelViewPageAdapter extends FragmentStateAdapter {
     public void setEdit(boolean ed) {
         for (PanelFragment panelFragment: mPanelFragments.values()) panelFragment.setEditMode(ed);
     }
+
+    public void updateDBIndex() {
+        for (PanelFragment panelFragment: mPanelFragments.values()) panelFragment.updateDBIndex();
+    }
 }

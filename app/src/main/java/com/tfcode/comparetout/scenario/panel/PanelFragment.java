@@ -3,11 +3,6 @@ package com.tfcode.comparetout.scenario.panel;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-
 import android.text.Editable;
 import android.text.InputType;
 import android.view.LayoutInflater;
@@ -20,14 +15,26 @@ import android.widget.TableRow;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
+
 import com.github.mikephil.charting.charts.BarChart;
+import com.github.mikephil.charting.components.XAxis;
+import com.github.mikephil.charting.data.BarData;
+import com.github.mikephil.charting.data.BarDataSet;
+import com.github.mikephil.charting.data.BarEntry;
+import com.github.mikephil.charting.formatter.ValueFormatter;
+import com.github.mikephil.charting.interfaces.datasets.IBarDataSet;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.json.scenario.PanelJson;
 import com.tfcode.comparetout.model.scenario.Panel;
-import com.tfcode.comparetout.scenario.inverter.InverterActivity;
+import com.tfcode.comparetout.model.scenario.PanelPVSummary;
 import com.tfcode.comparetout.util.AbstractTextWatcher;
 
 import java.lang.reflect.Type;
@@ -45,6 +52,9 @@ public class PanelFragment extends Fragment {
     private TableLayout mTableLayout;
     private BarChart mBarChart;
     private TableLayout mPanelNoData;
+
+    private ComparisonUIViewModel mViewModel;
+    private List<PanelPVSummary> mPanelPVSummaries;
 
 
     public PanelFragment() {
@@ -65,6 +75,13 @@ public class PanelFragment extends Fragment {
         mEdit = ((PanelActivity) requireActivity()).getEdit();
         mEditFields = new ArrayList<>();
         unpackPanel();
+        mPanel.setPanelIndex(((PanelActivity) requireActivity()).getDBID(mPanelIndex));
+
+        mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
+        mViewModel.getPanelDataSummary().observe(this, summaries -> {
+            mPanelPVSummaries = summaries;
+            updateChartView();
+        });
     }
 
     private void unpackPanel() {
@@ -109,27 +126,100 @@ public class PanelFragment extends Fragment {
     private void updateView() {
         System.out.println("Updating PanelFragment " + mPanelIndex + ", " + mEdit);
         updateEditorView();
-//        updateChartView();
+        updateChartView();
         updateDataControlView();
     }
 
     private void updateDataControlView() {
         mPanelNoData.removeAllViews();
-//        TableRow.LayoutParams params = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
-//        params.topMargin = 2;
-//        params.rightMargin = 2;
         Button button = new Button(getActivity());
         button.setText("Fetch / Update data");
+        button.setEnabled(mEdit);
+        mEditFields.add(button);
         button.setOnClickListener(v -> {
-
-            Toast.makeText(getActivity(), "TODO Fetch", Toast.LENGTH_SHORT).show();
-//            Intent intent = new Intent(getActivity(), PanelActivity.class);
-//            intent.putExtra("PanelID", mPanelIndex);
-//            intent.putExtra("ScenarioName", mScenario.getScenarioName());
-//            intent.putExtra("Edit", mEdit);
-//            startActivity(intent);
+            if (mPanel.getPanelIndex() != 0) {
+                Intent intent = new Intent(getActivity(), PVGISActivity.class);
+                intent.putExtra("PanelID", mPanel.getPanelIndex());
+                intent.putExtra("Edit", mEdit);
+                startActivity(intent);
+            }
+            else{
+                Toast.makeText(this.getActivity(), "New panel! Save and try again.", Toast.LENGTH_SHORT).show();
+            }
         });
         mPanelNoData.addView(button);
+    }
+
+    private void updateChartView() {
+//        TODO: use the mPanelPVSummaries to render the barchart
+        if (null == mPanelPVSummaries) return;
+        System.out.println("updateChartView " + mPanelPVSummaries.size());
+
+
+        final ArrayList<String> xLabel = new ArrayList<>();
+        xLabel.add("Jan");
+        xLabel.add("Feb");
+        xLabel.add("Mar");
+        xLabel.add("Apr");
+        xLabel.add("May");
+        xLabel.add("Jun");
+        xLabel.add("Jul");
+        xLabel.add("Aug");
+        xLabel.add("Sep");
+        xLabel.add("Oct");
+        xLabel.add("Nov");
+        xLabel.add("Dec");
+        XAxis xAxis = mBarChart.getXAxis();
+        xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
+        xAxis.setDrawGridLines(false);
+        xAxis.setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getFormattedValue(float value) {
+                return xLabel.get((int)value);
+            }
+        });
+        xAxis.setLabelCount(12, false);
+        List<Double> monthlyDist = new ArrayList<>();
+        int monthIndex = 0;
+        for (PanelPVSummary summary: mPanelPVSummaries) {
+            if (summary.panelID == mPanel.getPanelIndex()){
+                monthlyDist.add(summary.tot);
+                monthIndex++;
+                if (monthIndex == 12) break;
+            }
+        }
+        if (monthlyDist.size() !=12) return;
+//        List<Double> monthlyDist = mLoadProfile.getMonthlyDist().monthlyDist;
+
+        mBarChart.getAxisLeft().setTextColor(com.google.android.material.R.attr.colorPrimary); // left y-axis
+        mBarChart.getAxisRight().setTextColor(com.google.android.material.R.attr.colorPrimary); // right y-axis
+        mBarChart.getXAxis().setTextColor(com.google.android.material.R.attr.colorPrimary);
+        mBarChart.getLegend().setTextColor(com.google.android.material.R.attr.colorPrimary);
+        mBarChart.getDescription().setTextColor(com.google.android.material.R.attr.colorPrimary);
+
+        ArrayList<BarEntry> entries = new ArrayList<>();
+        for (int i = 0; i < 12; i++) entries.add(new BarEntry(i, monthlyDist.get(i).floatValue()));
+
+        BarDataSet set1;
+
+        if (mBarChart.getData() != null &&
+                mBarChart.getData().getDataSetCount() > 0) {
+            set1 = (BarDataSet) mBarChart.getData().getDataSetByIndex(0);
+            set1.setValues(entries);
+            mBarChart.getData().notifyDataChanged();
+            mBarChart.notifyDataSetChanged();
+        } else {
+            set1 = new BarDataSet(entries, "Monthly PV generation");
+            ArrayList<IBarDataSet> dataSets = new ArrayList<>();
+            dataSets.add(set1);
+            BarData data = new BarData(dataSets);
+            data.setValueTextSize(10f);
+            data.setBarWidth(0.9f);
+            mBarChart.getDescription().setEnabled(false);
+            mBarChart.setData(data);
+        }
+        mBarChart.invalidate();
+        mBarChart.refreshDrawableState();
     }
 
     private void updateEditorView() {
@@ -224,5 +314,10 @@ public class PanelFragment extends Fragment {
     public void setEditMode(boolean ed) {
         mEdit = ed;
         for (View view: mEditFields) view.setEnabled(mEdit);
+    }
+
+    public void updateDBIndex() {
+        if (!(null == mPanel))
+            mPanel.setPanelIndex(((PanelActivity) requireActivity()).getDBID(mPanelIndex));
     }
 }

@@ -12,6 +12,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.StrictMode;
 import android.transition.Explode;
 import android.view.Gravity;
 import android.view.Menu;
@@ -127,6 +128,12 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        StrictMode.setVmPolicy(new StrictMode.VmPolicy.Builder()
+                .detectLeakedSqlLiteObjects()
+                .detectLeakedClosableObjects()
+                .penaltyLog()
+//                .penaltyDeath()
+                .build());
         super.onCreate(savedInstanceState);
         createNotificationChannel();
 
@@ -259,6 +266,7 @@ public class MainActivity extends AppCompatActivity {
                             InputStreamReader reader = new InputStreamReader(url.openStream());
                             Type type = new TypeToken<List<PricePlanJsonFile>>() {}.getType();
                             List<PricePlanJsonFile> ppList = new Gson().fromJson(reader, type);
+                            reader.close();
                             for (PricePlanJsonFile pp : ppList) {
                                 System.out.println(pp.plan);
                                 PricePlan p = JsonTools.createPricePlan(pp);

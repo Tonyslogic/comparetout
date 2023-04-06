@@ -3,6 +3,7 @@ package com.tfcode.comparetout.model;
 import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
 import androidx.room.Insert;
+import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 import androidx.room.RewriteQueriesToDropUnusedColumns;
 import androidx.room.Transaction;
@@ -19,6 +20,8 @@ import com.tfcode.comparetout.model.scenario.LoadProfile;
 import com.tfcode.comparetout.model.scenario.LoadProfileData;
 import com.tfcode.comparetout.model.scenario.LoadShift;
 import com.tfcode.comparetout.model.scenario.Panel;
+import com.tfcode.comparetout.model.scenario.PanelData;
+import com.tfcode.comparetout.model.scenario.PanelPVSummary;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.Scenario2Battery;
 import com.tfcode.comparetout.model.scenario.Scenario2EVCharge;
@@ -336,9 +339,13 @@ public abstract class ScenarioDAO {
             "SELECT scenarioID FROM scenario2loadprofile WHERE loadProfileID = :loadProfileID) ")
     public abstract void deleteCostingDataForProfileID(long loadProfileID);
 
+//    @Query("SELECT scenarioIndex FROM scenarios " +
+//            "WHERE scenarioIndex NOT IN (SELECT DISTINCT scenarioID FROM scenariosimulationdata) " +
+//            "AND scenarioIndex IN (SELECT DISTINCT scenarioID FROM scenario2loadprofile)")
     @Query("SELECT scenarioIndex FROM scenarios " +
             "WHERE scenarioIndex NOT IN (SELECT DISTINCT scenarioID FROM scenariosimulationdata) " +
-            "AND scenarioIndex IN (SELECT DISTINCT scenarioID FROM scenario2loadprofile)")
+            "AND scenarioIndex IN (SELECT DISTINCT scenarioID FROM scenario2loadprofile) " +
+            "AND (SELECT DISTINCT loadProfileID FROM scenario2loadprofile WHERE scenarioID = scenarioIndex ) IN (SELECT DISTINCT loadProfileID FROM loadprofiledata)")
     public abstract List<Long> getAllScenariosThatNeedSimulation();
 
     @Query("SELECT * FROM scenarios WHERE scenarioIndex = :scenarioID")
@@ -352,7 +359,13 @@ public abstract class ScenarioDAO {
     public abstract void saveSimulationDataForScenario(ArrayList<ScenarioSimulationData> simulationData);
 
     @Query("SELECT scenarioIndex FROM scenarios " +
-            "WHERE scenarioIndex NOT IN (SELECT scenarioID FROM costings)")
+            "WHERE scenarioIndex NOT IN (SELECT scenarioID FROM costings) " +
+            "AND (SELECT COUNT() FROM PricePlans) > 0 " +
+            "AND (SELECT COUNT(scenarioID) FROM scenariosimulationdata, scenarios WHERE scenariosimulationdata.scenarioID = scenarioIndex) > 0 ")
+//    @Query("SELECT DISTINCT scenarioIndex FROM scenarios " +
+//            "WHERE scenarioIndex IN (SELECT DISTINCT loadProfileID FROM loadprofiledata WHERE loadProfileID IN (SELECT DISTINCT loadProfileID FROM scenario2loadprofile WHERE scenarioID = scenarioIndex)) " +
+//            "AND scenarioIndex IN (SELECT DISTINCT panelID FROM paneldata WHERE panelID IN (SELECT DISTINCT panelID FROM scenario2panel WHERE scenarioID = scenarioIndex)) " +
+//            "AND (SELECT COUNT() FROM PricePlans) > 0")
     public abstract List<Long> getAllScenariosThatNeedCosting();
 
     @Query("SELECT * FROM scenariosimulationdata WHERE scenarioID = :scenarioID " +
@@ -668,7 +681,7 @@ public abstract class ScenarioDAO {
             addNewScenario2Panel(s2p);
 
             Scenario scenario = getScenario(scenarioID);
-            scenario.setHasInverters(true);
+            scenario.setHasPanels(true);
             updateScenario(scenario);
         }
         else {
@@ -715,4 +728,21 @@ public abstract class ScenarioDAO {
 
         deleteOrphanPanels();
     }
+
+    @Query("SELECT * FROM panels WHERE panelIndex = :panelID")
+    public abstract Panel getPanelForID(Long panelID);
+
+    @Insert(entity = PanelData.class, onConflict = OnConflictStrategy.REPLACE)
+    public abstract void savePanelData(ArrayList<PanelData> panelDataList);
+
+    @Query("SELECT panelID, substr(Date, 6,2) AS Month, SUM(pv) AS tot FROM paneldata GROUP BY panelID, Month ORDER BY Month ASC")
+    public abstract LiveData<List<PanelPVSummary>> getPanelPVSummary();
+
+    @Query("SELECT CASE WHEN " +
+            "(SELECT COUNT (DISTINCT paneldata.panelID) AS Found FROM paneldata, scenario2panel WHERE scenario2panel.panelID = paneldata.panelID AND scenarioID = :scenarioID) = " +
+            "(SELECT COUNT (DISTINCT panelID) AS Needed FROM scenario2panel WHERE scenarioID = :scenarioID) " +
+            "THEN 1 " +
+            "ELSE 0 " +
+            "END AS OK")
+    public abstract boolean checkForMissingPanelData(Long scenarioID);
 }

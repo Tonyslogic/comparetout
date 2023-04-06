@@ -60,6 +60,22 @@ public class SimulationWorker extends Worker {
             for (long scenarioID : scenarioIDs) {
                 Scenario scenario = mToutcRepository.getScenarioForID(scenarioID);
                 System.out.println("Working on scenario " + scenario.getScenarioName());
+                if (scenario.isHasPanels()) {
+                    // Check for panel data
+                    boolean hasData = mToutcRepository.checkForMissingPanelData(scenarioID);// NOTIFICATION PROGRESS
+                    System.out.println("SimulationWorker checkForMissingPanelData hasData = " + hasData);
+                    PROGRESS_CURRENT += PROGRESS_CHUNK;
+                    builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
+                    notificationManager.notify(notificationId, builder.build());
+                    if (!hasData)
+                    {
+                        builder.setContentText("Skipping " + scenario.getScenarioName());
+                        notificationManager.notify(notificationId, builder.build());PROGRESS_CURRENT += PROGRESS_CHUNK;
+                        builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
+                        notificationManager.notify(notificationId, builder.build());
+                        continue;
+                    }
+                }
                 builder.setContentText(scenario.getScenarioName());
                 notificationManager.notify(notificationId, builder.build());
                 List<LoadProfileData> inputRows = mToutcRepository.getSimulationInput(scenarioID);

@@ -142,6 +142,8 @@ public class PanelActivity extends AppCompatActivity {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         List<PanelJson> panelJsons = JsonTools.createPanelListJson(mPanels);
         mPanelsJsonString =  gson.toJson(panelJsons, type);
+        if (!(null == mViewPager) && !(null == mViewPager.getAdapter()))
+            ((PanelViewPageAdapter) mViewPager.getAdapter()).updateDBIndex();
     }
 
     private void addNewPanel() {
@@ -382,6 +384,10 @@ public class PanelActivity extends AppCompatActivity {
 
     public String getPanelJson() {
         return mPanelsJsonString;
+    }
+
+    public long getDBID(int panelTabIndex) {
+        return mPanels.get(panelTabIndex).getPanelIndex();
     }
 
     public void updatePanelAtIndex(Panel panel, int panelIndex) {

@@ -12,6 +12,7 @@ import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
 import com.tfcode.comparetout.model.scenario.Panel;
+import com.tfcode.comparetout.model.scenario.PanelPVSummary;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.Scenario2Inverter;
 import com.tfcode.comparetout.model.scenario.Scenario2Panel;
@@ -182,5 +183,17 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public void linkPanelFromScenario(long fromScenarioID, Long toScenarioID) {
         toutcRepository.linkPanelFromScenario(fromScenarioID, toScenarioID);
+    }
+
+    public Panel getPanelForID(Long panelID) {
+        return toutcRepository.getPanelForID(panelID);
+    }
+
+    public LiveData<List<PanelPVSummary>> getPanelDataSummary() {
+        return toutcRepository.getPanelDataSummary();
+    }
+
+    public void updatePanel(Panel panel) {
+        toutcRepository.updatePanel(panel);
     }
 }

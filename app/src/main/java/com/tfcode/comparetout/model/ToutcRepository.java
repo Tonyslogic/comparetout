@@ -11,6 +11,8 @@ import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
 import com.tfcode.comparetout.model.scenario.LoadProfileData;
 import com.tfcode.comparetout.model.scenario.Panel;
+import com.tfcode.comparetout.model.scenario.PanelData;
+import com.tfcode.comparetout.model.scenario.PanelPVSummary;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.Scenario2Inverter;
 import com.tfcode.comparetout.model.scenario.Scenario2Panel;
@@ -30,6 +32,7 @@ public class ToutcRepository {
     private final LiveData<List<Scenario>> allScenarios;
     private final LiveData<List<Scenario2Inverter>> inverterRelations;
     private final LiveData<List<Scenario2Panel>> panelRelations;
+    private final LiveData<List<PanelPVSummary>> panelPVSummary;
 
     private final CostingDAO costingDAO;
     private final LiveData<List<Costings>> allCostings;
@@ -47,6 +50,7 @@ public class ToutcRepository {
         allScenarios = scenarioDAO.loadScenarios();
         inverterRelations = scenarioDAO.loadInverterRelations();
         panelRelations = scenarioDAO.loadPanelRelations();
+        panelPVSummary = scenarioDAO.getPanelPVSummary();
 
         costingDAO = db.costingDAO();
         allCostings = costingDAO.loadCostings();
@@ -289,5 +293,25 @@ public class ToutcRepository {
     public void linkPanelFromScenario(long fromScenarioID, Long toScenarioID) {
         ToutcDB.databaseWriteExecutor.execute(() ->
                 scenarioDAO.linkPanelFromScenario(fromScenarioID, toScenarioID));
+    }
+
+    public Panel getPanelForID(Long panelID) {
+        return scenarioDAO.getPanelForID(panelID);
+    }
+
+    public void savePanelData(ArrayList<PanelData> panelDataList) {
+        scenarioDAO.savePanelData(panelDataList);
+    }
+
+    public LiveData<List<PanelPVSummary>> getPanelDataSummary() {
+        return panelPVSummary;
+    }
+
+    public void updatePanel(Panel panel) {
+        scenarioDAO.updatePanel(panel);
+    }
+
+    public boolean checkForMissingPanelData(Long scenarioID) {
+        return scenarioDAO.checkForMissingPanelData(scenarioID);
     }
 }
