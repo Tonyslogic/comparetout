@@ -16,6 +16,7 @@ import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.scenario.LoadProfileData;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
+import com.tfcode.comparetout.model.scenario.SimulationInputData;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -78,10 +79,10 @@ public class SimulationWorker extends Worker {
                 }
                 builder.setContentText(scenario.getScenarioName());
                 notificationManager.notify(notificationId, builder.build());
-                List<LoadProfileData> inputRows = mToutcRepository.getSimulationInput(scenarioID);
+                List<SimulationInputData> inputRows = mToutcRepository.getSimulationInput(scenarioID);
                 //TODO Load from the DB all the places electricity can come from and go to
                 ArrayList<ScenarioSimulationData> outputRows = new ArrayList<>();
-                for (LoadProfileData inputRow : inputRows) {
+                for (SimulationInputData inputRow : inputRows) {
                     ScenarioSimulationData outputRow = new ScenarioSimulationData();
                     outputRow.setScenarioID(scenarioID);
                     outputRow.setDate(inputRow.getDate());
@@ -90,8 +91,21 @@ public class SimulationWorker extends Worker {
                     outputRow.setDayOf2001((inputRow.getDo2001()));
                     // TODO use the 'places electricity can come from and go to'
                     outputRow.setLoad(inputRow.getLoad());
-                    outputRow.setFeed(0);
-                    outputRow.setBuy(inputRow.getLoad());
+                    outputRow.setPv(inputRow.getTpv());
+                    if (inputRow.getTpv() > 0) {
+                        if (inputRow.getTpv() >= inputRow.getLoad()) {
+                            outputRow.setFeed(inputRow.getTpv() - inputRow.getLoad());
+                            outputRow.setBuy(0);
+                        }
+                        else {
+                            outputRow.setFeed(0);
+                            outputRow.setBuy(inputRow.getLoad() - inputRow.getTpv());
+                        }
+                    }
+                    else {
+                        outputRow.setFeed(0);
+                        outputRow.setBuy(inputRow.getLoad());
+                    }
                     outputRow.setSOC(0);
                     outputRow.setDirectEVcharge(0);
                     outputRow.setWaterTemp(0);
@@ -100,9 +114,7 @@ public class SimulationWorker extends Worker {
                     outputRow.setPvToCharge(0);
                     outputRow.setPvToLoad(0);
                     outputRow.setBatToLoad(0);
-                    outputRow.setPv(0);
                     outputRow.setImmersionLoad(0);
-
                     outputRows.add(outputRow);
                 }
                 System.out.println("adding " + outputRows.size() + " rows to DB for simulation: " + scenario.getScenarioName());

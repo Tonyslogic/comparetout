@@ -19,6 +19,7 @@ import com.tfcode.comparetout.model.scenario.Scenario2Panel;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
 import com.tfcode.comparetout.model.scenario.SimKPIs;
+import com.tfcode.comparetout.model.scenario.SimulationInputData;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -75,7 +76,7 @@ public class ToutcRepository {
     public void deletePricePlan(Integer id) {
         ToutcDB.databaseWriteExecutor.execute(() -> {
             pricePlanDAO.deletePricePlan(id);
-            System.out.println("Size after delete = " + allPricePlans.getValue().entrySet().size());
+//            System.out.println("Size after delete = " + allPricePlans.getValue().entrySet().size());
         });
     }
 
@@ -157,7 +158,7 @@ public class ToutcRepository {
         return scenarioDAO.getScenarioForID(scenarioID);
     }
 
-    public List<LoadProfileData> getSimulationInput(long scenarioID) {
+    public List<SimulationInputData> getSimulationInput(long scenarioID) {
         return scenarioDAO.getSimulationInput(scenarioID);
     }
 

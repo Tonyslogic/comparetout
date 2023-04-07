@@ -36,6 +36,7 @@ import com.tfcode.comparetout.model.scenario.Scenario2Panel;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
 import com.tfcode.comparetout.model.scenario.SimKPIs;
+import com.tfcode.comparetout.model.scenario.SimulationInputData;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -351,9 +352,14 @@ public abstract class ScenarioDAO {
     @Query("SELECT * FROM scenarios WHERE scenarioIndex = :scenarioID")
     public abstract Scenario getScenarioForID(long scenarioID);
 
-    @Query("SELECT * FROM loadprofiledata WHERE loadProfileID = (" +
-            "SELECT DISTINCT loadProfileID FROM scenario2loadprofile WHERE scenarioID = :scenarioID)")
-    public abstract List<LoadProfileData> getSimulationInput(long scenarioID);
+//    @Query("SELECT * FROM loadprofiledata WHERE loadProfileID = (" +
+//            "SELECT DISTINCT loadProfileID FROM scenario2loadprofile WHERE scenarioID = :scenarioID)")
+    @Query("SELECT A.date, A.minute, A.load, A.mod, A.dow, A.do2001, B.TPV FROM " +
+            "(SELECT * FROM loadprofiledata WHERE loadProfileID = (SELECT loadProfileID FROM scenario2loadprofile WHERE scenarioID = :scenarioID)) AS A " +
+            "INNER JOIN " +
+            "(SELECT do2001, mod -1 AS mod, SUM(PV) AS TPV FROM paneldata WHERE panelID IN (SELECT panelID FROM scenario2panel WHERE scenarioID = :scenarioID) GROUP BY do2001, mod) AS B " +
+            "ON A.do2001 = B.do2001 AND A.mod = B.mod")
+    public abstract List<SimulationInputData> getSimulationInput(long scenarioID);
 
     @Insert(entity = ScenarioSimulationData.class)
     public abstract void saveSimulationDataForScenario(ArrayList<ScenarioSimulationData> simulationData);
