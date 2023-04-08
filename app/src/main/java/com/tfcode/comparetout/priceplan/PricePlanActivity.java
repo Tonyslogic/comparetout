@@ -5,8 +5,11 @@ import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
@@ -44,6 +47,8 @@ public class PricePlanActivity extends AppCompatActivity {
     private String focusedPlan = "{}";
     private TabLayoutMediator mMediator;
     private ActionBar mActionBar;
+    private boolean mDoubleBackToExitPressedOnce = false;
+    private boolean mUnsavedChanges = false;
 //    private ProgressBar mProgressBar;
 //    private Handler mMainHandler;
 
@@ -197,6 +202,7 @@ public class PricePlanActivity extends AppCompatActivity {
                 drs.add(dr);
             }
             mViewModel.updatePricePlan(p, drs);
+            setSaveNeeded(false);
 
             MenuItem saveMenuItem = mMenu.findItem(R.id.save_a_plan);
             saveMenuItem.setVisible(false);
@@ -286,6 +292,22 @@ public class PricePlanActivity extends AppCompatActivity {
         return false;
     }
 
+    @Override
+    public void onBackPressed() {
+        if (mDoubleBackToExitPressedOnce || !(mUnsavedChanges)) {
+            super.onBackPressed();
+            return;
+        }
+
+        this.mDoubleBackToExitPressedOnce = true;
+        Snackbar.make(getWindow().getDecorView().getRootView(),
+                        "Unsaved changes. Please click BACK again to discard and exit", Snackbar.LENGTH_LONG)
+                .setAction("Action", null).show();
+
+        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+            @Override public void run() { mDoubleBackToExitPressedOnce =false;}}, 2000);
+    }
+
     // FRAGMENT ACCESS METHODS
     long getPlanID() {
         return planID;
@@ -331,6 +353,10 @@ public class PricePlanActivity extends AppCompatActivity {
             MenuItem infoItem = mMenu.findItem(R.id.info);
             infoItem.setVisible(false);
         }
+    }
+
+    public void setSaveNeeded(boolean saveNeeded){
+        mUnsavedChanges = saveNeeded;
     }
 
 //    public void startProgressIndicator() {mProgressBar.setVisibility(View.VISIBLE);}

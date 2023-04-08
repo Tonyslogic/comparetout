@@ -529,5 +529,6 @@ public class PricePlanEditDayFragment extends Fragment {
         PricePlanActivity ppa = (PricePlanActivity)requireActivity();
         ppa.updateFocusedPlan(JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
         ppa.setPlanValidity(mPricePlan.validatePlan(mDayRates));
+        ppa.setSaveNeeded(true);
     }
 }
