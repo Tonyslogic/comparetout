@@ -315,4 +315,14 @@ public class ToutcRepository {
     public boolean checkForMissingPanelData(Long scenarioID) {
         return scenarioDAO.checkForMissingPanelData(scenarioID);
     }
+
+    public void removeCostingsForPricePlan(long pricePlanIndex) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                costingDAO.deleteRelatedCostings((int)pricePlanIndex));
+    }
+
+
+    public boolean costingExists(long scenarioID, long pricePlanIndex) {
+        return costingDAO.costingExists(scenarioID, pricePlanIndex);
+    }
 }

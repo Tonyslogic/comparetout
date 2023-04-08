@@ -15,6 +15,11 @@
         android:icon="@drawable/ic_baseline_edit_24"
         android:title="@string/edit"/>
     <item
+        android:id="@+id/save_a_plan"
+        app:showAsAction="ifRoom|withText"
+        android:icon="@drawable/ic_baseline_save_24"
+        android:title="@string/save"/>
+    <item
         android:id="@+id/add_a_day_rate"
         app:showAsAction="ifRoom|withText"
         android:icon="@drawable/ic_baseline_post_add_24"
@@ -29,9 +34,4 @@
         app:showAsAction="ifRoom|withText"
         android:icon="@drawable/ic_baseline_delete_24"
         android:title="@string/delete_day_rate"/>
-    <item
-        android:id="@+id/save_a_plan"
-        app:showAsAction="ifRoom|withText"
-        android:icon="@drawable/ic_baseline_save_24"
-        android:title="@string/save"/>
 </menu>

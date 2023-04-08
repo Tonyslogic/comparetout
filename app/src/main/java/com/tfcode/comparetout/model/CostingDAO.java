@@ -25,4 +25,7 @@ public abstract class CostingDAO {
             "WHERE (nett = (SELECT MIN(nett) AS bignett FROM costings AS costings_1 WHERE scenarioID = :scenarioID))" +
             "AND scenarioID = :scenarioID")
     public abstract Costings getBestCostingForScenario(Long scenarioID);
+
+    @Query("SELECT EXISTS (SELECT * FROM costings WHERE scenarioID = :scenarioID AND pricePlanId = :pricePlanIndex) AS OK")
+    public abstract boolean costingExists(long scenarioID, long pricePlanIndex);
 }

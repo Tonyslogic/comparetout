@@ -113,7 +113,8 @@ public class PanelActivity extends AppCompatActivity {
             for (Scenario2Panel scenario2Panel: relations) {
                 if (scenario2Panel.getScenarioID() == mScenarioID) {
                     new Thread(() -> {
-                        int iCountOld = mPanels.size();
+                        int iCountOld = 0;
+                        if (!(null == mPanels)) iCountOld = mPanels.size();
                         refreshPanels();
                         int iCountNew = mPanels.size();
                         mMainHandler.post(() -> {if (!(null == mMediator)) refreshMediator();});

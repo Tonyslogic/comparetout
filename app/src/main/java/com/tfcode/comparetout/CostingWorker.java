@@ -75,6 +75,8 @@ public class CostingWorker extends Worker {
                 if (scenarioData.size() > 0) {
                     long startTime = System.nanoTime();
                     for (PricePlan pp : plans) {
+                        // Confirm the need for costing
+                        if (mToutcRepository.costingExists(scenarioID, pp.getPricePlanIndex())) continue;
                         builder.setContentText(pp.getPlanName());
                         notificationManager.notify(notificationId, builder.build());
                         RateLookup lookup = mLookups.get(pp.getPricePlanIndex());

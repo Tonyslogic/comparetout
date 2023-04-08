@@ -62,7 +62,7 @@ public abstract class PricePlanDAO {
     @Transaction
     public void deletePricePlan(long id) {
         System.out.println("deleting " + id);
-        long dels = deleteDayRates(id);
+        long dels = deleteDayRatesInPlan(id);
         System.out.println("removed rates " + dels);
         dels = deletePricePlanRow(id);
         System.out.println("removed plans " + dels);
@@ -70,7 +70,7 @@ public abstract class PricePlanDAO {
     }
 
     @Query("DELETE FROM DayRates WHERE pricePlanId = :id")
-    public abstract int deleteDayRates(long id);
+    public abstract int deleteDayRatesInPlan(long id);
 
     @Query("DELETE FROM PricePlans WHERE pricePlanIndex = :id")
     public abstract int deletePricePlanRow(long id);
@@ -95,6 +95,13 @@ public abstract class PricePlanDAO {
             addNewPricePlanWithDayRates(pp, drs);
         }
         else {
+            List<DayRate> oldDayRates = getAllDayRatesForPricePlanID(pp.getPricePlanIndex());
+            List<Long> oldIDs = new ArrayList<>();
+            for (DayRate oldDayRate : oldDayRates) oldIDs.add(oldDayRate.getDayRateIndex());
+            List<Long> newIDs = new ArrayList<>();
+            for (DayRate updatedDayRate: drs) newIDs.add(updatedDayRate.getDayRateIndex());
+            oldIDs.removeAll(newIDs);
+            for (Long toRemove: oldIDs) deleteDayRate(toRemove);
             updatePricePlan(pp);
             System.out.println("DAO read " + getNameForPlanID(pp.getPricePlanIndex()) + " for " + pp.getPricePlanIndex());
             System.out.println("DAO count of dayRates = " + drs.size());
@@ -102,6 +109,9 @@ public abstract class PricePlanDAO {
         }
 
     }
+
+    @Query("DELETE FROM DayRates WHERE dayRateIndex = :toRemove")
+    public abstract void deleteDayRate(Long toRemove);
 
     @Query("SELECT planName FROM PricePlans WHERE pricePlanIndex = :id")
     public abstract String getNameForPlanID (long id);

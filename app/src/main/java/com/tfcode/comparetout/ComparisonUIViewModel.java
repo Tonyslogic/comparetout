@@ -47,6 +47,7 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public void deletePricePlan(Integer id) {
         toutcRepository.deletePricePlan(id);
+        toutcRepository.removeCostingsForPricePlan(id);
     }
 
     public void deletePricePlanRow(int id) {
@@ -71,6 +72,7 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public void updatePricePlan(PricePlan p, ArrayList<DayRate> drs) {
         toutcRepository.updatePricePlan(p, drs);
+        toutcRepository.removeCostingsForPricePlan(p.getPricePlanIndex());
     }
 
     public void insertScenario(ScenarioComponents sc) {
