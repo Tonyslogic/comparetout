@@ -156,12 +156,13 @@ public class PricePlanEditDayFragment extends Fragment {
 //    }
 
     public void setEditMode(boolean ed) {
-        if (!mEdit) {
-            mEdit = ed;
-            if (!(null == mEditFields)) for (View v : mEditFields) v.setEnabled(true);
-            PricePlanActivity ppa = ((PricePlanActivity) getActivity());
-            if (!(null == ppa)) ppa.setEdit(true);
-        }
+        mEdit = ed;
+        if (!(null == mEditFields)) for (View v : mEditFields) v.setEnabled(mEdit);
+//        if (!mEdit) {
+//            if (!(null == mEditFields)) for (View v : mEditFields) v.setEnabled(true);
+//            PricePlanActivity ppa = ((PricePlanActivity) getActivity());
+//            if (!(null == ppa)) ppa.setEdit(true);
+//        }
     }
 
     public void refreshFocus() {

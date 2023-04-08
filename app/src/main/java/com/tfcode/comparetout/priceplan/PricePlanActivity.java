@@ -198,6 +198,16 @@ public class PricePlanActivity extends AppCompatActivity {
             }
             mViewModel.updatePricePlan(p, drs);
 
+            MenuItem saveMenuItem = mMenu.findItem(R.id.save_a_plan);
+            saveMenuItem.setVisible(false);
+            MenuItem addDayRateItem = mMenu.findItem(R.id.add_a_day_rate);
+            addDayRateItem.setVisible(false);
+            MenuItem delDayRateItem = mMenu.findItem(R.id.del_a_day_rate);
+            delDayRateItem.setVisible(false);
+            MenuItem editItem = mMenu.findItem(R.id.edit_a_plan);
+            editItem.setVisible(true);
+            ((PricePlanViewPageAdapter) viewPager.getAdapter()).setEdit(false);
+
             return (true);
         }
         if (item.getItemId() == R.id.del_a_day_rate) {

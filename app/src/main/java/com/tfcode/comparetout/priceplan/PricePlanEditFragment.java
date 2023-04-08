@@ -155,11 +155,12 @@ public class PricePlanEditFragment extends Fragment {
 //    }
 
     public void setEditMode(boolean ed) {
-        if (!mEdit) {
-            mEdit = ed;
-            for (View v : mEditFields) v.setEnabled(true);
-            ((PricePlanActivity) requireActivity()).setEdit(true);
-        }
+        mEdit = ed;
+        if (!(null == mEditFields)) for (View v : mEditFields) v.setEnabled(mEdit);
+//        if (!mEdit) {
+//            if (!(null == mEditFields)) for (View v : mEditFields) v.setEnabled(true);
+//            ((PricePlanActivity) requireActivity()).setEdit(true);
+//        }
     }
 
     public void updateView() {
