@@ -1,15 +1,5 @@
 package com.tfcode.comparetout.scenario.panel;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.constraintlayout.widget.ConstraintLayout;
-import androidx.constraintlayout.widget.ConstraintSet;
-import androidx.lifecycle.ViewModelProvider;
-import androidx.viewpager2.widget.ViewPager2;
-
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
@@ -20,9 +10,19 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
-import android.widget.Toast;
+
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.constraintlayout.widget.ConstraintSet;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.google.gson.Gson;
@@ -231,7 +231,9 @@ public class PanelActivity extends AppCompatActivity {
 
         if (item.getItemId() == R.id.lp_info) {//add the function to perform here
             System.out.println("Report status");
-            Toast.makeText(this, "Status hint", Toast.LENGTH_SHORT).show();
+            Snackbar.make(getWindow().getDecorView().getRootView(),
+                "Status hint", Snackbar.LENGTH_LONG)
+                    .setAction("Action", null).show();
             return false;
         }
         if (item.getItemId() == R.id.lp_edit) {//add the function to perform here
@@ -304,7 +306,9 @@ public class PanelActivity extends AppCompatActivity {
         }
         if (item.getItemId() == R.id.lp_help) {//add the function to perform here
             System.out.println("Help attempt");
-            Toast.makeText(this, "TODO: Help", Toast.LENGTH_SHORT).show();
+            Snackbar.make(getWindow().getDecorView().getRootView(),
+                "TODO: Help", Snackbar.LENGTH_LONG)
+                    .setAction("Action", null).show();
             return false;
         }
         if (item.getItemId() == R.id.lp_delete) {//add the function to perform here
@@ -348,7 +352,9 @@ public class PanelActivity extends AppCompatActivity {
         }
 
         this.mDoubleBackToExitPressedOnce = true;
-        Toast.makeText(this, "Unsaved changes. Please click BACK again to discard and exit", Toast.LENGTH_SHORT).show();
+        Snackbar.make(getWindow().getDecorView().getRootView(),
+            "Unsaved changes. Please click BACK again to discard and exit", Snackbar.LENGTH_LONG)
+                .setAction("Action", null).show();
 
         new Handler(Looper.getMainLooper()).postDelayed(() -> mDoubleBackToExitPressedOnce =false, 2000);
     }

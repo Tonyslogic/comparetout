@@ -1,57 +1,29 @@
 package com.tfcode.comparetout.scenario.loadprofile;
 
-import androidx.activity.result.ActivityResultCallback;
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
+import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.Menu;
+import android.view.MenuItem;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
-import androidx.work.ExistingWorkPolicy;
-import androidx.work.OneTimeWorkRequest;
-import androidx.work.WorkManager;
 
-import android.content.Intent;
-import android.graphics.Color;
-import android.graphics.PorterDuff;
-import android.net.Uri;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.Window;
-import android.widget.Toast;
-
+import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.SimulatorLauncher;
-import com.tfcode.comparetout.model.json.JsonTools;
-import com.tfcode.comparetout.model.json.priceplan.DayRateJson;
-import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
-import com.tfcode.comparetout.model.json.scenario.LoadProfileJson;
-import com.tfcode.comparetout.model.priceplan.DayRate;
-import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.scenario.ScenarioSelectDialog;
-import com.tfcode.comparetout.scenario.ScenarioSelectDialogListener;
-import com.tfcode.comparetout.scenario.SimulationWorker;
 
-import java.io.FileNotFoundException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.lang.reflect.Method;
-import java.lang.reflect.Type;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 
 public class LoadProfileActivity extends AppCompatActivity {
@@ -147,7 +119,9 @@ public class LoadProfileActivity extends AppCompatActivity {
 
         if (item.getItemId() == R.id.lp_info) {//add the function to perform here
             System.out.println("Report status");
-            Toast.makeText(this, "Status hint", Toast.LENGTH_SHORT).show();
+            Snackbar.make(getWindow().getDecorView().getRootView(),
+                "Status hint", Snackbar.LENGTH_LONG)
+                    .setAction("Action", null).show();
             return false;
         }
         if (item.getItemId() == R.id.lp_edit) {//add the function to perform here
@@ -188,7 +162,6 @@ public class LoadProfileActivity extends AppCompatActivity {
 //        }
 //        if (item.getItemId() == R.id.lp_save) {//add the function to perform here
 //            System.out.println("Save attempt");
-//            Toast.makeText(this, "TODO: Save", Toast.LENGTH_SHORT).show();
 //            return false;
 //        }
         if (item.getItemId() == R.id.lp_copy) {//add the function to perform here
@@ -211,7 +184,9 @@ public class LoadProfileActivity extends AppCompatActivity {
         }
         if (item.getItemId() == R.id.lp_help) {//add the function to perform here
             System.out.println("Help attempt");
-            Toast.makeText(this, "TODO: Help", Toast.LENGTH_SHORT).show();
+            Snackbar.make(getWindow().getDecorView().getRootView(),
+                "Help attempt", Snackbar.LENGTH_LONG)
+                    .setAction("Action", null).show();
             return false;
         }
         return false;
@@ -243,7 +218,9 @@ public class LoadProfileActivity extends AppCompatActivity {
         }
 
         this.mDoubleBackToExitPressedOnce = true;
-        Toast.makeText(this, "Unsaved changes. Please click BACK again to discard and exit", Toast.LENGTH_SHORT).show();
+        Snackbar.make(getWindow().getDecorView().getRootView(),
+            "Unsaved changes. Please click BACK again to discard and exit", Snackbar.LENGTH_LONG)
+                .setAction("Action", null).show();
 
         new Handler(Looper.getMainLooper()).postDelayed(() -> mDoubleBackToExitPressedOnce =false, 2000);
     }

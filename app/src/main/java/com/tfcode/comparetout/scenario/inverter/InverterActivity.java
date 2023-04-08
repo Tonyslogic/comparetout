@@ -10,7 +10,6 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.ProgressBar;
-import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -23,6 +22,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.google.gson.Gson;
@@ -33,11 +33,9 @@ import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.SimulatorLauncher;
 import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.json.scenario.InverterJson;
-import com.tfcode.comparetout.model.json.scenario.LoadProfileJson;
 import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.Scenario2Inverter;
 import com.tfcode.comparetout.scenario.ScenarioSelectDialog;
-import com.tfcode.comparetout.scenario.loadprofile.LoadProfileActivity;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
@@ -233,7 +231,9 @@ public class InverterActivity extends AppCompatActivity {
 
         if (item.getItemId() == R.id.lp_info) {//add the function to perform here
             System.out.println("Report status");
-            Toast.makeText(this, "Status hint", Toast.LENGTH_SHORT).show();
+            Snackbar.make(getWindow().getDecorView().getRootView(),
+                            "TODO: Status hint" , Snackbar.LENGTH_LONG)
+                    .setAction("Action", null).show();
             return false;
         }
         if (item.getItemId() == R.id.lp_edit) {//add the function to perform here
@@ -257,7 +257,9 @@ public class InverterActivity extends AppCompatActivity {
         }
         if (item.getItemId() == R.id.lp_share) {//add the function to perform here
             System.out.println("Share attempt");
-            Toast.makeText(this, "TODO Share", Toast.LENGTH_SHORT).show();
+            Snackbar.make(getWindow().getDecorView().getRootView(),
+                            "TODO : " + item.getTitle(), Snackbar.LENGTH_LONG)
+                    .setAction("Action", null).show();
             Intent sendIntent = new Intent();
             sendIntent.setAction(Intent.ACTION_SEND);
             sendIntent.putExtra(Intent.EXTRA_TEXT, mInvertersJsonString);
@@ -307,7 +309,9 @@ public class InverterActivity extends AppCompatActivity {
         }
         if (item.getItemId() == R.id.lp_help) {//add the function to perform here
             System.out.println("Help attempt");
-            Toast.makeText(this, "TODO: Help", Toast.LENGTH_SHORT).show();
+            Snackbar.make(getWindow().getDecorView().getRootView(),
+                "TODO : " + item.getTitle(), Snackbar.LENGTH_LONG)
+                    .setAction("Action", null).show();
             return false;
         }
         if (item.getItemId() == R.id.lp_delete) {//add the function to perform here
@@ -351,8 +355,9 @@ public class InverterActivity extends AppCompatActivity {
         }
 
         this.mDoubleBackToExitPressedOnce = true;
-        Toast.makeText(this, "Unsaved changes. Please click BACK again to discard and exit", Toast.LENGTH_SHORT).show();
-
+        Snackbar.make(getWindow().getDecorView().getRootView(),
+            "Unsaved changes. Please click BACK again to discard and exit", Snackbar.LENGTH_LONG)
+                .setAction("Action", null).show();
         new Handler(Looper.getMainLooper()).postDelayed(() -> mDoubleBackToExitPressedOnce =false, 2000);
     }
 

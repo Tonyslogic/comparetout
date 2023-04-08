@@ -1,11 +1,5 @@
 package com.tfcode.comparetout.scenario;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.lifecycle.ViewModelProvider;
-import androidx.viewpager2.widget.ViewPager2;
-
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
@@ -14,8 +8,14 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Toast;
 
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.viewpager2.widget.ViewPager2;
+
+import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.ComparisonUIViewModel;
@@ -85,7 +85,8 @@ public class ScenarioActivity extends AppCompatActivity {
 
         if (item.getItemId() == R.id.share_scenario) {//add the function to perform here
             System.out.println("Share attempt");
-            Toast.makeText(this, "TODO: Share", Toast.LENGTH_SHORT).show();
+            Snackbar.make(getWindow().getDecorView().getRootView(), "TODO: Share", Snackbar.LENGTH_LONG)
+                    .setAction("Action", null).show();
             return false;
         }
         return false;
@@ -113,8 +114,9 @@ public class ScenarioActivity extends AppCompatActivity {
         }
 
         this.mDoubleBackToExitPressedOnce = true;
-        Toast.makeText(this, "Unsaved changes. Please click BACK again to discard and exit", Toast.LENGTH_SHORT).show();
-
+        Snackbar.make(getWindow().getDecorView().getRootView(),
+                "Unsaved changes. Please click BACK again to discard and exit",
+                     Snackbar.LENGTH_LONG).setAction("Action", null).show();
         new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
             @Override public void run() { mDoubleBackToExitPressedOnce =false;}}, 2000);
     }

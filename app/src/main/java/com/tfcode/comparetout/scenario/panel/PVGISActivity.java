@@ -13,7 +13,6 @@ import android.widget.ProgressBar;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
@@ -23,6 +22,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 
+import com.google.android.material.snackbar.Snackbar;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.SimulatorLauncher;
@@ -194,8 +194,9 @@ public class PVGISActivity extends AppCompatActivity {
         }
 
         this.mDoubleBackToExitPressedOnce = true;
-        Toast.makeText(this, "Unsaved changes. Please click BACK again to discard and exit", Toast.LENGTH_SHORT).show();
-
+        Snackbar.make(getWindow().getDecorView().getRootView(),
+                        "Unsaved changes. Please click BACK again to discard and exit", Snackbar.LENGTH_LONG)
+                .setAction("Action", null).show();
         new Handler(Looper.getMainLooper()).postDelayed(() -> mDoubleBackToExitPressedOnce =false, 2000);
     }
 

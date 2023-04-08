@@ -13,7 +13,6 @@ import android.widget.EditText;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -27,6 +26,7 @@ import com.github.mikephil.charting.data.BarDataSet;
 import com.github.mikephil.charting.data.BarEntry;
 import com.github.mikephil.charting.formatter.ValueFormatter;
 import com.github.mikephil.charting.interfaces.datasets.IBarDataSet;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.ComparisonUIViewModel;
@@ -144,7 +144,9 @@ public class PanelFragment extends Fragment {
                 startActivity(intent);
             }
             else{
-                Toast.makeText(this.getActivity(), "New panel! Save and try again.", Toast.LENGTH_SHORT).show();
+                Snackbar.make(getView(),
+                    "New panel! Save and try again.", Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
             }
         });
         mPanelNoData.addView(button);

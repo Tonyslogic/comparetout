@@ -2,19 +2,8 @@ package com.tfcode.comparetout.scenario;
 
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
-import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.widget.PopupMenu;
-import androidx.core.content.ContextCompat;
-import androidx.core.view.MenuProvider;
-import androidx.fragment.app.Fragment;
-import androidx.lifecycle.ViewModelProvider;
-
 import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
@@ -32,7 +21,15 @@ import android.widget.ImageButton;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
-import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.widget.PopupMenu;
+import androidx.core.content.ContextCompat;
+import androidx.core.view.MenuProvider;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.github.mikephil.charting.charts.PieChart;
 import com.github.mikephil.charting.components.Legend;
@@ -45,8 +42,6 @@ import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.SimulatorLauncher;
 import com.tfcode.comparetout.model.costings.Costings;
-import com.tfcode.comparetout.model.costings.SubTotals;
-import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.model.scenario.SimKPIs;
@@ -258,11 +253,8 @@ public class ScenarioOverview extends Fragment {
 
             //registering popup with OnMenuItemClickListener
             popup.setOnMenuItemClickListener(item -> {
-                Toast.makeText(
-                        requireActivity(),
-                        "You Clicked : " + item.getTitle(),
-                        Toast.LENGTH_SHORT
-                ).show();
+                Snackbar.make(getView(), "You Clicked : " + item.getTitle(), Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
                 return true;
             });
             try {
@@ -295,11 +287,8 @@ public class ScenarioOverview extends Fragment {
 
             //registering popup with OnMenuItemClickListener
             popup.setOnMenuItemClickListener(item -> {
-                Toast.makeText(
-                        requireActivity(),
-                        "You Clicked : " + item.getTitle(),
-                        Toast.LENGTH_SHORT
-                ).show();
+                Snackbar.make(getView(), "You Clicked : " + item.getTitle(), Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
                 return true;
             });
             try {
@@ -334,11 +323,8 @@ public class ScenarioOverview extends Fragment {
 
             //registering popup with OnMenuItemClickListener
             popup.setOnMenuItemClickListener(item -> {
-                Toast.makeText(
-                        requireActivity(),
-                        "You Clicked : " + item.getTitle(),
-                        Toast.LENGTH_SHORT
-                ).show();
+                Snackbar.make(getView(), "You Clicked : " + item.getTitle(), Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
                 return true;
             });
             try {
