@@ -27,8 +27,10 @@ import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.SimulatorLauncher;
 import com.tfcode.comparetout.model.scenario.Panel;
+import com.tfcode.comparetout.model.scenario.PanelPVSummary;
 import com.tfcode.comparetout.util.AbstractTextWatcher;
 
+import java.io.File;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,6 +50,9 @@ public class PVGISActivity extends AppCompatActivity {
     private ComparisonUIViewModel mViewModel;
     private boolean mDoubleBackToExitPressedOnce = false;
     private boolean mUnsavedChanges = false;
+    private boolean mPanelDataInDB = false;
+    private boolean mFileCached = false;
+    private boolean mLocationChanged = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,12 +78,25 @@ public class PVGISActivity extends AppCompatActivity {
         mProgressBar.setVisibility(View.VISIBLE);
         new Thread(() -> {
             mPanel = mViewModel.getPanelForID(mPanelID);
+            mLocationChanged = false;
             if (!(null == mPanel)) System.out.println(mPanel.getAzimuth());
             else System.out.println("DOH!");
             mMainHandler.post(this::updateView);
+            mMainHandler.post(this::fileExist);
             mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
         }).start();
         mEditFields = new ArrayList<>();
+
+        mViewModel.getPanelDataSummary().observe(this, summaries -> {
+            mPanelDataInDB = false;
+            for (PanelPVSummary summary: summaries) {
+                if (summary.panelID == mPanel.getPanelIndex()){
+                    mPanelDataInDB = true;
+                    break;
+                }
+            }
+            updateView();
+        });
     }
 
     private void updateView() {
@@ -87,6 +105,9 @@ public class PVGISActivity extends AppCompatActivity {
         TableRow.LayoutParams params = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
         params.topMargin = 2;
         params.rightMargin = 2;
+
+        TextView downloadIndicator = new TextView(this);
+        TextView dbRefreshIndicator = new TextView(this);
 
         int integerType = InputType.TYPE_CLASS_NUMBER;
         int doubleType = InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL;
@@ -100,6 +121,9 @@ public class PVGISActivity extends AppCompatActivity {
                 if (!(s.toString().equals(df.format(mPanel.getLatitude())))) {
                     System.out.println("Latitude changed");
                     mPanel.setLatitude(getDoubleOrZero(s));
+                    fileExist();
+                    mLocationChanged = true;
+                    setStatusTexts(downloadIndicator, dbRefreshIndicator);
                 }
             }
         }, params, doubleType));
@@ -109,6 +133,9 @@ public class PVGISActivity extends AppCompatActivity {
                 if (!(s.toString().equals(df.format(mPanel.getLongitude())))) {
                     System.out.println("Longitude changed");
                     mPanel.setLongitude(getDoubleOrZero(s));
+                    fileExist();
+                    mLocationChanged = true;
+                    setStatusTexts(downloadIndicator, dbRefreshIndicator);
                 }
             }
         }, params, doubleType));
@@ -118,6 +145,9 @@ public class PVGISActivity extends AppCompatActivity {
                 if (!(s.toString().equals(String.valueOf(mPanel.getAzimuth())))) {
                     System.out.println("Azimuth changed");
                     mPanel.setAzimuth(getIntegerOrZero(s));
+                    fileExist();
+                    mLocationChanged = true;
+                    setStatusTexts(downloadIndicator, dbRefreshIndicator);
                 }
             }
         }, params, integerType));
@@ -127,11 +157,22 @@ public class PVGISActivity extends AppCompatActivity {
                 if (!(s.toString().equals(String.valueOf(mPanel.getSlope())))) {
                     System.out.println("Slope changed");
                     mPanel.setSlope(getIntegerOrZero(s));
+                    fileExist();
+                    mLocationChanged = true;
+                    setStatusTexts(downloadIndicator, dbRefreshIndicator);
                 }
             }
         }, params, integerType));
 
         TableRow tableRow = new TableRow(this);
+        setStatusTexts(downloadIndicator, dbRefreshIndicator);
+        downloadIndicator.setLayoutParams(params);
+        dbRefreshIndicator.setLayoutParams(params);
+        tableRow.addView(downloadIndicator);
+        tableRow.addView(dbRefreshIndicator);
+        mTableLayout.addView(tableRow);
+
+        tableRow = new TableRow(this);
         Button location = new Button(this);
         location.setText("Update location");
         Button download = new Button(this);
@@ -140,6 +181,23 @@ public class PVGISActivity extends AppCompatActivity {
         tableRow.addView(location);
         tableRow.addView(download);
         mTableLayout.addView(tableRow);
+    }
+
+    private void setStatusTexts(TextView downloadIndicator, TextView dbRefreshIndicator) {
+        if (mFileCached) downloadIndicator.setText("Data downloaded");
+        else downloadIndicator.setText("Download necessary");
+        if (mPanelDataInDB && ! mLocationChanged) dbRefreshIndicator.setText("Data in DB");
+        else dbRefreshIndicator.setText("DB update necessary");
+    }
+
+    private void fileExist(){
+        DecimalFormat df = new DecimalFormat("#.000");
+        String latitude = df.format(mPanel.getLatitude());
+        String longitude = df.format(mPanel.getLongitude());
+        String filename = "PVGIS(" + latitude + ")(" + longitude +
+                ")(" + mPanel.getSlope() + ")(" + mPanel.getAzimuth() + ")" ;
+        File file = this.getFileStreamPath(filename);
+        mFileCached = file.exists();
     }
 
     private TableRow createRow(String title, String initialValue, AbstractTextWatcher action, TableRow.LayoutParams params, int inputType){
@@ -163,6 +221,7 @@ public class PVGISActivity extends AppCompatActivity {
     private void saveAndFetch() {
         new Thread(() -> {
             mViewModel.updatePanel(mPanel);
+            mViewModel.removeOldPanelData(mPanel.getPanelIndex());
             mMainHandler.post(this::fetch);
         }).start();
     }
@@ -171,7 +230,6 @@ public class PVGISActivity extends AppCompatActivity {
         SimulatorLauncher.downloadAndStorePVGIS(this, mPanel.getPanelIndex());
         mProgressBar.setVisibility(View.VISIBLE);
 
-//        ListenableFuture<List<WorkInfo>> work = WorkManager.getInstance(this).getWorkInfosForUniqueWork("PVGIS"); // ListenableFuture<List<WorkInfo>>
         WorkManager.getInstance(this).getWorkInfosForUniqueWorkLiveData("PVGIS")
             .observe(this, workInfos -> {
                 for (WorkInfo workInfo: workInfos){
@@ -180,6 +238,9 @@ public class PVGISActivity extends AppCompatActivity {
                             workInfo.getTags().contains("com.tfcode.comparetout.scenario.panel.PVGISLoader")) {
                         System.out.println(workInfo.getTags().iterator().next());
                         mProgressBar.setVisibility(View.GONE);
+                        fileExist();
+                        mLocationChanged = false;
+                        mMainHandler.post(this::updateView);
                     }
                 }
             });

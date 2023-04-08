@@ -198,4 +198,8 @@ public class ComparisonUIViewModel extends AndroidViewModel {
     public void updatePanel(Panel panel) {
         toutcRepository.updatePanel(panel);
     }
+
+    public void removeOldPanelData(Long panelID) {
+        toutcRepository.removeOldPanelData(panelID);
+    }
 }

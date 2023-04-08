@@ -87,8 +87,6 @@ public class PVGISDownloader extends Worker {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
-            System.out.println("File created -- TODO LOAD");
         }).start();
         else {
             System.out.println("File found already -- TODO LOAD");

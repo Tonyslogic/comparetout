@@ -678,12 +678,12 @@ public abstract class ScenarioDAO {
     }
     @Transaction
     public void savePanel(Long scenarioID, Panel panel) {
-        long panleID = panel.getPanelIndex();
-        if (panleID == 0) {
-            panleID = addNewPanels(panel);
+        long panelID = panel.getPanelIndex();
+        if (panelID == 0) {
+            panelID = addNewPanels(panel);
             Scenario2Panel s2p = new Scenario2Panel();
             s2p.setScenarioID(scenarioID);
-            s2p.setPanelID(panleID);
+            s2p.setPanelID(panelID);
             addNewScenario2Panel(s2p);
 
             Scenario scenario = getScenario(scenarioID);
@@ -751,4 +751,7 @@ public abstract class ScenarioDAO {
             "ELSE 0 " +
             "END AS OK")
     public abstract boolean checkForMissingPanelData(Long scenarioID);
+
+    @Query("DELETE FROM paneldata WHERE panelID = :panelID")
+    public abstract void removePanelData(Long panelID);
 }

@@ -325,4 +325,9 @@ public class ToutcRepository {
     public boolean costingExists(long scenarioID, long pricePlanIndex) {
         return costingDAO.costingExists(scenarioID, pricePlanIndex);
     }
+
+    public void removeOldPanelData(Long panelID) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+            scenarioDAO.removePanelData(panelID));
+    }
 }
