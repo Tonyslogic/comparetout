@@ -326,7 +326,7 @@ public class ComparisonFragment extends Fragment {
             mTableLayout.setColumnCollapsed(5, !mShowBonus);
             mTableLayout.setColumnCollapsed(6, !mShowFixed);
 
-            createRow("Scenario", "Supplier:Plan", "Nett(€)",
+            createRow("Scenario", "Supplier:Plan", "Net(€)",
                     "Buy(€)","Sell(€)", "Bonus(€)", "Fixed(€)", true, null);
             ArrayList<Row> rows = new ArrayList<>();
             for (Costings costing : mCostings) {
@@ -338,7 +338,7 @@ public class ComparisonFragment extends Fragment {
                     row.scenario = costing.getScenarioName();
                     row.fullName = costing.getFullPlanName();
                     DecimalFormat df = new DecimalFormat("#.00");
-                    row.nett = df.format(costing.getNett() /100);
+                    row.net = df.format(costing.getNett() /100);
                     row.buy = df.format(costing.getBuy() / 100);
                     row.sell = df.format(costing.getSell() / 100);
                     row.bonus = df.format(pricePlan.getSignUpBonus());
@@ -352,7 +352,7 @@ public class ComparisonFragment extends Fragment {
                 int ret = 0;
                 if (mSortBy.equals("SortBy: Scenario")) ret = row1.scenario.compareTo(row2.scenario);
                 if (mSortBy.equals("SortBy: Plan")) ret = row1.fullName.compareTo(row2.fullName);
-                if (mSortBy.equals("SortBy: Nett")) ret = row1.nett.compareTo(row2.nett);
+                if (mSortBy.equals("SortBy: Net")) ret = row1.net.compareTo(row2.net);
                 if (mSortBy.equals("SortBy: Buy")) ret = row1.buy.compareTo(row2.buy);
                 if (mSortBy.equals("SortBy: Sell")) ret = row1.sell.compareTo(row2.sell);
                 if (mSortBy.equals("SortBy: Bonus")) ret = row1.bonus.compareTo(row2.bonus);
@@ -360,7 +360,7 @@ public class ComparisonFragment extends Fragment {
                 return ret;
             });
             for (Row row: rows){
-                createRow(row.scenario, row.fullName, row.nett, row.buy, row.sell, row.bonus, row.fixed, false, row.subTotals);
+                createRow(row.scenario, row.fullName, row.net, row.buy, row.sell, row.bonus, row.fixed, false, row.subTotals);
             }
         }
         else {
@@ -413,7 +413,7 @@ public class ComparisonFragment extends Fragment {
             g.setTypeface(e.getTypeface(), Typeface.BOLD);
         }
         else {
-            tableRow.setOnClickListener(v -> showPieChart(subTotals));
+            tableRow.setOnClickListener(v -> showPieChart(subTotals, scenarioName, planName));
         }
 
         // SET PARAMS
@@ -464,7 +464,7 @@ public class ComparisonFragment extends Fragment {
         mTableLayout.addView(tableRow);
     }
 
-    private void showPieChart(SubTotals subTotals) {
+    private void showPieChart(SubTotals subTotals, String scenarioName, String planName) {
         if (mOrientation == Configuration.ORIENTATION_PORTRAIT)
             mPieChartWindow.setHeight((int) (requireActivity().getWindow().getDecorView().getHeight()*0.6));
         else
@@ -472,7 +472,8 @@ public class ComparisonFragment extends Fragment {
         mPieChartWindow.showAtLocation(mTableLayout, Gravity.CENTER, 0, 0);
         PieChart mPieChart = mPopupView.findViewById(R.id.price_breakdown);
 
-        mPieChart.getDescription().setEnabled(false);
+        mPieChart.getDescription().setEnabled(true);
+        mPieChart.getDescription().setText(scenarioName + ":" + planName);
         mPieChart.setRotationEnabled(true);
         mPieChart.setDragDecelerationFrictionCoef(0.9f);
         mPieChart.setRotationAngle(0);
@@ -523,7 +524,7 @@ public class ComparisonFragment extends Fragment {
 class Row {
     String scenario;
     String fullName;
-    String nett;
+    String net;
     String buy;
     String sell;
     SubTotals subTotals;
