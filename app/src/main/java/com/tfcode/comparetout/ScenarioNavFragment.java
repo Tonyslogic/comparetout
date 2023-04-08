@@ -32,6 +32,7 @@ public class ScenarioNavFragment extends Fragment {
 
     private ComparisonUIViewModel mViewModel;
     private TableLayout mTableLayout;
+    private List<Scenario> mScenarios;
 
     public static ScenarioNavFragment newInstance() {
         return new ScenarioNavFragment();
@@ -42,6 +43,7 @@ public class ScenarioNavFragment extends Fragment {
     public void onResume() {
         super.onResume();
         requireActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        updateView();
     }
 
     @Override
@@ -53,7 +55,8 @@ public class ScenarioNavFragment extends Fragment {
         mViewModel.getAllScenarios().observe(this, scenarios -> {
             System.out.println("Observed a change in live scenario data " + scenarios.size());
             SimulatorLauncher.simulateIfNeeded(getContext());
-            updateView(scenarios);
+            mScenarios = scenarios;
+            updateView();
 //            ((MainActivity)requireActivity()).stopProgressIndicator();
         });
     }
@@ -81,15 +84,15 @@ public class ScenarioNavFragment extends Fragment {
         ).attach();
     }
 
-    private void updateView(List<Scenario> scenarios) {
+    private void updateView() {
         mTableLayout.removeAllViews();
 
-        if (scenarios != null && scenarios.size() > 0) {
+        if (mScenarios != null && mScenarios.size() > 0) {
             mTableLayout.setShrinkAllColumns(false);
             mTableLayout.setStretchAllColumns(true);
             mTableLayout.setColumnShrinkable(1, true);
             mTableLayout.setColumnStretchable(1, false);
-            for (Scenario scenario : scenarios) {
+            for (Scenario scenario : mScenarios) {
 
                 // CREATE TABLE ROW
                 TableRow tableRow;
@@ -107,7 +110,7 @@ public class ScenarioNavFragment extends Fragment {
                 TextView b = new TextView(getActivity());
                 ImageButton c = new ImageButton(getActivity());
                 ImageButton d = new ImageButton(getActivity());
-                ImageButton e = new ImageButton(getActivity());
+//                ImageButton e = new ImageButton(getActivity());
 
                 // SET PARAMS
 
@@ -115,7 +118,7 @@ public class ScenarioNavFragment extends Fragment {
                 b.setLayoutParams(planParams);
                 c.setLayoutParams(planParams);
                 d.setLayoutParams(planParams);
-                e.setLayoutParams(planParams);
+//                e.setLayoutParams(planParams);
 
                 // SET BACKGROUND COLOR
 
@@ -123,7 +126,7 @@ public class ScenarioNavFragment extends Fragment {
 //                b.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
                 c.setBackgroundColor(0);
                 d.setBackgroundColor(0);
-                e.setBackgroundColor(0);
+//                e.setBackgroundColor(0);
 
                 // SET PADDING
 
@@ -131,19 +134,19 @@ public class ScenarioNavFragment extends Fragment {
                 b.setPadding(10, 10, 10, 10);
                 c.setPadding(10, 10, 10, 10);
                 d.setPadding(10, 10, 10, 10);
-                e.setPadding(10, 10, 10, 10);
+//                e.setPadding(10, 10, 10, 10);
 
                 // SET TEXTVIEW TEXT
 
                 b.setText(scenario.getScenarioName());
                 c.setImageResource(android.R.drawable.ic_menu_delete);
                 d.setImageResource(R.drawable.baseline_content_copy_24 );
-                e.setImageResource(android.R.drawable.ic_menu_view);
+//                e.setImageResource(android.R.drawable.ic_menu_view);
 
                 a.setId((int) scenario.getScenarioIndex());
                 c.setId((int) scenario.getScenarioIndex());
                 d.setId((int) scenario.getScenarioIndex());
-                e.setId((int) scenario.getScenarioIndex());
+//                e.setId((int) scenario.getScenarioIndex());
 
                 a.setOnClickListener(v -> {
                     System.out.println("Select for comparison: " + v.getId() + " " + a.isChecked());
@@ -156,7 +159,7 @@ public class ScenarioNavFragment extends Fragment {
                     b.setBackgroundColor(Color.RED);
                     c.setBackgroundColor(Color.RED);
                     d.setBackgroundColor(Color.RED);
-                    e.setBackgroundColor(Color.RED);
+//                    e.setBackgroundColor(Color.RED);
                     System.out.println("Delete: " + v.getId());
                     mViewModel.deleteScenario(v.getId());
                 });
@@ -166,10 +169,16 @@ public class ScenarioNavFragment extends Fragment {
                     mViewModel.copyScenario(v.getId());
                 });
 
-                e.setOnClickListener(v -> {
+                b.setOnClickListener(v -> {
+                    tableRow.setBackgroundColor(Color.LTGRAY);
+                    a.setBackgroundColor(Color.LTGRAY);
+                    b.setBackgroundColor(Color.LTGRAY);
+                    c.setBackgroundColor(Color.LTGRAY);
+                    d.setBackgroundColor(Color.LTGRAY);
                     System.out.println("View: " + v.getId());
                     Intent intent = new Intent(getActivity(), ScenarioActivity.class);
-                    intent.putExtra("ScenarioID", Long.valueOf(v.getId()));
+//                    intent.putExtra("ScenarioID", Long.valueOf(v.getId()));
+                    intent.putExtra("ScenarioID", scenario.getScenarioIndex());
                     startActivity(intent);
                 });
 
@@ -179,7 +188,7 @@ public class ScenarioNavFragment extends Fragment {
                 tableRow.addView(b);
                 tableRow.addView(c);
                 tableRow.addView(d);
-                tableRow.addView(e);
+//                tableRow.addView(e);
 
 //                tableRow.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
 

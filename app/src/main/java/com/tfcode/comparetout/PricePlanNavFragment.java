@@ -37,6 +37,7 @@ public class PricePlanNavFragment extends Fragment {
 
     private ComparisonUIViewModel mViewModel;
     private TableLayout mTableLayout;
+    private Map<PricePlan, List<DayRate>> mPlans;
 
     public static PricePlanNavFragment newInstance() {
         return new PricePlanNavFragment();
@@ -47,6 +48,7 @@ public class PricePlanNavFragment extends Fragment {
     public void onResume() {
         super.onResume();
         requireActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        updateView();
     }
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -56,7 +58,8 @@ public class PricePlanNavFragment extends Fragment {
         mViewModel.getAllPricePlans().observe(this, plans -> {
             System.out.println("Observed a change in live plans data " + plans.entrySet().size());
             SimulatorLauncher.simulateIfNeeded(getContext());
-            updateView(plans);
+            mPlans = plans;
+            updateView();
 //            ((MainActivity)requireActivity()).stopProgressIndicator();
         });
     }
@@ -84,15 +87,15 @@ public class PricePlanNavFragment extends Fragment {
         ).attach();
     }
 
-    public void updateView(Map<PricePlan, List<DayRate>> plans) {
+    public void updateView() {
         mTableLayout.removeAllViews();
-        if ((plans != null) && (plans.entrySet().size() > 0)) {
+        if ((mPlans != null) && (mPlans.entrySet().size() > 0)) {
             mTableLayout.setShrinkAllColumns(false);
             mTableLayout.setStretchAllColumns(true);
             mTableLayout.setColumnShrinkable(1, true);
             mTableLayout.setColumnStretchable(1, false);
 
-            for (Map.Entry<PricePlan, List<DayRate>> entry : plans.entrySet()) {
+            for (Map.Entry<PricePlan, List<DayRate>> entry : mPlans.entrySet()) {
                 PricePlan p = entry.getKey();
 
                 // CREATE TABLE ROW
@@ -111,7 +114,7 @@ public class PricePlanNavFragment extends Fragment {
                 TextView b = new TextView(getActivity());
                 ImageButton c = new ImageButton(getActivity());
                 ImageButton d = new ImageButton(getActivity());
-                ImageButton e = new ImageButton(getActivity());
+//                ImageButton e = new ImageButton(getActivity());
 
                 // SET PARAMS
 
@@ -119,7 +122,7 @@ public class PricePlanNavFragment extends Fragment {
                 b.setLayoutParams(planParams);
                 c.setLayoutParams(planParams);
                 d.setLayoutParams(planParams);
-                e.setLayoutParams(planParams);
+//                e.setLayoutParams(planParams);
 
                 // SET BACKGROUND COLOR
 
@@ -127,7 +130,7 @@ public class PricePlanNavFragment extends Fragment {
 //                b.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
                 c.setBackgroundColor(0);
                 d.setBackgroundColor(0);
-                e.setBackgroundColor(0);
+//                e.setBackgroundColor(0);
 
                 // SET PADDING
 
@@ -135,19 +138,19 @@ public class PricePlanNavFragment extends Fragment {
                 b.setPadding(10, 10, 10, 10);
                 c.setPadding(10, 10, 10, 10);
                 d.setPadding(10, 10, 10, 10);
-                e.setPadding(10, 10, 10, 10);
+//                e.setPadding(10, 10, 10, 10);
 
                 // SET TEXTVIEW TEXT
 
                 b.setText(p.getSupplier() + ":"+ p.getPlanName() + " (" + p.getLastUpdate() + ")");
                 c.setImageResource(android.R.drawable.ic_menu_delete);
                 d.setImageResource(R.drawable.baseline_content_copy_24);
-                e.setImageResource(android.R.drawable.ic_menu_view);
+//                e.setImageResource(android.R.drawable.ic_menu_view);
 
                 a.setId((int) p.getPricePlanIndex());
                 c.setId((int) p.getPricePlanIndex());
                 d.setId((int) p.getPricePlanIndex());
-                e.setId((int) p.getPricePlanIndex());
+//                e.setId((int) p.getPricePlanIndex());
 
                 a.setOnClickListener(v -> {
                     System.out.println("Select for comparison: " + v.getId() + " " + a.isChecked());
@@ -161,7 +164,7 @@ public class PricePlanNavFragment extends Fragment {
                     b.setBackgroundColor(Color.RED);
                     c.setBackgroundColor(Color.RED);
                     d.setBackgroundColor(Color.RED);
-                    e.setBackgroundColor(Color.RED);
+//                    e.setBackgroundColor(Color.RED);
                     System.out.println("Delete: " + v.getId());
                     mViewModel.deletePricePlan(v.getId());
                     mViewModel.deleteRelatedCostings(v.getId());
@@ -181,10 +184,15 @@ public class PricePlanNavFragment extends Fragment {
                     }
                 });
 
-                e.setOnClickListener(v -> {
+                b.setOnClickListener(v -> {
+                    tableRow.setBackgroundColor(Color.LTGRAY);
+                    a.setBackgroundColor(Color.LTGRAY);
+                    b.setBackgroundColor(Color.LTGRAY);
+                    c.setBackgroundColor(Color.LTGRAY);
+                    d.setBackgroundColor(Color.LTGRAY);
                     System.out.println("View: " + v.getId());
                     Intent intent = new Intent(getActivity(), PricePlanActivity.class);
-                    intent.putExtra("PlanID", Long.valueOf(v.getId()));
+                    intent.putExtra("PlanID", p.getPricePlanIndex());
                     intent.putExtra("Edit", false);
                     intent.putExtra("Focus", JsonTools.createSinglePricePlanJsonObject(p, entry.getValue()));
                     startActivity(intent);
@@ -197,7 +205,7 @@ public class PricePlanNavFragment extends Fragment {
                 tableRow.addView(b);
                 tableRow.addView(c);
                 tableRow.addView(d);
-                tableRow.addView(e);
+//                tableRow.addView(e);
 //                tableRow.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
 
                 // ADD TABLEROW TO TABLELAYOUT
