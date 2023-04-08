@@ -87,8 +87,7 @@ public class ScenarioOverview extends Fragment {
     }
 
     public static ScenarioOverview newInstance() {
-        ScenarioOverview fragment = new ScenarioOverview();
-        return fragment;
+        return new ScenarioOverview();
     }
 
     @Override
@@ -209,11 +208,18 @@ public class ScenarioOverview extends Fragment {
     private void setupButtons() {
         mPanelButton = requireView().findViewById(R.id.panelButton);
         mPanelButton.setOnClickListener(v -> {
-            Intent intent = new Intent(getActivity(), PanelActivity.class);
-            intent.putExtra("ScenarioID", mScenarioID);
-            intent.putExtra("ScenarioName", mScenario.getScenarioName());
-            intent.putExtra("Edit", mEdit);
-            startActivity(intent);
+            if (!mScenario.isHasInverters()) {
+                Snackbar.make(requireActivity().getWindow().getDecorView().getRootView(),
+                    "Add at least one inverter before adding panels",
+                        Snackbar.LENGTH_LONG).setAction("Action", null).show();
+            }
+            else {
+                Intent intent = new Intent(getActivity(), PanelActivity.class);
+                intent.putExtra("ScenarioID", mScenarioID);
+                intent.putExtra("ScenarioName", mScenario.getScenarioName());
+                intent.putExtra("Edit", mEdit);
+                startActivity(intent);
+            }
         });
 
         mInverterButton = requireView().findViewById(R.id.inverterButton);
