@@ -11,9 +11,9 @@
         android:title="@string/supplier_plan"
         android:checkable="true"/>
     <item
-        android:id="@+id/nett"
+        android:id="@+id/net"
         android:checked="true"
-        android:title="@string/nett"
+        android:title="@string/net"
         android:checkable="true"/>
     <item
         android:id="@+id/buy"

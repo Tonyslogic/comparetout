@@ -16,7 +16,7 @@ public class Costings {
     private SubTotals subTotals;
     private String scenarioName;
     private String fullPlanName;
-    private double nett;
+    private double net;
 
     public String getScenarioName() {
         return scenarioName;
@@ -34,18 +34,18 @@ public class Costings {
         this.fullPlanName = fullPlanName;
     }
 
-    public double getNett() {
-        return nett;
+    public double getNet() {
+        return net;
     }
 
-    public void setNett(double nett) {
-        this.nett = nett;
+    public void setNet(double net) {
+        this.net = net;
     }
 
     @NonNull
     @Override
     public String toString() {
-        return "[" + scenarioName + ", " + fullPlanName + ", " + nett + ", " + buy + ", " + sell + "]";
+        return "[" + scenarioName + ", " + fullPlanName + ", " + net + ", " + buy + ", " + sell + "]";
     }
 
     public long getScenarioID() {

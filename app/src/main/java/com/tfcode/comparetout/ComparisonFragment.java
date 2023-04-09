@@ -55,19 +55,19 @@ public class ComparisonFragment extends Fragment {
     private List<Scenario> mScenarios;
     private List<PricePlan> mPricePlans;
     private List<Costings> mCostings;
-    private String mSortBy = "SortBy: Nett";
+    private String mSortBy = "SortBy: Net";
     private static final String SORT_KEY = "SORT_KEY";
 
     private static final String SHOW_SCENARIO = "SHOW_SCENARIO";
     private static final String SHOW_PLAN = "SHOW_PLAN";
-    private static final String SHOW_NETT = "SHOW_NETT";
+    private static final String SHOW_NET = "SHOW_NET";
     private static final String SHOW_BUY = "SHOW_BUY";
     private static final String SHOW_SELL = "SHOW_SELL";
     private static final String SHOW_BONUS = "SHOW_BONUS";
     private static final String SHOW_FIXED = "SHOW_FIXED";
     private boolean mShowScenario = true;
     private boolean mShowPlan = true;
-    private boolean mShowNett = true;
+    private boolean mShowNet = true;
     private boolean mShowBuy = true;
     private boolean mShowSell = true;
     private boolean mShowBonus = false;
@@ -123,7 +123,7 @@ public class ComparisonFragment extends Fragment {
         outState.putString(SORT_KEY, mSortBy);
         outState.putBoolean(SHOW_SCENARIO, mShowScenario);
         outState.putBoolean(SHOW_PLAN, mShowPlan);
-        outState.putBoolean(SHOW_NETT, mShowNett);
+        outState.putBoolean(SHOW_NET, mShowNet);
         outState.putBoolean(SHOW_BUY, mShowBuy);
         outState.putBoolean(SHOW_SELL, mShowSell);
         outState.putBoolean(SHOW_BONUS, mShowBonus);
@@ -137,7 +137,7 @@ public class ComparisonFragment extends Fragment {
             mSortBy = savedInstanceState.getString(SORT_KEY);
             mShowScenario = savedInstanceState.getBoolean(SHOW_SCENARIO);
             mShowPlan = savedInstanceState.getBoolean(SHOW_PLAN);
-            mShowNett = savedInstanceState.getBoolean(SHOW_NETT);
+            mShowNet = savedInstanceState.getBoolean(SHOW_NET);
             mShowBuy = savedInstanceState.getBoolean(SHOW_BUY);
             mShowSell = savedInstanceState.getBoolean(SHOW_SELL);
             mShowBonus = savedInstanceState.getBoolean(SHOW_BONUS);
@@ -145,7 +145,7 @@ public class ComparisonFragment extends Fragment {
             mVisibleColCount = 0;
             if (mShowScenario) mVisibleColCount++;
             if (mShowPlan) mVisibleColCount++;
-            if (mShowNett) mVisibleColCount++;
+            if (mShowNet) mVisibleColCount++;
             if (mShowSell) mVisibleColCount++;
             if (mShowBonus) mVisibleColCount++;
             if (mShowBuy) mVisibleColCount++;
@@ -229,7 +229,7 @@ public class ComparisonFragment extends Fragment {
                     .inflate(R.menu.popup_menu_compare, mPopup.getMenu());
             mPopup.getMenu().findItem(R.id.scenario).setChecked(mShowScenario);
             mPopup.getMenu().findItem(R.id.plan).setChecked(mShowPlan);
-            mPopup.getMenu().findItem(R.id.nett).setChecked(mShowNett);
+            mPopup.getMenu().findItem(R.id.net).setChecked(mShowNet);
             mPopup.getMenu().findItem(R.id.buy).setChecked(mShowBuy);
             mPopup.getMenu().findItem(R.id.sell).setChecked(mShowSell);
             mPopup.getMenu().findItem(R.id.bonus).setChecked(mShowBonus);
@@ -254,9 +254,9 @@ public class ComparisonFragment extends Fragment {
                         mTableLayout.setColumnCollapsed(1, !item.isChecked());
                         mShowPlan = item.isChecked();
                         break;
-                    case R.id.nett:
+                    case R.id.net:
                         mTableLayout.setColumnCollapsed(2, !item.isChecked());
-                        mShowNett = item.isChecked();
+                        mShowNet = item.isChecked();
                         break;
                     case R.id.buy:
                         mTableLayout.setColumnCollapsed(3, !item.isChecked());
@@ -281,7 +281,7 @@ public class ComparisonFragment extends Fragment {
         });
 
         Spinner spinner = new Spinner(getActivity());
-        String[] fields = {"SortBy: Scenario", "SortBy: Plan", "SortBy: Nett", "SortBy: Buy",
+        String[] fields = {"SortBy: Scenario", "SortBy: Plan", "SortBy: Net", "SortBy: Buy",
                 "SortBy: Sell", "SortBy: Bonus", "SortBy: Fixed"};
         ArrayList<String> spinnerContent = new ArrayList<>(Arrays.asList(fields));
         ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, spinnerContent);
@@ -320,7 +320,7 @@ public class ComparisonFragment extends Fragment {
 
             mTableLayout.setColumnCollapsed(0, !mShowScenario);
             mTableLayout.setColumnCollapsed(1, !mShowPlan);
-            mTableLayout.setColumnCollapsed(2, !mShowNett);
+            mTableLayout.setColumnCollapsed(2, !mShowNet);
             mTableLayout.setColumnCollapsed(3, !mShowBuy);
             mTableLayout.setColumnCollapsed(4, !mShowSell);
             mTableLayout.setColumnCollapsed(5, !mShowBonus);
@@ -338,7 +338,7 @@ public class ComparisonFragment extends Fragment {
                     row.scenario = costing.getScenarioName();
                     row.fullName = costing.getFullPlanName();
                     DecimalFormat df = new DecimalFormat("#.00");
-                    row.net = df.format(costing.getNett() /100);
+                    row.net = df.format(costing.getNet() /100);
                     row.buy = df.format(costing.getBuy() / 100);
                     row.sell = df.format(costing.getSell() / 100);
                     row.bonus = df.format(pricePlan.getSignUpBonus());
@@ -347,16 +347,24 @@ public class ComparisonFragment extends Fragment {
                     rows.add(row);
                 }
             }
-            // sort rows {"Scenario", "Plan", "Nett", "Buy", "Sell"}
+            // sort rows {"Scenario", "Plan", "Net", "Buy", "Sell"}
             rows.sort((row1, row2) -> {
                 int ret = 0;
                 if (mSortBy.equals("SortBy: Scenario")) ret = row1.scenario.compareTo(row2.scenario);
                 if (mSortBy.equals("SortBy: Plan")) ret = row1.fullName.compareTo(row2.fullName);
-                if (mSortBy.equals("SortBy: Net")) ret = row1.net.compareTo(row2.net);
-                if (mSortBy.equals("SortBy: Buy")) ret = row1.buy.compareTo(row2.buy);
-                if (mSortBy.equals("SortBy: Sell")) ret = row1.sell.compareTo(row2.sell);
-                if (mSortBy.equals("SortBy: Bonus")) ret = row1.bonus.compareTo(row2.bonus);
-                if (mSortBy.equals("SortBy: Fixed")) ret = row1.fixed.compareTo(row2.fixed);
+                try {
+                    if (mSortBy.equals("SortBy: Net")) ret = Double.valueOf(row1.net).compareTo(Double.valueOf(row2.net));
+                    if (mSortBy.equals("SortBy: Buy")) ret = Double.valueOf(row1.buy).compareTo(Double.valueOf(row2.buy));
+                    if (mSortBy.equals("SortBy: Sell")) ret = Double.valueOf(row1.sell).compareTo(Double.valueOf(row2.sell));
+                    if (mSortBy.equals("SortBy: Bonus")) ret = Double.valueOf(row1.bonus).compareTo(Double.valueOf(row2.bonus));
+                    if (mSortBy.equals("SortBy: Fixed")) ret = Double.valueOf(row1.fixed).compareTo(Double.valueOf(row2.fixed));
+                }catch (NumberFormatException nfe) {
+                    if (mSortBy.equals("SortBy: Net")) ret = row1.net.compareTo(row2.net);
+                    if (mSortBy.equals("SortBy: Buy")) ret = row1.buy.compareTo(row2.buy);
+                    if (mSortBy.equals("SortBy: Sell")) ret = row1.sell.compareTo(row2.sell);
+                    if (mSortBy.equals("SortBy: Bonus")) ret = row1.bonus.compareTo(row2.bonus);
+                    if (mSortBy.equals("SortBy: Fixed")) ret = row1.fixed.compareTo(row2.fixed);
+                }
                 return ret;
             });
             for (Row row: rows){
@@ -384,7 +392,7 @@ public class ComparisonFragment extends Fragment {
         }
     }
 
-    private void createRow(String scenarioName, String planName, String nett, String buy, String sell,
+    private void createRow(String scenarioName, String planName, String net, String buy, String sell,
                            String bonus, String fixed, boolean title, SubTotals subTotals) {
 
         TableRow tableRow;
@@ -445,7 +453,7 @@ public class ComparisonFragment extends Fragment {
 
         a.setText(scenarioName);
         b.setText(planName);
-        c.setText(nett);
+        c.setText(net);
         d.setText(buy);
         e.setText(sell);
         f.setText(bonus);

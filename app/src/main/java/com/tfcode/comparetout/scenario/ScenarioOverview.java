@@ -429,7 +429,7 @@ public class ScenarioOverview extends Fragment {
                 b.setSingleLine(false);
                 if (!(null == mBestCosting)) {
                     DecimalFormat df = new DecimalFormat("#.00");
-                    String price =  "Best cost, €" + df.format(mBestCosting.getNett() /100);
+                    String price =  "Best cost, €" + df.format(mBestCosting.getNet() /100);
                     a.setText(price);
                     String value = mBestCosting.getFullPlanName();
                     b.setText(value);
