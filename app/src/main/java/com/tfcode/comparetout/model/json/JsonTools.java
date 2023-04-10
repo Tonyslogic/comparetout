@@ -221,6 +221,7 @@ public class JsonTools {
         panel.setLongitude(pj.longitude);
         panel.setInverter(pj.inverter);
         panel.setMppt(pj.mppt);
+        panel.setPanelName(pj.panelName);
         return panel;
     }
 
@@ -541,6 +542,7 @@ public class JsonTools {
                 pj.longitude = p.getLongitude();
                 pj.inverter = p.getInverter();
                 pj.mppt = p.getMppt();
+                pj.panelName = p.getPanelName();
                 pjs.add(pj);
             }
         }

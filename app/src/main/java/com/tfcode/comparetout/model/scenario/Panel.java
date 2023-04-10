@@ -17,6 +17,15 @@ public class Panel {
     private double longitude = -10.015;
     private String inverter = "AplhaESS";
     private int mppt = 1;
+    private String panelName = "";
+
+    public String getPanelName() {
+        return panelName;
+    }
+
+    public void setPanelName(String panelName) {
+        this.panelName = panelName;
+    }
 
     public long getPanelIndex() {
         return panelIndex;

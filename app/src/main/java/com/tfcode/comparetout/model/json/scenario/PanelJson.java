@@ -35,4 +35,8 @@ public class PanelJson {
     @SerializedName("MPPT")
     public
     Integer mppt;
+
+    @SerializedName("PanelName")
+    public
+    String panelName;
 }

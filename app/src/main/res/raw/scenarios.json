@@ -37,7 +37,8 @@
 				"Latitude": 53.49,
 				"Longitude": -10.015,
 				"Inverter": "AlphaESS",
-				"MPPT": 1
+				"MPPT": 1,
+				"PanelName": "Top"
 			},
 			{
 				"PanelCount": 7,
@@ -47,7 +48,8 @@
 				"Latitude": 53.49,
 				"Longitude": -10.015,
 				"Inverter": "AlphaESS",
-				"MPPT": 2
+				"MPPT": 2,
+				"PanelName": "Bottom"
 			}
 		],
 		"HWSystem": {

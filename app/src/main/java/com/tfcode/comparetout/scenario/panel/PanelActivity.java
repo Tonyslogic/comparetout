@@ -179,7 +179,7 @@ public class PanelActivity extends AppCompatActivity {
         TabLayout tabLayout = findViewById(R.id.panel_tab_layout);
         mMediator.detach();
         ArrayList<String> tabTitlesList = new ArrayList<>();
-        for (PanelJson pj: panelJsons) tabTitlesList.add("Panel");
+        for (PanelJson pj: panelJsons) tabTitlesList.add("Panels");
         String[] tabTitles = tabTitlesList.toArray(new String[tabTitlesList.size()]);
         mMediator = new TabLayoutMediator(tabLayout, mViewPager,
                 (tab, position) -> tab.setText(tabTitles[position])
