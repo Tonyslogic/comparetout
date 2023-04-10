@@ -1,7 +1,14 @@
 package com.tfcode.comparetout.scenario.panel;
 
+import android.app.DownloadManager;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
@@ -14,10 +21,13 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
+import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
@@ -53,6 +63,62 @@ public class PVGISActivity extends AppCompatActivity {
     private boolean mPanelDataInDB = false;
     private boolean mFileCached = false;
     private boolean mLocationChanged = false;
+
+    private static final String U1 = "https://re.jrc.ec.europa.eu/api/v5_2/seriescalc?lat="; // LATITUDE
+    private static final String U2 = "&lon="; // LONGITUDE
+    private static final String U3 = "&raddatabase=PVGIS-SARAH2&browser=1&outputformat=json&userhorizon=&usehorizon=1&angle="; //SLOPE
+    private static final String U4 = "&aspect="; // AZIMUTH
+    private static final String U5 = "&startyear=2020&endyear=2020&mountingplace=&optimalinclination=0&optimalangles=0&js=1&select_database_hourly=PVGIS-SARAH2&hstartyear=2020&hendyear=2020&trackingtype=0&hourlyangle="; // SLOPE
+    private static final String U6 = "&hourlyaspect="; //AZIMUTH
+
+    private long mDownloadID;
+
+    // Register the permissions callback, which handles the user's response to the
+    // system permissions dialog. Save the return value, an instance of
+    // ActivityResultLauncher, as an instance variable.
+    private ActivityResultLauncher<String> requestPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
+                if (isGranted) {
+                    mMainHandler.post(this::fetch);
+                } else {
+                    Snackbar.make(getWindow().getDecorView().getRootView(),
+                                    "Unable to download, no permission!", Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
+                }
+            });
+
+    private BroadcastReceiver onDownloadComplete = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            //Fetching the download id received with the broadcast
+            long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
+            //Checking if the received broadcast is for our enqueued download by matching download id
+            if (mDownloadID == id) {
+                Snackbar.make(getWindow().getDecorView().getRootView(),
+                                "Download complete, loading DB", Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
+                scheduleLoad(context);
+            }
+        }
+    };
+
+    private void scheduleLoad(Context context) {
+        SimulatorLauncher.storePVGISData(context, mPanel.getPanelIndex());
+        WorkManager.getInstance(this).getWorkInfosForUniqueWorkLiveData("PVGIS")
+            .observe(this, workInfos -> {
+                for (WorkInfo workInfo: workInfos){
+                    if (workInfo.getState() != null &&
+                            workInfo.getState().isFinished() &&
+                            workInfo.getTags().contains("com.tfcode.comparetout.scenario.panel.PVGISLoader")) {
+                        System.out.println(workInfo.getTags().iterator().next());
+                        mProgressBar.setVisibility(View.GONE);
+                        fileExist();
+                        mLocationChanged = false;
+                        mMainHandler.post(this::updateView);
+                    }
+                }
+            });
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -97,6 +163,14 @@ public class PVGISActivity extends AppCompatActivity {
             }
             updateView();
         });
+
+        registerReceiver(onDownloadComplete,new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        unregisterReceiver(onDownloadComplete);
     }
 
     private void updateView() {
@@ -190,14 +264,15 @@ public class PVGISActivity extends AppCompatActivity {
         else dbRefreshIndicator.setText("DB update necessary");
     }
 
-    private void fileExist(){
+    private String fileExist(){
         DecimalFormat df = new DecimalFormat("#.000");
         String latitude = df.format(mPanel.getLatitude());
         String longitude = df.format(mPanel.getLongitude());
         String filename = "PVGIS(" + latitude + ")(" + longitude +
                 ")(" + mPanel.getSlope() + ")(" + mPanel.getAzimuth() + ")" ;
-        File file = this.getFileStreamPath(filename);
+        File file = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS + "/" + filename);
         mFileCached = file.exists();
+        return filename;
     }
 
     private TableRow createRow(String title, String initialValue, AbstractTextWatcher action, TableRow.LayoutParams params, int inputType){
@@ -222,28 +297,52 @@ public class PVGISActivity extends AppCompatActivity {
         new Thread(() -> {
             mViewModel.updatePanel(mPanel);
             mViewModel.removeOldPanelData(mPanel.getPanelIndex());
-            mMainHandler.post(this::fetch);
+
+            if (ContextCompat.checkSelfPermission(
+                    this, "android.permission.WRITE_EXTERNAL_STORAGE") ==
+                    PackageManager.PERMISSION_GRANTED) {
+                mMainHandler.post(this::fetch);
+            }
+            else {
+                requestPermissionLauncher.launch(
+                        "android.permission.WRITE_EXTERNAL_STORAGE");
+            }
         }).start();
     }
 
     private void fetch() {
-        SimulatorLauncher.downloadAndStorePVGIS(this, mPanel.getPanelIndex());
         mProgressBar.setVisibility(View.VISIBLE);
 
-        WorkManager.getInstance(this).getWorkInfosForUniqueWorkLiveData("PVGIS")
-            .observe(this, workInfos -> {
-                for (WorkInfo workInfo: workInfos){
-                    if (workInfo.getState() != null &&
-                            workInfo.getState().isFinished() &&
-                            workInfo.getTags().contains("com.tfcode.comparetout.scenario.panel.PVGISLoader")) {
-                        System.out.println(workInfo.getTags().iterator().next());
-                        mProgressBar.setVisibility(View.GONE);
-                        fileExist();
-                        mLocationChanged = false;
-                        mMainHandler.post(this::updateView);
-                    }
-                }
-            });
+        String fileName = fileExist();
+        if (!mFileCached) {
+            // U1 <LAT> U2 <LONG> U3 <SLOPE> U4 <AZIMUTH> U5 <SLOPE> U6 <AZIMUTH>
+            int az = mPanel.getAzimuth();
+            if (az > 180) az = 360 - az;
+            DecimalFormat df = new DecimalFormat("#.000");
+            String url = new StringBuilder()
+                    .append(U1).append(df.format(mPanel.getLatitude()))
+                    .append(U2).append(df.format(mPanel.getLongitude()))
+                    .append(U3).append(mPanel.getSlope())
+                    .append(U4).append(az)
+                    .append(U5).append(mPanel.getSlope())
+                    .append(U6).append(az).toString();
+            File folder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+            File file = new File(folder, fileName);
+            DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url))
+                    .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)// Visibility of the download Notification
+                    .setDestinationUri(Uri.fromFile(file))// Uri of the destination file
+                    .setTitle(fileName)// Title of the Download Notification
+                    .setDescription("Downloading PVGIS data")// Description of the Download Notification
+                    .setRequiresCharging(false)// Set if charging is required to begin the download
+                    .setAllowedOverMetered(true)// Set if download is allowed on Mobile network
+                    .setAllowedOverRoaming(true);// Set if download is allowed on roaming network
+            DownloadManager downloadManager= (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+            mDownloadID = downloadManager.enqueue(request);// enqueue puts the download request in the queue
+        }
+        else {
+            scheduleLoad(this);
+        }
+
     }
 
     @Override

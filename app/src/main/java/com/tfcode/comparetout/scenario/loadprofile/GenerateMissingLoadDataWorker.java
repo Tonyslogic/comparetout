@@ -51,7 +51,7 @@ public class GenerateMissingLoadDataWorker extends Worker {
                     .setContentText("Generation in progress")
                     .setSmallIcon(R.drawable.house)
                     .setPriority(NotificationCompat.PRIORITY_LOW)
-                    .setTimeoutAfter(20000)
+                    .setTimeoutAfter(30000)
                     .setSilent(true);
             // Issue the initial notification with zero progress
             int PROGRESS_MAX = 100;

@@ -1,14 +1,20 @@
 package com.tfcode.comparetout.scenario.panel;
 
+import static com.tfcode.comparetout.MainActivity.CHANNEL_ID;
+
 import android.app.Application;
 import android.content.Context;
+import android.os.Environment;
 
 import androidx.annotation.NonNull;
+import androidx.core.app.NotificationCompat;
+import androidx.core.app.NotificationManagerCompat;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.json.scenario.pgvis.Hourly;
 import com.tfcode.comparetout.model.json.scenario.pgvis.PvGISData;
@@ -42,7 +48,7 @@ public class PVGISLoader extends Worker {
     }
 
     private boolean fileExist(String filename){
-        File file = mContext.getFileStreamPath(filename);
+        File file = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS + "/" +filename);
         return file.exists();
     }
 
@@ -60,16 +66,35 @@ public class PVGISLoader extends Worker {
 
         FileInputStream inputStream = null;
         try{
+            // NOTIFICATION SETUP
+            int notificationId = 1;
+            NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
+            NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
+            builder.setContentTitle("Loading panel data")
+                    .setContentText("Reading raw data file")
+                    .setSmallIcon(R.drawable.housetick)
+                    .setPriority(NotificationCompat.PRIORITY_LOW)
+                    .setTimeoutAfter(30000)
+                    .setSilent(true);
+            int PROGRESS_MAX = 100;
+            int PROGRESS_CURRENT = 0;// Issue the initial notification with zero progress
+            builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
+            notificationManager.notify(notificationId, builder.build());
+
             if (!fileExist(filename)) Thread.sleep(1000);
-            inputStream = mContext.openFileInput(filename);
+            File file = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS + "/" +filename);
+            inputStream = new FileInputStream(file);
             InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
+
+            builder.setProgress(PROGRESS_MAX, 30, false);
+            builder.setContentText("Data read");
+            notificationManager.notify(notificationId, builder.build());
+
             Type type = new TypeToken<PvGISData>(){}.getType();
             PvGISData pvGISData = new Gson().fromJson(reader, type);
             reader.close();
 
             ArrayList<PanelData> panelDataList = new ArrayList<>();
-//            LocalDateTime active = LocalDateTime.of(2001, 1, 1, 0, 0);
-//            LocalDateTime end = LocalDateTime.of(2002, 1, 1, 0, 0);
             DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd");
             DateTimeFormatter minFormat = DateTimeFormatter.ofPattern("HH:mm");
 
@@ -94,7 +119,18 @@ public class PVGISLoader extends Worker {
                 }
             }
             System.out.println("Got " + panelDataList.size() + " rows to store");
+
+
+            builder.setProgress(PROGRESS_MAX, 60, false);
+            builder.setContentText("Data formatted, storing...");
+            notificationManager.notify(notificationId, builder.build());
+
             mToutcRepository.savePanelData(panelDataList);
+
+            // NOTIFICATION COMPLETE
+            builder.setContentText("DB update complete")
+                    .setProgress(0, 0, false);
+            notificationManager.notify(notificationId, builder.build());
 
             System.out.println("Stored panelData in DB");
 

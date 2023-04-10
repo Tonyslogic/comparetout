@@ -9,7 +9,6 @@ import androidx.work.WorkManager;
 
 import com.tfcode.comparetout.scenario.SimulationWorker;
 import com.tfcode.comparetout.scenario.loadprofile.GenerateMissingLoadDataWorker;
-import com.tfcode.comparetout.scenario.panel.PVGISDownloader;
 import com.tfcode.comparetout.scenario.panel.PVGISLoader;
 
 public class SimulatorLauncher {
@@ -36,16 +35,11 @@ public class SimulatorLauncher {
                 .enqueue();
     }
 
-    public static void downloadAndStorePVGIS(Context context, Long panelID) {
+    public static void storePVGISData(Context context, Long panelID) {
 
-        System.out.println("Starting panel download for " + panelID);
+        System.out.println("Starting panel storage for " + panelID);
         Data.Builder data = new Data.Builder();
         data.putLong("panelID", panelID);
-
-        OneTimeWorkRequest downloadPVGIS =
-                new OneTimeWorkRequest.Builder(PVGISDownloader.class)
-                        .setInputData(data.build())
-                        .build();
 
         OneTimeWorkRequest storePVGIS =
                 new OneTimeWorkRequest.Builder(PVGISLoader.class)
@@ -55,8 +49,7 @@ public class SimulatorLauncher {
         WorkManager.getInstance(context).pruneWork();
         WorkManager
                 .getInstance(context)
-                .beginUniqueWork("PVGIS", ExistingWorkPolicy.APPEND,  downloadPVGIS)
-                .then(storePVGIS)
+                .beginUniqueWork("PVGIS", ExistingWorkPolicy.APPEND,  storePVGIS)
                 .enqueue();
     }
 }
