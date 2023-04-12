@@ -79,4 +79,7 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$rootProject.androidxJunitVersion"
 //    androidTestImplementation "com.google.truth.truth:1.0.1"
 //    testImplementation "androidx.test.monitor"
+
+    // Location
+    implementation 'com.google.android.gms:play-services-location:21.0.1'
 }

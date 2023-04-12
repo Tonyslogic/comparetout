@@ -340,6 +340,14 @@ public abstract class ScenarioDAO {
             "SELECT scenarioID FROM scenario2loadprofile WHERE loadProfileID = :loadProfileID) ")
     public abstract void deleteCostingDataForProfileID(long loadProfileID);
 
+    @Query("DELETE FROM scenariosimulationdata WHERE scenarioID = (" +
+            "SELECT scenarioID FROM scenario2panel WHERE panelID = :panelID) ")
+    public abstract void deleteSimulationDataForPanelID(long panelID);
+
+    @Query("DELETE FROM costings WHERE scenarioID = (" +
+            "SELECT scenarioID FROM scenario2panel WHERE panelID = :panelID) ")
+    public abstract void deleteCostingDataForPanelID(long panelID);
+
 //    @Query("SELECT scenarioIndex FROM scenarios " +
 //            "WHERE scenarioIndex NOT IN (SELECT DISTINCT scenarioID FROM scenariosimulationdata) " +
 //            "AND scenarioIndex IN (SELECT DISTINCT scenarioID FROM scenario2loadprofile)")
@@ -672,7 +680,7 @@ public abstract class ScenarioDAO {
         List<Panel> panels = getPanelsForScenarioID(scenarioID);
         if (panels.size() == 0) {
             Scenario scenario = getScenario(scenarioID);
-            scenario.setHasInverters(false);
+            scenario.setHasPanels(false);
             updateScenario(scenario);
         }
     }

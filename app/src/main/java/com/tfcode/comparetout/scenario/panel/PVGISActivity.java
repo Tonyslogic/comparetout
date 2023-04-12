@@ -1,11 +1,14 @@
 package com.tfcode.comparetout.scenario.panel;
 
+import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.app.DownloadManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -32,6 +35,11 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.snackbar.Snackbar;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
@@ -63,6 +71,7 @@ public class PVGISActivity extends AppCompatActivity {
     private boolean mPanelDataInDB = false;
     private boolean mFileCached = false;
     private boolean mLocationChanged = false;
+    private boolean mPanelDataChanged = false;
 
     private static final String U1 = "https://re.jrc.ec.europa.eu/api/v5_2/seriescalc?lat="; // LATITUDE
     private static final String U2 = "&lon="; // LONGITUDE
@@ -72,6 +81,9 @@ public class PVGISActivity extends AppCompatActivity {
     private static final String U6 = "&hourlyaspect="; //AZIMUTH
 
     private long mDownloadID;
+
+    private boolean mGooglePlayServicesAvailable = false;
+    private FusedLocationProviderClient mFusedLocationClient;
 
     // Register the permissions callback, which handles the user's response to the
     // system permissions dialog. Save the return value, an instance of
@@ -102,6 +114,47 @@ public class PVGISActivity extends AppCompatActivity {
         }
     };
 
+    private ActivityResultLauncher<String[]> locationPermissionRequest =
+            registerForActivityResult(new ActivityResultContracts
+                            .RequestMultiplePermissions(), result -> {
+                        Boolean fineLocationGranted = result.getOrDefault(
+                                "android.permission.ACCESS_FINE_LOCATION", false);
+                        Boolean coarseLocationGranted = result.getOrDefault(
+                                "android.permission.ACCESS_COARSE_LOCATION",false);
+                        if (fineLocationGranted != null && fineLocationGranted) {
+                            // Precise location access granted.
+                            updateLocation();
+                        } else if (coarseLocationGranted != null && coarseLocationGranted) {
+                            // Only approximate location access granted.
+                            updateLocation();
+                        } else {
+                            Snackbar.make(getWindow().getDecorView().getRootView(),
+                                            "No access to location services", Snackbar.LENGTH_LONG)
+                                    .setAction("Action", null).show();
+                        }
+                    }
+            );
+
+    @SuppressLint("MissingPermission")
+    private void updateLocation() {
+        mFusedLocationClient.getLastLocation()
+                .addOnSuccessListener(this, new OnSuccessListener<Location>() {
+                    @Override
+                    public void onSuccess(Location location) {
+                        // Got last known location. In some rare situations this can be null.
+                        if (location != null) {
+                            // Logic to handle location object
+                            mPanel.setLatitude(location.getLatitude());
+                            mPanel.setLongitude(location.getLongitude());
+                            fileExist();
+                            mLocationChanged = true;
+                            updateView();
+                        }
+                    }
+                });
+
+    }
+
     private void scheduleLoad(Context context) {
         SimulatorLauncher.storePVGISData(context, mPanel.getPanelIndex());
         WorkManager.getInstance(this).getWorkInfosForUniqueWorkLiveData("PVGIS")
@@ -114,11 +167,20 @@ public class PVGISActivity extends AppCompatActivity {
                         mProgressBar.setVisibility(View.GONE);
                         fileExist();
                         mLocationChanged = false;
+                        mPanelDataChanged = true;
                         mMainHandler.post(this::updateView);
+                        mMainHandler.post(this::loadCompleteFeedback);
                     }
                 }
             });
     }
+
+    private void loadCompleteFeedback()  {
+        Snackbar.make(getWindow().getDecorView().getRootView(),
+                        "PVGIS Data updated in DB", Snackbar.LENGTH_LONG)
+                .setAction("Action", null).show();
+    }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -126,6 +188,10 @@ public class PVGISActivity extends AppCompatActivity {
         setContentView(R.layout.activity_pvgis);
         createProgressBar();
         mProgressBar.setVisibility(View.VISIBLE);
+
+        mGooglePlayServicesAvailable =
+                (GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(this.getApplicationContext()) == ConnectionResult.SUCCESS );
+        mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
         Intent intent = getIntent();
         mPanelID = intent.getLongExtra("PanelID", 0L);
@@ -182,6 +248,7 @@ public class PVGISActivity extends AppCompatActivity {
 
         TextView downloadIndicator = new TextView(this);
         TextView dbRefreshIndicator = new TextView(this);
+
 
         int integerType = InputType.TYPE_CLASS_NUMBER;
         int doubleType = InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL;
@@ -249,12 +316,28 @@ public class PVGISActivity extends AppCompatActivity {
         tableRow = new TableRow(this);
         Button location = new Button(this);
         location.setText("Update location");
+        location.setEnabled(mGooglePlayServicesAvailable);
+        location.setOnClickListener(v -> updateLatAndLong());
         Button download = new Button(this);
         download.setText("Download data");
         download.setOnClickListener(v -> saveAndFetch() );
         tableRow.addView(location);
         tableRow.addView(download);
         mTableLayout.addView(tableRow);
+    }
+
+    private void updateLatAndLong() {
+        if (ContextCompat.checkSelfPermission(
+                this, "android.permission.ACCESS_COARSE_LOCATION") ==
+                PackageManager.PERMISSION_GRANTED) {
+            updateLocation();
+        }
+        else {
+            locationPermissionRequest.launch(new String[] {
+                    "android.permission.ACCESS_FINE_LOCATION",
+                    "android.permission.ACCESS_COARSE_LOCATION"
+            });
+        }
     }
 
     private void setStatusTexts(TextView downloadIndicator, TextView dbRefreshIndicator) {
@@ -348,8 +431,13 @@ public class PVGISActivity extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         if (mDoubleBackToExitPressedOnce || !(mUnsavedChanges)) {
+//            SimulatorLauncher.simulateIfNeeded(getApplicationContext());
+            Intent returnIntent = new Intent();
+            returnIntent.putExtra("RESULT", mPanelDataChanged);
+            setResult(Activity.RESULT_OK, returnIntent);
+            System.out.println("Finishing PVGISActivity");
             super.onBackPressed();
-            SimulatorLauncher.simulateIfNeeded(getApplicationContext());
+//            finish();
             return;
         }
 

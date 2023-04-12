@@ -1,5 +1,6 @@
 package com.tfcode.comparetout.scenario.panel;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
@@ -17,6 +18,10 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -61,6 +66,26 @@ public class PanelFragment extends Fragment {
     private ComparisonUIViewModel mViewModel;
     private List<PanelPVSummary> mPanelPVSummaries;
     private List<Inverter> mInverters;
+
+    private ActivityResultLauncher<Intent> mStartForResult = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                System.out.println("mStartForResult " + result.getResultCode());
+                if (result.getResultCode() == Activity.RESULT_OK) {
+                    System.out.println("mStartForResult: RESULT_OK");
+                    Intent intent = result.getData();
+                    // Handle the Intent
+                    System.out.println("mPanelDataChanged, RESULT = " + intent.getBooleanExtra("RESULT", false)) ;
+                    if (intent.getBooleanExtra("RESULT", false)) {
+
+                        new Thread(() -> {
+                            System.out.println("Deleting simulation data for " + mPanel.getPanelIndex());
+                            mViewModel.deleteSimulationDataForPanelID(mPanel.getPanelIndex());
+                            System.out.println("Deleting costing data for " + mPanel.getPanelIndex());
+                            mViewModel.deleteCostingDataForPanelID(mPanel.getPanelIndex());
+                        }).start();
+                    }
+                }
+            });
 
 
     public PanelFragment() {
@@ -151,7 +176,8 @@ public class PanelFragment extends Fragment {
                 Intent intent = new Intent(getActivity(), PVGISActivity.class);
                 intent.putExtra("PanelID", mPanel.getPanelIndex());
                 intent.putExtra("Edit", mEdit);
-                startActivity(intent);
+//                startActivity(intent);
+                mStartForResult.launch(intent);
             }
             else{
                 Snackbar.make(getView(),
@@ -241,6 +267,8 @@ public class PanelFragment extends Fragment {
         TableRow.LayoutParams params = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
         params.topMargin = 2;
         params.rightMargin = 2;
+        params.weight = 1;
+        params.height = 120; // TODO fix this crap!!!
 
         int integerType = InputType.TYPE_CLASS_NUMBER;
         int doubleType = InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL;
@@ -280,28 +308,7 @@ public class PanelFragment extends Fragment {
                 }
             }
         }, params, integerType));
-//        mTableLayout.addView(createRow("Connected Inverter name", mPanel.getInverter(), new AbstractTextWatcher() {
-//            @Override
-//            public void afterTextChanged(Editable s) {
-//                if (!(s.toString().equals(mPanel.getInverter()))) {
-//                    System.out.println("Inverter name changed");
-//                    mPanel.setInverter(s.toString());
-//                    ((PanelActivity) requireActivity()).updatePanelAtIndex(mPanel, mPanelIndex);
-//                    ((PanelActivity) requireActivity()).setSaveNeeded(true);
-//                }
-//            }
-//        }, params, stringType));
-//        mTableLayout.addView(createRow("Connected Inverter mppt", String.valueOf(mPanel.getMppt()), new AbstractTextWatcher() {
-//            @Override
-//            public void afterTextChanged(Editable s) {
-//                if (!(s.toString().equals(String.valueOf(mPanel.getMppt())))) {
-//                    System.out.println("Inverter mppt changed");
-//                    mPanel.setMppt(getIntegerOrZero(s));
-//                    ((PanelActivity) requireActivity()).updatePanelAtIndex(mPanel, mPanelIndex);
-//                    ((PanelActivity) requireActivity()).setSaveNeeded(true);
-//                }
-//            }
-//        }, params, integerType));
+
         TableRow inverterRow = new TableRow(getActivity());
         TableRow mpptRow = new TableRow(getActivity());
         TextView inverterText = new TextView(getActivity());
@@ -327,6 +334,9 @@ public class PanelFragment extends Fragment {
             itr++;
         }
         else inverterSpinnerContent.add("Missing inverter");
+        if (!(null == initialInverter)) for (int i = 0; i < initialInverter.getMpptCount(); i++) mpptSpinnerContent.add(String.valueOf(i+1));
+        else mpptSpinnerContent.add("1");
+
 
         mpptSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
             @Override
@@ -346,8 +356,6 @@ public class PanelFragment extends Fragment {
 
         Spinner inverterSpinner = new Spinner(getActivity());
 
-
-        for (int i = 0; i < initialInverter.getMpptCount(); i++) mpptSpinnerContent.add(String.valueOf(i+1));
         ArrayAdapter<String> mpptSpinnerAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, mpptSpinnerContent);
         mpptSpinner.setAdapter(mpptSpinnerAdapter);
         mpptSpinner.setSelection(mPanel.getMppt() - 1);
@@ -366,7 +374,8 @@ public class PanelFragment extends Fragment {
                 for (int i = 0; i < mInverters.get(position).getMpptCount(); i++) mpptSpinnerContent.add(String.valueOf(i+1));
                 mpptSpinner.setSelection(mPanel.getMppt() - 1);
                 ((PanelActivity) requireActivity()).updatePanelAtIndex(mPanel, mPanelIndex);
-                if (!finalInitialInverter.getInverterName().equals(mPanel.getInverter()))
+                if (null == finalInitialInverter) ((PanelActivity) requireActivity()).setSaveNeeded(true);
+                else if (!finalInitialInverter.getInverterName().equals(mPanel.getInverter()))
                     ((PanelActivity) requireActivity()).setSaveNeeded(true);
             }
             @Override

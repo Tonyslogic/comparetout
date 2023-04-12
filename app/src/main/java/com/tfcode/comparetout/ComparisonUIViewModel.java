@@ -202,4 +202,12 @@ public class ComparisonUIViewModel extends AndroidViewModel {
     public void removeOldPanelData(Long panelID) {
         toutcRepository.removeOldPanelData(panelID);
     }
+
+    public void deleteSimulationDataForPanelID(long panelIndex) {
+        toutcRepository.deleteSimulationDataForPanelID(panelIndex);
+    }
+
+    public void deleteCostingDataForPanelID(long panelIndex) {
+        toutcRepository.deleteCostingDataForPanelID(panelIndex);
+    }
 }

@@ -142,12 +142,20 @@ public class ToutcRepository {
         scenarioDAO.createLoadProfileDataEntries(rows);
     }
 
-    public void deleteSimultationDataForProfileID(long loadProfileID) {
+    public void deleteSimulationDataForProfileID(long loadProfileID) {
         scenarioDAO.deleteSimulationDataForProfileID(loadProfileID);
     }
 
     public void deleteCostingDataForProfileID(long loadProfileID) {
         scenarioDAO.deleteCostingDataForProfileID(loadProfileID);
+    }
+
+    public void deleteSimulationDataForPanelID(long panelID) {
+        scenarioDAO.deleteSimulationDataForPanelID(panelID);
+    }
+
+    public void deleteCostingDataForPanelID(long panelID) {
+        scenarioDAO.deleteCostingDataForPanelID(panelID);
     }
 
     public List<Long> getAllScenariosThatNeedSimulation() {

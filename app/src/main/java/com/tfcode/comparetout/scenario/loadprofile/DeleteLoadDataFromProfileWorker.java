@@ -32,7 +32,7 @@ public class DeleteLoadDataFromProfileWorker extends Worker {
             System.out.println("Deleting load profile data for " + mLoadProfileID);
             mToutcRepository.deleteLoadProfileData(mLoadProfileID);
             System.out.println("Deleting simulation data for " + mLoadProfileID);
-            mToutcRepository.deleteSimultationDataForProfileID(mLoadProfileID);
+            mToutcRepository.deleteSimulationDataForProfileID(mLoadProfileID);
             System.out.println("Deleting costing data for " + mLoadProfileID);
             mToutcRepository.deleteCostingDataForProfileID(mLoadProfileID);
         }
