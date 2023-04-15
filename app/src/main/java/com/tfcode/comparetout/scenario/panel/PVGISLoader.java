@@ -38,13 +38,11 @@ import java.util.ArrayList;
 public class PVGISLoader extends Worker {
 
     private final ToutcRepository mToutcRepository;
-    private final Context mContext;
-    private final static Integer MAGIC_NUMBER = 919821;
+    private final static Double MAGIC_NUMBER = 919821d;
 
     public PVGISLoader(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
         mToutcRepository = new ToutcRepository((Application) context);
-        mContext = context;
     }
 
     private boolean fileExist(String filename){
@@ -64,7 +62,7 @@ public class PVGISLoader extends Worker {
         String filename = "PVGIS(" + latitude + ")(" + longitude +
                 ")(" + mPanel.getSlope() + ")(" + mPanel.getAzimuth() + ")" ;
 
-        FileInputStream inputStream = null;
+        FileInputStream inputStream;
         try{
             // NOTIFICATION SETUP
             int notificationId = 1;
@@ -113,7 +111,7 @@ public class PVGISLoader extends Worker {
                     row.setMinute(active.format(minFormat));
                     row.setDow(active.getDayOfWeek().getValue());
                     row.setMod(active.getHour() * 60 + active.getMinute());
-                    row.setPv( (pp.gi / 12 / MAGIC_NUMBER) * mPanel.getPanelCount() * mPanel.getPanelkWp());
+                    row.setPv( (pp.gi / 12d / MAGIC_NUMBER) * mPanel.getPanelCount() * mPanel.getPanelkWp());
                     panelDataList.add(row);
                     active = active.plusMinutes(5);
                 }

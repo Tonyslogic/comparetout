@@ -119,8 +119,8 @@ public class ScenarioOverview extends Fragment {
             mActionBar = Objects.requireNonNull(((ScenarioActivity)requireActivity()).getSupportActionBar());
             mActionBar.setTitle("Usage: " + mScenario.getScenarioName());
             updateView();
-            updateKPIs();
         });
+        mViewModel.getAllComparisons().observe(this, costings -> updateKPIs());
     }
 
     private void updateKPIs() {
@@ -165,7 +165,7 @@ public class ScenarioOverview extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        if (!(null == getActivity())) getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 
     private void setupMenu() {
@@ -394,7 +394,7 @@ public class ScenarioOverview extends Fragment {
                 // CREATE TABLE ROWS
                 TableRow tableRow = new TableRow(getActivity());
                 TextView a = new TextView(getActivity());
-                a.setText("Scenario");
+                a.setText(R.string.Scenario);
                 EditText b = new EditText(getActivity());
                 b.setText(mScenario.getScenarioName());
                 b.setEnabled(true);
@@ -435,8 +435,8 @@ public class ScenarioOverview extends Fragment {
                     b.setText(value);
                 }
                 else {
-                    a.setText("Best cost = €???.??");
-                    b.setText("Best supplier");
+                    a.setText(R.string.NoBestCost);
+                    b.setText(R.string.BestSupplier);
                 }
                 a.setLayoutParams(scenarioParams);
                 b.setLayoutParams(scenarioParams);

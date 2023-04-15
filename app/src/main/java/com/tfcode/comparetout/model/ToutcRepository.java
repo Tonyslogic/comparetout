@@ -166,6 +166,10 @@ public class ToutcRepository {
         return scenarioDAO.getScenarioForID(scenarioID);
     }
 
+    public ScenarioComponents getScenarioComponentsForScenarioID(long scenarioID) {
+        return scenarioDAO.getScenarioComponentsForScenarioID(scenarioID);
+    }
+
     public List<SimulationInputData> getSimulationInput(long scenarioID) {
         return scenarioDAO.getSimulationInput(scenarioID);
     }

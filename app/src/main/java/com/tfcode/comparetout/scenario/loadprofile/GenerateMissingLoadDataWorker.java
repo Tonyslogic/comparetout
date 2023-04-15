@@ -114,18 +114,18 @@ public class GenerateMissingLoadDataWorker extends Worker {
 
     private double genLoad(LoadProfile loadProfile, int month, int dow, int hod) {
         double load;
-        int totalXXXDaysInMonth = countDayOccurrenceInMonth(DayOfWeek.of(dow), YearMonth.of(2010, month));
+        int totalXXXDaysInMonth = countDayOccurrenceInMonth(DayOfWeek.of(dow), YearMonth.of(2001, month));
 
-        double distMonth = loadProfile.getMonthlyDist().monthlyDist.get(month -1)/100;
+        double distMonth = loadProfile.getMonthlyDist().monthlyDist.get(month -1)/100d;
         if (dow == 7) dow = 0; //Index 0 is used for Sun in the loadProfile...dowDist
-        double distDOW = loadProfile.getDowDist().dowDist.get(dow)/100;
-        double distHOD = loadProfile.getHourlyDist().dist.get(hod)/100;
+        double distDOW = loadProfile.getDowDist().dowDist.get(dow)/100d;
+        double distHOD = loadProfile.getHourlyDist().dist.get(hod)/100d;
 
         double monthuse = loadProfile.getAnnualUsage() * distMonth;
-        double dayuse = (monthuse / totalXXXDaysInMonth) * distDOW;
+        double dayuse = (monthuse / (double)totalXXXDaysInMonth) * distDOW;
         double houruse = dayuse * distHOD;
 
-        load = houruse/12;
+        load = houruse/12d;
 
         return load;
     }

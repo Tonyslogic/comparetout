@@ -56,18 +56,17 @@ import java.util.Objects;
 
 public class PVGISActivity extends AppCompatActivity {
 
-    private ActionBar mActionBar;
     private Handler mMainHandler;
     private ProgressBar mProgressBar;
     private TableLayout mTableLayout;
     private Long mPanelID = 0L;
     private Panel mPanel;
-    private String mScenarioName = "";
+    private final String mScenarioName = "";
     private boolean mEdit = false;
     private List<View> mEditFields;
     private ComparisonUIViewModel mViewModel;
     private boolean mDoubleBackToExitPressedOnce = false;
-    private boolean mUnsavedChanges = false;
+    private final boolean mUnsavedChanges = false;
     private boolean mPanelDataInDB = false;
     private boolean mFileCached = false;
     private boolean mLocationChanged = false;
@@ -77,7 +76,7 @@ public class PVGISActivity extends AppCompatActivity {
     private static final String U2 = "&lon="; // LONGITUDE
     private static final String U3 = "&raddatabase=PVGIS-SARAH2&browser=1&outputformat=json&userhorizon=&usehorizon=1&angle="; //SLOPE
     private static final String U4 = "&aspect="; // AZIMUTH
-    private static final String U5 = "&startyear=2020&endyear=2020&mountingplace=&optimalinclination=0&optimalangles=0&js=1&select_database_hourly=PVGIS-SARAH2&hstartyear=2020&hendyear=2020&trackingtype=0&hourlyangle="; // SLOPE
+    private static final String U5 = "&startyear=2019&endyear=2019&mountingplace=&optimalinclination=0&optimalangles=0&js=1&select_database_hourly=PVGIS-SARAH2&hstartyear=2019&hendyear=2019&trackingtype=0&hourlyangle="; // SLOPE
     private static final String U6 = "&hourlyaspect="; //AZIMUTH
 
     private long mDownloadID;
@@ -88,7 +87,7 @@ public class PVGISActivity extends AppCompatActivity {
     // Register the permissions callback, which handles the user's response to the
     // system permissions dialog. Save the return value, an instance of
     // ActivityResultLauncher, as an instance variable.
-    private ActivityResultLauncher<String> requestPermissionLauncher =
+    private final ActivityResultLauncher<String> requestPermissionLauncher =
             registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
                 if (isGranted) {
                     mMainHandler.post(this::fetch);
@@ -99,7 +98,7 @@ public class PVGISActivity extends AppCompatActivity {
                 }
             });
 
-    private BroadcastReceiver onDownloadComplete = new BroadcastReceiver() {
+    private final BroadcastReceiver onDownloadComplete = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             //Fetching the download id received with the broadcast
@@ -114,7 +113,7 @@ public class PVGISActivity extends AppCompatActivity {
         }
     };
 
-    private ActivityResultLauncher<String[]> locationPermissionRequest =
+    private final ActivityResultLauncher<String[]> locationPermissionRequest =
             registerForActivityResult(new ActivityResultContracts
                             .RequestMultiplePermissions(), result -> {
                         Boolean fineLocationGranted = result.getOrDefault(
@@ -138,18 +137,15 @@ public class PVGISActivity extends AppCompatActivity {
     @SuppressLint("MissingPermission")
     private void updateLocation() {
         mFusedLocationClient.getLastLocation()
-                .addOnSuccessListener(this, new OnSuccessListener<Location>() {
-                    @Override
-                    public void onSuccess(Location location) {
-                        // Got last known location. In some rare situations this can be null.
-                        if (location != null) {
-                            // Logic to handle location object
-                            mPanel.setLatitude(location.getLatitude());
-                            mPanel.setLongitude(location.getLongitude());
-                            fileExist();
-                            mLocationChanged = true;
-                            updateView();
-                        }
+                .addOnSuccessListener(this, location -> {
+                    // Got last known location. In some rare situations this can be null.
+                    if (location != null) {
+                        // Logic to handle location object
+                        mPanel.setLatitude(location.getLatitude());
+                        mPanel.setLongitude(location.getLongitude());
+                        fileExist();
+                        mLocationChanged = true;
+                        updateView();
                     }
                 });
 
@@ -160,9 +156,7 @@ public class PVGISActivity extends AppCompatActivity {
         WorkManager.getInstance(this).getWorkInfosForUniqueWorkLiveData("PVGIS")
             .observe(this, workInfos -> {
                 for (WorkInfo workInfo: workInfos){
-                    if (workInfo.getState() != null &&
-                            workInfo.getState().isFinished() &&
-                            workInfo.getTags().contains("com.tfcode.comparetout.scenario.panel.PVGISLoader")) {
+                    if (workInfo.getState().isFinished() && workInfo.getTags().contains("com.tfcode.comparetout.scenario.panel.PVGISLoader")) {
                         System.out.println(workInfo.getTags().iterator().next());
                         mProgressBar.setVisibility(View.GONE);
                         fileExist();
@@ -200,7 +194,7 @@ public class PVGISActivity extends AppCompatActivity {
         System.out.println("mPanelID = " +mPanelID);
 
         mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
-        mActionBar = Objects.requireNonNull(getSupportActionBar());
+        ActionBar mActionBar = Objects.requireNonNull(getSupportActionBar());
         mActionBar.setTitle("PVGIS data grabber");
 
         mTableLayout = findViewById(R.id.pvgis_table);
@@ -315,11 +309,11 @@ public class PVGISActivity extends AppCompatActivity {
 
         tableRow = new TableRow(this);
         Button location = new Button(this);
-        location.setText("Update location");
+        location.setText(R.string.UpdateLocation);
         location.setEnabled(mGooglePlayServicesAvailable);
         location.setOnClickListener(v -> updateLatAndLong());
         Button download = new Button(this);
-        download.setText("Download data");
+        download.setText(R.string.DownloadData);
         download.setOnClickListener(v -> saveAndFetch() );
         tableRow.addView(location);
         tableRow.addView(download);
@@ -341,10 +335,10 @@ public class PVGISActivity extends AppCompatActivity {
     }
 
     private void setStatusTexts(TextView downloadIndicator, TextView dbRefreshIndicator) {
-        if (mFileCached) downloadIndicator.setText("Data downloaded");
-        else downloadIndicator.setText("Download necessary");
-        if (mPanelDataInDB && ! mLocationChanged) dbRefreshIndicator.setText("Data in DB");
-        else dbRefreshIndicator.setText("DB update necessary");
+        if (mFileCached) downloadIndicator.setText(R.string.DataDownloaded);
+        else downloadIndicator.setText(R.string.DownloadNecessary);
+        if (mPanelDataInDB && ! mLocationChanged) dbRefreshIndicator.setText(R.string.DataInDB);
+        else dbRefreshIndicator.setText(R.string.DBUpdateNecessary);
     }
 
     private String fileExist(){
@@ -402,13 +396,12 @@ public class PVGISActivity extends AppCompatActivity {
             int az = mPanel.getAzimuth();
             if (az > 180) az = 360 - az;
             DecimalFormat df = new DecimalFormat("#.000");
-            String url = new StringBuilder()
-                    .append(U1).append(df.format(mPanel.getLatitude()))
-                    .append(U2).append(df.format(mPanel.getLongitude()))
-                    .append(U3).append(mPanel.getSlope())
-                    .append(U4).append(az)
-                    .append(U5).append(mPanel.getSlope())
-                    .append(U6).append(az).toString();
+            String url = U1 + df.format(mPanel.getLatitude()) +
+                    U2 + df.format(mPanel.getLongitude()) +
+                    U3 + mPanel.getSlope() +
+                    U4 + az +
+                    U5 + mPanel.getSlope() +
+                    U6 + az;
             File folder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
             File file = new File(folder, fileName);
             DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url))

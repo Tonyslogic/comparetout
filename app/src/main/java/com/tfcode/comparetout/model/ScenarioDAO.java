@@ -420,6 +420,8 @@ public abstract class ScenarioDAO {
         deleteOrphanPanels();
 
         deleteOrphanLoadProfileData();
+        deleteSimulationDataForScenarioID(id);
+        deleteCostingDataForScenarioID(id);
 
     }
 
@@ -489,6 +491,12 @@ public abstract class ScenarioDAO {
     @Query("DELETE FROM scenario2panel WHERE scenarioID = :id")
     public abstract void deletePanelRelationsForScenario(int id);
 
+    @Query("DELETE FROM scenariosimulationdata WHERE scenarioID = :id")
+    public abstract void deleteSimulationDataForScenarioID(long id);
+
+    @Query("DELETE FROM costings WHERE scenarioID = :id")
+    public abstract void deleteCostingDataForScenarioID(long id);
+
     @Transaction
     public void copyScenario(int id) {
         Scenario scenario = getScenarioForID(id);
@@ -542,6 +550,23 @@ public abstract class ScenarioDAO {
             ret.add(scenarioComponents);
         }
         return ret;
+    }
+
+    @Transaction
+    public ScenarioComponents getScenarioComponentsForScenarioID(long scenarioID) {
+        return new ScenarioComponents(
+                getScenarioForID(scenarioID),
+                getInvertersForScenarioID(scenarioID),
+                getBatteriesForScenarioID(scenarioID),
+                getPanelsForScenarioID(scenarioID),
+                getHWSystemForScenarioID(scenarioID),
+                getLoadProfileForScenarioID(scenarioID),
+                getLoadShiftsForScenarioID(scenarioID),
+                getEVChargesForScenarioID(scenarioID),
+                getHWSchedulesForScenarioID(scenarioID),
+                getHWDivertForScenarioID(scenarioID),
+                getEVDivertForScenarioID(scenarioID)
+        );
     }
 
     @Query("SELECT * FROM scenarios")

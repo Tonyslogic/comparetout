@@ -15,6 +15,7 @@ import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.scenario.LoadProfileData;
 import com.tfcode.comparetout.model.scenario.Scenario;
+import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
 import com.tfcode.comparetout.model.scenario.SimulationInputData;
 
@@ -52,14 +53,16 @@ public class SimulationWorker extends Worker {
             int PROGRESS_CURRENT = 0;
             int PROGRESS_CHUNK = PROGRESS_MAX;
             if (scenarioIDs.size() > 0) {
-                PROGRESS_CHUNK = PROGRESS_MAX / scenarioIDs.size();
+                PROGRESS_CHUNK = PROGRESS_MAX / (scenarioIDs.size() + 1);
                 builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
                 notificationManager.notify(notificationId, builder.build());
             }
 
             long startTime = System.nanoTime();
             for (long scenarioID : scenarioIDs) {
-                Scenario scenario = mToutcRepository.getScenarioForID(scenarioID);
+//                Scenario scenario = mToutcRepository.getScenarioForID(scenarioID);
+                ScenarioComponents scenarioComponents = mToutcRepository.getScenarioComponentsForScenarioID(scenarioID);
+                Scenario scenario = scenarioComponents.scenario;
                 System.out.println("Working on scenario " + scenario.getScenarioName());
                 if (scenario.isHasPanels()) {
                     // Check for panel data
@@ -77,11 +80,19 @@ public class SimulationWorker extends Worker {
                         continue;
                     }
                 }
-                builder.setContentText(scenario.getScenarioName());
+                builder.setContentText("Getting data: " + scenario.getScenarioName());
                 notificationManager.notify(notificationId, builder.build());
+                // TODO get the Tpv for each inverter
                 List<SimulationInputData> inputRows = mToutcRepository.getSimulationInput(scenarioID);
-                //TODO Load from the DB all the places electricity can come from and go to
+                builder.setContentText("Simulating: " + scenario.getScenarioName());
+                notificationManager.notify(notificationId, builder.build());
                 ArrayList<ScenarioSimulationData> outputRows = new ArrayList<>();
+                double dc2acloss = 1;
+                if (!(null == scenarioComponents.inverters.get(0))) dc2acloss = (100d - scenarioComponents.inverters.get(0).getDc2acLoss()) / 100d;
+                double ac2dcloss = 1;
+                if (!(null == scenarioComponents.inverters.get(0))) ac2dcloss = (100d - scenarioComponents.inverters.get(0).getAc2dcLoss()) / 100d;
+                double dc2dcloss = 1;
+                if (!(null == scenarioComponents.inverters.get(0))) dc2dcloss = (100d - scenarioComponents.inverters.get(0).getDc2dcLoss()) / 100d;
                 for (SimulationInputData inputRow : inputRows) {
                     ScenarioSimulationData outputRow = new ScenarioSimulationData();
                     outputRow.setScenarioID(scenarioID);
@@ -93,13 +104,15 @@ public class SimulationWorker extends Worker {
                     outputRow.setLoad(inputRow.getLoad());
                     outputRow.setPv(inputRow.getTpv());
                     if (inputRow.getTpv() > 0) {
-                        if (inputRow.getTpv() >= inputRow.getLoad()) {
-                            outputRow.setFeed(inputRow.getTpv() - inputRow.getLoad());
+                        // TODO get the Tpv for each inverter
+                        double effectiveTpv = inputRow.getTpv() * dc2acloss;
+                        if (effectiveTpv >= inputRow.getLoad()) {
+                            outputRow.setFeed(effectiveTpv - inputRow.getLoad());
                             outputRow.setBuy(0);
                         }
                         else {
                             outputRow.setFeed(0);
-                            outputRow.setBuy(inputRow.getLoad() - inputRow.getTpv());
+                            outputRow.setBuy(inputRow.getLoad() - effectiveTpv);
                         }
                     }
                     else {
