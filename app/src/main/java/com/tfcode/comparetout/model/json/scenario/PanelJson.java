@@ -39,4 +39,8 @@ public class PanelJson {
     @SerializedName("PanelName")
     public
     String panelName;
+
+    @SerializedName("Optimized")
+    public
+    Boolean optimized;
 }

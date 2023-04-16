@@ -17,7 +17,19 @@ public class Panel {
     private double longitude = -10.015;
     private String inverter = "AplhaESS";
     private int mppt = 1;
-    private String panelName = "";
+    private String panelName = "<Name>";
+    private int connectionMode = PARALLEL;
+
+    public static final int PARALLEL = 0;
+    public static final int OPTIMIZED = 1;
+
+    public int getConnectionMode() {
+        return connectionMode;
+    }
+
+    public void setConnectionMode(int connectionMode) {
+        this.connectionMode = connectionMode;
+    }
 
     public String getPanelName() {
         return panelName;

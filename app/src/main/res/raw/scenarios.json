@@ -38,7 +38,8 @@
 				"Longitude": -10.015,
 				"Inverter": "AlphaESS",
 				"MPPT": 1,
-				"PanelName": "Top"
+				"PanelName": "Top",
+				"Optimized": false
 			},
 			{
 				"PanelCount": 7,
@@ -49,7 +50,8 @@
 				"Longitude": -10.015,
 				"Inverter": "AlphaESS",
 				"MPPT": 2,
-				"PanelName": "Bottom"
+				"PanelName": "Bottom",
+				"Optimized": false
 			}
 		],
 		"HWSystem": {

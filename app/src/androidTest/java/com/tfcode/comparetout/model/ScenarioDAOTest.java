@@ -250,7 +250,7 @@ public class ScenarioDAOTest {
 
     @Test
     public void loadScenarios() throws InterruptedException {
-        loadTestData(testData);
+        loadTestData();
         List<Scenario> scenarioList = LiveDataTestUtil.getValue(scenarioDAO.loadScenarios());
         assertEquals(1, scenarioList.size());
         long scenarioID = scenarioList.get(0).getScenarioIndex();
@@ -260,9 +260,9 @@ public class ScenarioDAOTest {
         assertEquals("AlphaESS", inverters.get(0).getInverterName());
     }
 
-    private void loadTestData(String dataToLoad) {
+    private void loadTestData() {
         Type type = new TypeToken<List<ScenarioJsonFile>>() {}.getType();
-        List<ScenarioJsonFile> scenarioList = new Gson().fromJson(dataToLoad, type);
+        List<ScenarioJsonFile> scenarioList = new Gson().fromJson(ScenarioDAOTest.testData, type);
 
         Scenario scenario;
         ArrayList<Inverter> inverters = null;
@@ -381,7 +381,9 @@ public class ScenarioDAOTest {
             "        \"Latitude\": 53.49,\n" +
             "        \"Longitude\": -10.015,\n" +
             "        \"Inverter\": \"AlphaESS\",\n" +
-            "        \"MPPT\": 1\n" +
+            "        \"MPPT\": 1,\n" +
+			"        \"PanelName\": \"Bottom\",\n" +
+            "        \"Optimized\": false\n" +
             "      },\n" +
             "      {\n" +
             "        \"PanelCount\": 7,\n" +
@@ -391,7 +393,9 @@ public class ScenarioDAOTest {
             "        \"Latitude\": 53.49,\n" +
             "        \"Longitude\": -10.015,\n" +
             "        \"Inverter\": \"AlphaESS\",\n" +
-            "        \"MPPT\": 2\n" +
+            "        \"MPPT\": 2,\n" +
+            "        \"PanelName\": \"Top\",\n" +
+            "        \"Optimized\": false\n" +
             "      }\n" +
             "    ],\n" +
             "    \"HWSystem\": {\n" +

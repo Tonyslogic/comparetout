@@ -446,15 +446,12 @@ public class ScenarioOverview extends Fragment {
 
                 if (!(null == mSimKPIs)) {
                     tableRow = new TableRow(getActivity());
-                    System.out.println("Self Consume: " +  mSimKPIs.sold +  " Sold: " + mSimKPIs.generated);
                     PieChart pc = getPieChart("Self Consume", mSimKPIs.sold, "Sold", mSimKPIs.generated);
 //                    PieChart pc = getPieChart("Self Consume", 300, "Sold", 900);
                     tableRow.addView(pc);
                     PieChart pc2 = getPieChart("Self supplied", mSimKPIs.bought, "Bought", mSimKPIs.totalLoad);
                     tableRow.addView(pc2);
                     mTableLayout.addView(tableRow);
-
-                    System.out.println(mSimKPIs.bought);
                 }
             }
         }

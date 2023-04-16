@@ -5,7 +5,7 @@ import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
 @Entity(tableName = "inverters")
-public class Inverter {
+public class Inverter implements Comparable<Inverter> {
 
     @PrimaryKey(autoGenerate = true)
     private long inverterIndex;
@@ -83,5 +83,10 @@ public class Inverter {
 
     public void setDc2dcLoss(int dc2dcLoss) {
         this.dc2dcLoss = dc2dcLoss;
+    }
+
+    @Override
+    public int compareTo(Inverter o) {
+        return Long.compare(this.getInverterIndex(), o.getInverterIndex());
     }
 }

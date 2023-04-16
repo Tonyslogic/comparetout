@@ -348,9 +348,6 @@ public abstract class ScenarioDAO {
             "SELECT scenarioID FROM scenario2panel WHERE panelID = :panelID) ")
     public abstract void deleteCostingDataForPanelID(long panelID);
 
-//    @Query("SELECT scenarioIndex FROM scenarios " +
-//            "WHERE scenarioIndex NOT IN (SELECT DISTINCT scenarioID FROM scenariosimulationdata) " +
-//            "AND scenarioIndex IN (SELECT DISTINCT scenarioID FROM scenario2loadprofile)")
     @Query("SELECT scenarioIndex FROM scenarios " +
             "WHERE scenarioIndex NOT IN (SELECT DISTINCT scenarioID FROM scenariosimulationdata) " +
             "AND scenarioIndex IN (SELECT DISTINCT scenarioID FROM scenario2loadprofile) " +
@@ -360,22 +357,16 @@ public abstract class ScenarioDAO {
     @Query("SELECT * FROM scenarios WHERE scenarioIndex = :scenarioID")
     public abstract Scenario getScenarioForID(long scenarioID);
 
-//    @Query("SELECT * FROM loadprofiledata WHERE loadProfileID = (" +
-//            "SELECT DISTINCT loadProfileID FROM scenario2loadprofile WHERE scenarioID = :scenarioID)")
-    @Query("SELECT A.date, A.minute, A.load, A.mod, A.dow, A.do2001, IFNULL(B.TPV, 0) AS TPV FROM " +
-            "(SELECT * FROM loadprofiledata WHERE loadProfileID = (SELECT loadProfileID FROM scenario2loadprofile WHERE scenarioID = :scenarioID)) AS A " +
-            "LEFT JOIN " +
-            "(SELECT do2001, mod -1 AS mod, SUM(PV) AS TPV FROM paneldata WHERE panelID IN (SELECT panelID FROM scenario2panel WHERE scenarioID = :scenarioID) GROUP BY do2001, mod) AS B " +
-            "ON A.do2001 = B.do2001 AND A.mod = B.mod")
-    public abstract List<SimulationInputData> getSimulationInput(long scenarioID);
+    @Query("SELECT A.date, A.minute, A.load, A.mod, A.dow, A.do2001, 0 AS TPV FROM " +
+            "(SELECT * FROM loadprofiledata WHERE loadProfileID = (SELECT loadProfileID FROM scenario2loadprofile WHERE scenarioID = :scenarioID)) AS A")
+    public abstract List<SimulationInputData> getSimulationInputNoSolar(long scenarioID);
+
+    @Query("SELECT pv FROM paneldata WHERE panelID = :panelID")
+    public abstract List<Double> getSimulationInputForPanel(long panelID);
 
     @Insert(entity = ScenarioSimulationData.class)
     public abstract void saveSimulationDataForScenario(ArrayList<ScenarioSimulationData> simulationData);
 
-//    @Query("SELECT scenarioIndex FROM scenarios " +
-//            "WHERE scenarioIndex NOT IN (SELECT scenarioID FROM costings) " +
-//            "AND (SELECT COUNT() FROM PricePlans) > 0 " +
-//            "AND (SELECT COUNT(scenarioID) FROM scenariosimulationdata, scenarios WHERE scenariosimulationdata.scenarioID = scenarioIndex) > 0 ")
     @Query("SELECT scenarioIndex FROM scenarios " +
             "WHERE scenarioIndex NOT IN (SELECT DISTINCT scenarioID FROM costings) " +
             "OR scenarioIndex IN (SELECT scenarioID FROM (SELECT scenarioID, COUNT(pricePlanId) AS costedPlans FROM costings GROUP BY scenarioID HAVING costedPlans < (SELECT COUNT() FROM PricePlans) )) " +

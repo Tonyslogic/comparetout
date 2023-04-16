@@ -222,6 +222,7 @@ public class JsonTools {
         panel.setInverter(pj.inverter);
         panel.setMppt(pj.mppt);
         panel.setPanelName(pj.panelName);
+        panel.setConnectionMode(pj.optimized?Panel.OPTIMIZED:Panel.PARALLEL);
         return panel;
     }
 
@@ -543,6 +544,7 @@ public class JsonTools {
                 pj.inverter = p.getInverter();
                 pj.mppt = p.getMppt();
                 pj.panelName = p.getPanelName();
+                pj.optimized = p.getConnectionMode() == Panel.OPTIMIZED;
                 pjs.add(pj);
             }
         }

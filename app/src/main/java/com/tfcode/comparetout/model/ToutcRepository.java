@@ -170,9 +170,17 @@ public class ToutcRepository {
         return scenarioDAO.getScenarioComponentsForScenarioID(scenarioID);
     }
 
-    public List<SimulationInputData> getSimulationInput(long scenarioID) {
-        return scenarioDAO.getSimulationInput(scenarioID);
-    }
+//    public List<SimulationInputData> getSimulationInputSummed(long scenarioID, long inverterID) {
+//        return scenarioDAO.getSimulationInputSummed(scenarioID, inverterID);
+//    }
+
+//    public List<SimulationInputData> getSimulationInputOptimised(long scenarioID, long inverterID) {
+//        return scenarioDAO.getSimulationInputOptimised(scenarioID, inverterID);
+//    }
+
+//    public List<SimulationInputData> getSimulationInputForInverter(long scenarioID, long inverterID, List<Long> parallel, List<Long> optimised) {
+//        return scenarioDAO.getSimulationInputForInverter(scenarioID, inverterID, parallel, optimised);
+//    }
 
     public void saveSimulationDataForScenario(ArrayList<ScenarioSimulationData> simulationData) {
         scenarioDAO.saveSimulationDataForScenario(simulationData);
@@ -342,4 +350,14 @@ public class ToutcRepository {
         ToutcDB.databaseWriteExecutor.execute(() ->
             scenarioDAO.removePanelData(panelID));
     }
+
+    public List<SimulationInputData> getSimulationInputNoSolar(long scenarioID) {
+        return scenarioDAO.getSimulationInputNoSolar(scenarioID);
+    }
+
+    public List<Double> getSimulationInputForPanel(long panelID) {
+        return scenarioDAO.getSimulationInputForPanel(panelID);
+    }
+
+
 }

@@ -12,6 +12,7 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TableLayout;
@@ -67,7 +68,7 @@ public class PanelFragment extends Fragment {
     private List<PanelPVSummary> mPanelPVSummaries;
     private List<Inverter> mInverters;
 
-    private ActivityResultLauncher<Intent> mStartForResult = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+    private final ActivityResultLauncher<Intent> mStartForResult = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
             result -> {
                 System.out.println("mStartForResult " + result.getResultCode());
                 if (result.getResultCode() == Activity.RESULT_OK) {
@@ -168,7 +169,7 @@ public class PanelFragment extends Fragment {
     private void updateDataControlView() {
         mPanelNoData.removeAllViews();
         Button button = new Button(getActivity());
-        button.setText("Fetch / Update data");
+        button.setText(R.string.FetchUpdateData);
         button.setEnabled(mEdit);
         mEditFields.add(button);
         button.setOnClickListener(v -> {
@@ -268,7 +269,7 @@ public class PanelFragment extends Fragment {
         params.topMargin = 2;
         params.rightMargin = 2;
         params.weight = 1;
-        params.height = 120; // TODO fix this crap!!!
+//        params.height = 120; // TODO fix this crap!!!
 
         int integerType = InputType.TYPE_CLASS_NUMBER;
         int doubleType = InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL;
@@ -309,12 +310,30 @@ public class PanelFragment extends Fragment {
             }
         }, params, integerType));
 
+        TableRow optimizedRow = new TableRow(getActivity());
+        TextView optimizedPanels = new TextView(getActivity());
+        optimizedPanels.setText(R.string.Optimized);
+        CheckBox optimizedCheck = new CheckBox(getActivity());
+        optimizedCheck.setEnabled(mEdit);
+        mEditFields.add(optimizedCheck);
+        optimizedCheck.setChecked(mPanel.getConnectionMode() == Panel.OPTIMIZED);
+        optimizedCheck.setOnClickListener(v -> {
+            System.out.println("Selected optimized: " + v.getId() + " " + optimizedCheck.isChecked());
+            if (optimizedCheck.isChecked()) mPanel.setConnectionMode(Panel.OPTIMIZED);
+            else mPanel.setConnectionMode(Panel.PARALLEL);
+            ((PanelActivity) requireActivity()).updatePanelAtIndex(mPanel, mPanelIndex);
+            ((PanelActivity) requireActivity()).setSaveNeeded(true);
+        });
+        optimizedRow.addView(optimizedPanels);
+        optimizedRow.addView(optimizedCheck);
+        mTableLayout.addView(optimizedRow);
+
         TableRow inverterRow = new TableRow(getActivity());
         TableRow mpptRow = new TableRow(getActivity());
         TextView inverterText = new TextView(getActivity());
-        inverterText.setText("Connected Inverter name");
+        inverterText.setText(R.string.CinnectedInverterName);
         TextView mpptText = new TextView(getActivity());
-        mpptText.setText("Connected Inverter mppt");
+        mpptText.setText(R.string.ConnectedInverterMPPT);
 
         Spinner mpptSpinner = new Spinner(getActivity());
         ArrayList<String> mpptSpinnerContent = new ArrayList<>();
@@ -341,7 +360,7 @@ public class PanelFragment extends Fragment {
         mpptSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                Integer mppt = Integer.parseInt(mpptSpinnerContent.get(position));
+                int mppt = Integer.parseInt(mpptSpinnerContent.get(position));
                 mPanel.setMppt(mppt);
                 System.out.println("Setting MPPT to:" + mPanel.getMppt());
                 ((PanelActivity) requireActivity()).updatePanelAtIndex(mPanel, mPanelIndex);

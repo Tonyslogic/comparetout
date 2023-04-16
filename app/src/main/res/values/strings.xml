@@ -44,4 +44,8 @@
     <string name="Scenario">Scenario</string>
     <string name="NoBestCost">Best cost = €???.??</string>
     <string name="BestSupplier">Best supplier</string>
+    <string name="FetchUpdateData">Fetch / Update data</string>
+    <string name="Optimized">Optimized</string>
+    <string name="CinnectedInverterName">Connected Inverter name</string>
+    <string name="ConnectedInverterMPPT">Connected Inverter mppt</string>
 </resources>
