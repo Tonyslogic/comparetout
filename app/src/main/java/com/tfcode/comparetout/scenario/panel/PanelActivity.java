@@ -288,6 +288,12 @@ public class PanelActivity extends AppCompatActivity {
         }
         if (item.getItemId() == R.id.lp_copy) {//add the function to perform here
             System.out.println("Copy attempt");
+            if (mUnsavedChanges) {
+                Snackbar.make(getWindow().getDecorView().getRootView(),
+                                "Save changes first", Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
+                return false;
+            }
             ScenarioSelectDialog scenarioSelectDialog =
                     new ScenarioSelectDialog(PanelActivity.this,
                             ScenarioSelectDialog.PANEL,
@@ -297,6 +303,12 @@ public class PanelActivity extends AppCompatActivity {
         }
         if (item.getItemId() == R.id.lp_link) {//add the function to perform here
             System.out.println("Link attempt");
+            if (mUnsavedChanges) {
+                Snackbar.make(getWindow().getDecorView().getRootView(),
+                                "Save changes first", Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
+                return false;
+            }
             ScenarioSelectDialog scenarioSelectDialog =
                     new ScenarioSelectDialog(PanelActivity.this,
                             ScenarioSelectDialog.PANEL,

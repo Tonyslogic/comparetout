@@ -34,10 +34,20 @@ import java.util.Map;
 public class SimulationWorker extends Worker {
 
     private final ToutcRepository mToutcRepository;
+    private static final Battery M_NULL_BATTERY = new Battery();
+    static {
+        M_NULL_BATTERY.setBatterySize(0);
+        M_NULL_BATTERY.setDischargeStop(100);
+        M_NULL_BATTERY.setMaxDischarge(0);
+        M_NULL_BATTERY.setMaxCharge(0);
+        M_NULL_BATTERY.setInverter("");
+        M_NULL_BATTERY.setStorageLoss(0);
+    }
 
     public SimulationWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
         mToutcRepository = new ToutcRepository((Application) context);
+
     }
 
     @NonNull
@@ -223,6 +233,10 @@ public class SimulationWorker extends Worker {
             previousOutputSOC = outputRows.get(row - 1).getSOC();
             for (Map.Entry<Inverter,InputData> etry: inputDataMap.entrySet()) {
                 Battery battery = etry.getValue().mBattery;
+                if (null == battery) {
+                    previousOutputSOC = 0;
+                    battery = M_NULL_BATTERY;
+                }
                 double dischargeStop = (battery.getDischargeStop() / 100d) * battery.getBatterySize();
                 totalBatteryCapacity += battery.getBatterySize();
                 batteryAvailableForDischarge += min(battery.getMaxDischarge(),
@@ -235,6 +249,7 @@ public class SimulationWorker extends Worker {
             double totalBatteryReserve = 0;
             for (Map.Entry<Inverter,InputData> etry: inputDataMap.entrySet()) {
                 Battery battery = etry.getValue().mBattery;
+                if (null == battery) battery = M_NULL_BATTERY;
                 totalBatteryCapacity += battery.getBatterySize();
                 double batterySOC = (battery.getDischargeStop() / 100d) * battery.getBatterySize();
                 etry.getValue().soc = batterySOC;
@@ -261,6 +276,7 @@ public class SimulationWorker extends Worker {
         boolean cfg = false; // TODO: configure this correctly
         if (cfg) locallyAvailable = tPV;
 
+        // COPY THE BASICS TO THE OUTPUT
         ScenarioSimulationData outputRow = new ScenarioSimulationData();
         outputRow.setScenarioID(scenarioID);
         outputRow.setDate(inputRow.getDate());
@@ -271,6 +287,8 @@ public class SimulationWorker extends Worker {
         double inputLoad = inputRow.getLoad(); // TODO: Add scheduled loads
         outputRow.setLoad(inputLoad);
         outputRow.setPv(tPV);
+
+        // SIMULATE WHERE STUFF GOES
 
         double buy = 0;
         double feed = 0;
@@ -324,51 +342,53 @@ public class SimulationWorker extends Worker {
         outputRow.setPvToLoad(pv2load);
         outputRow.setBatToLoad(bat2Load);
 
-//        if (tPV > 0) {
-//            if (effectivePV >= inputRow.getLoad()) {
-//                outputRow.setFeed(effectivePV - inputRow.getLoad());
-//                outputRow.setBuy(0);
-//            }
-//            else {
-//                outputRow.setFeed(0);
-//                outputRow.setBuy(inputRow.getLoad() - effectivePV);
-//            }
-//        }
-//        else {
-//            outputRow.setFeed(0);
-//            outputRow.setBuy(inputRow.getLoad());
-//        }
-//        outputRow.setSOC(0);
-//        outputRow.setPvToCharge(0);
-//        outputRow.setPvToLoad(0);
-//        outputRow.setBatToLoad(0);
 
+        // DIVERSIONS & SCHEDULES
         outputRow.setDirectEVcharge(0);
         outputRow.setWaterTemp(0);
         outputRow.setKWHDivToWater(0);
         outputRow.setKWHDivToEV(0);
         outputRow.setImmersionLoad(0);
+
+        // RECORD THE OUTPUT
         outputRows.add(outputRow);
     }
 
     static class InputData {
+        long id;
         double dc2acLoss;
         double ac2dcLoss;
         double dc2dcLoss;
+        double storageLoss;
+        double dischargeStop;
         List<SimulationInputData> inputData;
         Battery mBattery;
         double soc = 0d;
 
         InputData(Inverter inverter, List<SimulationInputData> iData, Battery battery) {
+            id = inverter.getInverterIndex();
             dc2acLoss = (100d - inverter.getDc2acLoss()) / 100d;
             ac2dcLoss = (100d - inverter.getAc2dcLoss()) / 100d;
             dc2dcLoss = (100d - inverter.getDc2dcLoss()) / 100d;
+            storageLoss = (null == battery) ? 0 : battery.getStorageLoss();
+            dischargeStop = (null == battery) ? 0 : (battery.getDischargeStop() / 100d) * battery.getBatterySize();
             inputData = iData;
             mBattery = battery;
         }
 
+        public double getChargeCapacity() {
+            return min((mBattery.getBatterySize() - soc),
+                    InputData.getMaxChargeForSOC(soc, mBattery));
+        }
+
+        public double getDischargeCapacity() {
+            return min(mBattery.getMaxDischarge(),
+                    max(0, (soc - dischargeStop )));
+        }
+
         public static double getMaxChargeForSOC(double batterySOC, Battery battery) {
             double ret = 0;
+            if (null == battery) return ret;
             ChargeModel cm = battery.getChargeModel();
             double maxCharge = battery.getMaxCharge();
             double batteryPercentSOC = (batterySOC / battery.getBatterySize()) * 100d;

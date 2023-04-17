@@ -94,7 +94,22 @@ public class SimulationWorkerTest {
         assertEquals(0, aRow.getLoad(), 0);
         assertEquals(1, aRow.getPv(), 0);
 
+        // NO BATTERY, DISCHARGE; 2ND ROW; NO SOLAR
+        row++;
+        inputDataMap.entrySet().iterator().next().getValue().mBattery = null;
+        simulationInputData.add(createSID(0, 1));
+        SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
+        aRow = outputRows.get(row);
+
         lastSOC = lastSOC + 0.225 * .1;
+
+        assertEquals(0, aRow.getBuy(), 0);
+        assertEquals((1) * 0.95, aRow.getFeed(), 0);
+        assertEquals(0, aRow.getSOC(), 0);
+        assertEquals(0, aRow.getPvToCharge(), 0);
+        assertEquals(0, aRow.getBatToLoad(), 0);
+        assertEquals(0, aRow.getLoad(), 0);
+        assertEquals(1, aRow.getPv(), 0);
 
     }
 
