@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.Editable;
 import android.text.InputType;
 import android.view.LayoutInflater;
@@ -63,6 +65,7 @@ public class PanelFragment extends Fragment {
     private TableLayout mTableLayout;
     private BarChart mBarChart;
     private TableLayout mPanelNoData;
+    private Handler mMainHandler;
 
     private ComparisonUIViewModel mViewModel;
     private List<PanelPVSummary> mPanelPVSummaries;
@@ -75,15 +78,19 @@ public class PanelFragment extends Fragment {
                     System.out.println("mStartForResult: RESULT_OK");
                     Intent intent = result.getData();
                     // Handle the Intent
-                    System.out.println("mPanelDataChanged, RESULT = " + intent.getBooleanExtra("RESULT", false)) ;
-                    if (intent.getBooleanExtra("RESULT", false)) {
-
-                        new Thread(() -> {
-                            System.out.println("Deleting simulation data for " + mPanel.getPanelIndex());
-                            mViewModel.deleteSimulationDataForPanelID(mPanel.getPanelIndex());
-                            System.out.println("Deleting costing data for " + mPanel.getPanelIndex());
-                            mViewModel.deleteCostingDataForPanelID(mPanel.getPanelIndex());
-                        }).start();
+                    if (!(null == intent)) {
+                        System.out.println("mPanelDataChanged, RESULT = " + intent.getBooleanExtra("RESULT", false));
+                        if (intent.getBooleanExtra("RESULT", false)) {
+                            new Thread(() -> {
+                                System.out.println("Deleting simulation data for " + mPanel.getPanelIndex());
+                                mViewModel.deleteSimulationDataForPanelID(mPanel.getPanelIndex());
+                                System.out.println("Deleting costing data for " + mPanel.getPanelIndex());
+                                mViewModel.deleteCostingDataForPanelID(mPanel.getPanelIndex());
+                            }).start();
+                        }
+                    }
+                    else {
+                        System.out.println("No idea if the panel data was updated. The intent did not return data");
                     }
                 }
             });
@@ -102,6 +109,8 @@ public class PanelFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mMainHandler = new Handler(Looper.getMainLooper());
+
         mScenarioID = ((PanelActivity) requireActivity()).getScenarioID();
         mPanelJsonString = ((PanelActivity) requireActivity()).getPanelJson();
         mEdit = ((PanelActivity) requireActivity()).getEdit();
@@ -116,7 +125,7 @@ public class PanelFragment extends Fragment {
         });
         new Thread(() -> {
             mInverters = mViewModel.getInvertersForScenario(mScenarioID);
-            if (!(null == mTableLayout)) updateEditorView();
+            mMainHandler.post(() -> {if (!(null == mTableLayout)) updateEditorView();});
         }).start();
     }
 

@@ -217,7 +217,7 @@ public class ScenarioOverview extends Fragment {
                 Intent intent = new Intent(getActivity(), PanelActivity.class);
                 intent.putExtra("ScenarioID", mScenarioID);
                 intent.putExtra("ScenarioName", mScenario.getScenarioName());
-                intent.putExtra("Edit", mEdit);
+                intent.putExtra("Edit", (mEdit | !mScenario.isHasPanels()));
                 startActivity(intent);
             }
         });
@@ -227,7 +227,7 @@ public class ScenarioOverview extends Fragment {
             Intent intent = new Intent(getActivity(), InverterActivity.class);
             intent.putExtra("ScenarioID", mScenarioID);
             intent.putExtra("ScenarioName", mScenario.getScenarioName());
-            intent.putExtra("Edit", mEdit);
+            intent.putExtra("Edit", (mEdit | !mScenario.isHasInverters()));
             startActivity(intent);
         });
 

@@ -48,13 +48,11 @@ import java.util.Objects;
 
 public class InverterActivity extends AppCompatActivity {
 
-    private ActionBar mActionBar;
     private Handler mMainHandler;
     private ProgressBar mProgressBar;
 
     private ViewPager2 mViewPager;
     private Long mScenarioID = 0L;
-    private String mScenarioName = "";
     private boolean mEdit = false;
     private ComparisonUIViewModel mViewModel;
     private TabLayoutMediator mMediator;
@@ -94,14 +92,14 @@ public class InverterActivity extends AppCompatActivity {
 
         Intent intent = getIntent();
         mScenarioID = intent.getLongExtra("ScenarioID", 0L);
-        mScenarioName = intent.getStringExtra("ScenarioName");
+        String mScenarioName = intent.getStringExtra("ScenarioName");
         mEdit = intent.getBooleanExtra("Edit", false);
         setContentView(R.layout.activity_inverter);
 
         mViewPager = findViewById(R.id.inverter_view_pager);
 
         mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
-        mActionBar = Objects.requireNonNull(getSupportActionBar());
+        ActionBar mActionBar = Objects.requireNonNull(getSupportActionBar());
         mActionBar.setTitle("Inverters (" + mScenarioName + ")");
 
         mFab = findViewById(R.id.addInverter);
@@ -238,21 +236,7 @@ public class InverterActivity extends AppCompatActivity {
         }
         if (item.getItemId() == R.id.lp_edit) {//add the function to perform here
             System.out.println("Edit attempt");
-            mFab.show();
-            MenuItem saveItem = mMenu.findItem(R.id.lp_save);
-            saveItem.setVisible(true);
-            MenuItem loadItem = mMenu.findItem(R.id.lp_import);
-            loadItem.setVisible(true);
-            MenuItem copyItem = mMenu.findItem(R.id.lp_copy);
-            copyItem.setVisible(true);
-            MenuItem linkItem = mMenu.findItem(R.id.lp_link);
-            linkItem.setVisible(true);
-            MenuItem editItem = mMenu.findItem(R.id.lp_edit);
-            editItem.setVisible(false);
-            MenuItem delItem = mMenu.findItem(R.id.lp_delete);
-            delItem.setVisible(true);
-            mEdit = true;
-            ((InverterViewPageAdapter)mViewPager.getAdapter()).setEdit(mEdit);
+            enableEdit();
             return false;
         }
         if (item.getItemId() == R.id.lp_share) {//add the function to perform here
@@ -320,6 +304,24 @@ public class InverterActivity extends AppCompatActivity {
             return false;
         }
         return false;
+    }
+
+    private void enableEdit() {
+        mFab.show();
+        MenuItem saveItem = mMenu.findItem(R.id.lp_save);
+        saveItem.setVisible(true);
+        MenuItem loadItem = mMenu.findItem(R.id.lp_import);
+        loadItem.setVisible(true);
+        MenuItem copyItem = mMenu.findItem(R.id.lp_copy);
+        copyItem.setVisible(true);
+        MenuItem linkItem = mMenu.findItem(R.id.lp_link);
+        linkItem.setVisible(true);
+        MenuItem editItem = mMenu.findItem(R.id.lp_edit);
+        editItem.setVisible(false);
+        MenuItem delItem = mMenu.findItem(R.id.lp_delete);
+        delItem.setVisible(true);
+        mEdit = true;
+        ((InverterViewPageAdapter)mViewPager.getAdapter()).setEdit(mEdit);
     }
 
     private void setupViewPager() {

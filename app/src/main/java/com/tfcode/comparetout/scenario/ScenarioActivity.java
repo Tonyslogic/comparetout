@@ -26,31 +26,44 @@ import java.util.Objects;
 
 public class ScenarioActivity extends AppCompatActivity {
 
+    private static final String EDIT_KEY = "Edit";
+    private static final String SCENARIO_KEY = "ScenarioID";
+
     ViewPager2 viewPager;
     private Long scenarioID = 0L;
     private boolean mEdit = false;
-    private ComparisonUIViewModel mViewModel;
-    private ActionBar mActionBar;
-    private TabLayoutMediator mMediator;
     private Menu mMenu;
     private boolean mDoubleBackToExitPressedOnce = false;
     private boolean mUnsavedChanges = false;
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putBoolean(EDIT_KEY, mEdit);
+        outState.putLong(SCENARIO_KEY, scenarioID);
+    }
 
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Intent intent = getIntent();
-        scenarioID = intent.getLongExtra("ScenarioID", 0L);
-        mEdit = intent.getBooleanExtra("Edit", false);
+        if (!(null == savedInstanceState)) {
+            scenarioID = savedInstanceState.getLong(SCENARIO_KEY);
+            mEdit = savedInstanceState.getBoolean(EDIT_KEY);
+        }
+        else {
+            Intent intent = getIntent();
+            scenarioID = intent.getLongExtra("ScenarioID", 0L);
+            mEdit = intent.getBooleanExtra("Edit", false);
+        }
         setContentView(R.layout.activity_scenario);
 
         viewPager = findViewById(R.id.view_scenario_pager);
 
         setupViewPager();
 
-        mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
-        mActionBar = Objects.requireNonNull(getSupportActionBar());
+        ComparisonUIViewModel mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
+        ActionBar mActionBar = Objects.requireNonNull(getSupportActionBar());
         mActionBar.setTitle("Scenario");
     }
 
@@ -100,7 +113,7 @@ public class ScenarioActivity extends AppCompatActivity {
         tabTitlesList.add("Scenario details");
         String[] tabTitles = tabTitlesList.toArray(new String[tabTitlesList.size()]);
         TabLayout tabLayout = findViewById(R.id.scenario_tab_layout);
-        mMediator = new TabLayoutMediator(tabLayout, viewPager,
+        TabLayoutMediator mMediator = new TabLayoutMediator(tabLayout, viewPager,
                 (tab, position) -> tab.setText(tabTitles[position])
         );
         mMediator.attach();
@@ -117,8 +130,7 @@ public class ScenarioActivity extends AppCompatActivity {
         Snackbar.make(getWindow().getDecorView().getRootView(),
                 "Unsaved changes. Please click BACK again to discard and exit",
                      Snackbar.LENGTH_LONG).setAction("Action", null).show();
-        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-            @Override public void run() { mDoubleBackToExitPressedOnce =false;}}, 2000);
+        new Handler(Looper.getMainLooper()).postDelayed(() -> mDoubleBackToExitPressedOnce =false, 2000);
     }
 
     // FRAGMENT ACCESS METHODS

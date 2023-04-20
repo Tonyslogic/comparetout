@@ -50,6 +50,12 @@ public class PVGISLoader extends Worker {
         return file.exists();
     }
 
+    @Override
+    public void onStopped(){
+        System.out.println("PVGISLoader::onStopped");
+        super.onStopped();
+    }
+
     @NonNull
     @Override
     public Result doWork() {

@@ -50,134 +50,147 @@ public class SimulationWorker extends Worker {
 
     }
 
+    @Override
+    public void onStopped(){
+        System.out.println("SimulationWorker::onStopped");
+        super.onStopped();
+    }
+
     @NonNull
     @Override
     public Result doWork() {
         List<Long> scenarioIDs = mToutcRepository.getAllScenariosThatNeedSimulation();
         System.out.println("Found " + scenarioIDs.size() + " scenarios that need simulation");
 
-        if (scenarioIDs.size() > 0) {
-            // NOTIFICATION SETUP
-            int notificationId = 1;
-            NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
-            builder.setContentTitle("Simulating scenarios")
-                    .setContentText("Simulation in progress")
-                    .setSmallIcon(R.drawable.housetick)
-                    .setPriority(NotificationCompat.PRIORITY_LOW)
-                    .setTimeoutAfter(90000)
-                    .setSilent(true);
-            // Issue the initial notification with zero progress
-            int PROGRESS_MAX = 100;
-            int PROGRESS_CURRENT = 0;
-            int PROGRESS_CHUNK = PROGRESS_MAX;
+        try {
             if (scenarioIDs.size() > 0) {
-                PROGRESS_CHUNK = PROGRESS_MAX / (scenarioIDs.size() + 1);
-                builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
-                notificationManager.notify(notificationId, builder.build());
-            }
+                // NOTIFICATION SETUP
+                int notificationId = 1;
+                NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
+                NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
+                builder.setContentTitle("Simulating scenarios")
+                        .setContentText("Simulation in progress")
+                        .setSmallIcon(R.drawable.housetick)
+                        .setPriority(NotificationCompat.PRIORITY_LOW)
+                        .setTimeoutAfter(90000)
+                        .setSilent(true);
+                // Issue the initial notification with zero progress
+                int PROGRESS_MAX = 100;
+                int PROGRESS_CURRENT = 0;
+                int PROGRESS_CHUNK = PROGRESS_MAX;
+                if (scenarioIDs.size() > 0) {
+                    PROGRESS_CHUNK = PROGRESS_MAX / (scenarioIDs.size() + 1);
+                    builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
+                    notificationManager.notify(notificationId, builder.build());
+                }
 
-            long startTime = System.nanoTime();
-            for (long scenarioID : scenarioIDs) {
-                ScenarioComponents scenarioComponents = mToutcRepository.getScenarioComponentsForScenarioID(scenarioID);
-                Scenario scenario = scenarioComponents.scenario;
-                System.out.println("Working on scenario " + scenario.getScenarioName());
-                if (scenario.isHasPanels()) {
-                    // Check for panel data
-                    boolean hasData = mToutcRepository.checkForMissingPanelData(scenarioID);// NOTIFICATION PROGRESS
-                    System.out.println("SimulationWorker checkForMissingPanelData hasData = " + hasData);
+                long startTime = System.nanoTime();
+                for (long scenarioID : scenarioIDs) {
+                    ScenarioComponents scenarioComponents = mToutcRepository.getScenarioComponentsForScenarioID(scenarioID);
+                    Scenario scenario = scenarioComponents.scenario;
+                    System.out.println("Working on scenario " + scenario.getScenarioName());
+                    if (scenario.isHasPanels()) {
+                        // Check for panel data
+                        boolean hasData = mToutcRepository.checkForMissingPanelData(scenarioID);// NOTIFICATION PROGRESS
+                        System.out.println("SimulationWorker checkForMissingPanelData hasData = " + hasData);
+                        PROGRESS_CURRENT += PROGRESS_CHUNK;
+                        builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
+                        notificationManager.notify(notificationId, builder.build());
+                        if (!hasData) {
+                            builder.setContentText("Skipping " + scenario.getScenarioName());
+                            notificationManager.notify(notificationId, builder.build());
+                            PROGRESS_CURRENT += PROGRESS_CHUNK;
+                            builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
+                            notificationManager.notify(notificationId, builder.build());
+                            continue;
+                        }
+                    }
+                    builder.setContentText("Getting data: " + scenario.getScenarioName());
+                    notificationManager.notify(notificationId, builder.build());
+
+                    int rowsToProcess = 0;
+                    Map<Inverter, InputData> inputDataMap = new HashMap<>();
+
+                    // TODO: update DST if the simulation year or duration changes
+                    final int dstBegin = 25634;
+                    final int dstEnd = 25645;
+
+                    // GET BASIC LOAD & PV FROM DB
+                    if (scenario.isHasInverters()) {
+                        for (Inverter inverter : scenarioComponents.inverters) {
+                            // Get some load simulation data to start with
+                            List<SimulationInputData> simulationInputData = mToutcRepository.getSimulationInputNoSolar(scenarioID);
+                            rowsToProcess = simulationInputData.size();
+
+                            List<Double> inverterPV = new ArrayList<>(Collections.nCopies(rowsToProcess, 0d));
+                            // get the total PV from all the panels related to the inverter
+                            getPVForInverter(scenarioComponents, rowsToProcess, inverter, inverterPV);
+                            // Populate the PV in the SimulationInputData and associate with inverter
+                            mergePVWithSimulationInputData(rowsToProcess, dstBegin, dstEnd, simulationInputData, inverterPV);
+                            // Get connected batteries (if any)
+                            Battery connectedBattery = null;
+                            if (scenario.isHasBatteries()) {
+                                for (Battery battery : scenarioComponents.batteries)
+                                    if (battery.getInverter().equals(inverter.getInverterName()))
+                                        connectedBattery = battery;
+                            }
+                            // Associate the inverter and the load for use in simulation
+                            inputDataMap.put(inverter, new InputData(inverter, simulationInputData, connectedBattery));
+                        }
+                    } else { // No solar simulation, but we need a 'perfect' inverter
+                        Inverter inverter = new Inverter();
+                        inverter.setInverterIndex(0);
+                        inverter.setDc2acLoss(0);
+                        inverter.setDc2dcLoss(0);
+                        inverter.setAc2dcLoss(0);
+                        inverter.setMinExcess(0);
+                        InputData idata = new InputData(inverter, mToutcRepository.getSimulationInputNoSolar(scenarioID), null);
+                        inputDataMap.put(inverter, idata);
+                        rowsToProcess = idata.inputData.size();
+                    }
+
+                    // TODO: GET LOAD FROM CFG, CAR AND HOT WATER
+
+                    builder.setContentText("Simulating: " + scenario.getScenarioName());
+                    notificationManager.notify(notificationId, builder.build());
+
+                    // SIMULATE POWER DISTRIBUTION
+                    ArrayList<ScenarioSimulationData> outputRows = new ArrayList<>();
+                    for (int row = 0; row < rowsToProcess; row++) {
+                        processOneRow(scenarioID, outputRows, row, inputDataMap);
+                    }
+
+                    // TODO: APPLY DIVERSION FOR EV AND HOT WATER
+
+                    // STORE THE SIMULATION RESULT
+                    System.out.println("adding " + outputRows.size() + " rows to DB for simulation: " + scenario.getScenarioName());
+
+                    builder.setContentText("Saving data");
+                    notificationManager.notify(notificationId, builder.build());
+
+                    mToutcRepository.saveSimulationDataForScenario(outputRows);
+
+                    // NOTIFICATION PROGRESS
                     PROGRESS_CURRENT += PROGRESS_CHUNK;
                     builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
                     notificationManager.notify(notificationId, builder.build());
-                    if (!hasData)
-                    {
-                        builder.setContentText("Skipping " + scenario.getScenarioName());
-                        notificationManager.notify(notificationId, builder.build());PROGRESS_CURRENT += PROGRESS_CHUNK;
-                        builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
-                        notificationManager.notify(notificationId, builder.build());
-                        continue;
-                    }
                 }
-                builder.setContentText("Getting data: " + scenario.getScenarioName());
-                notificationManager.notify(notificationId, builder.build());
+                long endTime = System.nanoTime();
+                System.out.println("Took " + (endTime - startTime) / 1000000 + "mS to simulate " + scenarioIDs.size() + " scenarios");
 
-                int rowsToProcess = 0;
-                Map<Inverter, InputData> inputDataMap = new HashMap<>();
-
-                // TODO: update DST if the simulation year or duration changes
-                final int dstBegin = 25634;
-                final int dstEnd = 25645;
-
-                // GET BASIC LOAD & PV FROM DB
-                if (scenario.isHasInverters()) {
-                    for (Inverter inverter: scenarioComponents.inverters) {
-                        // Get some load simulation data to start with
-                        List<SimulationInputData> simulationInputData = mToutcRepository.getSimulationInputNoSolar(scenarioID);
-                        rowsToProcess = simulationInputData.size();
-
-                        List<Double> inverterPV = new ArrayList<>(Collections.nCopies(rowsToProcess, 0d));
-                        // get the total PV from all the panels related to the inverter
-                        getPVForInverter(scenarioComponents, rowsToProcess, inverter, inverterPV);
-                        // Populate the PV in the SimulationInputData and associate with inverter
-                        mergePVWithSimulationInputData(rowsToProcess, dstBegin, dstEnd, simulationInputData, inverterPV);
-                        // Get connected batteries (if any)
-                        Battery connectedBattery = null;
-                        if (scenario.isHasBatteries()) {
-                            for (Battery battery: scenarioComponents.batteries)
-                                if (battery.getInverter().equals(inverter.getInverterName()))
-                                    connectedBattery = battery;
-                        }
-                        // Associate the inverter and the load for use in simulation
-                        inputDataMap.put(inverter, new InputData(inverter, simulationInputData, connectedBattery));
-                    }
+                if (scenarioIDs.size() > 0) {
+                    // NOTIFICATION COMPLETE
+                    builder.setContentText("Simulation complete")
+                            .setProgress(0, 0, false);
+                    notificationManager.notify(notificationId, builder.build());
                 }
-                else { // No solar simulation, but we need a 'perfect' inverter
-                    Inverter inverter = new Inverter();
-                    inverter.setInverterIndex(0);
-                    inverter.setDc2acLoss(0);
-                    inverter.setDc2dcLoss(0);
-                    inverter.setAc2dcLoss(0);
-                    inverter.setMinExcess(0);
-                    InputData idata = new InputData(inverter, mToutcRepository.getSimulationInputNoSolar(scenarioID), null);
-                    inputDataMap.put(inverter, idata);
-                    rowsToProcess = idata.inputData.size();
-                }
-
-                // TODO: GET LOAD FROM CFG, CAR AND HOT WATER
-
-                builder.setContentText("Simulating: " + scenario.getScenarioName());
-                notificationManager.notify(notificationId, builder.build());
-
-                // SIMULATE POWER DISTRIBUTION
-                ArrayList<ScenarioSimulationData> outputRows = new ArrayList<>();
-                for (int row = 0; row < rowsToProcess; row++) {
-                    processOneRow(scenarioID, outputRows, row, inputDataMap);
-                }
-
-                // TODO: APPLY DIVERSION FOR EV AND HOT WATER
-
-                // STORE THE SIMULATION RESULT
-                System.out.println("adding " + outputRows.size() + " rows to DB for simulation: " + scenario.getScenarioName());
-
-                builder.setContentText("Saving data");
-                notificationManager.notify(notificationId, builder.build());
-
-                mToutcRepository.saveSimulationDataForScenario(outputRows);
-
-                // NOTIFICATION PROGRESS
-                PROGRESS_CURRENT += PROGRESS_CHUNK;
-                builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
-                notificationManager.notify(notificationId, builder.build());
             }
-            long endTime = System.nanoTime();
-            System.out.println("Took " + (endTime - startTime) / 1000000 + "mS to simulate " + scenarioIDs.size() + " scenarios");
-
-            if (scenarioIDs.size() > 0) {
-                // NOTIFICATION COMPLETE
-                builder.setContentText("Simulation complete")
-                        .setProgress(0, 0, false);
-                notificationManager.notify(notificationId, builder.build());
-            }
+        }
+        catch (Exception e) {
+            System.out.println("!!!!!!!!!!!!!!!!!!! SimulationWorker has crashed, marking as failure !!!!!!!!!!!!!!!!!!!!!");
+            e.printStackTrace();
+            System.out.println("!!!!!!!!!!!!!!!!!!! SimulationWorker has crashed, marking as failure !!!!!!!!!!!!!!!!!!!!!");
+            return Result.failure();
         }
         return Result.success();
     }
@@ -232,33 +245,54 @@ public class SimulationWorker extends Worker {
         if (row > 0) {
             previousOutputSOC = outputRows.get(row - 1).getSOC();
             for (Map.Entry<Inverter,InputData> etry: inputDataMap.entrySet()) {
-                Battery battery = etry.getValue().mBattery;
-                if (null == battery) {
+                InputData iData = etry.getValue();
+                if (null == iData.mBattery) {
                     previousOutputSOC = 0;
-                    battery = M_NULL_BATTERY;
+                    iData.soc = 0;
+                    iData.mBattery = M_NULL_BATTERY;
                 }
-                double dischargeStop = (battery.getDischargeStop() / 100d) * battery.getBatterySize();
-                totalBatteryCapacity += battery.getBatterySize();
-                batteryAvailableForDischarge += min(battery.getMaxDischarge(),
-                                max(0, (previousOutputSOC - dischargeStop )));
-                batteryAvailableForCharge += min((battery.getBatterySize() - previousOutputSOC),
-                        InputData.getMaxChargeForSOC(previousOutputSOC, battery));
+                totalBatteryCapacity += iData.mBattery.getBatterySize();
+                batteryAvailableForDischarge += iData.getDischargeCapacity();
+                batteryAvailableForCharge += iData.getChargeCapacity();
+//                Battery battery = etry.getValue().mBattery;
+//                if (null == battery) {
+//                    previousOutputSOC = 0;
+//                    battery = M_NULL_BATTERY;
+//                }
+//                double dischargeStop = (battery.getDischargeStop() / 100d) * battery.getBatterySize();
+//                totalBatteryCapacity += battery.getBatterySize();
+//                batteryAvailableForDischarge += min(battery.getMaxDischarge(),
+//                                max(0, (previousOutputSOC - dischargeStop )));
+//                batteryAvailableForCharge += min((battery.getBatterySize() - previousOutputSOC),
+//                        InputData.getMaxChargeForSOC(previousOutputSOC, battery));
             }
         }
         else { // Set initial SOC
             double totalBatteryReserve = 0;
             for (Map.Entry<Inverter,InputData> etry: inputDataMap.entrySet()) {
-                Battery battery = etry.getValue().mBattery;
-                if (null == battery) battery = M_NULL_BATTERY;
-                totalBatteryCapacity += battery.getBatterySize();
-                double batterySOC = (battery.getDischargeStop() / 100d) * battery.getBatterySize();
-                etry.getValue().soc = batterySOC;
+                InputData iData = etry.getValue();
+                if (null == iData.mBattery) {
+                    iData.soc = 0;
+                    iData.mBattery = M_NULL_BATTERY;
+                }
+                totalBatteryCapacity += iData.mBattery.getBatterySize();
+                double batterySOC = iData.getDischargeStop();
+                iData.soc = batterySOC;
                 totalBatteryReserve += batterySOC;
-                double dischargeStop = (battery.getDischargeStop() / 100d) * battery.getBatterySize();
-                batteryAvailableForDischarge += min(battery.getMaxDischarge(),
-                        max(0, (batterySOC - dischargeStop )));
-                batteryAvailableForCharge += min((battery.getBatterySize() - batterySOC),
-                        InputData.getMaxChargeForSOC(batterySOC, battery));
+                batteryAvailableForDischarge += iData.getDischargeCapacity();
+                batteryAvailableForCharge += iData.getChargeCapacity();
+
+//                Battery battery = etry.getValue().mBattery;
+//                if (null == battery) battery = M_NULL_BATTERY;
+//                totalBatteryCapacity += battery.getBatterySize();
+//                double batterySOC = (battery.getDischargeStop() / 100d) * battery.getBatterySize();
+//                etry.getValue().soc = batterySOC;
+//                totalBatteryReserve += batterySOC;
+//                double dischargeStop = (battery.getDischargeStop() / 100d) * battery.getBatterySize();
+//                batteryAvailableForDischarge += min(battery.getMaxDischarge(),
+//                        max(0, (batterySOC - dischargeStop )));
+//                batteryAvailableForCharge += min((battery.getBatterySize() - batterySOC),
+//                        InputData.getMaxChargeForSOC(batterySOC, battery));
             }
             previousOutputSOC = totalBatteryReserve;
         }
@@ -295,13 +329,14 @@ public class SimulationWorker extends Worker {
         double pv2charge = 0;
         double pv2load = 0;
         double bat2Load = 0;
-        double soc = 0;
+        double totalSOC = 0;
 
         if (inputLoad > locallyAvailable) {
             buy = inputLoad - locallyAvailable;
             pv2load = tPV;
             if (!cfg) {
-                soc = previousOutputSOC - batteryAvailableForDischarge * 1.01d; //TODO: Use battery::storageLoss
+                totalSOC = previousOutputSOC - batteryAvailableForDischarge * 1.01d; //TODO: Use battery::storageLoss
+                dischargeBatteries(inputDataMap, batteryAvailableForDischarge);
                 bat2Load = batteryAvailableForDischarge * 1.01d; //TODO: Use battery::storageLoss
             }
         }
@@ -309,7 +344,8 @@ public class SimulationWorker extends Worker {
             if (inputLoad > tPV) {
                 pv2load = tPV;
                 if (!cfg) {
-                    soc = previousOutputSOC - (inputLoad - tPV) * 1.01d; //TODO: Use battery::storageLoss
+                    totalSOC = previousOutputSOC - (inputLoad - tPV) * 1.01d; //TODO: Use battery::storageLoss
+                    dischargeBatteries(inputDataMap, (inputLoad - tPV));
                     bat2Load = (inputLoad - tPV) * 1.01d; //TODO: Use battery::storageLoss
                 }
                 else buy = inputLoad - tPV;
@@ -320,13 +356,14 @@ public class SimulationWorker extends Worker {
                     if (!cfg) {
                         double charge = min((tPV - inputLoad), batteryAvailableForCharge);
                         pv2charge = charge;
-                        soc = previousOutputSOC + charge;
+                        totalSOC = previousOutputSOC + charge;
+                        chargeBatteries(inputDataMap, charge);
                         feed = tPV - inputLoad - charge;
                         if (inverter.getMaxInverterLoad() < (feed + charge))
                             feed = inverter.getMaxInverterLoad() - charge;
                     }
                     else {
-                        // soc was already calculated
+                        // totalSOC was already calculated
                         // but the feed does not consider this
                         feed = min((tPV - inputLoad), inverter.getMaxInverterLoad());
                     }
@@ -337,7 +374,7 @@ public class SimulationWorker extends Worker {
 
         outputRow.setBuy(buy);
         outputRow.setFeed(feed);
-        outputRow.setSOC(soc);
+        outputRow.setSOC(totalSOC);
         outputRow.setPvToCharge(pv2charge);
         outputRow.setPvToLoad(pv2load);
         outputRow.setBatToLoad(bat2Load);
@@ -354,13 +391,22 @@ public class SimulationWorker extends Worker {
         outputRows.add(outputRow);
     }
 
+    private static void chargeBatteries(Map<Inverter, InputData> inputDataMap, double charge) {
+        Map.Entry<Inverter,InputData> entry = inputDataMap.entrySet().iterator().next();
+        entry.getValue().soc += charge; // TODO use dc2dcLoss
+    }
+
+    private static void dischargeBatteries(Map<Inverter, InputData> inputDataMap, double discharge) {
+        Map.Entry<Inverter,InputData> entry = inputDataMap.entrySet().iterator().next();
+        entry.getValue().soc -= discharge * entry.getValue().storageLoss;
+    }
+
     static class InputData {
         long id;
         double dc2acLoss;
         double ac2dcLoss;
         double dc2dcLoss;
         double storageLoss;
-        double dischargeStop;
         List<SimulationInputData> inputData;
         Battery mBattery;
         double soc = 0d;
@@ -371,9 +417,12 @@ public class SimulationWorker extends Worker {
             ac2dcLoss = (100d - inverter.getAc2dcLoss()) / 100d;
             dc2dcLoss = (100d - inverter.getDc2dcLoss()) / 100d;
             storageLoss = (null == battery) ? 0 : battery.getStorageLoss();
-            dischargeStop = (null == battery) ? 0 : (battery.getDischargeStop() / 100d) * battery.getBatterySize();
             inputData = iData;
             mBattery = battery;
+        }
+
+        public double getDischargeStop() {
+            return (mBattery.getDischargeStop() / 100d) * mBattery.getBatterySize();
         }
 
         public double getChargeCapacity() {
@@ -383,7 +432,7 @@ public class SimulationWorker extends Worker {
 
         public double getDischargeCapacity() {
             return min(mBattery.getMaxDischarge(),
-                    max(0, (soc - dischargeStop )));
+                    max(0, (soc - getDischargeStop() )));
         }
 
         public static double getMaxChargeForSOC(double batterySOC, Battery battery) {
