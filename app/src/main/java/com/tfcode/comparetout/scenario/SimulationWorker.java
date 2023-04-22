@@ -44,6 +44,10 @@ public class SimulationWorker extends Worker {
         M_NULL_BATTERY.setStorageLoss(0);
     }
 
+    // TODO: update DST if the simulation year or duration changes
+    private static final int DST_BEGIN = 25634;
+    private static final int DST_END = 25645;
+
     public SimulationWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
         mToutcRepository = new ToutcRepository((Application) context);
@@ -111,10 +115,6 @@ public class SimulationWorker extends Worker {
                     int rowsToProcess = 0;
                     Map<Inverter, InputData> inputDataMap = new HashMap<>();
 
-                    // TODO: update DST if the simulation year or duration changes
-                    final int dstBegin = 25634;
-                    final int dstEnd = 25645;
-
                     // GET BASIC LOAD & PV FROM DB
                     if (scenario.isHasInverters()) {
                         for (Inverter inverter : scenarioComponents.inverters) {
@@ -126,7 +126,7 @@ public class SimulationWorker extends Worker {
                             // get the total PV from all the panels related to the inverter
                             getPVForInverter(scenarioComponents, rowsToProcess, inverter, inverterPV);
                             // Populate the PV in the SimulationInputData and associate with inverter
-                            mergePVWithSimulationInputData(rowsToProcess, dstBegin, dstEnd, simulationInputData, inverterPV);
+                            mergePVWithSimulationInputData(rowsToProcess, simulationInputData, inverterPV);
                             // Get connected batteries (if any)
                             Battery connectedBattery = null;
                             if (scenario.isHasBatteries()) {
@@ -195,14 +195,14 @@ public class SimulationWorker extends Worker {
         return Result.success();
     }
 
-    private void mergePVWithSimulationInputData(int rowsToProcess, int dstBegin, int dstEnd, List<SimulationInputData> simulationInputData, List<Double> inverterPV) {
+    private void mergePVWithSimulationInputData(int rowsToProcess, List<SimulationInputData> simulationInputData, List<Double> inverterPV) {
 //        double totalPV = 0d;
         for (int row = 0; row < rowsToProcess; row++) {
-            if (row < dstBegin)
+            if (row < DST_BEGIN)
                 simulationInputData.get(row).setTpv(inverterPV.get(row));
-            if (dstBegin <= row &&  row <= dstEnd)
+            if (DST_BEGIN <= row &&  row <= DST_END)
                 simulationInputData.get(row).setTpv(0);
-            if (row > dstEnd) {
+            if (row > DST_END) {
                 simulationInputData.get(row).setTpv(inverterPV.get(row - 12));
             }
 //            totalPV += simulationInputData.get(row).getTpv();
@@ -232,70 +232,52 @@ public class SimulationWorker extends Worker {
 
     public static void processOneRow(long scenarioID, ArrayList<ScenarioSimulationData> outputRows, int row, Map<Inverter, InputData> inputDataMap) {
 
-        Map.Entry<Inverter,InputData> entry = inputDataMap.entrySet().iterator().next();
-        Inverter inverter = entry.getKey();
-        InputData inputData = entry.getValue();
-        SimulationInputData inputRow = inputData.inputData.get(row);
+//        Map.Entry<Inverter,InputData> entry = inputDataMap.entrySet().iterator().next();
+//        SimulationInputData inputRow = entry.getValue().inputData.get(row);
+        SimulationInputData inputRow = null;
+        double inputLoad = 0d;
 
         // SETUP SOC AND BATTERY
-        double previousOutputSOC;
-        double totalBatteryCapacity = 0;
         double batteryAvailableForDischarge = 0;
         double batteryAvailableForCharge = 0;
+        double absoluteMinExcess = 0;
+        double totalMaxInverterLoad = 0;
         if (row > 0) {
-            previousOutputSOC = outputRows.get(row - 1).getSOC();
             for (Map.Entry<Inverter,InputData> etry: inputDataMap.entrySet()) {
                 InputData iData = etry.getValue();
+                if (null == inputRow) inputRow = iData.inputData.get(row);
                 if (null == iData.mBattery) {
-                    previousOutputSOC = 0;
                     iData.soc = 0;
                     iData.mBattery = M_NULL_BATTERY;
                 }
-                totalBatteryCapacity += iData.mBattery.getBatterySize();
                 batteryAvailableForDischarge += iData.getDischargeCapacity();
                 batteryAvailableForCharge += iData.getChargeCapacity();
-//                Battery battery = etry.getValue().mBattery;
-//                if (null == battery) {
-//                    previousOutputSOC = 0;
-//                    battery = M_NULL_BATTERY;
-//                }
-//                double dischargeStop = (battery.getDischargeStop() / 100d) * battery.getBatterySize();
-//                totalBatteryCapacity += battery.getBatterySize();
-//                batteryAvailableForDischarge += min(battery.getMaxDischarge(),
-//                                max(0, (previousOutputSOC - dischargeStop )));
-//                batteryAvailableForCharge += min((battery.getBatterySize() - previousOutputSOC),
-//                        InputData.getMaxChargeForSOC(previousOutputSOC, battery));
+                double iMinExcess = etry.getKey().getMinExcess();
+                if (iMinExcess > 0 && absoluteMinExcess == 0) absoluteMinExcess = iMinExcess;
+                else absoluteMinExcess = min( absoluteMinExcess, iMinExcess);
+                totalMaxInverterLoad += etry.getKey().getMaxInverterLoad();
+                inputLoad += iData.inputData.get(row).getLoad();
             }
         }
         else { // Set initial SOC
-            double totalBatteryReserve = 0;
             for (Map.Entry<Inverter,InputData> etry: inputDataMap.entrySet()) {
                 InputData iData = etry.getValue();
+                if (null == inputRow) inputRow = iData.inputData.get(row);
                 if (null == iData.mBattery) {
                     iData.soc = 0;
                     iData.mBattery = M_NULL_BATTERY;
                 }
-                totalBatteryCapacity += iData.mBattery.getBatterySize();
-                double batterySOC = iData.getDischargeStop();
-                iData.soc = batterySOC;
-                totalBatteryReserve += batterySOC;
+                iData.soc = iData.getDischargeStop();
                 batteryAvailableForDischarge += iData.getDischargeCapacity();
                 batteryAvailableForCharge += iData.getChargeCapacity();
-
-//                Battery battery = etry.getValue().mBattery;
-//                if (null == battery) battery = M_NULL_BATTERY;
-//                totalBatteryCapacity += battery.getBatterySize();
-//                double batterySOC = (battery.getDischargeStop() / 100d) * battery.getBatterySize();
-//                etry.getValue().soc = batterySOC;
-//                totalBatteryReserve += batterySOC;
-//                double dischargeStop = (battery.getDischargeStop() / 100d) * battery.getBatterySize();
-//                batteryAvailableForDischarge += min(battery.getMaxDischarge(),
-//                        max(0, (batterySOC - dischargeStop )));
-//                batteryAvailableForCharge += min((battery.getBatterySize() - batterySOC),
-//                        InputData.getMaxChargeForSOC(batterySOC, battery));
+                double iMinExcess = etry.getKey().getMinExcess();
+                if (iMinExcess > 0 && absoluteMinExcess == 0) absoluteMinExcess = iMinExcess;
+                else absoluteMinExcess = min( absoluteMinExcess, iMinExcess);
+                totalMaxInverterLoad += etry.getKey().getMaxInverterLoad();
+                inputLoad += iData.inputData.get(row).getLoad();
             }
-            previousOutputSOC = totalBatteryReserve;
         }
+        if (null == inputRow) return;
 
         // SETUP TOTAL AND EFFECTIVE PV
         double tPV = 0;
@@ -306,9 +288,9 @@ public class SimulationWorker extends Worker {
             effectivePV += sid.tpv * etry.getValue().dc2acLoss;
         }
 
-        double locallyAvailable = tPV + batteryAvailableForDischarge;
-        boolean cfg = false; // TODO: configure this correctly
-        if (cfg) locallyAvailable = tPV;
+        double locallyAvailable = effectivePV + batteryAvailableForDischarge;
+        boolean cfg = false; // TODO: configure cfg correctly
+        if (cfg) locallyAvailable = effectivePV;
 
         // COPY THE BASICS TO THE OUTPUT
         ScenarioSimulationData outputRow = new ScenarioSimulationData();
@@ -318,7 +300,7 @@ public class SimulationWorker extends Worker {
         outputRow.setDayOfWeek(inputRow.getDow());
         outputRow.setDayOf2001((inputRow.getDo2001()));
 
-        double inputLoad = inputRow.getLoad(); // TODO: Add scheduled loads
+//        double inputLoad = inputRow.getLoad(); // TODO: Add scheduled loads
         outputRow.setLoad(inputLoad);
         outputRow.setPv(tPV);
 
@@ -327,47 +309,50 @@ public class SimulationWorker extends Worker {
         double buy = 0;
         double feed = 0;
         double pv2charge = 0;
-        double pv2load = 0;
+        double pv2load;
         double bat2Load = 0;
         double totalSOC = 0;
 
         if (inputLoad > locallyAvailable) {
             buy = inputLoad - locallyAvailable;
-            pv2load = tPV;
+            pv2load = effectivePV;
             if (!cfg) {
-                totalSOC = previousOutputSOC - batteryAvailableForDischarge * 1.01d; //TODO: Use battery::storageLoss
-                dischargeBatteries(inputDataMap, batteryAvailableForDischarge);
-                bat2Load = batteryAvailableForDischarge * 1.01d; //TODO: Use battery::storageLoss
+                double [] discharge = dischargeBatteries(inputDataMap, batteryAvailableForDischarge);
+                totalSOC = discharge[0];
+                bat2Load = discharge[1];
             }
         }
         else { // we cover the load without the grid
-            if (inputLoad > tPV) {
-                pv2load = tPV;
+            if (inputLoad > effectivePV) {
+                pv2load = effectivePV;
                 if (!cfg) {
-                    totalSOC = previousOutputSOC - (inputLoad - tPV) * 1.01d; //TODO: Use battery::storageLoss
-                    dischargeBatteries(inputDataMap, (inputLoad - tPV));
-                    bat2Load = (inputLoad - tPV) * 1.01d; //TODO: Use battery::storageLoss
+                    double [] discharge = dischargeBatteries(inputDataMap, (inputLoad - effectivePV));
+                    totalSOC = discharge[0];
+                    bat2Load = discharge[1];
                 }
-                else buy = inputLoad - tPV;
+                else buy = inputLoad - effectivePV;
             }
             else { // there is extra pv to charge/feed
                 pv2load = inputLoad;
-                if ((tPV - inputLoad) > inverter.getMinExcess()){
+                if ((effectivePV - inputLoad) > absoluteMinExcess){
                     if (!cfg) {
                         double charge = min((tPV - inputLoad), batteryAvailableForCharge);
                         pv2charge = charge;
-                        totalSOC = previousOutputSOC + charge;
-                        chargeBatteries(inputDataMap, charge);
-                        feed = tPV - inputLoad - charge;
-                        if (inverter.getMaxInverterLoad() < (feed + charge))
-                            feed = inverter.getMaxInverterLoad() - charge;
+                        totalSOC = chargeBatteries(inputDataMap, charge);
+                        feed = effectivePV - inputLoad - charge;
+                        System.out.println("feed @ 338 = " + feed + ", effectivePV = " + effectivePV + ", inputLoad = " + inputLoad + ", charge = " + charge) ;
+                        if (totalMaxInverterLoad < (feed + charge)) {
+                            feed = totalMaxInverterLoad - charge;
+                            System.out.println("feed @ 341 = " + feed);
+                        }
                     }
                     else {
                         // totalSOC was already calculated
                         // but the feed does not consider this
-                        feed = min((tPV - inputLoad), inverter.getMaxInverterLoad());
+                        feed = min((effectivePV - inputLoad), totalMaxInverterLoad);
+                        System.out.println("feed @ 348 = " + feed);
                     }
-                    feed = max(0, feed * 0.95d); //TODO: FEED_MODIFIER
+                    feed = max(0, feed );
                 }
             }
         }
@@ -391,14 +376,43 @@ public class SimulationWorker extends Worker {
         outputRows.add(outputRow);
     }
 
-    private static void chargeBatteries(Map<Inverter, InputData> inputDataMap, double charge) {
-        Map.Entry<Inverter,InputData> entry = inputDataMap.entrySet().iterator().next();
-        entry.getValue().soc += charge; // TODO use dc2dcLoss
+    private static double chargeBatteries(Map<Inverter, InputData> inputDataMap, double charge) {
+        double lastSOC = 0;
+        double totalChargeCapacity = 0d;
+        for (Map.Entry<Inverter, InputData> entry: inputDataMap.entrySet())
+            totalChargeCapacity += entry.getValue().getChargeCapacity();
+
+        for (Map.Entry<Inverter, InputData> entry: inputDataMap.entrySet()) {
+            InputData iData = entry.getValue();
+            double batteryShare = 0;
+            if (totalChargeCapacity != 0) batteryShare = iData.getChargeCapacity() / totalChargeCapacity;
+            iData.soc += charge * batteryShare * iData.dc2dcLoss;
+            lastSOC += iData.soc;
+        }
+
+        return lastSOC;
     }
 
-    private static void dischargeBatteries(Map<Inverter, InputData> inputDataMap, double discharge) {
-        Map.Entry<Inverter,InputData> entry = inputDataMap.entrySet().iterator().next();
-        entry.getValue().soc -= discharge * entry.getValue().storageLoss;
+    private static double[] dischargeBatteries(Map<Inverter, InputData> inputDataMap, double discharge) {
+        double[] ret = {0,0};
+        // Get the current charge landscape inverters with batteries & their current state
+        // Cannot discharge a battery that is empty!
+        // Allocate % of discharge to each battery
+        double totalDischargeCapacity = 0d;
+        for (Map.Entry<Inverter, InputData> entry: inputDataMap.entrySet())
+            totalDischargeCapacity += entry.getValue().getDischargeCapacity();
+
+        for (Map.Entry<Inverter, InputData> entry: inputDataMap.entrySet()) {
+            InputData iData = entry.getValue();
+            double batteryShare = 0;
+            if (totalDischargeCapacity != 0) batteryShare = iData.getDischargeCapacity() / totalDischargeCapacity;
+            double effectiveDischarge = discharge * batteryShare * (1 + entry.getValue().storageLoss/100d);
+            iData.soc -= effectiveDischarge;
+            ret[0] += iData.soc;
+            ret[1] += effectiveDischarge;
+        }
+
+        return ret;
     }
 
     static class InputData {
@@ -409,6 +423,8 @@ public class SimulationWorker extends Worker {
         double storageLoss;
         List<SimulationInputData> inputData;
         Battery mBattery;
+
+        // Volatile state members
         double soc = 0d;
 
         InputData(Inverter inverter, List<SimulationInputData> iData, Battery battery) {
