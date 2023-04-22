@@ -15,6 +15,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
@@ -24,48 +25,54 @@ import com.tfcode.comparetout.SimulatorLauncher;
 import com.tfcode.comparetout.scenario.ScenarioSelectDialog;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public class LoadProfileActivity extends AppCompatActivity {
 
     ViewPager2 mViewPager;
     private Long scenarioID = 0L;
-    private String scenarioName = "";
     private boolean mEdit = false;
     private ComparisonUIViewModel mViewModel;
-    private ActionBar mActionBar;
-    private TabLayoutMediator mMediator;
     private Menu mMenu;
     private boolean mDoubleBackToExitPressedOnce = false;
     private boolean mUnsavedChanges = false;
 
     private String mLoadProfileJson = "";
-    private String mDistributionSource = "";
+    private final String mDistributionSource = "";
 
-//    final ActivityResultLauncher<String> mLoadLoadProfileFile =
-//            registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
-//                // Handle the returned Uri
-//                if (uri == null) return;
-//                InputStream is;
-//                try {
-//                    is = getContentResolver().openInputStream(uri);
-//                    InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
-//                    Type type = new TypeToken<LoadProfileJson>() {}.getType();
-//                    LoadProfileJson lpj  = new Gson().fromJson(reader, type);
-//                    Gson gson = new GsonBuilder().setPrettyPrinting().create();
-//                    mLoadProfileJson =  gson.toJson(lpj, type);
-//                    propagateDistribution();
-//                } catch (FileNotFoundException e) {
-//                    e.printStackTrace();
-//                }
-//            });
+    private List<String> mLinkedScenarios = new ArrayList<>();
+
+    private void showLinkedFAB() {
+        FloatingActionButton fab = findViewById(R.id.isLinked);
+        fab.show();
+    }
+
+    private void hideLinkedFAB() {
+        FloatingActionButton fab = findViewById(R.id.isLinked);
+        fab.hide();
+    }
+
+    private void setupLinkedFAB() {
+        new Thread(() -> {
+            mLinkedScenarios = mViewModel.getLinkedLoadProfiles(scenarioID);
+            System.out.println("setupFAB " + mLinkedScenarios);
+            new Handler(Looper.getMainLooper()).post(() -> {
+                if (mLinkedScenarios.isEmpty()) hideLinkedFAB();
+            });
+            }).start();
+
+        FloatingActionButton fab = findViewById(R.id.isLinked);
+        fab.setOnClickListener(view -> Snackbar.make(view, "Linked to " + mLinkedScenarios, Snackbar.LENGTH_LONG)
+            .setAction("Action", null).show());
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         Intent intent = getIntent();
         scenarioID = intent.getLongExtra("ScenarioID", 0L);
-        scenarioName = intent.getStringExtra("ScenarioName");
+        String scenarioName = intent.getStringExtra("ScenarioName");
         mEdit = intent.getBooleanExtra("Edit", false);
         setContentView(R.layout.activity_load_profile);
 
@@ -74,8 +81,10 @@ public class LoadProfileActivity extends AppCompatActivity {
         setupViewPager();
 
         mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
-        mActionBar = Objects.requireNonNull(getSupportActionBar());
+        ActionBar mActionBar = Objects.requireNonNull(getSupportActionBar());
         mActionBar.setTitle("Load profile (" + scenarioName + ")");
+
+        setupLinkedFAB();
     }
 
     // MENU
@@ -178,7 +187,10 @@ public class LoadProfileActivity extends AppCompatActivity {
             ScenarioSelectDialog scenarioSelectDialog =
                     new ScenarioSelectDialog(LoadProfileActivity.this,
                             ScenarioSelectDialog.LOAD_PROFILE,
-                            fromScenarioID -> mViewModel.linkLoadProfileFromScenario(fromScenarioID, scenarioID));
+                            fromScenarioID -> {
+                                mViewModel.linkLoadProfileFromScenario(fromScenarioID, scenarioID);
+                                showLinkedFAB();
+                    });
             scenarioSelectDialog.show();
             return false;
         }
@@ -203,7 +215,7 @@ public class LoadProfileActivity extends AppCompatActivity {
         tabTitlesList.add("Hourly");
         String[] tabTitles = tabTitlesList.toArray(new String[tabTitlesList.size()]);
         TabLayout tabLayout = findViewById(R.id.loadProfile_tab_layout);
-        mMediator = new TabLayoutMediator(tabLayout, mViewPager,
+        TabLayoutMediator mMediator = new TabLayoutMediator(tabLayout, mViewPager,
                 (tab, position) -> tab.setText(tabTitles[position])
         );
         mMediator.attach();

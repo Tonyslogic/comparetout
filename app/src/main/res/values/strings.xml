@@ -48,4 +48,5 @@
     <string name="Optimized">Optimized</string>
     <string name="CinnectedInverterName">Connected Inverter name</string>
     <string name="ConnectedInverterMPPT">Connected Inverter mppt</string>
+    <string name="linkedItem">Linked item</string>
 </resources>

@@ -33,6 +33,7 @@ import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.SimulatorLauncher;
 import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.json.scenario.PanelJson;
+import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.Panel;
 import com.tfcode.comparetout.model.scenario.Scenario2Panel;
 import com.tfcode.comparetout.scenario.ScenarioSelectDialog;
@@ -65,6 +66,8 @@ public class PanelActivity extends AppCompatActivity {
     private List<Panel> mPanels;
     private List<Long> mRemovedPanels;
 
+    private List<String> mLinkedScenarios = new ArrayList<>();
+
     final ActivityResultLauncher<String> mLoadPanelFile =
             registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
                 // Handle the returned Uri
@@ -81,6 +84,32 @@ public class PanelActivity extends AppCompatActivity {
                     e.printStackTrace();
                 }
             });
+
+    public void showLinkedFAB() {
+        FloatingActionButton fab = findViewById(R.id.isLinked);
+        fab.show();
+    }
+
+    public void hideLinkedFAB() {
+        FloatingActionButton fab = findViewById(R.id.isLinked);
+        fab.hide();
+    }
+
+    public void setupLinkedFAB(int panelIndex) {
+        Panel toCheck = mPanels.get(panelIndex);
+        new Thread(() -> {
+            mLinkedScenarios = mViewModel.getLinkedPanels(toCheck.getPanelIndex(), mScenarioID);
+            System.out.println("setupFAB " + mLinkedScenarios);
+            new Handler(Looper.getMainLooper()).post(() -> {
+                if (mLinkedScenarios.isEmpty()) hideLinkedFAB();
+                else showLinkedFAB();
+            });
+        }).start();
+
+        FloatingActionButton fab = findViewById(R.id.isLinked);
+        fab.setOnClickListener(view -> Snackbar.make(view, "Linked to " + mLinkedScenarios, Snackbar.LENGTH_LONG)
+                .setAction("Action", null).show());
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -133,6 +162,14 @@ public class PanelActivity extends AppCompatActivity {
             mMainHandler.post(this::setupViewPager);
             mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
         }).start();
+
+        mViewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+                super.onPageScrolled(position, positionOffset, positionOffsetPixels);
+                setupLinkedFAB(position);
+            }
+        });
     }
 
     private void refreshPanels() {

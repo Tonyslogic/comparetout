@@ -65,6 +65,8 @@ public class InverterActivity extends AppCompatActivity {
     private List<Inverter> mInverters;
     private List<Long> mRemovedInverters;
 
+    private List<String> mLinkedScenarios = new ArrayList<>();
+
     final ActivityResultLauncher<String> mLoadInverterFile =
             registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
                 // Handle the returned Uri
@@ -81,6 +83,32 @@ public class InverterActivity extends AppCompatActivity {
                     e.printStackTrace();
                 }
             });
+
+    public void showLinkedFAB() {
+        FloatingActionButton fab = findViewById(R.id.isLinked);
+        fab.show();
+    }
+
+    public void hideLinkedFAB() {
+        FloatingActionButton fab = findViewById(R.id.isLinked);
+        fab.hide();
+    }
+
+    public void setupLinkedFAB(int inverterIndex) {
+        Inverter toCheck = mInverters.get(inverterIndex);
+        new Thread(() -> {
+            mLinkedScenarios = mViewModel.getLinkedInverters(toCheck.getInverterIndex(), mScenarioID);
+            System.out.println("setupFAB " + mLinkedScenarios);
+            new Handler(Looper.getMainLooper()).post(() -> {
+                if (mLinkedScenarios.isEmpty()) hideLinkedFAB();
+                else showLinkedFAB();
+            });
+        }).start();
+
+        FloatingActionButton fab = findViewById(R.id.isLinked);
+        fab.setOnClickListener(view -> Snackbar.make(view, "Linked to " + mLinkedScenarios, Snackbar.LENGTH_LONG)
+                .setAction("Action", null).show());
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -133,6 +161,15 @@ public class InverterActivity extends AppCompatActivity {
             mMainHandler.post(this::setupViewPager);
             mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
         }).start();
+
+        mViewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+                super.onPageScrolled(position, positionOffset, positionOffsetPixels);
+                setupLinkedFAB(position);
+            }
+        });
+
     }
 
     private void refreshInverters() {
@@ -287,7 +324,10 @@ public class InverterActivity extends AppCompatActivity {
             ScenarioSelectDialog scenarioSelectDialog =
                     new ScenarioSelectDialog(InverterActivity.this,
                             ScenarioSelectDialog.INVERTER,
-                            fromScenarioID -> mViewModel.linkInverterFromScenario(fromScenarioID, mScenarioID));
+                            fromScenarioID -> {
+                        mViewModel.linkInverterFromScenario(fromScenarioID, mScenarioID);
+                        showLinkedFAB();
+                    });
             scenarioSelectDialog.show();
             return false;
         }

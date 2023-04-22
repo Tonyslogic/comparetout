@@ -40,100 +40,108 @@ public class CostingWorker extends Worker {
         List<Long> scenarioIDs = mToutcRepository.getAllScenariosThatNeedCosting();
         System.out.println("Found " + scenarioIDs.size() + " scenarios that need costing");
 
-        if (scenarioIDs.size() > 0) {
-            // NOTIFICATION SETUP
-            int notificationId = 1;
-            NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
-            builder.setContentTitle("Calculating costs")
-                    .setContentText("Calculation in progress")
-                    .setSmallIcon(R.drawable.housetick)
-                    .setPriority(NotificationCompat.PRIORITY_LOW)
-                    .setTimeoutAfter(30000)
-                    .setSilent(true);
-            int PROGRESS_MAX = 100;
-            int PROGRESS_CURRENT = 0;
+        try {
+            if (scenarioIDs.size() > 0) {
+                // NOTIFICATION SETUP
+                int notificationId = 1;
+                NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
+                NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
+                builder.setContentTitle("Calculating costs")
+                        .setContentText("Calculation in progress")
+                        .setSmallIcon(R.drawable.housetick)
+                        .setPriority(NotificationCompat.PRIORITY_LOW)
+                        .setTimeoutAfter(30000)
+                        .setSilent(true);
+                int PROGRESS_MAX = 100;
+                int PROGRESS_CURRENT = 0;
 
-            // Load PricePlans
-            List<PricePlan> plans = mToutcRepository.getAllPricePlansNow();
-            System.out.println("Found " + plans.size() + " plans to calculate costs for");
-            int PROGRESS_CHUNK = PROGRESS_MAX;
-            if ((scenarioIDs.size() > 0) && (plans.size() > 0)) {
-                PROGRESS_CHUNK = PROGRESS_MAX / (scenarioIDs.size() * plans.size());
-                // Issue the initial notification with zero progress
-                builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
-                notificationManager.notify(notificationId, builder.build());
-            }
-
-            // For each scenario -> load; For each priceplan -> apply costs
-            for (long scenarioID : scenarioIDs) {
-                // Get the simulation output
-                builder.setContentText("Loading data");
-                notificationManager.notify(notificationId, builder.build());
-                List<ScenarioSimulationData> scenarioData = mToutcRepository.getSimulationDataForScenario(scenarioID);
-                System.out.println("Retrieved " + scenarioData.size() + " rows of simulation data for " + scenarioID);
-                if (scenarioData.size() > 0) {
-                    long startTime = System.nanoTime();
-                    for (PricePlan pp : plans) {
-                        // Confirm the need for costing
-                        if (mToutcRepository.costingExists(scenarioID, pp.getPricePlanIndex())) continue;
-                        builder.setContentText(pp.getPlanName());
-                        notificationManager.notify(notificationId, builder.build());
-                        RateLookup lookup = mLookups.get(pp.getPricePlanIndex());
-                        if (null == lookup) {
-                            lookup = new RateLookup(
-                                    mToutcRepository.getAllDayRatesForPricePlanID(pp.getPricePlanIndex()));
-                            mLookups.put(pp.getPricePlanIndex(), lookup);
-                        }
-                        Costings costing = new Costings();
-                        costing.setScenarioID(scenarioID);
-                        costing.setScenarioName(mToutcRepository.getScenarioForID(scenarioID).getScenarioName());
-                        costing.setPricePlanID(pp.getPricePlanIndex());
-                        costing.setFullPlanName(pp.getSupplier() + ":" + pp.getPlanName());
-                        double buy = 0D;
-                        double sell = 0D;
-                        double net;
-                        SubTotals subTotals = new SubTotals();
-                        for (ScenarioSimulationData row : scenarioData) {
-                            double price = lookup.getRate(row.getDayOf2001(), row.getMinuteOfDay(), row.getDayOfWeek());
-                            double rowBuy = price * row.getBuy();
-                            buy += rowBuy;
-                            sell += pp.getFeed() * row.getFeed();
-                            subTotals.addToPrice(price, row.getBuy()); // This is the number of units
-                        }
-                        costing.setBuy(buy);
-                        costing.setSell(sell);
-                        costing.setSubTotals(subTotals);
-                        double days = 365; // TODO look at the biggest & smallest dates in the simdata
-                        net = ((buy - sell) + (pp.getStandingCharges() * 100 * (days / 365))) - (pp.getSignUpBonus() * 100);
-                        costing.setNet(net);
-                        // store in comparison table
-                        System.out.println("Storing " + costing);
-                        builder.setContentText("Saving data");
-                        notificationManager.notify(notificationId, builder.build());
-                        mToutcRepository.saveCosting(costing);
-                        // NOTIFICATION PROGRESS
-                        PROGRESS_CURRENT += PROGRESS_CHUNK;
-                        builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
-                        builder.setContentText("Data saved");
-                        notificationManager.notify(notificationId, builder.build());
-                    }
-                    long endTime = System.nanoTime();
-                    System.out.println("Took " + (endTime - startTime) / 1000000 + "mS to cost " + plans.size() + " plans");
-                }
-                else {
-                    builder.setContentText("Missing panel data");
-                    notificationManager.notify(notificationId, builder.build());
-                    PROGRESS_CURRENT += PROGRESS_CHUNK;
+                // Load PricePlans
+                List<PricePlan> plans = mToutcRepository.getAllPricePlansNow();
+                System.out.println("Found " + plans.size() + " plans to calculate costs for");
+                int PROGRESS_CHUNK = PROGRESS_MAX;
+                if ((scenarioIDs.size() > 0) && (plans.size() > 0)) {
+                    PROGRESS_CHUNK = PROGRESS_MAX / (scenarioIDs.size() * plans.size());
+                    // Issue the initial notification with zero progress
                     builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
                     notificationManager.notify(notificationId, builder.build());
                 }
-            }
 
-            // NOTIFICATION COMPLETE
-            builder.setContentText("Calculation complete")
-                    .setProgress(0, 0, false);
-            notificationManager.notify(notificationId, builder.build());
+                // For each scenario -> load; For each priceplan -> apply costs
+                for (long scenarioID : scenarioIDs) {
+                    // Get the simulation output
+                    builder.setContentText("Loading data");
+                    notificationManager.notify(notificationId, builder.build());
+                    List<ScenarioSimulationData> scenarioData = mToutcRepository.getSimulationDataForScenario(scenarioID);
+                    System.out.println("Retrieved " + scenarioData.size() + " rows of simulation data for " + scenarioID);
+                    if (scenarioData.size() > 0) {
+                        long startTime = System.nanoTime();
+                        for (PricePlan pp : plans) {
+                            // Confirm the need for costing
+                            if (mToutcRepository.costingExists(scenarioID, pp.getPricePlanIndex()))
+                                continue;
+                            builder.setContentText(pp.getPlanName());
+                            notificationManager.notify(notificationId, builder.build());
+                            RateLookup lookup = mLookups.get(pp.getPricePlanIndex());
+                            if (null == lookup) {
+                                lookup = new RateLookup(
+                                        mToutcRepository.getAllDayRatesForPricePlanID(pp.getPricePlanIndex()));
+                                mLookups.put(pp.getPricePlanIndex(), lookup);
+                            }
+                            Costings costing = new Costings();
+                            costing.setScenarioID(scenarioID);
+                            costing.setScenarioName(mToutcRepository.getScenarioForID(scenarioID).getScenarioName());
+                            costing.setPricePlanID(pp.getPricePlanIndex());
+                            costing.setFullPlanName(pp.getSupplier() + ":" + pp.getPlanName());
+                            double buy = 0D;
+                            double sell = 0D;
+                            double net;
+                            SubTotals subTotals = new SubTotals();
+                            for (ScenarioSimulationData row : scenarioData) {
+                                double price = lookup.getRate(row.getDayOf2001(), row.getMinuteOfDay(), row.getDayOfWeek());
+                                double rowBuy = price * row.getBuy();
+                                buy += rowBuy;
+                                sell += pp.getFeed() * row.getFeed();
+                                subTotals.addToPrice(price, row.getBuy()); // This is the number of units
+                            }
+                            costing.setBuy(buy);
+                            costing.setSell(sell);
+                            costing.setSubTotals(subTotals);
+                            double days = 365; // TODO look at the biggest & smallest dates in the simdata
+                            net = ((buy - sell) + (pp.getStandingCharges() * 100 * (days / 365))) - (pp.getSignUpBonus() * 100);
+                            costing.setNet(net);
+                            // store in comparison table
+                            System.out.println("Storing " + costing);
+                            builder.setContentText("Saving data");
+                            notificationManager.notify(notificationId, builder.build());
+                            mToutcRepository.saveCosting(costing);
+                            // NOTIFICATION PROGRESS
+                            PROGRESS_CURRENT += PROGRESS_CHUNK;
+                            builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
+                            builder.setContentText("Data saved");
+                            notificationManager.notify(notificationId, builder.build());
+                        }
+                        long endTime = System.nanoTime();
+                        System.out.println("Took " + (endTime - startTime) / 1000000 + "mS to cost " + plans.size() + " plans");
+                    } else {
+                        builder.setContentText("Missing panel data");
+                        notificationManager.notify(notificationId, builder.build());
+                        PROGRESS_CURRENT += PROGRESS_CHUNK;
+                        builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
+                        notificationManager.notify(notificationId, builder.build());
+                    }
+                }
+
+                // NOTIFICATION COMPLETE
+                builder.setContentText("Calculation complete")
+                        .setProgress(0, 0, false);
+                notificationManager.notify(notificationId, builder.build());
+            }
+        }
+        catch (Exception e) {
+            System.out.println("!!!!!!!!!!!!!!!!!!! CostingWorker has crashed, marking as failure !!!!!!!!!!!!!!!!!!!!!");
+            e.printStackTrace();
+            System.out.println("!!!!!!!!!!!!!!!!!!! CostingWorker has crashed, marking as failure !!!!!!!!!!!!!!!!!!!!!");
+            return Result.failure();
         }
         return Result.success();
     }

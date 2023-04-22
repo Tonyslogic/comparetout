@@ -33,9 +33,10 @@ tools:context=".scenario.ScenarioOverview">
                         android:background="@color/white"
                         android:src="@drawable/solarpanel"
                         android:layout_width="0dp"
-                        android:layout_height="80dp"
+                        android:layout_height="match_parent"
                         android:layout_weight="1"
                         android:adjustViewBounds="true"
+                        android:padding="2dp"
                         android:scaleType="fitCenter"/>
                     <ImageButton
                         android:id="@+id/inverterButton"
@@ -46,6 +47,7 @@ tools:context=".scenario.ScenarioOverview">
                         android:layout_height="match_parent"
                         android:layout_weight="1"
                         android:adjustViewBounds="true"
+                        android:padding="2dp"
                         android:scaleType="fitCenter" />
 
                     <ImageButton
@@ -56,6 +58,7 @@ tools:context=".scenario.ScenarioOverview">
                         android:layout_height="match_parent"
                         android:layout_weight="1"
                         android:adjustViewBounds="true"
+                        android:padding="2dp"
                         android:scaleType="fitCenter"/>
                 </TableRow>
             </TableLayout>
@@ -74,9 +77,10 @@ tools:context=".scenario.ScenarioOverview">
                         android:background="@color/white"
                         android:src="@drawable/battery_not_set"
                         android:layout_width="0dp"
-                        android:layout_height="80dp"
+                        android:layout_height="match_parent"
                         android:layout_weight="1"
                         android:adjustViewBounds="true"
+                        android:padding="2dp"
                         android:scaleType="fitCenter" />
 
                     <ImageButton
@@ -87,6 +91,7 @@ tools:context=".scenario.ScenarioOverview">
                         android:layout_height="match_parent"
                         android:layout_weight="1"
                         android:adjustViewBounds="true"
+                        android:padding="2dp"
                         android:scaleType="fitCenter"/>
 
                     <ImageButton
@@ -97,6 +102,7 @@ tools:context=".scenario.ScenarioOverview">
                         android:layout_height="match_parent"
                         android:layout_weight="1"
                         android:adjustViewBounds="true"
+                        android:padding="2dp"
                         android:scaleType="fitCenter"/>
                 </TableRow>
             </TableLayout>

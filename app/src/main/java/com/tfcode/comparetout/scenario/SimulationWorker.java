@@ -340,17 +340,14 @@ public class SimulationWorker extends Worker {
                         pv2charge = charge;
                         totalSOC = chargeBatteries(inputDataMap, charge);
                         feed = effectivePV - inputLoad - charge;
-                        System.out.println("feed @ 338 = " + feed + ", effectivePV = " + effectivePV + ", inputLoad = " + inputLoad + ", charge = " + charge) ;
                         if (totalMaxInverterLoad < (feed + charge)) {
                             feed = totalMaxInverterLoad - charge;
-                            System.out.println("feed @ 341 = " + feed);
                         }
                     }
                     else {
                         // totalSOC was already calculated
                         // but the feed does not consider this
                         feed = min((effectivePV - inputLoad), totalMaxInverterLoad);
-                        System.out.println("feed @ 348 = " + feed);
                     }
                     feed = max(0, feed );
                 }

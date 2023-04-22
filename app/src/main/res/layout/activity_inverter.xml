@@ -8,6 +8,16 @@
     android:id="@+id/inverter_activity">
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/isLinked"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:clickable="true"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:srcCompat="@drawable/ic_baseline_link_24"
+        android:contentDescription="@string/linkedItem" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/addInverter"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

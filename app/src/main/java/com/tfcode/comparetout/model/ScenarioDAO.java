@@ -332,11 +332,11 @@ public abstract class ScenarioDAO {
     @Insert(entity = LoadProfileData.class)
     public abstract void createLoadProfileDataEntries(ArrayList<LoadProfileData> rows);
 
-    @Query("DELETE FROM scenariosimulationdata WHERE scenarioID = (" +
+    @Query("DELETE FROM scenariosimulationdata WHERE scenarioID IN (" +
             "SELECT scenarioID FROM scenario2loadprofile WHERE loadProfileID = :loadProfileID) ")
     public abstract void deleteSimulationDataForProfileID(long loadProfileID);
 
-    @Query("DELETE FROM costings WHERE scenarioID = (" +
+    @Query("DELETE FROM costings WHERE scenarioID IN (" +
             "SELECT scenarioID FROM scenario2loadprofile WHERE loadProfileID = :loadProfileID) ")
     public abstract void deleteCostingDataForProfileID(long loadProfileID);
 
@@ -778,4 +778,17 @@ public abstract class ScenarioDAO {
 
     @Query("DELETE FROM paneldata WHERE panelID = :panelID")
     public abstract void removePanelData(Long panelID);
+
+    @Query("SELECT scenarioName FROM scenarios WHERE scenarioIndex IN (" +
+            "SELECT scenarioID FROM scenario2loadprofile WHERE  loadProfileID = (" +
+            "SELECT loadProfileID FROM scenario2loadprofile WHERE scenarioID = :scenarioID) AND scenarioID != :scenarioID )")
+    public abstract List<String> getLinkedLoadProfiles(Long scenarioID);
+
+    @Query("SELECT scenarioName FROM scenarios WHERE scenarioIndex IN (" +
+            "SELECT scenarioID FROM scenario2inverter WHERE inverterID = :inverterID) AND scenarioIndex != :scenarioID")
+    public abstract List<String> getLinkedInverters(Long inverterID, Long scenarioID);
+
+    @Query("SELECT scenarioName FROM scenarios WHERE scenarioIndex IN (" +
+            "SELECT scenarioID FROM scenario2panel WHERE panelID = :panelIndex) AND scenarioIndex != :scenarioID")
+    public abstract List<String> getLinkedPanels(long panelIndex, Long scenarioID);
 }

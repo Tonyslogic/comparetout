@@ -360,4 +360,15 @@ public class ToutcRepository {
     }
 
 
+    public List<String> getLinkedLoadProfiles(Long scenarioID) {
+        return  scenarioDAO.getLinkedLoadProfiles(scenarioID);
+    }
+
+    public List<String> getLinkedInverters(Long inverterID, Long scenarioID) {
+        return  scenarioDAO.getLinkedInverters(inverterID, scenarioID);
+    }
+
+    public List<String> getLinkedPanels(long panelIndex, Long scenarioID) {
+        return scenarioDAO.getLinkedPanels(panelIndex, scenarioID);
+    }
 }

@@ -27,14 +27,12 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     private final ToutcRepository toutcRepository;
     private final LiveData<Map<PricePlan, List<DayRate>>> allPricePlans;
-    private final LiveData<List<Scenario>> allScenarios;
-//    private String focusedPricePlanJson = "[]";
 
     public ComparisonUIViewModel(Application application) {
         super(application);
         toutcRepository = new ToutcRepository(application);
         allPricePlans = toutcRepository.getAllPricePlans();
-        allScenarios = toutcRepository.getAllScenarios();
+//        LiveData<List<Scenario>> allScenarios = toutcRepository.getAllScenarios();
     }
 
     public LiveData<Map<PricePlan, List<DayRate>>> getAllPricePlans() {
@@ -209,5 +207,17 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public void deleteCostingDataForPanelID(long panelIndex) {
         toutcRepository.deleteCostingDataForPanelID(panelIndex);
+    }
+
+    public List<String> getLinkedLoadProfiles(Long scenarioID) {
+        return toutcRepository.getLinkedLoadProfiles(scenarioID);
+    }
+
+    public List<String> getLinkedInverters(Long inverterID, Long scenarioID) {
+        return toutcRepository.getLinkedInverters(inverterID, scenarioID);
+    }
+
+    public List<String> getLinkedPanels(long panelIndex, Long scenarioID) {
+        return toutcRepository.getLinkedPanels(panelIndex, scenarioID);
     }
 }
