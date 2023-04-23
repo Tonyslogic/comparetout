@@ -250,4 +250,16 @@ public class ComparisonUIViewModel extends AndroidViewModel {
     public void linkBatteryFromScenario(long fromScenarioID, Long toScenarioID) {
         toutcRepository.linkBatteryFromScenario(fromScenarioID, toScenarioID);
     }
+
+    public boolean checkForMissingPanelData(Long scenarioID) {
+        return toutcRepository.checkForMissingPanelData(scenarioID);
+    }
+
+    public void deleteSimulationDataForScenarioID(Long scenarioID) {
+        toutcRepository.deleteSimulationDataForScenarioID(scenarioID);
+    }
+
+    public void deleteCostingDataForScenarioID(Long scenarioID) {
+        toutcRepository.deleteCostingDataForScenarioID(scenarioID);
+    }
 }

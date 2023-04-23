@@ -405,4 +405,12 @@ public class ToutcRepository {
         ToutcDB.databaseWriteExecutor.execute(() ->
         scenarioDAO.linkBatteryFromScenario(fromScenarioID, toScenarioID));
     }
+
+    public void deleteSimulationDataForScenarioID(Long scenarioID) {
+        scenarioDAO.deleteSimulationDataForScenarioID(scenarioID);
+    }
+
+    public void deleteCostingDataForScenarioID(Long scenarioID) {
+        scenarioDAO.deleteCostingDataForScenarioID(scenarioID);
+    }
 }

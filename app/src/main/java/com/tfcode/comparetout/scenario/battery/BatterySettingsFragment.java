@@ -201,34 +201,34 @@ public class BatterySettingsFragment extends Fragment {
             public void afterTextChanged(Editable s) {
                 if (!(s.toString().equals(String.valueOf(mBattery.getMaxDischarge())))) {
                     System.out.println("TODO: Update the max discharge");
-                    mBattery.setMaxDischarge(getIntegerOrZero(s));
+                    mBattery.setMaxDischarge(getDoubleOrZero(s));
                     ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
                     ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
                 }
             }
-        }, params, integerType));
+        }, params, doubleType));
         mTableLayout.addView(createRow("Max charge in 5 minutes (kWh)", String.valueOf(mBattery.getMaxCharge()), new AbstractTextWatcher() {
             @Override
             public void afterTextChanged(Editable s) {
                 if (!(s.toString().equals(String.valueOf(mBattery.getMaxCharge())))) {
                     System.out.println("TODO: Update the max charge");
-                    mBattery.setMaxCharge(getIntegerOrZero(s));
+                    mBattery.setMaxCharge(getDoubleOrZero(s));
                     ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
                     ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
                 }
             }
-        }, params, integerType));
+        }, params, doubleType));
         mTableLayout.addView(createRow("Storage Loss (%)", String.valueOf(mBattery.getStorageLoss()), new AbstractTextWatcher() {
             @Override
             public void afterTextChanged(Editable s) {
                 if (!(s.toString().equals(String.valueOf(mBattery.getStorageLoss())))) {
                     System.out.println("TODO: Update the storage loss");
-                    mBattery.setStorageLoss(getIntegerOrZero(s));
+                    mBattery.setStorageLoss(getDoubleOrZero(s));
                     ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
                     ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
                 }
             }
-        }, params, integerType));
+        }, params, doubleType));
         mTableLayout.addView(createRow("Charge rate @ 0-12% SOC (%)", String.valueOf(mBattery.getChargeModel().percent0), new AbstractTextWatcher() {
             @Override
             public void afterTextChanged(Editable s) {

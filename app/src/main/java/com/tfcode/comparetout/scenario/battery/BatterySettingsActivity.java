@@ -321,6 +321,8 @@ public class BatterySettingsActivity extends AppCompatActivity {
                 for (Battery battery: mBatteries) {
                     mViewModel.saveBatteryForScenario(mScenarioID, battery);
                 }
+                mViewModel.deleteSimulationDataForScenarioID(mScenarioID);
+                mViewModel.deleteCostingDataForScenarioID(mScenarioID);
                 mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
             }).start();
             setSaveNeeded(false);

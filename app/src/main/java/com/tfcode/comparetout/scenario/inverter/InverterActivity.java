@@ -314,6 +314,8 @@ public class InverterActivity extends AppCompatActivity {
                 for (Inverter inverter: mInverters) {
                     mViewModel.saveInverterForScenario(mScenarioID, inverter);
                 }
+                mViewModel.deleteSimulationDataForScenarioID(mScenarioID);
+                mViewModel.deleteCostingDataForScenarioID(mScenarioID);
                 mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
             }).start();
             setSaveNeeded(false);

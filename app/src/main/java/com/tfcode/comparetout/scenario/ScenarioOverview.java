@@ -76,13 +76,14 @@ public class ScenarioOverview extends Fragment {
     private TableLayout mHelpTable;
     private Long mScenarioID;
     private Scenario mScenario;
-    private List<Scenario> mScenarios;
     private List<String> mScenarioNames;
 
     private SimKPIs mSimKPIs;
     private Costings mBestCosting;
     private boolean mEdit = false;
     private boolean mSavingNewScenario = false;
+
+    private boolean mHasPanelData = false;
 
     public ScenarioOverview() {
         // Required empty public constructor
@@ -101,7 +102,6 @@ public class ScenarioOverview extends Fragment {
 
         mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
         mViewModel.getAllScenarios().observe(this, scenarios -> {
-            mScenarios = scenarios;
             mScenarioNames = new ArrayList<>();
             for (Scenario s : scenarios) mScenarioNames.add(s.getScenarioName());
             if (mScenarioID == 0) {
@@ -129,6 +129,7 @@ public class ScenarioOverview extends Fragment {
         new Thread(() -> {
             mSimKPIs = mViewModel.getSimKPIsForScenario(mScenarioID);
             mBestCosting = mViewModel.getBestCostingForScenario(mScenarioID);
+            mHasPanelData = mViewModel.checkForMissingPanelData(mScenarioID);
             mMainHandler.post(this::updateView);
         }).start();
     }
@@ -169,6 +170,7 @@ public class ScenarioOverview extends Fragment {
     public void onResume() {
         super.onResume();
         if (!(null == getActivity())) getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        updateKPIs();
     }
 
     private void setupMenu() {
@@ -263,14 +265,26 @@ public class ScenarioOverview extends Fragment {
             //registering popup with OnMenuItemClickListener
             popup.setOnMenuItemClickListener(item -> {
                 if (item.getItemId() == R.id.settings) {
-                    Intent intent = new Intent(getActivity(), BatterySettingsActivity.class);
-                    intent.putExtra("ScenarioID", mScenarioID);
-                    intent.putExtra("ScenarioName", mScenario.getScenarioName());
-                    intent.putExtra("Edit", mEdit);
-                    startActivity(intent);
+                    if (!mScenario.isHasInverters()) {
+                        Snackbar.make(requireActivity().getWindow().getDecorView().getRootView(),
+                                "Add at least one inverter before adding batteries",
+                                Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                    }
+                    else {
+                        Intent intent = new Intent(getActivity(), BatterySettingsActivity.class);
+                        intent.putExtra("ScenarioID", mScenarioID);
+                        intent.putExtra("ScenarioName", mScenario.getScenarioName());
+                        intent.putExtra("Edit", mEdit | !mScenario.isHasBatteries());
+                        startActivity(intent);
+                    }
                 }
                 else {
-                    if (!(null == getView())) Snackbar.make(getView(),
+                    if (!mScenario.isHasBatteries()) {
+                        Snackbar.make(requireActivity().getWindow().getDecorView().getRootView(),
+                                "Add at least one battery before load shifting",
+                                Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                    }
+                    else if (!(null == getView())) Snackbar.make(getView(),
                                     "You Clicked : " + item.getTitle(), Snackbar.LENGTH_LONG)
                             .setAction("Action", null).show();
                 }
@@ -528,9 +542,10 @@ public class ScenarioOverview extends Fragment {
     }
 
     private void updateButtons() {
-        if (mScenario.isHasPanels()) mPanelButton.setImageResource(R.drawable.solarpaneltick);
+        if (mScenario.isHasPanels() && mHasPanelData) mPanelButton.setImageResource(R.drawable.solarpaneltick);
         else mPanelButton.setImageResource(R.drawable.solarpanel);
         mPanelButton.setBackgroundColor(0);
+
         if (mScenario.isHasInverters()) mInverterButton.setImageResource(R.drawable.invertertick);
         else mInverterButton.setImageResource(R.drawable.inverter);
         mInverterButton.setBackgroundColor(0);

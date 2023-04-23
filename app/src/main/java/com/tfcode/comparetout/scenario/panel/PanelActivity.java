@@ -33,7 +33,6 @@ import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.SimulatorLauncher;
 import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.json.scenario.PanelJson;
-import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.Panel;
 import com.tfcode.comparetout.model.scenario.Scenario2Panel;
 import com.tfcode.comparetout.scenario.ScenarioSelectDialog;
@@ -322,6 +321,8 @@ public class PanelActivity extends AppCompatActivity {
                 for (Panel panel: mPanels) {
                     mViewModel.savePanelForScenario(mScenarioID, panel);
                 }
+                mViewModel.deleteSimulationDataForScenarioID(mScenarioID);
+                mViewModel.deleteCostingDataForScenarioID(mScenarioID);
                 mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
             }).start();
             setSaveNeeded(false);
