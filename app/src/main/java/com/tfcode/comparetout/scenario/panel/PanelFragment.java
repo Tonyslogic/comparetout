@@ -1,5 +1,6 @@
 package com.tfcode.comparetout.scenario.panel;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
@@ -21,8 +22,6 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
-import androidx.activity.result.ActivityResult;
-import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
@@ -51,7 +50,6 @@ import com.tfcode.comparetout.util.AbstractTextWatcher;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class PanelFragment extends Fragment {
@@ -154,10 +152,12 @@ public class PanelFragment extends Fragment {
         updateView();
     }
 
+    @SuppressLint("SourceLockedOrientationActivity")
     @Override
     public void onResume() {
         super.onResume();
-        getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        if (!(null == getActivity()))
+            getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 
     public void refreshFocus() {
@@ -190,7 +190,7 @@ public class PanelFragment extends Fragment {
                 mStartForResult.launch(intent);
             }
             else{
-                Snackbar.make(getView(),
+                if (!(null == getView())) Snackbar.make(getView(),
                     "New panel! Save and try again.", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
             }
@@ -340,7 +340,7 @@ public class PanelFragment extends Fragment {
         TableRow inverterRow = new TableRow(getActivity());
         TableRow mpptRow = new TableRow(getActivity());
         TextView inverterText = new TextView(getActivity());
-        inverterText.setText(R.string.CinnectedInverterName);
+        inverterText.setText(R.string.ConnectedInverterName);
         TextView mpptText = new TextView(getActivity());
         mpptText.setText(R.string.ConnectedInverterMPPT);
 

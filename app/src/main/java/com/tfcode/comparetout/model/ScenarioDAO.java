@@ -506,12 +506,12 @@ public abstract class ScenarioDAO {
         scenario.setScenarioIndex(0);
         for (Battery b : batteries) b.setBatteryIndex(0);
         for (EVCharge e : evCharges) e.setEvChargeIndex(0);
-        evDivert.setEvDivertIndex(0);
-        hwDivert.setHwDivertIndex(0);
+        if (!(null == evDivert)) evDivert.setEvDivertIndex(0);
+        if (!(null == hwDivert)) hwDivert.setHwDivertIndex(0);
         for (HWSchedule h : hwSchedules) h.setHwScheduleIndex(0);
-        hwSystem.setHwSystemIndex(0);
+        if (!(null == hwSystem)) hwSystem.setHwSystemIndex(0);
         for (Inverter i : inverters) i.setInverterIndex(0);
-        loadProfile.setLoadProfileIndex(0);
+        if (!(null == loadProfile)) loadProfile.setLoadProfileIndex(0);
         for (LoadShift l : loadShifts) l.setLoadShiftIndex(0);
         for (Panel p : panels) p.setPanelIndex(0);
 
@@ -640,6 +640,7 @@ public abstract class ScenarioDAO {
         }
     }
 
+    @Transaction
     public void copyInverterFromScenario(long fromScenarioID, Long toScenarioID) {
         List<Inverter> inverters = getInvertersForScenarioID(fromScenarioID);
         for (Inverter inverter: inverters) {
@@ -700,6 +701,7 @@ public abstract class ScenarioDAO {
             updateScenario(scenario);
         }
     }
+
     @Transaction
     public void savePanel(Long scenarioID, Panel panel) {
         long panelID = panel.getPanelIndex();
@@ -791,4 +793,77 @@ public abstract class ScenarioDAO {
     @Query("SELECT scenarioName FROM scenarios WHERE scenarioIndex IN (" +
             "SELECT scenarioID FROM scenario2panel WHERE panelID = :panelIndex) AND scenarioIndex != :scenarioID")
     public abstract List<String> getLinkedPanels(long panelIndex, Long scenarioID);
+
+    @Query("SELECT * FROM scenario2battery")
+    public abstract LiveData<List<Scenario2Battery>> loadBatteryRelations();
+
+    @Query("DELETE FROM scenario2battery WHERE scenarioID = :scenarioID AND batteryID = :batteryID")
+    public abstract void deleteBatteryFromScenario(Long batteryID, Long scenarioID);
+
+    @Transaction
+    public void saveBatteryForScenario(Long scenarioID, Battery battery) {
+        long batteryID = battery.getBatteryIndex();
+        if (batteryID == 0) {
+            batteryID = addNewBattery(battery);
+            Scenario2Battery s2b = new Scenario2Battery();
+            s2b.setScenarioID(scenarioID);
+            s2b.setBatteryID(batteryID);
+            addNewScenario2Battery(s2b);
+
+            Scenario scenario = getScenario(scenarioID);
+            scenario.setHasBatteries(true);
+            updateScenario(scenario);
+        }
+        else {
+            updateBattery(battery);
+        }
+    }
+
+    @Update (entity = Battery.class)
+    public abstract void updateBattery(Battery battery);
+
+    @Query("SELECT scenarioName FROM scenarios WHERE scenarioIndex IN (" +
+            "SELECT scenarioID FROM scenario2battery WHERE batteryID = :batteryIndex) AND scenarioIndex != :scenarioID")
+    public abstract List<String> getLinkedBatteries(long batteryIndex, Long scenarioID);
+
+    @Transaction
+    public void copyBatteryFromScenario(long fromScenarioID, Long toScenarioID) {
+        List<Battery> batteries = getBatteriesForScenarioID(fromScenarioID);
+        for (Battery battery: batteries) {
+            battery.setBatteryIndex(0L);
+            long newBatteryID = addNewBattery(battery);
+
+            System.out.println("copyBatteryFromScenario, new IID=" + newBatteryID);
+
+            Scenario2Battery s2b = new Scenario2Battery();
+            s2b.setScenarioID(toScenarioID);
+            s2b.setBatteryID(newBatteryID);
+            addNewScenario2Battery(s2b);
+
+            Scenario toScenario = getScenario(toScenarioID);
+            toScenario.setHasBatteries(true);
+            updateScenario(toScenario);
+        }
+
+        deleteOrphanBatteries();
+    }
+
+    @Transaction
+    public void linkBatteryFromScenario(long fromScenarioID, Long toScenarioID) {
+        List<Battery> batteries = getBatteriesForScenarioID(fromScenarioID);
+        for (Battery battery: batteries) {
+            System.out.println("Linking battery with id= " + battery.getBatteryIndex());
+
+            Scenario2Battery scenario2Battery = new Scenario2Battery();
+            scenario2Battery.setScenarioID(toScenarioID);
+            scenario2Battery.setBatteryID(battery.getBatteryIndex());
+            addNewScenario2Battery(scenario2Battery);
+
+            Scenario toScenario = getScenario(toScenarioID);
+            toScenario.setHasBatteries(true);
+            updateScenario(toScenario);
+        }
+
+        deleteOrphanBatteries();
+    }
 }

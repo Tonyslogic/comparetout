@@ -9,11 +9,13 @@ import com.tfcode.comparetout.model.costings.Costings;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.ToutcRepository;
+import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
 import com.tfcode.comparetout.model.scenario.Panel;
 import com.tfcode.comparetout.model.scenario.PanelPVSummary;
 import com.tfcode.comparetout.model.scenario.Scenario;
+import com.tfcode.comparetout.model.scenario.Scenario2Battery;
 import com.tfcode.comparetout.model.scenario.Scenario2Inverter;
 import com.tfcode.comparetout.model.scenario.Scenario2Panel;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
@@ -219,5 +221,33 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public List<String> getLinkedPanels(long panelIndex, Long scenarioID) {
         return toutcRepository.getLinkedPanels(panelIndex, scenarioID);
+    }
+
+    public LiveData<List<Scenario2Battery>> getAllBatteryRelations() {
+        return toutcRepository.getAllBatteryRelations();
+    }
+
+    public List<Battery> getBatteriesForScenario(Long scenarioID) {
+        return toutcRepository.getBatteriesForScenarioID(scenarioID);
+    }
+
+    public void deleteBatteryFromScenario(Long batteryID, Long scenarioID) {
+        toutcRepository.deleteBatteryFromScenario(batteryID, scenarioID);
+    }
+
+    public void saveBatteryForScenario(Long scenarioID, Battery battery) {
+        toutcRepository.saveBatteryForScenario(scenarioID, battery);
+    }
+
+    public List<String> getLinkedBatteries(long batteryIndex, Long scenarioID) {
+        return toutcRepository.getLinkedBatteries(batteryIndex, scenarioID);
+    }
+
+    public void copyBatteryFromScenario(long fromScenarioID, Long toScenarioID) {
+        toutcRepository.copyBatteryFromScenario(fromScenarioID, toScenarioID);
+    }
+
+    public void linkBatteryFromScenario(long fromScenarioID, Long toScenarioID) {
+        toutcRepository.linkBatteryFromScenario(fromScenarioID, toScenarioID);
     }
 }

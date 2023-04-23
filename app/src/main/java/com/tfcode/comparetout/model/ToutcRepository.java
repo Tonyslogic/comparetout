@@ -7,6 +7,7 @@ import androidx.lifecycle.LiveData;
 import com.tfcode.comparetout.model.costings.Costings;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
+import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
 import com.tfcode.comparetout.model.scenario.LoadProfileData;
@@ -14,6 +15,7 @@ import com.tfcode.comparetout.model.scenario.Panel;
 import com.tfcode.comparetout.model.scenario.PanelData;
 import com.tfcode.comparetout.model.scenario.PanelPVSummary;
 import com.tfcode.comparetout.model.scenario.Scenario;
+import com.tfcode.comparetout.model.scenario.Scenario2Battery;
 import com.tfcode.comparetout.model.scenario.Scenario2Inverter;
 import com.tfcode.comparetout.model.scenario.Scenario2Panel;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
@@ -33,6 +35,7 @@ public class ToutcRepository {
     private final LiveData<List<Scenario>> allScenarios;
     private final LiveData<List<Scenario2Inverter>> inverterRelations;
     private final LiveData<List<Scenario2Panel>> panelRelations;
+    private final LiveData<List<Scenario2Battery>> batteryRelations;
     private final LiveData<List<PanelPVSummary>> panelPVSummary;
 
     private final CostingDAO costingDAO;
@@ -51,6 +54,7 @@ public class ToutcRepository {
         allScenarios = scenarioDAO.loadScenarios();
         inverterRelations = scenarioDAO.loadInverterRelations();
         panelRelations = scenarioDAO.loadPanelRelations();
+        batteryRelations = scenarioDAO.loadBatteryRelations();
         panelPVSummary = scenarioDAO.getPanelPVSummary();
 
         costingDAO = db.costingDAO();
@@ -370,5 +374,35 @@ public class ToutcRepository {
 
     public List<String> getLinkedPanels(long panelIndex, Long scenarioID) {
         return scenarioDAO.getLinkedPanels(panelIndex, scenarioID);
+    }
+
+    public LiveData<List<Scenario2Battery>> getAllBatteryRelations() {
+        return batteryRelations;
+    }
+
+    public List<Battery> getBatteriesForScenarioID(Long scenarioID) {
+        return scenarioDAO.getBatteriesForScenarioID(scenarioID);
+    }
+
+    public void deleteBatteryFromScenario(Long batteryID, Long scenarioID) {
+        scenarioDAO.deleteBatteryFromScenario(batteryID, scenarioID);
+    }
+
+    public void saveBatteryForScenario(Long scenarioID, Battery battery) {
+        scenarioDAO.saveBatteryForScenario(scenarioID, battery);
+    }
+
+    public List<String> getLinkedBatteries(long batteryIndex, Long scenarioID) {
+        return scenarioDAO.getLinkedBatteries(batteryIndex, scenarioID);
+    }
+
+    public void copyBatteryFromScenario(long fromScenarioID, Long toScenarioID) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+        scenarioDAO.copyBatteryFromScenario(fromScenarioID, toScenarioID));
+    }
+
+    public void linkBatteryFromScenario(long fromScenarioID, Long toScenarioID) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+        scenarioDAO.linkBatteryFromScenario(fromScenarioID, toScenarioID));
     }
 }

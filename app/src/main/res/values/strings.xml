@@ -46,7 +46,8 @@
     <string name="BestSupplier">Best supplier</string>
     <string name="FetchUpdateData">Fetch / Update data</string>
     <string name="Optimized">Optimized</string>
-    <string name="CinnectedInverterName">Connected Inverter name</string>
+    <string name="ConnectedInverterName">Connected Inverter name</string>
     <string name="ConnectedInverterMPPT">Connected Inverter mppt</string>
     <string name="linkedItem">Linked item</string>
+    <string name="add_a_new_battery">Add a new battery</string>
 </resources>

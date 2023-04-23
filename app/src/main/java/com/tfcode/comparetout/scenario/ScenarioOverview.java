@@ -1,5 +1,6 @@
 package com.tfcode.comparetout.scenario;
 
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
@@ -45,6 +46,7 @@ import com.tfcode.comparetout.model.costings.Costings;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.model.scenario.SimKPIs;
+import com.tfcode.comparetout.scenario.battery.BatterySettingsActivity;
 import com.tfcode.comparetout.scenario.inverter.InverterActivity;
 import com.tfcode.comparetout.scenario.loadprofile.LoadProfileActivity;
 import com.tfcode.comparetout.scenario.panel.PanelActivity;
@@ -162,6 +164,7 @@ public class ScenarioOverview extends Fragment {
         updateView();
     }
 
+    @SuppressLint("SourceLockedOrientationActivity")
     @Override
     public void onResume() {
         super.onResume();
@@ -259,8 +262,18 @@ public class ScenarioOverview extends Fragment {
 
             //registering popup with OnMenuItemClickListener
             popup.setOnMenuItemClickListener(item -> {
-                Snackbar.make(getView(), "You Clicked : " + item.getTitle(), Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                if (item.getItemId() == R.id.settings) {
+                    Intent intent = new Intent(getActivity(), BatterySettingsActivity.class);
+                    intent.putExtra("ScenarioID", mScenarioID);
+                    intent.putExtra("ScenarioName", mScenario.getScenarioName());
+                    intent.putExtra("Edit", mEdit);
+                    startActivity(intent);
+                }
+                else {
+                    if (!(null == getView())) Snackbar.make(getView(),
+                                    "You Clicked : " + item.getTitle(), Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
+                }
                 return true;
             });
             try {
@@ -269,11 +282,14 @@ public class ScenarioOverview extends Fragment {
                     if ("mPopup".equals(field.getName())) {
                         field.setAccessible(true);
                         Object menuPopupHelper = field.get(popup);
-                        Class<?> classPopupHelper = Class.forName(menuPopupHelper
-                                .getClass().getName());
-                        Method setForceIcons = classPopupHelper.getMethod(
-                                "setForceShowIcon", boolean.class);
-                        setForceIcons.invoke(menuPopupHelper, true);
+                        Class<?> classPopupHelper;
+                        if (menuPopupHelper != null) {
+                            classPopupHelper = Class.forName(menuPopupHelper
+                                    .getClass().getName());
+                            Method setForceIcons = classPopupHelper.getMethod(
+                                    "setForceShowIcon", boolean.class);
+                            setForceIcons.invoke(menuPopupHelper, true);
+                        }
                         break;
                     }
                 }
@@ -293,7 +309,8 @@ public class ScenarioOverview extends Fragment {
 
             //registering popup with OnMenuItemClickListener
             popup.setOnMenuItemClickListener(item -> {
-                Snackbar.make(getView(), "You Clicked : " + item.getTitle(), Snackbar.LENGTH_LONG)
+                if (!(null == getView())) Snackbar.make(getView(),
+                                "You Clicked : " + item.getTitle(), Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
                 return true;
             });
@@ -303,11 +320,14 @@ public class ScenarioOverview extends Fragment {
                     if ("mPopup".equals(field.getName())) {
                         field.setAccessible(true);
                         Object menuPopupHelper = field.get(popup);
-                        Class<?> classPopupHelper = Class.forName(menuPopupHelper
-                                .getClass().getName());
-                        Method setForceIcons = classPopupHelper.getMethod(
-                                "setForceShowIcon", boolean.class);
-                        setForceIcons.invoke(menuPopupHelper, true);
+                        Class<?> classPopupHelper;
+                        if (menuPopupHelper != null) {
+                            classPopupHelper = Class.forName(menuPopupHelper
+                                    .getClass().getName());
+                            Method setForceIcons = classPopupHelper.getMethod(
+                                    "setForceShowIcon", boolean.class);
+                            setForceIcons.invoke(menuPopupHelper, true);
+                        }
                         break;
                     }
                 }
@@ -329,7 +349,7 @@ public class ScenarioOverview extends Fragment {
 
             //registering popup with OnMenuItemClickListener
             popup.setOnMenuItemClickListener(item -> {
-                Snackbar.make(getView(), "You Clicked : " + item.getTitle(), Snackbar.LENGTH_LONG)
+                if (!(null == getView())) Snackbar.make(getView(), "You Clicked : " + item.getTitle(), Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
                 return true;
             });
@@ -339,11 +359,14 @@ public class ScenarioOverview extends Fragment {
                     if ("mPopup".equals(field.getName())) {
                         field.setAccessible(true);
                         Object menuPopupHelper = field.get(popup);
-                        Class<?> classPopupHelper = Class.forName(menuPopupHelper
-                                .getClass().getName());
-                        Method setForceIcons = classPopupHelper.getMethod(
-                                "setForceShowIcon", boolean.class);
-                        setForceIcons.invoke(menuPopupHelper, true);
+                        Class<?> classPopupHelper;
+                        if (menuPopupHelper != null) {
+                            classPopupHelper = Class.forName(menuPopupHelper
+                                    .getClass().getName());
+                            Method setForceIcons = classPopupHelper.getMethod(
+                                    "setForceShowIcon", boolean.class);
+                            setForceIcons.invoke(menuPopupHelper, true);
+                        }
                         break;
                     }
                 }
@@ -408,7 +431,7 @@ public class ScenarioOverview extends Fragment {
                         mScenario.setScenarioName(s.toString());
                         System.out.println("Scenario name changed to : " + mScenario.getScenarioName());
                         if (mScenarioNames.contains(s.toString())) {
-                            Snackbar.make(getView(),
+                            if (!(null == getView())) Snackbar.make(getView(),
                                             s + " already exists. Change before saving", Snackbar.LENGTH_LONG)
                                     .setAction("Action", null).show();
                         }
@@ -496,7 +519,8 @@ public class ScenarioOverview extends Fragment {
         pieChart.setDrawEntryLabels(false);
         Legend legend = pieChart.getLegend();
 //        int color = Color.getColor("?android:textColorPrimary");
-        int color = ContextCompat.getColor(getContext(), R.color.colorPrimaryDark);
+        int color = 0;
+        if (!(null == getContext())) color = ContextCompat.getColor(getContext(), R.color.colorPrimaryDark);
         legend.setTextColor(color);
         pieChart.invalidate();
         pieChart.setMinimumHeight(500);

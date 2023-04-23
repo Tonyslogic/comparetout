@@ -551,7 +551,7 @@ public class JsonTools {
         return pjs;
     }
 
-    private static ArrayList<BatteryJson> createBatteryListJson(List<Battery> batteries) {
+    public static ArrayList<BatteryJson> createBatteryListJson(List<Battery> batteries) {
         ArrayList<BatteryJson> bjs = new ArrayList<>();
         if (!(null == batteries)) {
             for (Battery b : batteries) {
