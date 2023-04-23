@@ -57,6 +57,7 @@ public class PanelActivity extends AppCompatActivity {
     private boolean mEdit = false;
     private ComparisonUIViewModel mViewModel;
     private TabLayoutMediator mMediator;
+    private boolean mRetryMediatior = false;
     private Menu mMenu;
     private FloatingActionButton mFab;
     private boolean mDoubleBackToExitPressedOnce = false;
@@ -96,6 +97,10 @@ public class PanelActivity extends AppCompatActivity {
     }
 
     public void setupLinkedFAB(int panelIndex) {
+        if (mPanels.isEmpty()) {
+            hideLinkedFAB();
+            return;
+        }
         Panel toCheck = mPanels.get(panelIndex);
         new Thread(() -> {
             mLinkedScenarios = mViewModel.getLinkedPanels(toCheck.getPanelIndex(), mScenarioID);
@@ -146,8 +151,11 @@ public class PanelActivity extends AppCompatActivity {
                         int iCountNew = mPanels.size();
                         mMainHandler.post(() -> {if (!(null == mMediator)) refreshMediator();});
                         while (iCountOld < iCountNew) {
-                            mMainHandler.post(() ->
-                                    ((PanelViewPageAdapter) mViewPager.getAdapter()).add(mViewPager.getAdapter().getItemCount()));
+                            mMainHandler.post(() -> {
+                                if (!(null == mViewPager.getAdapter())) {
+                                    ((PanelViewPageAdapter) mViewPager.getAdapter()).add(mViewPager.getAdapter().getItemCount());
+                                }
+                            });
                             iCountOld++;
                         }
                     }).start();
@@ -190,7 +198,9 @@ public class PanelActivity extends AppCompatActivity {
     private void addPanel(Panel panel) {
         mPanels.add(panel);
         refreshMediator();
-        ((PanelViewPageAdapter) mViewPager.getAdapter()).add(mViewPager.getAdapter().getItemCount());
+        if (!(null == mViewPager.getAdapter())) {
+            ((PanelViewPageAdapter) mViewPager.getAdapter()).add(mViewPager.getAdapter().getItemCount());
+        }
         setSaveNeeded(true);
     }
 
@@ -200,7 +210,9 @@ public class PanelActivity extends AppCompatActivity {
         if (null == mRemovedPanels) mRemovedPanels = new ArrayList<>();
         mRemovedPanels.add(removed.getPanelIndex());
 
-        ((PanelViewPageAdapter) mViewPager.getAdapter()).delete(pos);
+        if (!(null == mViewPager.getAdapter())) {
+            ((PanelViewPageAdapter) mViewPager.getAdapter()).delete(pos);
+        }
 
         refreshMediator();
         setSaveNeeded(true);
@@ -213,12 +225,20 @@ public class PanelActivity extends AppCompatActivity {
         mPanelsJsonString =  gson.toJson(panelJsons, type);
         TabLayout tabLayout = findViewById(R.id.panel_tab_layout);
         mMediator.detach();
-        ArrayList<String> tabTitlesList = new ArrayList<>();
-        for (PanelJson pj: panelJsons) tabTitlesList.add("Panels");
-        String[] tabTitles = tabTitlesList.toArray(new String[tabTitlesList.size()]);
-        mMediator = new TabLayoutMediator(tabLayout, mViewPager,
-                (tab, position) -> tab.setText(tabTitles[position])
-        );
+        try {
+            mMediator = new TabLayoutMediator(tabLayout, mViewPager,
+                    (tab, position) -> tab.setText("Panels")
+            );
+            mRetryMediatior = false;
+        }
+        catch (ArrayIndexOutOfBoundsException aie) {
+            aie.printStackTrace();
+            if (!mRetryMediatior) {
+                mRetryMediatior = true;
+                new Handler(Looper.getMainLooper()).postDelayed(this::refreshMediator,2000);
+            }
+            else return;
+        }
         mMediator.attach();
     }
 
@@ -367,7 +387,9 @@ public class PanelActivity extends AppCompatActivity {
         MenuItem delItem = mMenu.findItem(R.id.lp_delete);
         delItem.setVisible(true);
         mEdit = true;
-        ((PanelViewPageAdapter)mViewPager.getAdapter()).setEdit(mEdit);
+        if (!(null == mViewPager.getAdapter())) {
+            ((PanelViewPageAdapter)mViewPager.getAdapter()).setEdit(mEdit);
+        }
     }
 
     private void setupViewPager() {
@@ -379,13 +401,9 @@ public class PanelActivity extends AppCompatActivity {
         mViewPager.setOffscreenPageLimit(4);
         System.out.println("setupViewPager " + count + " fragments");
 
-        ArrayList<String> tabTitlesList = new ArrayList<>();
-        if (panelJsons.size() == 0) tabTitlesList.add("Panel");
-        else for (PanelJson pj: panelJsons) tabTitlesList.add("Panel");
-        String[] tabTitles = tabTitlesList.toArray(new String[tabTitlesList.size()]);
         TabLayout tabLayout = findViewById(R.id.panel_tab_layout);
         mMediator = new TabLayoutMediator(tabLayout, mViewPager,
-                (tab, position) -> tab.setText(tabTitles[position])
+                (tab, position) -> tab.setText("Panels")
         );
         mMediator.attach();
     }
@@ -436,7 +454,9 @@ public class PanelActivity extends AppCompatActivity {
             MenuItem editItem = mMenu.findItem(R.id.lp_edit);
             editItem.setVisible(true);
             mEdit = false;
-            ((PanelViewPageAdapter) mViewPager.getAdapter()).setEdit(mEdit);
+            if (!(null == mViewPager.getAdapter())) {
+                ((PanelViewPageAdapter) mViewPager.getAdapter()).setEdit(mEdit);
+            }
         }
     }
 

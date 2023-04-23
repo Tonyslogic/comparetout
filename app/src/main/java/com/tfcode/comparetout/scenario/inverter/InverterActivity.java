@@ -95,10 +95,13 @@ public class InverterActivity extends AppCompatActivity {
     }
 
     public void setupLinkedFAB(int inverterIndex) {
+        if (mInverters.isEmpty()) {
+            hideLinkedFAB();
+            return;
+        }
         Inverter toCheck = mInverters.get(inverterIndex);
         new Thread(() -> {
             mLinkedScenarios = mViewModel.getLinkedInverters(toCheck.getInverterIndex(), mScenarioID);
-            System.out.println("setupFAB " + mLinkedScenarios);
             new Handler(Looper.getMainLooper()).post(() -> {
                 if (mLinkedScenarios.isEmpty()) hideLinkedFAB();
                 else showLinkedFAB();
@@ -145,8 +148,11 @@ public class InverterActivity extends AppCompatActivity {
                         int iCountNew = mInverters.size();
                         mMainHandler.post(() -> {if (!(null == mMediator)) refreshMediator();});
                         while (iCountOld < iCountNew) {
-                            mMainHandler.post(() ->
-                                    ((InverterViewPageAdapter) mViewPager.getAdapter()).add(mViewPager.getAdapter().getItemCount()));
+                            mMainHandler.post(() -> {
+                                if (!(null == mViewPager.getAdapter())) {
+                                    ((InverterViewPageAdapter) mViewPager.getAdapter()).add(mViewPager.getAdapter().getItemCount());
+                                }
+                            });
                             iCountOld++;
                         }
                     }).start();
@@ -190,7 +196,9 @@ public class InverterActivity extends AppCompatActivity {
         mInverters.add(inverter);
 
         refreshMediator();
-        ((InverterViewPageAdapter) mViewPager.getAdapter()).add(mViewPager.getAdapter().getItemCount());
+        if (!(null == mViewPager.getAdapter())) {
+            ((InverterViewPageAdapter) mViewPager.getAdapter()).add(mViewPager.getAdapter().getItemCount());
+        }
         setSaveNeeded(true);
     }
 
@@ -200,7 +208,9 @@ public class InverterActivity extends AppCompatActivity {
         if (null == mRemovedInverters) mRemovedInverters = new ArrayList<>();
         mRemovedInverters.add(removed.getInverterIndex());
 
-        ((InverterViewPageAdapter) mViewPager.getAdapter()).delete(pos);
+        if (!(null == mViewPager.getAdapter())) {
+            ((InverterViewPageAdapter) mViewPager.getAdapter()).delete(pos);
+        }
 
         refreshMediator();
         setSaveNeeded(true);
@@ -215,9 +225,8 @@ public class InverterActivity extends AppCompatActivity {
         mMediator.detach();
         ArrayList<String> tabTitlesList = new ArrayList<>();
         for (InverterJson ij: inverterJsons) tabTitlesList.add(ij.name);
-        String[] tabTitles = tabTitlesList.toArray(new String[tabTitlesList.size()]);
         mMediator = new TabLayoutMediator(tabLayout, mViewPager,
-                (tab, position) -> tab.setText(tabTitles[position])
+                (tab, position) -> tab.setText(tabTitlesList.get(position))
         );
         mMediator.attach();
     }
@@ -361,7 +370,9 @@ public class InverterActivity extends AppCompatActivity {
         MenuItem delItem = mMenu.findItem(R.id.lp_delete);
         delItem.setVisible(true);
         mEdit = true;
-        ((InverterViewPageAdapter)mViewPager.getAdapter()).setEdit(mEdit);
+        if (!(null == mViewPager.getAdapter())) {
+            ((InverterViewPageAdapter)mViewPager.getAdapter()).setEdit(mEdit);
+        }
     }
 
     private void setupViewPager() {
@@ -376,10 +387,9 @@ public class InverterActivity extends AppCompatActivity {
         ArrayList<String> tabTitlesList = new ArrayList<>();
         if (inverterJsons.size() == 0) tabTitlesList.add("Inverter");
         else for (InverterJson ij: inverterJsons) tabTitlesList.add(ij.name);
-        String[] tabTitles = tabTitlesList.toArray(new String[tabTitlesList.size()]);
         TabLayout tabLayout = findViewById(R.id.inverter_tab_layout);
         mMediator = new TabLayoutMediator(tabLayout, mViewPager,
-                (tab, position) -> tab.setText(tabTitles[position])
+                (tab, position) -> tab.setText(tabTitlesList.get(position))
         );
         mMediator.attach();
     }
@@ -429,7 +439,9 @@ public class InverterActivity extends AppCompatActivity {
             MenuItem editItem = mMenu.findItem(R.id.lp_edit);
             editItem.setVisible(true);
             mEdit = false;
-            ((InverterViewPageAdapter) mViewPager.getAdapter()).setEdit(mEdit);
+            if (!(null == mViewPager.getAdapter())) {
+                ((InverterViewPageAdapter) mViewPager.getAdapter()).setEdit(mEdit);
+            }
         }
     }
 
