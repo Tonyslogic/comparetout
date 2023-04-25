@@ -147,8 +147,8 @@ public class PanelFragment extends Fragment {
         mTableLayout.setShrinkAllColumns(true);
         mTableLayout.setStretchAllColumns(true);
 
-        mBarChart = requireView().findViewById((R.id.pv_data_chart));
-        mPanelNoData  = requireView().findViewById((R.id.panelNoData));
+        mBarChart = requireView().findViewById((R.id.scenario_detail_chart));
+        mPanelNoData  = requireView().findViewById((R.id.scenario_detail_filter_layout));
         updateView();
     }
 

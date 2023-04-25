@@ -110,11 +110,10 @@ public class ScenarioActivity extends AppCompatActivity {
         viewPager.setAdapter(new ScenarioViewPageAdapter(this, 2));
         ArrayList<String> tabTitlesList = new ArrayList<>();
         tabTitlesList.add("Scenario overview");
-        tabTitlesList.add("Scenario details");
-        String[] tabTitles = tabTitlesList.toArray(new String[tabTitlesList.size()]);
+        tabTitlesList.add("Daily details");
         TabLayout tabLayout = findViewById(R.id.scenario_tab_layout);
         TabLayoutMediator mMediator = new TabLayoutMediator(tabLayout, viewPager,
-                (tab, position) -> tab.setText(tabTitles[position])
+                (tab, position) -> tab.setText(tabTitlesList.get(position))
         );
         mMediator.attach();
     }

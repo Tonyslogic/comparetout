@@ -18,7 +18,9 @@ import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.Scenario2Battery;
 import com.tfcode.comparetout.model.scenario.Scenario2Inverter;
 import com.tfcode.comparetout.model.scenario.Scenario2Panel;
+import com.tfcode.comparetout.model.scenario.ScenarioBarChartData;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
+import com.tfcode.comparetout.model.scenario.ScenarioLineGraphData;
 import com.tfcode.comparetout.model.scenario.SimKPIs;
 
 import java.util.ArrayList;
@@ -261,5 +263,13 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public void deleteCostingDataForScenarioID(Long scenarioID) {
         toutcRepository.deleteCostingDataForScenarioID(scenarioID);
+    }
+
+    public List<ScenarioBarChartData> getBarData(Long scenarioID, int dayOfYear) {
+        return toutcRepository.getBarData(scenarioID, dayOfYear);
+    }
+
+    public List<ScenarioLineGraphData> getLineData(Long scenarioID, int dayOfYear) {
+        return toutcRepository.getLineData(scenarioID, dayOfYear);
     }
 }

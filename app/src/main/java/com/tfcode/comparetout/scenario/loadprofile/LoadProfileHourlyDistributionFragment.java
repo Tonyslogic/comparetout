@@ -1,6 +1,7 @@
 package com.tfcode.comparetout.scenario.loadprofile;
 
 import android.content.pm.ActivityInfo;
+import android.graphics.Color;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -134,11 +135,11 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
             });
             List<Double> hourlyDist = mLoadProfile.getHourlyDist().dist;
 
-            mBarChart.getAxisLeft().setTextColor(com.google.android.material.R.attr.colorPrimary); // left y-axis
-            mBarChart.getAxisRight().setTextColor(com.google.android.material.R.attr.colorPrimary); // right y-axis
-            mBarChart.getXAxis().setTextColor(com.google.android.material.R.attr.colorPrimary);
-            mBarChart.getLegend().setTextColor(com.google.android.material.R.attr.colorPrimary);
-            mBarChart.getDescription().setTextColor(com.google.android.material.R.attr.colorPrimary);
+            mBarChart.getAxisLeft().setTextColor(Color.DKGRAY); // left y-axis
+            mBarChart.getAxisRight().setTextColor(Color.DKGRAY); // right y-axis
+            mBarChart.getXAxis().setTextColor(Color.DKGRAY);
+            mBarChart.getLegend().setTextColor(Color.DKGRAY);
+            mBarChart.getDescription().setTextColor(Color.DKGRAY);
 
             ArrayList<BarEntry> entries = new ArrayList<>();
             for (int i = 23; i > -1; i--) entries.add(new BarEntry(i, hourlyDist.get(i).floatValue()));

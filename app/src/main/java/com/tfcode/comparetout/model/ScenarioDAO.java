@@ -33,7 +33,9 @@ import com.tfcode.comparetout.model.scenario.Scenario2Inverter;
 import com.tfcode.comparetout.model.scenario.Scenario2LoadProfile;
 import com.tfcode.comparetout.model.scenario.Scenario2LoadShift;
 import com.tfcode.comparetout.model.scenario.Scenario2Panel;
+import com.tfcode.comparetout.model.scenario.ScenarioBarChartData;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
+import com.tfcode.comparetout.model.scenario.ScenarioLineGraphData;
 import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
 import com.tfcode.comparetout.model.scenario.SimKPIs;
 import com.tfcode.comparetout.model.scenario.SimulationInputData;
@@ -358,10 +360,11 @@ public abstract class ScenarioDAO {
     public abstract Scenario getScenarioForID(long scenarioID);
 
     @Query("SELECT A.date, A.minute, A.load, A.mod, A.dow, A.do2001, 0 AS TPV FROM " +
-            "(SELECT * FROM loadprofiledata WHERE loadProfileID = (SELECT loadProfileID FROM scenario2loadprofile WHERE scenarioID = :scenarioID)) AS A")
+            "(SELECT * FROM loadprofiledata WHERE loadProfileID = " +
+            "(SELECT loadProfileID FROM scenario2loadprofile WHERE scenarioID = :scenarioID)) AS A ORDER BY A.date, A.mod")
     public abstract List<SimulationInputData> getSimulationInputNoSolar(long scenarioID);
 
-    @Query("SELECT pv FROM paneldata WHERE panelID = :panelID")
+    @Query("SELECT pv FROM paneldata WHERE panelID = :panelID ORDER BY date, mod")
     public abstract List<Double> getSimulationInputForPanel(long panelID);
 
     @Insert(entity = ScenarioSimulationData.class)
@@ -445,6 +448,9 @@ public abstract class ScenarioDAO {
 
     @Query("DELETE FROM panels WHERE panelIndex NOT IN (SELECT panelID FROM scenario2panel)")
     public abstract void deleteOrphanPanels();
+
+    @Query("DELETE FROM paneldata WHERE panelID NOT IN (SELECT DISTINCT panelIndex FROM panels)")
+    public abstract void deleteOrphanPanelData();
 
     @Query("DELETE FROM loadprofiledata WHERE loadProfileID NOT IN (SELECT loadProfileID FROM scenario2loadprofile)")
     public abstract void deleteOrphanLoadProfileData();
@@ -694,6 +700,7 @@ public abstract class ScenarioDAO {
     public void deletePanelFromScenario(Long panelID, Long scenarioID) {
         removeScenario2Panel(panelID, scenarioID);
         deleteOrphanPanels();
+        deleteOrphanPanelData();
         List<Panel> panels = getPanelsForScenarioID(scenarioID);
         if (panels.size() == 0) {
             Scenario scenario = getScenario(scenarioID);
@@ -866,4 +873,14 @@ public abstract class ScenarioDAO {
 
         deleteOrphanBatteries();
     }
+
+    @Query("SELECT minuteOfDay / 60 AS Hour, sum(load) AS Load, sum(feed) AS Feed, sum(Buy) AS Buy, " +
+            "sum(pv) AS PV, sum(pvToCharge) AS PV2Battery, sum(pvToLoad) AS PV2Load, sum(batToLoad) AS Battery2Load, " +
+            "sum(directEVcharge) AS EVSchedule, sum(immersionLoad) AS HWSchedule, sum(kWHDivToEV) AS EVDivert, sum(kWHDivToWater) AS HWDivert " +
+            "FROM scenariosimulationdata WHERE dayOf2001 = :dayOfYear AND scenarioID = :scenarioID " +
+            "GROUP BY Hour ORDER BY Hour")
+    public abstract List<ScenarioBarChartData> getBarData(Long scenarioID, int dayOfYear);
+
+    @Query("SELECT minuteOfDay, SOC, waterTemp FROM scenariosimulationdata WHERE dayOf2001 = :dayOfYear AND scenarioID = :scenarioID  ORDER BY minuteOfDay")
+    public abstract List<ScenarioLineGraphData> getLineData(Long scenarioID, int dayOfYear);
 }

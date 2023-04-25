@@ -392,7 +392,7 @@ public class ScenarioOverview extends Fragment {
     }
 
     private void updateView() {
-        if (!(null == mTableLayout) && !(null == mScenario)) {
+        if (!(null == mTableLayout) && !(null == mScenario) && !(null == getActivity())) {
             mTableLayout.removeAllViews();
             updateButtons();
             // CREATE PARAM FOR MARGINING

@@ -12,7 +12,7 @@ public class LoadProfileViewPageAdapter extends FragmentStateAdapter {
     LoadProfileMonthlyDistributionFragment loadProfileMonthlyDistributionFragment = LoadProfileMonthlyDistributionFragment.newInstance();
 
 //    ScenarioOverview mScenarioOverview = ScenarioOverview.newInstance();
-//    SenarioDetails mScenarioDetails = SenarioDetails.newInstance();
+//    ScenarioDetails mScenarioDetails = ScenarioDetails.newInstance();
 
     public LoadProfileViewPageAdapter(LoadProfileActivity loadProfileActivity, int i) {
         super(loadProfileActivity);

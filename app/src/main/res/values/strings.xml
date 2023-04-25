@@ -50,4 +50,5 @@
     <string name="ConnectedInverterMPPT">Connected Inverter mppt</string>
     <string name="linkedItem">Linked item</string>
     <string name="add_a_new_battery">Add a new battery</string>
+    <string name="NoChartData">Charts will appear here once the simulation is complete.</string>
 </resources>

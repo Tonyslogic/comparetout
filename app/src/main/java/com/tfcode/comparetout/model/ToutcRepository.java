@@ -18,7 +18,9 @@ import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.Scenario2Battery;
 import com.tfcode.comparetout.model.scenario.Scenario2Inverter;
 import com.tfcode.comparetout.model.scenario.Scenario2Panel;
+import com.tfcode.comparetout.model.scenario.ScenarioBarChartData;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
+import com.tfcode.comparetout.model.scenario.ScenarioLineGraphData;
 import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
 import com.tfcode.comparetout.model.scenario.SimKPIs;
 import com.tfcode.comparetout.model.scenario.SimulationInputData;
@@ -412,5 +414,13 @@ public class ToutcRepository {
 
     public void deleteCostingDataForScenarioID(Long scenarioID) {
         scenarioDAO.deleteCostingDataForScenarioID(scenarioID);
+    }
+
+    public List<ScenarioBarChartData> getBarData(Long scenarioID, int dayOfYear) {
+        return scenarioDAO.getBarData(scenarioID, dayOfYear);
+    }
+
+    public List<ScenarioLineGraphData> getLineData(Long scenarioID, int dayOfYear) {
+        return scenarioDAO.getLineData(scenarioID, dayOfYear);
     }
 }
