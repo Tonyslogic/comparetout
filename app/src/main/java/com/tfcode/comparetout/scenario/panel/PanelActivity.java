@@ -103,7 +103,7 @@ public class PanelActivity extends AppCompatActivity {
         Panel toCheck = mPanels.get(panelIndex);
         new Thread(() -> {
             mLinkedScenarios = mViewModel.getLinkedPanels(toCheck.getPanelIndex(), mScenarioID);
-            System.out.println("setupFAB " + mLinkedScenarios);
+//            System.out.println("setupFAB " + mLinkedScenarios);
             new Handler(Looper.getMainLooper()).post(() -> {
                 if (mLinkedScenarios.isEmpty()) hideLinkedFAB();
                 else showLinkedFAB();

@@ -56,7 +56,7 @@ public class LoadProfileActivity extends AppCompatActivity {
     private void setupLinkedFAB() {
         new Thread(() -> {
             mLinkedScenarios = mViewModel.getLinkedLoadProfiles(scenarioID);
-            System.out.println("setupFAB " + mLinkedScenarios);
+//            System.out.println("setupFAB " + mLinkedScenarios);
             new Handler(Looper.getMainLooper()).post(() -> {
                 if (mLinkedScenarios.isEmpty()) hideLinkedFAB();
             });
@@ -146,7 +146,8 @@ public class LoadProfileActivity extends AppCompatActivity {
             MenuItem editItem = mMenu.findItem(R.id.lp_edit);
             editItem.setVisible(false);
             mEdit = true;
-            ((LoadProfileViewPageAdapter)mViewPager.getAdapter()).setEdit(mEdit);
+            if (!(null == mViewPager.getAdapter()))
+                ((LoadProfileViewPageAdapter)mViewPager.getAdapter()).setEdit(mEdit);
             return false;
         }
         if (item.getItemId() == R.id.lp_share) {//add the function to perform here
@@ -213,10 +214,9 @@ public class LoadProfileActivity extends AppCompatActivity {
         tabTitlesList.add("Daily");
         tabTitlesList.add("Monthly");
         tabTitlesList.add("Hourly");
-        String[] tabTitles = tabTitlesList.toArray(new String[tabTitlesList.size()]);
         TabLayout tabLayout = findViewById(R.id.loadProfile_tab_layout);
         TabLayoutMediator mMediator = new TabLayoutMediator(tabLayout, mViewPager,
-                (tab, position) -> tab.setText(tabTitles[position])
+                (tab, position) -> tab.setText(tabTitlesList.get(position))
         );
         mMediator.attach();
     }
@@ -264,7 +264,8 @@ public class LoadProfileActivity extends AppCompatActivity {
             MenuItem editItem = mMenu.findItem(R.id.lp_edit);
             editItem.setVisible(true);
             mEdit = false;
-            ((LoadProfileViewPageAdapter) mViewPager.getAdapter()).setEdit(mEdit);
+            if (!(null == mViewPager.getAdapter()))
+                ((LoadProfileViewPageAdapter) mViewPager.getAdapter()).setEdit(mEdit);
         }
     }
 
@@ -277,6 +278,7 @@ public class LoadProfileActivity extends AppCompatActivity {
     }
 
     public void propagateDistribution() {
-        ((LoadProfileViewPageAdapter) mViewPager.getAdapter()).updateDistributionFromLeader();
+        if (!(null == mViewPager.getAdapter()))
+            ((LoadProfileViewPageAdapter) mViewPager.getAdapter()).updateDistributionFromLeader();
     }
 }

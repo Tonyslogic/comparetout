@@ -2,20 +2,22 @@ package com.tfcode.comparetout.scenario;
 
 import android.annotation.SuppressLint;
 import android.app.DatePickerDialog;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.DashPathEffect;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
-import android.widget.TableLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.PopupMenu;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -47,6 +49,9 @@ public class ScenarioDetails extends Fragment {
     private ComparisonUIViewModel mViewModel;
     private Handler mMainHandler;
 
+    private PopupMenu mPopup;
+    private ImageButton mFilterButton;
+
     private BarChart mBarChart;
     private LineChart mLineChart;
     private TextView mTextView;
@@ -55,6 +60,23 @@ public class ScenarioDetails extends Fragment {
 
     private List<ScenarioLineGraphData> mLineData;
     private List<ScenarioBarChartData> mBarData;
+
+    private boolean mShowLoad = true;
+    private boolean mShowFeed = true;
+    private boolean mShowBuy;
+    private boolean mShowPV = true;
+    private boolean mShowPV2Bat;
+    private boolean mShowPV2Load;
+    private boolean mShowBat2Load;
+    private boolean mShowEVSchedule;
+    private boolean mShowHWSchedule;
+    private boolean mShowEVDivert;
+    private boolean mShowHWDivert;
+    private boolean mShowSOC = true;
+    private boolean mShowHWTemperature;
+
+    private int mBarFilterCount = 3;
+    private int mLineFilterCount = 2;
 
     public ScenarioDetails() {
         // Required empty public constructor
@@ -96,7 +118,8 @@ public class ScenarioDetails extends Fragment {
         return inflater.inflate(R.layout.fragment_senario_details, container, false);
     }
 
-    @SuppressLint("DefaultLocale")
+    @SuppressWarnings("deprecation")
+    @SuppressLint({"DefaultLocale", "DiscouragedApi"})
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
@@ -123,18 +146,120 @@ public class ScenarioDetails extends Fragment {
         });
         mCurrentDateTV = view.findViewById((R.id.date));
         ImageButton mDatePickerButton = view.findViewById((R.id.pick_date));
-        @SuppressLint("DefaultLocale") DatePickerDialog.OnDateSetListener date = (view1, year, month, day) -> {
+        DatePickerDialog.OnDateSetListener date = (view1, year, month, day) -> {
             LocalDate localDate = LocalDate.of(2001, month +1, day);
             mDayOfYear = localDate.getDayOfYear();
             mCurrentDateTV.setText(String.format("%s/%s", String.format("%02d", localDate.getDayOfMonth()), String.format("%02d", localDate.getMonthValue())));
             updateKPIs();
         };
+//        mDatePickerButton.setOnClickListener(v -> {
+//            LocalDate localDate = LocalDate.ofYearDay(2001, mDayOfYear);
+//            new DatePickerDialog(getActivity(), date, 2001 ,localDate.getMonth().getValue() - 1, localDate.getDayOfMonth()).show();
+//        });
         mDatePickerButton.setOnClickListener(v -> {
             LocalDate localDate = LocalDate.ofYearDay(2001, mDayOfYear);
-            new DatePickerDialog(getActivity(), date, 2001 ,localDate.getMonth().getValue() - 1, localDate.getDayOfMonth()).show();
+            int pickerTheme = 0;
+            switch (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) {
+                case Configuration.UI_MODE_NIGHT_YES:
+                    pickerTheme = android.R.style.Theme_Holo_Dialog;
+                    break;
+                case Configuration.UI_MODE_NIGHT_NO:
+                    pickerTheme = android.R.style.Theme_Holo_Light_Dialog;
+                    break;
+            }
+            DatePickerDialog dpd = new DatePickerDialog(getActivity(), pickerTheme, date, 2001 ,localDate.getMonth().getValue() - 1, localDate.getDayOfMonth());
+            View yearView = dpd.getDatePicker().findViewById(getResources().getIdentifier("year", "id", "android"));
+            if (!(null == yearView)) yearView.setVisibility(View.GONE);
+            dpd.show();
         });
 
-        ImageButton mFilterButton = view.findViewById((R.id.filter));
+        mFilterButton = view.findViewById((R.id.filter));
+
+        setupPopupFilterMenu();
+    }
+
+    private void setupPopupFilterMenu() {
+        if (null == mPopup) {
+            //Creating the instance of PopupMenu
+            mPopup = new PopupMenu(requireActivity(), mFilterButton, Gravity.CENTER_HORIZONTAL);
+            mPopup.getMenuInflater()
+                    .inflate(R.menu.popup_menu_filter, mPopup.getMenu());
+            mPopup.getMenu().findItem(R.id.load).setChecked(mShowLoad);
+            mPopup.getMenu().findItem(R.id.feed).setChecked(mShowFeed);
+            mPopup.getMenu().findItem(R.id.buy).setChecked(mShowBuy);
+            mPopup.getMenu().findItem(R.id.pv).setChecked(mShowPV);
+            mPopup.getMenu().findItem(R.id.pv2bat).setChecked(mShowPV2Bat);
+            mPopup.getMenu().findItem(R.id.pv2load).setChecked(mShowPV2Load);
+            mPopup.getMenu().findItem(R.id.bat2load).setChecked(mShowBat2Load);
+            mPopup.getMenu().findItem(R.id.evSchedule).setChecked(mShowEVSchedule);
+            mPopup.getMenu().findItem(R.id.hwSchedule).setChecked(mShowHWSchedule);
+            mPopup.getMenu().findItem(R.id.evDivert).setChecked(mShowEVDivert);
+            mPopup.getMenu().findItem(R.id.hwSchedule).setChecked(mShowHWSchedule);
+            mPopup.getMenu().findItem(R.id.soc).setChecked(mShowSOC);
+            mPopup.getMenu().findItem(R.id.hwTemp).setChecked(mShowHWTemperature);
+        }
+
+        mPopup.setOnMenuItemClickListener(item -> {
+            item.setChecked(!item.isChecked());
+            int itemID = item.getItemId();
+            if (itemID == R.id.load) {
+                mShowLoad = item.isChecked();
+                mBarFilterCount = item.isChecked() ? mBarFilterCount + 1 : mBarFilterCount - 1;
+            }
+            if (itemID == R.id.feed) {
+                mShowFeed = item.isChecked();
+                mBarFilterCount = item.isChecked() ? mBarFilterCount + 1 : mBarFilterCount - 1;
+            }
+            if (itemID == R.id.buy) {
+                mShowBuy = item.isChecked();
+                mBarFilterCount = item.isChecked() ? mBarFilterCount + 1 : mBarFilterCount - 1;
+            }
+            if (itemID == R.id.pv) {
+                mShowPV = item.isChecked();
+                mBarFilterCount = item.isChecked() ? mBarFilterCount + 1 : mBarFilterCount - 1;
+            }
+            if (itemID == R.id.pv2bat) {
+                mShowPV2Bat = item.isChecked();
+                mBarFilterCount = item.isChecked() ? mBarFilterCount + 1 : mBarFilterCount - 1;
+            }
+            if (itemID == R.id.pv2load) {
+                mShowPV2Load = item.isChecked();
+                mBarFilterCount = item.isChecked() ? mBarFilterCount + 1 : mBarFilterCount - 1;
+            }
+            if (itemID == R.id.bat2load) {
+                mShowBat2Load = item.isChecked();
+                mBarFilterCount = item.isChecked() ? mBarFilterCount + 1 : mBarFilterCount - 1;
+            }
+            if (itemID == R.id.evSchedule) {
+                mShowEVSchedule = item.isChecked();
+                mBarFilterCount = item.isChecked() ? mBarFilterCount + 1 : mBarFilterCount - 1;
+            }
+            if (itemID == R.id.hwSchedule) {
+                mShowHWSchedule = item.isChecked();
+                mBarFilterCount = item.isChecked() ? mBarFilterCount + 1 : mBarFilterCount - 1;
+            }
+            if (itemID == R.id.evDivert) {
+                mShowEVDivert = item.isChecked();
+                mBarFilterCount = item.isChecked() ? mBarFilterCount + 1 : mBarFilterCount - 1;
+            }
+            if (itemID == R.id.hwDivert) {
+                mShowHWDivert = item.isChecked();
+                mBarFilterCount = item.isChecked() ? mBarFilterCount + 1 : mBarFilterCount - 1;
+            }
+            if (itemID == R.id.soc) {
+                mShowSOC = item.isChecked();
+                mLineFilterCount = item.isChecked() ? mLineFilterCount + 1 : mLineFilterCount - 1;
+            }
+            if (itemID == R.id.hwTemp) {
+                mShowHWTemperature = item.isChecked();
+                mLineFilterCount = item.isChecked() ? mLineFilterCount + 1 : mLineFilterCount - 1;
+            }
+
+            updateKPIs();
+            return false;
+        });
+
+        mFilterButton.setOnClickListener(v -> mPopup.show());
     }
 
     private void updateView() {
@@ -234,17 +359,17 @@ public class ScenarioDetails extends Fragment {
 //            colors.add(Color.parseColor("#304567"));
 
                 ArrayList<IBarDataSet> dataSets = new ArrayList<>();
-                dataSets.add(loadSet);
-                dataSets.add(feedSet);
-                dataSets.add(buySet);
-//                dataSets.add(pvSet);
-//            dataSets.add(pv2BatterySet);
-//            dataSets.add(pv2LoadSet);
-//                dataSets.add(battery2LoadSet);
-//            dataSets.add(evScheduleSet);
-//            dataSets.add(hwScheduleSet);
-//            dataSets.add(evDivertSet);
-//            dataSets.add(hwDivertSet);
+                if (mShowLoad) dataSets.add(loadSet);
+                if (mShowFeed) dataSets.add(feedSet);
+                if (mShowBuy) dataSets.add(buySet);
+                if (mShowPV) dataSets.add(pvSet);
+                if (mShowPV2Bat) dataSets.add(pv2BatterySet);
+//                if (mShowPV2Load) dataSets.add(pv2LoadSet);
+                if (mShowBat2Load) dataSets.add(battery2LoadSet);
+                if (mShowEVSchedule) dataSets.add(evScheduleSet);
+                if (mShowHWSchedule) dataSets.add(hwScheduleSet);
+                if (mShowEVDivert) dataSets.add(evDivertSet);
+                if (mShowHWDivert) dataSets.add(hwDivertSet);
 
                 BarData data = new BarData(dataSets);
                 data.setValueTextSize(10f);
@@ -252,21 +377,22 @@ public class ScenarioDetails extends Fragment {
                 mBarChart.getDescription().setEnabled(false);
                 mBarChart.setData(data);
 
-                //data
-                float groupSpace = 0.04f;
-                float barSpace; // x2 dataset
-                float barWidth; // x2 dataset
-                // (0.46 + 0.02) * 2 + 0.04 = 1.00 -> interval per "group"
-                // (0.22 + 0.02) * 4 + 0.05
-                // (barWidth + barSpace) * elementsInGroup + groupSpace = 1
+                if (mBarFilterCount > 1) {
+                    //data
+                    float groupSpace = 0.04f;
+                    float barSpace; // x2 dataset
+                    float barWidth; // x2 dataset
+                    // (0.46 + 0.02) * 2 + 0.04 = 1.00 -> interval per "group"
+                    // (0.22 + 0.02) * 4 + 0.05
+                    // (barWidth + barSpace) * elementsInGroup + groupSpace = 1
 
-                float count = 3f;
-                float section = 0.96f / count;
-                barSpace = section - section / count;
-                barWidth = section - barSpace;
+                    float section = 0.96f / (float) mBarFilterCount;
+                    barSpace = section - section / (float) mBarFilterCount;
+                    barWidth = section - barSpace;
 
-                data.setBarWidth(barWidth);
-                mBarChart.groupBars(0, groupSpace, barSpace);
+                    data.setBarWidth(barWidth);
+                    mBarChart.groupBars(0, groupSpace, barSpace);
+                }
 //            }
             mBarChart.invalidate();
             mBarChart.refreshDrawableState();
@@ -275,6 +401,7 @@ public class ScenarioDetails extends Fragment {
         if (!(null == mLineChart) && (!(null == mLineData)) && !mLineData.isEmpty())  {
             showText = false;
             mLineChart.setVisibility(View.VISIBLE);
+            mLineChart.clear();
 
             mLineChart.getAxisLeft().setTextColor(Color.DKGRAY); // left y-axis
             mLineChart.getAxisRight().setTextColor(Color.DKGRAY); // right y-axis
@@ -291,55 +418,45 @@ public class ScenarioDetails extends Fragment {
 
             LineDataSet socSet;
             LineDataSet tempSet;
-            if (mLineChart.getData() != null &&
-                    mLineChart.getData().getDataSetCount() > 0) {
-                socSet = (LineDataSet) mLineChart.getData().getDataSetByIndex(0);
-                socSet.setValues(socValues);
-                if (mLineChart.getData().getDataSetCount() > 1) {
-                    tempSet = (LineDataSet) mLineChart.getData().getDataSetByIndex(1);
-                    tempSet.setValues(tempValues);
-                }
-                mLineChart.getData().notifyDataChanged();
-                mLineChart.notifyDataSetChanged();
-            } else {
-                socSet = new LineDataSet(socValues, "State of Charge");
-                socSet.setDrawIcons(false);
-                socSet.enableDashedLine(10f, 5f, 0f);
-                socSet.enableDashedHighlightLine(10f, 5f, 0f);
-                socSet.setColor(Color.YELLOW);
-                socSet.setCircleColor(Color.YELLOW);
-                socSet.setLineWidth(1f);
-                socSet.setCircleRadius(3f);
-                socSet.setDrawCircleHole(false);
-                socSet.setValueTextSize(9f);
-                socSet.setDrawFilled(true);
-                socSet.setFormLineWidth(1f);
-                socSet.setFormLineDashEffect(new DashPathEffect(new float[]{10f, 5f}, 0f));
-                socSet.setFormSize(15.f);
-                socSet.setFillColor(Color.YELLOW);
 
-                tempSet = new LineDataSet(tempValues, "Temperature of Water");
-                tempSet.setDrawIcons(false);
-                tempSet.enableDashedLine(10f, 5f, 0f);
-                tempSet.enableDashedHighlightLine(10f, 5f, 0f);
-                tempSet.setColor(Color.BLUE);
-                tempSet.setCircleColor(Color.BLUE);
-                tempSet.setLineWidth(1f);
-                tempSet.setCircleRadius(3f);
-                tempSet.setDrawCircleHole(false);
-                tempSet.setValueTextSize(9f);
-                tempSet.setDrawFilled(true);
-                tempSet.setFormLineWidth(1f);
-                tempSet.setFormLineDashEffect(new DashPathEffect(new float[]{10f, 5f}, 0f));
-                tempSet.setFormSize(15.f);
-                tempSet.setFillColor(Color.BLUE);
+            socSet = new LineDataSet(socValues, "State of Charge");
+            socSet.setDrawIcons(false);
+            socSet.enableDashedLine(10f, 5f, 0f);
+            socSet.enableDashedHighlightLine(10f, 5f, 0f);
+            socSet.setColor(Color.YELLOW);
+            socSet.setCircleColor(Color.YELLOW);
+            socSet.setLineWidth(1f);
+            socSet.setCircleRadius(3f);
+            socSet.setDrawCircleHole(false);
+            socSet.setValueTextSize(9f);
+            socSet.setDrawFilled(true);
+            socSet.setFormLineWidth(1f);
+            socSet.setFormLineDashEffect(new DashPathEffect(new float[]{10f, 5f}, 0f));
+            socSet.setFormSize(15.f);
+            socSet.setFillColor(Color.YELLOW);
 
-                ArrayList<ILineDataSet> dataSets = new ArrayList<>();
-                dataSets.add(socSet);
-                dataSets.add(tempSet);
-                LineData data = new LineData(dataSets);
-                mLineChart.setData(data);
-            }
+            tempSet = new LineDataSet(tempValues, "Temperature of Water");
+            tempSet.setDrawIcons(false);
+            tempSet.enableDashedLine(10f, 5f, 0f);
+            tempSet.enableDashedHighlightLine(10f, 5f, 0f);
+            tempSet.setColor(Color.BLUE);
+            tempSet.setCircleColor(Color.BLUE);
+            tempSet.setLineWidth(1f);
+            tempSet.setCircleRadius(3f);
+            tempSet.setDrawCircleHole(false);
+            tempSet.setValueTextSize(9f);
+            tempSet.setDrawFilled(true);
+            tempSet.setFormLineWidth(1f);
+            tempSet.setFormLineDashEffect(new DashPathEffect(new float[]{10f, 5f}, 0f));
+            tempSet.setFormSize(15.f);
+            tempSet.setFillColor(Color.BLUE);
+
+            ArrayList<ILineDataSet> dataSets = new ArrayList<>();
+            if (mShowSOC) dataSets.add(socSet);
+            if (mShowHWTemperature) dataSets.add(tempSet);
+            LineData data = new LineData(dataSets);
+            mLineChart.setData(data);
+
             mLineChart.getDescription().setEnabled(false);
 
             mLineChart.invalidate();

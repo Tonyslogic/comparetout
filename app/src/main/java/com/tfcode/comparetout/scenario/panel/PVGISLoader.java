@@ -106,19 +106,28 @@ public class PVGISLoader extends Worker {
             ZoneId localZone = ZoneOffset.systemDefault();
 
             for(Hourly pp : pvGISData.hourlies.hourlies){
-                LocalDateTime utc = LocalDateTime.parse(pp.time, pvGisFormat);
-                LocalDateTime active = utc.atZone(ZoneOffset.UTC).withZoneSameInstant(localZone).toLocalDateTime();
+                LocalDateTime saharaTZ = LocalDateTime.parse(pp.time, pvGisFormat);
+                LocalDateTime active = saharaTZ.atZone(ZoneOffset.UTC).withZoneSameInstant(localZone).toLocalDateTime();
                 active = active.minusHours(1);
+                boolean shift = false;
                 for (int i = 0; i < 12; i++) {
+                    if (active.getYear() != saharaTZ.getYear()) {
+                        active = active.plusYears(1);
+                        shift = true;
+                    }
                     PanelData row = new PanelData();
                     row.setDo2001(active.getDayOfYear());
                     row.setPanelID(mPanel.getPanelIndex());
-                    row.setDate(active.format(dateFormat));
                     row.setMinute(active.format(minFormat));
                     row.setDow(active.getDayOfWeek().getValue());
                     row.setMod(active.getHour() * 60 + active.getMinute());
                     row.setPv( (pp.gi / 12d / MAGIC_NUMBER) * mPanel.getPanelCount() * mPanel.getPanelkWp());
+                    row.setDate(active.format(dateFormat));
                     panelDataList.add(row);
+                    if (shift) {
+                        active = active.minusYears(1);
+                        shift = false;
+                    }
                     active = active.plusMinutes(5);
                 }
             }
