@@ -114,7 +114,7 @@ public class PanelFragment extends Fragment {
         mEdit = ((PanelActivity) requireActivity()).getEdit();
         mEditFields = new ArrayList<>();
         unpackPanel();
-        mPanel.setPanelIndex(((PanelActivity) requireActivity()).getDBID(mPanelIndex));
+        mPanel.setPanelIndex(((PanelActivity) requireActivity()).getDatabaseID(mPanelIndex));
 
         mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
         mViewModel.getPanelDataSummary().observe(this, summaries -> {
@@ -281,7 +281,6 @@ public class PanelFragment extends Fragment {
 //        params.height = 120; // TODO fix this crap!!!
 
         int integerType = InputType.TYPE_CLASS_NUMBER;
-        int doubleType = InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL;
         int stringType = InputType.TYPE_CLASS_TEXT;
 
         // CREATE TABLE ROWS
@@ -468,6 +467,6 @@ public class PanelFragment extends Fragment {
 
     public void updateDBIndex() {
         if (!(null == mPanel))
-            mPanel.setPanelIndex(((PanelActivity) requireActivity()).getDBID(mPanelIndex));
+            mPanel.setPanelIndex(((PanelActivity) requireActivity()).getDatabaseID(mPanelIndex));
     }
 }

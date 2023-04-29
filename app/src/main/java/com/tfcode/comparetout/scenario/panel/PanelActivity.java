@@ -56,7 +56,7 @@ public class PanelActivity extends AppCompatActivity {
     private boolean mEdit = false;
     private ComparisonUIViewModel mViewModel;
     private TabLayoutMediator mMediator;
-    private boolean mRetryMediatior = false;
+    private boolean mRetryMediator = false;
     private Menu mMenu;
     private FloatingActionButton mFab;
     private boolean mDoubleBackToExitPressedOnce = false;
@@ -228,12 +228,12 @@ public class PanelActivity extends AppCompatActivity {
             mMediator = new TabLayoutMediator(tabLayout, mViewPager,
                     (tab, position) -> tab.setText("Panels")
             );
-            mRetryMediatior = false;
+            mRetryMediator = false;
         }
         catch (ArrayIndexOutOfBoundsException aie) {
             aie.printStackTrace();
-            if (!mRetryMediatior) {
-                mRetryMediatior = true;
+            if (!mRetryMediator) {
+                mRetryMediator = true;
                 new Handler(Looper.getMainLooper()).postDelayed(this::refreshMediator,2000);
             }
             else return;
@@ -465,7 +465,7 @@ public class PanelActivity extends AppCompatActivity {
         return mPanelsJsonString;
     }
 
-    public long getDBID(int panelTabIndex) {
+    public long getDatabaseID(int panelTabIndex) {
         return mPanels.get(panelTabIndex).getPanelIndex();
     }
 

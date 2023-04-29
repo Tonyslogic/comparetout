@@ -5,8 +5,6 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 
-import com.tfcode.comparetout.scenario.inverter.InverterFragment;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -51,7 +49,9 @@ public class PanelViewPageAdapter extends FragmentStateAdapter {
     public long getItemId(int position) {
         Long id = mPos2ID.get(position);
         if (id == null) createFragment(position);
-        return mPos2ID.get(position);
+        Long itemID =mPos2ID.get(position);
+        if (!(null == itemID)) return itemID;
+        else return 0L;
     }
 
     public void add(int index) {
@@ -74,12 +74,16 @@ public class PanelViewPageAdapter extends FragmentStateAdapter {
             PanelFragment panelFragment = mPanelFragments.get(key);
             if (key < pos) {
                 newPanelFragments.put(key, mPanelFragments.get(key));
-                panelFragment.refreshFocus();
+                if (panelFragment != null) {
+                    panelFragment.refreshFocus();
+                }
                 newPos2ID.put(key, mPos2ID.get(key));
             }
             if (key > pos) {
                 newPanelFragments.put(key - 1, panelFragment);
-                panelFragment.panelDeleted(key - 1);
+                if (panelFragment != null) {
+                    panelFragment.panelDeleted(key - 1);
+                }
                 newPos2ID.put(key - 1, mPos2ID.get(key));
             }
         }
