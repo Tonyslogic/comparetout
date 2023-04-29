@@ -47,7 +47,7 @@ import java.util.List;
 public abstract class ScenarioDAO {
 
     @Insert
-    abstract long addNewSceanrio(Scenario scenario);
+    abstract long addNewScenario(Scenario scenario);
 
     @Insert
     abstract long addNewInverter(Inverter inverter);
@@ -122,7 +122,7 @@ public abstract class ScenarioDAO {
         if (!(null == components.hwDivert)) scenario.setHasHWDivert(true);
         if (!(null == components.evDivert)) scenario.setHasEVDivert(true);
 
-        long scenarioID = addNewSceanrio(scenario);
+        long scenarioID = addNewScenario(scenario);
         if (!(null == components.inverters)) {
             for (Inverter i : components.inverters) {
                 long inverterID = addNewInverter(i);
@@ -131,8 +131,6 @@ public abstract class ScenarioDAO {
                 s2i.setScenarioID(scenarioID);
                 s2i.setInverterID(inverterID);
                 addNewScenario2Inverter(s2i);
-//                scenario.setHasInverters(true);
-//                updateScenario(scenario);
             }
         }
         if (!(null == components.batteries)) {
@@ -575,8 +573,6 @@ public abstract class ScenarioDAO {
         lp.setLoadProfileIndex(0L);
         long newLoadProfileID = addNewLoadProfile(lp);
 
-        System.out.println("copyLoadProfileFromScenario, new LPID=" + newLoadProfileID);
-
         deleteLoadProfileRelationsForScenario(Math.toIntExact(toScenarioID));
         Scenario2LoadProfile s2lp = new Scenario2LoadProfile();
         s2lp.setScenarioID(toScenarioID);
@@ -589,23 +585,6 @@ public abstract class ScenarioDAO {
 
         deleteOrphanLoadProfiles();
     }
-
-    //DEBUG
-    @Query("SELECT * FROM scenario2loadprofile")
-    public abstract List<Scenario2LoadProfile> getS2LP();
-
-    @Query("SELECT * FROM loadprofile")
-    public abstract List<LoadProfile> getLP();
-
-    @Query("SELECT * FROM scenarios")
-    public abstract List<Scenario> getScen();
-
-    @Query("SELECT loadprofile.loadProfileIndex, annualUsage, hourlyBaseLoad," +
-            "gridImportMax, distributionSource, gridExportMax, hourlyDist, dowDist, monthlyDist FROM loadprofile, scenario2loadprofile " +
-            "WHERE scenarioID = :scenarioID AND loadProfile.loadProfileIndex = loadProfileID")
-    public abstract List<LoadProfile> get1LP(long scenarioID);
-
-    // END DEBUG
 
     @Transaction
     public void linkLoadProfileFromScenario(long fromScenarioID, Long toScenarioID) {

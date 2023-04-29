@@ -1,7 +1,6 @@
 package com.tfcode.comparetout.model.scenario;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public class HWUse {
     private ArrayList<ArrayList<Double>> usage;

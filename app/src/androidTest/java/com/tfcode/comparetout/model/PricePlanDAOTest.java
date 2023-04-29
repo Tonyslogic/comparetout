@@ -217,7 +217,7 @@ public class PricePlanDAOTest {
 
         Map<PricePlan, List<DayRate>> mpp = LiveDataTestUtil.getValue(pricePlanDAO.loadPricePlans());
         PricePlan pp = mpp.keySet().iterator().next();
-        pricePlanDAO.delpp(pp);
+        pricePlanDAO.deletePricePlan(pp);
         mpp = LiveDataTestUtil.getValue(pricePlanDAO.loadPricePlans());
         assertFalse(mpp.containsKey(pp));
     }

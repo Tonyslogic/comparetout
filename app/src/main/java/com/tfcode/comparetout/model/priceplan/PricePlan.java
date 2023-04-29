@@ -180,8 +180,10 @@ public class PricePlan {
                 List<Integer> daysSoFar = dtDays.get(drKey);
                 // check for duplicate days
                 for (Integer i: dr.getDays().ints){
-                    if (daysSoFar.contains(i)) return INVALID_PLAN_DUPLICATE_DAYS;
-                    else daysSoFar.add(i);
+                    if (daysSoFar != null) {
+                        if (daysSoFar.contains(i)) return INVALID_PLAN_DUPLICATE_DAYS;
+                        else daysSoFar.add(i);
+                    }
                 }
                 dtDays.put(drKey, daysSoFar);
             }

@@ -56,16 +56,13 @@ public abstract class PricePlanDAO {
     @Query("SELECT * FROM PricePlans JOIN DayRates ON PricePlans.pricePlanIndex = DayRates.pricePlanId ORDER BY PricePlans.supplier ASC, PricePlans.planName ASC ")
     public abstract LiveData<Map<PricePlan, List<DayRate>>> loadPricePlans();
 
-    @Query("SELECT * FROM PricePlans JOIN DayRates ON PricePlans.pricePlanIndex = DayRates.pricePlanId WHERE PricePlans.pricePlanIndex = :id")
-    public abstract Map<PricePlan, List<DayRate>> loadPricePlan(long id);
-
     @Transaction
     public void deletePricePlan(long id) {
         System.out.println("deleting " + id);
-        long dels = deleteDayRatesInPlan(id);
-        System.out.println("removed rates " + dels);
-        dels = deletePricePlanRow(id);
-        System.out.println("removed plans " + dels);
+        long del = deleteDayRatesInPlan(id);
+        System.out.println("removed rates " + del);
+        del = deletePricePlanRow(id);
+        System.out.println("removed plans " + del);
         System.out.println("deleted " + id);
     }
 
@@ -76,7 +73,7 @@ public abstract class PricePlanDAO {
     public abstract int deletePricePlanRow(long id);
 
     @Delete
-    public abstract void delpp(PricePlan pp);
+    public abstract void deletePricePlan(PricePlan pp);
 
     @Query("UPDATE PricePlans SET active = :checked WHERE pricePlanIndex = :id")
     public abstract void updatePricePlanActiveStatus(int id, boolean checked);

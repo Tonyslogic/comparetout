@@ -60,7 +60,7 @@ import java.util.concurrent.Executors;
 public abstract class ToutcDB extends RoomDatabase {
 
     public abstract PricePlanDAO pricePlanDAO();
-    public abstract ScenarioDAO sceanrioDAO();
+    public abstract ScenarioDAO scenarioDAO();
     public abstract CostingDAO costingDAO();
 
     private static volatile ToutcDB INSTANCE;

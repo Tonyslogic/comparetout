@@ -312,17 +312,17 @@ public class JsonTools {
         return entityList;
     }
 
-    public static EVCharge createEVCharge(EVChargeJson evcj) {
+    public static EVCharge createEVCharge(EVChargeJson evChargeJson) {
         EVCharge evCharge = new EVCharge();
-        evCharge.setName(evcj.name);
-        evCharge.setBegin(evcj.begin);
-        evCharge.setEnd(evcj.end);
-        evCharge.setDraw(evcj.draw);
+        evCharge.setName(evChargeJson.name);
+        evCharge.setBegin(evChargeJson.begin);
+        evCharge.setEnd(evChargeJson.end);
+        evCharge.setDraw(evChargeJson.draw);
         MonthHolder monthHolder = new MonthHolder();
-        monthHolder.months = evcj.months;
+        monthHolder.months = evChargeJson.months;
         evCharge.setMonths(monthHolder);
         IntHolder intHolder = new IntHolder();
-        intHolder.ints = evcj.days;
+        intHolder.ints = evChargeJson.days;
         evCharge.setDays(intHolder);
         return evCharge;
     }
@@ -338,39 +338,39 @@ public class JsonTools {
         return entityList;
     }
 
-    public static HWSchedule createHWSchedule(HWScheduleJson hwsj) {
+    public static HWSchedule createHWSchedule(HWScheduleJson hwScheduleJson) {
         HWSchedule hwSchedule = new HWSchedule();
-        hwSchedule.setName(hwsj.name);
-        hwSchedule.setBegin(hwsj.begin);
-        hwSchedule.setEnd(hwsj.end);
+        hwSchedule.setName(hwScheduleJson.name);
+        hwSchedule.setBegin(hwScheduleJson.begin);
+        hwSchedule.setEnd(hwScheduleJson.end);
         MonthHolder monthHolder = new MonthHolder();
-        monthHolder.months = hwsj.months;
+        monthHolder.months = hwScheduleJson.months;
         hwSchedule.setMonths(monthHolder);
         IntHolder intHolder = new IntHolder();
-        intHolder.ints = hwsj.days;
+        intHolder.ints = hwScheduleJson.days;
         hwSchedule.setDays(intHolder);
         return hwSchedule;
     }
 
-    public static HWDivert createHWDivert(HWDivertJson hwdj) {
+    public static HWDivert createHWDivert(HWDivertJson hwDivertJson) {
         HWDivert hwDivert = new HWDivert();
-        hwDivert.setActive(hwdj.active);
+        hwDivert.setActive(hwDivertJson.active);
         return hwDivert;
     }
 
-    public static EVDivert createEVDivert(EVDivertJson evdj) {
+    public static EVDivert createEVDivert(EVDivertJson evDivertJson) {
         EVDivert evDivert =  new EVDivert();
-        evDivert.setName(evdj.name);
-        evDivert.setActive(evdj.active);
-        evDivert.setEv1st(evdj.ev1st);
-        evDivert.setBegin(evdj.begin);
-        evDivert.setEnd(evdj.end);
-        evDivert.setDailyMax(evdj.dailyMax);
+        evDivert.setName(evDivertJson.name);
+        evDivert.setActive(evDivertJson.active);
+        evDivert.setEv1st(evDivertJson.ev1st);
+        evDivert.setBegin(evDivertJson.begin);
+        evDivert.setEnd(evDivertJson.end);
+        evDivert.setDailyMax(evDivertJson.dailyMax);
         MonthHolder monthHolder = new MonthHolder();
-        monthHolder.months = evdj.months;
+        monthHolder.months = evDivertJson.months;
         evDivert.setMonths(monthHolder);
         IntHolder intHolder = new IntHolder();
-        intHolder.ints = evdj.days;
+        intHolder.ints = evDivertJson.days;
         evDivert.setDays(intHolder);
         return evDivert;
     }
@@ -410,94 +410,94 @@ public class JsonTools {
     }
 
     private static EVDivertJson createEVDivertJson(EVDivert evDivert) {
-        EVDivertJson evdj = new EVDivertJson();
+        EVDivertJson evDivertJson = new EVDivertJson();
         if (!(null == evDivert)) {
-            evdj.name = evDivert.getName();
-            evdj.active = evDivert.isActive();
-            evdj.ev1st = evDivert.isEv1st();
-            evdj.begin = evDivert.getBegin();
-            evdj.end = evDivert.getEnd();
-            evdj.dailyMax = evDivert.getDailyMax();
-            evdj.months = (ArrayList<Integer>) evDivert.getMonths().months;
-            evdj.days = (ArrayList<Integer>) evDivert.getDays().ints;
+            evDivertJson.name = evDivert.getName();
+            evDivertJson.active = evDivert.isActive();
+            evDivertJson.ev1st = evDivert.isEv1st();
+            evDivertJson.begin = evDivert.getBegin();
+            evDivertJson.end = evDivert.getEnd();
+            evDivertJson.dailyMax = evDivert.getDailyMax();
+            evDivertJson.months = (ArrayList<Integer>) evDivert.getMonths().months;
+            evDivertJson.days = (ArrayList<Integer>) evDivert.getDays().ints;
         }
-        return evdj;
+        return evDivertJson;
     }
 
     private static HWDivertJson createHWDivertJson(HWDivert hwDivert) {
-        HWDivertJson hwdj = new HWDivertJson();
-        if (!(null == hwDivert)) hwdj.active = hwDivert.isActive();
-        else hwdj.active = false;
-        return hwdj;
+        HWDivertJson hwDivertJson = new HWDivertJson();
+        if (!(null == hwDivert)) hwDivertJson.active = hwDivert.isActive();
+        else hwDivertJson.active = false;
+        return hwDivertJson;
     }
 
     private static ArrayList<HWScheduleJson> createHWScheduleJson(List<HWSchedule> hwSchedules) {
-        ArrayList<HWScheduleJson> hwssj = new ArrayList<>();
+        ArrayList<HWScheduleJson> hwScheduleJsons = new ArrayList<>();
         if (!(null == hwSchedules)){
             for (HWSchedule hws : hwSchedules) {
-                HWScheduleJson hwsj = new HWScheduleJson();
-                hwsj.name = hws.getName();
-                hwsj.begin = hws.getBegin();
-                hwsj.end = hws.getEnd();
-                hwsj.months = (ArrayList<Integer>) hws.getMonths().months;
-                hwsj.days = (ArrayList<Integer>) hws.getDays().ints;
-                hwssj.add(hwsj);
+                HWScheduleJson hwScheduleJson = new HWScheduleJson();
+                hwScheduleJson.name = hws.getName();
+                hwScheduleJson.begin = hws.getBegin();
+                hwScheduleJson.end = hws.getEnd();
+                hwScheduleJson.months = (ArrayList<Integer>) hws.getMonths().months;
+                hwScheduleJson.days = (ArrayList<Integer>) hws.getDays().ints;
+                hwScheduleJsons.add(hwScheduleJson);
             }
         }
-        return hwssj;
+        return hwScheduleJsons;
     }
 
     private static ArrayList<EVChargeJson> createEVChargeJson(List<EVCharge> evCharges) {
-        ArrayList<EVChargeJson> evcsj = new ArrayList<>();
+        ArrayList<EVChargeJson> evChargeJsons = new ArrayList<>();
         if (!(null == evCharges)){
             for (EVCharge evc : evCharges) {
-                EVChargeJson evcj = new EVChargeJson();
-                evcj.name = evc.getName();
-                evcj.begin = evc.getBegin();
-                evcj.end = evc.getEnd();
-                evcj.draw = evc.getDraw();
-                evcj.months = (ArrayList<Integer>) evc.getMonths().months;
-                evcj.days = (ArrayList<Integer>) evc.getDays().ints;
-                evcsj.add(evcj);
+                EVChargeJson evChargeJson = new EVChargeJson();
+                evChargeJson.name = evc.getName();
+                evChargeJson.begin = evc.getBegin();
+                evChargeJson.end = evc.getEnd();
+                evChargeJson.draw = evc.getDraw();
+                evChargeJson.months = (ArrayList<Integer>) evc.getMonths().months;
+                evChargeJson.days = (ArrayList<Integer>) evc.getDays().ints;
+                evChargeJsons.add(evChargeJson);
             }
         }
-        return evcsj;
+        return evChargeJsons;
     }
 
     private static ArrayList<LoadShiftJson> createLoadShiftJson(List<LoadShift> loadShifts) {
-        ArrayList<LoadShiftJson> lssj = new ArrayList<>();
+        ArrayList<LoadShiftJson> loadShiftJsons = new ArrayList<>();
         if (!(null == loadShifts)) {
-            for (LoadShift ls : loadShifts) {
+            for (LoadShift loadShift : loadShifts) {
                 LoadShiftJson lsj = new LoadShiftJson();
-                lsj.name = ls.getName();
-                lsj.begin = ls.getBegin();
-                lsj.end = ls.getEnd();
-                lsj.stopAt = ls.getStopAt();
-                lsj.months = (ArrayList<Integer>) ls.getMonths().months;
-                lsj.days = (ArrayList<Integer>) ls.getDays().ints;
-                lssj.add(lsj);
+                lsj.name = loadShift.getName();
+                lsj.begin = loadShift.getBegin();
+                lsj.end = loadShift.getEnd();
+                lsj.stopAt = loadShift.getStopAt();
+                lsj.months = (ArrayList<Integer>) loadShift.getMonths().months;
+                lsj.days = (ArrayList<Integer>) loadShift.getDays().ints;
+                loadShiftJsons.add(lsj);
             }
         }
-        return lssj;
+        return loadShiftJsons;
     }
 
     public static LoadProfileJson createLoadProfileJson(LoadProfile loadProfile) {
-        LoadProfileJson lpj = new LoadProfileJson();
+        LoadProfileJson loadProfileJson = new LoadProfileJson();
         if (!(null == loadProfile)){
-            lpj.annualUsage = loadProfile.getAnnualUsage();
-            lpj.hourlyBaseLoad = loadProfile.getHourlyBaseLoad();
-            lpj.gridImportMax = loadProfile.getGridImportMax();
-            lpj.gridExportMax = loadProfile.getGridExportMax();
-            lpj.hourlyDistribution = (ArrayList<Double>) loadProfile.getHourlyDist().dist;
-            DOWDistribution dowd = new DOWDistribution();
-            dowd.sun = loadProfile.getDowDist().dowDist.get(0);
-            dowd.mon = loadProfile.getDowDist().dowDist.get(1);
-            dowd.tue = loadProfile.getDowDist().dowDist.get(2);
-            dowd.wed = loadProfile.getDowDist().dowDist.get(3);
-            dowd.thu = loadProfile.getDowDist().dowDist.get(4);
-            dowd.fri = loadProfile.getDowDist().dowDist.get(5);
-            dowd.sat = loadProfile.getDowDist().dowDist.get(6);
-            lpj.dayOfWeekDistribution = dowd;
+            loadProfileJson.annualUsage = loadProfile.getAnnualUsage();
+            loadProfileJson.hourlyBaseLoad = loadProfile.getHourlyBaseLoad();
+            loadProfileJson.gridImportMax = loadProfile.getGridImportMax();
+            loadProfileJson.gridExportMax = loadProfile.getGridExportMax();
+            loadProfileJson.hourlyDistribution = (ArrayList<Double>) loadProfile.getHourlyDist().dist;
+            DOWDistribution dowDistribution = new DOWDistribution();
+            dowDistribution.sun = loadProfile.getDowDist().dowDist.get(0);
+            dowDistribution.mon = loadProfile.getDowDist().dowDist.get(1);
+            dowDistribution.tue = loadProfile.getDowDist().dowDist.get(2);
+            dowDistribution.wed = loadProfile.getDowDist().dowDist.get(3);
+            dowDistribution.thu = loadProfile.getDowDist().dowDist.get(4);
+            dowDistribution.fri = loadProfile.getDowDist().dowDist.get(5);
+            dowDistribution.sat = loadProfile.getDowDist().dowDist.get(6);
+            loadProfileJson.dayOfWeekDistribution = dowDistribution;
             MonthlyDistribution md = new MonthlyDistribution();
             md.jan = loadProfile.getMonthlyDist().monthlyDist.get(0);
             md.feb = loadProfile.getMonthlyDist().monthlyDist.get(1);
@@ -511,122 +511,122 @@ public class JsonTools {
             md.oct = loadProfile.getMonthlyDist().monthlyDist.get(9);
             md.nov = loadProfile.getMonthlyDist().monthlyDist.get(10);
             md.dec = loadProfile.getMonthlyDist().monthlyDist.get(11);
-            lpj.monthlyDistribution = md;
+            loadProfileJson.monthlyDistribution = md;
         }
-        return lpj;
+        return loadProfileJson;
     }
 
     private static HWSystemJson createHWSystemJson(HWSystem hwSystem) {
-        HWSystemJson hwsj = new HWSystemJson();
+        HWSystemJson hwSystemJson = new HWSystemJson();
         if (!(null == hwSystem)) {
-            hwsj.hwCapacity = hwSystem.getHwCapacity();
-            hwsj.hwUsage = hwSystem.getHwUsage();
-            hwsj.hwIntake = hwSystem.getHwIntake();
-            hwsj.hwTarget = hwSystem.getHwTarget();
-            hwsj.hwLoss = hwSystem.getHwLoss();
-            hwsj.hwRate = hwSystem.getHwRate();
-            hwsj.hwUse = hwSystem.getHwUse().getUsage();
+            hwSystemJson.hwCapacity = hwSystem.getHwCapacity();
+            hwSystemJson.hwUsage = hwSystem.getHwUsage();
+            hwSystemJson.hwIntake = hwSystem.getHwIntake();
+            hwSystemJson.hwTarget = hwSystem.getHwTarget();
+            hwSystemJson.hwLoss = hwSystem.getHwLoss();
+            hwSystemJson.hwRate = hwSystem.getHwRate();
+            hwSystemJson.hwUse = hwSystem.getHwUse().getUsage();
         }
-        return hwsj;
+        return hwSystemJson;
     }
 
     public static ArrayList<PanelJson> createPanelListJson(List<Panel> panels) {
-        ArrayList<PanelJson> pjs = new ArrayList<>();
+        ArrayList<PanelJson> panelJsons = new ArrayList<>();
         if (!(null == panels)){
-            for (Panel p : panels){
-                PanelJson pj = new PanelJson();
-                pj.panelCount = p.getPanelCount();
-                pj.panelkWp = p.getPanelkWp();
-                pj.azimuth = p.getAzimuth();
-                pj.slope = p.getSlope();
-                pj.latitude = p.getLatitude();
-                pj.longitude = p.getLongitude();
-                pj.inverter = p.getInverter();
-                pj.mppt = p.getMppt();
-                pj.panelName = p.getPanelName();
-                pj.optimized = p.getConnectionMode() == Panel.OPTIMIZED;
-                pjs.add(pj);
+            for (Panel panel : panels){
+                PanelJson panelJson = new PanelJson();
+                panelJson.panelCount = panel.getPanelCount();
+                panelJson.panelkWp = panel.getPanelkWp();
+                panelJson.azimuth = panel.getAzimuth();
+                panelJson.slope = panel.getSlope();
+                panelJson.latitude = panel.getLatitude();
+                panelJson.longitude = panel.getLongitude();
+                panelJson.inverter = panel.getInverter();
+                panelJson.mppt = panel.getMppt();
+                panelJson.panelName = panel.getPanelName();
+                panelJson.optimized = panel.getConnectionMode() == Panel.OPTIMIZED;
+                panelJsons.add(panelJson);
             }
         }
-        return pjs;
+        return panelJsons;
     }
 
     public static ArrayList<BatteryJson> createBatteryListJson(List<Battery> batteries) {
-        ArrayList<BatteryJson> bjs = new ArrayList<>();
+        ArrayList<BatteryJson> batteryJsons = new ArrayList<>();
         if (!(null == batteries)) {
-            for (Battery b : batteries) {
-                BatteryJson bj = new BatteryJson();
-                bj.batterySize = b.getBatterySize();
-                bj.dischargeStop = b.getDischargeStop();
+            for (Battery battery : batteries) {
+                BatteryJson batteryJson = new BatteryJson();
+                batteryJson.batterySize = battery.getBatterySize();
+                batteryJson.dischargeStop = battery.getDischargeStop();
                 ChargeModelJson cmj = new ChargeModelJson();
-                cmj.percent0 = b.getChargeModel().percent0;
-                cmj.percent12 = b.getChargeModel().percent12;
-                cmj.percent90 = b.getChargeModel().percent90;
-                cmj.percent100 = b.getChargeModel().percent100;
-                bj.chargeModel = cmj;
-                bj.maxDischarge = b.getMaxDischarge();
-                bj.maxCharge = b.getMaxCharge();
-                bj.storageLoss = b.getStorageLoss();
-                bj.inverter = b.getInverter();
-                bjs.add(bj);
+                cmj.percent0 = battery.getChargeModel().percent0;
+                cmj.percent12 = battery.getChargeModel().percent12;
+                cmj.percent90 = battery.getChargeModel().percent90;
+                cmj.percent100 = battery.getChargeModel().percent100;
+                batteryJson.chargeModel = cmj;
+                batteryJson.maxDischarge = battery.getMaxDischarge();
+                batteryJson.maxCharge = battery.getMaxCharge();
+                batteryJson.storageLoss = battery.getStorageLoss();
+                batteryJson.inverter = battery.getInverter();
+                batteryJsons.add(batteryJson);
             }
         }
-        return bjs;
+        return batteryJsons;
     }
 
     public static ArrayList<InverterJson> createInverterListJson(List<Inverter> inverters) {
-        ArrayList<InverterJson> ijs = new ArrayList<>();
+        ArrayList<InverterJson> inverterJsons = new ArrayList<>();
         if (!(null == inverters)) {
-            for (Inverter i : inverters) {
-                InverterJson ij = createInverterJson(i);
-                ijs.add(ij);
+            for (Inverter inverter : inverters) {
+                InverterJson inverterJson = createInverterJson(inverter);
+                inverterJsons.add(inverterJson);
             }
         }
-        return ijs;
+        return inverterJsons;
     }
 
     @NonNull
-    public static InverterJson createInverterJson(Inverter i) {
-        InverterJson ij = new InverterJson();
-        ij.name = i.getInverterName();
-        ij.minExcess = i.getMinExcess();
-        ij.maxInverterLoad = i.getMaxInverterLoad();
-        ij.mPPTCount = i.getMpptCount();
-        ij.ac2dcLoss = i.getAc2dcLoss();
-        ij.dc2acLoss = i.getDc2acLoss();
-        ij.dc2dcLoss = i.getDc2dcLoss();
-        return ij;
+    public static InverterJson createInverterJson(Inverter inverter) {
+        InverterJson inverterJson = new InverterJson();
+        inverterJson.name = inverter.getInverterName();
+        inverterJson.minExcess = inverter.getMinExcess();
+        inverterJson.maxInverterLoad = inverter.getMaxInverterLoad();
+        inverterJson.mPPTCount = inverter.getMpptCount();
+        inverterJson.ac2dcLoss = inverter.getAc2dcLoss();
+        inverterJson.dc2acLoss = inverter.getDc2acLoss();
+        inverterJson.dc2dcLoss = inverter.getDc2dcLoss();
+        return inverterJson;
     }
 
     public static String createScenarioList(List<ScenarioComponents> scenarios) {
-        ArrayList<ScenarioJsonFile> sjfs = new ArrayList<>();
-        for (ScenarioComponents sc : scenarios){
-            sjfs.add(createSingleScenarioJson(sc.scenario, sc.inverters, sc.batteries, sc.panels,
-                    sc.hwSystem, sc.loadProfile, sc.loadShifts, sc.evCharges, sc.hwSchedules,
-                    sc.hwDivert, sc.evDivert));
+        ArrayList<ScenarioJsonFile> scenarioJsonFiles = new ArrayList<>();
+        for (ScenarioComponents scenarioComponents : scenarios){
+            scenarioJsonFiles.add(createSingleScenarioJson(scenarioComponents.scenario, scenarioComponents.inverters, scenarioComponents.batteries, scenarioComponents.panels,
+                    scenarioComponents.hwSystem, scenarioComponents.loadProfile, scenarioComponents.loadShifts, scenarioComponents.evCharges, scenarioComponents.hwSchedules,
+                    scenarioComponents.hwDivert, scenarioComponents.evDivert));
         }
 
         Type type = new TypeToken<List<ScenarioJsonFile>>(){}.getType();
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        return gson.toJson(sjfs, type);
+        return gson.toJson(scenarioJsonFiles, type);
     }
 
-    public static List<ScenarioComponents> createScenarioComponentList(List<ScenarioJsonFile> sjfs) {
+    public static List<ScenarioComponents> createScenarioComponentList(List<ScenarioJsonFile> scenarioJsonFiles) {
         ArrayList<ScenarioComponents> scenarioComponents = new ArrayList<>();
-        for (ScenarioJsonFile sjf : sjfs){
-            ScenarioComponents sc = new ScenarioComponents(
-                    createScenario(sjf),
-                    createInverterList(sjf.inverters),
-                    createBatteryList(sjf.batteries),
-                    createPanelList(sjf.panels),
-                    createHWSystem(sjf.hwSystem),
-                    createLoadProfile(sjf.loadProfile),
-                    createLoadShiftList(sjf.loadShifts),
-                    createEVChargeList(sjf.evCharges),
-                    createHWScheduleList(sjf.hwSchedules),
-                    createHWDivert(sjf.hwDivert),
-                    createEVDivert(sjf.evDivert));
-            scenarioComponents.add(sc);
+        for (ScenarioJsonFile scenarioJsonFile : scenarioJsonFiles){
+            ScenarioComponents singleScenarioComponents = new ScenarioComponents(
+                    createScenario(scenarioJsonFile),
+                    createInverterList(scenarioJsonFile.inverters),
+                    createBatteryList(scenarioJsonFile.batteries),
+                    createPanelList(scenarioJsonFile.panels),
+                    createHWSystem(scenarioJsonFile.hwSystem),
+                    createLoadProfile(scenarioJsonFile.loadProfile),
+                    createLoadShiftList(scenarioJsonFile.loadShifts),
+                    createEVChargeList(scenarioJsonFile.evCharges),
+                    createHWScheduleList(scenarioJsonFile.hwSchedules),
+                    createHWDivert(scenarioJsonFile.hwDivert),
+                    createEVDivert(scenarioJsonFile.evDivert));
+            scenarioComponents.add(singleScenarioComponents);
         }
         return scenarioComponents;
     }

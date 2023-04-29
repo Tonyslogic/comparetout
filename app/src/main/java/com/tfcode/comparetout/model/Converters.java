@@ -68,9 +68,9 @@ public class Converters {
     }
 
     @TypeConverter
-    public static  String fromDOWDist(DOWDist dowd) {
+    public static  String fromDOWDist(DOWDist dowDistribution) {
         Gson gson = new Gson();
-        return gson.toJson(dowd);
+        return gson.toJson(dowDistribution);
     }
 
     @TypeConverter

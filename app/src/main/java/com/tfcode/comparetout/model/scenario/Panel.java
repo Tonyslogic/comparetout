@@ -15,7 +15,7 @@ public class Panel {
     private int slope = 24;
     private double latitude = 53.490;
     private double longitude = -10.015;
-    private String inverter = "AplhaESS";
+    private String inverter = "AlphaESS";
     private int mppt = 1;
     private String panelName = "<Name>";
     private int connectionMode = PARALLEL;

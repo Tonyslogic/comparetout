@@ -8,7 +8,7 @@ public class DOWDist {
 
     public DOWDist() {
         dowDist = new ArrayList<>();
-        double even = 100/7;
+        double even = 100/7D;
         for (int i = 0; i < 7; i++) dowDist.add(even);
     }
 }

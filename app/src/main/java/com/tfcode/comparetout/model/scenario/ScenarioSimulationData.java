@@ -2,7 +2,6 @@ package com.tfcode.comparetout.model.scenario;
 
 import androidx.annotation.NonNull;
 import androidx.room.Entity;
-import androidx.room.PrimaryKey;
 
 @Entity(tableName = "scenariosimulationdata", primaryKeys = {"scenarioID", "date", "minuteOfDay"})
 public class ScenarioSimulationData {

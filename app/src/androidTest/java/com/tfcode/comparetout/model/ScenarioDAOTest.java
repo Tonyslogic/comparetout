@@ -62,7 +62,7 @@ public class ScenarioDAOTest {
         toutcDB = Room.inMemoryDatabaseBuilder(context, ToutcDB.class)
                 .allowMainThreadQueries()
                 .build();
-        scenarioDAO = toutcDB.sceanrioDAO();
+        scenarioDAO = toutcDB.scenarioDAO();
     }
 
     @After

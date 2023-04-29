@@ -3,7 +3,6 @@ package com.tfcode.comparetout.model.priceplan;
 import androidx.annotation.NonNull;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 

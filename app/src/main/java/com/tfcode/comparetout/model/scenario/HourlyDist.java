@@ -8,7 +8,7 @@ public class HourlyDist {
 
     public HourlyDist() {
         dist = new ArrayList<>();
-        double even = 100/24;
+        double even = 100/24D;
         for (int i = 0; i < 24; i++) dist.add(even);
     }
 }

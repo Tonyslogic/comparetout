@@ -52,7 +52,7 @@ public class ToutcRepository {
         pricePlanDAO = db.pricePlanDAO();
         allPricePlans = pricePlanDAO.loadPricePlans();
 
-        scenarioDAO = db.sceanrioDAO();
+        scenarioDAO = db.scenarioDAO();
         allScenarios = scenarioDAO.loadScenarios();
         inverterRelations = scenarioDAO.loadInverterRelations();
         panelRelations = scenarioDAO.loadPanelRelations();
@@ -67,10 +67,6 @@ public class ToutcRepository {
     // Observed LiveData will notify the observer when the data has changed.
     public LiveData<Map<PricePlan, List<DayRate>>> getAllPricePlans() {
         return allPricePlans;
-    }
-
-    public Map<PricePlan, List<DayRate>> getPricePlan(Integer id) {
-        return pricePlanDAO.loadPricePlan(id);
     }
 
     // You must call this on a non-UI thread or your app will throw an exception. Room ensures

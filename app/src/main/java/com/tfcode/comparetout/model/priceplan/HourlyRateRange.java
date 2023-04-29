@@ -2,6 +2,7 @@ package com.tfcode.comparetout.model.priceplan;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 
@@ -30,7 +31,9 @@ public class HourlyRateRange {
     }
 
     public double lookup(int hour) {
-        return mLookup.floorEntry(hour).getValue();
+        Map.Entry<Integer,Double> entry = mLookup.floorEntry(hour);
+        if (!(null == entry)) return entry.getValue();
+        else return 0D;
     }
 
     public DoubleHolder getDoubleHolder() {

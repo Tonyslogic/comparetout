@@ -8,7 +8,7 @@ public class MonthlyDist {
 
     public MonthlyDist() {
         monthlyDist = new ArrayList<>();
-        double even = 100/12;
+        double even = 100/12D;
         for (int i = 0; i < 12; i++) monthlyDist.add(even);
     }
 }

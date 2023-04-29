@@ -34,10 +34,3 @@ public class HWSystemJson {
     public
     ArrayList<ArrayList<Double>> hwUse;
 }
-
-//class HWUse {
-//
-//    public
-//    ArrayList<Double> hourAndPercentage;
-//
-//}
