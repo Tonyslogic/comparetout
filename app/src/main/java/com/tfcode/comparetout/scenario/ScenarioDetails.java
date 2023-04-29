@@ -2,6 +2,7 @@ package com.tfcode.comparetout.scenario;
 
 import android.annotation.SuppressLint;
 import android.app.DatePickerDialog;
+import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.DashPathEffect;
@@ -45,7 +46,7 @@ import java.util.List;
 
 public class ScenarioDetails extends Fragment {
 
-    private Long mScenarioID;
+    private Long mScenarioID = 0L;
     private ComparisonUIViewModel mViewModel;
     private Handler mMainHandler;
 
@@ -60,6 +61,22 @@ public class ScenarioDetails extends Fragment {
 
     private List<ScenarioLineGraphData> mLineData;
     private List<ScenarioBarChartData> mBarData;
+
+    private static final String SHOW_LOAD = "SHOW_LOAD";
+    private static final String SHOW_FEED = "SHOW_FEED";
+    private static final String SHOW_BUY = "SHOW_BUY";
+    private static final String SHOW_PV = "SHOW_PV";
+    private static final String SHOW_PV2BAT = "SHOW_PV2BAT";
+    private static final String SHOW_PV2LOAD = "SHOW_PV2LOAD";
+    private static final String SHOW_BAT2LOAD = "SHOW_BAT2LOAD";
+    private static final String SHOW_EVSCHEDULE = "SHOW_EVSCHEDULE";
+    private static final String SHOW_HWSCHEDULE = "SHOW_HWSCHEDULE";
+    private static final String SHOW_EVDIVERT = "SHOW_EVDIVERT";
+    private static final String SHOW_HWDIVERT = "SHOW_HWDIVERT";
+    private static final String SHOW_SOC = "SHOW_SOC";
+    private static final String SHOW_HWTEMPERATURE = "SHOW_HWTEMPERATURE";
+    private static final String SCENARIO_ID = "SCENARIO_ID";
+    private static final String DAY_OF_YEAR = "DAY_OF_YEAR";
 
     private boolean mShowLoad = true;
     private boolean mShowFeed = true;
@@ -89,13 +106,69 @@ public class ScenarioDetails extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-//        if (!(null == getActivity())) getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+        if (!(null == getActivity()))
+            getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putBoolean(SHOW_LOAD, mShowLoad);
+        outState.putBoolean(SHOW_FEED, mShowFeed);
+        outState.putBoolean(SHOW_BUY, mShowBuy);
+        outState.putBoolean(SHOW_PV, mShowPV);
+        outState.putBoolean(SHOW_PV2BAT, mShowPV2Bat);
+        outState.putBoolean(SHOW_PV2LOAD, mShowPV2Load);
+        outState.putBoolean(SHOW_BAT2LOAD, mShowBat2Load);
+        outState.putBoolean(SHOW_EVSCHEDULE, mShowEVSchedule);
+        outState.putBoolean(SHOW_HWSCHEDULE, mShowHWSchedule);
+        outState.putBoolean(SHOW_EVDIVERT, mShowEVDivert);
+        outState.putBoolean(SHOW_HWDIVERT, mShowHWDivert);
+        outState.putBoolean(SHOW_SOC, mShowSOC);
+        outState.putBoolean(SHOW_HWTEMPERATURE, mShowHWTemperature);
+        outState.putLong(SCENARIO_ID, mScenarioID);
+        outState.putInt(DAY_OF_YEAR, mDayOfYear);
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mScenarioID = ((ScenarioActivity) requireActivity()).getScenarioID();
+        if (!(null == savedInstanceState)) {
+            mShowLoad = savedInstanceState.getBoolean(SHOW_LOAD);
+            mShowFeed = savedInstanceState.getBoolean(SHOW_FEED);
+            mShowBuy = savedInstanceState.getBoolean(SHOW_BUY);
+            mShowPV = savedInstanceState.getBoolean(SHOW_PV);
+            mShowPV2Bat = savedInstanceState.getBoolean(SHOW_PV2BAT);
+            mShowPV2Load = savedInstanceState.getBoolean(SHOW_PV2LOAD);
+            mShowBat2Load = savedInstanceState.getBoolean(SHOW_BAT2LOAD);
+            mShowEVSchedule = savedInstanceState.getBoolean(SHOW_EVSCHEDULE);
+            mShowHWSchedule = savedInstanceState.getBoolean(SHOW_HWSCHEDULE);
+            mShowEVDivert = savedInstanceState.getBoolean(SHOW_EVDIVERT);
+            mShowHWDivert = savedInstanceState.getBoolean(SHOW_HWDIVERT);
+            mShowSOC = savedInstanceState.getBoolean(SHOW_SOC);
+            mShowHWTemperature = savedInstanceState.getBoolean(SHOW_HWTEMPERATURE);
+
+            mBarFilterCount = 0;
+            if (mShowLoad) mBarFilterCount++;
+            if (mShowFeed) mBarFilterCount++;
+            if (mShowBuy) mBarFilterCount++;
+            if (mShowPV) mBarFilterCount++;
+            if (mShowPV2Bat) mBarFilterCount++;
+            if (mShowPV2Load) mBarFilterCount++;
+            if (mShowBat2Load) mBarFilterCount++;
+            if (mShowEVSchedule) mBarFilterCount++;
+            if (mShowHWSchedule) mBarFilterCount++;
+            if (mShowEVDivert) mBarFilterCount++;
+            if (mShowHWDivert) mBarFilterCount++;
+
+            mLineFilterCount = 0;
+            if (mShowSOC) mLineFilterCount++;
+            if (mShowHWTemperature) mLineFilterCount++;
+
+            mScenarioID = savedInstanceState.getLong(SCENARIO_ID);
+            mDayOfYear = savedInstanceState.getInt(DAY_OF_YEAR);
+        }
+        if (mScenarioID == 0) mScenarioID = ((ScenarioActivity) requireActivity()).getScenarioID();
         mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
         mViewModel.getAllComparisons().observe(this, costings -> {
             System.out.println("Observed a change in the costings");
@@ -106,7 +179,7 @@ public class ScenarioDetails extends Fragment {
     private void updateKPIs() {
         new Thread(() -> {
             mBarData = mViewModel.getBarData(mScenarioID, mDayOfYear);
-            System.out.println("mBarData has " + mBarData.size() + " entries.");
+            System.out.println("mBarData has " + mBarData.size() + " entries." + mViewModel.toString() + " : " + mScenarioID + " : " + mDayOfYear);
             mLineData = mViewModel.getLineData(mScenarioID, mDayOfYear);
             mMainHandler.post(this::updateView);
         }).start();
@@ -145,6 +218,8 @@ public class ScenarioDetails extends Fragment {
             updateKPIs();
         });
         mCurrentDateTV = view.findViewById((R.id.date));
+        LocalDate initialLocalDate = LocalDate.ofYearDay(2001, mDayOfYear);
+        mCurrentDateTV.setText(String.format("%s/%s", String.format("%02d", initialLocalDate.getDayOfMonth()), String.format("%02d", initialLocalDate.getMonthValue())));
         ImageButton mDatePickerButton = view.findViewById((R.id.pick_date));
         DatePickerDialog.OnDateSetListener date = (view1, year, month, day) -> {
             LocalDate localDate = LocalDate.of(2001, month +1, day);
