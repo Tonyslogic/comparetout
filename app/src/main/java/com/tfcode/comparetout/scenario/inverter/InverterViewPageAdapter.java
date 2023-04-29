@@ -49,7 +49,11 @@ public class InverterViewPageAdapter extends FragmentStateAdapter {
     public long getItemId(int position) {
         Long id = mPos2ID.get(position);
         if (id == null) createFragment(position);
-        return mPos2ID.get(position);
+        Long itemID = mPos2ID.get(position);
+        if (!(null == itemID))
+            return itemID;
+        else
+            return 0L;
     }
 
     public void add(int index) {
@@ -72,12 +76,16 @@ public class InverterViewPageAdapter extends FragmentStateAdapter {
             InverterFragment inverterFragment = mInverterFragments.get(key);
             if (key < pos) {
                 newInverterFragments.put(key, mInverterFragments.get(key));
-                inverterFragment.refreshFocus();
+                if (inverterFragment != null) {
+                    inverterFragment.refreshFocus();
+                }
                 newPos2ID.put(key, mPos2ID.get(key));
             }
             if (key > pos) {
                 newInverterFragments.put(key - 1, inverterFragment);
-                inverterFragment.inverterDeleted(key - 1);
+                if (inverterFragment != null) {
+                    inverterFragment.inverterDeleted(key - 1);
+                }
                 newPos2ID.put(key - 1, mPos2ID.get(key));
             }
         }

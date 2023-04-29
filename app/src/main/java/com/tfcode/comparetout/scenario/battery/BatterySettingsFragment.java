@@ -301,6 +301,6 @@ public class BatterySettingsFragment extends Fragment {
 
     public void updateDBIndex() {
         if (!(null == mBattery))
-            mBattery.setBatteryIndex(((BatterySettingsActivity) requireActivity()).getDBID(mBatteryIndex));
+            mBattery.setBatteryIndex(((BatterySettingsActivity) requireActivity()).getDatabaseID(mBatteryIndex));
     }
 }

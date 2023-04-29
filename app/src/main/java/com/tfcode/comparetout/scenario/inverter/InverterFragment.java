@@ -1,15 +1,10 @@
 package com.tfcode.comparetout.scenario.inverter;
 
+import android.annotation.SuppressLint;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-
 import android.text.Editable;
 import android.text.InputType;
-import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,16 +13,16 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
-import com.google.android.material.snackbar.Snackbar;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.json.JsonTools;
-import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
 import com.tfcode.comparetout.model.json.scenario.InverterJson;
 import com.tfcode.comparetout.model.scenario.Inverter;
-import com.tfcode.comparetout.priceplan.PricePlanActivity;
-import com.tfcode.comparetout.scenario.ScenarioActivity;
 import com.tfcode.comparetout.util.AbstractTextWatcher;
 
 import java.lang.reflect.Type;
@@ -37,7 +32,6 @@ import java.util.List;
 public class InverterFragment extends Fragment {
 
     private int mInverterIndex;
-    private long mScenarioID;
     private String mInverterJsonString;
     private boolean mEdit;
     private List<View> mEditFields;
@@ -57,7 +51,6 @@ public class InverterFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mScenarioID = ((InverterActivity) requireActivity()).getScenarioID();
         mInverterJsonString = ((InverterActivity) requireActivity()).getInverterJson();
         mEdit = ((InverterActivity) requireActivity()).getEdit();
         mEditFields = new ArrayList<>();
@@ -85,10 +78,12 @@ public class InverterFragment extends Fragment {
         updateView();
     }
 
+    @SuppressLint("SourceLockedOrientationActivity")
     @Override
     public void onResume() {
         super.onResume();
-        getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        if (!(null == getActivity()))
+            getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 
     public void refreshFocus() {
@@ -117,7 +112,6 @@ public class InverterFragment extends Fragment {
             @Override
             public void afterTextChanged(Editable s) {
                 if (!(s.toString().equals(mInverter.getInverterName()))) {
-                    System.out.println("Inverter name changed");
                     mInverter.setInverterName(s.toString());
                     ((InverterActivity) requireActivity()).updateInverterAtIndex(mInverter, mInverterIndex);
                     ((InverterActivity) requireActivity()).setSaveNeeded(true);
@@ -128,7 +122,6 @@ public class InverterFragment extends Fragment {
             @Override
             public void afterTextChanged(Editable s) {
                 if (!(s.toString().equals(String.valueOf(mInverter.getMinExcess())))) {
-                    System.out.println("TODO: Update the min excess");
                     mInverter.setMinExcess(getDoubleOrZero(s));
                     ((InverterActivity) requireActivity()).updateInverterAtIndex(mInverter, mInverterIndex);
                     ((InverterActivity) requireActivity()).setSaveNeeded(true);
@@ -139,7 +132,6 @@ public class InverterFragment extends Fragment {
             @Override
             public void afterTextChanged(Editable s) {
                 if (!(s.toString().equals(String.valueOf(mInverter.getMaxInverterLoad())))) {
-                    System.out.println("TODO: Update the max inverter load");
                     mInverter.setMaxInverterLoad(getDoubleOrZero(s));
                     ((InverterActivity) requireActivity()).updateInverterAtIndex(mInverter, mInverterIndex);
                     ((InverterActivity) requireActivity()).setSaveNeeded(true);
@@ -150,7 +142,6 @@ public class InverterFragment extends Fragment {
             @Override
             public void afterTextChanged(Editable s) {
                 if (!(s.toString().equals(String.valueOf(mInverter.getMpptCount())))) {
-                    System.out.println("TODO: Update the mppt count");
                     mInverter.setMpptCount(getIntegerOrZero(s));
                     ((InverterActivity) requireActivity()).updateInverterAtIndex(mInverter, mInverterIndex);
                     ((InverterActivity) requireActivity()).setSaveNeeded(true);
@@ -161,7 +152,6 @@ public class InverterFragment extends Fragment {
             @Override
             public void afterTextChanged(Editable s) {
                 if (!(s.toString().equals(String.valueOf(mInverter.getAc2dcLoss())))) {
-                    System.out.println("TODO: Update the ac2dcloss");
                     mInverter.setAc2dcLoss(getIntegerOrZero(s));
                     ((InverterActivity) requireActivity()).updateInverterAtIndex(mInverter, mInverterIndex);
                     ((InverterActivity) requireActivity()).setSaveNeeded(true);
@@ -172,7 +162,6 @@ public class InverterFragment extends Fragment {
             @Override
             public void afterTextChanged(Editable s) {
                 if (!(s.toString().equals(String.valueOf(mInverter.getDc2acLoss())))) {
-                    System.out.println("TODO: Update the dc2acloss");
                     mInverter.setDc2acLoss(getIntegerOrZero(s));
                     ((InverterActivity) requireActivity()).updateInverterAtIndex(mInverter, mInverterIndex);
                     ((InverterActivity) requireActivity()).setSaveNeeded(true);
@@ -183,7 +172,6 @@ public class InverterFragment extends Fragment {
             @Override
             public void afterTextChanged(Editable s) {
                 if (!(s.toString().equals(String.valueOf(mInverter.getDc2dcLoss())))) {
-                    System.out.println("TODO: Update the dc2dcloss");
                     mInverter.setDc2dcLoss(getIntegerOrZero(s));
                     ((InverterActivity) requireActivity()).updateInverterAtIndex(mInverter, mInverterIndex);
                     ((InverterActivity) requireActivity()).setSaveNeeded(true);

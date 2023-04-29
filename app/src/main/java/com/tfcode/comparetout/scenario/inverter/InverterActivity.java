@@ -382,7 +382,7 @@ public class InverterActivity extends AppCompatActivity {
         List<InverterJson> inverterJsons = new Gson().fromJson(mInvertersJsonString, type);
         int count = inverterJsons.size();
 
-        mViewPager.setAdapter(createInvereterAdapter(count));
+        mViewPager.setAdapter(createInverterAdapter(count));
         mViewPager.setOffscreenPageLimit(4);
         System.out.println("setupViewPager " + count + " fragments");
 
@@ -396,7 +396,7 @@ public class InverterActivity extends AppCompatActivity {
         mMediator.attach();
     }
 
-    private InverterViewPageAdapter createInvereterAdapter(int count) {
+    private InverterViewPageAdapter createInverterAdapter(int count) {
         return new InverterViewPageAdapter(this, count);
     }
 
