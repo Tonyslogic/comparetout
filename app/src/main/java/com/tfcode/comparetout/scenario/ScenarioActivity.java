@@ -12,13 +12,11 @@ import android.view.MenuItem;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
-import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 
 import java.util.ArrayList;
@@ -62,7 +60,6 @@ public class ScenarioActivity extends AppCompatActivity {
 
         setupViewPager();
 
-        ComparisonUIViewModel mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
         ActionBar mActionBar = Objects.requireNonNull(getSupportActionBar());
         mActionBar.setTitle("Scenario");
     }

@@ -194,14 +194,12 @@ public class ScenarioOverview extends Fragment {
                                 null, null, null, null, null,
                                 null, null, null, null, null);
                         mViewModel.insertScenario(scenarioComponents);
-                        mSavingNewScenario = true;
-                        mEdit = false;
                     }
                     else {
                         mViewModel.updateScenario(mScenario);
-                        mSavingNewScenario = true;
-                        mEdit = false;
                     }
+                    mSavingNewScenario = true;
+                    mEdit = false;
                     ((ScenarioActivity) requireActivity()).setSaveNeeded(false);
                     return (false);
                 }
@@ -408,29 +406,16 @@ public class ScenarioOverview extends Fragment {
                 help.setSingleLine(false);
                 help.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f);
 
-                help.setText(new StringBuilder()
-                    .append("The usage profile captures how electricity is used. ")
-                    .append("Use the six buttons to configure the usage profile.\n\n")
-                    .append("Usage profiles must include at least a load profile for the house ")
-                    .append("(yellow highlight when missing). ")
-                    .append("Where you specify hourly, daily and monthly distribution as well as the ")
-                    .append("annual and base loads. There are several sources for distribution.\n\n")
-                    .append("This tab is also where you can describe your (planned) solar installation.")
-                    .append("Panel(s) and inverter(s) are needed for electricity generation. \n\n")
-                    .append("Batteries, hot water systems and electric vehicles can also be ")
-                    .append("configured, scheduled and, for water and EV's, diverted.\n\n")
-                    .append("Once configured and saved, a simulation will run. Simulation results will  ")
-                    .append("appear in the details tab shortly after. Simulation progress is ")
-                    .append("visible in the notification area. ").toString());
+                help.setText(R.string.NoScenarioText);
 
                 mHelpTable.addView(help);
             }
             else mHelpTable.removeAllViews();
 
+            TableRow tableRow = new TableRow(getActivity());
+            TextView a = new TextView(getActivity());
             if (mEdit) {
                 // CREATE TABLE ROWS
-                TableRow tableRow = new TableRow(getActivity());
-                TextView a = new TextView(getActivity());
                 a.setText(R.string.Scenario);
                 EditText b = new EditText(getActivity());
                 b.setText(mScenario.getScenarioName());
@@ -460,8 +445,6 @@ public class ScenarioOverview extends Fragment {
             }
             else {
                 // CREATE TABLE ROWS
-                TableRow tableRow = new TableRow(getActivity());
-                TextView a = new TextView(getActivity());
                 TextView b = new TextView(getActivity());
                 b.setSingleLine(false);
                 if (!(null == mBestCosting)) {
@@ -494,7 +477,7 @@ public class ScenarioOverview extends Fragment {
         }
     }
 
-    private PieChart getPieChart(String sdiff, double diff, String stot, double tot) {
+    private PieChart getPieChart(String difference, double diff, String total, double tot) {
         PieChart pieChart = new PieChart(getActivity());
 
         pieChart.getDescription().setEnabled(false);
@@ -508,8 +491,8 @@ public class ScenarioOverview extends Fragment {
 //        String label = "Cost/kWh";
 
         Map<String, Double> pieMap = new HashMap<>();
-        pieMap.put(sdiff, tot - diff);
-        pieMap.put(stot, diff);
+        pieMap.put(difference, tot - diff);
+        pieMap.put(total, diff);
         ArrayList<Integer> colors = new ArrayList<>();
         colors.add(Color.parseColor("#304567"));
         colors.add(Color.parseColor("#309967"));
@@ -570,9 +553,8 @@ public class ScenarioOverview extends Fragment {
             mTankButton.setImageResource(R.drawable.tank_set);
             if (mScenario.isHasHWSchedules()) {
                 mTankButton.setImageResource(R.drawable.tank_set_scheduled);
-                if (mScenario.isHasHWDivert()) mTankButton.setImageResource(R.drawable.tank_set_scheduled_diverted);
             }
-            else if (mScenario.isHasHWDivert()) mTankButton.setImageResource(R.drawable.tank_set_scheduled_diverted);
+            if (mScenario.isHasHWDivert()) mTankButton.setImageResource(R.drawable.tank_set_scheduled_diverted);
         }
         else mTankButton.setImageResource(R.drawable.tank_not_set);
         mTankButton.setBackgroundColor(0);
@@ -584,8 +566,6 @@ public class ScenarioOverview extends Fragment {
         else if (mScenario.isHasEVDivert()) mCarButton.setImageResource(R.drawable.car_diverted);
         else mCarButton.setImageResource(R.drawable.car_not_set);
         mCarButton.setBackgroundColor(0);
-//        mCarButton.setImageTintMode(PorterDuff.Mode.DST_OVER);
-//        mCarButton.setColorFilter(androidx.appcompat.R.attr.color, PorterDuff.Mode.DST);
     }
 
     public void setEditMode(boolean ed) {

@@ -8,7 +8,7 @@ import androidx.viewpager2.adapter.FragmentStateAdapter;
 public class ScenarioViewPageAdapter extends FragmentStateAdapter {
     ScenarioOverview mScenarioOverview = ScenarioOverview.newInstance();
     ScenarioDetails mScenarioDetails = ScenarioDetails.newInstance();
-    public ScenarioViewPageAdapter(@NonNull FragmentActivity fragmentActivity, int count) {
+    public ScenarioViewPageAdapter(@NonNull FragmentActivity fragmentActivity, int ignoredCount) {
         super(fragmentActivity);
     }
 

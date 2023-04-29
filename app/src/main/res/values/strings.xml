@@ -75,4 +75,5 @@
     <string name="HourlyBaseLoad">Hourly base load (kWh)</string>
     <string name="AnnualUsage">Annual usage (kWh)</string>
     <string name="DistributionSource">Distribution source</string>
+    <string name="NoScenarioText">\"The usage profile captures how electricity is used. Use the six buttons to configure the usage profile.\n\nUsage profiles must include at least a load profile for the house (yellow highlight when missing). Where you specify hourly, daily and monthly distribution as well as the annual and base loads. There are several sources for distribution.\n\nThis tab is also where you can describe your (planned) solar installation.Panel(s) and inverter(s) are needed for electricity generation. \n\nBatteries, hot water systems and electric vehicles can also be configured, scheduled and, for water and EV\'s, diverted.\n\nOnce configured and saved, a simulation will run. Simulation results will  appear in the details tab shortly after. Simulation progress is visible in the notification area. \"</string>
 </resources>

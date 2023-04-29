@@ -232,8 +232,6 @@ public class SimulationWorker extends Worker {
 
     public static void processOneRow(long scenarioID, ArrayList<ScenarioSimulationData> outputRows, int row, Map<Inverter, InputData> inputDataMap) {
 
-//        Map.Entry<Inverter,InputData> entry = inputDataMap.entrySet().iterator().next();
-//        SimulationInputData inputRow = entry.getValue().inputData.get(row);
         SimulationInputData inputRow = null;
         double inputLoad = 0d;
 
@@ -243,8 +241,8 @@ public class SimulationWorker extends Worker {
         double absoluteMinExcess = 0;
         double totalMaxInverterLoad = 0;
         if (row > 0) {
-            for (Map.Entry<Inverter,InputData> etry: inputDataMap.entrySet()) {
-                InputData iData = etry.getValue();
+            for (Map.Entry<Inverter,InputData> entry: inputDataMap.entrySet()) {
+                InputData iData = entry.getValue();
                 if (null == inputRow) inputRow = iData.inputData.get(row);
                 if (null == iData.mBattery) {
                     iData.soc = 0;
@@ -252,16 +250,16 @@ public class SimulationWorker extends Worker {
                 }
                 batteryAvailableForDischarge += iData.getDischargeCapacity();
                 batteryAvailableForCharge += iData.getChargeCapacity();
-                double iMinExcess = etry.getKey().getMinExcess();
+                double iMinExcess = entry.getKey().getMinExcess();
                 if (iMinExcess > 0 && absoluteMinExcess == 0) absoluteMinExcess = iMinExcess;
                 else absoluteMinExcess = min( absoluteMinExcess, iMinExcess);
-                totalMaxInverterLoad += etry.getKey().getMaxInverterLoad();
+                totalMaxInverterLoad += entry.getKey().getMaxInverterLoad();
                 inputLoad += iData.inputData.get(row).getLoad();
             }
         }
         else { // Set initial SOC
-            for (Map.Entry<Inverter,InputData> etry: inputDataMap.entrySet()) {
-                InputData iData = etry.getValue();
+            for (Map.Entry<Inverter,InputData> entry: inputDataMap.entrySet()) {
+                InputData iData = entry.getValue();
                 if (null == inputRow) inputRow = iData.inputData.get(row);
                 if (null == iData.mBattery) {
                     iData.soc = 0;
@@ -270,10 +268,10 @@ public class SimulationWorker extends Worker {
                 iData.soc = iData.getDischargeStop();
                 batteryAvailableForDischarge += iData.getDischargeCapacity();
                 batteryAvailableForCharge += iData.getChargeCapacity();
-                double iMinExcess = etry.getKey().getMinExcess();
+                double iMinExcess = entry.getKey().getMinExcess();
                 if (iMinExcess > 0 && absoluteMinExcess == 0) absoluteMinExcess = iMinExcess;
                 else absoluteMinExcess = min( absoluteMinExcess, iMinExcess);
-                totalMaxInverterLoad += etry.getKey().getMaxInverterLoad();
+                totalMaxInverterLoad += entry.getKey().getMaxInverterLoad();
                 inputLoad += iData.inputData.get(row).getLoad();
             }
         }
@@ -282,10 +280,10 @@ public class SimulationWorker extends Worker {
         // SETUP TOTAL AND EFFECTIVE PV
         double tPV = 0;
         double effectivePV = 0;
-        for (Map.Entry<Inverter,InputData> etry: inputDataMap.entrySet()) {
-            SimulationInputData sid = etry.getValue().inputData.get(row);
+        for (Map.Entry<Inverter,InputData> entry: inputDataMap.entrySet()) {
+            SimulationInputData sid = entry.getValue().inputData.get(row);
             tPV += sid.tpv;
-            effectivePV += sid.tpv * etry.getValue().dc2acLoss;
+            effectivePV += sid.tpv * entry.getValue().dc2acLoss;
         }
 
         double locallyAvailable = effectivePV + batteryAvailableForDischarge;
