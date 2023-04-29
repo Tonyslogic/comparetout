@@ -63,4 +63,6 @@
     <string name="hot_water_diversion">Hot Water Diversion</string>
     <string name="state_of_charge">State of Charge</string>
     <string name="hot_water_temperature">Hot Water Temperature</string>
+    <string name="ComparisonFilterText">\"Show columns… \"</string>
+    <string name="EmptyComparisonsText">Price comparisons will appear here. \n\n Select usage(s) and costs from the other tabs to control the content of this tab\n\nYou can sort the table, and select the fields to show.\n\nTilting the screen (landscape) will better fit more fields.\n\nProgress of recently added costs and usages can be seen in the notification area.\n\nSelecting a comparison will pop up a usage graph (pie chart) that shows how much electricity was purchased at each rate</string>
 </resources>

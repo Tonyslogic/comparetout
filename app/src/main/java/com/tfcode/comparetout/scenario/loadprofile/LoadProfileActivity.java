@@ -39,7 +39,6 @@ public class LoadProfileActivity extends AppCompatActivity {
     private boolean mUnsavedChanges = false;
 
     private String mLoadProfileJson = "";
-    private final String mDistributionSource = "";
 
     private List<String> mLinkedScenarios = new ArrayList<>();
 
@@ -163,17 +162,6 @@ public class LoadProfileActivity extends AppCompatActivity {
 
             return true;
         }
-//        if (item.getItemId() == R.id.lp_import) {//add the function to perform here
-//            System.out.println("Import attempt");
-//
-//            mLoadLoadProfileFile.launch("*/*");
-//
-//            return true;
-//        }
-//        if (item.getItemId() == R.id.lp_save) {//add the function to perform here
-//            System.out.println("Save attempt");
-//            return false;
-//        }
         if (item.getItemId() == R.id.lp_copy) {//add the function to perform here
             System.out.println("Copy attempt");
             ScenarioSelectDialog scenarioSelectDialog =

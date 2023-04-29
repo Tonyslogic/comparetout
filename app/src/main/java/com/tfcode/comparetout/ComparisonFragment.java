@@ -49,7 +49,6 @@ import java.util.Objects;
 
 public class ComparisonFragment extends Fragment {
 
-    private ComparisonUIViewModel mViewModel;
     private TableLayout mTableLayout;
     private TableLayout mControlTableLayout;
     private List<Scenario> mScenarios;
@@ -80,7 +79,6 @@ public class ComparisonFragment extends Fragment {
     private PopupWindow mPieChartWindow;
 
     private int mOrientation = Configuration.ORIENTATION_PORTRAIT;
-    private boolean darkMode = false;
 
     public ComparisonFragment() {
         // Required empty public constructor
@@ -91,30 +89,11 @@ public class ComparisonFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        if (mVisibleColCount <= 5)
+        if (mVisibleColCount <= 5 && !(null == getActivity()))
             getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
-        else
+        else if (!(null == getActivity()))
             getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         mOrientation = getActivity().getResources().getConfiguration().orientation;
-        switch (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) {
-            case Configuration.UI_MODE_NIGHT_YES:
-                darkMode = true;
-                break;
-            case Configuration.UI_MODE_NIGHT_NO:
-                darkMode = false;
-                break;
-        }
-//        TypedValue a = new TypedValue();
-//        requireActivity().getApplication().getTheme().resolveAttribute(android.R.attr.windowBackground, a, true);
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-//            if (a.isColorType()) {
-//                // windowBackground is a color
-//                int color = a.data;
-//            } else {
-//                // windowBackground is not a color, probably a drawable
-//                Drawable d = requireActivity().getResources().getDrawable(a.resourceId);
-//            }
-//        }
     }
 
     @Override
@@ -151,27 +130,20 @@ public class ComparisonFragment extends Fragment {
             if (mShowBuy) mVisibleColCount++;
             if (mShowFixed) mVisibleColCount++;
         }
-        mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
-//        ((MainActivity)requireActivity()).startProgressIndicator();
+        ComparisonUIViewModel mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
         mViewModel.getAllComparisons().observe(this, costings -> {
             System.out.println("Observed a change in live comparison data " + costings.size());
             mCostings = costings;
             updateView();
-//            if (!(null == mScenarios) && !(null == mPricePlans))
-//                ((MainActivity)requireActivity()).stopProgressIndicator();
         });
         mViewModel.getAllScenarios().observe(this, scenarios -> {
             mScenarios = scenarios;
             updateView();
-//            if (!(null == mCostings) && !(null == mPricePlans))
-//                ((MainActivity)requireActivity()).stopProgressIndicator();
         });
         mViewModel.getAllPricePlans().observe(this, plans -> {
             mPricePlans = new ArrayList<>();
             mPricePlans.addAll(plans.keySet());
             updateView();
-//            if (!(null == mScenarios) && !(null == mCostings))
-//                ((MainActivity)requireActivity()).stopProgressIndicator();
         });
     }
 
@@ -220,7 +192,7 @@ public class ComparisonFragment extends Fragment {
         TableRow tableRow = new TableRow(getActivity());
         TextView a = new TextView(getActivity());
         a.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f);
-        a.setText("Show columns... ");
+        a.setText(R.string.ComparisonFilterText);
 
         if (null == mPopup) {
             //Creating the instance of PopupMenu
@@ -240,40 +212,39 @@ public class ComparisonFragment extends Fragment {
             mPopup.setOnMenuItemClickListener(item -> {
                 item.setChecked(!item.isChecked());
                 if (item.isChecked())  mVisibleColCount++; else mVisibleColCount--;
-                if (mVisibleColCount > 5)
+                if (mVisibleColCount > 5 && (!(null == getActivity())))
                     getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-                else
+                else if (!(null == getActivity()))
                     getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
 
-                switch (item.getItemId()){
-                    case R.id.scenario:
-                        mTableLayout.setColumnCollapsed(0, !item.isChecked());
-                        mShowScenario = item.isChecked();
-                        break;
-                    case R.id.plan:
-                        mTableLayout.setColumnCollapsed(1, !item.isChecked());
-                        mShowPlan = item.isChecked();
-                        break;
-                    case R.id.net:
-                        mTableLayout.setColumnCollapsed(2, !item.isChecked());
-                        mShowNet = item.isChecked();
-                        break;
-                    case R.id.buy:
-                        mTableLayout.setColumnCollapsed(3, !item.isChecked());
-                        mShowBuy = item.isChecked();
-                        break;
-                    case R.id.sell:
-                        mTableLayout.setColumnCollapsed(4, !item.isChecked());
-                        mShowSell = item.isChecked();
-                        break;
-                    case R.id.bonus:
-                        mTableLayout.setColumnCollapsed(5, !item.isChecked());
-                        mShowBonus = item.isChecked();
-                        break;
-                    case R.id.fixed:
-                        mTableLayout.setColumnCollapsed(6, !item.isChecked());
-                        mShowFixed = item.isChecked();
-                        break;
+                int itemID = item.getItemId();
+                if (itemID == R.id.scenario) {
+                    mTableLayout.setColumnCollapsed(0, !item.isChecked());
+                    mShowScenario = item.isChecked();
+                }
+                if (itemID == R.id.plan) {
+                    mTableLayout.setColumnCollapsed(1, !item.isChecked());
+                    mShowPlan = item.isChecked();
+                }
+                if (itemID == R.id.net) {
+                    mTableLayout.setColumnCollapsed(2, !item.isChecked());
+                    mShowNet = item.isChecked();
+                }
+                if (itemID == R.id.buy) {
+                    mTableLayout.setColumnCollapsed(3, !item.isChecked());
+                    mShowBuy = item.isChecked();
+                }
+                if (itemID == R.id.sell) {
+                    mTableLayout.setColumnCollapsed(4, !item.isChecked());
+                    mShowSell = item.isChecked();
+                }
+                if (itemID == R.id.bonus) {
+                    mTableLayout.setColumnCollapsed(5, !item.isChecked());
+                    mShowBonus = item.isChecked();
+                }
+                if (itemID == R.id.fixed) {
+                    mTableLayout.setColumnCollapsed(6, !item.isChecked());
+                    mShowFixed = item.isChecked();
                 }
                 return true;
             });
@@ -380,13 +351,7 @@ public class ComparisonFragment extends Fragment {
             help.setSingleLine(false);
             help.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f);
 
-            help.setText(new StringBuilder()
-                    .append("Price comparisons will appear here. \n\n")
-                    .append("Select usage(s) and costs from the other tabs to control the content of this tab\n\n")
-                    .append("You can sort the table, and select the fields to show.\n\n")
-                    .append("Tilting the screen (landscape) will better fit more fields.\n\n")
-                    .append("Progress of recently added costs and usages can be seen in the notification area.\n\n")
-                    .append("Selecting a comparison will pop up a usage graph (pie chart) that shows how much electricity was purchased at each rate").toString());
+            help.setText(R.string.EmptyComparisonsText);
 
             mTableLayout.addView(help);
         }
@@ -466,7 +431,6 @@ public class ComparisonFragment extends Fragment {
         tableRow.addView(e);
         tableRow.addView(f);
         tableRow.addView(g);
-//        tableRow.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
 
         // ADD TABLEROW TO TABLELAYOUT
         mTableLayout.addView(tableRow);

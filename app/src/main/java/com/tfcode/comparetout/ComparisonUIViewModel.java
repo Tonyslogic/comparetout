@@ -36,7 +36,6 @@ public class ComparisonUIViewModel extends AndroidViewModel {
         super(application);
         toutcRepository = new ToutcRepository(application);
         allPricePlans = toutcRepository.getAllPricePlans();
-//        LiveData<List<Scenario>> allScenarios = toutcRepository.getAllScenarios();
     }
 
     public LiveData<Map<PricePlan, List<DayRate>>> getAllPricePlans() {
@@ -50,22 +49,6 @@ public class ComparisonUIViewModel extends AndroidViewModel {
     public void deletePricePlan(Integer id) {
         toutcRepository.deletePricePlan(id);
         toutcRepository.removeCostingsForPricePlan(id);
-    }
-
-    public void deletePricePlanRow(int id) {
-        toutcRepository.deletePPRow(id);
-    }
-
-    public void deleteAll() {
-        toutcRepository.deleteAll();
-    }
-
-    public void delpp(PricePlan pp) {
-        toutcRepository.delpp(pp);
-    }
-
-    public Map<PricePlan, List<DayRate>> getPricePlan(Integer id) {
-        return toutcRepository.getPricePlan(id);
     }
 
     public void updatePricePlanActiveStatus(int id, boolean checked) {

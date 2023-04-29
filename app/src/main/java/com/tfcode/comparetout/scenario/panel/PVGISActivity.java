@@ -8,7 +8,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -39,7 +38,6 @@ import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.material.snackbar.Snackbar;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
@@ -61,7 +59,6 @@ public class PVGISActivity extends AppCompatActivity {
     private TableLayout mTableLayout;
     private Long mPanelID = 0L;
     private Panel mPanel;
-    private final String mScenarioName = "";
     private boolean mEdit = false;
     private List<View> mEditFields;
     private ComparisonUIViewModel mViewModel;
@@ -246,7 +243,6 @@ public class PVGISActivity extends AppCompatActivity {
 
         int integerType = InputType.TYPE_CLASS_NUMBER;
         int doubleType = InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL;
-        int stringType = InputType.TYPE_CLASS_TEXT;
         DecimalFormat df = new DecimalFormat("#.000");
 
         // CREATE TABLE ROWS

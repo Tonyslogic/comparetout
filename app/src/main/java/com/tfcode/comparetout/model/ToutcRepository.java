@@ -86,18 +86,6 @@ public class ToutcRepository {
         });
     }
 
-    public void deleteAll() {
-        ToutcDB.databaseWriteExecutor.execute(pricePlanDAO::deleteAll);
-    }
-
-    public void deletePPRow (int id){
-        ToutcDB.databaseWriteExecutor.execute(() -> pricePlanDAO.deletePricePlanRow(id));
-    }
-
-    public void delpp(PricePlan pp) {
-        ToutcDB.databaseWriteExecutor.execute(() -> pricePlanDAO.delpp(pp));
-    }
-
     public void updatePricePlanActiveStatus(int id, boolean checked) {
         ToutcDB.databaseWriteExecutor.execute(() ->
                 pricePlanDAO.updatePricePlanActiveStatus(id, checked));
@@ -175,18 +163,6 @@ public class ToutcRepository {
     public ScenarioComponents getScenarioComponentsForScenarioID(long scenarioID) {
         return scenarioDAO.getScenarioComponentsForScenarioID(scenarioID);
     }
-
-//    public List<SimulationInputData> getSimulationInputSummed(long scenarioID, long inverterID) {
-//        return scenarioDAO.getSimulationInputSummed(scenarioID, inverterID);
-//    }
-
-//    public List<SimulationInputData> getSimulationInputOptimised(long scenarioID, long inverterID) {
-//        return scenarioDAO.getSimulationInputOptimised(scenarioID, inverterID);
-//    }
-
-//    public List<SimulationInputData> getSimulationInputForInverter(long scenarioID, long inverterID, List<Long> parallel, List<Long> optimised) {
-//        return scenarioDAO.getSimulationInputForInverter(scenarioID, inverterID, parallel, optimised);
-//    }
 
     public void saveSimulationDataForScenario(ArrayList<ScenarioSimulationData> simulationData) {
         scenarioDAO.saveSimulationDataForScenario(simulationData);
