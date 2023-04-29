@@ -48,8 +48,6 @@ public class PricePlanActivity extends AppCompatActivity {
     private ActionBar mActionBar;
     private boolean mDoubleBackToExitPressedOnce = false;
     private boolean mUnsavedChanges = false;
-//    private ProgressBar mProgressBar;
-//    private Handler mMainHandler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,31 +60,12 @@ public class PricePlanActivity extends AppCompatActivity {
         setContentView(R.layout.activity_price_plan);
         viewPager = findViewById(R.id.view_plan_pager);
 
-//        createProgressBar();
         setupViewPager();
 
         mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
         mActionBar = Objects.requireNonNull(getSupportActionBar());
         mActionBar.setTitle("Price plan details");
     }
-
-//    private void createProgressBar() {
-//        mProgressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleLarge);
-//        ConstraintLayout constraintLayout = findViewById(R.id.pp_activity);
-//        ConstraintSet set = new ConstraintSet();
-//
-//        mProgressBar.setId(View.generateViewId());  // cannot set id after add
-//        constraintLayout.addView(mProgressBar,0);
-//        set.clone(constraintLayout);
-//        set.connect(mProgressBar.getId(), ConstraintSet.TOP, constraintLayout.getId(), ConstraintSet.TOP, 60);
-//        set.connect(mProgressBar.getId(), ConstraintSet.BOTTOM, constraintLayout.getId(), ConstraintSet.BOTTOM, 60);
-//        set.connect(mProgressBar.getId(), ConstraintSet.RIGHT, constraintLayout.getId(), ConstraintSet.RIGHT, 60);
-//        set.connect(mProgressBar.getId(), ConstraintSet.LEFT, constraintLayout.getId(), ConstraintSet.LEFT, 60);
-//        set.applyTo(constraintLayout);
-//        mProgressBar.setVisibility(View.GONE);
-//
-//        mMainHandler = new Handler(Looper.getMainLooper());
-//    }
 
     // PAGE ADAPTER PAGE ADAPTER PAGE ADAPTER PAGE ADAPTER PAGE ADAPTER
     private void setupViewPager() {
@@ -100,11 +79,10 @@ public class PricePlanActivity extends AppCompatActivity {
 
         ArrayList<String> tabTitlesList = new ArrayList<>();
         tabTitlesList.add("Plan details");
-        for (DayRateJson dr: ppj.rates) tabTitlesList.add("Rates");
-        String[] tabTitles = tabTitlesList.toArray(new String[tabTitlesList.size()]);
+        for (DayRateJson ignored : ppj.rates) tabTitlesList.add("Rates");
         TabLayout tabLayout = findViewById(R.id.tab_layout);
         mMediator = new TabLayoutMediator(tabLayout, viewPager,
-                (tab, position) -> tab.setText(tabTitles[position])
+                (tab, position) -> tab.setText(tabTitlesList.get(position))
         );
         mMediator.attach();
     }
@@ -174,7 +152,8 @@ public class PricePlanActivity extends AppCompatActivity {
             MenuItem delDayRateItem = mMenu.findItem(R.id.del_a_day_rate);
             delDayRateItem.setVisible(true);
             item.setVisible(false);
-            ((PricePlanViewPageAdapter)viewPager.getAdapter()).setEdit(true);
+            if (!(null == viewPager.getAdapter()))
+                ((PricePlanViewPageAdapter)viewPager.getAdapter()).setEdit(true);
             return (false);
         }
         if (item.getItemId() == R.id.export_a_plan){
@@ -211,7 +190,8 @@ public class PricePlanActivity extends AppCompatActivity {
             delDayRateItem.setVisible(false);
             MenuItem editItem = mMenu.findItem(R.id.edit_a_plan);
             editItem.setVisible(true);
-            ((PricePlanViewPageAdapter) viewPager.getAdapter()).setEdit(false);
+            if (!(null == viewPager.getAdapter()))
+                ((PricePlanViewPageAdapter) viewPager.getAdapter()).setEdit(false);
 
             return (true);
         }
@@ -230,18 +210,17 @@ public class PricePlanActivity extends AppCompatActivity {
 
                 focusedPlan = JsonTools.createSinglePricePlanJsonObject(pricePlan, dayRates);
 
-//                viewPager.setCurrentItem(pos - 1);
-                ((PricePlanViewPageAdapter)viewPager.getAdapter()).delete(pos);
+                if (!(null == viewPager.getAdapter()))
+                    ((PricePlanViewPageAdapter)viewPager.getAdapter()).delete(pos);
 
                 ppj = new Gson().fromJson(focusedPlan, type);
                 ArrayList<String> tabTitlesList = new ArrayList<>();
                 tabTitlesList.add("Plan details");
-                for (DayRateJson dr : ppj.rates) tabTitlesList.add("Rates");
-                String[] tabTitles = tabTitlesList.toArray(new String[tabTitlesList.size()]);
+                for (DayRateJson ignored : ppj.rates) tabTitlesList.add("Rates");
                 TabLayout tabLayout = findViewById(R.id.tab_layout);
                 mMediator.detach();
                 mMediator = new TabLayoutMediator(tabLayout, viewPager,
-                        (tab, position) -> tab.setText(tabTitles[position])
+                        (tab, position) -> tab.setText(tabTitlesList.get(position))
                 );
                 mMediator.attach();
             }
@@ -253,7 +232,9 @@ public class PricePlanActivity extends AppCompatActivity {
         }
         if (item.getItemId() == R.id.add_a_day_rate) {
             System.out.println("Adding a dayRate");
-            int pos = viewPager.getAdapter().getItemCount(); //.getCurrentItem();
+            int pos = 0;
+            if (!(null == viewPager.getAdapter()))
+                pos = viewPager.getAdapter().getItemCount(); //.getCurrentItem();
             Type type = new TypeToken<PricePlanJsonFile>() {}.getType();
             PricePlanJsonFile ppj = new Gson().fromJson(focusedPlan, type);
             PricePlan pricePlan = JsonTools.createPricePlan(ppj);
@@ -270,12 +251,11 @@ public class PricePlanActivity extends AppCompatActivity {
             ppj = new Gson().fromJson(focusedPlan, type);
             ArrayList<String> tabTitlesList = new ArrayList<>();
             tabTitlesList.add("Plan details");
-            for (DayRateJson dr : ppj.rates) tabTitlesList.add("Rates");
-            String[] tabTitles = tabTitlesList.toArray(new String[tabTitlesList.size()]);
+            for (DayRateJson ignored : ppj.rates) tabTitlesList.add("Rates");
             TabLayout tabLayout = findViewById(R.id.tab_layout);
             mMediator.detach();
             mMediator = new TabLayoutMediator(tabLayout, viewPager,
-                    (tab, position) -> tab.setText(tabTitles[position])
+                    (tab, position) -> tab.setText(tabTitlesList.get(position))
             );
             mMediator.attach();
             //
@@ -303,8 +283,7 @@ public class PricePlanActivity extends AppCompatActivity {
                         "Unsaved changes. Please click BACK again to discard and exit", Snackbar.LENGTH_LONG)
                 .setAction("Action", null).show();
 
-        new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
-            @Override public void run() { mDoubleBackToExitPressedOnce =false;}}, 2000);
+        new Handler(Looper.getMainLooper()).postDelayed(() -> mDoubleBackToExitPressedOnce =false, 2000);
     }
 
     // FRAGMENT ACCESS METHODS
@@ -358,7 +337,4 @@ public class PricePlanActivity extends AppCompatActivity {
         mUnsavedChanges = saveNeeded;
     }
 
-//    public void startProgressIndicator() {mProgressBar.setVisibility(View.VISIBLE);}
-//
-//    public void stopProgressIndicator() {mProgressBar.setVisibility(View.GONE);}
 }

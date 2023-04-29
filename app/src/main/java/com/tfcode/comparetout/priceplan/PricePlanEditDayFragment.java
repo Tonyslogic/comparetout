@@ -1,7 +1,7 @@
 package com.tfcode.comparetout.priceplan;
 
+import android.annotation.SuppressLint;
 import android.content.pm.ActivityInfo;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.InputType;
@@ -24,20 +24,18 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
-import androidx.lifecycle.ViewModelProvider;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
+import com.tfcode.comparetout.model.json.JsonTools;
+import com.tfcode.comparetout.model.json.priceplan.DayRateJson;
+import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.DoubleHolder;
 import com.tfcode.comparetout.model.priceplan.HourlyRate;
 import com.tfcode.comparetout.model.priceplan.HourlyRateRange;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
-import com.tfcode.comparetout.model.json.JsonTools;
-import com.tfcode.comparetout.model.json.priceplan.DayRateJson;
-import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
 import com.tfcode.comparetout.util.AbstractTextWatcher;
 
 import java.lang.reflect.Type;
@@ -47,11 +45,9 @@ import java.util.List;
 
 public class PricePlanEditDayFragment extends Fragment {
 
-    private ComparisonUIViewModel mViewModel;
     private TableLayout mTableLayout;
 
     private String mFocus;
-    private Long mPlanID;
     private boolean mEdit;
     private PricePlan mPricePlan;
     private List<DayRate> mDayRates;
@@ -73,13 +69,10 @@ public class PricePlanEditDayFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-//        setHasOptionsMenu(true);
-        mPlanID = ((PricePlanActivity) requireActivity()).getPlanID();
         mFocus = ((PricePlanActivity) requireActivity()).getFocusedPlan();
         mEdit = ((PricePlanActivity) requireActivity()).getEdit();
         mEditFields = new ArrayList<>();
         unpackmFocus();
-        mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
     }
 
     private void unpackmFocus() {
@@ -128,11 +121,12 @@ public class PricePlanEditDayFragment extends Fragment {
         });
     }
 
+    @SuppressLint("SourceLockedOrientationActivity")
     @Override
     public void onResume() {
         super.onResume();
-        getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-        System.out.println("PPEDF::onResume");
+        if (!(null == getActivity()))
+            getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         try {
             DayRate thisFragmentsDayRate = mDayRates.get(mRateIndex);
             mFocus = ((PricePlanActivity) requireActivity()).getFocusedPlan();
@@ -144,25 +138,9 @@ public class PricePlanEditDayFragment extends Fragment {
         }
     }
 
-//    @Override
-//    public boolean onOptionsItemSelected(MenuItem item) {
-//        System.out.println("PricePlanEditFragment.onOptionsItemSelected");
-//        if (item.getItemId() == R.id.edit_a_plan) {//add the function to perform here
-//            System.out.println("Edit attempt");
-//            setEditMode(true);
-//            return (false);
-//        }
-//        return true;
-//    }
-
     public void setEditMode(boolean ed) {
         mEdit = ed;
         if (!(null == mEditFields)) for (View v : mEditFields) v.setEnabled(mEdit);
-//        if (!mEdit) {
-//            if (!(null == mEditFields)) for (View v : mEditFields) v.setEnabled(true);
-//            PricePlanActivity ppa = ((PricePlanActivity) getActivity());
-//            if (!(null == ppa)) ppa.setEdit(true);
-//        }
     }
 
     public void refreshFocus() {
@@ -172,6 +150,7 @@ public class PricePlanEditDayFragment extends Fragment {
             updateView();
         } catch (IllegalStateException ise) {
             System.out.println("Fragment " + (mRateIndex + 1) + " was detached from activity during refresh");
+            ise.printStackTrace();
         }
     }
 
@@ -184,19 +163,18 @@ public class PricePlanEditDayFragment extends Fragment {
             updateView();
         } catch (java.lang.IllegalStateException ise) {
             System.out.println("Fragment " + (mRateIndex + 1) + " was detached from activity during delete");
+            ise.printStackTrace();
         }
     }
 
+    @SuppressLint("DefaultLocale")
     public void updateView() {
-        System.out.println("Updating PricePlanEditDayFragment " + mRateIndex + ", " + mEdit);
         mTableLayout.removeAllViews();
 
         // CREATE PARAM FOR MARGINING
         TableRow.LayoutParams planParams = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
         planParams.topMargin = 2;
         planParams.rightMargin = 2;
-//        planParams.width = 0;
-//        planParams.weight = 1;
 
         // CREATE TABLE ROWS
 
@@ -208,7 +186,7 @@ public class PricePlanEditDayFragment extends Fragment {
         {
             TableRow tableRow = new TableRow(getActivity());
             TextView a = new TextView(getActivity());
-            a.setText("From (MM/DD)");
+            a.setText(R.string.FromFormat);
             tableRow.addView(a);
             EditText b = new EditText(getActivity());
             b.setText(mDayRates.get(mRateIndex).getStartDate());
@@ -222,7 +200,7 @@ public class PricePlanEditDayFragment extends Fragment {
             b.setEnabled(mEdit);
             tableRow.addView(b);
             TextView c = new TextView(getActivity());
-            c.setText("To (MM/DD)");
+            c.setText(R.string.ToFormat);
             tableRow.addView(c);
             EditText d = new EditText(getActivity());
             d.setText(mDayRates.get(mRateIndex).getEndDate());
@@ -250,25 +228,25 @@ public class PricePlanEditDayFragment extends Fragment {
         {
             TableRow tableRow = new TableRow(getActivity());
             TextView a = new TextView(getActivity());
-            a.setText("Mon");
+            a.setText(R.string.Mon);
             tableRow.addView(a);
             TextView b = new TextView(getActivity());
-            b.setText("Tue");
+            b.setText(R.string.Tue);
             tableRow.addView(b);
             TextView c = new TextView(getActivity());
-            c.setText("Wed");
+            c.setText(R.string.Wed);
             tableRow.addView(c);
             TextView d = new TextView(getActivity());
-            d.setText("Thu");
+            d.setText(R.string.Thu);
             tableRow.addView(d);
             TextView e = new TextView(getActivity());
-            e.setText("Fri");
+            e.setText(R.string.Fri);
             tableRow.addView(e);
             TextView f = new TextView(getActivity());
-            f.setText("Sat");
+            f.setText(R.string.Sat);
             tableRow.addView(f);
             TextView g = new TextView(getActivity());
-            g.setText("Sun");
+            g.setText(R.string.Sun);
             tableRow.addView(g);
             daysTable.addView(tableRow);
         }
@@ -328,8 +306,7 @@ public class PricePlanEditDayFragment extends Fragment {
             TextView spacerTV = new TextView(getActivity());
             spacerTV.setSingleLine(true);
             spacerTV.setEllipsize(TextUtils.TruncateAt.END);
-            spacerTV.setText("......................................................................" +
-                    "...............................................................................");
+            spacerTV.setText(R.string.Spacer);
             spacer.addView(spacerTV);
             mTableLayout.addView(spacer);
         }
@@ -348,11 +325,11 @@ public class PricePlanEditDayFragment extends Fragment {
             {
                 TableRow titleRow = new TableRow(getActivity());
                 TextView a = new TextView(getActivity());
-                a.setText("From");
+                a.setText(R.string.From);
                 a.setGravity(Gravity.CENTER);
                 titleRow.addView(a);
                 TextView b = new TextView(getActivity());
-                b.setText("To");
+                b.setText(R.string.To);
                 b.setGravity(Gravity.CENTER);
                 titleRow.addView(b);
                 TextView c = new TextView(getActivity());
@@ -360,7 +337,7 @@ public class PricePlanEditDayFragment extends Fragment {
                 c.setGravity(Gravity.CENTER);
                 titleRow.addView(c);
                 TextView d = new TextView(getActivity());
-                d.setText("Del");
+                d.setText(R.string.Del);
                 d.setGravity(Gravity.CENTER);
                 titleRow.addView(d);
                 pricesTable.addView(titleRow);
@@ -378,10 +355,10 @@ public class PricePlanEditDayFragment extends Fragment {
                 EditText to = new EditText(getActivity());
                 EditText price = new EditText(getActivity());
                 ImageButton del = new ImageButton(getActivity());
-                from.setText("" + hourlyRate.getBegin());
+                from.setText(String.format("%d", hourlyRate.getBegin()));
                 from.setEnabled(false);
                 priceRow.addView(from);
-                to.setText("" + hourlyRate.getEnd());
+                to.setText(String.format("%d", hourlyRate.getEnd()));
                 to.setInputType(InputType.TYPE_CLASS_NUMBER);
                 to.setEnabled(mEdit);
                 mEditFields.add(to);
@@ -395,13 +372,13 @@ public class PricePlanEditDayFragment extends Fragment {
                         ratesList.update(fromValue, newToValue, rate);
                         System.out.println("TO_HOUR edit lost focus " + ratesList);
                         mDayRates.get(mRateIndex).setHours(ratesList);
-                        if (!(null == finalNextFrom)) finalNextFrom.setText(newToValue.toString());
+                        if (!(null == finalNextFrom)) finalNextFrom.setText(String.format("%d",newToValue));
                         updateFocusAndValidate();
                     }
                 });
                 priceRow.addView(to);
                 price.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-                price.setText("" + hourlyRate.getPrice());
+                price.setText(String.format("%s", hourlyRate.getPrice()));
                 price.setEnabled(mEdit);
                 mEditFields.add(price);
                 price.addTextChangedListener(new AbstractTextWatcher() {
@@ -421,7 +398,7 @@ public class PricePlanEditDayFragment extends Fragment {
                 EditText finalNextPrice = nextPrice;
                 del.setOnClickListener(v -> {
                     System.out.println("delete: " + v.getId());
-                    Double newValue = (double) 0;
+                    double newValue = 0;
                     if (!(null == finalNextPrice))
                         newValue = Double.parseDouble(finalNextPrice.getText().toString());
                     Integer toValue = Integer.parseInt(to.getText().toString());
@@ -455,8 +432,7 @@ public class PricePlanEditDayFragment extends Fragment {
             TextView spacerTV = new TextView(getActivity());
             spacerTV.setSingleLine(true);
             spacerTV.setEllipsize(TextUtils.TruncateAt.END);
-            spacerTV.setText("......................................................................" +
-                    "...............................................................................");
+            spacerTV.setText(".....................................................................................................................................................");
             spacer.addView(spacerTV);
             mTableLayout.addView(spacer);
         }
@@ -476,9 +452,9 @@ public class PricePlanEditDayFragment extends Fragment {
             EditText price = new EditText(getActivity());
             ImageButton add = new ImageButton(getActivity());
 
-            from.setText("0");
-            to.setText("24");
-            price.setText("11.1");
+            from.setText(R.string.Hour0);
+            to.setText(R.string.Hour24);
+            price.setText(R.string.NewRateDouble);
             from.setEnabled(mEdit);
             to.setEnabled(mEdit);
             price.setEnabled(mEdit);

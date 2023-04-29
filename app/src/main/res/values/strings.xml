@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">Compare tariffs</string>
     <string name="share">Share</string>
     <string name="edit">Edit</string>
@@ -78,4 +78,24 @@
     <string name="NoScenarioText">\"The usage profile captures how electricity is used. Use the six buttons to configure the usage profile.\n\nUsage profiles must include at least a load profile for the house (yellow highlight when missing). Where you specify hourly, daily and monthly distribution as well as the annual and base loads. There are several sources for distribution.\n\nThis tab is also where you can describe your (planned) solar installation.Panel(s) and inverter(s) are needed for electricity generation. \n\nBatteries, hot water systems and electric vehicles can also be configured, scheduled and, for water and EV\'s, diverted.\n\nOnce configured and saved, a simulation will run. Simulation results will  appear in the details tab shortly after. Simulation progress is visible in the notification area. \"</string>
     <string name="NoPricePlansText">There are no price plans created.\n\nAt least one usage price plan is needed for the application to simulate and compare. \n\nPrice plans are a standard way to describe the contract with your supplier. You can add as many suppliers and plans as you like. \n\nYou can add a price plans manually using the \'+\' button in the bottom right, and using the menu, download or load from a file. \n\nOnce created, you can delete, copy and view/edit usage profiles from this tab. \n\nSelecting a usage will add it to the comparison tab.</string>
     <string name="NoScenariosText">There are no usage profiles created.\n\nAt least one usage profile is needed for the application to simulate and compare. \n\nUsage profiles allow you to describe how you use electricity. You can add as many usage profiles as you like.\n\nYou can add a usage profile manually using the \'+\' button in the bottom right, and using the menu, download or load from a file. \n\nOnce created, you can delete, copy and view/edit usage profiles from this tab. \n\nSelecting a usage will add it to the comparison tab.</string>
+    <string name="Sun">Sun</string>
+    <string name="Sat">Sat</string>
+    <string name="Fri">Fri</string>
+    <string name="Thu">Thu</string>
+    <string name="Wed">Wed</string>
+    <string name="Tue">Tue</string>
+    <string name="Mon">Mon</string>
+    <string name="ToFormat">To (MM/DD)</string>
+    <string name="FromFormat">From (MM/DD)</string>
+    <string name="NewRateDouble">11.1</string>
+    <string name="Hour24">24</string>
+    <string name="Hour0">0</string>
+    <string name="Spacer">.....................................................................................................................................................</string>
+    <string name="Reference">Reference</string>
+    <string name="LastUpdate">Last update</string>
+    <string name="SignUpBonus">Sign up bonus (€)</string>
+    <string name="StandingCharges">Standing charges (€)</string>
+    <string name="FeedInRate" tools:ignore="TypographyOther">Feed in rate (c)</string>
+    <string name="Plan">Plan</string>
+    <string name="Supplier">Supplier</string>
 </resources>

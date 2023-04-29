@@ -1,5 +1,6 @@
 package com.tfcode.comparetout.priceplan;
 
+import android.annotation.SuppressLint;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.text.Editable;
@@ -38,19 +39,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/**
- * A simple {@link Fragment} subclass.
- * Use the {@link PricePlanEditFragment#newInstance} factory method to
- * create an instance of this fragment.
- */
 public class PricePlanEditFragment extends Fragment {
 
-    private ComparisonUIViewModel mViewModel;
     private Set<PricePlan> mPricePlans = new HashSet<>();
     private TableLayout mTableLayout;
 
-    private String mFocus;
-    private Long mPlanID;
     private boolean mEdit;
     private PricePlan mPricePlan;
     private List<DayRate> mDayRates;
@@ -71,8 +64,8 @@ public class PricePlanEditFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mPlanID = ((PricePlanActivity) requireActivity()).getPlanID();
-        mFocus = ((PricePlanActivity) requireActivity()).getFocusedPlan();
+        long mPlanID = ((PricePlanActivity) requireActivity()).getPlanID();
+        String mFocus = ((PricePlanActivity) requireActivity()).getFocusedPlan();
         mEdit = ((PricePlanActivity) requireActivity()).getEdit();
         mEditFields = new ArrayList<>();
         System.out.println("Plan id = " + mPlanID);
@@ -85,11 +78,8 @@ public class PricePlanEditFragment extends Fragment {
             DayRate dr = JsonTools.createDayRate(drj);
             mDayRates.add(dr);
         }
-        mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
-        mViewModel.getAllPricePlans().observe(this, plans -> {
-            System.out.println("PPEF Observed a change in live plans data " + plans.entrySet().size());
-            mPricePlans = plans.keySet();
-        });
+        ComparisonUIViewModel mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
+        mViewModel.getAllPricePlans().observe(this, plans -> mPricePlans = plans.keySet());
     }
 
     @Override
@@ -107,10 +97,12 @@ public class PricePlanEditFragment extends Fragment {
         setupMenu();
     }
 
+    @SuppressLint("SourceLockedOrientationActivity")
     @Override
     public void onResume() {
         super.onResume();
-        getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        if (!(null == getActivity()))
+            getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 
     private void setupMenu() {
@@ -139,28 +131,9 @@ public class PricePlanEditFragment extends Fragment {
         });
     }
 
-//    @Override
-//    public boolean onOptionsItemSelected(MenuItem item) {
-//        System.out.println("PricePlanEditFragment.onOptionsItemSelected");
-//        if (item.getItemId() == R.id.edit_a_plan) {//add the function to perform here
-//            System.out.println("Edit attempt");
-//            if (!mEdit) {
-//                mEdit = true;
-//                for (View v : mEditFields) v.setEnabled(true);
-//                ((PricePlanActivity) requireActivity()).setEdit(true);
-//            }
-//            return false;
-//        }
-//        return true;
-//    }
-
     public void setEditMode(boolean ed) {
         mEdit = ed;
         if (!(null == mEditFields)) for (View v : mEditFields) v.setEnabled(mEdit);
-//        if (!mEdit) {
-//            if (!(null == mEditFields)) for (View v : mEditFields) v.setEnabled(true);
-//            ((PricePlanActivity) requireActivity()).setEdit(true);
-//        }
     }
 
     public void updateView() {
@@ -176,7 +149,7 @@ public class PricePlanEditFragment extends Fragment {
         // CREATE TABLE ROWS
         TableRow tableRow = new TableRow(getActivity());
         TextView a = new TextView(getActivity());
-        a.setText("Supplier");
+        a.setText(R.string.Supplier);
         EditText b = new EditText(getActivity());
         b.setText(mPricePlan.getSupplier());
         b.setEnabled(mEdit);
@@ -199,7 +172,7 @@ public class PricePlanEditFragment extends Fragment {
 
         tableRow = new TableRow(getActivity());
         a = new TextView(getActivity());
-        a.setText("Plan");
+        a.setText(R.string.Plan);
         b = new EditText(getActivity());
         b.setEnabled(mEdit);
         b.setText(mPricePlan.getPlanName());
@@ -226,10 +199,10 @@ public class PricePlanEditFragment extends Fragment {
 
         tableRow = new TableRow(getActivity());
         a = new TextView(getActivity());
-        a.setText("Feed in rate (c)");
+        a.setText(R.string.FeedInRate);
         b = new EditText(getActivity());
         b.setEnabled(mEdit);
-        b.setText("" + mPricePlan.getFeed());
+        b.setText(String.format("%s", mPricePlan.getFeed()));
         b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
         b.addTextChangedListener(new AbstractTextWatcher() {
             @Override
@@ -250,10 +223,10 @@ public class PricePlanEditFragment extends Fragment {
 
         tableRow = new TableRow(getActivity());
         a = new TextView(getActivity());
-        a.setText("Standing charges (€)");
+        a.setText(R.string.StandingCharges);
         b = new EditText(getActivity());
         b.setEnabled(mEdit);
-        b.setText("" + mPricePlan.getStandingCharges());
+        b.setText(String.format("%s", mPricePlan.getStandingCharges()));
         b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
         b.addTextChangedListener(new AbstractTextWatcher() {
             @Override
@@ -274,10 +247,10 @@ public class PricePlanEditFragment extends Fragment {
 
         tableRow = new TableRow(getActivity());
         a = new TextView(getActivity());
-        a.setText("Sign up bonus (€)");
+        a.setText(R.string.SignUpBonus);
         b = new EditText(getActivity());
         b.setEnabled(mEdit);
-        b.setText("" + mPricePlan.getSignUpBonus());
+        b.setText(String.format("%s", mPricePlan.getSignUpBonus()));
         b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
         b.addTextChangedListener(new AbstractTextWatcher() {
             @Override
@@ -298,10 +271,10 @@ public class PricePlanEditFragment extends Fragment {
 
         tableRow = new TableRow(getActivity());
         a = new TextView(getActivity());
-        a.setText("Last update");
+        a.setText(R.string.LastUpdate);
         b = new EditText(getActivity());
         b.setEnabled(mEdit);
-        b.setText("" + mPricePlan.getLastUpdate());
+        b.setText(String.format("%s", mPricePlan.getLastUpdate()));
         b.setInputType(InputType.TYPE_CLASS_DATETIME | InputType.TYPE_DATETIME_VARIATION_DATE);
         b.addTextChangedListener(new AbstractTextWatcher() {
             @Override
@@ -322,7 +295,7 @@ public class PricePlanEditFragment extends Fragment {
 
         tableRow = new TableRow(getActivity());
         a = new TextView(getActivity());
-        a.setText("Reference");
+        a.setText(R.string.Reference);
         b = new EditText(getActivity());
         b.setEnabled(mEdit);
         b.setText(mPricePlan.getReference());

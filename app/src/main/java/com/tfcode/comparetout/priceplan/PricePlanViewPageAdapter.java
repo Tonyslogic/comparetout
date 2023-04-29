@@ -45,11 +45,11 @@ public class PricePlanViewPageAdapter extends FragmentStateAdapter {
 
     public void add(int index) {
         System.out.println("Adding day rate at " + index);
-        PricePlanEditDayFragment ppedf = PricePlanEditDayFragment.newInstance(index);
+        PricePlanEditDayFragment pricePlanEditDayFragment = PricePlanEditDayFragment.newInstance(index);
         for (PricePlanEditDayFragment frag : mDayRateFragments.values()) frag.refreshFocus();
-        mDayRateFragments.put(index,ppedf);
+        mDayRateFragments.put(index,pricePlanEditDayFragment);
         mLastID++;
-        mFragmentIDMap.put(mLastID, ppedf);
+        mFragmentIDMap.put(mLastID, pricePlanEditDayFragment);
         mPos2ID.put(index, mLastID);
         mDayRateCount++;
         notifyItemInserted(index);
@@ -60,15 +60,19 @@ public class PricePlanViewPageAdapter extends FragmentStateAdapter {
         Map<Integer, Long> newPos2ID = new HashMap<>();
         newPos2ID.put(0, 0L);
         for (int key: mDayRateFragments.keySet()){
-            PricePlanEditDayFragment ppedf = mDayRateFragments.get(key);
+            PricePlanEditDayFragment pricePlanEditDayFragment = mDayRateFragments.get(key);
             if (key < pos) {
                 newDayRateFragments.put(key, mDayRateFragments.get(key));
-                ppedf.refreshFocus();
+                if (pricePlanEditDayFragment != null) {
+                    pricePlanEditDayFragment.refreshFocus();
+                }
                 newPos2ID.put(key, mPos2ID.get(key));
             }
             if (key > pos) {
-                newDayRateFragments.put(key - 1, ppedf);
-                ppedf.dayRateDeleted(key - 1);
+                newDayRateFragments.put(key - 1, pricePlanEditDayFragment);
+                if (pricePlanEditDayFragment != null) {
+                    pricePlanEditDayFragment.dayRateDeleted(key - 1);
+                }
                 newPos2ID.put(key - 1, mPos2ID.get(key));
             }
         }
@@ -98,6 +102,8 @@ public class PricePlanViewPageAdapter extends FragmentStateAdapter {
     public long getItemId(int position) {
         Long id = mPos2ID.get(position);
         if (id == null) createFragment(position);
-        return mPos2ID.get(position);
+        Long itemID =mPos2ID.get(position);
+        if (!(null == itemID)) return itemID;
+        else return 0L;
     }
 }
