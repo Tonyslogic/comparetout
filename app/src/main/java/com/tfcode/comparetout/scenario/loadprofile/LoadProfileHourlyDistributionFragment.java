@@ -1,5 +1,6 @@
 package com.tfcode.comparetout.scenario.loadprofile;
 
+import android.annotation.SuppressLint;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -48,12 +49,9 @@ import java.util.List;
 public class LoadProfileHourlyDistributionFragment extends Fragment {
     private boolean mEdit = false;
 
-    private ComparisonUIViewModel mViewModel;
     private BarChart mBarChart;
     private TableLayout mEditTable;
-//    private FrameLayout mFrameLayout;
     private Integer mEditTableHeight = null;
-    private Long mScenarioID;
     private LoadProfile mLoadProfile;
 
     public LoadProfileHourlyDistributionFragment() {
@@ -70,13 +68,12 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mScenarioID = ((LoadProfileActivity) requireActivity()).getScenarioID();
+        Long mScenarioID = ((LoadProfileActivity) requireActivity()).getScenarioID();
         mEdit = ((LoadProfileActivity) requireActivity()).getEdit();
 //        mEditFields = new ArrayList<>();
-        mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
+        ComparisonUIViewModel mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
         mViewModel.getLoadProfile(mScenarioID).observe(this, profile -> {
             if (!(null == profile)) {
-                System.out.println("LPHDF Observed a change in live profile data " + profile.getLoadProfileIndex());
                 mLoadProfile = profile;
                 updateView();
             }
@@ -105,19 +102,18 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
         if (!(null == mBarChart) && !(null == mLoadProfile)) updateView();
     }
 
+    @SuppressLint("SourceLockedOrientationActivity")
     @Override
     public void onResume() {
         super.onResume();
-        getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        if (!(null == getActivity()))
+            getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 
+    @SuppressLint("DefaultLocale")
     private void updateView() {
         System.out.println("Updating LoadProfileHourlyDistributionFragment " + mEditTableHeight + ", " + mEditTable.getHeight());
         if (null == mEditTableHeight) mEditTableHeight = mEditTable.getHeight();
-//        else {
-//            FrameLayout.LayoutParams nsvParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, mEditTableHeight);
-//            mFrameLayout.setLayoutParams(nsvParams);
-//        }
         if (!mEdit) {
             mEditTable.setVisibility(View.INVISIBLE);
             mBarChart.setVisibility(View.VISIBLE);
@@ -206,13 +202,13 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
                 TextView f = new TextView(getActivity());
                 TextView g = new TextView(getActivity());
 
-                a.setText("From");
-                b.setText("To");
+                a.setText(R.string.From);
+                b.setText(R.string.To);
                 c.setText("-");
                 d.setText("%");
                 e.setText("+");
-                f.setText("Del");
-                g.setText("Split");
+                f.setText(R.string.Del);
+                g.setText(R.string.Split);
 
                 a.setGravity(Gravity.CENTER);
                 b.setGravity(Gravity.CENTER);
@@ -264,18 +260,18 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
 
                 int end = Math.round(hourlyPercentage.getEnd());
                 int begin = Math.round(hourlyPercentage.getBegin());
-                int pcent = (int) Math.round(hourlyPercentage.getPercentage()) * (end - begin);
+                int percentDouble = (int) Math.round(hourlyPercentage.getPercentage()) * (end - begin);
 
-                from.setText("" + begin);
+                from.setText(String.format("%d", begin));
                 from.setInputType(InputType.TYPE_CLASS_NUMBER);
                 from.setEnabled(mEdit);
 
-                to.setText("" + end);
+                to.setText(String.format("%d", end));
                 to.setInputType(InputType.TYPE_CLASS_NUMBER);
                 to.setEnabled(mEdit);
 
 
-                percent.setText("" + pcent);
+                percent.setText(String.format("%d", percentDouble));
                 percent.setInputType(InputType.TYPE_CLASS_NUMBER);
                 percent.setEnabled(mEdit);
 
@@ -309,8 +305,10 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
                             System.out.println("to changed to : " + getDoubleOrZero(s));
                             if(mEdit) ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
                             updateMasterCopy();
-                            totalPercent.setText("" + calculatePercentageTotal(doubleHolder));
-                        } catch (NumberFormatException nfe) {}
+                            totalPercent.setText(String.format("%d", calculatePercentageTotal(doubleHolder)));
+                        } catch (NumberFormatException nfe) {
+                            nfe.printStackTrace();
+                        }
                     }
                 });
                 to.setOnFocusChangeListener((v, hasFocus) -> {
@@ -330,21 +328,23 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
                             System.out.println("percent changed to : " + getIntegerOrZero(s));
                             if(mEdit)((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
                             updateMasterCopy();
-                            totalPercent.setText("" + calculatePercentageTotal(doubleHolder));
-                        } catch (NumberFormatException nfe) {}
+                            totalPercent.setText(String.format("%d", calculatePercentageTotal(doubleHolder)));
+                        } catch (NumberFormatException nfe) {
+                            nfe.printStackTrace();
+                        }
                     }
                 });
 
                 minus.setOnClickListener(v -> {
                     int currentVal = (int) Math.round(Double.parseDouble(percent.getText().toString()));
                     currentVal--;
-                    percent.setText("" + currentVal);
+                    percent.setText(String.format("%d", currentVal));
                 });
 
                 plus.setOnClickListener(v -> {
                     int currentVal = (int) Math.round(Double.parseDouble(percent.getText().toString()));
                     currentVal++;
-                    percent.setText("" + currentVal);
+                    percent.setText(String.format("%d", currentVal));
                 });
 
                 del.setOnClickListener(v -> {
@@ -361,7 +361,7 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
                         mLoadProfile.setHourlyDist(dist);
                         if(mEdit)((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
                         updateMasterCopy();
-                        totalPercent.setText("" + calculatePercentageTotal(doubleHolder));
+                        totalPercent.setText(String.format("%d", calculatePercentageTotal(doubleHolder)));
                         updateView();
                     }
                 });
@@ -379,7 +379,7 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
                     mLoadProfile.setHourlyDist(dist);
                     if(mEdit)((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
                     updateMasterCopy();
-                    totalPercent.setText("" + calculatePercentageTotal(doubleHolder));
+                    totalPercent.setText(String.format("%d", calculatePercentageTotal(doubleHolder)));
                     updateView();
                 });
 
@@ -406,8 +406,8 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
 
                 from.setText("");
                 to.setText("");
-                minus.setText("Total");
-                totalPercent.setText("" + percentageTotal);
+                minus.setText(R.string.Total);
+                totalPercent.setText(String.format("%d", percentageTotal));
                 plus.setText("");
                 del.setText("");
                 add.setText("");

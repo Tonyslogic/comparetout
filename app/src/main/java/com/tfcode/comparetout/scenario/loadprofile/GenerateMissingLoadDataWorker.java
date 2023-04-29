@@ -121,11 +121,11 @@ public class GenerateMissingLoadDataWorker extends Worker {
         double distDOW = loadProfile.getDowDist().dowDist.get(dow)/100d;
         double distHOD = loadProfile.getHourlyDist().dist.get(hod)/100d;
 
-        double monthuse = loadProfile.getAnnualUsage() * distMonth;
-        double dayuse = (monthuse / (double)totalXXXDaysInMonth) * distDOW;
-        double houruse = dayuse * distHOD;
+        double monthUse = loadProfile.getAnnualUsage() * distMonth;
+        double dayUse = (monthUse / (double)totalXXXDaysInMonth) * distDOW;
+        double hourUse = dayUse * distHOD;
 
-        load = houruse/12d;
+        load = hourUse/12d;
 
         return load;
     }

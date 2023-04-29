@@ -123,10 +123,8 @@ public class LoadProfileActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        System.out.println("ScenarioActivity.onOptionsItemSelected");
 
         if (item.getItemId() == R.id.lp_info) {//add the function to perform here
-            System.out.println("Report status");
             Snackbar.make(getWindow().getDecorView().getRootView(),
                 "Status hint", Snackbar.LENGTH_LONG)
                     .setAction("Action", null).show();
@@ -150,8 +148,6 @@ public class LoadProfileActivity extends AppCompatActivity {
             return false;
         }
         if (item.getItemId() == R.id.lp_share) {//add the function to perform here
-            System.out.println("Share attempt");
-
             Intent sendIntent = new Intent();
             sendIntent.setAction(Intent.ACTION_SEND);
             sendIntent.putExtra(Intent.EXTRA_TEXT, mLoadProfileJson);
@@ -163,7 +159,6 @@ public class LoadProfileActivity extends AppCompatActivity {
             return true;
         }
         if (item.getItemId() == R.id.lp_copy) {//add the function to perform here
-            System.out.println("Copy attempt");
             ScenarioSelectDialog scenarioSelectDialog =
                     new ScenarioSelectDialog(LoadProfileActivity.this,
                             ScenarioSelectDialog.LOAD_PROFILE,
@@ -172,7 +167,6 @@ public class LoadProfileActivity extends AppCompatActivity {
             return false;
         }
         if (item.getItemId() == R.id.lp_link) {//add the function to perform here
-            System.out.println("Link attempt");
             ScenarioSelectDialog scenarioSelectDialog =
                     new ScenarioSelectDialog(LoadProfileActivity.this,
                             ScenarioSelectDialog.LOAD_PROFILE,
@@ -184,7 +178,6 @@ public class LoadProfileActivity extends AppCompatActivity {
             return false;
         }
         if (item.getItemId() == R.id.lp_help) {//add the function to perform here
-            System.out.println("Help attempt");
             Snackbar.make(getWindow().getDecorView().getRootView(),
                 "Help attempt", Snackbar.LENGTH_LONG)
                     .setAction("Action", null).show();

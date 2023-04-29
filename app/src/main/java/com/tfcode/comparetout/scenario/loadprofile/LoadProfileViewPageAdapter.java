@@ -11,10 +11,7 @@ public class LoadProfileViewPageAdapter extends FragmentStateAdapter {
     LoadProfileHourlyDistributionFragment loadProfileHourlyDistributionFragment = LoadProfileHourlyDistributionFragment.newInstance();
     LoadProfileMonthlyDistributionFragment loadProfileMonthlyDistributionFragment = LoadProfileMonthlyDistributionFragment.newInstance();
 
-//    ScenarioOverview mScenarioOverview = ScenarioOverview.newInstance();
-//    ScenarioDetails mScenarioDetails = ScenarioDetails.newInstance();
-
-    public LoadProfileViewPageAdapter(LoadProfileActivity loadProfileActivity, int i) {
+    public LoadProfileViewPageAdapter(LoadProfileActivity loadProfileActivity, int ignoredI) {
         super(loadProfileActivity);
     }
 
@@ -27,7 +24,7 @@ public class LoadProfileViewPageAdapter extends FragmentStateAdapter {
             case 2: return loadProfileMonthlyDistributionFragment;
             case 3: return loadProfileHourlyDistributionFragment;
         }
-        return null;
+        return loadProfilePropertiesFragment;
     }
 
     @Override

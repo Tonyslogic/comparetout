@@ -2,6 +2,7 @@ package com.tfcode.comparetout.scenario.loadprofile;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 
@@ -30,7 +31,9 @@ public class HourlyPercentageRange {
     }
 
     public double lookup(int hour) {
-        return mLookup.floorEntry(hour).getValue();
+        Map.Entry<Integer, Double> x = mLookup.floorEntry(hour);
+        if (!(null == x) && !(null == x.getValue())) return x.getValue();
+        else return 0D;
     }
 
     public DoubleHolder getDoubleHolder() {

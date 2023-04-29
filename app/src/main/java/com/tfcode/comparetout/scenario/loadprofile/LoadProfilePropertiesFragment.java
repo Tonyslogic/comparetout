@@ -1,5 +1,6 @@
 package com.tfcode.comparetout.scenario.loadprofile;
 
+import android.annotation.SuppressLint;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 
@@ -67,14 +68,12 @@ public class LoadProfilePropertiesFragment extends Fragment {
                 if (uri == null) return;
                 InputStream is;
                 try {
-                    System.out.println("mLoadProfile baseload: " + mLoadProfile.getHourlyBaseLoad());
                     is = requireActivity().getContentResolver().openInputStream(uri);
                     InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
                     Type type = new TypeToken<LoadProfileJson>() {}.getType();
                     LoadProfileJson lpj  = new Gson().fromJson(reader, type);
                     mLoadProfile = JsonTools.createLoadProfile(lpj);
                     mLoadProfile.setLoadProfileIndex(mLoadProfileID);
-                    System.out.println("mLoadProfile baseload: " + mLoadProfile.getHourlyBaseLoad());
                     updateView();
                     updateMasterCopy();
                 } catch (FileNotFoundException e) {
@@ -99,7 +98,6 @@ public class LoadProfilePropertiesFragment extends Fragment {
         mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
         mViewModel.getLoadProfile(mScenarioID).observe(this, profile -> {
             if (!(null == profile)) {
-                System.out.println("LPPF Observed a change in live profile data " + profile.getLoadProfileIndex());
                 mLoadProfile = profile;
                 checkForDataAndGenerateIfNeeded();
             }
@@ -111,7 +109,6 @@ public class LoadProfilePropertiesFragment extends Fragment {
             ((LoadProfileActivity) requireActivity()).setLoadProfileJson(loadProfileJsonString);
             mSaved = false;
             if (!mLoadProfileID.equals(mLoadProfile.getLoadProfileIndex())) {
-                System.out.println("LPID Was " + mLoadProfileID + ", now "+ mLoadProfile.getLoadProfileIndex());
                 mLoadProfileID = mLoadProfile.getLoadProfileIndex();
             }
             updateView();
@@ -126,7 +123,8 @@ public class LoadProfilePropertiesFragment extends Fragment {
                 new OneTimeWorkRequest.Builder(DeleteLoadDataFromProfileWorker.class)
                         .setInputData(builder.build())
                         .build();
-        WorkManager
+        if (!(null == getContext()))
+            WorkManager
                 .getInstance(getContext())
                 .enqueue(genLPDataWorkRequest);
     }
@@ -146,10 +144,12 @@ public class LoadProfilePropertiesFragment extends Fragment {
         if (!(null == mLoadProfile)) updateView();
     }
 
+    @SuppressLint("SourceLockedOrientationActivity")
     @Override
     public void onResume() {
         super.onResume();
-        getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        if (!(null == getActivity()))
+            getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 
     private void setupMenu() {
@@ -159,10 +159,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
 
             @Override
             public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-                System.out.println("LPPF.onOptionsItemSelected");
                 if (menuItem.getItemId() == R.id.lp_save) {
-                    System.out.println("save attempt");
-
                     String loadProfileJsonString = ((LoadProfileActivity) requireActivity()).getLoadProfileJson();
                     Type type = new TypeToken<LoadProfileJson>(){}.getType();
                     LoadProfileJson lpj = new Gson().fromJson(loadProfileJsonString, type);
@@ -178,8 +175,6 @@ public class LoadProfilePropertiesFragment extends Fragment {
                 }
 
                 if (menuItem.getItemId() == R.id.lp_import) {//add the function to perform here
-                    System.out.println("Import attempt");
-
                     mLoadLoadProfileFile.launch("*/*");
 
                     return true;
@@ -202,12 +197,12 @@ public class LoadProfilePropertiesFragment extends Fragment {
         // CREATE TABLE ROWS
         TableRow tableRow = new TableRow(getActivity());
         TextView a = new TextView(getActivity());
-        a.setText("Distribution source");
+        a.setText(R.string.DistributionSource);
         Spinner spinner = new Spinner(getActivity());
         ArrayList<String> spinnerContent = new ArrayList<>();
         spinnerContent.add("Custom");
-        spinnerContent.addAll(Arrays.asList(StandardLoadProfiles.spls));
-//        {"SLP 24hr Urban", "SLP 24hr Rural", "SLP Nightsaver Urban", "SLP Nightsaver Rural", "SLP Smart Urban", "SLP Smart Rural"};
+        spinnerContent.addAll(Arrays.asList(StandardLoadProfiles.standardLoadProfiles));
+//        {"SLP 24hr Urban", "SLP 24hr Rural", "SLP Night saver Urban", "SLP Night saver Rural", "SLP Smart Urban", "SLP Smart Rural"};
         ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, spinnerContent);
         spinner.setAdapter(spinnerAdapter);
         spinner.setEnabled(mEdit);
@@ -222,8 +217,8 @@ public class LoadProfilePropertiesFragment extends Fragment {
                     case 0: break;
                     case 1: loadProfileJsonString = StandardLoadProfiles.SLP_24hr_urban; break;
                     case 2: loadProfileJsonString = StandardLoadProfiles.SLP_24hr_rural; break;
-                    case 3: loadProfileJsonString = StandardLoadProfiles.SLP_Nightsaver_urban; break;
-                    case 4: loadProfileJsonString = StandardLoadProfiles.SLP_Nightsaver_rural; break;
+                    case 3: loadProfileJsonString = StandardLoadProfiles.SLP_NightSaver_urban; break;
+                    case 4: loadProfileJsonString = StandardLoadProfiles.SLP_NightSaver_rural; break;
                     case 5: loadProfileJsonString = StandardLoadProfiles.SLP_Smart_urban; break;
                     case 6: loadProfileJsonString = StandardLoadProfiles.SLP_Smart_rural; break;
                 }
@@ -250,9 +245,9 @@ public class LoadProfilePropertiesFragment extends Fragment {
 
         tableRow = new TableRow(getActivity());
         a = new TextView(getActivity());
-        a.setText("Annual usage (kWh)");
+        a.setText(R.string.AnnualUsage);
         EditText b = new EditText(getActivity());
-        b.setText("" + mLoadProfile.getAnnualUsage());
+        b.setText(String.format("%s", mLoadProfile.getAnnualUsage()));
         b.setEnabled(mEdit);
         b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
         b.addTextChangedListener(new AbstractTextWatcher() {
@@ -272,10 +267,10 @@ public class LoadProfilePropertiesFragment extends Fragment {
 
         tableRow = new TableRow(getActivity());
         a = new TextView(getActivity());
-        a.setText("Hourly base load (kWh)");
+        a.setText(R.string.HourlyBaseLoad);
         b = new EditText(getActivity());
         b.setEnabled(mEdit);
-        b.setText("" + mLoadProfile.getHourlyBaseLoad());
+        b.setText(String.format("%s", mLoadProfile.getHourlyBaseLoad()));
         b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
         b.addTextChangedListener(new AbstractTextWatcher() {
             @Override
@@ -284,7 +279,9 @@ public class LoadProfilePropertiesFragment extends Fragment {
                     mLoadProfile.setHourlyBaseLoad(getDoubleOrZero(s));
                     System.out.println("Base load changed to : " + mLoadProfile.getHourlyBaseLoad());
                     ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
-                } catch (NumberFormatException nfe) {}
+                } catch (NumberFormatException nfe) {
+                    nfe.printStackTrace();
+                }
             }
         });
         a.setLayoutParams(planParams);
@@ -296,10 +293,10 @@ public class LoadProfilePropertiesFragment extends Fragment {
 
         tableRow = new TableRow(getActivity());
         a = new TextView(getActivity());
-        a.setText("Grid import max (kWh)");
+        a.setText(R.string.GridImportMax);
         b = new EditText(getActivity());
         b.setEnabled(mEdit);
-        b.setText("" + mLoadProfile.getGridImportMax());
+        b.setText(String.format("%s", mLoadProfile.getGridImportMax()));
         b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
         b.addTextChangedListener(new AbstractTextWatcher() {
             @Override
@@ -318,10 +315,10 @@ public class LoadProfilePropertiesFragment extends Fragment {
 
         tableRow = new TableRow(getActivity());
         a = new TextView(getActivity());
-        a.setText("Grid export max (kWh)");
+        a.setText(R.string.GridExportMax);
         b = new EditText(getActivity());
         b.setEnabled(mEdit);
-        b.setText("" + mLoadProfile.getGridExportMax());
+        b.setText(String.format("%s", mLoadProfile.getGridExportMax()));
         b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
         b.addTextChangedListener(new AbstractTextWatcher() {
             @Override

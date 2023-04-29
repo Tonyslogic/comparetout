@@ -1,5 +1,6 @@
 package com.tfcode.comparetout.scenario.loadprofile;
 
+import android.annotation.SuppressLint;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -46,10 +47,8 @@ import java.util.List;
 public class LoadProfileMonthlyDistributionFragment extends Fragment {
     private boolean mEdit = false;
 
-    private ComparisonUIViewModel mViewModel;
     private BarChart mBarChart;
     private TableLayout mEditTable;
-    private Long mScenarioID;
     private LoadProfile mLoadProfile;
 
     public LoadProfileMonthlyDistributionFragment() {
@@ -57,20 +56,18 @@ public class LoadProfileMonthlyDistributionFragment extends Fragment {
     }
 
     public static LoadProfileMonthlyDistributionFragment newInstance() {
-        LoadProfileMonthlyDistributionFragment fragment = new LoadProfileMonthlyDistributionFragment();
-        return fragment;
+        return new LoadProfileMonthlyDistributionFragment();
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mScenarioID = ((LoadProfileActivity) requireActivity()).getScenarioID();
+        Long mScenarioID = ((LoadProfileActivity) requireActivity()).getScenarioID();
         mEdit = ((LoadProfileActivity) requireActivity()).getEdit();
 //        mEditFields = new ArrayList<>();
-        mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
+        ComparisonUIViewModel mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
         mViewModel.getLoadProfile(mScenarioID).observe(this, profile -> {
             if (!(null == profile)) {
-                System.out.println("LPMDF Observed a change in live profile data " + profile.getLoadProfileIndex());
                 mLoadProfile = profile;
                 updateView();
             }
@@ -98,12 +95,15 @@ public class LoadProfileMonthlyDistributionFragment extends Fragment {
         if (!(null == mBarChart) && !(null == mLoadProfile)) updateView();
     }
 
+    @SuppressLint("SourceLockedOrientationActivity")
     @Override
     public void onResume() {
         super.onResume();
-        getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        if (!(null == getActivity()))
+            getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 
+    @SuppressLint("DefaultLocale")
     private void updateView() {
         System.out.println("Updating LoadProfileMonthlyDistributionFragment " + mEdit);
         if (!mEdit) {
@@ -208,7 +208,7 @@ public class LoadProfileMonthlyDistributionFragment extends Fragment {
 
                 double d = mLoadProfile.getMonthlyDist().monthlyDist.get(monthIndex);
                 int i = (int) Math.round(d);
-                percent.setText("" + i );
+                percent.setText(String.format("%d", i));
                 percent.setInputType(InputType.TYPE_CLASS_NUMBER);
                 percent.setEnabled(mEdit);
                 int finalDayIndex = monthIndex;
@@ -219,7 +219,7 @@ public class LoadProfileMonthlyDistributionFragment extends Fragment {
                         System.out.println(month + "changed to : " + getDoubleOrZero(s));
                         ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
                         updateMasterCopy();
-                        totalPercent.setText("" + calculateTotalPercentValue(mLoadProfile.getMonthlyDist().monthlyDist));
+                        totalPercent.setText(String.format("%d", calculateTotalPercentValue(mLoadProfile.getMonthlyDist().monthlyDist)));
                     }
                 });
 
@@ -235,13 +235,13 @@ public class LoadProfileMonthlyDistributionFragment extends Fragment {
                 minus.setOnClickListener(v -> {
                     int currentVal = (int) Math.round(Double.parseDouble(percent.getText().toString()));
                     currentVal--;
-                    percent.setText("" + currentVal);
+                    percent.setText(String.format("%d", currentVal));
                 });
 
                 plus.setOnClickListener(v -> {
                     int currentVal = (int) Math.round(Double.parseDouble(percent.getText().toString()));
                     currentVal++;
-                    percent.setText("" + currentVal);
+                    percent.setText(String.format("%d", currentVal));
                 });
 
                 monthRow.addView(dow);
@@ -256,11 +256,11 @@ public class LoadProfileMonthlyDistributionFragment extends Fragment {
                 TableRow totalRow = new TableRow(getActivity());
                 TextView minus = new TextView(getActivity());
                 TextView plus = new TextView(getActivity());
-                tot.setText("Total");
+                tot.setText(R.string.Total);
                 tot.setGravity(Gravity.CENTER);
                 minus.setText("");
                 minus.setGravity(Gravity.CENTER);
-                totalPercent.setText("" + totalPercentValue);
+                totalPercent.setText(String.format("%d", totalPercentValue));
                 totalPercent.setGravity(Gravity.CENTER);
                 totalPercent.setEnabled(false);
                 plus.setText("");
