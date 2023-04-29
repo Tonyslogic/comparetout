@@ -1,26 +1,20 @@
 package com.tfcode.comparetout;
 
+import android.annotation.SuppressLint;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import android.app.ProgressDialog;
 import android.content.Intent;
-import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.StrictMode;
-import android.transition.Explode;
-import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.Window;
 import android.widget.ProgressBar;
-import android.widget.RelativeLayout;
 
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
@@ -137,13 +131,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         createNotificationChannel();
 
-
-//        // Inside your activity (if you did not enable transitions in your theme)
-//        getWindow().requestFeature(Window.FEATURE_ACTIVITY_TRANSITIONS);
-//
-//        // Set an exit transition
-//        getWindow().setExitTransition(new Explode());
-
         setContentView(R.layout.activity_main);
         createProgressBar();
 
@@ -170,8 +157,6 @@ public class MainActivity extends AppCompatActivity {
                 intent.putExtra("ScenarioID", 0L);
                 intent.putExtra("Edit", true);
                 startActivity(intent);
-//                Snackbar.make(view, "Here's a Snack bar", Snackbar.LENGTH_LONG)
-//                    .setAction("Action", null).show();
             }
         });
 
@@ -236,61 +221,64 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int pos = viewPager.getCurrentItem();
-        switch(item.getItemId()) {
-            case R.id.load:
-                //add the function to perform here
-                System.out.println("Import attempt");
-                if (pos == COSTS_FRAGMENT) {
-                    mLoadPricePlansFromFile.launch("*/*");
-                    return (true);
-                }
-                if (pos == USAGE_FRAGMENT) {
-                    mLoadScenariosFromFile.launch("*/*");
-                    return true;
-                }
-                if (pos == COMPARE_FRAGMENT) {
-                    Snackbar.make(viewPager.getRootView(), "This should never happen", Snackbar.LENGTH_LONG)
+        int itemID = item.getItemId();
+        if (itemID == R.id.load) {
+            //add the function to perform here
+            System.out.println("Import attempt");
+            if (pos == COSTS_FRAGMENT) {
+                mLoadPricePlansFromFile.launch("*/*");
+                return (true);
+            }
+            if (pos == USAGE_FRAGMENT) {
+                mLoadScenariosFromFile.launch("*/*");
+                return true;
+            }
+            if (pos == COMPARE_FRAGMENT) {
+                Snackbar.make(viewPager.getRootView(), "This should never happen", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
-                    return true;
-                }
+                return true;
+            }
+        }
 
-            case R.id.download:
-                //add the function to perform here
-                System.out.println("Download attempt");
-                mProgressBar.setVisibility(View.VISIBLE);
-                if (pos == COSTS_FRAGMENT) {
-                    new Thread(() -> {
-                        URL url;
-                        try {
-                            url = new URL("https://raw.githubusercontent.com/Tonyslogic/tout-compare/main/rates.json");
-                            InputStreamReader reader = new InputStreamReader(url.openStream());
-                            Type type = new TypeToken<List<PricePlanJsonFile>>() {}.getType();
-                            List<PricePlanJsonFile> ppList = new Gson().fromJson(reader, type);
-                            reader.close();
-                            for (PricePlanJsonFile pp : ppList) {
-                                System.out.println(pp.plan);
-                                PricePlan p = JsonTools.createPricePlan(pp);
-                                ArrayList<DayRate> drs = new ArrayList<>();
-                                for (DayRateJson drj : pp.rates) {
-                                    DayRate dr = JsonTools.createDayRate(drj);
-                                    drs.add(dr);
-                                }
-                                mViewModel.insertPricePlan(p, drs);
+        if (itemID == R.id.download) {
+            //add the function to perform here
+            System.out.println("Download attempt");
+            mProgressBar.setVisibility(View.VISIBLE);
+            if (pos == COSTS_FRAGMENT) {
+                new Thread(() -> {
+                    URL url;
+                    try {
+                        url = new URL("https://raw.githubusercontent.com/Tonyslogic/tout-compare/main/rates.json");
+                        InputStreamReader reader = new InputStreamReader(url.openStream());
+                        Type type = new TypeToken<List<PricePlanJsonFile>>() {
+                        }.getType();
+                        List<PricePlanJsonFile> ppList = new Gson().fromJson(reader, type);
+                        reader.close();
+                        for (PricePlanJsonFile pp : ppList) {
+                            System.out.println(pp.plan);
+                            PricePlan p = JsonTools.createPricePlan(pp);
+                            ArrayList<DayRate> drs = new ArrayList<>();
+                            for (DayRateJson drj : pp.rates) {
+                                DayRate dr = JsonTools.createDayRate(drj);
+                                drs.add(dr);
                             }
-                        } catch (IOException e) {
-                            e.printStackTrace();
+                            mViewModel.insertPricePlan(p, drs);
                         }
-                        mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
-                    }).start();
-                    return(true);
-                }
-                if (pos == USAGE_FRAGMENT) {
-                    mProgressBar.setVisibility(View.VISIBLE);
-                    new Thread(() -> {
-                    InputStream ins = getResources().openRawResource(
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
+                }).start();
+                return (true);
+            }
+            if (pos == USAGE_FRAGMENT) {
+                mProgressBar.setVisibility(View.VISIBLE);
+                new Thread(() -> {
+                    @SuppressLint("DiscouragedApi") InputStream ins = getResources().openRawResource(
                             getResources().getIdentifier("scenarios", "raw", getPackageName()));
                     InputStreamReader reader = new InputStreamReader(ins, StandardCharsets.UTF_8);
-                    Type type = new TypeToken<List<ScenarioJsonFile>>() {}.getType();
+                    Type type = new TypeToken<List<ScenarioJsonFile>>() {
+                    }.getType();
                     List<ScenarioJsonFile> scenarioJsonFiles = new Gson().fromJson(reader, type);
                     List<ScenarioComponents> scs = JsonTools.createScenarioComponentList(scenarioJsonFiles);
                     for (ScenarioComponents sc : scs) {
@@ -299,51 +287,54 @@ public class MainActivity extends AppCompatActivity {
                     mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
                 }).start();
 
-                    return(true);
-                }
-                if (pos == COMPARE_FRAGMENT) {
-                    Snackbar.make(viewPager.getRootView(), "TODO Hide download on compare tab", Snackbar.LENGTH_LONG)
-                            .setAction("Action", null).show();
-                    return(true);
-                }
+                return (true);
+            }
+            if (pos == COMPARE_FRAGMENT) {
+                Snackbar.make(viewPager.getRootView(), "TODO Hide download on compare tab", Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
+                return (true);
+            }
+        }
 
 
-            case R.id.share_plans:
-                //add the function to perform here
-                System.out.println("Export attempt ");
+        if (itemID == R.id.share_plans) {
+            //add the function to perform here
+            System.out.println("Export attempt ");
 
-                mProgressBar.setVisibility(View.VISIBLE);
+            mProgressBar.setVisibility(View.VISIBLE);
 
-                new Thread(() -> {
-                    String plansToShare = JsonTools.createPricePlanJson(mViewModel.getAllPricePlansForExport());
-                    mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
-                    Intent sendIntent = new Intent();
-                    sendIntent.setAction(Intent.ACTION_SEND);
-                    sendIntent.putExtra(Intent.EXTRA_TEXT, plansToShare);
-                    sendIntent.setType("text/json");
+            new Thread(() -> {
+                String plansToShare = JsonTools.createPricePlanJson(mViewModel.getAllPricePlansForExport());
+                mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
+                Intent sendIntent = new Intent();
+                sendIntent.setAction(Intent.ACTION_SEND);
+                sendIntent.putExtra(Intent.EXTRA_TEXT, plansToShare);
+                sendIntent.setType("text/json");
 
-                    Intent shareIntent = Intent.createChooser(sendIntent, null);
-                    startActivity(shareIntent);
-                }).start();
-                return(true);
+                Intent shareIntent = Intent.createChooser(sendIntent, null);
+                startActivity(shareIntent);
+            }).start();
+            return (true);
+        }
 
-            case R.id.share_scenarios:
-                mProgressBar.setVisibility(View.VISIBLE);
+        if (itemID == R.id.share_scenarios) {
+            mProgressBar.setVisibility(View.VISIBLE);
 
-                new Thread(() -> {
-                    String scenariosToShare = JsonTools.createScenarioList(Objects.requireNonNull(mViewModel.getAllScenariosForExport()));
-                    mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
-                    Intent sendIntent = new Intent();
-                    sendIntent.setAction(Intent.ACTION_SEND);
-                    sendIntent.putExtra(Intent.EXTRA_TEXT, scenariosToShare);
-                    sendIntent.setType("text/json");
+            new Thread(() -> {
+                String scenariosToShare = JsonTools.createScenarioList(Objects.requireNonNull(mViewModel.getAllScenariosForExport()));
+                mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
+                Intent sendIntent = new Intent();
+                sendIntent.setAction(Intent.ACTION_SEND);
+                sendIntent.putExtra(Intent.EXTRA_TEXT, scenariosToShare);
+                sendIntent.setType("text/json");
 
-                    Intent shareIntent = Intent.createChooser(sendIntent, null);
-                    startActivity(shareIntent);
-                }).start();
-                return(true);
+                Intent shareIntent = Intent.createChooser(sendIntent, null);
+                startActivity(shareIntent);
+            }).start();
+            return (true);
+        }
 
-            case R.id.share_comparison:
+        if (itemID == R.id.share_comparison) {
                 Snackbar.make(viewPager.getRootView(), "TODO: Export comparisons", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
                 return(true);
@@ -372,20 +363,14 @@ public class MainActivity extends AppCompatActivity {
     private void createNotificationChannel() {
         // Create the NotificationChannel, but only on API 26+ because
         // the NotificationChannel class is new and not in the support library
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            CharSequence name = getString(R.string.channel_name);
-            String description = getString(R.string.channel_description);
-            int importance = NotificationManager.IMPORTANCE_DEFAULT;
-            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
-            channel.setDescription(description);
-            // Register the channel with the system; you can't change the importance
-            // or other notification behaviors after this
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            notificationManager.createNotificationChannel(channel);
-        }
+        CharSequence name = getString(R.string.channel_name);
+        String description = getString(R.string.channel_description);
+        int importance = NotificationManager.IMPORTANCE_DEFAULT;
+        NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
+        channel.setDescription(description);
+        // Register the channel with the system; you can't change the importance
+        // or other notification behaviors after this
+        NotificationManager notificationManager = getSystemService(NotificationManager.class);
+        notificationManager.createNotificationChannel(channel);
     }
-
-//    public void startProgressIndicator() {mProgressBar.setVisibility(View.VISIBLE);}
-//
-//    public void stopProgressIndicator() {mProgressBar.setVisibility(View.GONE);}
 }

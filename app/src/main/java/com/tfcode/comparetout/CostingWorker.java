@@ -66,7 +66,7 @@ public class CostingWorker extends Worker {
                     notificationManager.notify(notificationId, builder.build());
                 }
 
-                // For each scenario -> load; For each priceplan -> apply costs
+                // For each scenario -> load; For each price plan -> apply costs
                 for (long scenarioID : scenarioIDs) {
                     // Get the simulation output
                     builder.setContentText("Loading data");
@@ -106,7 +106,7 @@ public class CostingWorker extends Worker {
                             costing.setBuy(buy);
                             costing.setSell(sell);
                             costing.setSubTotals(subTotals);
-                            double days = 365; // TODO look at the biggest & smallest dates in the simdata
+                            double days = 365; // TODO look at the biggest & smallest dates in the sim data
                             net = ((buy - sell) + (pp.getStandingCharges() * 100 * (days / 365))) - (pp.getSignUpBonus() * 100);
                             costing.setNet(net);
                             // store in comparison table

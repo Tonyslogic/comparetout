@@ -79,9 +79,7 @@ public class PricePlanNavFragment extends Fragment {
         TabLayout tabLayout = requireActivity().findViewById(R.id.tab_layout);
         ViewPager2 viewPager = requireActivity().findViewById(R.id.view_pager);
 
-        String[] tabTitles = {getString(R.string.main_activity_usage),
-                getString(R.string.main_activity_costs),
-                getString(R.string.main_activity_compare)};
+        String[] tabTitles = {getString(R.string.main_activity_usage), getString(R.string.main_activity_costs), getString(R.string.main_activity_compare)};
         new TabLayoutMediator(tabLayout, viewPager,
                 (tab, position) -> tab.setText(tabTitles[position])
         ).attach();
@@ -114,7 +112,6 @@ public class PricePlanNavFragment extends Fragment {
                 TextView b = new TextView(getActivity());
                 ImageButton c = new ImageButton(getActivity());
                 ImageButton d = new ImageButton(getActivity());
-//                ImageButton e = new ImageButton(getActivity());
 
                 // SET PARAMS
 
@@ -122,15 +119,11 @@ public class PricePlanNavFragment extends Fragment {
                 b.setLayoutParams(planParams);
                 c.setLayoutParams(planParams);
                 d.setLayoutParams(planParams);
-//                e.setLayoutParams(planParams);
 
                 // SET BACKGROUND COLOR
 
-//                a.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
-//                b.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
                 c.setBackgroundColor(0);
                 d.setBackgroundColor(0);
-//                e.setBackgroundColor(0);
 
                 // SET PADDING
 
@@ -138,24 +131,20 @@ public class PricePlanNavFragment extends Fragment {
                 b.setPadding(10, 10, 10, 10);
                 c.setPadding(10, 10, 10, 10);
                 d.setPadding(10, 10, 10, 10);
-//                e.setPadding(10, 10, 10, 10);
 
                 // SET TEXTVIEW TEXT
 
-                b.setText(p.getSupplier() + ":"+ p.getPlanName() + " (" + p.getLastUpdate() + ")");
+                b.setText(String.format("%s:%s (%s)", p.getSupplier(), p.getPlanName(), p.getLastUpdate()));
                 c.setImageResource(android.R.drawable.ic_menu_delete);
                 d.setImageResource(R.drawable.baseline_content_copy_24);
-//                e.setImageResource(android.R.drawable.ic_menu_view);
 
                 a.setId((int) p.getPricePlanIndex());
                 c.setId((int) p.getPricePlanIndex());
                 d.setId((int) p.getPricePlanIndex());
-//                e.setId((int) p.getPricePlanIndex());
 
                 a.setOnClickListener(v -> {
                     System.out.println("Select for comparison: " + v.getId() + " " + a.isChecked());
                     mViewModel.updatePricePlanActiveStatus(v.getId(), a.isChecked());
-//                    Map<PricePlan, List<DayRate>> pricePlanMap = mViewModel.getAllPricePlans().getValue();
                 });
 
                 c.setOnClickListener(v -> {
@@ -164,7 +153,6 @@ public class PricePlanNavFragment extends Fragment {
                     b.setBackgroundColor(Color.RED);
                     c.setBackgroundColor(Color.RED);
                     d.setBackgroundColor(Color.RED);
-//                    e.setBackgroundColor(Color.RED);
                     System.out.println("Delete: " + v.getId());
                     mViewModel.deletePricePlan(v.getId());
                     mViewModel.deleteRelatedCostings(v.getId());
@@ -196,7 +184,6 @@ public class PricePlanNavFragment extends Fragment {
                     intent.putExtra("Edit", false);
                     intent.putExtra("Focus", JsonTools.createSinglePricePlanJsonObject(p, entry.getValue()));
                     startActivity(intent);
-//                    startActivity(intent, ActivityOptions.makeSceneTransitionAnimation(requireActivity()).toBundle());
                 });
 
                 // ADD TEXTVIEW TO TABLEROW
@@ -205,8 +192,6 @@ public class PricePlanNavFragment extends Fragment {
                 tableRow.addView(b);
                 tableRow.addView(c);
                 tableRow.addView(d);
-//                tableRow.addView(e);
-//                tableRow.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
 
                 // ADD TABLEROW TO TABLELAYOUT
                 mTableLayout.addView(tableRow);
@@ -221,15 +206,7 @@ public class PricePlanNavFragment extends Fragment {
             help.setSingleLine(false);
             help.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f);
 
-            help.setText(new StringBuilder()
-                    .append("There are no price plans created.\n\nAt least one usage price plan ")
-                    .append("is needed for the application to simulate and compare. \n\nPrice plans ")
-                    .append("are a standard way to describe the contract with your supplier. You can add as many ")
-                    .append("suppliers and plans as you like. ")
-                    .append("\n\nYou can add a price plans manually using the '+' button in the bottom right, ")
-                    .append("and using the menu, download or load from a file. \n\nOnce created, you ")
-                    .append("can delete, copy and view/edit usage profiles from this tab. \n\n")
-                    .append("Selecting a usage will add it to the comparison tab.").toString());
+            help.setText(R.string.NoPricePlansText);
 
             mTableLayout.addView(help);
 
