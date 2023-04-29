@@ -51,4 +51,16 @@
     <string name="linkedItem">Linked item</string>
     <string name="add_a_new_battery">Add a new battery</string>
     <string name="NoChartData">Charts will appear here once the simulation is complete.</string>
+    <string name="load">Load</string>
+    <string name="feed">Feed</string>
+    <string name="pv">PV</string>
+    <string name="pv_to_battery">PV to Battery</string>
+    <string name="pv_to_load">PV to Load</string>
+    <string name="battery_2_load">Battery 2 Load</string>
+    <string name="ev_schedule">EV Schedule</string>
+    <string name="hot_water_schedule">Hot Water Schedule</string>
+    <string name="ev_diversion">EV Diversion</string>
+    <string name="hot_water_diversion">Hot Water Diversion</string>
+    <string name="state_of_charge">State of Charge</string>
+    <string name="hot_water_temperature">Hot Water Temperature</string>
 </resources>
