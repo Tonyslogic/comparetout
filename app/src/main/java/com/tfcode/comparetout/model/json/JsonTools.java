@@ -302,18 +302,19 @@ public class JsonTools {
         return entityList;
     }
 
-    public static LoadShift createLoadShift(LoadShiftJson lsj) {
+    public static LoadShift createLoadShift(LoadShiftJson loadShiftJson) {
         LoadShift loadShift = new LoadShift();
-        loadShift.setName(lsj.name);
-        loadShift.setBegin(lsj.begin);
-        loadShift.setEnd(lsj.end);
-        loadShift.setStopAt(lsj.stopAt);
+        loadShift.setName(loadShiftJson.name);
+        loadShift.setBegin(loadShiftJson.begin);
+        loadShift.setEnd(loadShiftJson.end);
+        loadShift.setStopAt(loadShiftJson.stopAt);
         MonthHolder monthHolder = new MonthHolder();
-        monthHolder.months = lsj.months;
+        monthHolder.months = loadShiftJson.months;
         loadShift.setMonths(monthHolder);
         IntHolder intHolder = new IntHolder();
-        intHolder.ints = lsj.days;
+        intHolder.ints = loadShiftJson.days;
         loadShift.setDays(intHolder);
+        loadShift.setInverter(loadShiftJson.inverter);
         return loadShift;
     }
 
@@ -484,14 +485,15 @@ public class JsonTools {
         ArrayList<LoadShiftJson> loadShiftJsons = new ArrayList<>();
         if (!(null == loadShifts)) {
             for (LoadShift loadShift : loadShifts) {
-                LoadShiftJson lsj = new LoadShiftJson();
-                lsj.name = loadShift.getName();
-                lsj.begin = loadShift.getBegin();
-                lsj.end = loadShift.getEnd();
-                lsj.stopAt = loadShift.getStopAt();
-                lsj.months = (ArrayList<Integer>) loadShift.getMonths().months;
-                lsj.days = (ArrayList<Integer>) loadShift.getDays().ints;
-                loadShiftJsons.add(lsj);
+                LoadShiftJson loadShiftJson = new LoadShiftJson();
+                loadShiftJson.name = loadShift.getName();
+                loadShiftJson.begin = loadShift.getBegin();
+                loadShiftJson.end = loadShift.getEnd();
+                loadShiftJson.stopAt = loadShift.getStopAt();
+                loadShiftJson.months = (ArrayList<Integer>) loadShift.getMonths().months;
+                loadShiftJson.days = (ArrayList<Integer>) loadShift.getDays().ints;
+                loadShiftJson.inverter = loadShift.getInverter();
+                loadShiftJsons.add(loadShiftJson);
             }
         }
         return loadShiftJsons;

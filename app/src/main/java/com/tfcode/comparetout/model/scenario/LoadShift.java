@@ -33,6 +33,15 @@ public class LoadShift {
     private double stopAt = 80d;
     private MonthHolder months = new MonthHolder();
     private IntHolder days = new IntHolder();
+    private String inverter = "AlphaESS";
+
+    public String getInverter() {
+        return inverter;
+    }
+
+    public void setInverter(String inverter) {
+        this.inverter = inverter;
+    }
 
     public long getLoadShiftIndex() {
         return loadShiftIndex;

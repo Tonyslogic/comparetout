@@ -45,4 +45,8 @@ public class LoadShiftJson {
     @SerializedName("days")
     public
     ArrayList<Integer> days;
+
+    @SerializedName("Inverter")
+    public
+    String inverter;
 }
