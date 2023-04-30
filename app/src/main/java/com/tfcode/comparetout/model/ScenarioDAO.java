@@ -16,6 +16,8 @@
 
 package com.tfcode.comparetout.model;
 
+import android.database.sqlite.SQLiteConstraintException;
+
 import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
 import androidx.room.Insert;
@@ -127,100 +129,105 @@ public abstract class ScenarioDAO {
 
     @Transaction
     void addNewScenarioWithComponents(Scenario scenario, ScenarioComponents components) {
-        if (!(null == components.inverters)) scenario.setHasInverters(true);
-        if (!(null == components.batteries)) scenario.setHasBatteries(true);
-        if (!(null == components.panels)) scenario.setHasPanels(true);
-        if (!(null == components.hwSystem)) scenario.setHasHWSystem(true);
-        if (!(null == components.loadProfile)) scenario.setHasLoadProfiles(true);
-        if (!(null == components.loadShifts)) scenario.setHasLoadShifts(true);
-        if (!(null == components.evCharges)) scenario.setHasEVCharges(true);
-        if (!(null == components.hwSchedules)) scenario.setHasHWSchedules(true);
-        if (!(null == components.hwDivert)) scenario.setHasHWDivert(true);
-        if (!(null == components.evDivert)) scenario.setHasEVDivert(true);
+        try {
+            if (!(null == components.inverters)) scenario.setHasInverters(true);
+            if (!(null == components.batteries)) scenario.setHasBatteries(true);
+            if (!(null == components.panels)) scenario.setHasPanels(true);
+            if (!(null == components.hwSystem)) scenario.setHasHWSystem(true);
+            if (!(null == components.loadProfile)) scenario.setHasLoadProfiles(true);
+            if (!(null == components.loadShifts)) scenario.setHasLoadShifts(true);
+            if (!(null == components.evCharges)) scenario.setHasEVCharges(true);
+            if (!(null == components.hwSchedules)) scenario.setHasHWSchedules(true);
+            if (!(null == components.hwDivert)) scenario.setHasHWDivert(true);
+            if (!(null == components.evDivert)) scenario.setHasEVDivert(true);
 
-        long scenarioID = addNewScenario(scenario);
-        if (!(null == components.inverters)) {
-            for (Inverter i : components.inverters) {
-                long inverterID = addNewInverter(i);
-                System.out.println("Stored inverter: " + i.getInverterName());
-                Scenario2Inverter s2i = new Scenario2Inverter();
-                s2i.setScenarioID(scenarioID);
-                s2i.setInverterID(inverterID);
-                addNewScenario2Inverter(s2i);
+            long scenarioID = addNewScenario(scenario);
+            if (!(null == components.inverters)) {
+                for (Inverter i : components.inverters) {
+                    long inverterID = addNewInverter(i);
+                    System.out.println("Stored inverter: " + i.getInverterName());
+                    Scenario2Inverter s2i = new Scenario2Inverter();
+                    s2i.setScenarioID(scenarioID);
+                    s2i.setInverterID(inverterID);
+                    addNewScenario2Inverter(s2i);
+                }
             }
-        }
-        if (!(null == components.batteries)) {
-            for (Battery b : components.batteries) {
-                long batteryID = addNewBattery(b);
-                Scenario2Battery s2b = new Scenario2Battery();
-                s2b.setScenarioID(scenarioID);
-                s2b.setBatteryID(batteryID);
-                addNewScenario2Battery(s2b);
+            if (!(null == components.batteries)) {
+                for (Battery b : components.batteries) {
+                    long batteryID = addNewBattery(b);
+                    Scenario2Battery s2b = new Scenario2Battery();
+                    s2b.setScenarioID(scenarioID);
+                    s2b.setBatteryID(batteryID);
+                    addNewScenario2Battery(s2b);
+                }
             }
-        }
-        if (!(null == components.panels)) {
-            for (Panel p : components.panels) {
-                long panelsID = addNewPanels(p);
-                Scenario2Panel s2p = new Scenario2Panel();
-                s2p.setScenarioID(scenarioID);
-                s2p.setPanelID(panelsID);
-                addNewScenario2Panel(s2p);
+            if (!(null == components.panels)) {
+                for (Panel p : components.panels) {
+                    long panelsID = addNewPanels(p);
+                    Scenario2Panel s2p = new Scenario2Panel();
+                    s2p.setScenarioID(scenarioID);
+                    s2p.setPanelID(panelsID);
+                    addNewScenario2Panel(s2p);
+                }
             }
-        }
-        if (!(null == components.hwSystem)) {
-            long hwSystemID = addNewHWSystem(components.hwSystem);
-            Scenario2HWSystem s2hws = new Scenario2HWSystem();
-            s2hws.setScenarioID(scenarioID);
-            s2hws.setHwSystemID(hwSystemID);
-            addNewScenario2HWSystem(s2hws);
-        }
-        if (!(null == components.loadProfile)) {
-            long loadProfileID = addNewLoadProfile(components.loadProfile);
-            Scenario2LoadProfile s2lp = new Scenario2LoadProfile();
-            s2lp.setScenarioID(scenarioID);
-            s2lp.setLoadProfileID(loadProfileID);
-            addNewScenario2LoadProfile(s2lp);
-        }
-        if (!(null == components.loadShifts)) {
-            for (LoadShift ls : components.loadShifts) {
-                long loadShiftID = addNewLoadShift(ls);
-                Scenario2LoadShift s2ls = new Scenario2LoadShift();
-                s2ls.setScenarioID(scenarioID);
-                s2ls.setLoadShiftID(loadShiftID);
-                addNewScenario2LoadShift(s2ls);
-            }
-        }
-        if (!(null == components.evCharges)) {
-            for (EVCharge evc : components.evCharges) {
-                long evChargeID = addNewEVCharge(evc);
-                Scenario2EVCharge s2evc = new Scenario2EVCharge();
-                s2evc.setScenarioID(scenarioID);
-                s2evc.setEvChargeID(evChargeID);
-                addNewScenario2EVCharge(s2evc);
-            }
-        }
-        if (!(null == components.hwSchedules)) {
-            for (HWSchedule hws : components.hwSchedules) {
-                long hwScheduleID = addNewHWSchedule(hws);
-                Scenario2HWSchedule s2hws = new Scenario2HWSchedule();
+            if (!(null == components.hwSystem)) {
+                long hwSystemID = addNewHWSystem(components.hwSystem);
+                Scenario2HWSystem s2hws = new Scenario2HWSystem();
                 s2hws.setScenarioID(scenarioID);
-                s2hws.setHwScheduleID(hwScheduleID);
-                addNewScenario2HWSchedule(s2hws);
+                s2hws.setHwSystemID(hwSystemID);
+                addNewScenario2HWSystem(s2hws);
             }
-        }
-        if (!(null == components.hwDivert)) {
-            long hwDivertID = addNewHWDivert(components.hwDivert);
-            Scenario2HWDivert s2hwd = new Scenario2HWDivert();
-            s2hwd.setScenarioID(scenarioID);
-            s2hwd.setHwDivertID(hwDivertID);
-            addNewScenario2HWDivert(s2hwd);
-        }
-        if (!(null == components.evDivert)) {
+            if (!(null == components.loadProfile)) {
+                long loadProfileID = addNewLoadProfile(components.loadProfile);
+                Scenario2LoadProfile s2lp = new Scenario2LoadProfile();
+                s2lp.setScenarioID(scenarioID);
+                s2lp.setLoadProfileID(loadProfileID);
+                addNewScenario2LoadProfile(s2lp);
+            }
+            if (!(null == components.loadShifts)) {
+                for (LoadShift ls : components.loadShifts) {
+                    long loadShiftID = addNewLoadShift(ls);
+                    Scenario2LoadShift s2ls = new Scenario2LoadShift();
+                    s2ls.setScenarioID(scenarioID);
+                    s2ls.setLoadShiftID(loadShiftID);
+                    addNewScenario2LoadShift(s2ls);
+                }
+            }
+            if (!(null == components.evCharges)) {
+                for (EVCharge evc : components.evCharges) {
+                    long evChargeID = addNewEVCharge(evc);
+                    Scenario2EVCharge s2evc = new Scenario2EVCharge();
+                    s2evc.setScenarioID(scenarioID);
+                    s2evc.setEvChargeID(evChargeID);
+                    addNewScenario2EVCharge(s2evc);
+                }
+            }
+            if (!(null == components.hwSchedules)) {
+                for (HWSchedule hws : components.hwSchedules) {
+                    long hwScheduleID = addNewHWSchedule(hws);
+                    Scenario2HWSchedule s2hws = new Scenario2HWSchedule();
+                    s2hws.setScenarioID(scenarioID);
+                    s2hws.setHwScheduleID(hwScheduleID);
+                    addNewScenario2HWSchedule(s2hws);
+                }
+            }
+            if (!(null == components.hwDivert)) {
+                long hwDivertID = addNewHWDivert(components.hwDivert);
+                Scenario2HWDivert s2hwd = new Scenario2HWDivert();
+                s2hwd.setScenarioID(scenarioID);
+                s2hwd.setHwDivertID(hwDivertID);
+                addNewScenario2HWDivert(s2hwd);
+            }
+            if (!(null == components.evDivert)) {
             long evDivertID = addNewEVDivert(components.evDivert);
             Scenario2EVDivert s2evd = new Scenario2EVDivert();
             s2evd.setScenarioID(scenarioID);
             s2evd.setEvDivertID(evDivertID);
             addNewScenario2EVDivert(s2evd);
+        }
+        }
+        catch (SQLiteConstraintException e) {
+            System.out.println("Silently ignoring a duplicate added as new");
         }
     }
 
