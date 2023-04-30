@@ -52,6 +52,12 @@ import java.util.Objects;
 
 public class PricePlanActivity extends AppCompatActivity {
 
+    private static final String EDIT_KEY = "Edit";
+    private static final String FOCUSED_PLAN = "FOCUSED_PLAN";
+    private static final String PLAN_VALIDITY = "PLAN_VALIDITY";
+    private static final String PLAN_ID = "PLAN_ID";
+    private static final String UNSAVED = "UNSAVED";
+
     ViewPager2 viewPager;
     private Menu mMenu;
 
@@ -66,12 +72,41 @@ public class PricePlanActivity extends AppCompatActivity {
     private boolean mUnsavedChanges = false;
 
     @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putBoolean(EDIT_KEY, edit);
+        outState.putLong(PLAN_ID, planID);
+        outState.putString(FOCUSED_PLAN, focusedPlan);
+        outState.putBoolean(UNSAVED, mUnsavedChanges);
+        outState.putInt(PLAN_VALIDITY, mPlanValidity);
+    }
+
+    @Override
+    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        edit = savedInstanceState.getBoolean(EDIT_KEY);
+        planID = savedInstanceState.getLong(PLAN_ID);
+        focusedPlan = savedInstanceState.getString(FOCUSED_PLAN);
+        mUnsavedChanges = savedInstanceState.getBoolean(UNSAVED);
+        mPlanValidity = savedInstanceState.getInt(PLAN_VALIDITY);
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Intent intent = getIntent();
-        edit = intent.getBooleanExtra("Edit", false);
-        planID = intent.getLongExtra("PlanID", 0L);
-        focusedPlan = intent.getStringExtra("Focus");
+        if (!(null == savedInstanceState)) {
+            edit = savedInstanceState.getBoolean(EDIT_KEY);
+            planID = savedInstanceState.getLong(PLAN_ID);
+            focusedPlan = savedInstanceState.getString(FOCUSED_PLAN);
+            mUnsavedChanges = savedInstanceState.getBoolean(UNSAVED);
+            mPlanValidity = savedInstanceState.getInt(PLAN_VALIDITY);
+        }
+        else {
+            Intent intent = getIntent();
+            edit = intent.getBooleanExtra("Edit", false);
+            planID = intent.getLongExtra("PlanID", 0L);
+            focusedPlan = intent.getStringExtra("Focus");
+        }
 
         setContentView(R.layout.activity_price_plan);
         viewPager = findViewById(R.id.view_plan_pager);

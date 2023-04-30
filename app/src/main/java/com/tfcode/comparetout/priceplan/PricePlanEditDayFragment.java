@@ -72,6 +72,9 @@ public class PricePlanEditDayFragment extends Fragment {
 
     private List<View> mEditFields;
 
+    private static final String FOCUS = "FOCUS";
+    private static final String EDIT = "EDIT";
+
     public PricePlanEditDayFragment() {
         // Required empty public constructor
     }
@@ -83,10 +86,34 @@ public class PricePlanEditDayFragment extends Fragment {
     }
 
     @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putBoolean(EDIT, mEdit);
+        outState.putString(FOCUS, mFocus);
+    }
+
+    @Override
+    public void onViewStateRestored(@Nullable Bundle savedInstanceState) {
+        super.onViewStateRestored(savedInstanceState);
+        if (!(null == savedInstanceState)) {
+            mEdit = savedInstanceState.getBoolean(EDIT);
+            mFocus = savedInstanceState.getString(FOCUS);
+            mEditFields = new ArrayList<>();
+            unpackmFocus();
+        }
+    }
+
+    @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mFocus = ((PricePlanActivity) requireActivity()).getFocusedPlan();
-        mEdit = ((PricePlanActivity) requireActivity()).getEdit();
+        if (!(null == savedInstanceState)) {
+            mEdit = savedInstanceState.getBoolean(EDIT);
+            mFocus = savedInstanceState.getString(FOCUS);
+        }
+        else {
+            mFocus = ((PricePlanActivity) requireActivity()).getFocusedPlan();
+            mEdit = ((PricePlanActivity) requireActivity()).getEdit();
+        }
         mEditFields = new ArrayList<>();
         unpackmFocus();
     }
@@ -147,7 +174,8 @@ public class PricePlanEditDayFragment extends Fragment {
             DayRate thisFragmentsDayRate = mDayRates.get(mRateIndex);
             mFocus = ((PricePlanActivity) requireActivity()).getFocusedPlan();
             unpackmFocus();
-            mDayRates.remove(mRateIndex);
+            if (mRateIndex < mDayRates.size())
+                mDayRates.remove(mRateIndex);
             mDayRates.add(mRateIndex, thisFragmentsDayRate);
         } catch (IllegalStateException ise) {
             System.out.println("Fragment " + (mRateIndex + 1) + " was detached from activity during resume");

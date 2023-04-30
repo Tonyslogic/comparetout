@@ -61,10 +61,16 @@ public class PricePlanEditFragment extends Fragment {
     private TableLayout mTableLayout;
 
     private boolean mEdit;
+    private Long mPlanID;
+    private String mFocus;
     private PricePlan mPricePlan;
     private List<DayRate> mDayRates;
 
     private List<View> mEditFields;
+
+    private static final String PLAN_ID = "PLAN_ID";
+    private static final String FOCUS = "FOCUS";
+    private static final String EDIT = "EDIT";
 
     public PricePlanEditFragment() {
         // Required empty public constructor
@@ -78,11 +84,41 @@ public class PricePlanEditFragment extends Fragment {
     }
 
     @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putBoolean(EDIT, mEdit);
+        outState.putLong(PLAN_ID, mPlanID);
+        outState.putString(FOCUS, mFocus);
+    }
+
+    @Override
+    public void onViewStateRestored(@Nullable Bundle savedInstanceState) {
+        super.onViewStateRestored(savedInstanceState);
+        if (!(null == savedInstanceState)) {
+            mEdit = savedInstanceState.getBoolean(EDIT);
+            mFocus = savedInstanceState.getString(FOCUS);
+            mPlanID = savedInstanceState.getLong(PLAN_ID);
+            setOrResetState();
+        }
+    }
+
+    @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        long mPlanID = ((PricePlanActivity) requireActivity()).getPlanID();
-        String mFocus = ((PricePlanActivity) requireActivity()).getFocusedPlan();
-        mEdit = ((PricePlanActivity) requireActivity()).getEdit();
+        if (!(null == savedInstanceState)) {
+            mEdit = savedInstanceState.getBoolean(EDIT);
+            mFocus = savedInstanceState.getString(FOCUS);
+            mPlanID = savedInstanceState.getLong(PLAN_ID);
+        }
+        else {
+            mPlanID = ((PricePlanActivity) requireActivity()).getPlanID();
+            mFocus = ((PricePlanActivity) requireActivity()).getFocusedPlan();
+            mEdit = ((PricePlanActivity) requireActivity()).getEdit();
+        }
+        setOrResetState();
+    }
+
+    private void setOrResetState() {
         mEditFields = new ArrayList<>();
         System.out.println("Plan id = " + mPlanID);
         Type type = new TypeToken<PricePlanJsonFile>(){}.getType();
@@ -94,8 +130,6 @@ public class PricePlanEditFragment extends Fragment {
             DayRate dr = JsonTools.createDayRate(drj);
             mDayRates.add(dr);
         }
-        ComparisonUIViewModel mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
-        mViewModel.getAllPricePlans().observe(this, plans -> mPricePlans = plans.keySet());
     }
 
     @Override
@@ -109,6 +143,8 @@ public class PricePlanEditFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         mTableLayout = requireView().findViewById(R.id.planEditTable);
+        ComparisonUIViewModel mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
+        mViewModel.getAllPricePlans().observe(getViewLifecycleOwner(), plans -> mPricePlans = plans.keySet());
         updateView();
         setupMenu();
     }

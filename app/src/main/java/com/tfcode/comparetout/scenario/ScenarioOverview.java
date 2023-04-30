@@ -243,11 +243,18 @@ public class ScenarioOverview extends Fragment {
 
         mInverterButton = requireView().findViewById(R.id.inverterButton);
         mInverterButton.setOnClickListener(v -> {
-            Intent intent = new Intent(getActivity(), InverterActivity.class);
-            intent.putExtra("ScenarioID", mScenarioID);
-            intent.putExtra("ScenarioName", mScenario.getScenarioName());
-            intent.putExtra("Edit", (mEdit | !mScenario.isHasInverters()));
-            startActivity(intent);
+            if (mScenarioID == 0L) {
+                Snackbar.make(requireActivity().getWindow().getDecorView().getRootView(),
+                        "Save before configuring inverters",
+                        Snackbar.LENGTH_LONG).setAction("Action", null).show();
+            }
+            else {
+                Intent intent = new Intent(getActivity(), InverterActivity.class);
+                intent.putExtra("ScenarioID", mScenarioID);
+                intent.putExtra("ScenarioName", mScenario.getScenarioName());
+                intent.putExtra("Edit", (mEdit | !mScenario.isHasInverters()));
+                startActivity(intent);
+            }
         });
 
         mHouseButton = requireView().findViewById(R.id.houseButton);
