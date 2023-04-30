@@ -257,6 +257,7 @@ public class PricePlanActivity extends AppCompatActivity {
                 for (DayRateJson drj : ppj.rates) {
                     dayRates.add(JsonTools.createDayRate(drj));
                 }
+                System.out.println("REMOVING DAY RATE. TOTAL BEFORE: " + dayRates.size());
                 dayRates.remove(pos - 1);
 
                 focusedPlan = JsonTools.createSinglePricePlanJsonObject(pricePlan, dayRates);
@@ -293,9 +294,11 @@ public class PricePlanActivity extends AppCompatActivity {
             for (DayRateJson drj : ppj.rates) {
                 dayRates.add(JsonTools.createDayRate(drj));
             }
+            System.out.println("ADDING DAY RATE. TOTAL BEFORE: " + dayRates.size());
             DayRate newDayRate = new DayRate();
             newDayRate.setPricePlanId(pricePlan.getPricePlanIndex());
             dayRates.add(newDayRate);
+            System.out.println("ADDING DAY RATE. TOTAL NOW: " + dayRates.size());
 
             focusedPlan = JsonTools.createSinglePricePlanJsonObject(pricePlan, dayRates);
 

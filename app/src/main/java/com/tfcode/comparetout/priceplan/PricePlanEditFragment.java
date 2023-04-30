@@ -236,7 +236,12 @@ public class PricePlanEditFragment extends Fragment {
                 PricePlanActivity ppa = ((PricePlanActivity)requireActivity());
                 ppa.updateFocusedPlan(JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
                 if (!(mPricePlans == null)) {
-                    ppa.setPlanValidity(mPricePlan.checkNameUsageIn(mPricePlans));
+                    int nameOK = mPricePlan.checkNameUsageIn(mPricePlans);
+                    if (nameOK != PricePlan.VALID_PLAN) ppa.setPlanValidity(nameOK);
+                    else {
+                        int validity = mPricePlan.validatePlan(mDayRates);
+                        ppa.setPlanValidity(validity);
+                    }
                 }
                 else System.out.println("mPricePlans is null ==> need another way to get the list of plans");
                 ppa.setSaveNeeded(true);

@@ -399,6 +399,11 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
                     updateView();
                 });
 
+                // TODO: Fix the crash associated with the add/delete/to edit
+                to.setEnabled(false);
+                del.setEnabled(false);
+                add.setEnabled(false);
+
                 percentRow.addView(from);
                 percentRow.addView(to);
                 percentRow.addView(minus);
