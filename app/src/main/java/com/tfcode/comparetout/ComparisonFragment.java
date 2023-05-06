@@ -407,6 +407,9 @@ public class ComparisonFragment extends Fragment {
             tableRow.setOnClickListener(v -> showPieChart(subTotals, scenarioName, planName));
         }
 
+        a.setMinimumHeight(80);
+        a.setHeight(80);
+
         // SET PARAMS
         a.setLayoutParams(planParams);
         b.setLayoutParams(planParams);
@@ -415,15 +418,6 @@ public class ComparisonFragment extends Fragment {
         e.setLayoutParams(planParams);
         f.setLayoutParams(planParams);
         g.setLayoutParams(planParams);
-
-        // SET BACKGROUND COLOR
-//        a.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
-//        b.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
-//        c.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
-//        d.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
-//        e.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
-//        f.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
-//        g.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
 
         // SET PADDING
         a.setPadding(10, 10, 10, 10);

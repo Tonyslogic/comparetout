@@ -132,6 +132,11 @@ public class ScenarioNavFragment extends Fragment {
                 ImageButton c = new ImageButton(getActivity());
                 ImageButton d = new ImageButton(getActivity());
 
+                a.setContentDescription(String.format("%s %s %s %s", scenario.isActive() ? "remove": "add", scenario.getScenarioName(), scenario.isActive() ? "from": "to", "comparison"));
+                b.setContentDescription(String.format("%s, %s", "View or edit", scenario.getScenarioName()));
+                c.setContentDescription(String.format("%s, %s", "Delete", scenario.getScenarioName()));
+                d.setContentDescription(String.format("%s, %s", "Copy", scenario.getScenarioName()));
+
                 // SET PARAMS
 
                 a.setLayoutParams(planParams);

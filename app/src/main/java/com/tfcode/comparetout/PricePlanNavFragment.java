@@ -128,6 +128,8 @@ public class PricePlanNavFragment extends Fragment {
 
                 // CREATE TEXTVIEW
 
+                String supplierPlan = String.format("%s:%s (%s)", p.getSupplier(), p.getPlanName(), p.getLastUpdate());
+
                 CheckBox a = new CheckBox(getActivity());
                 a.setChecked(entry.getKey().isActive());
                 a.setGravity(Gravity.CENTER_VERTICAL);
@@ -137,6 +139,11 @@ public class PricePlanNavFragment extends Fragment {
                         1, 17, 1, TypedValue.COMPLEX_UNIT_SP);
                 ImageButton c = new ImageButton(getActivity());
                 ImageButton d = new ImageButton(getActivity());
+
+                a.setContentDescription(String.format("%s %s %s %s", entry.getKey().isActive() ? "remove": "add", supplierPlan, entry.getKey().isActive() ? "from": "to", "comparison"));
+                b.setContentDescription(String.format("%s, %s", "View or edit", supplierPlan));
+                c.setContentDescription(String.format("%s, %s", "Delete", supplierPlan));
+                d.setContentDescription(String.format("%s, %s", "Copy", supplierPlan));
 
                 // SET PARAMS
 
@@ -159,7 +166,7 @@ public class PricePlanNavFragment extends Fragment {
 
                 // SET TEXTVIEW TEXT
 
-                b.setText(String.format("%s:%s (%s)", p.getSupplier(), p.getPlanName(), p.getLastUpdate()));
+                b.setText(supplierPlan);
                 c.setImageResource(R.drawable.ic_baseline_delete_24);
                 d.setImageResource(R.drawable.ic_baseline_content_copy_24);
 
