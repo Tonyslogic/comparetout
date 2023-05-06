@@ -119,4 +119,6 @@
     <string name="divert">Divert</string>
     <string name="no_simulation_data_available">No simulation data available</string>
     <string name="default_scenario_detail_date">23/06</string>
+    <string name="filter">Filter</string>
+    <string name="sort">Sort</string>
 </resources>
