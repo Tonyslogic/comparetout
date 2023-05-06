@@ -30,6 +30,7 @@ import androidx.fragment.app.Fragment;
 import androidx.viewpager2.widget.ViewPager2;
 
 import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -103,7 +104,7 @@ public class PricePlanNavFragment extends Fragment {
 
     public void updateView() {
         mTableLayout.removeAllViews();
-        if ((mPlans != null) && (mPlans.entrySet().size() > 0)) {
+        if ((mPlans != null) && (mPlans.entrySet().size() > 0) && !(null == getActivity())) {
             mTableLayout.setShrinkAllColumns(false);
             mTableLayout.setStretchAllColumns(true);
             mTableLayout.setColumnShrinkable(1, true);
@@ -121,18 +122,26 @@ public class PricePlanNavFragment extends Fragment {
                 planParams.topMargin = 2;
                 planParams.rightMargin = 2;
 
+                TableRow.LayoutParams textParams = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.MATCH_PARENT);
+                planParams.topMargin = 2;
+                planParams.rightMargin = 2;
+
                 // CREATE TEXTVIEW
 
                 CheckBox a = new CheckBox(getActivity());
                 a.setChecked(entry.getKey().isActive());
+                a.setGravity(Gravity.CENTER_VERTICAL);
                 TextView b = new TextView(getActivity());
+                b.setGravity(Gravity.CENTER_VERTICAL);
+                b.setAutoSizeTextTypeUniformWithConfiguration(
+                        1, 17, 1, TypedValue.COMPLEX_UNIT_SP);
                 ImageButton c = new ImageButton(getActivity());
                 ImageButton d = new ImageButton(getActivity());
 
                 // SET PARAMS
 
                 a.setLayoutParams(planParams);
-                b.setLayoutParams(planParams);
+                b.setLayoutParams(textParams);
                 c.setLayoutParams(planParams);
                 d.setLayoutParams(planParams);
 
@@ -151,8 +160,8 @@ public class PricePlanNavFragment extends Fragment {
                 // SET TEXTVIEW TEXT
 
                 b.setText(String.format("%s:%s (%s)", p.getSupplier(), p.getPlanName(), p.getLastUpdate()));
-                c.setImageResource(android.R.drawable.ic_menu_delete);
-                d.setImageResource(R.drawable.baseline_content_copy_24);
+                c.setImageResource(R.drawable.ic_baseline_delete_24);
+                d.setImageResource(R.drawable.ic_baseline_content_copy_24);
 
                 a.setId((int) p.getPricePlanIndex());
                 c.setId((int) p.getPricePlanIndex());

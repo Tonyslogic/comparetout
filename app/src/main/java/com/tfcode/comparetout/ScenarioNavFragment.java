@@ -22,10 +22,10 @@ import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.TypedValue;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.CheckBox;
 import android.widget.ImageButton;
 import android.widget.TableLayout;
 import android.widget.TableRow;
@@ -37,6 +37,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 
+import com.google.android.material.checkbox.MaterialCheckBox;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.model.scenario.Scenario;
@@ -100,7 +101,7 @@ public class ScenarioNavFragment extends Fragment {
     private void updateView() {
         mTableLayout.removeAllViews();
 
-        if (mScenarios != null && mScenarios.size() > 0) {
+        if (mScenarios != null && mScenarios.size() > 0 && getActivity() != null) {
             mTableLayout.setShrinkAllColumns(false);
             mTableLayout.setStretchAllColumns(true);
             mTableLayout.setColumnShrinkable(1, true);
@@ -116,18 +117,25 @@ public class ScenarioNavFragment extends Fragment {
                 planParams.topMargin = 2;
                 planParams.rightMargin = 2;
 
+                TableRow.LayoutParams textParams = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.MATCH_PARENT);
+                planParams.topMargin = 2;
+                planParams.rightMargin = 2;
+
                 // CREATE TEXTVIEW
 
-                CheckBox a = new CheckBox(getActivity());
+                MaterialCheckBox a = new MaterialCheckBox(getActivity());
                 a.setChecked(scenario.isActive());
                 TextView b = new TextView(getActivity());
+                b.setGravity(Gravity.CENTER_VERTICAL);
+                b.setAutoSizeTextTypeUniformWithConfiguration(
+                        1, 17, 1, TypedValue.COMPLEX_UNIT_SP);
                 ImageButton c = new ImageButton(getActivity());
                 ImageButton d = new ImageButton(getActivity());
 
                 // SET PARAMS
 
                 a.setLayoutParams(planParams);
-                b.setLayoutParams(planParams);
+                b.setLayoutParams(textParams);
                 c.setLayoutParams(planParams);
                 d.setLayoutParams(planParams);
 
@@ -146,8 +154,8 @@ public class ScenarioNavFragment extends Fragment {
                 // SET TEXTVIEW TEXT
 
                 b.setText(scenario.getScenarioName());
-                c.setImageResource(android.R.drawable.ic_menu_delete);
-                d.setImageResource(R.drawable.baseline_content_copy_24 );
+                c.setImageResource(R.drawable.ic_baseline_delete_24);
+                d.setImageResource(R.drawable.ic_baseline_content_copy_24);
 
                 a.setId((int) scenario.getScenarioIndex());
                 c.setId((int) scenario.getScenarioIndex());

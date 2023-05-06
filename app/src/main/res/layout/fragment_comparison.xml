@@ -15,45 +15,84 @@
   ~    limitations under the License.
   -->
 
-<androidx.core.widget.NestedScrollView
+<androidx.constraintlayout.widget.ConstraintLayout
 xmlns:android="http://schemas.android.com/apk/res/android"
 xmlns:app="http://schemas.android.com/apk/res-auto"
 xmlns:tools="http://schemas.android.com/tools"
 android:layout_width="match_parent"
 android:layout_height="match_parent"
 android:fillViewport="true"
-tools:context=".ScenarioNavFragment">
+tools:context=".ComparisonFragment">
 
-    <androidx.appcompat.widget.LinearLayoutCompat
+
+
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical"
         tools:context=".ComparisonFragment">
 
-        <TableLayout
-            android:id="@+id/comparisonControl"
+        <androidx.core.widget.NestedScrollView
+            android:id="@+id/comparisonTableHolder"
             android:layout_width="wrap_content"
-            android:layout_height="20dp"
+            android:layout_height="0dp"
             android:padding="0dp"
-            android:stretchColumns="*"
-            app:layout_constraintBottom_toTopOf="@id/comparisonTable"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintVertical_bias="1.0" />
-
-        <TableLayout
-            android:id="@+id/comparisonTable"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:padding="0dp"
-            android:stretchColumns="*"
-            app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/comparisonControl"
-            app:layout_constraintVertical_bias="0.0" />
+            app:layout_constraintBottom_toTopOf="@+id/comparison_filter_layout">
 
-    </androidx.appcompat.widget.LinearLayoutCompat>
+            <TableLayout
+                android:id="@+id/comparisonTable"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="0dp"
+                android:stretchColumns="*" />
 
-</androidx.core.widget.NestedScrollView>
+        </androidx.core.widget.NestedScrollView>
+
+        <TableLayout
+            android:id="@+id/comparison_filter_layout"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            app:layout_constraintHeight_percent=".1"
+            app:layout_constraintTop_toBottomOf="@id/comparisonTableHolder"
+            app:layout_constraintBottom_toBottomOf="parent" >
+
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                app:layout_constraintBottom_toBottomOf="parent"
+                tools:ignore="UselessParent">
+
+                <ImageButton
+                    android:id="@+id/compare_sort"
+                    android:background="@null"
+                    android:src="@android:drawable/ic_menu_sort_by_size"
+                    app:tint="@android:color/darker_gray"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:padding="2dp"
+                    android:scaleType="center"
+                    android:contentDescription="@string/sort" />
+
+                <ImageButton
+                    android:id="@+id/compare_filter"
+                    android:layout_width="0dp"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:adjustViewBounds="true"
+                    android:background="@null"
+                    android:padding="2dp"
+                    android:scaleType="center"
+                    android:src="@drawable/ic_baseline_filter_list_24"
+                    app:tint="@android:color/darker_gray"
+                    android:contentDescription="@string/filter" />
+            </TableRow>
+        </TableLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

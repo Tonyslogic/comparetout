@@ -34,11 +34,9 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
-import android.widget.Spinner;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
@@ -57,7 +55,6 @@ import com.tfcode.comparetout.model.scenario.Scenario;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -66,7 +63,8 @@ import java.util.Objects;
 public class ComparisonFragment extends Fragment {
 
     private TableLayout mTableLayout;
-    private TableLayout mControlTableLayout;
+    private ImageButton mSortButton;
+    private ImageButton mFilterButton;
     private List<Scenario> mScenarios;
     private List<PricePlan> mPricePlans;
     private List<Costings> mCostings;
@@ -89,7 +87,8 @@ public class ComparisonFragment extends Fragment {
     private boolean mShowFixed = false;
     private int mVisibleColCount = 5;
 
-    private PopupMenu mPopup;
+    private PopupMenu mFilterPopup;
+    private PopupMenu mShowPopup;
 
     private View mPopupView;
     private PopupWindow mPieChartWindow;
@@ -183,7 +182,9 @@ public class ComparisonFragment extends Fragment {
 
         mTableLayout = requireView().findViewById(R.id.comparisonTable);
 
-        mControlTableLayout = requireView().findViewById(R.id.comparisonControl);
+        mSortButton = view.findViewById((R.id.compare_sort));
+        mFilterButton = view.findViewById((R.id.compare_filter));
+
         updateControl();
 
         TabLayout tabLayout = requireActivity().findViewById(R.id.tab_layout);
@@ -196,36 +197,23 @@ public class ComparisonFragment extends Fragment {
     }
 
     private void updateControl() {
-        mControlTableLayout.removeAllViews();
 
-        // CREATE PARAM FOR MARGINING
-        TableRow.LayoutParams planParams = new TableRow.LayoutParams(
-                TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
-        planParams.topMargin = 2;
-        planParams.rightMargin = 2;
-
-        // CREATE TABLE ROWS
-        TableRow tableRow = new TableRow(getActivity());
-        TextView a = new TextView(getActivity());
-        a.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f);
-        a.setText(R.string.ComparisonFilterText);
-
-        if (null == mPopup) {
+        if (null == mFilterPopup) {
             //Creating the instance of PopupMenu
-            mPopup = new PopupMenu(requireActivity(), a, Gravity.CENTER_HORIZONTAL);
-            mPopup.getMenuInflater()
-                    .inflate(R.menu.popup_menu_compare, mPopup.getMenu());
-            mPopup.getMenu().findItem(R.id.scenario).setChecked(mShowScenario);
-            mPopup.getMenu().findItem(R.id.plan).setChecked(mShowPlan);
-            mPopup.getMenu().findItem(R.id.net).setChecked(mShowNet);
-            mPopup.getMenu().findItem(R.id.buy).setChecked(mShowBuy);
-            mPopup.getMenu().findItem(R.id.sell).setChecked(mShowSell);
-            mPopup.getMenu().findItem(R.id.bonus).setChecked(mShowBonus);
-            mPopup.getMenu().findItem(R.id.fixed).setChecked(mShowFixed);
+            mFilterPopup = new PopupMenu(requireActivity(), mFilterButton, Gravity.CENTER_HORIZONTAL);
+            mFilterPopup.getMenuInflater()
+                    .inflate(R.menu.popup_menu_compare, mFilterPopup.getMenu());
+            mFilterPopup.getMenu().findItem(R.id.scenario).setChecked(mShowScenario);
+            mFilterPopup.getMenu().findItem(R.id.plan).setChecked(mShowPlan);
+            mFilterPopup.getMenu().findItem(R.id.net).setChecked(mShowNet);
+            mFilterPopup.getMenu().findItem(R.id.buy).setChecked(mShowBuy);
+            mFilterPopup.getMenu().findItem(R.id.sell).setChecked(mShowSell);
+            mFilterPopup.getMenu().findItem(R.id.bonus).setChecked(mShowBonus);
+            mFilterPopup.getMenu().findItem(R.id.fixed).setChecked(mShowFixed);
         }
 
-        a.setOnClickListener(v -> {
-            mPopup.setOnMenuItemClickListener(item -> {
+        mFilterButton.setOnClickListener(v -> {
+            mFilterPopup.setOnMenuItemClickListener(item -> {
                 item.setChecked(!item.isChecked());
                 if (item.isChecked())  mVisibleColCount++; else mVisibleColCount--;
                 if (mVisibleColCount > 5 && (!(null == getActivity())))
@@ -264,34 +252,48 @@ public class ComparisonFragment extends Fragment {
                 }
                 return true;
             });
-            mPopup.show();
+            mFilterPopup.show();
         });
 
-        Spinner spinner = new Spinner(getActivity());
-        String[] fields = {"SortBy: Scenario", "SortBy: Plan", "SortBy: Net", "SortBy: Buy",
-                "SortBy: Sell", "SortBy: Bonus", "SortBy: Fixed"};
-        ArrayList<String> spinnerContent = new ArrayList<>(Arrays.asList(fields));
-        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, spinnerContent);
-        spinner.setAdapter(spinnerAdapter);
-        int index = spinnerContent.indexOf(mSortBy);
-        spinner.setSelection(index);
+        if (null == mShowPopup) {
+            mShowPopup = new PopupMenu(requireActivity(), mSortButton, Gravity.CENTER_HORIZONTAL);
+            mShowPopup.getMenuInflater()
+                    .inflate(R.menu.popup_sort_compare, mShowPopup.getMenu());
+            mShowPopup.getMenu().findItem(R.id.scenario).setChecked((mSortBy.equals("SortBy: Scenario")));
+            mShowPopup.getMenu().findItem(R.id.plan).setChecked((mSortBy.equals("SortBy: Plan")));
+            mShowPopup.getMenu().findItem(R.id.net).setChecked((mSortBy.equals("SortBy: Net")));
+            mShowPopup.getMenu().findItem(R.id.buy).setChecked((mSortBy.equals("SortBy: Buy")));
+            mShowPopup.getMenu().findItem(R.id.sell).setChecked((mSortBy.equals("SortBy: Sell")));
+            mShowPopup.getMenu().findItem(R.id.bonus).setChecked((mSortBy.equals("SortBy: Bonus")));
+            mShowPopup.getMenu().findItem(R.id.fixed).setChecked((mSortBy.equals("SortBy: Fixed")));
+        }
 
-        tableRow.setBackgroundColor(com.google.android.material.R.attr.backgroundColor);
+        mSortButton.setOnClickListener(v -> {
+            mShowPopup.setOnMenuItemClickListener(item -> {
+                int itemID = item.getItemId();
+                if (itemID == R.id.scenario) mSortBy = "SortBy: Scenario";
+                if (itemID == R.id.plan) mSortBy = "SortBy: Plan";
+                if (itemID == R.id.net) mSortBy = "SortBy: Net";
+                if (itemID == R.id.buy) mSortBy = "SortBy: Buy";
+                if (itemID == R.id.sell) mSortBy = "SortBy: Sell";
+                if (itemID == R.id.bonus) mSortBy = "SortBy: Bonus";
+                if (itemID == R.id.fixed) mSortBy = "SortBy: Fixed";
 
-        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                mSortBy = fields[position];
+                mShowPopup.getMenu().findItem(R.id.scenario).setChecked((mSortBy.equals("SortBy: Scenario")));
+                mShowPopup.getMenu().findItem(R.id.plan).setChecked((mSortBy.equals("SortBy: Plan")));
+                mShowPopup.getMenu().findItem(R.id.net).setChecked((mSortBy.equals("SortBy: Net")));
+                mShowPopup.getMenu().findItem(R.id.buy).setChecked((mSortBy.equals("SortBy: Buy")));
+                mShowPopup.getMenu().findItem(R.id.sell).setChecked((mSortBy.equals("SortBy: Sell")));
+                mShowPopup.getMenu().findItem(R.id.bonus).setChecked((mSortBy.equals("SortBy: Bonus")));
+                mShowPopup.getMenu().findItem(R.id.fixed).setChecked((mSortBy.equals("SortBy: Fixed")));
+
                 updateView();
-            }
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-                // Auto-generated method stub
-            }
+
+                return true;
+            });
+            mShowPopup.show();
         });
-        tableRow.addView(a);
-        tableRow.addView(spinner);
-        mControlTableLayout.addView(tableRow);
+
     }
 
     private void updateView() {
@@ -313,7 +315,7 @@ public class ComparisonFragment extends Fragment {
             mTableLayout.setColumnCollapsed(5, !mShowBonus);
             mTableLayout.setColumnCollapsed(6, !mShowFixed);
 
-            createRow("Scenario", "Supplier:Plan", "Net(€)",
+            createRow("Usage", "Supplier:Plan", "Net(€)",
                     "Buy(€)","Sell(€)", "Bonus(€)", "Fixed(€)", true, null);
             ArrayList<Row> rows = new ArrayList<>();
             for (Costings costing : mCostings) {
