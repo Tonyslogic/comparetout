@@ -120,7 +120,6 @@ public class BatterySettingsActivity extends AppCompatActivity {
         Battery toCheck = mBatteries.get(batteryIndex);
         new Thread(() -> {
             mLinkedScenarios = mViewModel.getLinkedBatteries(toCheck.getBatteryIndex(), mScenarioID);
-//            System.out.println("setupFAB " + mLinkedScenarios);
             new Handler(Looper.getMainLooper()).post(() -> {
                 if (mLinkedScenarios.isEmpty()) hideLinkedFAB();
                 else showLinkedFAB();

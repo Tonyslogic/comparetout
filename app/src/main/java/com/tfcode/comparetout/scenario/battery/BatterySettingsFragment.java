@@ -135,155 +135,165 @@ public class BatterySettingsFragment extends Fragment {
         System.out.println("Updating BatteryFragment " + mBatteryIndex + ", " + mEdit);
         mTableLayout.removeAllViews();
 
-        // CREATE PARAM FOR MARGINING
-        TableRow.LayoutParams params = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
-        params.topMargin = 2;
-        params.rightMargin = 2;
+        if (!(null == getActivity())) {
 
-        int integerType = InputType.TYPE_CLASS_NUMBER;
-        int doubleType = InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL;
+            // CREATE PARAM FOR MARGINING
+            TableRow.LayoutParams params = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
+            params.topMargin = 2;
+            params.rightMargin = 2;
 
-        // CREATE TABLE ROWS
-        TableRow inverterRow = new TableRow(getActivity());
-        TextView inverterText = new TextView(getActivity());
-        inverterText.setText(R.string.ConnectedInverterName);
-        ArrayList<String> inverterSpinnerContent = new ArrayList<>();
-        int selectedInverterIndex = 0;
-        int itr = 0;
-        Inverter initialInverter = null;
-        if (!(null == mInverters)) for (Inverter inverter: mInverters) {
-            String inv = inverter.getInverterName();
-            inverterSpinnerContent.add(inv);
-            if (mBattery.getInverter().equals(inv)) {
-                selectedInverterIndex = itr;
-                initialInverter = inverter;
+            int integerType = InputType.TYPE_CLASS_NUMBER;
+            int doubleType = InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL;
+
+            // CREATE TABLE ROWS
+            TableRow inverterRow = new TableRow(getActivity());
+            TextView inverterText = new TextView(getActivity());
+            inverterText.setText(R.string.ConnectedInverterName);
+            ArrayList<String> inverterSpinnerContent = new ArrayList<>();
+            int selectedInverterIndex = 0;
+            int itr = 0;
+            Inverter initialInverter = null;
+            if (!(null == mInverters)) for (Inverter inverter : mInverters) {
+                String inv = inverter.getInverterName();
+                inverterSpinnerContent.add(inv);
+                if (mBattery.getInverter().equals(inv)) {
+                    selectedInverterIndex = itr;
+                    initialInverter = inverter;
+                }
+                itr++;
             }
-            itr++;
+            else inverterSpinnerContent.add("Missing inverter");
+            Spinner inverterSpinner = new Spinner(getActivity());
+            ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, inverterSpinnerContent);
+            inverterSpinner.setAdapter(spinnerAdapter);
+            inverterSpinner.setSelection(selectedInverterIndex);
+            Inverter finalInitialInverter = initialInverter;
+            inverterSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                    String inverter = inverterSpinnerContent.get(position);
+                    mBattery.setInverter(inverter);
+                    System.out.println("Setting Inverter to: " + inverter);
+                    ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
+                    if (null == finalInitialInverter)
+                        ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
+                    else if (!finalInitialInverter.getInverterName().equals(mBattery.getInverter()))
+                        ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
+                }
+
+                @Override
+                public void onNothingSelected(AdapterView<?> parent) {
+                    // Auto-generated method stub
+                }
+            });
+            inverterText.setLayoutParams(params);
+            inverterSpinner.setLayoutParams(params);
+            inverterSpinner.setEnabled(mEdit);
+            mEditFields.add(inverterSpinner);
+            inverterRow.addView(inverterText);
+            inverterRow.addView(inverterSpinner);
+            mTableLayout.addView(inverterRow);
+
+            mTableLayout.addView(createRow("Battery size (kWh)", String.valueOf(mBattery.getBatterySize()), new AbstractTextWatcher() {
+                @Override
+                public void afterTextChanged(Editable s) {
+                    if (!(s.toString().equals(String.valueOf(mBattery.getBatterySize())))) {
+                        System.out.println("TODO: Update the batterySize");
+                        mBattery.setBatterySize(getDoubleOrZero(s));
+                        ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
+                        ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
+                    }
+                }
+            }, params, doubleType));
+            mTableLayout.addView(createRow("Discharge stop (%)", String.valueOf(mBattery.getDischargeStop()), new AbstractTextWatcher() {
+                @Override
+                public void afterTextChanged(Editable s) {
+                    if (!(s.toString().equals(String.valueOf(mBattery.getDischargeStop())))) {
+                        System.out.println("TODO: Update the discharge stop percentage");
+                        mBattery.setDischargeStop(getDoubleOrZero(s));
+                        ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
+                        ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
+                    }
+                }
+            }, params, doubleType));
+            mTableLayout.addView(createRow("Max discharge in 5 minutes (kWh)", String.valueOf(mBattery.getMaxDischarge()), new AbstractTextWatcher() {
+                @Override
+                public void afterTextChanged(Editable s) {
+                    if (!(s.toString().equals(String.valueOf(mBattery.getMaxDischarge())))) {
+                        System.out.println("TODO: Update the max discharge");
+                        mBattery.setMaxDischarge(getDoubleOrZero(s));
+                        ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
+                        ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
+                    }
+                }
+            }, params, doubleType));
+            mTableLayout.addView(createRow("Max charge in 5 minutes (kWh)", String.valueOf(mBattery.getMaxCharge()), new AbstractTextWatcher() {
+                @Override
+                public void afterTextChanged(Editable s) {
+                    if (!(s.toString().equals(String.valueOf(mBattery.getMaxCharge())))) {
+                        System.out.println("TODO: Update the max charge");
+                        mBattery.setMaxCharge(getDoubleOrZero(s));
+                        ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
+                        ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
+                    }
+                }
+            }, params, doubleType));
+            mTableLayout.addView(createRow("Storage Loss (%)", String.valueOf(mBattery.getStorageLoss()), new AbstractTextWatcher() {
+                @Override
+                public void afterTextChanged(Editable s) {
+                    if (!(s.toString().equals(String.valueOf(mBattery.getStorageLoss())))) {
+                        System.out.println("TODO: Update the storage loss");
+                        mBattery.setStorageLoss(getDoubleOrZero(s));
+                        ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
+                        ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
+                    }
+                }
+            }, params, doubleType));
+            mTableLayout.addView(createRow("Charge rate @ 0-12% SOC (%)", String.valueOf(mBattery.getChargeModel().percent0), new AbstractTextWatcher() {
+                @Override
+                public void afterTextChanged(Editable s) {
+                    if (!(s.toString().equals(String.valueOf(mBattery.getChargeModel().percent0)))) {
+                        System.out.println("TODO: Update the charge model");
+                        mBattery.getChargeModel().percent0 = getIntegerOrZero(s);
+                        ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
+                        ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
+                    }
+                }
+            }, params, integerType));
+            mTableLayout.addView(createRow("Charge rate @ 12-90% SOC (%)", String.valueOf(mBattery.getChargeModel().percent12), new AbstractTextWatcher() {
+                @Override
+                public void afterTextChanged(Editable s) {
+                    if (!(s.toString().equals(String.valueOf(mBattery.getChargeModel().percent12)))) {
+                        System.out.println("TODO: Update the charge model");
+                        mBattery.getChargeModel().percent12 = getIntegerOrZero(s);
+                        ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
+                        ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
+                    }
+                }
+            }, params, integerType));
+            mTableLayout.addView(createRow("Charge rate @ 90-100% SOC (%)", String.valueOf(mBattery.getChargeModel().percent90), new AbstractTextWatcher() {
+                @Override
+                public void afterTextChanged(Editable s) {
+                    if (!(s.toString().equals(String.valueOf(mBattery.getChargeModel().percent90)))) {
+                        System.out.println("TODO: Update the charge model");
+                        mBattery.getChargeModel().percent90 = getIntegerOrZero(s);
+                        ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
+                        ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
+                    }
+                }
+            }, params, integerType));
         }
-        else inverterSpinnerContent.add("Missing inverter");
-        Spinner inverterSpinner = new Spinner(getActivity());
-        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, inverterSpinnerContent);
-        inverterSpinner.setAdapter(spinnerAdapter);
-        inverterSpinner.setSelection(selectedInverterIndex);
-        Inverter finalInitialInverter = initialInverter;
-        inverterSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                String inverter = inverterSpinnerContent.get(position);
-                mBattery.setInverter(inverter);
-                System.out.println("Setting Inverter to: " + inverter);
-                ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
-                if (null == finalInitialInverter) ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
-                else if (!finalInitialInverter.getInverterName().equals(mBattery.getInverter()))
-                    ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
-            }
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-                // Auto-generated method stub
-            }
-        });
-        inverterText.setLayoutParams(params);
-        inverterSpinner.setLayoutParams(params);
-        inverterSpinner.setEnabled(mEdit);
-        mEditFields.add(inverterSpinner);
-        inverterRow.addView(inverterText);
-        inverterRow.addView(inverterSpinner);
-        mTableLayout.addView(inverterRow);
-
-        mTableLayout.addView(createRow("Battery size (kWh)", String.valueOf(mBattery.getBatterySize()), new AbstractTextWatcher() {
-            @Override
-            public void afterTextChanged(Editable s) {
-                if (!(s.toString().equals(String.valueOf(mBattery.getBatterySize())))) {
-                    System.out.println("TODO: Update the batterySize");
-                    mBattery.setBatterySize(getDoubleOrZero(s));
-                    ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
-                    ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
-                }
-            }
-        }, params, doubleType));
-        mTableLayout.addView(createRow("Discharge stop (%)", String.valueOf(mBattery.getDischargeStop()), new AbstractTextWatcher() {
-            @Override
-            public void afterTextChanged(Editable s) {
-                if (!(s.toString().equals(String.valueOf(mBattery.getDischargeStop())))) {
-                    System.out.println("TODO: Update the discharge stop percentage");
-                    mBattery.setDischargeStop(getDoubleOrZero(s));
-                    ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
-                    ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
-                }
-            }
-        }, params, doubleType));
-        mTableLayout.addView(createRow("Max discharge in 5 minutes (kWh)", String.valueOf(mBattery.getMaxDischarge()), new AbstractTextWatcher() {
-            @Override
-            public void afterTextChanged(Editable s) {
-                if (!(s.toString().equals(String.valueOf(mBattery.getMaxDischarge())))) {
-                    System.out.println("TODO: Update the max discharge");
-                    mBattery.setMaxDischarge(getDoubleOrZero(s));
-                    ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
-                    ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
-                }
-            }
-        }, params, doubleType));
-        mTableLayout.addView(createRow("Max charge in 5 minutes (kWh)", String.valueOf(mBattery.getMaxCharge()), new AbstractTextWatcher() {
-            @Override
-            public void afterTextChanged(Editable s) {
-                if (!(s.toString().equals(String.valueOf(mBattery.getMaxCharge())))) {
-                    System.out.println("TODO: Update the max charge");
-                    mBattery.setMaxCharge(getDoubleOrZero(s));
-                    ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
-                    ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
-                }
-            }
-        }, params, doubleType));
-        mTableLayout.addView(createRow("Storage Loss (%)", String.valueOf(mBattery.getStorageLoss()), new AbstractTextWatcher() {
-            @Override
-            public void afterTextChanged(Editable s) {
-                if (!(s.toString().equals(String.valueOf(mBattery.getStorageLoss())))) {
-                    System.out.println("TODO: Update the storage loss");
-                    mBattery.setStorageLoss(getDoubleOrZero(s));
-                    ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
-                    ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
-                }
-            }
-        }, params, doubleType));
-        mTableLayout.addView(createRow("Charge rate @ 0-12% SOC (%)", String.valueOf(mBattery.getChargeModel().percent0), new AbstractTextWatcher() {
-            @Override
-            public void afterTextChanged(Editable s) {
-                if (!(s.toString().equals(String.valueOf(mBattery.getChargeModel().percent0)))) {
-                    System.out.println("TODO: Update the charge model");
-                    mBattery.getChargeModel().percent0 = getIntegerOrZero(s);
-                    ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
-                    ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
-                }
-            }
-        }, params, integerType));
-        mTableLayout.addView(createRow("Charge rate @ 12-90% SOC (%)", String.valueOf(mBattery.getChargeModel().percent12), new AbstractTextWatcher() {
-            @Override
-            public void afterTextChanged(Editable s) {
-                if (!(s.toString().equals(String.valueOf(mBattery.getChargeModel().percent12)))) {
-                    System.out.println("TODO: Update the charge model");
-                    mBattery.getChargeModel().percent12 = getIntegerOrZero(s);
-                    ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
-                    ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
-                }
-            }
-        }, params, integerType));
-        mTableLayout.addView(createRow("Charge rate @ 90-100% SOC (%)", String.valueOf(mBattery.getChargeModel().percent90), new AbstractTextWatcher() {
-            @Override
-            public void afterTextChanged(Editable s) {
-                if (!(s.toString().equals(String.valueOf(mBattery.getChargeModel().percent90)))) {
-                    System.out.println("TODO: Update the charge model");
-                    mBattery.getChargeModel().percent90 = getIntegerOrZero(s);
-                    ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
-                    ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
-                }
-            }
-        }, params, integerType));
     }
 
     private TableRow createRow(String title, String initialValue, AbstractTextWatcher action, TableRow.LayoutParams params, int inputType){
+        TableRow.LayoutParams textParams = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.MATCH_PARENT);
+        textParams.topMargin = 2;
+        textParams.rightMargin = 2;
         TableRow tableRow = new TableRow(getActivity());
         TextView a = new TextView(getActivity());
         a.setText(title);
+        a.setMinimumHeight(80);
+        a.setHeight(80);
         EditText b = new EditText(getActivity());
         b.setText(initialValue);
         b.setEnabled(mEdit);
@@ -292,7 +302,7 @@ public class BatterySettingsFragment extends Fragment {
         mEditFields.add(b);
 
         a.setLayoutParams(params);
-        b.setLayoutParams(params);
+        b.setLayoutParams(textParams);
         tableRow.addView(a);
         tableRow.addView(b);
         return tableRow;
