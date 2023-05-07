@@ -17,7 +17,6 @@
 package com.tfcode.comparetout.scenario.panel;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.app.DownloadManager;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -64,8 +63,6 @@ import com.tfcode.comparetout.util.AbstractTextWatcher;
 
 import java.io.File;
 import java.text.DecimalFormat;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 
 public class PVGISActivity extends AppCompatActivity {
@@ -76,14 +73,10 @@ public class PVGISActivity extends AppCompatActivity {
     private Long mPanelID = 0L;
     private Panel mPanel;
     private boolean mEdit = false;
-    private List<View> mEditFields;
     private ComparisonUIViewModel mViewModel;
-    private boolean mDoubleBackToExitPressedOnce = false;
-    private final boolean mUnsavedChanges = false;
     private boolean mPanelDataInDB = false;
     private boolean mFileCached = false;
     private boolean mLocationChanged = false;
-    private boolean mPanelDataChanged = false;
 
     private static final String U1 = "https://re.jrc.ec.europa.eu/api/v5_2/seriescalc?lat="; // LATITUDE
     private static final String U2 = "&lon="; // LONGITUDE
@@ -174,7 +167,6 @@ public class PVGISActivity extends AppCompatActivity {
                         mProgressBar.setVisibility(View.GONE);
                         fileExist();
                         mLocationChanged = false;
-                        mPanelDataChanged = true;
                         mMainHandler.post(this::updateView);
                         mMainHandler.post(this::loadCompleteFeedback);
                     }
@@ -224,8 +216,7 @@ public class PVGISActivity extends AppCompatActivity {
             mMainHandler.post(this::fileExist);
             mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
         }).start();
-        mEditFields = new ArrayList<>();
-
+        
         mViewModel.getPanelDataSummary().observe(this, summaries -> {
             mPanelDataInDB = false;
             for (PanelPVSummary summary: summaries) {
@@ -379,7 +370,6 @@ public class PVGISActivity extends AppCompatActivity {
         b.setEnabled(mEdit);
         b.addTextChangedListener(action);
         b.setInputType(inputType);
-        mEditFields.add(b);
 
         a.setLayoutParams(params);
         b.setPadding(20, 20, 20, 20);
@@ -437,26 +427,6 @@ public class PVGISActivity extends AppCompatActivity {
             scheduleLoad(this);
         }
 
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (mDoubleBackToExitPressedOnce || !(mUnsavedChanges)) {
-//            SimulatorLauncher.simulateIfNeeded(getApplicationContext());
-            Intent returnIntent = new Intent();
-            returnIntent.putExtra("RESULT", mPanelDataChanged);
-            setResult(Activity.RESULT_OK, returnIntent);
-            System.out.println("Finishing PVGISActivity");
-            super.onBackPressed();
-//            finish();
-            return;
-        }
-
-        this.mDoubleBackToExitPressedOnce = true;
-        Snackbar.make(getWindow().getDecorView().getRootView(),
-                        "Unsaved changes. Please click BACK again to discard and exit", Snackbar.LENGTH_LONG)
-                .setAction("Action", null).show();
-        new Handler(Looper.getMainLooper()).postDelayed(() -> mDoubleBackToExitPressedOnce =false, 2000);
     }
 
     // PROGRESS BAR
