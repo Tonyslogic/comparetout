@@ -253,6 +253,10 @@ public class PVGISActivity extends AppCompatActivity {
         params.topMargin = 2;
         params.rightMargin = 2;
 
+        TableRow.LayoutParams textParams = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.MATCH_PARENT);
+        textParams.topMargin = 2;
+        textParams.rightMargin = 2;
+
         TextView downloadIndicator = new TextView(this);
         TextView dbRefreshIndicator = new TextView(this);
 
@@ -314,7 +318,13 @@ public class PVGISActivity extends AppCompatActivity {
         TableRow tableRow = new TableRow(this);
         setStatusTexts(downloadIndicator, dbRefreshIndicator);
         downloadIndicator.setLayoutParams(params);
+        downloadIndicator.setMinimumHeight(80);
+        downloadIndicator.setHeight(80);
+        downloadIndicator.setLayoutParams(textParams);
         dbRefreshIndicator.setLayoutParams(params);
+        dbRefreshIndicator.setMinimumHeight(80);
+        dbRefreshIndicator.setHeight(80);
+        dbRefreshIndicator.setLayoutParams(textParams);
         tableRow.addView(downloadIndicator);
         tableRow.addView(dbRefreshIndicator);
         mTableLayout.addView(tableRow);
@@ -365,9 +375,15 @@ public class PVGISActivity extends AppCompatActivity {
     }
 
     private TableRow createRow(String title, String initialValue, AbstractTextWatcher action, TableRow.LayoutParams params, int inputType){
+        TableRow.LayoutParams textParams = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.MATCH_PARENT);
+        textParams.topMargin = 2;
+        textParams.rightMargin = 2;
+
         TableRow tableRow = new TableRow(this);
         TextView a = new TextView(this);
         a.setText(title);
+        a.setMinimumHeight(80);
+        a.setHeight(80);
         EditText b = new EditText(this);
         b.setText(initialValue);
         b.setEnabled(mEdit);
@@ -376,7 +392,7 @@ public class PVGISActivity extends AppCompatActivity {
         mEditFields.add(b);
 
         a.setLayoutParams(params);
-        b.setLayoutParams(params);
+        b.setLayoutParams(textParams);
         tableRow.addView(a);
         tableRow.addView(b);
         return tableRow;

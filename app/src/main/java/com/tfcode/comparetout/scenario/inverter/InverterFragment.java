@@ -197,9 +197,15 @@ public class InverterFragment extends Fragment {
     }
 
     private TableRow createRow(String title, String initialValue, AbstractTextWatcher action, TableRow.LayoutParams params, int inputType){
+        TableRow.LayoutParams textParams = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.MATCH_PARENT);
+        textParams.topMargin = 2;
+        textParams.rightMargin = 2;
+
         TableRow tableRow = new TableRow(getActivity());
         TextView a = new TextView(getActivity());
         a.setText(title);
+        a.setMinimumHeight(80);
+        a.setHeight(80);
         EditText b = new EditText(getActivity());
         b.setText(initialValue);
         b.setEnabled(mEdit);
@@ -208,7 +214,7 @@ public class InverterFragment extends Fragment {
         mEditFields.add(b);
 
         a.setLayoutParams(params);
-        b.setLayoutParams(params);
+        b.setLayoutParams(textParams);
         tableRow.addView(a);
         tableRow.addView(b);
         return tableRow;

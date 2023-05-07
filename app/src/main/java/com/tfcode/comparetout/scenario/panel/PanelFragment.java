@@ -52,6 +52,7 @@ import com.github.mikephil.charting.data.BarDataSet;
 import com.github.mikephil.charting.data.BarEntry;
 import com.github.mikephil.charting.formatter.ValueFormatter;
 import com.github.mikephil.charting.interfaces.datasets.IBarDataSet;
+import com.google.android.material.checkbox.MaterialCheckBox;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -215,7 +216,6 @@ public class PanelFragment extends Fragment {
     }
 
     private void updateChartView() {
-//        TODO: use the mPanelPVSummaries to render the barchart
         if (null == mPanelPVSummaries) return;
         System.out.println("updateChartView " + mPanelPVSummaries.size());
 
@@ -253,7 +253,6 @@ public class PanelFragment extends Fragment {
             }
         }
         if (monthlyDist.size() !=12) return;
-//        List<Double> monthlyDist = mLoadProfile.getMonthlyDist().monthlyDist;
 
         mBarChart.getAxisLeft().setTextColor(com.google.android.material.R.attr.colorPrimary); // left y-axis
         mBarChart.getAxisRight().setTextColor(com.google.android.material.R.attr.colorPrimary); // right y-axis
@@ -289,167 +288,190 @@ public class PanelFragment extends Fragment {
     private void updateEditorView() {
         mTableLayout.removeAllViews();
 
-        // CREATE PARAM FOR MARGINING
-        TableRow.LayoutParams params = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
-        params.topMargin = 2;
-        params.rightMargin = 2;
-        params.weight = 1;
-//        params.height = 120; // TODO fix this crap!!!
+        if (!(null == getActivity())) {
 
-        int integerType = InputType.TYPE_CLASS_NUMBER;
-        int stringType = InputType.TYPE_CLASS_TEXT;
+            // CREATE PARAM FOR MARGINING
+            TableRow.LayoutParams params = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
+            params.topMargin = 2;
+            params.rightMargin = 2;
+            params.weight = 1;
 
-        // CREATE TABLE ROWS
-        mTableLayout.addView(createRow("Panel name", mPanel.getPanelName(), new AbstractTextWatcher() {
-            @Override
-            public void afterTextChanged(Editable s) {
-                if (!(s.toString().equals(mPanel.getPanelName()))) {
-                    System.out.println("Panel name changed");
-                    mPanel.setPanelName(s.toString());
-                    ((PanelActivity) requireActivity()).updatePanelAtIndex(mPanel, mPanelIndex);
-                    ((PanelActivity) requireActivity()).setSaveNeeded(true);
+            TableRow.LayoutParams textParams = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.MATCH_PARENT);
+            textParams.topMargin = 2;
+            textParams.rightMargin = 2;
+
+            int integerType = InputType.TYPE_CLASS_NUMBER;
+            int stringType = InputType.TYPE_CLASS_TEXT;
+
+            // CREATE TABLE ROWS
+            mTableLayout.addView(createRow("Panel name", mPanel.getPanelName(), new AbstractTextWatcher() {
+                @Override
+                public void afterTextChanged(Editable s) {
+                    if (!(s.toString().equals(mPanel.getPanelName()))) {
+                        System.out.println("Panel name changed");
+                        mPanel.setPanelName(s.toString());
+                        ((PanelActivity) requireActivity()).updatePanelAtIndex(mPanel, mPanelIndex);
+                        ((PanelActivity) requireActivity()).setSaveNeeded(true);
+                    }
                 }
-            }
-        }, params, stringType));
-        mTableLayout.addView(createRow("Panel count", String.valueOf(mPanel.getPanelCount()), new AbstractTextWatcher() {
-            @Override
-            public void afterTextChanged(Editable s) {
-                if (!(s.toString().equals(String.valueOf(mPanel.getPanelCount())))) {
-                    System.out.println("Inverter mppt changed");
-                    mPanel.setPanelCount(getIntegerOrZero(s));
-                    ((PanelActivity) requireActivity()).updatePanelAtIndex(mPanel, mPanelIndex);
-                    ((PanelActivity) requireActivity()).setSaveNeeded(true);
+            }, params, stringType));
+            mTableLayout.addView(createRow("Panel count", String.valueOf(mPanel.getPanelCount()), new AbstractTextWatcher() {
+                @Override
+                public void afterTextChanged(Editable s) {
+                    if (!(s.toString().equals(String.valueOf(mPanel.getPanelCount())))) {
+                        System.out.println("Inverter mppt changed");
+                        mPanel.setPanelCount(getIntegerOrZero(s));
+                        ((PanelActivity) requireActivity()).updatePanelAtIndex(mPanel, mPanelIndex);
+                        ((PanelActivity) requireActivity()).setSaveNeeded(true);
+                    }
                 }
-            }
-        }, params, integerType));
-        mTableLayout.addView(createRow("Panel kWp", String.valueOf(mPanel.getPanelkWp()), new AbstractTextWatcher() {
-            @Override
-            public void afterTextChanged(Editable s) {
-                if (!(s.toString().equals(String.valueOf(mPanel.getPanelkWp())))) {
-                    System.out.println("Inverter mppt changed");
-                    mPanel.setPanelkWp(getIntegerOrZero(s));
-                    ((PanelActivity) requireActivity()).updatePanelAtIndex(mPanel, mPanelIndex);
-                    ((PanelActivity) requireActivity()).setSaveNeeded(true);
+            }, params, integerType));
+            mTableLayout.addView(createRow("Panel kWp", String.valueOf(mPanel.getPanelkWp()), new AbstractTextWatcher() {
+                @Override
+                public void afterTextChanged(Editable s) {
+                    if (!(s.toString().equals(String.valueOf(mPanel.getPanelkWp())))) {
+                        System.out.println("Inverter mppt changed");
+                        mPanel.setPanelkWp(getIntegerOrZero(s));
+                        ((PanelActivity) requireActivity()).updatePanelAtIndex(mPanel, mPanelIndex);
+                        ((PanelActivity) requireActivity()).setSaveNeeded(true);
+                    }
                 }
+            }, params, integerType));
+
+            TableRow optimizedRow = new TableRow(getActivity());
+            TextView optimizedPanels = new TextView(getActivity());
+            optimizedPanels.setText(R.string.Optimized);
+            optimizedPanels.setMinimumHeight(80);
+            optimizedPanels.setHeight(80);
+            CheckBox optimizedCheck = new MaterialCheckBox(getActivity());
+            optimizedCheck.setEnabled(mEdit);
+            mEditFields.add(optimizedCheck);
+            optimizedCheck.setChecked(mPanel.getConnectionMode() == Panel.OPTIMIZED);
+            optimizedCheck.setOnClickListener(v -> {
+                System.out.println("Selected optimized: " + v.getId() + " " + optimizedCheck.isChecked());
+                if (optimizedCheck.isChecked()) mPanel.setConnectionMode(Panel.OPTIMIZED);
+                else mPanel.setConnectionMode(Panel.PARALLEL);
+                ((PanelActivity) requireActivity()).updatePanelAtIndex(mPanel, mPanelIndex);
+                ((PanelActivity) requireActivity()).setSaveNeeded(true);
+            });
+            optimizedRow.addView(optimizedPanels);
+            optimizedRow.addView(optimizedCheck);
+            mTableLayout.addView(optimizedRow);
+
+            TableRow inverterRow = new TableRow(getActivity());
+            TableRow mpptRow = new TableRow(getActivity());
+            TextView inverterText = new TextView(getActivity());
+            inverterText.setText(R.string.ConnectedInverterName);
+            inverterText.setMinimumHeight(80);
+            inverterText.setHeight(80);
+            TextView mpptText = new TextView(getActivity());
+            mpptText.setText(R.string.ConnectedInverterMPPT);
+            mpptText.setMinimumHeight(80);
+            mpptText.setHeight(80);
+
+            Spinner mpptSpinner = new Spinner(getActivity());
+            mpptSpinner.setLayoutParams(textParams);
+            ArrayList<String> mpptSpinnerContent = new ArrayList<>();
+
+            ArrayList<String> inverterSpinnerContent = new ArrayList<>();
+            int selectedInverterIndex = 0;
+            int itr = 0;
+            Inverter initialInverter = null;
+            int initialMPPT = mPanel.getMppt();
+            if (!(null == mInverters)) for (Inverter inverter : mInverters) {
+                String inv = inverter.getInverterName();
+                inverterSpinnerContent.add(inv);
+                if (mPanel.getInverter().equals(inv)) {
+                    selectedInverterIndex = itr;
+                    initialInverter = inverter;
+                }
+                itr++;
             }
-        }, params, integerType));
+            else inverterSpinnerContent.add("Missing inverter");
+            if (!(null == initialInverter)) for (int i = 0; i < initialInverter.getMpptCount(); i++)
+                mpptSpinnerContent.add(String.valueOf(i + 1));
+            else mpptSpinnerContent.add("1");
 
-        TableRow optimizedRow = new TableRow(getActivity());
-        TextView optimizedPanels = new TextView(getActivity());
-        optimizedPanels.setText(R.string.Optimized);
-        CheckBox optimizedCheck = new CheckBox(getActivity());
-        optimizedCheck.setEnabled(mEdit);
-        mEditFields.add(optimizedCheck);
-        optimizedCheck.setChecked(mPanel.getConnectionMode() == Panel.OPTIMIZED);
-        optimizedCheck.setOnClickListener(v -> {
-            System.out.println("Selected optimized: " + v.getId() + " " + optimizedCheck.isChecked());
-            if (optimizedCheck.isChecked()) mPanel.setConnectionMode(Panel.OPTIMIZED);
-            else mPanel.setConnectionMode(Panel.PARALLEL);
-            ((PanelActivity) requireActivity()).updatePanelAtIndex(mPanel, mPanelIndex);
-            ((PanelActivity) requireActivity()).setSaveNeeded(true);
-        });
-        optimizedRow.addView(optimizedPanels);
-        optimizedRow.addView(optimizedCheck);
-        mTableLayout.addView(optimizedRow);
 
-        TableRow inverterRow = new TableRow(getActivity());
-        TableRow mpptRow = new TableRow(getActivity());
-        TextView inverterText = new TextView(getActivity());
-        inverterText.setText(R.string.ConnectedInverterName);
-        TextView mpptText = new TextView(getActivity());
-        mpptText.setText(R.string.ConnectedInverterMPPT);
+            mpptSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                    int mppt = Integer.parseInt(mpptSpinnerContent.get(position));
+                    mPanel.setMppt(mppt);
+                    System.out.println("Setting MPPT to:" + mPanel.getMppt());
+                    ((PanelActivity) requireActivity()).updatePanelAtIndex(mPanel, mPanelIndex);
+                    if (initialMPPT != mPanel.getMppt())
+                        ((PanelActivity) requireActivity()).setSaveNeeded(true);
+                }
 
-        Spinner mpptSpinner = new Spinner(getActivity());
-        ArrayList<String> mpptSpinnerContent = new ArrayList<>();
+                @Override
+                public void onNothingSelected(AdapterView<?> parent) {
+                    // Auto-generated method stub
+                }
+            });
 
-        ArrayList<String> inverterSpinnerContent = new ArrayList<>();
-        int selectedInverterIndex = 0;
-        int itr = 0;
-        Inverter initialInverter = null;
-        int initialMPPT = mPanel.getMppt();
-        if (!(null == mInverters)) for (Inverter inverter: mInverters) {
-            String inv = inverter.getInverterName();
-            inverterSpinnerContent.add(inv);
-            if (mPanel.getInverter().equals(inv)) {
-                selectedInverterIndex = itr;
-                initialInverter = inverter;
-            }
-            itr++;
+            Spinner inverterSpinner = new Spinner(getActivity());
+            inverterSpinner.setLayoutParams(textParams);
+
+            ArrayAdapter<String> mpptSpinnerAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, mpptSpinnerContent);
+            mpptSpinner.setAdapter(mpptSpinnerAdapter);
+            mpptSpinner.setSelection(mPanel.getMppt() - 1);
+
+            ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, inverterSpinnerContent);
+            inverterSpinner.setAdapter(spinnerAdapter);
+            inverterSpinner.setSelection(selectedInverterIndex);
+            Inverter finalInitialInverter = initialInverter;
+            inverterSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                    String inverter = inverterSpinnerContent.get(position);
+                    mPanel.setInverter(inverter);
+                    System.out.println("Setting Inverter to: " + mPanel.getInverter());
+                    mpptSpinnerContent.clear();
+                    for (int i = 0; i < mInverters.get(position).getMpptCount(); i++)
+                        mpptSpinnerContent.add(String.valueOf(i + 1));
+                    mpptSpinner.setSelection(mPanel.getMppt() - 1);
+                    ((PanelActivity) requireActivity()).updatePanelAtIndex(mPanel, mPanelIndex);
+                    if (null == finalInitialInverter)
+                        ((PanelActivity) requireActivity()).setSaveNeeded(true);
+                    else if (!finalInitialInverter.getInverterName().equals(mPanel.getInverter()))
+                        ((PanelActivity) requireActivity()).setSaveNeeded(true);
+                }
+
+                @Override
+                public void onNothingSelected(AdapterView<?> parent) {
+                    // Auto-generated method stub
+                }
+            });
+            inverterText.setLayoutParams(params);
+            inverterSpinner.setLayoutParams(params);
+            inverterSpinner.setEnabled(mEdit);
+            mEditFields.add(inverterSpinner);
+            inverterRow.addView(inverterText);
+            inverterRow.addView(inverterSpinner);
+            mTableLayout.addView(inverterRow);
+
+
+            mpptText.setLayoutParams(params);
+            mpptSpinner.setLayoutParams(params);
+            mpptSpinner.setEnabled(mEdit);
+            mEditFields.add(mpptSpinner);
+            mpptRow.addView(mpptText);
+            mpptRow.addView(mpptSpinner);
+            mTableLayout.addView(mpptRow);
         }
-        else inverterSpinnerContent.add("Missing inverter");
-        if (!(null == initialInverter)) for (int i = 0; i < initialInverter.getMpptCount(); i++) mpptSpinnerContent.add(String.valueOf(i+1));
-        else mpptSpinnerContent.add("1");
-
-
-        mpptSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                int mppt = Integer.parseInt(mpptSpinnerContent.get(position));
-                mPanel.setMppt(mppt);
-                System.out.println("Setting MPPT to:" + mPanel.getMppt());
-                ((PanelActivity) requireActivity()).updatePanelAtIndex(mPanel, mPanelIndex);
-                if(initialMPPT != mPanel.getMppt())
-                    ((PanelActivity) requireActivity()).setSaveNeeded(true);
-            }
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-                // Auto-generated method stub
-            }
-        });
-
-        Spinner inverterSpinner = new Spinner(getActivity());
-
-        ArrayAdapter<String> mpptSpinnerAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, mpptSpinnerContent);
-        mpptSpinner.setAdapter(mpptSpinnerAdapter);
-        mpptSpinner.setSelection(mPanel.getMppt() - 1);
-
-        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, inverterSpinnerContent);
-        inverterSpinner.setAdapter(spinnerAdapter);
-        inverterSpinner.setSelection(selectedInverterIndex);
-        Inverter finalInitialInverter = initialInverter;
-        inverterSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                String inverter = inverterSpinnerContent.get(position);
-                mPanel.setInverter(inverter);
-                System.out.println("Setting Inverter to: " + mPanel.getInverter());
-                mpptSpinnerContent.clear();
-                for (int i = 0; i < mInverters.get(position).getMpptCount(); i++) mpptSpinnerContent.add(String.valueOf(i+1));
-                mpptSpinner.setSelection(mPanel.getMppt() - 1);
-                ((PanelActivity) requireActivity()).updatePanelAtIndex(mPanel, mPanelIndex);
-                if (null == finalInitialInverter) ((PanelActivity) requireActivity()).setSaveNeeded(true);
-                else if (!finalInitialInverter.getInverterName().equals(mPanel.getInverter()))
-                    ((PanelActivity) requireActivity()).setSaveNeeded(true);
-            }
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-                // Auto-generated method stub
-            }
-        });
-        inverterText.setLayoutParams(params);
-        inverterSpinner.setLayoutParams(params);
-        inverterSpinner.setEnabled(mEdit);
-        mEditFields.add(inverterSpinner);
-        inverterRow.addView(inverterText);
-        inverterRow.addView(inverterSpinner);
-        mTableLayout.addView(inverterRow);
-
-
-        mpptText.setLayoutParams(params);
-        mpptSpinner.setLayoutParams(params);
-        mpptSpinner.setEnabled(mEdit);
-        mEditFields.add(mpptSpinner);
-        mpptRow.addView(mpptText);
-        mpptRow.addView(mpptSpinner);
-        mTableLayout.addView(mpptRow);
-
-
     }
 
     private TableRow createRow(String title, String initialValue, AbstractTextWatcher action, TableRow.LayoutParams params, int inputType){
+        TableRow.LayoutParams textParams = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.MATCH_PARENT);
+        textParams.topMargin = 2;
+        textParams.rightMargin = 2;
+
         TableRow tableRow = new TableRow(getActivity());
         TextView a = new TextView(getActivity());
         a.setText(title);
+        a.setMinimumHeight(80);
+        a.setHeight(80);
         EditText b = new EditText(getActivity());
         b.setText(initialValue);
         b.setEnabled(mEdit);
@@ -458,7 +480,7 @@ public class PanelFragment extends Fragment {
         mEditFields.add(b);
 
         a.setLayoutParams(params);
-        b.setLayoutParams(params);
+        b.setLayoutParams(textParams);
         tableRow.addView(a);
         tableRow.addView(b);
         return tableRow;
