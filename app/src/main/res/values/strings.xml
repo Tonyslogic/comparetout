@@ -121,4 +121,9 @@
     <string name="default_scenario_detail_date">23/06</string>
     <string name="filter">Filter</string>
     <string name="sort">Sort</string>
+    <string name="pick_a_date_to_display">Pick a date to display</string>
+    <string name="go_back_one_day">Go back one day</string>
+    <string name="go_forward_one_day">Go forward one day</string>
+    <string name="filter_graph_content">Filter graph content</string>
+    <string name="UsageName">Usage name</string>
 </resources>

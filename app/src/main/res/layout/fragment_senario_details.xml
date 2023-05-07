@@ -67,7 +67,8 @@
             <TableRow
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center_horizontal">
+                android:gravity="center_horizontal"
+                tools:ignore="UselessParent">
 
                 <ImageButton
                     android:id="@+id/pick_date"
@@ -78,7 +79,8 @@
                     android:layout_weight="1"
                     android:adjustViewBounds="true"
                     android:padding="2dp"
-                    android:scaleType="fitCenter"/>
+                    android:scaleType="fitCenter"
+                    android:contentDescription="@string/pick_a_date_to_display"/>
 
                 <ImageButton
                     android:id="@+id/previous"
@@ -89,7 +91,8 @@
                     android:layout_weight="1"
                     android:adjustViewBounds="true"
                     android:padding="2dp"
-                    android:scaleType="fitCenter" />
+                    android:scaleType="fitCenter"
+                    android:contentDescription="@string/go_back_one_day" />
 
                 <TextView
                     android:id="@+id/date"
@@ -111,7 +114,8 @@
                     android:layout_weight="1"
                     android:adjustViewBounds="true"
                     android:padding="2dp"
-                    android:scaleType="fitCenter"/>
+                    android:scaleType="fitCenter"
+                    android:contentDescription="@string/go_forward_one_day"/>
 
                 <ImageButton
                     android:id="@+id/filter"
@@ -123,7 +127,8 @@
                     android:padding="2dp"
                     android:scaleType="fitCenter"
                     android:src="@drawable/ic_baseline_filter_list_24"
-                    app:tint="@android:color/darker_gray" />
+                    app:tint="@android:color/darker_gray"
+                    android:contentDescription="@string/filter_graph_content" />
             </TableRow>
         </TableLayout>
 

@@ -421,6 +421,10 @@ public class ScenarioOverview extends Fragment {
             scenarioParams.topMargin = 10;
             scenarioParams.rightMargin = 10;
 
+            TableRow.LayoutParams textParams = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.MATCH_PARENT);
+            textParams.topMargin = 2;
+            textParams.rightMargin = 2;
+
             if (!mScenario.isHasLoadProfiles()) {
                 mHelpTable.setShrinkAllColumns(true);
                 mHelpTable.setStretchAllColumns(false);
@@ -439,7 +443,9 @@ public class ScenarioOverview extends Fragment {
             TextView a = new TextView(getActivity());
             if (mEdit) {
                 // CREATE TABLE ROWS
-                a.setText(R.string.Scenario);
+                a.setText(R.string.UsageName);
+                a.setMinimumHeight(80);
+                a.setHeight(80);
                 EditText b = new EditText(getActivity());
                 b.setText(mScenario.getScenarioName());
                 b.setEnabled(true);
@@ -461,7 +467,7 @@ public class ScenarioOverview extends Fragment {
                     }
                 });
                 a.setLayoutParams(scenarioParams);
-                b.setLayoutParams(scenarioParams);
+                b.setLayoutParams(textParams);
                 tableRow.addView(a);
                 tableRow.addView(b);
                 mTableLayout.addView(tableRow);
@@ -548,46 +554,90 @@ public class ScenarioOverview extends Fragment {
     }
 
     private void updateButtons() {
-        if (mScenario.isHasPanels() && mHasPanelData) mPanelButton.setImageResource(R.drawable.solarpaneltick);
-        else mPanelButton.setImageResource(R.drawable.solarpanel);
+        if (mScenario.isHasPanels() && mHasPanelData) {
+            mPanelButton.setImageResource(R.drawable.solarpaneltick);
+            mPanelButton.setContentDescription("Panels, configured with data. View or update.");
+        }
+        else {
+            mPanelButton.setImageResource(R.drawable.solarpanel);
+            mPanelButton.setContentDescription("Panels, not configured. Configure.");
+            if (mScenario.isHasPanels())
+                mPanelButton.setContentDescription("Panels configured, missing data. View or update.");
+        }
         mPanelButton.setBackgroundColor(0);
 
-        if (mScenario.isHasInverters()) mInverterButton.setImageResource(R.drawable.invertertick);
-        else mInverterButton.setImageResource(R.drawable.inverter);
+        if (mScenario.isHasInverters()) {
+            mInverterButton.setImageResource(R.drawable.invertertick);
+            mInverterButton.setContentDescription("Inverters, configured. Configure.");
+        }
+        else {
+            mInverterButton.setImageResource(R.drawable.inverter);
+            mInverterButton.setContentDescription("Inverters, not configured. View or update.");
+        }
         mInverterButton.setBackgroundColor(0);
         if (mScenario.isHasLoadProfiles()) {
             mHouseButton.setImageResource(R.drawable.housetick);
             mHouseButton.setBackgroundColor(0);
-//            mHouseButton.setColorFilter(getResources().getColor(R.color.blue_300));
+            mHouseButton.setContentDescription("Load profile configured. View or update.");
         }
         else {
             mHouseButton.setImageResource(R.drawable.house);
             mHouseButton.setBackgroundColor(Color.YELLOW);
+            mHouseButton.setContentDescription("Load profile not configured. Configure");
         }
 
         if (mScenario.isHasBatteries()) {
             mBatteryButton.setImageResource(R.drawable.battery_set);
-            if (mScenario.isHasLoadShifts()) mBatteryButton.setImageResource(R.drawable.battery_scheduled);
+            mBatteryButton.setContentDescription("Battery configured, View or update.");
+            if (mScenario.isHasLoadShifts()) {
+                mBatteryButton.setImageResource(R.drawable.battery_scheduled);
+                mBatteryButton.setContentDescription("Batter configured and scheduled. View or update.");
+            }
         }
-        else mBatteryButton.setImageResource(R.drawable.battery_not_set);
+        else {
+            mBatteryButton.setImageResource(R.drawable.battery_not_set);
+            mBatteryButton.setContentDescription("Battery not configured. Configure");
+        }
         mBatteryButton.setBackgroundColor(0);
 
         if (mScenario.isHasHWSystem()) {
             mTankButton.setImageResource(R.drawable.tank_set);
+            mTankButton.setContentDescription("Hot water system configured. View or update");
             if (mScenario.isHasHWSchedules()) {
                 mTankButton.setImageResource(R.drawable.tank_set_scheduled);
+                mTankButton.setContentDescription("Hot water system configured and scheduled. View or update");
             }
-            if (mScenario.isHasHWDivert()) mTankButton.setImageResource(R.drawable.tank_set_scheduled_diverted);
+            if (mScenario.isHasHWDivert() && mScenario.isHasHWSchedules()) {
+                mTankButton.setImageResource(R.drawable.tank_set_scheduled_diverted);
+                mTankButton.setContentDescription("Hot water system configured with schedules and diversion. View or update");
+            }
+            if (mScenario.isHasHWDivert()) {
+                mTankButton.setImageResource(R.drawable.tank_set_scheduled_diverted);
+                mTankButton.setContentDescription("Hot water system configured with diversion. View or update");
+            }
         }
-        else mTankButton.setImageResource(R.drawable.tank_not_set);
+        else {
+            mTankButton.setImageResource(R.drawable.tank_not_set);
+            mTankButton.setContentDescription("Hot water system not configured. Configure");
+        }
         mTankButton.setBackgroundColor(0);
 
         if (mScenario.isHasEVCharges()) {
             mCarButton.setImageResource(R.drawable.car_scheduled);
-            if (mScenario.isHasEVDivert()) mCarButton.setImageResource(R.drawable.car_scheduled_diverted);
+            mCarButton.setContentDescription("EV schedules enabled. View or update");
+            if (mScenario.isHasEVDivert()) {
+                mCarButton.setImageResource(R.drawable.car_scheduled_diverted);
+                mCarButton.setContentDescription("EV schedules and diversions enabled. View or update");
+            }
         }
-        else if (mScenario.isHasEVDivert()) mCarButton.setImageResource(R.drawable.car_diverted);
-        else mCarButton.setImageResource(R.drawable.car_not_set);
+        else if (mScenario.isHasEVDivert()) {
+            mCarButton.setImageResource(R.drawable.car_diverted);
+            mCarButton.setContentDescription("EV diversions enabled. View or update");
+        }
+        else {
+            mCarButton.setImageResource(R.drawable.car_not_set);
+            mCarButton.setContentDescription("No EV schedules and diversions enabled. Configure");
+        }
         mCarButton.setBackgroundColor(0);
     }
 
