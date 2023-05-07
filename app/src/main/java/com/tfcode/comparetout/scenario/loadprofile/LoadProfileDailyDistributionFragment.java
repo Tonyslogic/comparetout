@@ -183,6 +183,10 @@ public class LoadProfileDailyDistributionFragment extends Fragment {
             planParams.rightMargin = 2;
             planParams.height = mEditTable.getHeight() / 8;
             planParams.weight = 1;
+
+            TableRow.LayoutParams textParams = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.MATCH_PARENT);
+            textParams.topMargin = 2;
+            textParams.rightMargin = 2;
             // Distribution Table
 
             TableLayout distributionTable = new TableLayout(getActivity());
@@ -208,9 +212,9 @@ public class LoadProfileDailyDistributionFragment extends Fragment {
                 dow.setGravity(Gravity.CENTER);
 
                 dayRow.setLayoutParams(planParams);
-                dow.setLayoutParams(planParams);
+                dow.setLayoutParams(textParams);
                 minus.setLayoutParams(planParams);
-                percent.setLayoutParams(planParams);
+                percent.setLayoutParams(textParams);
                 plus.setLayoutParams(planParams);
 
                 double d = mLoadProfile.getDowDist().dowDist.get(dayIndex);
@@ -234,9 +238,11 @@ public class LoadProfileDailyDistributionFragment extends Fragment {
                 minus.setBackgroundColor(0);
                 minus.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 minus.setAdjustViewBounds(true);
+                minus.setContentDescription(String.format("Reduce percentage for %s", day));
                 plus.setImageResource(android.R.drawable.btn_plus);
                 plus.setBackgroundColor(0);
                 plus.setScaleType(ImageView.ScaleType.FIT_CENTER);
+                plus.setContentDescription(String.format("Increase percentage for %s", day));
                 plus.setAdjustViewBounds(true);
 
                 minus.setOnClickListener(v -> {
@@ -273,9 +279,9 @@ public class LoadProfileDailyDistributionFragment extends Fragment {
                 plus.setText("");
                 plus.setGravity(Gravity.CENTER);
 
-                tot.setLayoutParams(planParams);
+                tot.setLayoutParams(textParams);
                 minus.setLayoutParams(planParams);
-                totalPercent.setLayoutParams(planParams);
+                totalPercent.setLayoutParams(textParams);
                 plus.setLayoutParams(planParams);
 
                 totalRow.addView(tot);

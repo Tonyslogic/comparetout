@@ -210,10 +210,16 @@ public class LoadProfilePropertiesFragment extends Fragment {
         planParams.topMargin = 2;
         planParams.rightMargin = 2;
 
+        TableRow.LayoutParams textParams = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.MATCH_PARENT);
+        textParams.topMargin = 2;
+        textParams.rightMargin = 2;
+
         // CREATE TABLE ROWS
         TableRow tableRow = new TableRow(getActivity());
         TextView a = new TextView(getActivity());
         a.setText(R.string.DistributionSource);
+        a.setMinimumHeight(80);
+        a.setHeight(80);
         Spinner spinner = new Spinner(getActivity());
         ArrayList<String> spinnerContent = new ArrayList<>();
         spinnerContent.add("Custom");
@@ -254,6 +260,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
                 // TODO Auto-generated method stub
             }
         });
+        spinner.setLayoutParams(textParams);
         tableRow.addView(a);
         tableRow.addView(spinner);
         mTableLayout.addView(tableRow);
@@ -262,6 +269,8 @@ public class LoadProfilePropertiesFragment extends Fragment {
         tableRow = new TableRow(getActivity());
         a = new TextView(getActivity());
         a.setText(R.string.AnnualUsage);
+        a.setMinimumHeight(80);
+        a.setHeight(80);
         EditText b = new EditText(getActivity());
         b.setText(String.format("%s", mLoadProfile.getAnnualUsage()));
         b.setEnabled(mEdit);
@@ -275,7 +284,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
             }
         });
         a.setLayoutParams(planParams);
-        b.setLayoutParams(planParams);
+        b.setLayoutParams(textParams);
         tableRow.addView(a);
         tableRow.addView(b);
         mTableLayout.addView(tableRow);
@@ -284,6 +293,8 @@ public class LoadProfilePropertiesFragment extends Fragment {
         tableRow = new TableRow(getActivity());
         a = new TextView(getActivity());
         a.setText(R.string.HourlyBaseLoad);
+        a.setMinimumHeight(80);
+        a.setHeight(80);
         b = new EditText(getActivity());
         b.setEnabled(mEdit);
         b.setText(String.format("%s", mLoadProfile.getHourlyBaseLoad()));
@@ -301,7 +312,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
             }
         });
         a.setLayoutParams(planParams);
-        b.setLayoutParams(planParams);
+        b.setLayoutParams(textParams);
         tableRow.addView(a);
         tableRow.addView(b);
         mTableLayout.addView(tableRow);
@@ -310,6 +321,8 @@ public class LoadProfilePropertiesFragment extends Fragment {
         tableRow = new TableRow(getActivity());
         a = new TextView(getActivity());
         a.setText(R.string.GridImportMax);
+        a.setMinimumHeight(80);
+        a.setHeight(80);
         b = new EditText(getActivity());
         b.setEnabled(mEdit);
         b.setText(String.format("%s", mLoadProfile.getGridImportMax()));
@@ -323,7 +336,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
             }
         });
         a.setLayoutParams(planParams);
-        b.setLayoutParams(planParams);
+        b.setLayoutParams(textParams);
         tableRow.addView(a);
         tableRow.addView(b);
         mTableLayout.addView(tableRow);
@@ -332,6 +345,8 @@ public class LoadProfilePropertiesFragment extends Fragment {
         tableRow = new TableRow(getActivity());
         a = new TextView(getActivity());
         a.setText(R.string.GridExportMax);
+        a.setMinimumHeight(80);
+        a.setHeight(80);
         b = new EditText(getActivity());
         b.setEnabled(mEdit);
         b.setText(String.format("%s", mLoadProfile.getGridExportMax()));
@@ -345,7 +360,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
             }
         });
         a.setLayoutParams(planParams);
-        b.setLayoutParams(planParams);
+        b.setLayoutParams(textParams);
         tableRow.addView(a);
         tableRow.addView(b);
         mTableLayout.addView(tableRow);

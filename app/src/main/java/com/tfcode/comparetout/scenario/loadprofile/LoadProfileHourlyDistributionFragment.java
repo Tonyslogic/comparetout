@@ -26,6 +26,8 @@ import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
+import android.os.Handler;
+import android.os.Looper;
 import android.text.Editable;
 import android.text.InputType;
 import android.view.Gravity;
@@ -191,6 +193,11 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
             TableRow.LayoutParams planParams = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
             planParams.topMargin = 2;
             planParams.rightMargin = 2;
+
+            TableRow.LayoutParams textParams = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.MATCH_PARENT);
+            textParams.topMargin = 2;
+            textParams.rightMargin = 2;
+
             if (hourlyPercentageRange.getPercentages().size() > 9)
                 planParams.height = mEditTableHeight / Math.min(12, hourlyPercentageRange.getPercentages().size());
 
@@ -234,13 +241,13 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
                 f.setGravity(Gravity.CENTER);
                 g.setGravity(Gravity.CENTER);
 
-                a.setLayoutParams(planParams);
-                b.setLayoutParams(planParams);
-                c.setLayoutParams(planParams);
-                d.setLayoutParams(planParams);
-                e.setLayoutParams(planParams);
-                f.setLayoutParams(planParams);
-                g.setLayoutParams(planParams);
+                a.setLayoutParams(textParams);
+                b.setLayoutParams(textParams);
+                c.setLayoutParams(textParams);
+                d.setLayoutParams(textParams);
+                e.setLayoutParams(textParams);
+                f.setLayoutParams(textParams);
+                g.setLayoutParams(textParams);
 
                 titleRow.addView(a);
                 titleRow.addView(b);
@@ -266,10 +273,10 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
                 ImageButton del = new ImageButton(getActivity());
                 ImageButton add = new ImageButton(getActivity());
 
-                from.setLayoutParams(planParams);
-                to.setLayoutParams(planParams);
+                from.setLayoutParams(textParams);
+                to.setLayoutParams(textParams);
                 minus.setLayoutParams(planParams);
-                percent.setLayoutParams(planParams);
+                percent.setLayoutParams(textParams);
                 plus.setLayoutParams(planParams);
                 del.setLayoutParams(planParams);
                 add.setLayoutParams(planParams);
@@ -295,14 +302,18 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
                 minus.setBackgroundColor(0);
                 minus.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 minus.setAdjustViewBounds(true);
+                minus.setContentDescription(String.format("Reduce percentage for %s to %s", begin, end));
                 plus.setImageResource(android.R.drawable.btn_plus);
                 plus.setBackgroundColor(0);
                 plus.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 plus.setAdjustViewBounds(true);
-                del.setImageResource(android.R.drawable.ic_menu_delete);
+                plus.setContentDescription(String.format("Increase percentage for %s to %s", begin, end));
+                del.setImageResource(R.drawable.ic_baseline_delete_24);
+                del.setContentDescription(String.format("Delete percentage for %s to %s", begin, end));
                 del.setBackgroundColor(0);
                 del.setScaleType(ImageView.ScaleType.FIT_CENTER);
                 add.setImageResource(android.R.drawable.ic_menu_add);
+                add.setContentDescription(String.format("Split row for %s to %s", begin, end));
                 add.setBackgroundColor(0);
 
                 from.setEnabled(false);
@@ -328,7 +339,7 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
                     }
                 });
                 to.setOnFocusChangeListener((v, hasFocus) -> {
-                    if (!hasFocus) {updateView();}});
+                    if (!hasFocus) {new Handler(Looper.getMainLooper()).postDelayed(this::updateView, 200);}});
 
                 percent.addTextChangedListener(new AbstractTextWatcher() {
                     @Override
@@ -378,31 +389,33 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
                         if(mEdit)((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
                         updateMasterCopy();
                         totalPercent.setText(String.format("%d", calculatePercentageTotal(doubleHolder)));
-                        updateView();
+                        new Handler(Looper.getMainLooper()).postDelayed(this::updateView, 200);
                     }
                 });
 
                 add.setOnClickListener(v -> {
                     int fr = Integer.parseInt(from.getText().toString());
                     int t = Integer.parseInt((to.getText().toString()));
-                    double p = Integer.parseInt((percent.getText().toString()));
-                    int dif = t - fr;
-                    int split = fr + dif/2;
-                    doubleHolder.update(fr, split, (p/2 - 1)/(split - fr));
-                    doubleHolder.update(split, t, (p/2 + 1)/(t - split));
-                    HourlyDist dist = new HourlyDist();
-                    dist.dist = doubleHolder.doubles;
-                    mLoadProfile.setHourlyDist(dist);
-                    if(mEdit)((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
-                    updateMasterCopy();
-                    totalPercent.setText(String.format("%d", calculatePercentageTotal(doubleHolder)));
-                    updateView();
+                    if (t - fr > 1) {
+                        double p = Integer.parseInt((percent.getText().toString()));
+                        int dif = t - fr;
+                        int split = fr + dif / 2;
+                        doubleHolder.update(fr, split, (p / 2 - 1) / (split - fr));
+                        doubleHolder.update(split, t, (p / 2 + 1) / (t - split));
+                        HourlyDist dist = new HourlyDist();
+                        dist.dist = doubleHolder.doubles;
+                        mLoadProfile.setHourlyDist(dist);
+                        if (mEdit) ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
+                        updateMasterCopy();
+                        totalPercent.setText(String.format("%d", calculatePercentageTotal(doubleHolder)));
+                        new Handler(Looper.getMainLooper()).postDelayed(this::updateView, 200);
+                    }
                 });
 
                 // TODO: Fix the crash associated with the add/delete/to edit
-                to.setEnabled(false);
-                del.setEnabled(false);
-                add.setEnabled(false);
+//                to.setEnabled(false);
+//                del.setEnabled(false);
+//                add.setEnabled(false);
 
                 percentRow.addView(from);
                 percentRow.addView(to);
