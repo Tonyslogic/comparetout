@@ -222,7 +222,7 @@ public class PricePlanEditFragment extends Fragment {
             }
         });
         a.setLayoutParams(planParams);
-        b.setLayoutParams(textParams);
+//        b.setLayoutParams(planParams);
         tableRow.addView(a);
         tableRow.addView(b);
         mTableLayout.addView(tableRow);
@@ -256,7 +256,7 @@ public class PricePlanEditFragment extends Fragment {
             }
         });
         a.setLayoutParams(planParams);
-        b.setLayoutParams(textParams);
+//        b.setLayoutParams(textParams);
         tableRow.addView(a);
         tableRow.addView(b);
         mTableLayout.addView(tableRow);
@@ -282,7 +282,7 @@ public class PricePlanEditFragment extends Fragment {
             }
         });
         a.setLayoutParams(planParams);
-        b.setLayoutParams(textParams);
+//        b.setLayoutParams(textParams);
         tableRow.addView(a);
         tableRow.addView(b);
         mTableLayout.addView(tableRow);
@@ -308,7 +308,7 @@ public class PricePlanEditFragment extends Fragment {
             }
         });
         a.setLayoutParams(planParams);
-        b.setLayoutParams(textParams);
+//        b.setLayoutParams(textParams);
         tableRow.addView(a);
         tableRow.addView(b);
         mTableLayout.addView(tableRow);
@@ -334,7 +334,7 @@ public class PricePlanEditFragment extends Fragment {
             }
         });
         a.setLayoutParams(planParams);
-        b.setLayoutParams(textParams);
+//        b.setLayoutParams(textParams);
         tableRow.addView(a);
         tableRow.addView(b);
         mTableLayout.addView(tableRow);
@@ -360,7 +360,7 @@ public class PricePlanEditFragment extends Fragment {
             }
         });
         a.setLayoutParams(planParams);
-        b.setLayoutParams(textParams);
+//        b.setLayoutParams(textParams);
         tableRow.addView(a);
         tableRow.addView(b);
         mTableLayout.addView(tableRow);
@@ -386,7 +386,7 @@ public class PricePlanEditFragment extends Fragment {
             }
         });
         a.setLayoutParams(planParams);
-        b.setLayoutParams(textParams);
+//        b.setLayoutParams(textParams);
         tableRow.addView(a);
         tableRow.addView(b);
         mTableLayout.addView(tableRow);

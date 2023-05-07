@@ -187,7 +187,7 @@ public class BatterySettingsFragment extends Fragment {
                 }
             });
             inverterText.setLayoutParams(params);
-            inverterSpinner.setLayoutParams(params);
+            inverterSpinner.setPadding(20,20,20,20);
             inverterSpinner.setEnabled(mEdit);
             mEditFields.add(inverterSpinner);
             inverterRow.addView(inverterText);
@@ -286,10 +286,7 @@ public class BatterySettingsFragment extends Fragment {
     }
 
     private TableRow createRow(String title, String initialValue, AbstractTextWatcher action, TableRow.LayoutParams params, int inputType){
-        TableRow.LayoutParams textParams = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.MATCH_PARENT);
-        textParams.topMargin = 2;
-        textParams.rightMargin = 2;
-        TableRow tableRow = new TableRow(getActivity());
+       TableRow tableRow = new TableRow(getActivity());
         TextView a = new TextView(getActivity());
         a.setText(title);
         a.setMinimumHeight(80);
@@ -302,7 +299,7 @@ public class BatterySettingsFragment extends Fragment {
         mEditFields.add(b);
 
         a.setLayoutParams(params);
-        b.setLayoutParams(textParams);
+        b.setPadding(20, 20, 20, 20);
         tableRow.addView(a);
         tableRow.addView(b);
         return tableRow;

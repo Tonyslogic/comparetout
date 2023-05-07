@@ -210,10 +210,6 @@ public class LoadProfilePropertiesFragment extends Fragment {
         planParams.topMargin = 2;
         planParams.rightMargin = 2;
 
-        TableRow.LayoutParams textParams = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.MATCH_PARENT);
-        textParams.topMargin = 2;
-        textParams.rightMargin = 2;
-
         // CREATE TABLE ROWS
         TableRow tableRow = new TableRow(getActivity());
         TextView a = new TextView(getActivity());
@@ -260,7 +256,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
                 // TODO Auto-generated method stub
             }
         });
-        spinner.setLayoutParams(textParams);
+        spinner.setPadding(20, 20, 20, 20);
         tableRow.addView(a);
         tableRow.addView(spinner);
         mTableLayout.addView(tableRow);
@@ -284,7 +280,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
             }
         });
         a.setLayoutParams(planParams);
-        b.setLayoutParams(textParams);
+        b.setPadding(20, 20, 20, 20);
         tableRow.addView(a);
         tableRow.addView(b);
         mTableLayout.addView(tableRow);
@@ -312,7 +308,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
             }
         });
         a.setLayoutParams(planParams);
-        b.setLayoutParams(textParams);
+        b.setPadding(20, 20, 20, 20);
         tableRow.addView(a);
         tableRow.addView(b);
         mTableLayout.addView(tableRow);
@@ -336,7 +332,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
             }
         });
         a.setLayoutParams(planParams);
-        b.setLayoutParams(textParams);
+        b.setPadding(20, 20, 20, 20);
         tableRow.addView(a);
         tableRow.addView(b);
         mTableLayout.addView(tableRow);
@@ -360,7 +356,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
             }
         });
         a.setLayoutParams(planParams);
-        b.setLayoutParams(textParams);
+        b.setPadding(20, 20, 20, 20);
         tableRow.addView(a);
         tableRow.addView(b);
         mTableLayout.addView(tableRow);

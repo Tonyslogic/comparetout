@@ -421,10 +421,6 @@ public class ScenarioOverview extends Fragment {
             scenarioParams.topMargin = 10;
             scenarioParams.rightMargin = 10;
 
-            TableRow.LayoutParams textParams = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.MATCH_PARENT);
-            textParams.topMargin = 2;
-            textParams.rightMargin = 2;
-
             if (!mScenario.isHasLoadProfiles()) {
                 mHelpTable.setShrinkAllColumns(true);
                 mHelpTable.setStretchAllColumns(false);
@@ -467,7 +463,7 @@ public class ScenarioOverview extends Fragment {
                     }
                 });
                 a.setLayoutParams(scenarioParams);
-                b.setLayoutParams(textParams);
+                b.setPadding(20,20,20,20);
                 tableRow.addView(a);
                 tableRow.addView(b);
                 mTableLayout.addView(tableRow);

@@ -296,10 +296,6 @@ public class PanelFragment extends Fragment {
             params.rightMargin = 2;
             params.weight = 1;
 
-            TableRow.LayoutParams textParams = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.MATCH_PARENT);
-            textParams.topMargin = 2;
-            textParams.rightMargin = 2;
-
             int integerType = InputType.TYPE_CLASS_NUMBER;
             int stringType = InputType.TYPE_CLASS_TEXT;
 
@@ -370,7 +366,7 @@ public class PanelFragment extends Fragment {
             mpptText.setHeight(80);
 
             Spinner mpptSpinner = new Spinner(getActivity());
-            mpptSpinner.setLayoutParams(textParams);
+            mpptSpinner.setPadding(20, 20, 20, 20);
             ArrayList<String> mpptSpinnerContent = new ArrayList<>();
 
             ArrayList<String> inverterSpinnerContent = new ArrayList<>();
@@ -411,7 +407,7 @@ public class PanelFragment extends Fragment {
             });
 
             Spinner inverterSpinner = new Spinner(getActivity());
-            inverterSpinner.setLayoutParams(textParams);
+            inverterSpinner.setPadding(20, 20, 20, 20);
 
             ArrayAdapter<String> mpptSpinnerAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, mpptSpinnerContent);
             mpptSpinner.setAdapter(mpptSpinnerAdapter);
@@ -463,10 +459,6 @@ public class PanelFragment extends Fragment {
     }
 
     private TableRow createRow(String title, String initialValue, AbstractTextWatcher action, TableRow.LayoutParams params, int inputType){
-        TableRow.LayoutParams textParams = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.MATCH_PARENT);
-        textParams.topMargin = 2;
-        textParams.rightMargin = 2;
-
         TableRow tableRow = new TableRow(getActivity());
         TextView a = new TextView(getActivity());
         a.setText(title);
@@ -480,7 +472,7 @@ public class PanelFragment extends Fragment {
         mEditFields.add(b);
 
         a.setLayoutParams(params);
-        b.setLayoutParams(textParams);
+        b.setPadding(20, 20, 20, 20);
         tableRow.addView(a);
         tableRow.addView(b);
         return tableRow;
