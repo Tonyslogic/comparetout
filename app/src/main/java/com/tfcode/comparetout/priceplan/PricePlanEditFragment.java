@@ -198,10 +198,16 @@ public class PricePlanEditFragment extends Fragment {
         planParams.topMargin = 2;
         planParams.rightMargin = 2;
 
+        TableRow.LayoutParams textParams = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.MATCH_PARENT);
+        textParams.topMargin = 2;
+        textParams.rightMargin = 2;
+
         // CREATE TABLE ROWS
         TableRow tableRow = new TableRow(getActivity());
         TextView a = new TextView(getActivity());
         a.setText(R.string.Supplier);
+        a.setMinimumHeight(80);
+        a.setHeight(80);
         EditText b = new EditText(getActivity());
         b.setText(mPricePlan.getSupplier());
         b.setEnabled(mEdit);
@@ -216,7 +222,7 @@ public class PricePlanEditFragment extends Fragment {
             }
         });
         a.setLayoutParams(planParams);
-        b.setLayoutParams(planParams);
+        b.setLayoutParams(textParams);
         tableRow.addView(a);
         tableRow.addView(b);
         mTableLayout.addView(tableRow);
@@ -225,6 +231,8 @@ public class PricePlanEditFragment extends Fragment {
         tableRow = new TableRow(getActivity());
         a = new TextView(getActivity());
         a.setText(R.string.Plan);
+        a.setMinimumHeight(80);
+        a.setHeight(80);
         b = new EditText(getActivity());
         b.setEnabled(mEdit);
         b.setText(mPricePlan.getPlanName());
@@ -248,7 +256,7 @@ public class PricePlanEditFragment extends Fragment {
             }
         });
         a.setLayoutParams(planParams);
-        b.setLayoutParams(planParams);
+        b.setLayoutParams(textParams);
         tableRow.addView(a);
         tableRow.addView(b);
         mTableLayout.addView(tableRow);
@@ -257,6 +265,8 @@ public class PricePlanEditFragment extends Fragment {
         tableRow = new TableRow(getActivity());
         a = new TextView(getActivity());
         a.setText(R.string.FeedInRate);
+        a.setMinimumHeight(80);
+        a.setHeight(80);
         b = new EditText(getActivity());
         b.setEnabled(mEdit);
         b.setText(String.format("%s", mPricePlan.getFeed()));
@@ -272,7 +282,7 @@ public class PricePlanEditFragment extends Fragment {
             }
         });
         a.setLayoutParams(planParams);
-        b.setLayoutParams(planParams);
+        b.setLayoutParams(textParams);
         tableRow.addView(a);
         tableRow.addView(b);
         mTableLayout.addView(tableRow);
@@ -281,6 +291,8 @@ public class PricePlanEditFragment extends Fragment {
         tableRow = new TableRow(getActivity());
         a = new TextView(getActivity());
         a.setText(R.string.StandingCharges);
+        a.setMinimumHeight(80);
+        a.setHeight(80);
         b = new EditText(getActivity());
         b.setEnabled(mEdit);
         b.setText(String.format("%s", mPricePlan.getStandingCharges()));
@@ -296,7 +308,7 @@ public class PricePlanEditFragment extends Fragment {
             }
         });
         a.setLayoutParams(planParams);
-        b.setLayoutParams(planParams);
+        b.setLayoutParams(textParams);
         tableRow.addView(a);
         tableRow.addView(b);
         mTableLayout.addView(tableRow);
@@ -305,6 +317,8 @@ public class PricePlanEditFragment extends Fragment {
         tableRow = new TableRow(getActivity());
         a = new TextView(getActivity());
         a.setText(R.string.SignUpBonus);
+        a.setMinimumHeight(80);
+        a.setHeight(80);
         b = new EditText(getActivity());
         b.setEnabled(mEdit);
         b.setText(String.format("%s", mPricePlan.getSignUpBonus()));
@@ -320,7 +334,7 @@ public class PricePlanEditFragment extends Fragment {
             }
         });
         a.setLayoutParams(planParams);
-        b.setLayoutParams(planParams);
+        b.setLayoutParams(textParams);
         tableRow.addView(a);
         tableRow.addView(b);
         mTableLayout.addView(tableRow);
@@ -329,6 +343,8 @@ public class PricePlanEditFragment extends Fragment {
         tableRow = new TableRow(getActivity());
         a = new TextView(getActivity());
         a.setText(R.string.LastUpdate);
+        a.setMinimumHeight(80);
+        a.setHeight(80);
         b = new EditText(getActivity());
         b.setEnabled(mEdit);
         b.setText(String.format("%s", mPricePlan.getLastUpdate()));
@@ -344,7 +360,7 @@ public class PricePlanEditFragment extends Fragment {
             }
         });
         a.setLayoutParams(planParams);
-        b.setLayoutParams(planParams);
+        b.setLayoutParams(textParams);
         tableRow.addView(a);
         tableRow.addView(b);
         mTableLayout.addView(tableRow);
@@ -353,6 +369,8 @@ public class PricePlanEditFragment extends Fragment {
         tableRow = new TableRow(getActivity());
         a = new TextView(getActivity());
         a.setText(R.string.Reference);
+        a.setMinimumHeight(80);
+        a.setHeight(80);
         b = new EditText(getActivity());
         b.setEnabled(mEdit);
         b.setText(mPricePlan.getReference());
@@ -368,7 +386,7 @@ public class PricePlanEditFragment extends Fragment {
             }
         });
         a.setLayoutParams(planParams);
-        b.setLayoutParams(planParams);
+        b.setLayoutParams(textParams);
         tableRow.addView(a);
         tableRow.addView(b);
         mTableLayout.addView(tableRow);
