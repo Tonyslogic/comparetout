@@ -16,7 +16,6 @@
 
 package com.tfcode.comparetout;
 
-import android.annotation.SuppressLint;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Intent;
@@ -264,7 +263,7 @@ public class MainActivity extends AppCompatActivity {
                 new Thread(() -> {
                     URL url;
                     try {
-                        url = new URL("https://raw.githubusercontent.com/Tonyslogic/tout-compare/main/rates.json");
+                        url = new URL("https://raw.githubusercontent.com/Tonyslogic/comparetout-doc/main/price-plans/rates.json");
                         InputStreamReader reader = new InputStreamReader(url.openStream());
                         Type type = new TypeToken<List<PricePlanJsonFile>>() {
                         }.getType();
@@ -290,15 +289,22 @@ public class MainActivity extends AppCompatActivity {
             if (pos == USAGE_FRAGMENT) {
                 mProgressBar.setVisibility(View.VISIBLE);
                 new Thread(() -> {
-                    @SuppressLint("DiscouragedApi") InputStream ins = getResources().openRawResource(
-                            getResources().getIdentifier("scenarios", "raw", getPackageName()));
-                    InputStreamReader reader = new InputStreamReader(ins, StandardCharsets.UTF_8);
-                    Type type = new TypeToken<List<ScenarioJsonFile>>() {
-                    }.getType();
-                    List<ScenarioJsonFile> scenarioJsonFiles = new Gson().fromJson(reader, type);
-                    List<ScenarioComponents> scs = JsonTools.createScenarioComponentList(scenarioJsonFiles);
-                    for (ScenarioComponents sc : scs) {
-                        mViewModel.insertScenario(sc);
+//                    @SuppressLint("DiscouragedApi") InputStream ins = getResources().openRawResource(
+//                            getResources().getIdentifier("scenarios", "raw", getPackageName()));
+//                    InputStreamReader reader = new InputStreamReader(ins, StandardCharsets.UTF_8);
+                    URL url;
+                    try {
+                        url = new URL("https://raw.githubusercontent.com/Tonyslogic/comparetout-doc/main/usage-profiles/scenarios.json");
+                        InputStreamReader reader = new InputStreamReader(url.openStream());
+                        Type type = new TypeToken<List<ScenarioJsonFile>>() {
+                        }.getType();
+                        List<ScenarioJsonFile> scenarioJsonFiles = new Gson().fromJson(reader, type);
+                        List<ScenarioComponents> scs = JsonTools.createScenarioComponentList(scenarioJsonFiles);
+                        for (ScenarioComponents sc : scs) {
+                            mViewModel.insertScenario(sc);
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
                     mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
                 }).start();
