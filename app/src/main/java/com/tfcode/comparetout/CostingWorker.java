@@ -91,12 +91,16 @@ public class CostingWorker extends Worker {
                     System.out.println("Retrieved " + scenarioData.size() + " rows of simulation data for " + scenarioID);
                     if (scenarioData.size() > 0) {
                         long startTime = System.nanoTime();
+                        long notifyTime = startTime;
                         for (PricePlan pp : plans) {
                             // Confirm the need for costing
                             if (mToutcRepository.costingExists(scenarioID, pp.getPricePlanIndex()))
                                 continue;
                             builder.setContentText(pp.getPlanName());
-                            notificationManager.notify(notificationId, builder.build());
+                            if (System.nanoTime() - notifyTime > 1e+9){
+                                notifyTime = System.nanoTime();
+                                notificationManager.notify(notificationId, builder.build());
+                            }
                             RateLookup lookup = mLookups.get(pp.getPricePlanIndex());
                             if (null == lookup) {
                                 lookup = new RateLookup(
@@ -128,13 +132,19 @@ public class CostingWorker extends Worker {
                             // store in comparison table
                             System.out.println("Storing " + costing);
                             builder.setContentText("Saving data");
-                            notificationManager.notify(notificationId, builder.build());
+                            if (System.nanoTime() - notifyTime > 1e+9) {
+                                notifyTime = System.nanoTime();
+                                notificationManager.notify(notificationId, builder.build());
+                            }
                             mToutcRepository.saveCosting(costing);
                             // NOTIFICATION PROGRESS
                             PROGRESS_CURRENT += PROGRESS_CHUNK;
                             builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
                             builder.setContentText("Data saved");
-                            notificationManager.notify(notificationId, builder.build());
+                            if (System.nanoTime() - notifyTime > 1e+9) {
+                                notifyTime = System.nanoTime();
+                                notificationManager.notify(notificationId, builder.build());
+                            }
                         }
                         long endTime = System.nanoTime();
                         System.out.println("Took " + (endTime - startTime) / 1000000 + "mS to cost " + plans.size() + " plans");
