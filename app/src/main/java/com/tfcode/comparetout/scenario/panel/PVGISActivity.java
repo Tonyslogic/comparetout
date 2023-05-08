@@ -16,6 +16,7 @@
 
 package com.tfcode.comparetout.scenario.panel;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.DownloadManager;
 import android.content.BroadcastReceiver;
@@ -24,6 +25,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -40,6 +42,7 @@ import android.widget.TextView;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
@@ -78,6 +81,28 @@ public class PVGISActivity extends AppCompatActivity {
     private boolean mFileCached = false;
     private boolean mLocationChanged = false;
 
+    public static String[] storge_permissions = {
+            Manifest.permission.WRITE_EXTERNAL_STORAGE,
+            Manifest.permission.READ_EXTERNAL_STORAGE
+    };
+
+    @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
+    public static String[] storge_permissions_33 = {
+            Manifest.permission.READ_MEDIA_IMAGES,
+            Manifest.permission.READ_MEDIA_AUDIO,
+            Manifest.permission.READ_MEDIA_VIDEO
+    };
+
+    public static String[] permissions() {
+        String[] p;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            p = storge_permissions_33;
+        } else {
+            p = storge_permissions;
+        }
+        return p;
+    }
+
     private static final String U1 = "https://re.jrc.ec.europa.eu/api/v5_2/seriescalc?lat="; // LATITUDE
     private static final String U2 = "&lon="; // LONGITUDE
     private static final String U3 = "&raddatabase=PVGIS-SARAH2&browser=1&outputformat=json&userhorizon=&usehorizon=1&angle="; //SLOPE
@@ -93,9 +118,27 @@ public class PVGISActivity extends AppCompatActivity {
     // Register the permissions callback, which handles the user's response to the
     // system permissions dialog. Save the return value, an instance of
     // ActivityResultLauncher, as an instance variable.
-    private final ActivityResultLauncher<String> requestPermissionLauncher =
-            registerForActivityResult(new ActivityResultContracts.RequestPermission(), isGranted -> {
-                if (isGranted) {
+    private final ActivityResultLauncher<String[]> requestPermissionLauncher =
+            registerForActivityResult(new ActivityResultContracts.RequestMultiplePermissions(), isGranted -> {
+                Boolean granted;
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    boolean readImages = Boolean.TRUE.equals(isGranted.getOrDefault(
+                            Manifest.permission.READ_MEDIA_IMAGES, false));
+                    boolean readAudio = Boolean.TRUE.equals(isGranted.getOrDefault(
+                            Manifest.permission.READ_MEDIA_AUDIO, false));
+                    boolean readVideo = Boolean.TRUE.equals(isGranted.getOrDefault(
+                            Manifest.permission.READ_MEDIA_VIDEO, false));
+                    granted = readImages && readAudio && readVideo;
+                }
+                else {
+                    boolean writeExt = Boolean.TRUE.equals(isGranted.getOrDefault(
+                            Manifest.permission.WRITE_EXTERNAL_STORAGE, false));
+                    boolean readExt = Boolean.TRUE.equals(isGranted.getOrDefault(
+                            Manifest.permission.READ_EXTERNAL_STORAGE, false));
+                    granted = writeExt && readExt;
+                }
+
+                if (granted) {
                     mMainHandler.post(this::fetch);
                 } else {
                     Snackbar.make(getWindow().getDecorView().getRootView(),
@@ -103,21 +146,6 @@ public class PVGISActivity extends AppCompatActivity {
                             .setAction("Action", null).show();
                 }
             });
-
-    private final BroadcastReceiver onDownloadComplete = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            //Fetching the download id received with the broadcast
-            long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
-            //Checking if the received broadcast is for our enqueued download by matching download id
-            if (mDownloadID == id) {
-                Snackbar.make(getWindow().getDecorView().getRootView(),
-                                "Download complete, loading DB", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-                scheduleLoad(context);
-            }
-        }
-    };
 
     private final ActivityResultLauncher<String[]> locationPermissionRequest =
             registerForActivityResult(new ActivityResultContracts
@@ -139,6 +167,21 @@ public class PVGISActivity extends AppCompatActivity {
                         }
                     }
             );
+
+    private final BroadcastReceiver onDownloadComplete = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            //Fetching the download id received with the broadcast
+            long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
+            //Checking if the received broadcast is for our enqueued download by matching download id
+            if (mDownloadID == id) {
+                Snackbar.make(getWindow().getDecorView().getRootView(),
+                                "Download complete, loading DB", Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
+                scheduleLoad(context);
+            }
+        }
+    };
 
     @SuppressLint("MissingPermission")
     private void updateLocation() {
@@ -389,8 +432,7 @@ public class PVGISActivity extends AppCompatActivity {
                 mMainHandler.post(this::fetch);
             }
             else {
-                requestPermissionLauncher.launch(
-                        "android.permission.WRITE_EXTERNAL_STORAGE");
+                requestPermissionLauncher.launch(permissions());
             }
         }).start();
     }

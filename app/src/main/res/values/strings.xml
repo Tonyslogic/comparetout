@@ -51,8 +51,8 @@
     <string name="cancel">Cancel</string>
     <string name="importlp">Import</string>
     <string name="delete">Delete</string>
-    <string name="UpdateLocation">Update location</string>
-    <string name="DownloadData">Download data</string>
+    <string name="UpdateLocation">Set location using GPS</string>
+    <string name="DownloadData">Download and save</string>
     <string name="DataDownloaded">Data downloaded</string>
     <string name="DownloadNecessary">Download necessary</string>
     <string name="DataInDB">Data in DB</string>
