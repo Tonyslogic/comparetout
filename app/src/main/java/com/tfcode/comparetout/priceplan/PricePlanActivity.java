@@ -266,15 +266,9 @@ public class PricePlanActivity extends AppCompatActivity {
                     ((PricePlanViewPageAdapter)viewPager.getAdapter()).delete(pos);
 
                 ppj = new Gson().fromJson(focusedPlan, type);
-                ArrayList<String> tabTitlesList = new ArrayList<>();
-                tabTitlesList.add("Plan details");
-                for (DayRateJson ignored : ppj.rates) tabTitlesList.add("Rates");
-                TabLayout tabLayout = findViewById(R.id.tab_layout);
-                mMediator.detach();
-                mMediator = new TabLayoutMediator(tabLayout, viewPager,
-                        (tab, position) -> tab.setText(tabTitlesList.get(position))
-                );
-                mMediator.attach();
+//                refreshMediator(ppj);
+                PricePlanJsonFile finalPpj = ppj;
+                new Handler(Looper.getMainLooper()).postDelayed(() -> refreshMediator(finalPpj), 200);
             }
             else {
                 Snackbar.make(getWindow().getDecorView().getRootView(), "Try again from a RATES tab", Snackbar.LENGTH_LONG)
@@ -303,15 +297,7 @@ public class PricePlanActivity extends AppCompatActivity {
             focusedPlan = JsonTools.createSinglePricePlanJsonObject(pricePlan, dayRates);
 
             ppj = new Gson().fromJson(focusedPlan, type);
-            ArrayList<String> tabTitlesList = new ArrayList<>();
-            tabTitlesList.add("Plan details");
-            for (DayRateJson ignored : ppj.rates) tabTitlesList.add("Rates");
-            TabLayout tabLayout = findViewById(R.id.tab_layout);
-            mMediator.detach();
-            mMediator = new TabLayoutMediator(tabLayout, viewPager,
-                    (tab, position) -> tab.setText(tabTitlesList.get(position))
-            );
-            mMediator.attach();
+            refreshMediator(ppj);
             //
             ((PricePlanViewPageAdapter) viewPager.getAdapter()).add(pos);
 
@@ -323,6 +309,18 @@ public class PricePlanActivity extends AppCompatActivity {
                     .setAction("Action", null).show();
         }
         return false;
+    }
+
+    private void refreshMediator(PricePlanJsonFile ppj) {
+        ArrayList<String> tabTitlesList = new ArrayList<>();
+        tabTitlesList.add("Plan details");
+        for (DayRateJson ignored : ppj.rates) tabTitlesList.add("Rates");
+        TabLayout tabLayout = findViewById(R.id.tab_layout);
+        mMediator.detach();
+        mMediator = new TabLayoutMediator(tabLayout, viewPager,
+                (tab, position) -> tab.setText(tabTitlesList.get(position))
+        );
+        mMediator.attach();
     }
 
     @Override

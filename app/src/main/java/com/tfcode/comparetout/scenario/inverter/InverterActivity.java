@@ -220,16 +220,24 @@ public class InverterActivity extends AppCompatActivity {
 
     private void deleteInverter() {
         int pos = mViewPager.getCurrentItem();
-        Inverter removed = mInverters.remove(pos);
-        if (null == mRemovedInverters) mRemovedInverters = new ArrayList<>();
-        mRemovedInverters.add(removed.getInverterIndex());
+        if (mInverters.size() > 0) {
+            Inverter removed = mInverters.remove(pos);
+            if (null == mRemovedInverters) mRemovedInverters = new ArrayList<>();
+            mRemovedInverters.add(removed.getInverterIndex());
 
-        if (!(null == mViewPager.getAdapter())) {
-            ((InverterViewPageAdapter) mViewPager.getAdapter()).delete(pos);
+            if (!(null == mViewPager.getAdapter())) {
+                ((InverterViewPageAdapter) mViewPager.getAdapter()).delete(pos);
+            }
+
+//            refreshMediator();
+            new Handler(Looper.getMainLooper()).postDelayed(this::refreshMediator,500);
+            setSaveNeeded(true);
         }
-
-        refreshMediator();
-        setSaveNeeded(true);
+        else {
+            Snackbar.make(getWindow().getDecorView().getRootView(),
+                            "Nothing to delete!", Snackbar.LENGTH_LONG)
+                    .setAction("Action", null).show();
+        }
     }
 
     private void refreshMediator() {
@@ -303,9 +311,6 @@ public class InverterActivity extends AppCompatActivity {
         }
         if (item.getItemId() == R.id.lp_share) {//add the function to perform here
             System.out.println("Share attempt");
-            Snackbar.make(getWindow().getDecorView().getRootView(),
-                            "TODO : " + item.getTitle(), Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show();
             Intent sendIntent = new Intent();
             sendIntent.setAction(Intent.ACTION_SEND);
             sendIntent.putExtra(Intent.EXTRA_TEXT, mInvertersJsonString);

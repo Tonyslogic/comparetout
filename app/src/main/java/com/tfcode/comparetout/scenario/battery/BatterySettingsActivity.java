@@ -220,16 +220,24 @@ public class BatterySettingsActivity extends AppCompatActivity {
 
     private void deleteBattery() {
         int pos = mViewPager.getCurrentItem();
-        Battery removed = mBatteries.remove(pos);
-        if (null == mRemovedBatteries) mRemovedBatteries = new ArrayList<>();
-        mRemovedBatteries.add(removed.getBatteryIndex());
+        if (mBatteries.size() > 0) {
+            Battery removed = mBatteries.remove(pos);
+            if (null == mRemovedBatteries) mRemovedBatteries = new ArrayList<>();
+            mRemovedBatteries.add(removed.getBatteryIndex());
 
-        if (!(null == mViewPager.getAdapter())) {
-            ((BatterySettingsViewPageAdapter) mViewPager.getAdapter()).delete(pos);
+            if (!(null == mViewPager.getAdapter())) {
+                ((BatterySettingsViewPageAdapter) mViewPager.getAdapter()).delete(pos);
+            }
+
+//            refreshMediator();
+            new Handler(Looper.getMainLooper()).postDelayed(this::refreshMediator,500);
+            setSaveNeeded(true);
         }
-
-        refreshMediator();
-        setSaveNeeded(true);
+        else {
+            Snackbar.make(getWindow().getDecorView().getRootView(),
+                            "Nothing to delete!", Snackbar.LENGTH_LONG)
+                    .setAction("Action", null).show();
+        }
     }
 
     private void refreshMediator() {

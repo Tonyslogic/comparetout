@@ -221,16 +221,23 @@ public class PanelActivity extends AppCompatActivity {
 
     private void deletePanel() {
         int pos = mViewPager.getCurrentItem();
-        Panel removed = mPanels.remove(pos);
-        if (null == mRemovedPanels) mRemovedPanels = new ArrayList<>();
-        mRemovedPanels.add(removed.getPanelIndex());
+        if (mPanels.size() > 0) {
+            Panel removed = mPanels.remove(pos);
+            if (null == mRemovedPanels) mRemovedPanels = new ArrayList<>();
+            mRemovedPanels.add(removed.getPanelIndex());
 
-        if (!(null == mViewPager.getAdapter())) {
-            ((PanelViewPageAdapter) mViewPager.getAdapter()).delete(pos);
+            if (!(null == mViewPager.getAdapter())) {
+                ((PanelViewPageAdapter) mViewPager.getAdapter()).delete(pos);
+            }
+
+            refreshMediator();
+            setSaveNeeded(true);
         }
-
-        refreshMediator();
-        setSaveNeeded(true);
+        else {
+            Snackbar.make(getWindow().getDecorView().getRootView(),
+                            "Nothing to delete!", Snackbar.LENGTH_LONG)
+                    .setAction("Action", null).show();
+        }
     }
 
     private void refreshMediator() {
@@ -250,7 +257,7 @@ public class PanelActivity extends AppCompatActivity {
             aie.printStackTrace();
             if (!mRetryMediator) {
                 mRetryMediator = true;
-                new Handler(Looper.getMainLooper()).postDelayed(this::refreshMediator,2000);
+                new Handler(Looper.getMainLooper()).postDelayed(this::refreshMediator,1000);
             }
             else return;
         }
