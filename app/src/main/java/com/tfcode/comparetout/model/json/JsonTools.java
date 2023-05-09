@@ -243,16 +243,22 @@ public class JsonTools {
     }
 
     public static HWSystem createHWSystem(HWSystemJson hwj) {
-        HWSystem hwSystem = new HWSystem();
-        hwSystem.setHwCapacity(hwj.hwCapacity);
-        hwSystem.setHwUsage(hwj.hwUsage);
-        hwSystem.setHwIntake(hwj.hwIntake);
-        hwSystem.setHwTarget(hwj.hwTarget);
-        hwSystem.setHwLoss(hwj.hwLoss);
-        hwSystem.setHwRate(hwj.hwRate);
-        HWUse hwUse = new HWUse();
-        hwUse.setUsage(hwj.hwUse);
-        hwSystem.setHwUse(hwUse);
+        HWSystem hwSystem = null;
+        try {
+            hwSystem = new HWSystem();
+            hwSystem.setHwCapacity(hwj.hwCapacity);
+            hwSystem.setHwUsage(hwj.hwUsage);
+            hwSystem.setHwIntake(hwj.hwIntake);
+            hwSystem.setHwTarget(hwj.hwTarget);
+            hwSystem.setHwLoss(hwj.hwLoss);
+            hwSystem.setHwRate(hwj.hwRate);
+            HWUse hwUse = new HWUse();
+            hwUse.setUsage(hwj.hwUse);
+            hwSystem.setHwUse(hwUse);
+        }
+        catch (NullPointerException npe) {
+            System.out.println("No HWSystem in json");
+        }
         return hwSystem;
     }
 
@@ -376,19 +382,25 @@ public class JsonTools {
     }
 
     public static EVDivert createEVDivert(EVDivertJson evDivertJson) {
-        EVDivert evDivert =  new EVDivert();
-        evDivert.setName(evDivertJson.name);
-        evDivert.setActive(evDivertJson.active);
-        evDivert.setEv1st(evDivertJson.ev1st);
-        evDivert.setBegin(evDivertJson.begin);
-        evDivert.setEnd(evDivertJson.end);
-        evDivert.setDailyMax(evDivertJson.dailyMax);
-        MonthHolder monthHolder = new MonthHolder();
-        monthHolder.months = evDivertJson.months;
-        evDivert.setMonths(monthHolder);
-        IntHolder intHolder = new IntHolder();
-        intHolder.ints = evDivertJson.days;
-        evDivert.setDays(intHolder);
+        EVDivert evDivert = null;
+        try {
+            evDivert = new EVDivert();
+            evDivert.setName(evDivertJson.name);
+            evDivert.setActive(evDivertJson.active);
+            evDivert.setEv1st(evDivertJson.ev1st);
+            evDivert.setBegin(evDivertJson.begin);
+            evDivert.setEnd(evDivertJson.end);
+            evDivert.setDailyMax(evDivertJson.dailyMax);
+            MonthHolder monthHolder = new MonthHolder();
+            monthHolder.months = evDivertJson.months;
+            evDivert.setMonths(monthHolder);
+            IntHolder intHolder = new IntHolder();
+            intHolder.ints = evDivertJson.days;
+            evDivert.setDays(intHolder);
+        }
+        catch (NullPointerException npe) {
+            System.out.println("No EVDivert in json");
+        }
         return evDivert;
     }
 
