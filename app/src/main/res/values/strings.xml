@@ -150,4 +150,5 @@
     <string name="load_profile_configuration_disabled">Load profile configuration disabled</string>
     <string name="load_profile_configured">Load profile configured</string>
     <string name="NoSolarData">Cannot find solar data for these panels. Remember to fetch or update solar data for each set of panels.</string>
+    <string name="no_solar_data">Cannot find solar data for these panels. Remember to fetch or update solar data for each set of panels.</string>
 </resources>

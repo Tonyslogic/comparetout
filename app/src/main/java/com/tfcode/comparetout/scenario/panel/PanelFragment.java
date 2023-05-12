@@ -79,6 +79,7 @@ public class PanelFragment extends Fragment {
     private Panel mPanel;
     private TableLayout mTableLayout;
     private BarChart mBarChart;
+    private TextView mNoSolarData;
     private TableLayout mPanelNoData;
     private Handler mMainHandler;
 
@@ -165,6 +166,7 @@ public class PanelFragment extends Fragment {
         mTableLayout.setStretchAllColumns(true);
 
         mBarChart = requireView().findViewById(R.id.scenario_detail_chart);
+        mNoSolarData = requireView().findViewById(R.id.no_solar_data);
         mPanelNoData  = requireView().findViewById(R.id.scenario_detail_filter_layout);
         updateView();
     }
@@ -219,7 +221,6 @@ public class PanelFragment extends Fragment {
         if (null == mPanelPVSummaries) return;
         System.out.println("updateChartView " + mPanelPVSummaries.size());
 
-
         final ArrayList<String> xLabel = new ArrayList<>();
         xLabel.add("Jan");
         xLabel.add("Feb");
@@ -245,12 +246,22 @@ public class PanelFragment extends Fragment {
         xAxis.setLabelCount(12, false);
         List<Double> monthlyDist = new ArrayList<>();
         int monthIndex = 0;
+        double totalPV = 0D;
         for (PanelPVSummary summary: mPanelPVSummaries) {
             if (summary.panelID == mPanel.getPanelIndex()){
                 monthlyDist.add(summary.tot);
+                totalPV += summary.tot;
                 monthIndex++;
                 if (monthIndex == 12) break;
             }
+        }
+        if (totalPV == 0D) {
+            mBarChart.setVisibility(View.INVISIBLE);
+            mNoSolarData.setVisibility(View.VISIBLE);
+        }
+        else {
+            mBarChart.setVisibility(View.VISIBLE);
+            mNoSolarData.setVisibility(View.INVISIBLE);
         }
         if (monthlyDist.size() !=12) return;
 
@@ -366,7 +377,7 @@ public class PanelFragment extends Fragment {
             mpptText.setHeight(80);
 
             Spinner mpptSpinner = new Spinner(getActivity());
-            mpptSpinner.setPadding(20, 20, 20, 20);
+            mpptSpinner.setPadding(20, 10, 20, 10);
             ArrayList<String> mpptSpinnerContent = new ArrayList<>();
 
             ArrayList<String> inverterSpinnerContent = new ArrayList<>();

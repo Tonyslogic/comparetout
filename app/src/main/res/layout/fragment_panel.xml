@@ -49,6 +49,16 @@
             app:layout_constraintTop_toBottomOf="@id/panelEditTable"
             app:layout_constraintBottom_toTopOf="@id/scenario_detail_filter_layout"/>
 
+        <TextView
+            android:id="@+id/no_solar_data"
+            android:layout_width="match_parent"
+            android:layout_height="0sp"
+            android:gravity="center"
+            android:textSize="30sp"
+            android:text="@string/no_solar_data"
+            app:layout_constraintTop_toBottomOf="@id/panelEditTable"
+            app:layout_constraintBottom_toTopOf="@id/scenario_detail_filter_layout"/>
+
         <TableLayout
             android:id="@+id/scenario_detail_filter_layout"
             android:layout_width="match_parent"
