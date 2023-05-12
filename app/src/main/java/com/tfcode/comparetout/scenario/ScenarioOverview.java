@@ -35,6 +35,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
@@ -126,8 +127,10 @@ public class ScenarioOverview extends Fragment {
                     mScenario.setScenarioName("<New scenario>");
                 }
                 else {
+                    System.out.println("Trying to find id for " + mScenario.getScenarioName());
                     mScenarioID = findByName(scenarios, mScenario.getScenarioName());
                     if (mScenarioID == null) mScenarioID = 0L;
+                    System.out.println("Found id " + mScenarioID);
                 }
             }
             else{
@@ -136,6 +139,7 @@ public class ScenarioOverview extends Fragment {
             mScenarioNames.remove(mScenario.getScenarioName());
             mActionBar = Objects.requireNonNull(((ScenarioActivity)requireActivity()).getSupportActionBar());
             mActionBar.setTitle("Usage: " + mScenario.getScenarioName());
+            updateButtons();
             updateView();
         });
         mViewModel.getAllComparisons().observe(this, costings -> updateKPIs());
@@ -421,6 +425,7 @@ public class ScenarioOverview extends Fragment {
             scenarioParams.topMargin = 10;
             scenarioParams.rightMargin = 10;
 
+            mHelpTable.removeAllViews();
             if (!mScenario.isHasLoadProfiles()) {
                 mHelpTable.setShrinkAllColumns(true);
                 mHelpTable.setStretchAllColumns(false);
@@ -433,7 +438,6 @@ public class ScenarioOverview extends Fragment {
 
                 mHelpTable.addView(help);
             }
-            else mHelpTable.removeAllViews();
 
             TableRow tableRow = new TableRow(getActivity());
             TextView a = new TextView(getActivity());
@@ -550,90 +554,59 @@ public class ScenarioOverview extends Fragment {
     }
 
     private void updateButtons() {
-        if (mScenario.isHasPanels() && mHasPanelData) {
-            mPanelButton.setImageResource(R.drawable.solarpaneltick);
-            mPanelButton.setContentDescription("Panels, configured with data. View or update.");
-        }
-        else {
-            mPanelButton.setImageResource(R.drawable.solarpanel);
-            mPanelButton.setContentDescription("Panels, not configured. Configure.");
-            if (mScenario.isHasPanels())
-                mPanelButton.setContentDescription("Panels configured, missing data. View or update.");
-        }
+        ImageView panelSun = requireView().findViewById(R.id.panelSun);
+        ImageView panelLock = requireView().findViewById(R.id.panelLock);
+        ImageView panelTick = requireView().findViewById(R.id.panelTick);
+        if (mScenarioID == 0L || !(mScenario.isHasPanels())) mHasPanelData = false;
+        panelSun.setVisibility(mHasPanelData ? View.VISIBLE : View.GONE);
+        panelLock.setVisibility(mScenario.isHasInverters() ? View.GONE: View.VISIBLE);
+        panelTick.setVisibility(mScenario.isHasPanels() ? View.VISIBLE : View.GONE);
         mPanelButton.setBackgroundColor(0);
 
-        if (mScenario.isHasInverters()) {
-            mInverterButton.setImageResource(R.drawable.invertertick);
-            mInverterButton.setContentDescription("Inverters, configured. Configure.");
-        }
-        else {
-            mInverterButton.setImageResource(R.drawable.inverter);
-            mInverterButton.setContentDescription("Inverters, not configured. View or update.");
-        }
+        ImageView inverterTick = requireView().findViewById(R.id.inverterTick);
+        ImageView inverterLock = requireView().findViewById(R.id.inverterLock);
+        inverterLock.setVisibility(mScenario.isHasLoadProfiles() ? View.GONE : View.VISIBLE);
+        inverterTick.setVisibility(mScenario.isHasInverters() ? View.VISIBLE : View.GONE);
         mInverterButton.setBackgroundColor(0);
-        if (mScenario.isHasLoadProfiles()) {
-            mHouseButton.setImageResource(R.drawable.housetick);
-            mHouseButton.setBackgroundColor(0);
-            mHouseButton.setContentDescription("Load profile configured. View or update.");
-        }
-        else {
-            mHouseButton.setImageResource(R.drawable.house);
-            mHouseButton.setBackgroundColor(Color.YELLOW);
-            mHouseButton.setContentDescription("Load profile not configured. Configure");
-        }
 
-        if (mScenario.isHasBatteries()) {
-            mBatteryButton.setImageResource(R.drawable.battery_set);
-            mBatteryButton.setContentDescription("Battery configured, View or update.");
-            if (mScenario.isHasLoadShifts()) {
-                mBatteryButton.setImageResource(R.drawable.battery_scheduled);
-                mBatteryButton.setContentDescription("Batter configured and scheduled. View or update.");
-            }
-        }
-        else {
-            mBatteryButton.setImageResource(R.drawable.battery_not_set);
-            mBatteryButton.setContentDescription("Battery not configured. Configure");
-        }
+        ImageView houseTick = requireView().findViewById(R.id.houseTick);
+        ImageView houseLock = requireView().findViewById(R.id.houseLock);
+        houseTick.setVisibility(mScenario.isHasLoadProfiles() ? View.VISIBLE : View.GONE);
+        houseLock.setVisibility((mScenarioID == 0) ? View.VISIBLE : View.GONE);
+        if (mScenario.isHasLoadProfiles()) mHouseButton.setImageResource(R.drawable.housetick);
+        else mHouseButton.setImageResource(R.drawable.house);
+        mHouseButton.setBackgroundColor(0);
+
+        ImageView batteryLock = requireView().findViewById(R.id.batteryLock);
+        ImageView batterySettings = requireView().findViewById(R.id.batterySet);
+        ImageView batterySchedule = requireView().findViewById(R.id.batteryScheduled);
+        batteryLock.setVisibility(mScenario.isHasInverters() ? View.GONE : View.VISIBLE);
+        batterySettings.setVisibility(mScenario.isHasBatteries() ? View.VISIBLE : View.GONE);
+        batterySchedule.setVisibility(mScenario.isHasLoadShifts() ? View.VISIBLE : View.GONE);
         mBatteryButton.setBackgroundColor(0);
 
-        if (mScenario.isHasHWSystem()) {
-            mTankButton.setImageResource(R.drawable.tank_set);
-            mTankButton.setContentDescription("Hot water system configured. View or update");
-            if (mScenario.isHasHWSchedules()) {
-                mTankButton.setImageResource(R.drawable.tank_set_scheduled);
-                mTankButton.setContentDescription("Hot water system configured and scheduled. View or update");
-            }
-            if (mScenario.isHasHWDivert() && mScenario.isHasHWSchedules()) {
-                mTankButton.setImageResource(R.drawable.tank_set_scheduled_diverted);
-                mTankButton.setContentDescription("Hot water system configured with schedules and diversion. View or update");
-            }
-            if (mScenario.isHasHWDivert()) {
-                mTankButton.setImageResource(R.drawable.tank_set_scheduled_diverted);
-                mTankButton.setContentDescription("Hot water system configured with diversion. View or update");
-            }
-        }
-        else {
-            mTankButton.setImageResource(R.drawable.tank_not_set);
-            mTankButton.setContentDescription("Hot water system not configured. Configure");
-        }
+        ImageView tankLock = requireView().findViewById(R.id.tankLock);
+        ImageView tankSet = requireView().findViewById(R.id.tankSet);
+        ImageView tankDivert = requireView().findViewById(R.id.tankDivert);
+        ImageView tankScheduled = requireView().findViewById(R.id.tankScheduled);
+        tankLock.setVisibility(mScenario.isHasLoadProfiles() ? View.GONE : View.VISIBLE);
+        tankSet.setVisibility(mScenario.isHasHWSystem() ? View.VISIBLE : View.GONE);
+        tankDivert.setVisibility(mScenario.isHasHWDivert() ? View.VISIBLE : View.GONE);
+        tankScheduled.setVisibility(mScenario.isHasHWSchedules() ? View.VISIBLE : View.GONE);
+        if (mScenario.isHasHWSystem() && (mScenario.isHasHWSchedules() || mScenario.isHasHWDivert()))
+            mTankButton.setImageResource(R.drawable.waterwarm);
+        else mTankButton.setImageResource(R.drawable.watercold);
         mTankButton.setBackgroundColor(0);
 
-        if (mScenario.isHasEVCharges()) {
-            mCarButton.setImageResource(R.drawable.car_scheduled);
-            mCarButton.setContentDescription("EV schedules enabled. View or update");
-            if (mScenario.isHasEVDivert()) {
-                mCarButton.setImageResource(R.drawable.car_scheduled_diverted);
-                mCarButton.setContentDescription("EV schedules and diversions enabled. View or update");
-            }
-        }
-        else if (mScenario.isHasEVDivert()) {
-            mCarButton.setImageResource(R.drawable.car_diverted);
-            mCarButton.setContentDescription("EV diversions enabled. View or update");
-        }
-        else {
-            mCarButton.setImageResource(R.drawable.car_not_set);
-            mCarButton.setContentDescription("No EV schedules and diversions enabled. Configure");
-        }
+        ImageView carLock = requireView().findViewById(R.id.carLock);
+        ImageView carDivert = requireView().findViewById(R.id.carDivert);
+        ImageView carScheduled = requireView().findViewById(R.id.carScheduled);
+        carLock.setVisibility(mScenario.isHasLoadProfiles() ? View.GONE : View.VISIBLE);
+        carDivert.setVisibility(mScenario.isHasEVDivert() ? View.VISIBLE : View.GONE);
+        carScheduled.setVisibility(mScenario.isHasEVCharges() ? View.VISIBLE : View.GONE);
+        if (mScenario.isHasEVDivert() || mScenario.isHasEVCharges())
+            mCarButton.setImageResource(R.drawable.ev_on);
+        else mCarButton.setImageResource(R.drawable.ev_off);
         mCarButton.setBackgroundColor(0);
     }
 
