@@ -130,16 +130,16 @@ public abstract class ScenarioDAO {
     @Transaction
     void addNewScenarioWithComponents(Scenario scenario, ScenarioComponents components) {
         try {
-            if (!(null == components.inverters)) scenario.setHasInverters(true);
-            if (!(null == components.batteries)) scenario.setHasBatteries(true);
-            if (!(null == components.panels)) scenario.setHasPanels(true);
+            if (!(null == components.inverters) && components.inverters.size() > 0) scenario.setHasInverters(true);
+            if (!(null == components.batteries) && components.batteries.size() > 0) scenario.setHasBatteries(true);
+            if (!(null == components.panels) && components.panels.size() > 0) scenario.setHasPanels(true);
             if (!(null == components.hwSystem)) scenario.setHasHWSystem(true);
             if (!(null == components.loadProfile)) scenario.setHasLoadProfiles(true);
-            if (!(null == components.loadShifts)) scenario.setHasLoadShifts(true);
-            if (!(null == components.evCharges)) scenario.setHasEVCharges(true);
-            if (!(null == components.hwSchedules)) scenario.setHasHWSchedules(true);
-            if (!(null == components.hwDivert)) scenario.setHasHWDivert(true);
-            if (!(null == components.evDivert)) scenario.setHasEVDivert(true);
+            if (!(null == components.loadShifts) && components.loadShifts.size() > 0) scenario.setHasLoadShifts(true);
+            if (!(null == components.evCharges) && components.evCharges.size() > 0) scenario.setHasEVCharges(true);
+            if (!(null == components.hwSchedules) && components.hwSchedules.size() > 0) scenario.setHasHWSchedules(true);
+            if (!(null == components.hwDivert) && (components.hwDivert.isActive())) scenario.setHasHWDivert(true);
+            if (!(null == components.evDivert) && (components.evDivert.isActive())) scenario.setHasEVDivert(true);
 
             long scenarioID = addNewScenario(scenario);
             if (!(null == components.inverters)) {

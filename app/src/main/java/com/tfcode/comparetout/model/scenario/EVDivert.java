@@ -28,7 +28,7 @@ public class EVDivert {
     private long evDivertIndex;
 
     private String name = "Afternoon-nap";
-    private boolean active = true;
+    private boolean active = false;
     private boolean ev1st = true;
     private int begin = 11;
     private int end = 16;
