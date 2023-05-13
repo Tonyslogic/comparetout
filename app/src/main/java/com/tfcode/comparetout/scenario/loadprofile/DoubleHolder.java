@@ -31,6 +31,7 @@ public class DoubleHolder {
     }
 
     public void update(Integer fromValue, Integer toValue, Double price) {
+        if (toValue > 24) toValue = 24;
         for (int i = fromValue; i < toValue; i++) doubles.set(i, price);
         if (toValue == 24) doubles.set(toValue-1, price);
     }
