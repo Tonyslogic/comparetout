@@ -524,7 +524,8 @@ public class ScenarioMonthly extends Fragment {
             if (hwDivert > 0)generationDestinationMap.put("Water", hwDivert);
             if (battery > 0) generationDestinationMap.put("Battery", battery);
 
-            mPieChart.getDescription().setText("PV (" + new DecimalFormat("0.00").format(pv)+ " kWh) distribution");
+            mPieChart.getDescription().setText("PV (" + new DecimalFormat("0.00").format(pv)+ " kWh)");
+            mPieChart.getDescription().setTextSize(16f);
 
             ArrayList<Integer> colors = new ArrayList<>();
             colors.add(Color.parseColor("#304567"));
@@ -545,6 +546,7 @@ public class ScenarioMonthly extends Fragment {
             pieData.setDrawValues(true);
             pieData.setValueFormatter(new PercentFormatter(mPieChart));
             mPieChart.getLegend().setTextColor(Color.DKGRAY);
+            mPieChart.getLegend().setTextSize(12f);
             mPieChart.setData(pieData);
             mPieChart.setUsePercentValues(true);
             mPieChart.invalidate();
