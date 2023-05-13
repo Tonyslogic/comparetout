@@ -17,9 +17,7 @@
 package com.tfcode.comparetout.scenario;
 
 import android.annotation.SuppressLint;
-import android.app.DatePickerDialog;
 import android.content.pm.ActivityInfo;
-import android.content.res.Configuration;
 import android.graphics.Color;
 import android.icu.text.DecimalFormat;
 import android.os.Bundle;
@@ -54,14 +52,13 @@ import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.scenario.ScenarioBarChartData;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public class ScenarioMonthly extends Fragment {
+public class ScenarioYear extends Fragment {
 
     private Long mScenarioID = 0L;
     private ComparisonUIViewModel mViewModel;
@@ -73,8 +70,6 @@ public class ScenarioMonthly extends Fragment {
     private BarChart mBarChart;
     private PieChart mPieChart;
     private TextView mTextView;
-    private TextView mCurrentDateTV;
-    private int mDayOfYear = 174;
 
     private List<ScenarioBarChartData> mBarData;
 
@@ -92,7 +87,6 @@ public class ScenarioMonthly extends Fragment {
     private static final String SHOW_SOC = "SHOW_SOC";
     private static final String SHOW_HWTEMPERATURE = "SHOW_HWTEMPERATURE";
     private static final String SCENARIO_ID = "SCENARIO_ID";
-    private static final String DAY_OF_YEAR = "DAY_OF_YEAR";
 
     private boolean mShowLoad = true;
     private boolean mShowFeed = true;
@@ -111,12 +105,12 @@ public class ScenarioMonthly extends Fragment {
     private int mBarFilterCount = 3;
     private int mLineFilterCount = 2;
 
-    public ScenarioMonthly() {
+    public ScenarioYear() {
         // Required empty public constructor
     }
 
-    public static ScenarioMonthly newInstance() {
-        return new ScenarioMonthly();
+    public static ScenarioYear newInstance() {
+        return new ScenarioYear();
     }
 
     @Override
@@ -143,7 +137,6 @@ public class ScenarioMonthly extends Fragment {
         outState.putBoolean(SHOW_SOC, mShowSOC);
         outState.putBoolean(SHOW_HWTEMPERATURE, mShowHWTemperature);
         outState.putLong(SCENARIO_ID, mScenarioID);
-        outState.putInt(DAY_OF_YEAR, mDayOfYear);
     }
 
     @Override
@@ -182,7 +175,6 @@ public class ScenarioMonthly extends Fragment {
             if (mShowHWTemperature) mLineFilterCount++;
 
             mScenarioID = savedInstanceState.getLong(SCENARIO_ID);
-            mDayOfYear = savedInstanceState.getInt(DAY_OF_YEAR);
         }
         if (mScenarioID == 0) mScenarioID = ((ScenarioActivity) requireActivity()).getScenarioID();
         mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
@@ -194,8 +186,8 @@ public class ScenarioMonthly extends Fragment {
 
     private void updateKPIs() {
         new Thread(() -> {
-            mBarData = mViewModel.getMonthlyBarData(mScenarioID, mDayOfYear);
-            System.out.println("mBarData has " + mBarData.size() + " entries." + mViewModel.toString() + " : " + mScenarioID + " : " + mDayOfYear);
+            mBarData = mViewModel.getYearBarData(mScenarioID);
+            System.out.println("mBarData has " + mBarData.size() + " entries." + mViewModel.toString() + " : " + mScenarioID );
             mMainHandler.post(this::updateView);
         }).start();
     }
@@ -203,10 +195,9 @@ public class ScenarioMonthly extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_senario_monthly, container, false);
+        return inflater.inflate(R.layout.fragment_senario_year, container, false);
     }
 
-    @SuppressWarnings("deprecation")
     @SuppressLint({"DefaultLocale", "DiscouragedApi"})
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
@@ -216,55 +207,6 @@ public class ScenarioMonthly extends Fragment {
         mBarChart = view.findViewById((R.id.scenario_detail_chart));
         mPieChart = view.findViewById((R.id.pvDestinationsPie));
         mTextView = view.findViewById((R.id.no_simulation_data));
-        ImageButton mPreviousButton = view.findViewById((R.id.previous));
-        mPreviousButton.setOnClickListener(v -> {
-            mDayOfYear -= 28;
-            if (mDayOfYear < 0) mDayOfYear = 365;
-            LocalDate localDate = LocalDate.ofYearDay(2001, mDayOfYear);
-            mCurrentDateTV.setText(String.format("%s", String.format("%02d", localDate.getMonthValue())));
-            updateKPIs();
-        });
-        ImageButton mNextButton = view.findViewById((R.id.next));
-        mNextButton.setOnClickListener(v -> {
-            mDayOfYear += 28;
-            if (mDayOfYear > 366) mDayOfYear = 1;
-            LocalDate localDate = LocalDate.ofYearDay(2001, mDayOfYear);
-            mCurrentDateTV.setText(String.format("%s", String.format("%02d", localDate.getMonthValue())));
-            updateKPIs();
-        });
-        mCurrentDateTV = view.findViewById((R.id.date));
-        LocalDate initialLocalDate = LocalDate.ofYearDay(2001, mDayOfYear);
-        mCurrentDateTV.setText(String.format("%s", String.format("%02d", initialLocalDate.getMonthValue())));
-        ImageButton mDatePickerButton = view.findViewById((R.id.pick_date));
-        DatePickerDialog.OnDateSetListener date = (view1, year, month, day) -> {
-            LocalDate localDate = LocalDate.of(2001, month +1, day);
-            mDayOfYear = localDate.getDayOfYear();
-            mCurrentDateTV.setText(String.format("%s", String.format("%02d", localDate.getMonthValue())));
-            updateKPIs();
-        };
-//        TODO: Update DatePicker to non deprecated
-//        mDatePickerButton.setOnClickListener(v -> {
-//            LocalDate localDate = LocalDate.ofYearDay(2001, mDayOfYear);
-//            new DatePickerDialog(getActivity(), date, 2001 ,localDate.getMonth().getValue() - 1, localDate.getDayOfMonth()).show();
-//        });
-        mDatePickerButton.setOnClickListener(v -> {
-            LocalDate localDate = LocalDate.ofYearDay(2001, mDayOfYear);
-            int pickerTheme = 0;
-            switch (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) {
-                case Configuration.UI_MODE_NIGHT_YES:
-                    pickerTheme = android.R.style.Theme_Holo_Dialog;
-                    break;
-                case Configuration.UI_MODE_NIGHT_NO:
-                    pickerTheme = android.R.style.Theme_Holo_Light_Dialog;
-                    break;
-            }
-            DatePickerDialog dpd = new DatePickerDialog(getActivity(), pickerTheme, date, 2001 ,localDate.getMonth().getValue() - 1, localDate.getDayOfMonth());
-            View yearView = dpd.getDatePicker().findViewById(getResources().getIdentifier("year", "id", "android"));
-            dpd.getDatePicker().setCalendarViewShown(false);
-            if (!(null == yearView)) yearView.setVisibility(View.GONE);
-            dpd.show();
-        });
-
         mFilterButton = view.findViewById((R.id.filter));
 
         setupPopupFilterMenu();

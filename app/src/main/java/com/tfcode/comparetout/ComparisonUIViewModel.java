@@ -275,4 +275,8 @@ public class ComparisonUIViewModel extends AndroidViewModel {
     public List<ScenarioBarChartData> getMonthlyBarData(Long scenarioID, int dayOfYear) {
         return toutcRepository.getMonthlyBarData(scenarioID, dayOfYear);
     }
+
+    public List<ScenarioBarChartData> getYearBarData(Long scenarioID) {
+        return toutcRepository.getYearBarData(scenarioID);
+    }
 }

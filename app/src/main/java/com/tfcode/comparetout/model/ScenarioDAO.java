@@ -894,4 +894,11 @@ public abstract class ScenarioDAO {
             "AND scenarioID = :scenarioID GROUP BY dayOf2001 ORDER BY dayOf2001")
     public abstract List<ScenarioBarChartData> getMonthlyBarData(Long scenarioID, int dayOfYear);
 
+    @Query("SELECT substr(Date, 6,2) AS Hour, sum(load) AS Load, sum(feed) AS Feed, sum(Buy) AS Buy, " +
+            "sum(pv) AS PV, sum(pvToCharge) AS PV2Battery, sum(pvToLoad) AS PV2Load, sum(batToLoad) AS Battery2Load, " +
+            "sum(directEVcharge) AS EVSchedule, sum(immersionLoad) AS HWSchedule, sum(kWHDivToEV) AS EVDivert, sum(kWHDivToWater) AS HWDivert " +
+            "FROM scenariosimulationdata WHERE scenarioID = :scenarioID " +
+            "GROUP BY substr(Date, 6,2) ORDER BY substr(Date, 6,2)")
+    public abstract List<ScenarioBarChartData> getYearBarData(Long scenarioID);
+
 }

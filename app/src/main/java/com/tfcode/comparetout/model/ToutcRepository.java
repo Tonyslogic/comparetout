@@ -415,4 +415,8 @@ public class ToutcRepository {
     public List<ScenarioBarChartData> getMonthlyBarData(Long scenarioID, int dayOfYear) {
         return scenarioDAO.getMonthlyBarData(scenarioID, dayOfYear);
     }
+
+    public List<ScenarioBarChartData> getYearBarData(Long scenarioID) {
+        return scenarioDAO.getYearBarData(scenarioID);
+    }
 }

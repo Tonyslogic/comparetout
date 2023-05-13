@@ -25,6 +25,7 @@ public class ScenarioViewPageAdapter extends FragmentStateAdapter {
     ScenarioOverview mScenarioOverview = ScenarioOverview.newInstance();
     ScenarioDetails mScenarioDetails = ScenarioDetails.newInstance();
     ScenarioMonthly mScenarioMonthly = ScenarioMonthly.newInstance();
+    ScenarioYear mScenarioYear = ScenarioYear.newInstance();
     public ScenarioViewPageAdapter(@NonNull FragmentActivity fragmentActivity, int ignoredCount) {
         super(fragmentActivity);
     }
@@ -34,12 +35,13 @@ public class ScenarioViewPageAdapter extends FragmentStateAdapter {
     public Fragment createFragment(int position) {
         if (position == 0) return mScenarioOverview;
         if (position == 1) return mScenarioDetails;
-        else return mScenarioMonthly;
+        if (position == 2) return mScenarioMonthly;
+        else return mScenarioYear;
     }
 
     @Override
     public int getItemCount() {
-        return 3;
+        return 4;
     }
 
 
