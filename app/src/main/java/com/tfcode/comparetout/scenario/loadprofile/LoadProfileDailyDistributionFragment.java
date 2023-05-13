@@ -85,6 +85,7 @@ public class LoadProfileDailyDistributionFragment extends Fragment {
         mViewModel.getLoadProfile(mScenarioID).observe(this, profile -> {
             if (!(null == profile)) {
                 mLoadProfile = profile;
+                updateMasterCopy();
                 updateView();
             }
             else {

@@ -115,14 +115,21 @@ public class LoadProfilePropertiesFragment extends Fragment {
         mViewModel.getLoadProfile(mScenarioID).observe(this, profile -> {
             if (!(null == profile)) {
                 mLoadProfile = profile;
+                updateMasterCopy();
                 checkForDataAndGenerateIfNeeded();
             }
-            else mLoadProfile = new LoadProfile();
-            LoadProfileJson lpj = JsonTools.createLoadProfileJson(mLoadProfile);
-            Type type = new TypeToken<LoadProfileJson>(){}.getType();
-            Gson gson = new GsonBuilder().setPrettyPrinting().create();
-            String loadProfileJsonString =  gson.toJson(lpj, type);
-            ((LoadProfileActivity) requireActivity()).setLoadProfileJson(loadProfileJsonString);
+//            else mLoadProfile = new LoadProfile();
+//            LoadProfileJson lpj = JsonTools.createLoadProfileJson(mLoadProfile);
+//            Type type = new TypeToken<LoadProfileJson>(){}.getType();
+//            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+//            String loadProfileJsonString =  gson.toJson(lpj, type);
+//            ((LoadProfileActivity) requireActivity()).setLoadProfileJson(loadProfileJsonString);
+            else {
+                String loadProfileJsonString = ((LoadProfileActivity) requireActivity()).getLoadProfileJson();
+                Type type = new TypeToken<LoadProfileJson>(){}.getType();
+                LoadProfileJson lpj = new Gson().fromJson(loadProfileJsonString, type);
+                mLoadProfile = JsonTools.createLoadProfile(lpj);
+            }
             mSaved = false;
             if (!mLoadProfileID.equals(mLoadProfile.getLoadProfileIndex())) {
                 mLoadProfileID = mLoadProfile.getLoadProfileIndex();

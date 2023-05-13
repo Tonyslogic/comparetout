@@ -35,11 +35,18 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.SimulatorLauncher;
+import com.tfcode.comparetout.model.json.JsonTools;
+import com.tfcode.comparetout.model.json.scenario.LoadProfileJson;
+import com.tfcode.comparetout.model.scenario.LoadProfile;
 import com.tfcode.comparetout.scenario.ScenarioSelectDialog;
 
+import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -267,6 +274,13 @@ public class LoadProfileActivity extends AppCompatActivity {
     }
 
     public String getLoadProfileJson() {
+        if (mLoadProfileJson.equals("")) {
+            LoadProfile loadProfile = new LoadProfile();
+            LoadProfileJson lpj = JsonTools.createLoadProfileJson(loadProfile);
+            Type type = new TypeToken<LoadProfileJson>(){}.getType();
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            mLoadProfileJson =  gson.toJson(lpj, type);
+        }
         return mLoadProfileJson;
     }
 
