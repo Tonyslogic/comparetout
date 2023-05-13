@@ -21,7 +21,6 @@ import android.app.DatePickerDialog;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.Color;
-import android.graphics.DashPathEffect;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -39,28 +38,29 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.github.mikephil.charting.charts.BarChart;
-import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.charts.PieChart;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.data.BarData;
 import com.github.mikephil.charting.data.BarDataSet;
 import com.github.mikephil.charting.data.BarEntry;
-import com.github.mikephil.charting.data.Entry;
-import com.github.mikephil.charting.data.LineData;
-import com.github.mikephil.charting.data.LineDataSet;
+import com.github.mikephil.charting.data.PieData;
+import com.github.mikephil.charting.data.PieDataSet;
+import com.github.mikephil.charting.data.PieEntry;
+import com.github.mikephil.charting.formatter.PercentFormatter;
 import com.github.mikephil.charting.formatter.ValueFormatter;
 import com.github.mikephil.charting.interfaces.datasets.IBarDataSet;
-import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.scenario.ScenarioBarChartData;
-import com.tfcode.comparetout.model.scenario.ScenarioLineGraphData;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
-public class ScenarioDetails extends Fragment {
+public class ScenarioMonthly extends Fragment {
 
     private Long mScenarioID = 0L;
     private ComparisonUIViewModel mViewModel;
@@ -70,12 +70,11 @@ public class ScenarioDetails extends Fragment {
     private ImageButton mFilterButton;
 
     private BarChart mBarChart;
-    private LineChart mLineChart;
+    private PieChart mPieChart;
     private TextView mTextView;
     private TextView mCurrentDateTV;
     private int mDayOfYear = 174;
 
-    private List<ScenarioLineGraphData> mLineData;
     private List<ScenarioBarChartData> mBarData;
 
     private static final String SHOW_LOAD = "SHOW_LOAD";
@@ -111,12 +110,12 @@ public class ScenarioDetails extends Fragment {
     private int mBarFilterCount = 3;
     private int mLineFilterCount = 2;
 
-    public ScenarioDetails() {
+    public ScenarioMonthly() {
         // Required empty public constructor
     }
 
-    public static ScenarioDetails newInstance() {
-        return new ScenarioDetails();
+    public static ScenarioMonthly newInstance() {
+        return new ScenarioMonthly();
     }
 
     @Override
@@ -194,9 +193,8 @@ public class ScenarioDetails extends Fragment {
 
     private void updateKPIs() {
         new Thread(() -> {
-            mBarData = mViewModel.getBarData(mScenarioID, mDayOfYear);
+            mBarData = mViewModel.getMonthlyBarData(mScenarioID, mDayOfYear);
             System.out.println("mBarData has " + mBarData.size() + " entries." + mViewModel.toString() + " : " + mScenarioID + " : " + mDayOfYear);
-            mLineData = mViewModel.getLineData(mScenarioID, mDayOfYear);
             mMainHandler.post(this::updateView);
         }).start();
     }
@@ -204,7 +202,7 @@ public class ScenarioDetails extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.fragment_senario_details, container, false);
+        return inflater.inflate(R.layout.fragment_senario_monthly, container, false);
     }
 
     @SuppressWarnings("deprecation")
@@ -215,32 +213,32 @@ public class ScenarioDetails extends Fragment {
 
         mMainHandler = new Handler(Looper.getMainLooper());
         mBarChart = view.findViewById((R.id.scenario_detail_chart));
-        mLineChart = view.findViewById((R.id.scenario_detail_graph));
+        mPieChart = view.findViewById((R.id.pvDestinationsPie));
         mTextView = view.findViewById((R.id.no_simulation_data));
         ImageButton mPreviousButton = view.findViewById((R.id.previous));
         mPreviousButton.setOnClickListener(v -> {
-            mDayOfYear--;
-            if (mDayOfYear == 0) mDayOfYear = 365;
+            mDayOfYear -= 28;
+            if (mDayOfYear < 0) mDayOfYear = 365;
             LocalDate localDate = LocalDate.ofYearDay(2001, mDayOfYear);
-            mCurrentDateTV.setText(String.format("%s/%s", String.format("%02d", localDate.getDayOfMonth()), String.format("%02d", localDate.getMonthValue())));
+            mCurrentDateTV.setText(String.format("%s", String.format("%02d", localDate.getMonthValue())));
             updateKPIs();
         });
         ImageButton mNextButton = view.findViewById((R.id.next));
         mNextButton.setOnClickListener(v -> {
-            mDayOfYear++;
-            if (mDayOfYear == 366) mDayOfYear = 1;
+            mDayOfYear += 28;
+            if (mDayOfYear > 366) mDayOfYear = 1;
             LocalDate localDate = LocalDate.ofYearDay(2001, mDayOfYear);
-            mCurrentDateTV.setText(String.format("%s/%s", String.format("%02d", localDate.getDayOfMonth()), String.format("%02d", localDate.getMonthValue())));
+            mCurrentDateTV.setText(String.format("%s", String.format("%02d", localDate.getMonthValue())));
             updateKPIs();
         });
         mCurrentDateTV = view.findViewById((R.id.date));
         LocalDate initialLocalDate = LocalDate.ofYearDay(2001, mDayOfYear);
-        mCurrentDateTV.setText(String.format("%s/%s", String.format("%02d", initialLocalDate.getDayOfMonth()), String.format("%02d", initialLocalDate.getMonthValue())));
+        mCurrentDateTV.setText(String.format("%s", String.format("%02d", initialLocalDate.getMonthValue())));
         ImageButton mDatePickerButton = view.findViewById((R.id.pick_date));
         DatePickerDialog.OnDateSetListener date = (view1, year, month, day) -> {
             LocalDate localDate = LocalDate.of(2001, month +1, day);
             mDayOfYear = localDate.getDayOfYear();
-            mCurrentDateTV.setText(String.format("%s/%s", String.format("%02d", localDate.getDayOfMonth()), String.format("%02d", localDate.getMonthValue())));
+            mCurrentDateTV.setText(String.format("%s", String.format("%02d", localDate.getMonthValue())));
             updateKPIs();
         };
 //        TODO: Update DatePicker to non deprecated
@@ -261,6 +259,7 @@ public class ScenarioDetails extends Fragment {
             }
             DatePickerDialog dpd = new DatePickerDialog(getActivity(), pickerTheme, date, 2001 ,localDate.getMonth().getValue() - 1, localDate.getDayOfMonth());
             View yearView = dpd.getDatePicker().findViewById(getResources().getIdentifier("year", "id", "android"));
+            dpd.getDatePicker().setCalendarViewShown(false);
             if (!(null == yearView)) yearView.setVisibility(View.GONE);
             dpd.show();
         });
@@ -287,8 +286,8 @@ public class ScenarioDetails extends Fragment {
             mPopup.getMenu().findItem(R.id.hwSchedule).setChecked(mShowHWSchedule);
             mPopup.getMenu().findItem(R.id.evDivert).setChecked(mShowEVDivert);
             mPopup.getMenu().findItem(R.id.hwSchedule).setChecked(mShowHWSchedule);
-            mPopup.getMenu().findItem(R.id.soc).setChecked(mShowSOC);
-            mPopup.getMenu().findItem(R.id.hwTemp).setChecked(mShowHWTemperature);
+            mPopup.getMenu().findItem(R.id.soc).setVisible(false);
+            mPopup.getMenu().findItem(R.id.hwTemp).setVisible(false);
         }
 
         mPopup.setOnMenuItemClickListener(item -> {
@@ -356,22 +355,32 @@ public class ScenarioDetails extends Fragment {
 
     private void updateView() {
         System.out.println("updateView");
-        boolean showText;
+        boolean showText = false;
         if (!(null == mBarChart) && (!(null == mBarData)) && !mBarData.isEmpty()) {
             mBarChart.setVisibility(View.VISIBLE);
             mBarChart.clear();
+            mBarChart.notifyDataSetChanged();
+            mBarChart.invalidate();
             mTextView.setVisibility(View.INVISIBLE);
 
-            final String[] xLabels = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12",
-                    "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24",};
-            final ArrayList<String> xLabel = new ArrayList<>(Arrays.asList(xLabels));
+            final ArrayList<String> xLabel = new ArrayList<>();
+            for (ScenarioBarChartData row : mBarData) {
+                xLabel.add(String.valueOf(row.hour));
+            }
             XAxis xAxis = mBarChart.getXAxis();
             xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
             xAxis.setDrawGridLines(false);
             xAxis.setValueFormatter(new ValueFormatter() {
                 @Override
                 public String getFormattedValue(float value) {
-                    return xLabel.get((int) value);
+                    String ret = "-";
+                    try {
+                        ret = xLabel.get((int) value);
+                    } catch (IndexOutOfBoundsException ioobe) {
+                        // The notify/invalidate do not always execute before this
+                        System.out.println("IndexOutOfBoundsException from clear/notify/invalidate being late");
+                    }
+                    return ret;
                 }
             });
 
@@ -392,7 +401,7 @@ public class ScenarioDetails extends Fragment {
             ArrayList<BarEntry> hwScheduleEntries = new ArrayList<>();
             ArrayList<BarEntry> evDivertEntries = new ArrayList<>();
             ArrayList<BarEntry> hwDivertEntries = new ArrayList<>();
-            for (int i = 0; i < 24; i++) {
+            for (int i = 0; i < xLabel.size(); i++) {
                 loadEntries.add(new BarEntry(i, (float) mBarData.get(i).load));
                 feedEntries.add(new BarEntry(i, (float) mBarData.get(i).feed));
                 buyEntries.add(new BarEntry(i, (float) mBarData.get(i).buy));
@@ -418,141 +427,124 @@ public class ScenarioDetails extends Fragment {
             BarDataSet evDivertSet;
             BarDataSet hwDivertSet;
 
-//            if (mBarChart.getData() != null &&
-//                    mBarChart.getData().getDataSetCount() > 0) {
-//                loadSet = (BarDataSet) mBarChart.getData().getDataSetByIndex(0);
-//                loadSet.setValues(loadEntries);
-//
-//                mBarChart.getData().notifyDataChanged();
-//                mBarChart.notifyDataSetChanged();
-//            } else {
-                loadSet = new BarDataSet(loadEntries, "Hourly load");
-                loadSet.setColor(Color.BLUE);
-                feedSet = new BarDataSet(feedEntries, "Hourly feed");
-                feedSet.setColor(Color.YELLOW);
-                buySet = new BarDataSet(buyEntries, "Hourly buy");
-                buySet.setColor(Color.GREEN);
-                pvSet = new BarDataSet(pvEntries, "Hourly PV");
-                pvSet.setColor(Color.RED);
-                pv2BatterySet = new BarDataSet(pv2BatteryEntries, "Hourly PV to battery");
-                pv2BatterySet.setColor(Color.DKGRAY);
-                pv2LoadSet = new BarDataSet(pv2LoadEntries, "Hourly PV to load");
-                pv2LoadSet.setColor(Color.parseColor("#3ca567"));
-                battery2LoadSet = new BarDataSet(battery2LoadEntries, "Hourly battery to load");
-                battery2LoadSet.setColor(Color.parseColor("#309967"));
-                evScheduleSet = new BarDataSet(evScheduleEntries, "Hourly EV charging");
-                evScheduleSet.setColor(Color.parseColor("#476567"));
-                hwScheduleSet = new BarDataSet(hwScheduleEntries, "Hourly water heating");
-                hwScheduleSet.setColor(Color.parseColor("#890567"));
-                evDivertSet = new BarDataSet(evDivertEntries, "Hourly EV diversion");
-                evDivertSet.setColor(Color.parseColor("#a35567"));
-                hwDivertSet = new BarDataSet(hwDivertEntries, "Hourly hot water diversion");
-                hwDivertSet.setColor(Color.parseColor("#ff5f67"));
-//            colors.add(Color.parseColor("#304567"));
+            loadSet = new BarDataSet(loadEntries, "Daily load");
+            loadSet.setColor(Color.BLUE);
+            feedSet = new BarDataSet(feedEntries, "Daily feed");
+            feedSet.setColor(Color.YELLOW);
+            buySet = new BarDataSet(buyEntries, "Daily buy");
+            buySet.setColor(Color.GREEN);
+            pvSet = new BarDataSet(pvEntries, "Daily PV");
+            pvSet.setColor(Color.RED);
+            pv2BatterySet = new BarDataSet(pv2BatteryEntries, "Daily PV to battery");
+            pv2BatterySet.setColor(Color.DKGRAY);
+            pv2LoadSet = new BarDataSet(pv2LoadEntries, "Daily PV to load");
+            pv2LoadSet.setColor(Color.parseColor("#3ca567"));
+            battery2LoadSet = new BarDataSet(battery2LoadEntries, "Daily battery to load");
+            battery2LoadSet.setColor(Color.parseColor("#309967"));
+            evScheduleSet = new BarDataSet(evScheduleEntries, "Daily EV charging");
+            evScheduleSet.setColor(Color.parseColor("#476567"));
+            hwScheduleSet = new BarDataSet(hwScheduleEntries, "Daily water heating");
+            hwScheduleSet.setColor(Color.parseColor("#890567"));
+            evDivertSet = new BarDataSet(evDivertEntries, "Daily EV diversion");
+            evDivertSet.setColor(Color.parseColor("#a35567"));
+            hwDivertSet = new BarDataSet(hwDivertEntries, "Daily hot water diversion");
+            hwDivertSet.setColor(Color.parseColor("#ff5f67"));
 
-                ArrayList<IBarDataSet> dataSets = new ArrayList<>();
-                if (mShowLoad) dataSets.add(loadSet);
-                if (mShowFeed) dataSets.add(feedSet);
-                if (mShowBuy) dataSets.add(buySet);
-                if (mShowPV) dataSets.add(pvSet);
-                if (mShowPV2Bat) dataSets.add(pv2BatterySet);
-                if (mShowPV2Load) dataSets.add(pv2LoadSet);
-                if (mShowBat2Load) dataSets.add(battery2LoadSet);
-                if (mShowEVSchedule) dataSets.add(evScheduleSet);
-                if (mShowHWSchedule) dataSets.add(hwScheduleSet);
-                if (mShowEVDivert) dataSets.add(evDivertSet);
-                if (mShowHWDivert) dataSets.add(hwDivertSet);
+            ArrayList<IBarDataSet> dataSets = new ArrayList<>();
+            if (mShowLoad) dataSets.add(loadSet);
+            if (mShowFeed) dataSets.add(feedSet);
+            if (mShowBuy) dataSets.add(buySet);
+            if (mShowPV) dataSets.add(pvSet);
+            if (mShowPV2Bat) dataSets.add(pv2BatterySet);
+            if (mShowPV2Load) dataSets.add(pv2LoadSet);
+            if (mShowBat2Load) dataSets.add(battery2LoadSet);
+            if (mShowEVSchedule) dataSets.add(evScheduleSet);
+            if (mShowHWSchedule) dataSets.add(hwScheduleSet);
+            if (mShowEVDivert) dataSets.add(evDivertSet);
+            if (mShowHWDivert) dataSets.add(hwDivertSet);
 
-                BarData data = new BarData(dataSets);
-                data.setValueTextSize(10f);
-                data.setDrawValues(false);
-                mBarChart.getDescription().setEnabled(false);
-                mBarChart.setData(data);
+            BarData data = new BarData(dataSets);
+            data.setValueTextSize(10f);
+            data.setDrawValues(false);
+            mBarChart.getDescription().setEnabled(false);
+            mBarChart.setData(data);
 
-                if (mBarFilterCount > 1) {
-                    //data
-                    float groupSpace = 0.04f;
-                    float barSpace; // x2 dataset
-                    float barWidth; // x2 dataset
-                    // (0.46 + 0.02) * 2 + 0.04 = 1.00 -> interval per "group"
-                    // (0.22 + 0.02) * 4 + 0.05
-                    // (barWidth + barSpace) * elementsInGroup + groupSpace = 1
+            if (mBarFilterCount > 1) {
+                //data
+                float groupSpace = 0.04f;
+                float barSpace; // x2 dataset
+                float barWidth; // x2 dataset
+                // (0.46 + 0.02) * 2 + 0.04 = 1.00 -> interval per "group"
+                // (0.22 + 0.02) * 4 + 0.05
+                // (barWidth + barSpace) * elementsInGroup + groupSpace = 1
 
-                    float section = 0.96f / (float) mBarFilterCount;
-                    barSpace = section - section / (float) mBarFilterCount;
-                    barWidth = section - barSpace;
+                float section = 0.96f / (float) mBarFilterCount;
+                barSpace = section - section / (float) mBarFilterCount;
+                barWidth = section - barSpace;
 
-                    data.setBarWidth(barWidth);
-                    mBarChart.groupBars(0, groupSpace, barSpace);
-                }
-//            }
+                data.setBarWidth(barWidth);
+                mBarChart.groupBars(0, groupSpace, barSpace);
+            }
             mBarChart.invalidate();
             mBarChart.refreshDrawableState();
         }
 
-        if (!(null == mLineChart) && (!(null == mLineData)) && !mLineData.isEmpty())  {
-            showText = false;
-            mLineChart.setVisibility(View.VISIBLE);
-            mLineChart.clear();
+        if (!(null == mPieChart) && (!(null == mBarData)) && !mBarData.isEmpty())  {
+            mPieChart.getDescription().setEnabled(true);
+            mPieChart.getDescription().setText("PV distribution");
+            mPieChart.getDescription().setTextColor(Color.DKGRAY);
+            mPieChart.setRotationEnabled(true);
+            mPieChart.setDragDecelerationFrictionCoef(0.9f);
+            mPieChart.setRotationAngle(0);
+            mPieChart.setHighlightPerTapEnabled(true);
+            mPieChart.setHoleColor(Color.parseColor("#000000"));
 
-            mLineChart.getAxisLeft().setTextColor(Color.DKGRAY); // left y-axis
-            mLineChart.getAxisRight().setTextColor(Color.DKGRAY); // right y-axis
-            mLineChart.getXAxis().setEnabled(false);//setTextColor(Color.DKGRAY);
-            mLineChart.getLegend().setTextColor(Color.DKGRAY);
-            mLineChart.getDescription().setTextColor(Color.DKGRAY);
+            ArrayList<PieEntry> pieEntries = new ArrayList<>();
+            String label = "kWh";
 
-            ArrayList<Entry> socValues = new ArrayList<>();
-            ArrayList<Entry> tempValues = new ArrayList<>();
-            for (ScenarioLineGraphData lgd : mLineData) {
-                socValues.add(new Entry(lgd.mod, (float) lgd.soc));
-                tempValues.add(new Entry(lgd.mod, (float) lgd.waterTemperature));
+            Map<String, Double> generationDestinationMap = new HashMap<>();
+
+            double feed = 0D;
+            double load = 0D;
+            double evDivert = 0D;
+            double hwDivert = 0D;
+            double battery = 0D;
+            for (ScenarioBarChartData row : mBarData) {
+                feed += row.feed;
+                load += row.load;
+                evDivert += row.evDivert;
+                hwDivert += row.hwDivert;
+                battery += row.pv2Battery;
             }
+            if (feed > 0) generationDestinationMap.put("Feed", feed);
+            if (load > 0) generationDestinationMap.put("Load", load);
+            if (evDivert > 0) generationDestinationMap.put("EV", evDivert);
+            if (hwDivert > 0)generationDestinationMap.put("Water", hwDivert);
+            if (battery > 0) generationDestinationMap.put("Battery", battery);
 
-            LineDataSet socSet;
-            LineDataSet tempSet;
+            ArrayList<Integer> colors = new ArrayList<>();
+            colors.add(Color.parseColor("#304567"));
+            colors.add(Color.parseColor("#309967"));
+            colors.add(Color.parseColor("#476567"));
+            colors.add(Color.parseColor("#890567"));
+            colors.add(Color.parseColor("#a35567"));
+            colors.add(Color.parseColor("#ff5f67"));
+            colors.add(Color.parseColor("#3ca567"));
 
-            socSet = new LineDataSet(socValues, "State of Charge");
-            socSet.setDrawIcons(false);
-            socSet.enableDashedLine(10f, 5f, 0f);
-            socSet.enableDashedHighlightLine(10f, 5f, 0f);
-            socSet.setColor(Color.YELLOW);
-            socSet.setCircleColor(Color.YELLOW);
-            socSet.setLineWidth(1f);
-            socSet.setCircleRadius(3f);
-            socSet.setDrawCircleHole(false);
-            socSet.setValueTextSize(9f);
-            socSet.setDrawFilled(true);
-            socSet.setFormLineWidth(1f);
-            socSet.setFormLineDashEffect(new DashPathEffect(new float[]{10f, 5f}, 0f));
-            socSet.setFormSize(15.f);
-            socSet.setFillColor(Color.YELLOW);
-
-            tempSet = new LineDataSet(tempValues, "Temperature of Water");
-            tempSet.setDrawIcons(false);
-            tempSet.enableDashedLine(10f, 5f, 0f);
-            tempSet.enableDashedHighlightLine(10f, 5f, 0f);
-            tempSet.setColor(Color.BLUE);
-            tempSet.setCircleColor(Color.BLUE);
-            tempSet.setLineWidth(1f);
-            tempSet.setCircleRadius(3f);
-            tempSet.setDrawCircleHole(false);
-            tempSet.setValueTextSize(9f);
-            tempSet.setDrawFilled(true);
-            tempSet.setFormLineWidth(1f);
-            tempSet.setFormLineDashEffect(new DashPathEffect(new float[]{10f, 5f}, 0f));
-            tempSet.setFormSize(15.f);
-            tempSet.setFillColor(Color.BLUE);
-
-            ArrayList<ILineDataSet> dataSets = new ArrayList<>();
-            if (mShowSOC) dataSets.add(socSet);
-            if (mShowHWTemperature) dataSets.add(tempSet);
-            LineData data = new LineData(dataSets);
-            mLineChart.setData(data);
-
-            mLineChart.getDescription().setEnabled(false);
-
-            mLineChart.invalidate();
-            mLineChart.refreshDrawableState();
+            for(String type: generationDestinationMap.keySet()){
+                pieEntries.add(new PieEntry(Objects.requireNonNull(generationDestinationMap.get(type)).floatValue(), type));
+            }
+            PieDataSet pieDataSet = new PieDataSet(pieEntries,label);
+            pieDataSet.setValueTextSize(12f);
+            pieDataSet.setColors(colors);
+            PieData pieData = new PieData(pieDataSet);
+            pieData.setDrawValues(true);
+            pieData.setValueFormatter(new PercentFormatter(mPieChart));
+            mPieChart.getLegend().setTextColor(Color.DKGRAY);
+            mPieChart.setData(pieData);
+            mPieChart.setUsePercentValues(true);
+            mPieChart.invalidate();
+            mPieChart.setVisibility(View.VISIBLE);
         }
         else showText = true;
 
@@ -560,8 +552,8 @@ public class ScenarioDetails extends Fragment {
             if (mBarChart != null) {
                 mBarChart.setVisibility(View.INVISIBLE);
             }
-            if (mLineChart != null) {
-                mLineChart.setVisibility(View.INVISIBLE);
+            if (mPieChart != null) {
+                mPieChart.setVisibility(View.INVISIBLE);
             }
             mTextView.setVisibility(View.VISIBLE);
             mTextView.setText(R.string.NoChartData);

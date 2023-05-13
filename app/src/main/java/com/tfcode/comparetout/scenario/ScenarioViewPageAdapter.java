@@ -24,6 +24,7 @@ import androidx.viewpager2.adapter.FragmentStateAdapter;
 public class ScenarioViewPageAdapter extends FragmentStateAdapter {
     ScenarioOverview mScenarioOverview = ScenarioOverview.newInstance();
     ScenarioDetails mScenarioDetails = ScenarioDetails.newInstance();
+    ScenarioMonthly mScenarioMonthly = ScenarioMonthly.newInstance();
     public ScenarioViewPageAdapter(@NonNull FragmentActivity fragmentActivity, int ignoredCount) {
         super(fragmentActivity);
     }
@@ -32,12 +33,13 @@ public class ScenarioViewPageAdapter extends FragmentStateAdapter {
     @Override
     public Fragment createFragment(int position) {
         if (position == 0) return mScenarioOverview;
-        else return mScenarioDetails;
+        if (position == 1) return mScenarioDetails;
+        else return mScenarioMonthly;
     }
 
     @Override
     public int getItemCount() {
-        return 2;
+        return 3;
     }
 
 
