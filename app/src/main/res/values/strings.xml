@@ -151,4 +151,7 @@
     <string name="load_profile_configured">Load profile configured</string>
     <string name="NoSolarData">Cannot find solar data for these panels. Remember to fetch or update solar data for each set of panels.</string>
     <string name="no_solar_data">Cannot find solar data for these panels. Remember to fetch or update solar data for each set of panels.</string>
+    <string name="daily_distribution">Distribution of electricity usage by day of week</string>
+    <string name="hourly_distribution">Distribution of electricity usage by hour of day</string>
+    <string name="yearly_distribution">Distribution of electricity usage by month of year</string>
 </resources>

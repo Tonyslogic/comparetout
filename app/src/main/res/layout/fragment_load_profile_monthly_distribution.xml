@@ -25,7 +25,8 @@
     <com.github.mikephil.charting.charts.BarChart
         android:id="@+id/monthly_distribution_chart"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:contentDescription="@string/yearly_distribution" />
 
     <TableLayout
         android:id="@+id/load_profile_edit_monthly"
