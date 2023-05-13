@@ -28,14 +28,19 @@ import android.view.MenuItem;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
+import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
+import com.tfcode.comparetout.model.json.JsonTools;
+import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public class ScenarioActivity extends AppCompatActivity {
@@ -111,9 +116,36 @@ public class ScenarioActivity extends AppCompatActivity {
 
         if (item.getItemId() == R.id.share_scenario) {//add the function to perform here
             System.out.println("Share attempt");
-            Snackbar.make(getWindow().getDecorView().getRootView(), "TODO: Share", Snackbar.LENGTH_LONG)
+            if (scenarioID == 0) {
+                Snackbar.make(getWindow().getDecorView().getRootView(), "Save before sharing", Snackbar.LENGTH_LONG)
                     .setAction("Action", null).show();
-            return false;
+                return false;
+            }
+
+            new Thread(() -> {
+                ComparisonUIViewModel viewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
+                List<ScenarioComponents> scenarioComponentsList = viewModel.getAllScenariosForExport();
+                ScenarioComponents scenarioComponents = null;
+                for (ScenarioComponents fromList : scenarioComponentsList) {
+                    if (fromList.scenario.getScenarioIndex() == scenarioID) {
+                        scenarioComponents = fromList;
+                        break;
+                    }
+                }
+
+                List<ScenarioComponents> scenarioComponentsToShare = new ArrayList<>();
+                scenarioComponentsToShare.add(scenarioComponents);
+
+                String scenarioJsonString = JsonTools.createScenarioList(scenarioComponentsToShare);
+
+                Intent sendIntent = new Intent();
+                sendIntent.setAction(Intent.ACTION_SEND);
+                sendIntent.putExtra(Intent.EXTRA_TEXT, scenarioJsonString);
+                sendIntent.setType("text/json");
+
+                Intent shareIntent = Intent.createChooser(sendIntent, null);
+                startActivity(shareIntent);
+            }).start();
         }
         return false;
     }
