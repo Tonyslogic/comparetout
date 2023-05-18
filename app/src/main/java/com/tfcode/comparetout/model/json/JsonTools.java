@@ -493,7 +493,7 @@ public class JsonTools {
         return evChargeJsons;
     }
 
-    private static ArrayList<LoadShiftJson> createLoadShiftJson(List<LoadShift> loadShifts) {
+    public static ArrayList<LoadShiftJson> createLoadShiftJson(List<LoadShift> loadShifts) {
         ArrayList<LoadShiftJson> loadShiftJsons = new ArrayList<>();
         if (!(null == loadShifts)) {
             for (LoadShift loadShift : loadShifts) {

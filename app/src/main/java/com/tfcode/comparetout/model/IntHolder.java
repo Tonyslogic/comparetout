@@ -18,7 +18,10 @@ package com.tfcode.comparetout.model;
 
 import androidx.annotation.NonNull;
 
+import com.tfcode.comparetout.model.scenario.MonthHolder;
+
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -37,5 +40,19 @@ public class IntHolder {
     @NonNull
     public String toString() {
         return "[" + ints.stream().map(String::valueOf).collect(Collectors.joining(", ")) + "]";
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (((IntHolder) o).ints.size() != ints.size()) return false;
+
+        ArrayList<Integer> one = new ArrayList<>(((IntHolder) o).ints);
+        ArrayList<Integer> two = new ArrayList<>(ints);
+        Collections.sort(one);
+        Collections.sort(two);
+
+        return one.equals(two);
     }
 }

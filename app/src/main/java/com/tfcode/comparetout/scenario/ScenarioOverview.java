@@ -63,6 +63,7 @@ import com.tfcode.comparetout.model.costings.Costings;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.model.scenario.SimKPIs;
+import com.tfcode.comparetout.scenario.battery.BatteryChargingActivity;
 import com.tfcode.comparetout.scenario.battery.BatterySettingsActivity;
 import com.tfcode.comparetout.scenario.inverter.InverterActivity;
 import com.tfcode.comparetout.scenario.loadprofile.LoadProfileActivity;
@@ -247,9 +248,9 @@ public class ScenarioOverview extends Fragment {
 
         mInverterButton = requireView().findViewById(R.id.inverterButton);
         mInverterButton.setOnClickListener(v -> {
-            if (mScenarioID == 0L) {
+            if (mScenarioID == 0L || !(mScenario.isHasLoadProfiles())) {
                 Snackbar.make(requireActivity().getWindow().getDecorView().getRootView(),
-                        "Save before configuring inverters",
+                        "Create a load profile before configuring inverters",
                         Snackbar.LENGTH_LONG).setAction("Action", null).show();
             }
             else {
@@ -309,9 +310,13 @@ public class ScenarioOverview extends Fragment {
                                 "Add at least one battery before load shifting",
                                 Snackbar.LENGTH_LONG).setAction("Action", null).show();
                     }
-                    else if (!(null == getView())) Snackbar.make(getView(),
-                                    "You Clicked : " + item.getTitle(), Snackbar.LENGTH_LONG)
-                            .setAction("Action", null).show();
+                    else {
+                        Intent intent = new Intent(getActivity(), BatteryChargingActivity.class);
+                        intent.putExtra("ScenarioID", mScenarioID);
+                        intent.putExtra("ScenarioName", mScenario.getScenarioName());
+                        intent.putExtra("Edit", mEdit | !mScenario.isHasBatteries());
+                        startActivity(intent);
+                    }
                 }
                 return true;
             });

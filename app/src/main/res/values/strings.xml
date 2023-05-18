@@ -154,4 +154,13 @@
     <string name="daily_distribution">Distribution of electricity usage by day of week</string>
     <string name="hourly_distribution">Distribution of electricity usage by hour of day</string>
     <string name="yearly_distribution">Distribution of electricity usage by month of year</string>
+    <string name="add_a_new_load_shift">Add a new load shift</string>
+    <string name="hide_days_months">Hide days and months</string>
+    <string name="show_days_months">Show days and months</string>
+    <string name="add_new_time">Add a new time</string>
+    <string name="FromHr">From (hr)</string>
+    <string name="ToHr">To (hr)</string>
+    <string name="StopAt">Stop at (%)</string>
+    <string name="Delete">Del</string>
+    <string name="linked">Linked</string>
 </resources>

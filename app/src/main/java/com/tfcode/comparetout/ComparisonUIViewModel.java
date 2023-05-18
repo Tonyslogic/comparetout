@@ -28,11 +28,13 @@ import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
+import com.tfcode.comparetout.model.scenario.LoadShift;
 import com.tfcode.comparetout.model.scenario.Panel;
 import com.tfcode.comparetout.model.scenario.PanelPVSummary;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.Scenario2Battery;
 import com.tfcode.comparetout.model.scenario.Scenario2Inverter;
+import com.tfcode.comparetout.model.scenario.Scenario2LoadShift;
 import com.tfcode.comparetout.model.scenario.Scenario2Panel;
 import com.tfcode.comparetout.model.scenario.ScenarioBarChartData;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
@@ -250,6 +252,34 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public void linkBatteryFromScenario(long fromScenarioID, Long toScenarioID) {
         toutcRepository.linkBatteryFromScenario(fromScenarioID, toScenarioID);
+    }
+
+    public LiveData<List<Scenario2LoadShift>> getAllLoadShiftRelations() {
+        return toutcRepository.getAllLoadShiftRelations();
+    }
+
+    public List<LoadShift> getLoadShiftsForScenario(Long scenarioID) {
+        return toutcRepository.getLoadShiftsForScenarioID(scenarioID);
+    }
+
+    public void deleteLoadShiftFromScenario(Long loadShiftID, Long scenarioID) {
+        toutcRepository.deleteLoadShiftFromScenario(loadShiftID, scenarioID);
+    }
+
+    public void saveLoadShiftForScenario(Long scenarioID, LoadShift loadShift) {
+        toutcRepository.saveLoadShiftForScenario(scenarioID, loadShift);
+    }
+
+    public List<String> getLinkedLoadShifts(long loadShiftIndex, Long scenarioID) {
+        return toutcRepository.getLinkedLoadShifts(loadShiftIndex, scenarioID);
+    }
+
+    public void copyLoadShiftFromScenario(long fromScenarioID, Long toScenarioID) {
+        toutcRepository.copyLoadShiftFromScenario(fromScenarioID, toScenarioID);
+    }
+
+    public void linkLoadShiftFromScenario(long fromScenarioID, Long toScenarioID) {
+        toutcRepository.linkLoadShiftFromScenario(fromScenarioID, toScenarioID);
     }
 
     public boolean checkForMissingPanelData(Long scenarioID) {

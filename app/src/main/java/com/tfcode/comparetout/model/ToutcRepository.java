@@ -27,12 +27,14 @@ import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
 import com.tfcode.comparetout.model.scenario.LoadProfileData;
+import com.tfcode.comparetout.model.scenario.LoadShift;
 import com.tfcode.comparetout.model.scenario.Panel;
 import com.tfcode.comparetout.model.scenario.PanelData;
 import com.tfcode.comparetout.model.scenario.PanelPVSummary;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.Scenario2Battery;
 import com.tfcode.comparetout.model.scenario.Scenario2Inverter;
+import com.tfcode.comparetout.model.scenario.Scenario2LoadShift;
 import com.tfcode.comparetout.model.scenario.Scenario2Panel;
 import com.tfcode.comparetout.model.scenario.ScenarioBarChartData;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
@@ -54,6 +56,7 @@ public class ToutcRepository {
     private final LiveData<List<Scenario2Inverter>> inverterRelations;
     private final LiveData<List<Scenario2Panel>> panelRelations;
     private final LiveData<List<Scenario2Battery>> batteryRelations;
+    private final LiveData<List<Scenario2LoadShift>> loadShiftRelations;
     private final LiveData<List<PanelPVSummary>> panelPVSummary;
 
     private final CostingDAO costingDAO;
@@ -73,6 +76,7 @@ public class ToutcRepository {
         inverterRelations = scenarioDAO.loadInverterRelations();
         panelRelations = scenarioDAO.loadPanelRelations();
         batteryRelations = scenarioDAO.loadBatteryRelations();
+        loadShiftRelations = scenarioDAO.loadLoadShiftRelations();
         panelPVSummary = scenarioDAO.getPanelPVSummary();
 
         costingDAO = db.costingDAO();
@@ -394,6 +398,36 @@ public class ToutcRepository {
     public void linkBatteryFromScenario(long fromScenarioID, Long toScenarioID) {
         ToutcDB.databaseWriteExecutor.execute(() ->
         scenarioDAO.linkBatteryFromScenario(fromScenarioID, toScenarioID));
+    }
+
+    public LiveData<List<Scenario2LoadShift>> getAllLoadShiftRelations() {
+        return loadShiftRelations;
+    }
+
+    public List<LoadShift> getLoadShiftsForScenarioID(Long scenarioID) {
+        return scenarioDAO.getLoadShiftsForScenarioID(scenarioID);
+    }
+
+    public void deleteLoadShiftFromScenario(Long loadShiftID, Long scenarioID) {
+        scenarioDAO.deleteLoadShiftFromScenario(loadShiftID, scenarioID);
+    }
+
+    public void saveLoadShiftForScenario(Long scenarioID, LoadShift loadShift) {
+        scenarioDAO.saveLoadShiftForScenario(scenarioID, loadShift);
+    }
+
+    public List<String> getLinkedLoadShifts(long loadShiftIndex, Long scenarioID) {
+        return scenarioDAO.getLinkedLoadShifts(loadShiftIndex, scenarioID);
+    }
+
+    public void copyLoadShiftFromScenario(long fromScenarioID, Long toScenarioID) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                scenarioDAO.copyLoadShiftFromScenario(fromScenarioID, toScenarioID));
+    }
+
+    public void linkLoadShiftFromScenario(long fromScenarioID, Long toScenarioID) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                scenarioDAO.linkLoadShiftFromScenario(fromScenarioID, toScenarioID));
     }
 
     public void deleteSimulationDataForScenarioID(Long scenarioID) {

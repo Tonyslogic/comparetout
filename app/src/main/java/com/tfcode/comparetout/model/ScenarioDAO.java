@@ -876,6 +876,81 @@ public abstract class ScenarioDAO {
         deleteOrphanBatteries();
     }
 
+    //##############################################
+    @Query("SELECT * FROM scenario2loadshift")
+    public abstract LiveData<List<Scenario2LoadShift>> loadLoadShiftRelations();
+
+    @Query("DELETE FROM scenario2loadshift WHERE scenarioID = :scenarioID AND loadShiftID = :loadShiftID")
+    public abstract void deleteLoadShiftFromScenario(Long loadShiftID, Long scenarioID);
+
+    @Transaction
+    public void saveLoadShiftForScenario(Long scenarioID, LoadShift loadShift) {
+        long loadShiftIndex = loadShift.getLoadShiftIndex();
+        if (loadShiftIndex == 0) {
+            loadShiftIndex = addNewLoadShift(loadShift);
+            Scenario2LoadShift s2ls = new Scenario2LoadShift();
+            s2ls.setScenarioID(scenarioID);
+            s2ls.setLoadShiftID(loadShiftIndex);
+            addNewScenario2LoadShift(s2ls);
+
+            Scenario scenario = getScenario(scenarioID);
+            scenario.setHasLoadShifts(true);
+            updateScenario(scenario);
+        }
+        else {
+            updateLoadShift(loadShift);
+        }
+    }
+
+    @Update (entity = LoadShift.class)
+    public abstract void updateLoadShift(LoadShift loadShift);
+
+    @Query("SELECT scenarioName FROM scenarios WHERE scenarioIndex IN (" +
+            "SELECT scenarioID FROM scenario2loadshift WHERE loadShiftID = :loadShiftIndex) AND scenarioIndex != :scenarioID")
+    public abstract List<String> getLinkedLoadShifts(long loadShiftIndex, Long scenarioID);
+
+    @Transaction
+    public void copyLoadShiftFromScenario(long fromScenarioID, Long toScenarioID) {
+        List<LoadShift> loadShifts = getLoadShiftsForScenarioID(fromScenarioID);
+        for (LoadShift loadShift: loadShifts) {
+            loadShift.setLoadShiftIndex(0L);
+            long newLoadShiftID = addNewLoadShift(loadShift);
+
+            System.out.println("copyLoadShiftFromScenario, new IID=" + newLoadShiftID);
+
+            Scenario2LoadShift s2ls = new Scenario2LoadShift();
+            s2ls.setScenarioID(toScenarioID);
+            s2ls.setLoadShiftID(newLoadShiftID);
+            addNewScenario2LoadShift(s2ls);
+
+            Scenario toScenario = getScenario(toScenarioID);
+            toScenario.setHasLoadShifts(true);
+            updateScenario(toScenario);
+        }
+
+        deleteOrphanLoadShifts();
+    }
+
+    @Transaction
+    public void linkLoadShiftFromScenario(long fromScenarioID, Long toScenarioID) {
+        List<LoadShift> loadShifts = getLoadShiftsForScenarioID(fromScenarioID);
+        for (LoadShift loadShift: loadShifts) {
+            System.out.println("Linking loadShift with id= " + loadShift.getLoadShiftIndex());
+
+            Scenario2LoadShift scenario2LoadShift = new Scenario2LoadShift();
+            scenario2LoadShift.setScenarioID(toScenarioID);
+            scenario2LoadShift.setLoadShiftID(loadShift.getLoadShiftIndex());
+            addNewScenario2LoadShift(scenario2LoadShift);
+
+            Scenario toScenario = getScenario(toScenarioID);
+            toScenario.setHasLoadShifts(true);
+            updateScenario(toScenario);
+        }
+
+        deleteOrphanLoadShifts();
+    }
+    //##############################################
+
     @Query("SELECT minuteOfDay / 60 AS Hour, sum(load) AS Load, sum(feed) AS Feed, sum(Buy) AS Buy, " +
             "sum(pv) AS PV, sum(pvToCharge) AS PV2Battery, sum(pvToLoad) AS PV2Load, sum(batToLoad) AS Battery2Load, " +
             "sum(directEVcharge) AS EVSchedule, sum(immersionLoad) AS HWSchedule, sum(kWHDivToEV) AS EVDivert, sum(kWHDivToWater) AS HWDivert " +

@@ -16,10 +16,13 @@
 
 package com.tfcode.comparetout.model.scenario;
 
+import androidx.annotation.NonNull;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
 import com.tfcode.comparetout.model.IntHolder;
+
+import java.util.Objects;
 
 @Entity(tableName = "loadshift")
 public class LoadShift {
@@ -97,5 +100,35 @@ public class LoadShift {
 
     public void setDays(IntHolder days) {
         this.days = days;
+    }
+
+    public boolean equalDateAndInverter(LoadShift other) {
+        if (this == other) return true;
+        return this.inverter.equals(other.getInverter()) &&
+                this.months.equals(other.getMonths()) &&
+                this.days.equals(other.getDays());
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        LoadShift loadShift = (LoadShift) o;
+        return (loadShiftIndex == loadShift.loadShiftIndex && this.equalDateAndInverter((LoadShift) o));
+    }
+
+    @NonNull
+    @Override
+    public String toString() {
+        return "LoadShift{" +
+                "loadShiftIndex=" + loadShiftIndex +
+                ", name='" + name + '\'' +
+                ", begin=" + begin +
+                ", end=" + end +
+                ", stopAt=" + stopAt +
+                ", months=" + months +
+                ", days=" + days +
+                ", inverter='" + inverter + '\'' +
+                '}';
     }
 }
