@@ -23,6 +23,7 @@ import static java.lang.Double.min;
 
 import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.Inverter;
+import com.tfcode.comparetout.model.scenario.LoadShift;
 import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
 import com.tfcode.comparetout.model.scenario.SimulationInputData;
 
@@ -36,6 +37,111 @@ import java.util.Map;
 public class SimulationWorkerTest {
 
     @Test
+    public void processOneRow_OneInverter_OneBattery_AlwaysLoadShift() {
+        long scenarioID = 1;
+        ArrayList<ScenarioSimulationData> outputRows = new ArrayList<>();
+        Map<Inverter, SimulationWorker.InputData> inputDataMap = new HashMap<>();
+
+        Inverter inverter = new Inverter();
+        Battery battery = new Battery();
+        battery.setDischargeStop(100d);
+        List<LoadShift> loadShifts = new ArrayList<>();
+        LoadShift loadShift = new LoadShift();
+        loadShift.setBegin(0);
+        loadShift.setEnd(24);
+        loadShifts.add(loadShift);
+        SimulationWorker.ChargeFromGrid cfg = new SimulationWorker.ChargeFromGrid(loadShifts, 110000);
+
+        List<SimulationInputData> simulationInputData = new ArrayList<>();
+        double load = 1.1;
+        double tpv = 2.1;
+        SimulationInputData sid = createSID(load, tpv);
+        simulationInputData.add(sid);
+
+        SimulationWorker.InputData idata = new SimulationWorker.InputData(inverter, simulationInputData, battery, cfg);
+
+        inputDataMap.put(inverter, idata);
+
+        // FULL BATTERY, NO DISCHARGE; INITIAL ROW; SOLAR > LOAD; LS=Always
+        int row = 0;
+        SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
+        ScenarioSimulationData aRow = outputRows.get(row);
+
+        assertEquals(0, aRow.getBuy(), 0);
+        double ac2dcLoss = 1 - inverter.getDc2acLoss()/ 100d;
+        double expected = (tpv * ac2dcLoss - load) - 0 ;
+        assertEquals(expected, aRow.getFeed(), 0);
+        expected = battery.getBatterySize();
+        assertEquals(expected, aRow.getSOC(), 0);
+        assertEquals(0, aRow.getPvToCharge(), 0);
+        assertEquals(0, aRow.getBatToLoad(), 0);
+        assertEquals(load, aRow.getLoad(), 0);
+        assertEquals(tpv, aRow.getPv(), 0);
+
+        // FULL BATTERY, DISCHARGE; 2ND ROW; SOLAR > LOAD; LS=Always
+        row++;
+        battery.setDischargeStop(20.0D);
+        simulationInputData.add(createSID(load, tpv));
+        SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
+        aRow = outputRows.get(row);
+
+        expected = 0D; // Excess PV
+        assertEquals(expected, aRow.getBuy(), 0);
+        double dc2acLoss = (100d - inverter.getDc2acLoss())/100d;
+        expected = ((tpv * dc2acLoss - load) ) ; // effective PV - load
+        assertEquals(expected, aRow.getFeed(), 0);
+        expected = battery.getBatterySize(); // Full battery (CFG enabled)
+        assertEquals(expected, aRow.getSOC(), 0);
+        assertEquals(0, aRow.getPvToCharge(), 0); // No charge CFG enabled
+        expected = 0D;
+        assertEquals(expected, aRow.getBatToLoad(), 0);
+        assertEquals(load, aRow.getLoad(), 0);
+        assertEquals(tpv, aRow.getPv(), 0);
+
+        // 50% BATTERY, 3rd ROW; NO SOLAR; LS=ALWAYS
+        row++;
+        load = 1.0;
+        tpv = 0.0;
+        idata.soc = 2.85;
+        simulationInputData.add(createSID(load, tpv));
+        SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
+        aRow = outputRows.get(row);
+
+        expected = load + idata.mBattery.getMaxCharge();
+        assertEquals(expected, aRow.getBuy(), 0);
+        expected = 0D;
+        assertEquals(expected, aRow.getFeed(), 0);
+        expected = 2.85 + idata.mBattery.getMaxCharge();
+        assertEquals(expected, aRow.getSOC(), 0);
+        expected = 0D; // No charge CFG enabled
+        assertEquals(expected, aRow.getPvToCharge(), 0);
+        assertEquals(expected, aRow.getBatToLoad(), 0);
+        expected = load;
+        assertEquals(expected, aRow.getLoad(), 0);
+        assertEquals(tpv, aRow.getPv(), 0);
+
+        // 90% BATTERY (above LS stop); 4th ROW; NO SOLAR; LS=ALWAYS
+        row++;
+        idata.soc = 5.13;
+        simulationInputData.add(createSID(load, tpv));
+        SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
+        aRow = outputRows.get(row);
+
+//        expected = load;
+        assertEquals(expected, aRow.getBuy(), 0);
+        expected = 0D;
+        assertEquals(expected, aRow.getFeed(), 0);
+        expected = 5.13; // Passed stopAT, no discharge due to CFG
+        assertEquals(expected, aRow.getSOC(), 0);
+        expected = 0D; // No charge CFG enabled
+        assertEquals(expected, aRow.getPvToCharge(), 0);
+        assertEquals(expected, aRow.getBatToLoad(), 0);
+        expected = load;
+        assertEquals(expected, aRow.getLoad(), 0);
+        assertEquals(tpv, aRow.getPv(), 0);
+    }
+
+    @Test
     public void processOneRow_TwoInvertersOneBattery() {
         long scenarioID = 1;
         ArrayList<ScenarioSimulationData> outputRows = new ArrayList<>();
@@ -45,12 +151,12 @@ public class SimulationWorkerTest {
         Inverter inverter1 = new Inverter();
         Battery battery1 = new Battery();
         battery1.setDischargeStop(100d);
-        SimulationWorker.InputData iData1 = new SimulationWorker.InputData(inverter1, simulationInputData1, battery1);
+        SimulationWorker.InputData iData1 = new SimulationWorker.InputData(inverter1, simulationInputData1, battery1, null);
         inputDataMap.put(inverter1, iData1);
 
         List<SimulationInputData> simulationInputData2 = new ArrayList<>();
         Inverter inverter2 = new Inverter();
-        SimulationWorker.InputData iData2 = new SimulationWorker.InputData(inverter2, simulationInputData2, null);
+        SimulationWorker.InputData iData2 = new SimulationWorker.InputData(inverter2, simulationInputData2, null, null);
         inputDataMap.put(inverter2, iData2);
         double load = 1.1;
         double tpv1 = 1.1;
@@ -88,13 +194,13 @@ public class SimulationWorkerTest {
         Inverter inverter1 = new Inverter();
         Battery battery1 = new Battery();
         battery1.setDischargeStop(100d);
-        SimulationWorker.InputData iData1 = new SimulationWorker.InputData(inverter1, simulationInputData1, battery1);
+        SimulationWorker.InputData iData1 = new SimulationWorker.InputData(inverter1, simulationInputData1, battery1, null);
         inputDataMap.put(inverter1, iData1);
 
         List<SimulationInputData> simulationInputData2 = new ArrayList<>();
         Inverter inverter2 = new Inverter();
         Battery battery2 = new Battery();
-        battery2.setDischargeStop(100d);SimulationWorker.InputData iData2 = new SimulationWorker.InputData(inverter2, simulationInputData2, battery2);
+        battery2.setDischargeStop(100d);SimulationWorker.InputData iData2 = new SimulationWorker.InputData(inverter2, simulationInputData2, battery2, null);
         inputDataMap.put(inverter2, iData2);
 
         double load = 1.1;
@@ -187,7 +293,7 @@ public class SimulationWorkerTest {
         SimulationInputData sid = createSID(load, tpv);
         simulationInputData.add(sid);
 
-        SimulationWorker.InputData idata = new SimulationWorker.InputData(inverter, simulationInputData, battery);
+        SimulationWorker.InputData idata = new SimulationWorker.InputData(inverter, simulationInputData, battery, null);
 
         inputDataMap.put(inverter, idata);
 
