@@ -399,6 +399,8 @@ public class BatteryChargingActivity extends AppCompatActivity {
                 }
                 mViewModel.deleteSimulationDataForScenarioID(mScenarioID);
                 mViewModel.deleteCostingDataForScenarioID(mScenarioID);
+                refreshLoadShifts();
+                mMainHandler.post(this::setupViewPager);
                 mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
             }).start();
             setSaveNeeded(false);
@@ -545,7 +547,10 @@ public class BatteryChargingActivity extends AppCompatActivity {
 
     public void deleteLoadShiftAtIndex(LoadShift loadShift, int loadShiftTabIndex, long loadShiftID) {
         List<LoadShift> loadShiftsAtTab = mTabContents.get(loadShiftTabIndex);
-        if (!(null == loadShiftsAtTab) && loadShiftID != 0) {
+        if (!(null == loadShiftsAtTab) && loadShiftsAtTab.size() == 1) {
+            deleteAllLoadShiftsInTab();
+        }
+        else if (!(null == loadShiftsAtTab) && loadShiftID != 0) {
             for (LoadShift ls : loadShiftsAtTab) {
                 if (ls.getLoadShiftIndex() == loadShiftID) {
                     System.out.println("Delete: " + ls);

@@ -26,6 +26,9 @@ import androidx.annotation.Nullable;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Lifecycle;
+import androidx.lifecycle.LifecycleEventObserver;
+import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.ViewModelProvider;
 
 import android.os.Handler;
@@ -89,17 +92,22 @@ public class BatteryChargingFragment extends Fragment {
         super.onCreate(savedInstanceState);
         mMainHandler = new Handler(Looper.getMainLooper());
 
-        // The activity may not be created, so these calls may fail
-        mScenarioID = ((BatteryChargingActivity) requireActivity()).getScenarioID();
-        mLoadShiftsFromActivity = ((BatteryChargingActivity) requireActivity()).getLoadShifts(mBatteryScheduleIndex);
-        mEdit = ((BatteryChargingActivity) requireActivity()).getEdit();
-        mEditFields = new ArrayList<>();
-        unpackLoadShift();
-        mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
-        new Thread(() -> {
-            mInverters = mViewModel.getInvertersForScenario(mScenarioID);
-            mMainHandler.post(() -> {if (!(null == mInverterDate)) updateView();});
-        }).start();
+        // The activity may not be created, so these calls wait for the activity creation to complete
+        ((BatteryChargingActivity) requireActivity()).getLifecycle().addObserver((LifecycleEventObserver) (source, event) -> {
+            System.out.println(event.getTargetState());
+            if ((event.getTargetState() ==  Lifecycle.State.CREATED ) && !(null == getActivity()) ) {
+                mScenarioID = ((BatteryChargingActivity) requireActivity()).getScenarioID();
+                mLoadShiftsFromActivity = ((BatteryChargingActivity) requireActivity()).getLoadShifts(mBatteryScheduleIndex);
+                mEdit = ((BatteryChargingActivity) requireActivity()).getEdit();
+                mEditFields = new ArrayList<>();
+                unpackLoadShift();
+                mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
+                new Thread(() -> {
+                    mInverters = mViewModel.getInvertersForScenario(mScenarioID);
+                    mMainHandler.post(() -> {if (!(null == mInverterDate)) updateView();});
+                }).start();
+            }
+        });
     }
 
     private void unpackLoadShift() {
@@ -188,7 +196,6 @@ public class BatteryChargingFragment extends Fragment {
                     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                         String inverter = inverterSpinnerContent.get(position);
                         mLoadShift.setInverter(inverter);
-                        System.out.println("Setting Inverter to: " + inverter);
                         ((BatteryChargingActivity) requireActivity()).updateLoadShiftAtIndex(mLoadShift, mBatteryScheduleIndex, 0);
                         if (null == finalInitialInverter)
                             ((BatteryChargingActivity) requireActivity()).setSaveNeeded(true);
@@ -232,19 +239,19 @@ public class BatteryChargingFragment extends Fragment {
                     daysMonthsButton.setText(R.string.hide_days_months);
                     if (mApplicableGrid.getVisibility() == View.INVISIBLE) {
                         mApplicableGrid.setVisibility(View.VISIBLE);
-                        ConstraintLayout constraintLayout = (ConstraintLayout) mLoadShiftTimes.getParent();
+                        ConstraintLayout constraintLayout = (ConstraintLayout) mApplicableGrid.getParent();
                         ConstraintSet constraintSet = new ConstraintSet();
                         constraintSet.clone(constraintLayout);
-                        constraintSet.connect(R.id.scheduleDetailTable, ConstraintSet.TOP, R.id.scheduleApplicationTable, ConstraintSet.BOTTOM,0);
+                        constraintSet.connect(R.id.scheduleDetailScroll, ConstraintSet.TOP, R.id.scheduleApplicationTable, ConstraintSet.BOTTOM,0);
                         constraintSet.applyTo(constraintLayout);
                     }
                     else {
                         daysMonthsButton.setText(R.string.show_days_months);
                         mApplicableGrid.setVisibility(View.INVISIBLE);
-                        ConstraintLayout constraintLayout = (ConstraintLayout) mLoadShiftTimes.getParent();
+                        ConstraintLayout constraintLayout = (ConstraintLayout) mApplicableGrid.getParent();
                         ConstraintSet constraintSet = new ConstraintSet();
                         constraintSet.clone(constraintLayout);
-                        constraintSet.connect(R.id.scheduleDetailTable, ConstraintSet.TOP, R.id.batteryChargingEditTable, ConstraintSet.BOTTOM,0);
+                        constraintSet.connect(R.id.scheduleDetailScroll, ConstraintSet.TOP, R.id.batteryChargingEditTable, ConstraintSet.BOTTOM,0);
                         constraintSet.applyTo(constraintLayout);
                     }
                 });
@@ -362,7 +369,6 @@ public class BatteryChargingFragment extends Fragment {
                     from.setMinimumHeight(80);
                     from.setHeight(80);
 
-                    System.out.println("Begin at " + loadShift.getBegin());
                     from.setText(String.valueOf(loadShift.getBegin()));
                     from.setInputType(integerType);
                     to.setText(String.valueOf(loadShift.getEnd()));
