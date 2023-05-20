@@ -20,17 +20,6 @@ import android.annotation.SuppressLint;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.constraintlayout.widget.ConstraintLayout;
-import androidx.constraintlayout.widget.ConstraintSet;
-import androidx.fragment.app.Fragment;
-import androidx.lifecycle.Lifecycle;
-import androidx.lifecycle.LifecycleEventObserver;
-import androidx.lifecycle.LifecycleOwner;
-import androidx.lifecycle.ViewModelProvider;
-
 import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
@@ -49,6 +38,15 @@ import android.widget.Spinner;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.constraintlayout.widget.ConstraintSet;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Lifecycle;
+import androidx.lifecycle.LifecycleEventObserver;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.tfcode.comparetout.ComparisonUIViewModel;
@@ -168,6 +166,8 @@ public class BatteryChargingFragment extends Fragment {
             int doubleType = InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL;
 
             // Inverter selection
+            TableLayout inverterTableLayout = new TableLayout(getActivity());
+            inverterTableLayout.setStretchAllColumns(true);
             {
                 TableRow inverterRow = new TableRow(getActivity());
                 TextView inverterText = new TextView(getActivity());
@@ -214,25 +214,15 @@ public class BatteryChargingFragment extends Fragment {
                 mEditFields.add(inverterSpinner);
                 inverterRow.addView(inverterText);
                 inverterRow.addView(inverterSpinner);
-                mInverterDate.addView(inverterRow);
+                inverterTableLayout.addView(inverterRow);
             }
+            mInverterDate.addView(inverterTableLayout);
 
             // Month & Day buttons
+            TableLayout buttonTableLayout = new TableLayout(getActivity());
+            buttonTableLayout.setStretchAllColumns(true);
             {
                 TableRow buttons = new TableRow(getActivity());
-                Button addButton = new Button(getActivity());
-                addButton.setText(R.string.add_new_time);
-                addButton.setOnClickListener(v -> {
-                    LoadShift nLoadShift = new LoadShift();
-                    nLoadShift.setInverter(mLoadShift.getInverter());
-                    nLoadShift.getDays().ints = new ArrayList<>(mLoadShift.getDays().ints);
-                    nLoadShift.getMonths().months = new ArrayList<>(mLoadShift.getMonths().months);
-                    ((BatteryChargingActivity) requireActivity()).getNextAddedLoadShiftID(nLoadShift);
-                    mLoadShiftsFromActivity.add(nLoadShift);
-                    updateView();
-                });
-                addButton.setEnabled(mEdit);
-                mEditFields.add(addButton);
                 Button daysMonthsButton = new Button(getActivity());
                 daysMonthsButton.setText(R.string.show_days_months);
                 daysMonthsButton.setOnClickListener(v -> {
@@ -256,9 +246,9 @@ public class BatteryChargingFragment extends Fragment {
                     }
                 });
 
-                buttons.addView(addButton);
                 buttons.addView(daysMonthsButton);
-                mInverterDate.addView(buttons);
+                buttonTableLayout.addView(buttons);
+                mInverterDate.addView(buttonTableLayout);
 
                 // Add a grid for the days/months that the Load shift applies to
                 {
@@ -275,7 +265,7 @@ public class BatteryChargingFragment extends Fragment {
                     int rowNo = 0;
                     for (String title : gridItems) {
                         CheckBox cb = new CheckBox(getActivity());
-                        cb.setPadding(10,10, 10, 10);
+                        cb.setPadding(0,25,0,25);
                         cb.setText(title);
                         switch (colNo) {
                             case 0:
@@ -359,15 +349,21 @@ public class BatteryChargingFragment extends Fragment {
                     TableRow chargeRow = new TableRow(getActivity());
                     ImageButton linked = new ImageButton(getActivity());
                     linked.setImageResource(R.drawable.ic_baseline_link_24);
+                    linked.setContentDescription("Load shift is linked");
                     linked.setBackgroundColor(0);
                     EditText from = new EditText(getActivity());
                     EditText to = new EditText(getActivity());
                     EditText stop = new EditText(getActivity());
                     ImageButton delete = new ImageButton(getActivity());
                     delete.setImageResource(R.drawable.ic_baseline_delete_24);
+                    delete.setContentDescription("Delete this load shift");
                     delete.setBackgroundColor(0);
                     from.setMinimumHeight(80);
                     from.setHeight(80);
+                    to.setMinimumHeight(80);
+                    to.setHeight(80);
+                    stop.setMinimumHeight(80);
+                    stop.setHeight(80);
 
                     from.setText(String.valueOf(loadShift.getBegin()));
                     from.setInputType(integerType);
@@ -380,6 +376,7 @@ public class BatteryChargingFragment extends Fragment {
                     if ((null == linkedScenarios) || linkedScenarios.isEmpty()) {
                         linked.setEnabled(false);
                         linked.setImageResource(R.drawable.ic_baseline_link_off_24);
+                        linked.setContentDescription("No linked load shifts");
                     }
                     else {
                         linked.setEnabled(true);
@@ -444,6 +441,66 @@ public class BatteryChargingFragment extends Fragment {
 
                     mLoadShiftTimes.addView(chargeRow);
                 }
+            }
+
+            // Add an add row
+            {
+                TableRow addRow = new TableRow(getActivity());
+                ImageButton linked = new ImageButton(getActivity());
+                linked.setImageResource(R.drawable.ic_baseline_link_off_24);
+                linked.setContentDescription("No linked load shifts");
+                linked.setEnabled(false);
+                linked.setBackgroundColor(0);
+                EditText from = new EditText(getActivity());
+                EditText to = new EditText(getActivity());
+                EditText stop = new EditText(getActivity());
+                ImageButton add = new ImageButton(getActivity());
+                add.setImageResource(android.R.drawable.ic_menu_add);
+                add.setContentDescription("Add a new charge time");
+                add.setBackgroundColor(0);
+                from.setMinimumHeight(80);
+                from.setHeight(80);
+                to.setMinimumHeight(80);
+                to.setHeight(80);
+                stop.setMinimumHeight(80);
+                stop.setHeight(80);
+
+                from.setEnabled(mEdit);
+                mEditFields.add(from);
+                to.setEnabled(mEdit);
+                mEditFields.add(to);
+                stop.setEnabled(mEdit);
+                mEditFields.add(stop);
+                add.setEnabled(mEdit);
+                mEditFields.add(add);
+
+                from.setText("2");
+                from.setInputType(integerType);
+                to.setText("6");
+                to.setInputType(integerType);
+                stop.setText(R.string.NinetyPoint0);
+                stop.setInputType(doubleType);
+
+                add.setOnClickListener(v -> {
+                    LoadShift nLoadShift = new LoadShift();
+                    nLoadShift.setInverter(mLoadShift.getInverter());
+                    nLoadShift.getDays().ints = new ArrayList<>(mLoadShift.getDays().ints);
+                    nLoadShift.getMonths().months = new ArrayList<>(mLoadShift.getMonths().months);
+                    nLoadShift.setBegin(Integer.parseInt(from.getText().toString()));
+                    nLoadShift.setEnd(Integer.parseInt(to.getText().toString()));
+                    nLoadShift.setStopAt(Double.parseDouble(stop.getText().toString()));
+                    ((BatteryChargingActivity) requireActivity()).getNextAddedLoadShiftID(nLoadShift);
+                    mLoadShiftsFromActivity.add(nLoadShift);
+                    updateView();
+                });
+
+                addRow.addView(linked);
+                addRow.addView(from);
+                addRow.addView(to);
+                addRow.addView(stop);
+                addRow.addView(add);
+
+                mLoadShiftTimes.addView(addRow);
             }
         }
     }

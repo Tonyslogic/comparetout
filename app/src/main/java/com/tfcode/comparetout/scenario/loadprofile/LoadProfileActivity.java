@@ -227,7 +227,7 @@ public class LoadProfileActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        if (mDoubleBackToExitPressedOnce || !(mUnsavedChanges)) {
+        if (mDoubleBackToExitPressedOnce || (mUnsavedChanges)) {
             super.onBackPressed();
             SimulatorLauncher.simulateIfNeeded(getApplicationContext());
             return;
