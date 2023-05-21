@@ -289,15 +289,20 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
                 from.setText(String.format("%d", begin));
                 from.setInputType(InputType.TYPE_CLASS_NUMBER);
                 from.setEnabled(mEdit);
+                from.setMinimumWidth(80);
+                from.setWidth(80);
 
                 to.setText(String.format("%d", end));
                 to.setInputType(InputType.TYPE_CLASS_NUMBER);
                 to.setEnabled(mEdit);
-
+                to.setMinimumWidth(80);
+                to.setWidth(80);
 
                 percent.setText(String.format("%d", percentDouble));
                 percent.setInputType(InputType.TYPE_CLASS_NUMBER);
                 percent.setEnabled(mEdit);
+                percent.setMinimumWidth(80);
+                percent.setWidth(80);
 
                 minus.setImageResource(android.R.drawable.btn_minus);
                 minus.setBackgroundColor(0);
@@ -438,6 +443,7 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
                 to.setText("");
                 minus.setText(R.string.Total);
                 totalPercent.setText(String.format("%d", percentageTotal));
+                totalPercent.setPadding(0,20, 0, 20);
                 plus.setText("");
                 del.setText("");
                 add.setText("");

@@ -454,6 +454,7 @@ public class ScenarioOverview extends Fragment {
                 EditText b = new EditText(getActivity());
                 b.setText(mScenario.getScenarioName());
                 b.setEnabled(true);
+                b.setPadding(0,20, 0, 20);
                 b.addTextChangedListener(new TextWatcher() {
                     @Override
                     public void beforeTextChanged(CharSequence s, int start, int count, int after) {}

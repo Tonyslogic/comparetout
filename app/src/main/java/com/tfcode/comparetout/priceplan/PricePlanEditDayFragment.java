@@ -447,11 +447,9 @@ public class PricePlanEditDayFragment extends Fragment {
                     del.setLayoutParams(textParams);
 
                     from.setText(String.format("%d", hourlyRate.getBegin()));
-                    from.setContentDescription(String.format("From %s", String.format("%d", hourlyRate.getBegin()) ));
                     from.setEnabled(false);
                     priceRow.addView(from);
                     to.setText(String.format("%d", hourlyRate.getEnd()));
-                    to.setContentDescription(String.format("To %s", String.format("%d", hourlyRate.getEnd()) ));
                     to.setInputType(InputType.TYPE_CLASS_NUMBER);
                     to.setEnabled(mEdit);
                     mEditFields.add(to);
@@ -474,9 +472,6 @@ public class PricePlanEditDayFragment extends Fragment {
                     priceRow.addView(to);
                     price.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
                     price.setText(String.format("%s", hourlyRate.getPrice()));
-                    price.setContentDescription(String.format("Rate %s from %s to %s", String.format("%s", hourlyRate.getPrice()),
-                            String.format("%d", hourlyRate.getBegin()),
-                            String.format("%d", hourlyRate.getEnd()) ));
                     price.setEnabled(mEdit);
                     mEditFields.add(price);
                     price.addTextChangedListener(new AbstractTextWatcher() {
