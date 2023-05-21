@@ -119,9 +119,6 @@ public class BatteryChargingViewPageAdapter extends FragmentStateAdapter {
         for (BatteryChargingFragment batterySettingsFragment: mBatteryChargingFragments.values()) batterySettingsFragment.updateDBIndex();
     }
 
-    public void refreshFocus() {
-        for (BatteryChargingFragment batterySettingsFragment: mBatteryChargingFragments.values()) batterySettingsFragment.refreshFocus();
-    }
 }
 
 

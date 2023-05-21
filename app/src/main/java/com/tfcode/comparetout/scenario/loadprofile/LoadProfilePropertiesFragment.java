@@ -92,6 +92,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
                     mLoadProfile.setLoadProfileIndex(mLoadProfileID);
                     updateView();
                     updateMasterCopy();
+                    ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 }
@@ -383,7 +384,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         String newLoadProfileJsonString =  gson.toJson(lpj, type);
         ((LoadProfileActivity) requireActivity()).setLoadProfileJson(newLoadProfileJsonString); //, mLoadProfile.getDistributionSource());
-        ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
+//        ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
         ((LoadProfileActivity) requireActivity()).propagateDistribution();
     }
 }

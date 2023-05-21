@@ -438,18 +438,19 @@ public class BatterySettingsActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        if (mDoubleBackToExitPressedOnce || !(mUnsavedChanges)) {
-            super.onBackPressed();
-            SimulatorLauncher.simulateIfNeeded(getApplicationContext());
-            return;
+        if (mViewPager.getCurrentItem() == 0) {
+            if (mDoubleBackToExitPressedOnce || !(mUnsavedChanges)) {
+                super.onBackPressed();
+                SimulatorLauncher.simulateIfNeeded(getApplicationContext());
+                return;
+            }
+            this.mDoubleBackToExitPressedOnce = true;
+            Snackbar.make(getWindow().getDecorView().getRootView(),
+                            "Unsaved changes. Please click BACK again to discard and exit", Snackbar.LENGTH_LONG)
+                    .setAction("Action", null).show();
+            new Handler(Looper.getMainLooper()).postDelayed(() -> mDoubleBackToExitPressedOnce =false, 2000);
         }
-
-        this.mDoubleBackToExitPressedOnce = true;
-        Snackbar.make(getWindow().getDecorView().getRootView(),
-                        "Unsaved changes. Please click BACK again to discard and exit", Snackbar.LENGTH_LONG)
-                .setAction("Action", null).show();
-
-        new Handler(Looper.getMainLooper()).postDelayed(() -> mDoubleBackToExitPressedOnce =false, 2000);
+        else mViewPager.setCurrentItem(mViewPager.getCurrentItem() - 1);
     }
 
     // FRAGMENT ACCESS METHODS

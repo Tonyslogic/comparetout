@@ -289,9 +289,6 @@ public class MainActivity extends AppCompatActivity {
             if (pos == USAGE_FRAGMENT) {
                 mProgressBar.setVisibility(View.VISIBLE);
                 new Thread(() -> {
-//                    @SuppressLint("DiscouragedApi") InputStream ins = getResources().openRawResource(
-//                            getResources().getIdentifier("scenarios", "raw", getPackageName()));
-//                    InputStreamReader reader = new InputStreamReader(ins, StandardCharsets.UTF_8);
                     URL url;
                     try {
                         url = new URL("https://raw.githubusercontent.com/Tonyslogic/comparetout-doc/main/usage-profiles/scenarios.json");
@@ -362,6 +359,12 @@ public class MainActivity extends AppCompatActivity {
                 return(true);
         }
         return(super.onOptionsItemSelected(item));
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (viewPager.getCurrentItem() == 0) super.onBackPressed();
+        else viewPager.setCurrentItem(viewPager.getCurrentItem() - 1);
     }
 
     private void createProgressBar() {

@@ -325,17 +325,20 @@ public class PricePlanActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        if (mDoubleBackToExitPressedOnce || !(mUnsavedChanges)) {
-            super.onBackPressed();
-            return;
+        if (viewPager.getCurrentItem() == 0) {
+            if (mDoubleBackToExitPressedOnce || !(mUnsavedChanges)) {
+                super.onBackPressed();
+                return;
+            }
+
+            this.mDoubleBackToExitPressedOnce = true;
+            Snackbar.make(getWindow().getDecorView().getRootView(),
+                            "Unsaved changes. Please click BACK again to discard and exit", Snackbar.LENGTH_LONG)
+                    .setAction("Action", null).show();
+
+            new Handler(Looper.getMainLooper()).postDelayed(() -> mDoubleBackToExitPressedOnce =false, 2000);
         }
-
-        this.mDoubleBackToExitPressedOnce = true;
-        Snackbar.make(getWindow().getDecorView().getRootView(),
-                        "Unsaved changes. Please click BACK again to discard and exit", Snackbar.LENGTH_LONG)
-                .setAction("Action", null).show();
-
-        new Handler(Looper.getMainLooper()).postDelayed(() -> mDoubleBackToExitPressedOnce =false, 2000);
+        else viewPager.setCurrentItem(viewPager.getCurrentItem() - 1);
     }
 
     // FRAGMENT ACCESS METHODS

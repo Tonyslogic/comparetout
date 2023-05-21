@@ -279,6 +279,7 @@ public class BatteryChargingFragment extends Fragment {
                                     else
                                         mLoadShift.getDays().ints.remove(finalRowNo);
                                     ((BatteryChargingActivity) requireActivity()).updateLoadShiftAtIndex(mLoadShift, mBatteryScheduleIndex, 0);
+                                    ((BatteryChargingActivity) requireActivity()).setSaveNeeded(true);
                                 });
                                 break;
                             case 1:
@@ -292,6 +293,7 @@ public class BatteryChargingFragment extends Fragment {
                                     else
                                         mLoadShift.getMonths().months.remove(finalMonthCol1No);
                                     ((BatteryChargingActivity) requireActivity()).updateLoadShiftAtIndex(mLoadShift, mBatteryScheduleIndex, 0);
+                                    ((BatteryChargingActivity) requireActivity()).setSaveNeeded(true);
                                 });
                                 break;
                             case 2:
@@ -305,6 +307,7 @@ public class BatteryChargingFragment extends Fragment {
                                     else
                                         mLoadShift.getMonths().months.remove(finalMonthCol2No);
                                     ((BatteryChargingActivity) requireActivity()).updateLoadShiftAtIndex(mLoadShift, mBatteryScheduleIndex, 0);
+                                    ((BatteryChargingActivity) requireActivity()).setSaveNeeded(true);
                                 });
                                 break;
                         }
@@ -444,8 +447,9 @@ public class BatteryChargingFragment extends Fragment {
             }
 
             // Add an add row
-            {
+            if (mEdit){
                 TableRow addRow = new TableRow(getActivity());
+                addRow.setBackgroundResource(R.drawable.row_border);
                 ImageButton linked = new ImageButton(getActivity());
                 linked.setImageResource(R.drawable.ic_baseline_link_off_24);
                 linked.setContentDescription("No linked load shifts");
@@ -491,6 +495,7 @@ public class BatteryChargingFragment extends Fragment {
                     nLoadShift.setStopAt(Double.parseDouble(stop.getText().toString()));
                     ((BatteryChargingActivity) requireActivity()).getNextAddedLoadShiftID(nLoadShift);
                     mLoadShiftsFromActivity.add(nLoadShift);
+                    ((BatteryChargingActivity) requireActivity()).setSaveNeeded(true);
                     updateView();
                 });
 
@@ -520,6 +525,7 @@ public class BatteryChargingFragment extends Fragment {
     public void setEditMode(boolean ed) {
         mEdit = ed;
         for (View view: mEditFields) view.setEnabled(mEdit);
+        updateView();
     }
 
     public void updateDBIndex() {
