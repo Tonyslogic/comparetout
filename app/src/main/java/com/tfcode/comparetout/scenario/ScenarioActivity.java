@@ -156,7 +156,7 @@ public class ScenarioActivity extends AppCompatActivity {
         ArrayList<String> tabTitlesList = new ArrayList<>();
         tabTitlesList.add("Scenario overview");
         tabTitlesList.add("Daily details");
-        tabTitlesList.add("Monthly details");
+        tabTitlesList.add("Monthly rollup");
         tabTitlesList.add("Year summary");
         TabLayout tabLayout = findViewById(R.id.scenario_tab_layout);
         TabLayoutMediator mMediator = new TabLayoutMediator(tabLayout, viewPager,

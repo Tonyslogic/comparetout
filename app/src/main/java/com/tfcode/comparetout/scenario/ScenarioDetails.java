@@ -35,6 +35,8 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.PopupMenu;
+import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -501,12 +503,21 @@ public class ScenarioDetails extends Fragment {
             mLineChart.getLegend().setTextColor(Color.DKGRAY);
             mLineChart.getDescription().setTextColor(Color.DKGRAY);
 
+            mLineChart.getAxisLeft().setAxisMinimum(0F);
+            mLineChart.getAxisRight().setAxisMinimum(0F);
+            mLineChart.getAxisLeft().setSpaceTop(5F);
+            mLineChart.getAxisRight().setSpaceTop(5F);
+
+            float maxSOC = 0F;
             ArrayList<Entry> socValues = new ArrayList<>();
             ArrayList<Entry> tempValues = new ArrayList<>();
             for (ScenarioLineGraphData lgd : mLineData) {
                 socValues.add(new Entry(lgd.mod, (float) lgd.soc));
+                if (lgd.soc > maxSOC) maxSOC = (float) lgd.soc;
                 tempValues.add(new Entry(lgd.mod, (float) lgd.waterTemperature));
             }
+            mLineChart.getAxisLeft().setAxisMaximum(maxSOC);
+            mLineChart.getAxisRight().setAxisMaximum(100F);
 
             LineDataSet socSet;
             LineDataSet tempSet;
@@ -526,6 +537,7 @@ public class ScenarioDetails extends Fragment {
             socSet.setFormLineDashEffect(new DashPathEffect(new float[]{10f, 5f}, 0f));
             socSet.setFormSize(15.f);
             socSet.setFillColor(Color.YELLOW);
+            socSet.setAxisDependency(mLineChart.getAxisLeft().getAxisDependency());
 
             tempSet = new LineDataSet(tempValues, "Temperature of Water");
             tempSet.setDrawIcons(false);
@@ -542,6 +554,7 @@ public class ScenarioDetails extends Fragment {
             tempSet.setFormLineDashEffect(new DashPathEffect(new float[]{10f, 5f}, 0f));
             tempSet.setFormSize(15.f);
             tempSet.setFillColor(Color.BLUE);
+            tempSet.setAxisDependency(mLineChart.getAxisRight().getAxisDependency());
 
             ArrayList<ILineDataSet> dataSets = new ArrayList<>();
             if (mShowSOC) dataSets.add(socSet);
@@ -555,6 +568,30 @@ public class ScenarioDetails extends Fragment {
             mLineChart.refreshDrawableState();
         }
         else showText = true;
+
+        if (mShowSOC || mShowHWTemperature) {
+            if (!(null == mLineChart)) {
+                if (mLineChart.getVisibility() == View.INVISIBLE)
+                    mLineChart.setVisibility(View.VISIBLE);
+                ConstraintLayout constraintLayout = (ConstraintLayout) mLineChart.getParent();
+                ConstraintSet constraintSet = new ConstraintSet();
+                constraintSet.clone(constraintLayout);
+                constraintSet.connect(R.id.scenario_detail_chart, ConstraintSet.BOTTOM, R.id.scenario_detail_graph, ConstraintSet.TOP, 0);
+                constraintSet.connect(R.id.scenario_detail_filter_layout, ConstraintSet.TOP, R.id.scenario_detail_graph, ConstraintSet.BOTTOM, 0);
+                constraintSet.applyTo(constraintLayout);
+            }
+        }
+        else {
+            if (!(null == mLineChart)) {
+                mLineChart.setVisibility(View.INVISIBLE);
+                ConstraintLayout constraintLayout = (ConstraintLayout) mLineChart.getParent();
+                ConstraintSet constraintSet = new ConstraintSet();
+                constraintSet.clone(constraintLayout);
+                constraintSet.connect(R.id.scenario_detail_chart, ConstraintSet.BOTTOM, R.id.scenario_detail_filter_layout, ConstraintSet.TOP, 0);
+                constraintSet.connect(R.id.scenario_detail_filter_layout, ConstraintSet.TOP, R.id.scenario_detail_chart, ConstraintSet.BOTTOM, 0);
+                constraintSet.applyTo(constraintLayout);
+            }
+        }
 
         if (showText) {
             if (mBarChart != null) {
