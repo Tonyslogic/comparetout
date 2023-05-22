@@ -107,6 +107,7 @@ public class SimulationWorker extends Worker {
                 }
 
                 long startTime = System.nanoTime();
+                long notifyTime = startTime;
                 for (long scenarioID : scenarioIDs) {
                     ScenarioComponents scenarioComponents = mToutcRepository.getScenarioComponentsForScenarioID(scenarioID);
                     Scenario scenario = scenarioComponents.scenario;
@@ -117,18 +118,27 @@ public class SimulationWorker extends Worker {
                         System.out.println("SimulationWorker checkForMissingPanelData hasData = " + hasData);
                         PROGRESS_CURRENT += PROGRESS_CHUNK;
                         builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
-                        notificationManager.notify(notificationId, builder.build());
+                        if (System.nanoTime() - notifyTime > 1e+9) {
+                            notifyTime = System.nanoTime();
+                            notificationManager.notify(notificationId, builder.build());
+                        }
                         if (!hasData) {
                             builder.setContentText("Skipping " + scenario.getScenarioName());
                             notificationManager.notify(notificationId, builder.build());
                             PROGRESS_CURRENT += PROGRESS_CHUNK;
                             builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
-                            notificationManager.notify(notificationId, builder.build());
+                            if (System.nanoTime() - notifyTime > 1e+9) {
+                                notifyTime = System.nanoTime();
+                                notificationManager.notify(notificationId, builder.build());
+                            }
                             continue;
                         }
                     }
                     builder.setContentText("Getting data: " + scenario.getScenarioName());
-                    notificationManager.notify(notificationId, builder.build());
+                    if (System.nanoTime() - notifyTime > 1e+9) {
+                        notifyTime = System.nanoTime();
+                        notificationManager.notify(notificationId, builder.build());
+                    }
 
                     int rowsToProcess = 0;
                     Map<Inverter, InputData> inputDataMap = new HashMap<>();
@@ -174,7 +184,10 @@ public class SimulationWorker extends Worker {
                     // TODO: GET LOAD FROM CFG, CAR AND HOT WATER
 
                     builder.setContentText("Simulating: " + scenario.getScenarioName());
-                    notificationManager.notify(notificationId, builder.build());
+                    if (System.nanoTime() - notifyTime > 1e+9) {
+                        notifyTime = System.nanoTime();
+                        notificationManager.notify(notificationId, builder.build());
+                    }
 
                     // SIMULATE POWER DISTRIBUTION
                     ArrayList<ScenarioSimulationData> outputRows = new ArrayList<>();
@@ -188,14 +201,20 @@ public class SimulationWorker extends Worker {
                     System.out.println("adding " + outputRows.size() + " rows to DB for simulation: " + scenario.getScenarioName());
 
                     builder.setContentText("Saving data");
-                    notificationManager.notify(notificationId, builder.build());
+                    if (System.nanoTime() - notifyTime > 1e+9) {
+                        notifyTime = System.nanoTime();
+                        notificationManager.notify(notificationId, builder.build());
+                    }
 
                     mToutcRepository.saveSimulationDataForScenario(outputRows);
 
                     // NOTIFICATION PROGRESS
                     PROGRESS_CURRENT += PROGRESS_CHUNK;
                     builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
-                    notificationManager.notify(notificationId, builder.build());
+                    if (System.nanoTime() - notifyTime > 1e+9) {
+                        notifyTime = System.nanoTime();
+                        notificationManager.notify(notificationId, builder.build());
+                    }
                 }
                 long endTime = System.nanoTime();
                 System.out.println("Took " + (endTime - startTime) / 1000000 + "mS to simulate " + scenarioIDs.size() + " scenarios");

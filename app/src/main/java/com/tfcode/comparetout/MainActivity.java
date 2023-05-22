@@ -85,7 +85,7 @@ public class MainActivity extends AppCompatActivity {
                     // Handle the returned Uri
                     if (uri == null) return;
                     mProgressBar.setVisibility(View.VISIBLE);
-                    InputStream is;
+                    InputStream is = null;
                     try {
                         is = getContentResolver().openInputStream(uri);
                         InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
@@ -104,6 +104,15 @@ public class MainActivity extends AppCompatActivity {
                     } catch (FileNotFoundException e) {
                         e.printStackTrace();
                     }
+                    finally {
+                        if (!(null == is)) {
+                            try {
+                                is.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
                     mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
                 }
             });
@@ -115,7 +124,7 @@ public class MainActivity extends AppCompatActivity {
                     // Handle the returned Uri
                     if (uri == null) return;
                     mProgressBar.setVisibility(View.VISIBLE);
-                    InputStream is;
+                    InputStream is = null;
                     try {
                         is = getContentResolver().openInputStream(uri);
                         InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
@@ -130,6 +139,14 @@ public class MainActivity extends AppCompatActivity {
                     } catch (NullPointerException e) {
                         Snackbar.make(viewPager.getRootView(), "File did not parse", Snackbar.LENGTH_LONG)
                                 .setAction("Action", null).show();
+                    } finally {
+                        if (!(null == is)) {
+                            try {
+                                is.close();
+                            } catch (IOException e) {
+                                e.printStackTrace();
+                            }
+                        }
                     }
                     mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
                 }

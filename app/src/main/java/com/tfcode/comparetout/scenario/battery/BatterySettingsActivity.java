@@ -54,6 +54,7 @@ import com.tfcode.comparetout.model.scenario.Scenario2Battery;
 import com.tfcode.comparetout.scenario.ScenarioSelectDialog;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
@@ -89,7 +90,7 @@ public class BatterySettingsActivity extends AppCompatActivity {
             registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
                 // Handle the returned Uri
                 if (uri == null) return;
-                InputStream is;
+                InputStream is = null;
                 try {
                     is = getContentResolver().openInputStream(uri);
                     InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
@@ -99,6 +100,14 @@ public class BatterySettingsActivity extends AppCompatActivity {
                     for (Battery battery: batteries) addBattery(battery);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
+                }finally {
+                    if (!(null == is)) {
+                        try {
+                            is.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
                 }
             });
 

@@ -59,6 +59,7 @@ import com.tfcode.comparetout.model.scenario.LoadProfile;
 import com.tfcode.comparetout.util.AbstractTextWatcher;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
@@ -82,7 +83,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
             registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
                 // Handle the returned Uri
                 if (uri == null) return;
-                InputStream is;
+                InputStream is = null;
                 try {
                     is = requireActivity().getContentResolver().openInputStream(uri);
                     InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
@@ -95,6 +96,14 @@ public class LoadProfilePropertiesFragment extends Fragment {
                     ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
+                }finally {
+                    if (!(null == is)) {
+                        try {
+                            is.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                    }
                 }
             });
 
