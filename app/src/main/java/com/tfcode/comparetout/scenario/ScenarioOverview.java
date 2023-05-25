@@ -202,26 +202,32 @@ public class ScenarioOverview extends Fragment {
             @Override
             public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
                 System.out.println("ScenarioOverview.onOptionsItemSelected");
-                if (menuItem.getItemId() == R.id.edit_scenario) {//add the function to perform here
+                if (menuItem.getItemId() == R.id.edit_scenario) {
                     System.out.println("Edit attempt");
                     setEditMode(true);
                     updateView();
                     return (false);
                 }
-                if (menuItem.getItemId() == R.id.save_scenario) {//add the function to perform here
+                if (menuItem.getItemId() == R.id.save_scenario) {
                     System.out.println("save attempt");
-                    if (mScenarioID == 0) {
-                        ScenarioComponents scenarioComponents = new ScenarioComponents(mScenario,
-                                null, null, null, null, null,
-                                null, null, null, null, null);
-                        mViewModel.insertScenario(scenarioComponents);
+                    if (!(null == getActivity()) && !((ScenarioActivity)getActivity()).isSimulationInProgress()) {
+                        if (mScenarioID == 0) {
+                            ScenarioComponents scenarioComponents = new ScenarioComponents(mScenario,
+                                    null, null, null, null, null,
+                                    null, null, null, null, null);
+                            mViewModel.insertScenario(scenarioComponents);
+                        } else {
+                            mViewModel.updateScenario(mScenario);
+                        }
+                        mSavingNewScenario = true;
+                        mEdit = false;
+                        ((ScenarioActivity) requireActivity()).setSaveNeeded(false);
                     }
                     else {
-                        mViewModel.updateScenario(mScenario);
+                        if (!(null == getView())) Snackbar.make(getView(),
+                                        "Cannot save during simulation. Try again in a moment.", Snackbar.LENGTH_LONG)
+                                .setAction("Action", null).show();
                     }
-                    mSavingNewScenario = true;
-                    mEdit = false;
-                    ((ScenarioActivity) requireActivity()).setSaveNeeded(false);
                     return (false);
                 }
                 return true;

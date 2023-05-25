@@ -20,7 +20,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".scenario.ScenarioActivity">
+    tools:context=".scenario.ScenarioActivity"
+    android:id="@+id/activity_scenario">
 
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/scenario_tab_layout"

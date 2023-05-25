@@ -43,6 +43,7 @@ public class SimulatorLauncher {
                 new OneTimeWorkRequest.Builder(CostingWorker.class)
                         .build();
 
+        WorkManager.getInstance(context).pruneWork();
         WorkManager
                 .getInstance(context)
                 .beginUniqueWork("Simulation", ExistingWorkPolicy.APPEND,  generateLoadData)

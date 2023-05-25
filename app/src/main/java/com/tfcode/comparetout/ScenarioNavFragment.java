@@ -38,6 +38,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.checkbox.MaterialCheckBox;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.model.scenario.Scenario;
@@ -174,7 +175,14 @@ public class ScenarioNavFragment extends Fragment {
                     b.setBackgroundColor(Color.RED);
                     c.setBackgroundColor(Color.RED);
                     d.setBackgroundColor(Color.RED);
-                    mViewModel.deleteScenario(v.getId());
+                    if (!(null == getActivity()) && ((MainActivity) getActivity()).isSimulationPassive()) {
+                        mViewModel.deleteScenario(v.getId());
+                    }
+                    else {
+                        if (!(null == getView())) Snackbar.make(getView(),
+                                        "Cannot delete during simulation. Try again in a moment.", Snackbar.LENGTH_LONG)
+                                .setAction("Action", null).show();
+                    }
                 });
 
                 d.setOnClickListener(v -> mViewModel.copyScenario(v.getId()));

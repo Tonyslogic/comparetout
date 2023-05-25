@@ -39,6 +39,8 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
+import androidx.work.WorkInfo;
+import androidx.work.WorkManager;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
@@ -77,6 +79,8 @@ public class MainActivity extends AppCompatActivity {
     private Menu mMainMenu;
     private ProgressBar mProgressBar;
     private Handler mMainHandler;
+    private ProgressBar mSimulationInProgressBar;
+    private boolean mSimulationInProgress = false;
 
     final ActivityResultLauncher<String> mLoadPricePlansFromFile = registerForActivityResult(new ActivityResultContracts.GetContent(),
             new ActivityResultCallback<Uri>() {
@@ -164,6 +168,7 @@ public class MainActivity extends AppCompatActivity {
         createNotificationChannel();
 
         setContentView(R.layout.activity_main);
+        createSimulationFeedback();
         createProgressBar();
 
         viewPager = findViewById(R.id.view_pager);
@@ -414,5 +419,51 @@ public class MainActivity extends AppCompatActivity {
         // or other notification behaviors after this
         NotificationManager notificationManager = getSystemService(NotificationManager.class);
         notificationManager.createNotificationChannel(channel);
+    }
+
+    // SIMULATION BAR
+    public boolean isSimulationPassive() {
+        return !mSimulationInProgress;
+    }
+
+    private void createSimulationFeedback() {
+        mSimulationInProgressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleLargeInverse);
+        ConstraintLayout constraintLayout = findViewById(R.id.main_activity);
+        ConstraintSet set = new ConstraintSet();
+
+        mSimulationInProgressBar.setId(View.generateViewId());  // cannot set id after add
+        constraintLayout.addView(mSimulationInProgressBar,0);
+        set.clone(constraintLayout);
+        set.connect(mSimulationInProgressBar.getId(), ConstraintSet.BOTTOM, constraintLayout.getId(), ConstraintSet.BOTTOM, 60);
+        set.connect(mSimulationInProgressBar.getId(), ConstraintSet.RIGHT, constraintLayout.getId(), ConstraintSet.RIGHT, 60);
+        set.connect(mSimulationInProgressBar.getId(), ConstraintSet.LEFT, constraintLayout.getId(), ConstraintSet.LEFT, 60);
+        set.applyTo(constraintLayout);
+        mSimulationInProgressBar.setVisibility(View.GONE);
+
+        mMainHandler = new Handler(Looper.getMainLooper());
+        observerSimulationWorker();
+    }
+
+    private void observerSimulationWorker() {
+        WorkManager.getInstance(this).getWorkInfosForUniqueWorkLiveData("Simulation")
+                .observe(this, workInfos -> {
+                    System.out.println("Observing simulation change " + workInfos.size());
+                    for (WorkInfo workInfo: workInfos){
+                        if ( workInfo.getState().isFinished() &&
+                                ( workInfo.getTags().contains("com.tfcode.comparetout.CostingWorker" ))) {
+                            System.out.println(workInfo.getTags().iterator().next());
+                            mSimulationInProgressBar.setVisibility(View.GONE);
+                            mSimulationInProgress = false;
+                        }
+                        if ( (workInfo.getState() == WorkInfo.State.ENQUEUED || workInfo.getState() == WorkInfo.State.RUNNING)
+                                && ( workInfo.getTags().contains("com.tfcode.comparetout.scenario.loadprofile.GenerateMissingLoadDataWorker")
+                                || workInfo.getTags().contains("com.tfcode.comparetout.scenario.SimulationWorker")
+                                || workInfo.getTags().contains("com.tfcode.comparetout.CostingWorker" ))) {
+                            System.out.println(workInfo.getTags().iterator().next());
+                            mSimulationInProgressBar.setVisibility(View.VISIBLE);
+                            mSimulationInProgress = true;
+                        }
+                    }
+                });
     }
 }

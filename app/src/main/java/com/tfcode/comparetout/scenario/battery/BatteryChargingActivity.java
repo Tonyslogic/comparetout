@@ -36,6 +36,8 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
+import androidx.work.WorkInfo;
+import androidx.work.WorkManager;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
@@ -69,6 +71,8 @@ public class BatteryChargingActivity extends AppCompatActivity {
 
     private Handler mMainHandler;
     private ProgressBar mProgressBar;
+    private ProgressBar mSimulationInProgressBar;
+    private boolean mSimulationInProgress = false;
 
     private ViewPager2 mViewPager;
     private Long mScenarioID = 0L;
@@ -139,6 +143,7 @@ public class BatteryChargingActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_battery_charging);
+        createSimulationFeedback();
         createProgressBar();
         mProgressBar.setVisibility(View.VISIBLE);
 
@@ -398,21 +403,29 @@ public class BatteryChargingActivity extends AppCompatActivity {
         if (item.getItemId() == R.id.lp_save) {//add the function to perform here
             System.out.println("Save attempt, saving " + mLoadShifts.size());
             mProgressBar.setVisibility(View.VISIBLE);
-            new Thread(() -> {
-                if (!(null == mRemovedLoadShifts))for (Long loadShiftID: mRemovedLoadShifts) {
-                    mViewModel.deleteLoadShiftFromScenario(loadShiftID, mScenarioID);
-                }
-                for (LoadShift loadShift: mLoadShifts) {
-                    if (loadShift.getLoadShiftIndex() < 0) loadShift.setLoadShiftIndex(0);
-                    mViewModel.saveLoadShiftForScenario(mScenarioID, loadShift);
-                }
-                mViewModel.deleteSimulationDataForScenarioID(mScenarioID);
-                mViewModel.deleteCostingDataForScenarioID(mScenarioID);
-                refreshLoadShifts();
-                mMainHandler.post(this::setupViewPager);
+            if (!mSimulationInProgress) {
+                new Thread(() -> {
+                    if (!(null == mRemovedLoadShifts))for (Long loadShiftID: mRemovedLoadShifts) {
+                        mViewModel.deleteLoadShiftFromScenario(loadShiftID, mScenarioID);
+                    }
+                    for (LoadShift loadShift: mLoadShifts) {
+                        if (loadShift.getLoadShiftIndex() < 0) loadShift.setLoadShiftIndex(0);
+                        mViewModel.saveLoadShiftForScenario(mScenarioID, loadShift);
+                    }
+                    mViewModel.deleteSimulationDataForScenarioID(mScenarioID);
+                    mViewModel.deleteCostingDataForScenarioID(mScenarioID);
+                    refreshLoadShifts();
+                    mMainHandler.post(this::setupViewPager);
+                    mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
+                }).start();
+                setSaveNeeded(false);
+            }
+            else {
                 mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
-            }).start();
-            setSaveNeeded(false);
+                Snackbar.make(getWindow().getDecorView().getRootView(),
+                                "Cannot save during simulation. Try again in a moment.", Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
+            }
             return false;
         }
         if (item.getItemId() == R.id.lp_copy) {//add the function to perform here
@@ -623,5 +636,47 @@ public class BatteryChargingActivity extends AppCompatActivity {
         mProgressBar.setVisibility(View.GONE);
 
         mMainHandler = new Handler(Looper.getMainLooper());
+    }
+
+    // SIMULATION BAR
+    private void createSimulationFeedback() {
+        mSimulationInProgressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleLargeInverse);
+        ConstraintLayout constraintLayout = findViewById(R.id.battery_charging_activity);
+        ConstraintSet set = new ConstraintSet();
+
+        mSimulationInProgressBar.setId(View.generateViewId());  // cannot set id after add
+        constraintLayout.addView(mSimulationInProgressBar,0);
+        set.clone(constraintLayout);
+        set.connect(mSimulationInProgressBar.getId(), ConstraintSet.BOTTOM, constraintLayout.getId(), ConstraintSet.BOTTOM, 60);
+        set.connect(mSimulationInProgressBar.getId(), ConstraintSet.RIGHT, constraintLayout.getId(), ConstraintSet.RIGHT, 60);
+        set.connect(mSimulationInProgressBar.getId(), ConstraintSet.LEFT, constraintLayout.getId(), ConstraintSet.LEFT, 60);
+        set.applyTo(constraintLayout);
+        mSimulationInProgressBar.setVisibility(View.GONE);
+
+        mMainHandler = new Handler(Looper.getMainLooper());
+        observerSimulationWorker();
+    }
+
+    private void observerSimulationWorker() {
+        WorkManager.getInstance(this).getWorkInfosForUniqueWorkLiveData("Simulation")
+                .observe(this, workInfos -> {
+                    System.out.println("Observing simulation change " + workInfos.size());
+                    for (WorkInfo workInfo: workInfos){
+                        if ( workInfo.getState().isFinished() &&
+                                ( workInfo.getTags().contains("com.tfcode.comparetout.CostingWorker" ))) {
+                            System.out.println(workInfo.getTags().iterator().next());
+                            mSimulationInProgressBar.setVisibility(View.GONE);
+                            mSimulationInProgress = false;
+                        }
+                        if ( (workInfo.getState() == WorkInfo.State.ENQUEUED || workInfo.getState() == WorkInfo.State.RUNNING)
+                                && ( workInfo.getTags().contains("com.tfcode.comparetout.scenario.loadprofile.GenerateMissingLoadDataWorker")
+                                || workInfo.getTags().contains("com.tfcode.comparetout.scenario.SimulationWorker")
+                                || workInfo.getTags().contains("com.tfcode.comparetout.CostingWorker" ))) {
+                            System.out.println(workInfo.getTags().iterator().next());
+                            mSimulationInProgressBar.setVisibility(View.VISIBLE);
+                            mSimulationInProgress = true;
+                        }
+                    }
+                });
     }
 }

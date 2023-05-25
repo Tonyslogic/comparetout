@@ -40,6 +40,7 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
+import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.model.priceplan.DayRate;
@@ -186,8 +187,15 @@ public class PricePlanNavFragment extends Fragment {
                     c.setBackgroundColor(Color.RED);
                     d.setBackgroundColor(Color.RED);
                     System.out.println("Delete: " + v.getId());
-                    mViewModel.deletePricePlan(v.getId());
-                    mViewModel.deleteRelatedCostings(v.getId());
+                    if (!(null == getActivity()) && ((MainActivity) getActivity()).isSimulationPassive()) {
+                        mViewModel.deletePricePlan(v.getId());
+                        mViewModel.deleteRelatedCostings(v.getId());
+                    }
+                    else {
+                        if (!(null == getView())) Snackbar.make(getView(),
+                            "Cannot delete during simulation. Try again in a moment.", Snackbar.LENGTH_LONG)
+                                .setAction("Action", null).show();
+                    }
                 });
 
                 d.setOnClickListener(v -> {
