@@ -351,7 +351,7 @@ public class SimulationWorker extends Worker {
         double pv2charge = 0;
         double pv2load;
         double bat2Load = 0;
-        double totalSOC = 0;
+        double totalSOC;
 
         if (inputLoad > locallyAvailable) {
             buy += inputLoad - locallyAvailable;
@@ -379,6 +379,9 @@ public class SimulationWorker extends Worker {
                     }
                     feed = max(0, feed );
                 }
+                else {
+                    totalSOC = outputRows.get(row -1).getSOC();
+                }
             }
         }
 
@@ -388,7 +391,6 @@ public class SimulationWorker extends Worker {
         outputRow.setPvToCharge(pv2charge);
         outputRow.setPvToLoad(pv2load);
         outputRow.setBatToLoad(bat2Load);
-
 
         // DIVERSIONS & SCHEDULES
         outputRow.setDirectEVcharge(0);
