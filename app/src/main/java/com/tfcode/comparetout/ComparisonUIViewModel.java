@@ -26,6 +26,8 @@ import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.scenario.Battery;
+import com.tfcode.comparetout.model.scenario.HWDivert;
+import com.tfcode.comparetout.model.scenario.HWSystem;
 import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
 import com.tfcode.comparetout.model.scenario.LoadShift;
@@ -33,6 +35,7 @@ import com.tfcode.comparetout.model.scenario.Panel;
 import com.tfcode.comparetout.model.scenario.PanelPVSummary;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.Scenario2Battery;
+import com.tfcode.comparetout.model.scenario.Scenario2HWSystem;
 import com.tfcode.comparetout.model.scenario.Scenario2Inverter;
 import com.tfcode.comparetout.model.scenario.Scenario2LoadShift;
 import com.tfcode.comparetout.model.scenario.Scenario2Panel;
@@ -312,5 +315,33 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public ScenarioComponents getScenarioComponentsForID(Long scenarioID) {
         return toutcRepository.getScenarioComponentsForScenarioID(scenarioID);
+    }
+
+    public List<String> getLinkedHWSystems(long hwSystemIndex, Long scenarioID) {
+        return toutcRepository.getLinkedHWSystems(hwSystemIndex, scenarioID);
+    }
+
+    public HWSystem getHWSystemForScenarioID(Long scenarioID) {
+        return toutcRepository.getHWSystemForScenarioID(scenarioID);
+    }
+
+    public void saveHWSystemForScenario(Long scenarioID, HWSystem hwSystem) {
+        toutcRepository.saveHWSystemForScenario(scenarioID, hwSystem);
+    }
+
+    public void linkHWSystemFromScenario(long fromScenarioID, Long toScenarioID) {
+        toutcRepository.linkHWSystemFromScenario(fromScenarioID, toScenarioID);
+    }
+
+    public void copyHWSettingsFromScenario(long fromScenarioID, Long toScenarioID) {
+        toutcRepository.copyHWSettingsFromScenario(fromScenarioID, toScenarioID);
+    }
+
+    public LiveData<List<Scenario2HWSystem>> getAllHWSystemRelations() {
+        return toutcRepository.getAllHWSystemRelations();
+    }
+
+    public void saveHWDivert(Long scenarioID, HWDivert hwDivert) {
+        toutcRepository.saveHWDivert(scenarioID, hwDivert);
     }
 }

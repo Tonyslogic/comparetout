@@ -546,7 +546,7 @@ public class JsonTools {
         return loadProfileJson;
     }
 
-    private static HWSystemJson createHWSystemJson(HWSystem hwSystem) {
+    public static HWSystemJson createHWSystemJson(HWSystem hwSystem) {
         HWSystemJson hwSystemJson = new HWSystemJson();
         if (!(null == hwSystem)) {
             hwSystemJson.hwCapacity = hwSystem.getHwCapacity();

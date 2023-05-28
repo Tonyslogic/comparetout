@@ -60,6 +60,7 @@ import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.SimulatorLauncher;
 import com.tfcode.comparetout.model.costings.Costings;
+import com.tfcode.comparetout.model.scenario.HWDivert;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.model.scenario.SimKPIs;
@@ -68,6 +69,7 @@ import com.tfcode.comparetout.scenario.battery.BatterySettingsActivity;
 import com.tfcode.comparetout.scenario.inverter.InverterActivity;
 import com.tfcode.comparetout.scenario.loadprofile.LoadProfileActivity;
 import com.tfcode.comparetout.scenario.panel.PanelActivity;
+import com.tfcode.comparetout.scenario.water.WaterSettingsActivity;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -368,9 +370,48 @@ public class ScenarioOverview extends Fragment {
 
             //registering popup with OnMenuItemClickListener
             popup.setOnMenuItemClickListener(item -> {
-                if (!(null == getView())) Snackbar.make(getView(),
-                                "You Clicked : " + item.getTitle(), Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                if (item.getItemId() == R.id.settings) {
+                    if (!mScenario.isHasLoadProfiles()) {
+                        if (!(null == getView())) Snackbar.make(getView(),
+                                "Create a load profile before configuring hot water system",
+                                Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                    }
+                    else {
+                        Intent intent = new Intent(getActivity(), WaterSettingsActivity.class);
+                        intent.putExtra("ScenarioID", mScenarioID);
+                        intent.putExtra("ScenarioName", mScenario.getScenarioName());
+                        intent.putExtra("Edit", mEdit | !mScenario.isHasHWSystem());
+                        startActivity(intent);
+                    }
+                }
+                if (item.getItemId() == R.id.divert){
+                    if (!mScenario.isHasHWSystem()) {
+                        if (!(null == getView())) Snackbar.make(getView(),
+                                "Configure hot water system, before diverting to it",
+                                Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                    }
+                    else {
+                        if (!(null == mScenarioComponents)){
+                            HWDivert hwDivert = mScenarioComponents.hwDivert;
+                            if (null == hwDivert) {
+                                hwDivert = new HWDivert();
+                                hwDivert.setActive(false);
+                                mScenarioComponents.hwDivert = hwDivert;
+                            }
+                            hwDivert.setActive(!hwDivert.isActive());
+                            mViewModel.saveHWDivert(mScenarioID, hwDivert);
+                            mMainHandler.postDelayed(this::updateScenarioComponents, 2000);
+                            if (!(null == getView())) Snackbar.make(getView(),
+                                    "Updating hot water diversion to " + (hwDivert.isActive() ? "enabled" : "disabled"),
+                                    Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                        }
+                    }
+                }
+                else if (item.getItemId() == R.id.schedule) {
+                    if (!(null == getView())) Snackbar.make(getView(),
+                                    "You Clicked : " + item.getTitle(), Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
+                }
                 return true;
             });
             try {
@@ -607,7 +648,7 @@ public class ScenarioOverview extends Fragment {
                 hasLoadShifts = true;
         if (mScenario.isHasHWSystem()) hasHWSystem = true;
         if (mScenario.isHasHWDivert())
-            if(!(null == mScenarioComponents))
+            if(!(null == mScenarioComponents) && !(null == mScenarioComponents.hwDivert))
                 hasHWDivert = mScenarioComponents.hwDivert.isActive();
         if (mScenario.isHasHWSchedules())
             if (!(null == mScenarioComponents) && mScenarioComponents.hwSchedules.size() > 0)

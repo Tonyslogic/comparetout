@@ -24,6 +24,8 @@ import com.tfcode.comparetout.model.costings.Costings;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.Battery;
+import com.tfcode.comparetout.model.scenario.HWDivert;
+import com.tfcode.comparetout.model.scenario.HWSystem;
 import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
 import com.tfcode.comparetout.model.scenario.LoadProfileData;
@@ -33,6 +35,7 @@ import com.tfcode.comparetout.model.scenario.PanelData;
 import com.tfcode.comparetout.model.scenario.PanelPVSummary;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.Scenario2Battery;
+import com.tfcode.comparetout.model.scenario.Scenario2HWSystem;
 import com.tfcode.comparetout.model.scenario.Scenario2Inverter;
 import com.tfcode.comparetout.model.scenario.Scenario2LoadShift;
 import com.tfcode.comparetout.model.scenario.Scenario2Panel;
@@ -57,6 +60,7 @@ public class ToutcRepository {
     private final LiveData<List<Scenario2Panel>> panelRelations;
     private final LiveData<List<Scenario2Battery>> batteryRelations;
     private final LiveData<List<Scenario2LoadShift>> loadShiftRelations;
+    private final LiveData<List<Scenario2HWSystem>> hwSystemRelations;
     private final LiveData<List<PanelPVSummary>> panelPVSummary;
 
     private final CostingDAO costingDAO;
@@ -77,6 +81,7 @@ public class ToutcRepository {
         panelRelations = scenarioDAO.loadPanelRelations();
         batteryRelations = scenarioDAO.loadBatteryRelations();
         loadShiftRelations = scenarioDAO.loadLoadShiftRelations();
+        hwSystemRelations = scenarioDAO.loadHWSystemRelations();
         panelPVSummary = scenarioDAO.getPanelPVSummary();
 
         costingDAO = db.costingDAO();
@@ -452,5 +457,36 @@ public class ToutcRepository {
 
     public List<ScenarioBarChartData> getYearBarData(Long scenarioID) {
         return scenarioDAO.getYearBarData(scenarioID);
+    }
+
+    public List<String> getLinkedHWSystems(long hwSystemIndex, Long scenarioID) {
+        return scenarioDAO.getLinkedHWSystems(hwSystemIndex, scenarioID);
+    }
+
+    public HWSystem getHWSystemForScenarioID(Long scenarioID) {
+        return scenarioDAO.getHWSystemForScenarioID(scenarioID);
+    }
+
+    public void saveHWSystemForScenario(Long scenarioID, HWSystem hwSystem) {
+        scenarioDAO.saveHWSystemForScenario(scenarioID, hwSystem);
+    }
+
+    public void linkHWSystemFromScenario(long fromScenarioID, Long toScenarioID) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                scenarioDAO.linkHWSystemFromScenario(fromScenarioID, toScenarioID));
+    }
+
+    public void copyHWSettingsFromScenario(long fromScenarioID, Long toScenarioID) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                scenarioDAO.copyHWSettingsFromScenario(fromScenarioID, toScenarioID));
+    }
+
+    public LiveData<List<Scenario2HWSystem>> getAllHWSystemRelations() {
+        return hwSystemRelations;
+    }
+
+    public void saveHWDivert(Long scenarioID, HWDivert hwDivert) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                scenarioDAO.saveHWDivert(scenarioID, hwDivert));
     }
 }

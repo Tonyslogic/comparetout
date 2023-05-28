@@ -307,6 +307,7 @@ public abstract class ScenarioDAO {
         long loadProfileID = loadProfile.getLoadProfileIndex();
         if (loadProfileID == 0) {
             loadProfileID = addNewLoadProfile(loadProfile);
+            deleteLoadProfileRelationsForScenario(Math.toIntExact(scenarioID));
         }
         else {
             updateLoadProfile(loadProfile);
@@ -976,4 +977,94 @@ public abstract class ScenarioDAO {
             "GROUP BY substr(Date, 6,2) ORDER BY substr(Date, 6,2)")
     public abstract List<ScenarioBarChartData> getYearBarData(Long scenarioID);
 
+    @Query("SELECT scenarioName FROM scenarios WHERE scenarioIndex IN (" +
+            "SELECT scenarioID FROM scenario2hwsystem WHERE hwSystemID = :hwSystemIndex) AND scenarioIndex != :scenarioID")
+    public abstract List<String> getLinkedHWSystems(long hwSystemIndex, Long scenarioID);
+
+    @Transaction
+    public void saveHWSystemForScenario(Long scenarioID, HWSystem hwSystem) {
+
+        long hwSystemID = hwSystem.getHwSystemIndex();
+        if (hwSystemID == 0) {
+            hwSystemID = addNewHWSystem(hwSystem);
+            deleteHWSystemRelationsForScenario(Math.toIntExact(scenarioID));
+            Scenario2HWSystem s2hws = new Scenario2HWSystem();
+            s2hws.setScenarioID(scenarioID);
+            s2hws.setHwSystemID(hwSystemID);
+            addNewScenario2HWSystem(s2hws);
+
+            Scenario scenario = getScenario(scenarioID);
+            scenario.setHasHWSystem(true);
+            updateScenario(scenario);
+        }
+        else {
+            updateHWSystem(hwSystem);
+        }
+    }
+
+    @Update (entity = HWSystem.class)
+    public abstract void updateHWSystem(HWSystem battery);
+
+    @Transaction
+    public void linkHWSystemFromScenario(long fromScenarioID, Long toScenarioID) {
+        HWSystem hwSystem = getHWSystemForScenarioID(fromScenarioID);
+        System.out.println("Linking HWS with id= " + hwSystem.getHwSystemIndex());
+
+        deleteHWSystemRelationsForScenario(Math.toIntExact(toScenarioID));
+
+        Scenario2HWSystem scenario2HWSystem = new Scenario2HWSystem();
+        scenario2HWSystem.setScenarioID(toScenarioID);
+        scenario2HWSystem.setHwSystemID(hwSystem.getHwSystemIndex());
+        System.out.println("prep:" +scenario2HWSystem.getS2hwsysID() + ", " + scenario2HWSystem.getHwSystemID() + ", " + scenario2HWSystem.getScenarioID());
+        addNewScenario2HWSystem(scenario2HWSystem);
+
+        Scenario toScenario = getScenario(toScenarioID);
+        toScenario.setHasHWSystem(true);
+        updateScenario(toScenario);
+
+        deleteOrphanHWSystems();
+    }
+
+    @Transaction
+    public void copyHWSettingsFromScenario(long fromScenarioID, Long toScenarioID) {
+        HWSystem hwSystem = getHWSystemForScenarioID(fromScenarioID);
+        hwSystem.setHwSystemIndex(0L);
+        long newHWSystemID = addNewHWSystem(hwSystem);
+
+        deleteHWSystemRelationsForScenario(Math.toIntExact(toScenarioID));
+        Scenario2HWSystem s2hws = new Scenario2HWSystem();
+        s2hws.setScenarioID(toScenarioID);
+        s2hws.setHwSystemID(newHWSystemID);
+        addNewScenario2HWSystem(s2hws);
+
+        Scenario toScenario = getScenario(toScenarioID);
+        toScenario.setHasHWSystem(true);
+        updateScenario(toScenario);
+
+        deleteOrphanHWSystems();
+    }
+
+    @Query("SELECT * FROM scenario2hwsystem")
+    public abstract LiveData<List<Scenario2HWSystem>> loadHWSystemRelations();
+
+    @Transaction
+    public void saveHWDivert(Long scenarioID, HWDivert hwDivert) {
+        if (hwDivert.getHwDivertIndex() == 0) {
+            System.out.println("Saving new HWDivert");
+            long hwDivertIndex = addNewHWDivert(hwDivert);
+            System.out.println("Saving new HWDivert, index = " + hwDivertIndex);
+            Scenario2HWDivert s2hwd = new Scenario2HWDivert();
+            s2hwd.setHwDivertID(hwDivertIndex);
+            s2hwd.setScenarioID(scenarioID);
+            addNewScenario2HWDivert(s2hwd);
+
+            Scenario scenario = getScenario(scenarioID);
+            scenario.setHasHWDivert(true);
+            updateScenario(scenario);
+        }
+        else updateHWDivert(hwDivert);
+    }
+
+    @Update (entity = HWDivert.class)
+    public abstract void updateHWDivert(HWDivert hwDivert);
 }
