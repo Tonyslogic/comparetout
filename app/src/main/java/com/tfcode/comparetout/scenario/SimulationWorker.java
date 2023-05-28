@@ -34,6 +34,8 @@ import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.ChargeModel;
+import com.tfcode.comparetout.model.scenario.HWSchedule;
+import com.tfcode.comparetout.model.scenario.HWSystem;
 import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.LoadShift;
 import com.tfcode.comparetout.model.scenario.Panel;
@@ -166,8 +168,19 @@ public class SimulationWorker extends Worker {
                                     chargeFromGrid = new ChargeFromGrid(scenarioComponents.loadShifts, rowsToProcess);
                                 }
                             }
+                            // Get the hot water related components
+                            HWSystem configuredHotWater = null;
+                            boolean hotWaterDivert = false;
+                            HWSchedule hotWaterSchedule = null;
+                            if (scenario.isHasHWSystem()) {
+                                configuredHotWater = scenarioComponents.hwSystem;
+                                if (scenario.isHasHWDivert()) hotWaterDivert = scenarioComponents.hwDivert.isActive();
+                            }
                             // Associate the inverter and the load for use in simulation
-                            inputDataMap.put(inverter, new InputData(inverter, simulationInputData, connectedBattery, chargeFromGrid));
+                            InputData iData = new InputData(inverter, simulationInputData,
+                                    connectedBattery, chargeFromGrid,
+                                    configuredHotWater, hotWaterDivert);
+                            inputDataMap.put(inverter, iData);
                         }
                     } else { // No solar simulation, but we need a 'perfect' inverter
                         Inverter inverter = new Inverter();
@@ -176,7 +189,9 @@ public class SimulationWorker extends Worker {
                         inverter.setDc2dcLoss(0);
                         inverter.setAc2dcLoss(0);
                         inverter.setMinExcess(0);
-                        InputData idata = new InputData(inverter, mToutcRepository.getSimulationInputNoSolar(scenarioID), null, null);
+                        InputData idata = new InputData(inverter, mToutcRepository.getSimulationInputNoSolar(scenarioID),
+                                null, null,
+                                null, null);
                         inputDataMap.put(inverter, idata);
                         rowsToProcess = idata.inputData.size();
                     }
@@ -274,6 +289,8 @@ public class SimulationWorker extends Worker {
     public static void processOneRow(long scenarioID, ArrayList<ScenarioSimulationData> outputRows, int row, Map<Inverter, InputData> inputDataMap) {
 
         SimulationInputData inputRow = null;
+        HWSystem hwSystem = null;
+        Boolean hwDivert = null;
         double inputLoad = 0d;
 
         // SETUP SOC AND BATTERY
@@ -285,6 +302,8 @@ public class SimulationWorker extends Worker {
             for (Map.Entry<Inverter,InputData> entry: inputDataMap.entrySet()) {
                 InputData iData = entry.getValue();
                 if (null == inputRow) inputRow = iData.inputData.get(row);
+                if (null == hwSystem) hwSystem = iData.mHWSystem;
+                if (null == hwDivert) hwDivert = iData.mHWDivert;
                 if (null == iData.mBattery) {
                     iData.soc = 0;
                     iData.mBattery = M_NULL_BATTERY;
@@ -302,6 +321,8 @@ public class SimulationWorker extends Worker {
             for (Map.Entry<Inverter,InputData> entry: inputDataMap.entrySet()) {
                 InputData iData = entry.getValue();
                 if (null == inputRow) inputRow = iData.inputData.get(row);
+                if (null == hwSystem) hwSystem = iData.mHWSystem;
+                if (null == hwDivert) hwDivert = iData.mHWDivert;
                 if (null == iData.mBattery) {
                     iData.soc = 0;
                     iData.mBattery = M_NULL_BATTERY;
@@ -386,18 +407,33 @@ public class SimulationWorker extends Worker {
         }
 
         outputRow.setBuy(buy);
-        outputRow.setFeed(feed);
         outputRow.setSOC(totalSOC);
         outputRow.setPvToCharge(pv2charge);
         outputRow.setPvToLoad(pv2load);
         outputRow.setBatToLoad(bat2Load);
 
         // DIVERSIONS & SCHEDULES
-        outputRow.setDirectEVcharge(0);
-        outputRow.setWaterTemp(0);
-        outputRow.setKWHDivToWater(0);
-        outputRow.setKWHDivToEV(0);
+        // WATER
+        double previousWaterTemp = 0;
+        double nowWaterTemp = 0;
+        double divertedToWater = 0;
+        if (outputRows.size() > 0) previousWaterTemp = outputRows.get(row -1).getWaterTemp();
+        if (!(null == hwSystem) && !(null == hwDivert) && hwDivert) {
+            HWSystem.Heat heat = hwSystem.heatWater(inputRow.mod, previousWaterTemp, feed);
+            feed = feed - heat.kWhUsed;
+            nowWaterTemp = heat.temperature;
+            divertedToWater = heat.kWhUsed;
+        }
+        outputRow.setFeed(feed);
+
+        outputRow.setWaterTemp(nowWaterTemp);
+        outputRow.setKWHDivToWater(divertedToWater);
         outputRow.setImmersionLoad(0);
+
+        // ELECTRIC VEHICLE
+        outputRow.setKWHDivToEV(0);
+        outputRow.setDirectEVcharge(0);
+
 
         // RECORD THE OUTPUT
         outputRows.add(outputRow);
@@ -470,10 +506,15 @@ public class SimulationWorker extends Worker {
         Battery mBattery;
         ChargeFromGrid mChargeFromGrid;
 
+        HWSystem mHWSystem;
+        Boolean mHWDivert;
+
         // Volatile state members
         double soc = 0d;
 
-        InputData(Inverter inverter, List<SimulationInputData> iData, Battery battery, ChargeFromGrid chargeFromGrid) {
+        InputData(Inverter inverter, List<SimulationInputData> iData,
+                  Battery battery, ChargeFromGrid chargeFromGrid,
+                  HWSystem hwSystem, Boolean hwDivert) {
             id = inverter.getInverterIndex();
             dc2acLoss = (100d - inverter.getDc2acLoss()) / 100d;
             ac2dcLoss = (100d - inverter.getAc2dcLoss()) / 100d;
@@ -482,6 +523,8 @@ public class SimulationWorker extends Worker {
             inputData = iData;
             mBattery = battery;
             mChargeFromGrid = chargeFromGrid;
+            mHWSystem = hwSystem;
+            mHWDivert = hwDivert;
         }
 
         public double getDischargeStop() {

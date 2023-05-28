@@ -417,7 +417,7 @@ public class WaterSettingsActivity extends AppCompatActivity {
                     }
                 }
             }, params, integerType));
-            mTableSettings.addView(createRow("Daily heat loss (%)", String.valueOf(mHWSystem.getHwLoss()), new AbstractTextWatcher() {
+            mTableSettings.addView(createRow("Daily heat loss (°C)", String.valueOf(mHWSystem.getHwLoss()), new AbstractTextWatcher() {
                 @Override
                 public void afterTextChanged(Editable s) {
                     if (!(s.toString().equals(String.valueOf(mHWSystem.getHwLoss())))) {

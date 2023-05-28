@@ -1050,9 +1050,7 @@ public abstract class ScenarioDAO {
     @Transaction
     public void saveHWDivert(Long scenarioID, HWDivert hwDivert) {
         if (hwDivert.getHwDivertIndex() == 0) {
-            System.out.println("Saving new HWDivert");
             long hwDivertIndex = addNewHWDivert(hwDivert);
-            System.out.println("Saving new HWDivert, index = " + hwDivertIndex);
             Scenario2HWDivert s2hwd = new Scenario2HWDivert();
             s2hwd.setHwDivertID(hwDivertIndex);
             s2hwd.setScenarioID(scenarioID);
