@@ -60,7 +60,6 @@ import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.SimulatorLauncher;
 import com.tfcode.comparetout.model.costings.Costings;
-import com.tfcode.comparetout.model.scenario.HWDivert;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.model.scenario.SimKPIs;
@@ -576,6 +575,13 @@ public class ScenarioOverview extends Fragment {
     }
 
     private void updateButtons() {
+        /*
+         It is possible that the view has not been created yet
+         If the view is not ready, then this method will be called again when it is
+        */
+        View fragmentView = getView();
+        if (null == fragmentView) return;
+
         boolean hasInverters = false;
         boolean hasLoadProfile = false;
         boolean hasPanels = false;
@@ -600,7 +606,9 @@ public class ScenarioOverview extends Fragment {
             if (!(null == mScenarioComponents) && mScenarioComponents.loadShifts.size() > 0)
                 hasLoadShifts = true;
         if (mScenario.isHasHWSystem()) hasHWSystem = true;
-        if (mScenario.isHasHWDivert()) hasHWDivert = true;
+        if (mScenario.isHasHWDivert())
+            if(!(null == mScenarioComponents))
+                hasHWDivert = mScenarioComponents.hwDivert.isActive();
         if (mScenario.isHasHWSchedules())
             if (!(null == mScenarioComponents) && mScenarioComponents.hwSchedules.size() > 0)
                 hasHWSchedules = true;
@@ -610,41 +618,41 @@ public class ScenarioOverview extends Fragment {
         if (mScenario.isHasEVCharges())
             if (!(null == mScenarioComponents) && mScenarioComponents.evCharges.size() > 0)
                 hasEVCharges = true;
-        ImageView panelSun = requireView().findViewById(R.id.panelSun);
-        ImageView panelLock = requireView().findViewById(R.id.panelLock);
-        ImageView panelTick = requireView().findViewById(R.id.panelTick);
+        ImageView panelSun = fragmentView.findViewById(R.id.panelSun);
+        ImageView panelLock = fragmentView.findViewById(R.id.panelLock);
+        ImageView panelTick = fragmentView.findViewById(R.id.panelTick);
         if (mScenarioID == 0L || !(mScenario.isHasPanels())) mHasPanelData = false;
         panelSun.setVisibility(mHasPanelData ? View.VISIBLE : View.GONE);
         panelLock.setVisibility(hasInverters ? View.GONE: View.VISIBLE);
         panelTick.setVisibility(hasPanels ? View.VISIBLE : View.GONE);
         mPanelButton.setBackgroundColor(0);
 
-        ImageView inverterTick = requireView().findViewById(R.id.inverterTick);
-        ImageView inverterLock = requireView().findViewById(R.id.inverterLock);
+        ImageView inverterTick = fragmentView.findViewById(R.id.inverterTick);
+        ImageView inverterLock = fragmentView.findViewById(R.id.inverterLock);
         inverterLock.setVisibility(hasLoadProfile ? View.GONE : View.VISIBLE);
         inverterTick.setVisibility(hasInverters ? View.VISIBLE : View.GONE);
         mInverterButton.setBackgroundColor(0);
 
-        ImageView houseTick = requireView().findViewById(R.id.houseTick);
-        ImageView houseLock = requireView().findViewById(R.id.houseLock);
+        ImageView houseTick = fragmentView.findViewById(R.id.houseTick);
+        ImageView houseLock = fragmentView.findViewById(R.id.houseLock);
         houseTick.setVisibility(hasLoadProfile ? View.VISIBLE : View.GONE);
         houseLock.setVisibility((mScenarioID == 0) ? View.VISIBLE : View.GONE);
         if (hasLoadProfile) mHouseButton.setImageResource(R.drawable.housetick);
         else mHouseButton.setImageResource(R.drawable.house);
         mHouseButton.setBackgroundColor(0);
 
-        ImageView batteryLock = requireView().findViewById(R.id.batteryLock);
-        ImageView batterySettings = requireView().findViewById(R.id.batterySet);
-        ImageView batterySchedule = requireView().findViewById(R.id.batteryScheduled);
+        ImageView batteryLock = fragmentView.findViewById(R.id.batteryLock);
+        ImageView batterySettings = fragmentView.findViewById(R.id.batterySet);
+        ImageView batterySchedule = fragmentView.findViewById(R.id.batteryScheduled);
         batteryLock.setVisibility(hasInverters ? View.GONE : View.VISIBLE);
         batterySettings.setVisibility(hasBatteries ? View.VISIBLE : View.GONE);
         batterySchedule.setVisibility(hasLoadShifts ? View.VISIBLE : View.GONE);
         mBatteryButton.setBackgroundColor(0);
 
-        ImageView tankLock = requireView().findViewById(R.id.tankLock);
-        ImageView tankSet = requireView().findViewById(R.id.tankSet);
-        ImageView tankDivert = requireView().findViewById(R.id.tankDivert);
-        ImageView tankScheduled = requireView().findViewById(R.id.tankScheduled);
+        ImageView tankLock = fragmentView.findViewById(R.id.tankLock);
+        ImageView tankSet = fragmentView.findViewById(R.id.tankSet);
+        ImageView tankDivert = fragmentView.findViewById(R.id.tankDivert);
+        ImageView tankScheduled = fragmentView.findViewById(R.id.tankScheduled);
         tankLock.setVisibility(hasLoadProfile ? View.GONE : View.VISIBLE);
         tankSet.setVisibility(hasHWSystem ? View.VISIBLE : View.GONE);
         tankDivert.setVisibility(hasHWDivert ? View.VISIBLE : View.GONE);
@@ -654,9 +662,9 @@ public class ScenarioOverview extends Fragment {
         else mTankButton.setImageResource(R.drawable.watercold);
         mTankButton.setBackgroundColor(0);
 
-        ImageView carLock = requireView().findViewById(R.id.carLock);
-        ImageView carDivert = requireView().findViewById(R.id.carDivert);
-        ImageView carScheduled = requireView().findViewById(R.id.carScheduled);
+        ImageView carLock = fragmentView.findViewById(R.id.carLock);
+        ImageView carDivert = fragmentView.findViewById(R.id.carDivert);
+        ImageView carScheduled = fragmentView.findViewById(R.id.carScheduled);
         carLock.setVisibility(hasLoadProfile ? View.GONE : View.VISIBLE);
         carDivert.setVisibility(hasEVDivert ? View.VISIBLE : View.GONE);
         carScheduled.setVisibility(hasEVCharges ? View.VISIBLE : View.GONE);
