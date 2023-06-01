@@ -231,8 +231,9 @@ public class LoadProfilePropertiesFragment extends Fragment {
         TableRow tableRow = new TableRow(getActivity());
         TextView a = new TextView(getActivity());
         a.setText(R.string.DistributionSource);
-        a.setMinimumHeight(80);
-        a.setHeight(80);
+//        a.setMinimumHeight(80);
+//        a.setHeight(80);
+        a.setPadding(10,25, 0, 25);
         Spinner spinner = new Spinner(getActivity());
         ArrayList<String> spinnerContent = new ArrayList<>();
         spinnerContent.add("Custom");
@@ -273,7 +274,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
                 // TODO Auto-generated method stub
             }
         });
-        spinner.setPadding(20, 20, 20, 20);
+        spinner.setPadding(0, 25, 0, 25);
         tableRow.addView(a);
         tableRow.addView(spinner);
         mTableLayout.addView(tableRow);
@@ -282,8 +283,9 @@ public class LoadProfilePropertiesFragment extends Fragment {
         tableRow = new TableRow(getActivity());
         a = new TextView(getActivity());
         a.setText(R.string.AnnualUsage);
-        a.setMinimumHeight(80);
-        a.setHeight(80);
+//        a.setMinimumHeight(80);
+//        a.setHeight(80);
+        a.setPadding(10,25, 0, 25);
         EditText b = new EditText(getActivity());
         b.setText(String.format("%s", mLoadProfile.getAnnualUsage()));
         b.setEnabled(mEdit);
@@ -296,8 +298,8 @@ public class LoadProfilePropertiesFragment extends Fragment {
                 ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
             }
         });
-        a.setLayoutParams(planParams);
-        b.setPadding(20, 20, 20, 20);
+//        a.setLayoutParams(planParams);
+        b.setPadding(0, 25, 0, 25);
         tableRow.addView(a);
         tableRow.addView(b);
         mTableLayout.addView(tableRow);
@@ -306,8 +308,9 @@ public class LoadProfilePropertiesFragment extends Fragment {
         tableRow = new TableRow(getActivity());
         a = new TextView(getActivity());
         a.setText(R.string.HourlyBaseLoad);
-        a.setMinimumHeight(80);
-        a.setHeight(80);
+//        a.setMinimumHeight(80);
+//        a.setHeight(80);
+        a.setPadding(10,25, 0, 25);
         b = new EditText(getActivity());
         b.setEnabled(mEdit);
         b.setText(String.format("%s", mLoadProfile.getHourlyBaseLoad()));
@@ -324,8 +327,8 @@ public class LoadProfilePropertiesFragment extends Fragment {
                 }
             }
         });
-        a.setLayoutParams(planParams);
-        b.setPadding(20, 20, 20, 20);
+//        a.setLayoutParams(planParams);
+        b.setPadding(0, 25, 0, 25);
         tableRow.addView(a);
         tableRow.addView(b);
         mTableLayout.addView(tableRow);
@@ -334,8 +337,9 @@ public class LoadProfilePropertiesFragment extends Fragment {
         tableRow = new TableRow(getActivity());
         a = new TextView(getActivity());
         a.setText(R.string.GridImportMax);
-        a.setMinimumHeight(80);
-        a.setHeight(80);
+//        a.setMinimumHeight(80);
+//        a.setHeight(80);
+        a.setPadding(10,25, 0, 25);
         b = new EditText(getActivity());
         b.setEnabled(mEdit);
         b.setText(String.format("%s", mLoadProfile.getGridImportMax()));
@@ -348,8 +352,8 @@ public class LoadProfilePropertiesFragment extends Fragment {
                 ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
             }
         });
-        a.setLayoutParams(planParams);
-        b.setPadding(20, 20, 20, 20);
+//        a.setLayoutParams(planParams);
+        b.setPadding(0, 25, 0, 25);
         tableRow.addView(a);
         tableRow.addView(b);
         mTableLayout.addView(tableRow);
@@ -358,8 +362,9 @@ public class LoadProfilePropertiesFragment extends Fragment {
         tableRow = new TableRow(getActivity());
         a = new TextView(getActivity());
         a.setText(R.string.GridExportMax);
-        a.setMinimumHeight(80);
-        a.setHeight(80);
+//        a.setMinimumHeight(80);
+//        a.setHeight(80);
+        a.setPadding(10,25, 0, 25);
         b = new EditText(getActivity());
         b.setEnabled(mEdit);
         b.setText(String.format("%s", mLoadProfile.getGridExportMax()));
@@ -372,8 +377,8 @@ public class LoadProfilePropertiesFragment extends Fragment {
                 if (mEdit) ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
             }
         });
-        a.setLayoutParams(planParams);
-        b.setPadding(20, 20, 20, 20);
+//        a.setLayoutParams(planParams);
+        b.setPadding(0, 25, 0, 25);
         tableRow.addView(a);
         tableRow.addView(b);
         mTableLayout.addView(tableRow);

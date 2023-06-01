@@ -34,6 +34,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fillViewport="true"
+        android:contentDescription="@string/scroll_view_for_distribution_editor"
         tools:context=".scenario.loadprofile.LoadProfileHourlyDistributionFragment">
 
             <TableLayout

@@ -377,7 +377,7 @@ public class PanelFragment extends Fragment {
             mpptText.setHeight(80);
 
             Spinner mpptSpinner = new Spinner(getActivity());
-            mpptSpinner.setPadding(20, 10, 20, 10);
+            mpptSpinner.setPadding(10, 20, 10, 20);
             ArrayList<String> mpptSpinnerContent = new ArrayList<>();
 
             ArrayList<String> inverterSpinnerContent = new ArrayList<>();
@@ -418,7 +418,7 @@ public class PanelFragment extends Fragment {
             });
 
             Spinner inverterSpinner = new Spinner(getActivity());
-            inverterSpinner.setPadding(20, 20, 20, 20);
+            inverterSpinner.setPadding(10, 20, 10, 20);
 
             ArrayAdapter<String> mpptSpinnerAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, mpptSpinnerContent);
             mpptSpinner.setAdapter(mpptSpinnerAdapter);

@@ -393,17 +393,29 @@ public class ScenarioOverview extends Fragment {
                     else {
                         if (!(null == mScenarioComponents)){
                             HWDivert hwDivert = mScenarioComponents.hwDivert;
-                            if (null == hwDivert) {
-                                hwDivert = new HWDivert();
-                                hwDivert.setActive(false);
-                                mScenarioComponents.hwDivert = hwDivert;
+                            if (!(null == getActivity()) && !((ScenarioActivity)getActivity()).isSimulationInProgress()) {
+                                if (null == hwDivert) {
+                                    hwDivert = new HWDivert();
+                                    hwDivert.setActive(false);
+                                    mScenarioComponents.hwDivert = hwDivert;
+                                }
+                                hwDivert.setActive(!hwDivert.isActive());
+                                mViewModel.saveHWDivert(mScenarioID, hwDivert);
+                                new Thread(() -> {
+                                    mViewModel.deleteSimulationDataForScenarioID(mScenarioID);
+                                    mViewModel.deleteCostingDataForScenarioID(mScenarioID);
+                                    SimulatorLauncher.simulateIfNeeded(getActivity().getApplicationContext());
+                                }).start();
+                                mMainHandler.postDelayed(this::updateScenarioComponents, 2000);
+                                if (!(null == getView())) Snackbar.make(getView(),
+                                        "Updating hot water diversion to " + (hwDivert.isActive() ? "enabled" : "disabled"),
+                                        Snackbar.LENGTH_LONG).setAction("Action", null).show();
                             }
-                            hwDivert.setActive(!hwDivert.isActive());
-                            mViewModel.saveHWDivert(mScenarioID, hwDivert);
-                            mMainHandler.postDelayed(this::updateScenarioComponents, 2000);
-                            if (!(null == getView())) Snackbar.make(getView(),
-                                    "Updating hot water diversion to " + (hwDivert.isActive() ? "enabled" : "disabled"),
-                                    Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                            else {
+                                if (!(null == getView())) Snackbar.make(getView(),
+                                        "Simulation in progress. Try again in a moment",
+                                        Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                            }
                         }
                     }
                 }
@@ -505,12 +517,13 @@ public class ScenarioOverview extends Fragment {
             if (mEdit) {
                 // CREATE TABLE ROWS
                 a.setText(R.string.UsageName);
-                a.setMinimumHeight(80);
-                a.setHeight(80);
+//                a.setMinimumHeight(80);
+//                a.setHeight(80);
+                a.setPadding(10,25, 0, 25);
                 EditText b = new EditText(getActivity());
                 b.setText(mScenario.getScenarioName());
                 b.setEnabled(true);
-                b.setPadding(0,20, 0, 20);
+                b.setPadding(0,25, 0, 25);
                 b.addTextChangedListener(new TextWatcher() {
                     @Override
                     public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -528,8 +541,8 @@ public class ScenarioOverview extends Fragment {
                         ((ScenarioActivity) requireActivity()).setSaveNeeded(true);
                     }
                 });
-                a.setLayoutParams(scenarioParams);
-                b.setPadding(20,20,20,20);
+//                a.setLayoutParams(scenarioParams);
+//                b.setPadding(20,20,20,20);
                 tableRow.addView(a);
                 tableRow.addView(b);
                 mTableLayout.addView(tableRow);

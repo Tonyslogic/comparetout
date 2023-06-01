@@ -66,11 +66,10 @@
             android:paddingBottom="2dp"
             android:scaleType="fitCenter"
             android:src="@drawable/solarpanel"
-            app:layout_constraintEnd_toStartOf="@id/guideline1"
-            app:layout_constraintRight_toLeftOf="@id/guideline1"
+            app:layout_constraintStart_toStartOf="@id/guideline2"
+            app:layout_constraintLeft_toRightOf="@id/guideline2"
             app:layout_constraintBottom_toBottomOf="@id/guideline4"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
             android:contentDescription="@string/solar_panel_configuration" />
 
         <ImageView
@@ -152,9 +151,9 @@
             android:padding="2dp"
             android:scaleType="fitCenter"
             android:src="@drawable/house"
-            app:layout_constraintLeft_toRightOf="@id/guideline2"
+            app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintBottom_toBottomOf="@id/guideline4"
-            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintRight_toLeftOf="@id/guideline1"
             app:layout_constraintTop_toTopOf="@id/panelButton"
             android:contentDescription="@string/domestic_load_profile" />
 
