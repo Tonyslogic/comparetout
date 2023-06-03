@@ -630,7 +630,7 @@ public abstract class ScenarioDAO {
         deleteOrphanLoadProfiles();
     }
 
-    @Query("SELECT sum(pv) AS gen, SUM(Feed) AS sold, SUM(load) AS load, SUM(Buy) AS bought " +
+    @Query("SELECT sum(pv) AS gen, SUM(Feed) AS sold, SUM(load) + SUM(immersionLoad) + SUM(directEVcharge) AS load, SUM(Buy) AS bought " +
             "FROM scenariosimulationdata WHERE scenarioID = :scenarioID")
     public abstract SimKPIs getSimKPIsForScenario(Long scenarioID);
 
@@ -1065,4 +1065,77 @@ public abstract class ScenarioDAO {
 
     @Update (entity = HWDivert.class)
     public abstract void updateHWDivert(HWDivert hwDivert);
+
+    @Query("SELECT scenarioName FROM scenarios WHERE scenarioIndex IN (" +
+            "SELECT scenarioID FROM scenario2hwschedule WHERE hwScheduleID = :hwScheduleIndex) AND scenarioIndex != :scenarioID")
+    public abstract List<String> getLinkedHWSchedules(long hwScheduleIndex, Long scenarioID);
+
+    @Query("SELECT * FROM scenario2hwschedule")
+    public abstract  LiveData<List<Scenario2HWSchedule>> loadHWScheduleRelations();
+
+    @Query("DELETE FROM scenario2hwschedule WHERE scenarioID = :scenarioID AND hwScheduleID = :hwScheduleID")
+    public abstract  void deleteHWScheduleFromScenario(Long hwScheduleID, Long scenarioID);
+
+    @Transaction
+    public void saveHWScheduleForScenario(Long scenarioID, HWSchedule hwSchedule) {
+        long hwScheduleIndex = hwSchedule.getHwScheduleIndex();
+        if (hwScheduleIndex == 0) {
+            hwScheduleIndex = addNewHWSchedule(hwSchedule);
+            Scenario2HWSchedule scenario2HWSchedule = new Scenario2HWSchedule();
+            scenario2HWSchedule.setScenarioID(scenarioID);
+            scenario2HWSchedule.setHwScheduleID(hwScheduleIndex);
+            addNewScenario2HWSchedule(scenario2HWSchedule);
+
+            Scenario scenario = getScenario(scenarioID);
+            scenario.setHasHWSchedules(true);
+            updateScenario(scenario);
+        }
+        else {
+            updateHWSchedule(hwSchedule);
+        }
+    }
+
+    @Update (entity = HWSchedule.class)
+    public abstract void updateHWSchedule(HWSchedule hwSchedule);
+
+    @Transaction
+    public void copyHWScheduleFromScenario(long fromScenarioID, Long toScenarioID) {
+        List<HWSchedule> hwSchedules = getHWSchedulesForScenarioID(fromScenarioID);
+        for (HWSchedule hwSchedule: hwSchedules) {
+            hwSchedule.setHwScheduleIndex(0L);
+            long newHWScheduleID = addNewHWSchedule(hwSchedule);
+
+            System.out.println("copyHWScheduleFromScenario, new IID=" + newHWScheduleID);
+
+            Scenario2HWSchedule scenario2HWSchedule = new Scenario2HWSchedule();
+            scenario2HWSchedule.setScenarioID(toScenarioID);
+            scenario2HWSchedule.setHwScheduleID(newHWScheduleID);
+            addNewScenario2HWSchedule(scenario2HWSchedule);
+
+            Scenario toScenario = getScenario(toScenarioID);
+            toScenario.setHasHWSchedules(true);
+            updateScenario(toScenario);
+        }
+
+        deleteOrphanHWSchedules();
+    }
+
+    @Transaction
+    public void linkHWScheduleFromScenario(long fromScenarioID, long toScenarioID) {
+        List<HWSchedule> hwSchedules = getHWSchedulesForScenarioID(fromScenarioID);
+        for (HWSchedule hwSchedule: hwSchedules) {
+            System.out.println("Linking hwSchedule with id= " + hwSchedule.getHwScheduleIndex());
+
+            Scenario2HWSchedule scenario2HWSchedule = new Scenario2HWSchedule();
+            scenario2HWSchedule.setScenarioID(toScenarioID);
+            scenario2HWSchedule.setHwScheduleID(hwSchedule.getHwScheduleIndex());
+            addNewScenario2HWSchedule(scenario2HWSchedule);
+
+            Scenario toScenario = getScenario(toScenarioID);
+            toScenario.setHasHWSchedules(true);
+            updateScenario(toScenario);
+        }
+
+        deleteOrphanHWSchedules();
+    }
 }

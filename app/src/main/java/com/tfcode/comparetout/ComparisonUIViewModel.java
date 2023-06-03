@@ -27,6 +27,7 @@ import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.HWDivert;
+import com.tfcode.comparetout.model.scenario.HWSchedule;
 import com.tfcode.comparetout.model.scenario.HWSystem;
 import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
@@ -35,6 +36,7 @@ import com.tfcode.comparetout.model.scenario.Panel;
 import com.tfcode.comparetout.model.scenario.PanelPVSummary;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.Scenario2Battery;
+import com.tfcode.comparetout.model.scenario.Scenario2HWSchedule;
 import com.tfcode.comparetout.model.scenario.Scenario2HWSystem;
 import com.tfcode.comparetout.model.scenario.Scenario2Inverter;
 import com.tfcode.comparetout.model.scenario.Scenario2LoadShift;
@@ -343,5 +345,33 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public void saveHWDivert(Long scenarioID, HWDivert hwDivert) {
         toutcRepository.saveHWDivert(scenarioID, hwDivert);
+    }
+
+    public List<String> getLinkedHWSchedules(long hwScheduleIndex, Long scenarioID) {
+        return toutcRepository.getLinkedHWSchedules(hwScheduleIndex, scenarioID);
+    }
+
+    public LiveData<List<Scenario2HWSchedule>> getAllHWScheduleRelations() {
+        return toutcRepository.getAllHWScheduleRelations();
+    }
+
+    public List<HWSchedule> getHWSchedulesForScenario(Long scenarioID) {
+        return toutcRepository.getHWSchedulesForScenario(scenarioID);
+    }
+
+    public void deleteHWScheduleFromScenario(Long loadShiftID, Long scenarioID) {
+        toutcRepository.deleteHWScheduleFromScenario(loadShiftID, scenarioID);
+    }
+
+    public void saveHWScheduleForScenario(Long scenarioID, HWSchedule hwSchedule) {
+        toutcRepository.saveHWScheduleForScenario(scenarioID, hwSchedule);
+    }
+
+    public void copyHWScheduleFromScenario(long fromScenarioID, Long toScenarioID) {
+        toutcRepository.copyHWScheduleFromScenario(fromScenarioID, toScenarioID);
+    }
+
+    public void linkHWScheduleFromScenario(long fromScenarioID, Long mScenarioID) {
+        toutcRepository.linkHWScheduleFromScenario(fromScenarioID, mScenarioID);
     }
 }

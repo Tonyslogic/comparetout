@@ -127,6 +127,7 @@ public class HWSystem {
         // The most that could be drawn (kWH) to get to the target temp
         double potentialDiversion = (hwCapacity * 1000) * 4.2d * (hwTarget - heat.temperature);
         potentialDiversion = min(potentialDiversion, availableKWH);
+        potentialDiversion = min((hwRate / 12d), potentialDiversion);
         // Cannot be negative
         heat.kWhUsed = max(0, potentialDiversion);
         heat.temperature = ((heat.kWhUsed * 3600000) / (hwCapacity * 4200d)) + heat.temperature;

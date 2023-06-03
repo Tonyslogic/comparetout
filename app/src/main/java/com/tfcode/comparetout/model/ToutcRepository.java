@@ -25,6 +25,7 @@ import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.HWDivert;
+import com.tfcode.comparetout.model.scenario.HWSchedule;
 import com.tfcode.comparetout.model.scenario.HWSystem;
 import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
@@ -35,6 +36,7 @@ import com.tfcode.comparetout.model.scenario.PanelData;
 import com.tfcode.comparetout.model.scenario.PanelPVSummary;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.Scenario2Battery;
+import com.tfcode.comparetout.model.scenario.Scenario2HWSchedule;
 import com.tfcode.comparetout.model.scenario.Scenario2HWSystem;
 import com.tfcode.comparetout.model.scenario.Scenario2Inverter;
 import com.tfcode.comparetout.model.scenario.Scenario2LoadShift;
@@ -61,6 +63,7 @@ public class ToutcRepository {
     private final LiveData<List<Scenario2Battery>> batteryRelations;
     private final LiveData<List<Scenario2LoadShift>> loadShiftRelations;
     private final LiveData<List<Scenario2HWSystem>> hwSystemRelations;
+    private final LiveData<List<Scenario2HWSchedule>> hwScheduleRelations;
     private final LiveData<List<PanelPVSummary>> panelPVSummary;
 
     private final CostingDAO costingDAO;
@@ -82,6 +85,7 @@ public class ToutcRepository {
         batteryRelations = scenarioDAO.loadBatteryRelations();
         loadShiftRelations = scenarioDAO.loadLoadShiftRelations();
         hwSystemRelations = scenarioDAO.loadHWSystemRelations();
+        hwScheduleRelations = scenarioDAO.loadHWScheduleRelations();
         panelPVSummary = scenarioDAO.getPanelPVSummary();
 
         costingDAO = db.costingDAO();
@@ -488,5 +492,35 @@ public class ToutcRepository {
     public void saveHWDivert(Long scenarioID, HWDivert hwDivert) {
         ToutcDB.databaseWriteExecutor.execute(() ->
                 scenarioDAO.saveHWDivert(scenarioID, hwDivert));
+    }
+
+    public List<String> getLinkedHWSchedules(long hwScheduleIndex, Long scenarioID) {
+        return scenarioDAO.getLinkedHWSchedules(hwScheduleIndex, scenarioID);
+    }
+
+    public LiveData<List<Scenario2HWSchedule>> getAllHWScheduleRelations() {
+        return  hwScheduleRelations;
+    }
+
+    public List<HWSchedule> getHWSchedulesForScenario(Long scenarioID) {
+        return scenarioDAO.getHWSchedulesForScenarioID(scenarioID);
+    }
+
+    public void deleteHWScheduleFromScenario(Long hwScheduleID, Long scenarioID) {
+        scenarioDAO.deleteHWScheduleFromScenario(hwScheduleID, scenarioID);
+    }
+
+    public void saveHWScheduleForScenario(Long scenarioID, HWSchedule hwSchedule) {
+        scenarioDAO.saveHWScheduleForScenario(scenarioID, hwSchedule);
+    }
+
+    public void copyHWScheduleFromScenario(long fromScenarioID, Long toScenarioID) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                scenarioDAO.copyHWScheduleFromScenario(fromScenarioID, toScenarioID));
+    }
+
+    public void linkHWScheduleFromScenario(long fromScenarioID, long toScenarioID) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                scenarioDAO.linkHWScheduleFromScenario(fromScenarioID, toScenarioID));
     }
 }

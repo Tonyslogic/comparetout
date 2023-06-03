@@ -460,7 +460,7 @@ public class JsonTools {
         return hwDivertJson;
     }
 
-    private static ArrayList<HWScheduleJson> createHWScheduleJson(List<HWSchedule> hwSchedules) {
+    public static ArrayList<HWScheduleJson> createHWScheduleJson(List<HWSchedule> hwSchedules) {
         ArrayList<HWScheduleJson> hwScheduleJsons = new ArrayList<>();
         if (!(null == hwSchedules)){
             for (HWSchedule hws : hwSchedules) {

@@ -14,18 +14,7 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.scenario.battery;
-
-import android.content.Intent;
-import android.graphics.Color;
-import android.graphics.PorterDuff;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.view.View;
-import android.widget.ProgressBar;
+package com.tfcode.comparetout.scenario.water;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -39,6 +28,17 @@ import androidx.viewpager2.widget.ViewPager2;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 
+import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.widget.ProgressBar;
+
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
@@ -50,9 +50,9 @@ import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.SimulatorLauncher;
 import com.tfcode.comparetout.model.json.JsonTools;
-import com.tfcode.comparetout.model.json.scenario.LoadShiftJson;
-import com.tfcode.comparetout.model.scenario.LoadShift;
-import com.tfcode.comparetout.model.scenario.Scenario2LoadShift;
+import com.tfcode.comparetout.model.json.scenario.HWScheduleJson;
+import com.tfcode.comparetout.model.scenario.HWSchedule;
+import com.tfcode.comparetout.model.scenario.Scenario2HWSchedule;
 import com.tfcode.comparetout.scenario.ScenarioSelectDialog;
 
 import java.io.FileNotFoundException;
@@ -67,7 +67,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public class BatteryChargingActivity extends AppCompatActivity {
+public class WaterScheduleActivity extends AppCompatActivity {
 
     private Handler mMainHandler;
     private ProgressBar mProgressBar;
@@ -85,15 +85,15 @@ public class BatteryChargingActivity extends AppCompatActivity {
     private boolean mDoubleBackToExitPressedOnce = false;
     private boolean mUnsavedChanges = false;
 
-    private int mNextAddedLoadShiftID = -1;
+    private int mNextAddedScheduleID = -1;
 
-    private String mLoadShiftJsonString = "";
-    private List<LoadShift> mLoadShifts;
-    private Map<Integer, List<LoadShift>> mTabContents;
-    private List<Long> mRemovedLoadShifts;
-    private Map<Long, List<String>> mLinkedLoadShifts;
+    private String mHWScheduleJsonString = "";
+    private List<HWSchedule> mHWSchedules;
+    private Map<Integer, List<HWSchedule>> mTabContents;
+    private List<Long> mRemovedHWSchedules;
+    private Map<Long, List<String>> mLinkedHWSchedules;
 
-    final ActivityResultLauncher<String> mLoadLoadShiftFile =
+    final ActivityResultLauncher<String> mHWSchedulesFile =
             registerForActivityResult(new ActivityResultContracts.GetContent(), uri -> {
                 // Handle the returned Uri
                 if (uri == null) return;
@@ -101,10 +101,10 @@ public class BatteryChargingActivity extends AppCompatActivity {
                 try {
                     is = getContentResolver().openInputStream(uri);
                     InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
-                    Type type = new TypeToken<List<LoadShiftJson>>() {}.getType();
-                    List<LoadShiftJson> loadShiftBatteryJsons  = new Gson().fromJson(reader, type);
-                    List<LoadShift> loadShiftList = JsonTools.createLoadShiftList(loadShiftBatteryJsons);
-                    for (LoadShift load: loadShiftList) addLoadShift(load);
+                    Type type = new TypeToken<List<HWScheduleJson>>() {}.getType();
+                    List<HWScheduleJson> hWScheduleJsons  = new Gson().fromJson(reader, type);
+                    List<HWSchedule> scheduleList = JsonTools.createHWScheduleList(hWScheduleJsons);
+                    for (HWSchedule hwSchedule: scheduleList) addHWSchedule(hwSchedule);
                 } catch (FileNotFoundException e) {
                     e.printStackTrace();
                 } catch (Exception e) {
@@ -122,27 +122,27 @@ public class BatteryChargingActivity extends AppCompatActivity {
                 }
             });
 
-    public void setupLinkedLoadShifts(int loadShiftIndex) {
-        if (mLoadShifts.isEmpty() || (null == mTabContents) || (null == mTabContents.get(loadShiftIndex))) {
+    public void setupLinkedHWSchedules(int hwScheduleIndex) {
+        if (mHWSchedules.isEmpty() || (null == mTabContents) || (null == mTabContents.get(hwScheduleIndex))) {
             return;
         }
         new Thread(() -> {
-            if (mLinkedLoadShifts == null) mLinkedLoadShifts = new HashMap<>();
-            for (LoadShift ls : mLoadShifts) {
-                mLinkedLoadShifts.put(ls.getLoadShiftIndex(), mViewModel.getLinkedLoadShifts(ls.getLoadShiftIndex(), mScenarioID));
+            if (mLinkedHWSchedules == null) mLinkedHWSchedules = new HashMap<>();
+            for (HWSchedule hwSchedule : mHWSchedules) {
+                mLinkedHWSchedules.put(hwSchedule.getHwScheduleIndex(), mViewModel.getLinkedHWSchedules(hwSchedule.getHwScheduleIndex(), mScenarioID));
             }
         }).start();
     }
 
-    public List<String> getLinkedScenarios(Long loadShiftID) {
-        if (null == mLinkedLoadShifts) return null;
-        return mLinkedLoadShifts.get(loadShiftID);
+    public List<String> getLinkedScenarios(Long hwScheduleID) {
+        if (null == mLinkedHWSchedules) return null;
+        return mLinkedHWSchedules.get(hwScheduleID);
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_battery_charging);
+        setContentView(R.layout.activity_water_schedule);
         createSimulationFeedback();
         createProgressBar();
         mProgressBar.setVisibility(View.VISIBLE);
@@ -152,31 +152,31 @@ public class BatteryChargingActivity extends AppCompatActivity {
         String mScenarioName = intent.getStringExtra("ScenarioName");
         mEdit = intent.getBooleanExtra("Edit", false);
 
-        mViewPager = findViewById(R.id.battery_charging_view_pager);
+        mViewPager = findViewById(R.id.water_schedule_view_pager);
 
         mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
         ActionBar mActionBar = Objects.requireNonNull(getSupportActionBar());
-        mActionBar.setTitle("Load shift (" + mScenarioName + ")");
+        mActionBar.setTitle("Hot water schedule (" + mScenarioName + ")");
 
-        mFab = findViewById(R.id.addLoadShift);
-        mFab.setOnClickListener(view -> addNewLoadShift());
+        mFab = findViewById(R.id.addSchedule);
+        mFab.setOnClickListener(view -> addNewHWSchedule());
         if (mEdit) mFab.show();
         else mFab.hide();
 
-        mViewModel.getAllLoadShiftRelations().observe(this, relations -> {
-            System.out.println("Observed a change in live load shift relations ");
-            for (Scenario2LoadShift loadShift: relations) {
-                if (loadShift.getScenarioID() == mScenarioID) {
+        mViewModel.getAllHWScheduleRelations().observe(this, relations -> {
+            System.out.println("Observed a change in live hot water schedule relations ");
+            for (Scenario2HWSchedule hwSchedule: relations) {
+                if (hwSchedule.getScenarioID() == mScenarioID) {
                     new Thread(() -> {
                         int iCountOld = 0;
                         if (!(null == mTabContents)) iCountOld = mTabContents.size();
-                        refreshLoadShifts();
+                        refreshHWSchedules();
                         int iCountNew = mTabContents.size();
                         mMainHandler.post(() -> {if (!(null == mMediator)) refreshMediator();});
                         while (iCountOld < iCountNew) {
                             mMainHandler.post(() -> {
                                 if (!(null == mViewPager.getAdapter())) {
-                                    ((BatteryChargingViewPageAdapter) mViewPager.getAdapter()).add(mViewPager.getAdapter().getItemCount());
+                                    ((WaterScheduleViewPageAdapter) mViewPager.getAdapter()).add(mViewPager.getAdapter().getItemCount());
                                 }
                             });
                             iCountOld++;
@@ -189,7 +189,7 @@ public class BatteryChargingActivity extends AppCompatActivity {
         });
 
         new Thread(() -> {
-            refreshLoadShifts();
+            refreshHWSchedules();
             mMainHandler.post(this::setupViewPager);
             mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
         }).start();
@@ -198,34 +198,34 @@ public class BatteryChargingActivity extends AppCompatActivity {
             @Override
             public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
                 super.onPageScrolled(position, positionOffset, positionOffsetPixels);
-                setupLinkedLoadShifts(position);
+                setupLinkedHWSchedules(position);
             }
         });
     }
 
-    private void refreshLoadShifts() {
-        mLoadShifts = mViewModel.getLoadShiftsForScenario(mScenarioID);
-        sortLoadShiftsIntoTabs();
-        Type type = new TypeToken<List<LoadShiftJson>>(){}.getType();
+    private void refreshHWSchedules() {
+        mHWSchedules = mViewModel.getHWSchedulesForScenario(mScenarioID);
+        sortHWSchedulesIntoTabs();
+        Type type = new TypeToken<List<HWScheduleJson>>(){}.getType();
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        List<LoadShiftJson> batteryJsons = JsonTools.createLoadShiftJson(mLoadShifts);
-        mLoadShiftJsonString =  gson.toJson(batteryJsons, type);
+        List<HWScheduleJson> hwScheduleJsons = JsonTools.createHWScheduleJson(mHWSchedules);
+        mHWScheduleJsonString =  gson.toJson(hwScheduleJsons, type);
         if (!(null == mViewPager) && !(null == mViewPager.getAdapter()))
-            ((BatteryChargingViewPageAdapter) mViewPager.getAdapter()).updateDBIndex();
+            ((WaterScheduleViewPageAdapter) mViewPager.getAdapter()).updateDBIndex();
     }
 
-    private void sortLoadShiftsIntoTabs() {
+    private void sortHWSchedulesIntoTabs() {
         mTabContents = new HashMap<>();
         Integer maxKey = null;
-        for (LoadShift loadShift : mLoadShifts) {
+        for (HWSchedule hwSchedule : mHWSchedules) {
             boolean sorted = false;
-            for (Map.Entry<Integer, List<LoadShift>> tabContent: mTabContents.entrySet()) {
+            for (Map.Entry<Integer, List<HWSchedule>> tabContent: mTabContents.entrySet()) {
                 if (maxKey == null) maxKey = tabContent.getKey();
                 else if (maxKey < tabContent.getKey()) maxKey = tabContent.getKey();
                 if (tabContent.getValue().get(0) != null) {
-                    if (tabContent.getValue().get(0).equalDateAndInverter(loadShift)) {
+                    if (tabContent.getValue().get(0).equalDate(hwSchedule)) {
                         System.out.println("Comparing " + tabContent.getValue().get(0).toString());
-                        tabContent.getValue().add(loadShift);
+                        tabContent.getValue().add(hwSchedule);
                         sorted = true;
                         break; // stop looking in the map, exit inner loop
                     }
@@ -233,24 +233,24 @@ public class BatteryChargingActivity extends AppCompatActivity {
             }
             if (!sorted){
                 if (null == maxKey) maxKey = 0;
-                List<LoadShift> loadShifts = new ArrayList<>();
-                loadShifts.add(loadShift);
-                mTabContents.put(maxKey, loadShifts);
+                List<HWSchedule> hwSchedules = new ArrayList<>();
+                hwSchedules.add(hwSchedule);
+                mTabContents.put(maxKey, hwSchedules);
                 maxKey++;
             }
         }
-        System.out.println("Sorted " + mTabContents.size() + " from " + mLoadShifts.size() + " loadShifts in DB");
+        System.out.println("Sorted " + mTabContents.size() + " from " + mHWSchedules.size() + " hot water schedules in DB");
     }
 
-    private void addNewLoadShift() {
-        LoadShift loadShift = new LoadShift();
-        loadShift.getDays().ints.remove(1);
-        loadShift.setLoadShiftIndex(mNextAddedLoadShiftID);
-        loadShift.setName("New loadShift " + mNextAddedLoadShiftID);
-        mNextAddedLoadShiftID--;
-        mLoadShifts.add(loadShift);
-        List<LoadShift> temp = new ArrayList<>();
-        temp.add(loadShift);
+    private void addNewHWSchedule() {
+        HWSchedule hwSchedule = new HWSchedule();
+        hwSchedule.getDays().ints.remove(1);
+        hwSchedule.setHwScheduleIndex(mNextAddedScheduleID);
+        hwSchedule.setName("New hwSchedule " + mNextAddedScheduleID);
+        mNextAddedScheduleID--;
+        mHWSchedules.add(hwSchedule);
+        List<HWSchedule> temp = new ArrayList<>();
+        temp.add(hwSchedule);
 
         int tabIndex = 0;
         if (!(null == mViewPager) && !(null == mViewPager.getAdapter()))
@@ -258,42 +258,42 @@ public class BatteryChargingActivity extends AppCompatActivity {
         System.out.println("Adding mTabContent: " + tabIndex);
         mTabContents.put(tabIndex, temp);
         if (!(null == mViewPager.getAdapter())) {
-            ((BatteryChargingViewPageAdapter) mViewPager.getAdapter()).add(tabIndex);
+            ((WaterScheduleViewPageAdapter) mViewPager.getAdapter()).add(tabIndex);
         }
         new Handler(Looper.getMainLooper()).postDelayed(this::refreshMediator,200);
         setSaveNeeded(true);
     }
 
-    public void getNextAddedLoadShiftID(LoadShift loadShift) {
-        loadShift.setLoadShiftIndex(mNextAddedLoadShiftID);
-        mLoadShifts.add(loadShift);
-        mNextAddedLoadShiftID--;
+    public void getNextAddedHWScheduleID(HWSchedule hwSchedule) {
+        hwSchedule.setHwScheduleIndex(mNextAddedScheduleID);
+        mHWSchedules.add(hwSchedule);
+        mNextAddedScheduleID--;
     }
 
-    private void addLoadShift(LoadShift loadShift) {
-        mLoadShifts.add(loadShift);
-        sortLoadShiftsIntoTabs();
+    private void addHWSchedule(HWSchedule hwSchedule) {
+        mHWSchedules.add(hwSchedule);
+        sortHWSchedulesIntoTabs();
         refreshMediator();
         if (!(null == mViewPager.getAdapter())) {
-            ((BatteryChargingViewPageAdapter) mViewPager.getAdapter()).add(mViewPager.getAdapter().getItemCount());
+            ((WaterScheduleViewPageAdapter) mViewPager.getAdapter()).add(mViewPager.getAdapter().getItemCount());
         }
         setSaveNeeded(true);
     }
 
-    private void deleteAllLoadShiftsInTab() {
+    private void deleteAllHWSchedulesInTab() {
         int pos = mViewPager.getCurrentItem();
-        if (mLoadShifts.size() > 0) {
+        if (mHWSchedules.size() > 0) {
 
-            List<LoadShift> loadShiftsToBeDeleted = mTabContents.get(pos);
-            if (!(null == loadShiftsToBeDeleted))
-                for (LoadShift loadShiftToBeDeleted : loadShiftsToBeDeleted) {
-                    boolean removed = mLoadShifts.remove(loadShiftToBeDeleted);
-                    if (null == mRemovedLoadShifts) mRemovedLoadShifts = new ArrayList<>();
-                    if (removed) mRemovedLoadShifts.add(loadShiftToBeDeleted.getLoadShiftIndex());
+            List<HWSchedule> hwSchedulesToBeDeleted = mTabContents.get(pos);
+            if (!(null == hwSchedulesToBeDeleted))
+                for (HWSchedule hwScheduleToBeDeleted : hwSchedulesToBeDeleted) {
+                    boolean removed = mHWSchedules.remove(hwScheduleToBeDeleted);
+                    if (null == mRemovedHWSchedules) mRemovedHWSchedules = new ArrayList<>();
+                    if (removed) mRemovedHWSchedules.add(hwScheduleToBeDeleted.getHwScheduleIndex());
                 }
 
             if (!(null == mViewPager.getAdapter())) {
-                ((BatteryChargingViewPageAdapter) mViewPager.getAdapter()).delete(pos);
+                ((WaterScheduleViewPageAdapter) mViewPager.getAdapter()).delete(pos);
             }
 
             new Handler(Looper.getMainLooper()).postDelayed(this::refreshMediator,500);
@@ -307,15 +307,15 @@ public class BatteryChargingActivity extends AppCompatActivity {
     }
 
     private void refreshMediator() {
-        Type type = new TypeToken<List<LoadShiftJson>>(){}.getType();
+        Type type = new TypeToken<List<HWScheduleJson>>(){}.getType();
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        List<LoadShiftJson> loadShiftJson = JsonTools.createLoadShiftJson(mLoadShifts);
-        mLoadShiftJsonString =  gson.toJson(loadShiftJson, type);
-        TabLayout tabLayout = findViewById(R.id.battery_charging_tab_layout);
+        List<HWScheduleJson> loadShiftJson = JsonTools.createHWScheduleJson(mHWSchedules);
+        mHWScheduleJsonString =  gson.toJson(loadShiftJson, type);
+        TabLayout tabLayout = findViewById(R.id.water_schedule_tab_layout);
         mMediator.detach();
         try {
             mMediator = new TabLayoutMediator(tabLayout, mViewPager,
-                    (tab, position) -> tab.setText("Load shift")
+                    (tab, position) -> tab.setText("Schedule")
             );
             mRetryMediator = false;
         }
@@ -370,7 +370,7 @@ public class BatteryChargingActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        System.out.println("BatteryChargingActivity.onOptionsItemSelected");
+        System.out.println("WaterScheduleActivity.onOptionsItemSelected");
 
         if (item.getItemId() == R.id.lp_info) {//add the function to perform here
             System.out.println("Report status");
@@ -388,7 +388,7 @@ public class BatteryChargingActivity extends AppCompatActivity {
             System.out.println("Share attempt");
             Intent sendIntent = new Intent();
             sendIntent.setAction(Intent.ACTION_SEND);
-            sendIntent.putExtra(Intent.EXTRA_TEXT, mLoadShiftJsonString);
+            sendIntent.putExtra(Intent.EXTRA_TEXT, mHWScheduleJsonString);
             sendIntent.setType("text/json");
 
             Intent shareIntent = Intent.createChooser(sendIntent, null);
@@ -397,24 +397,24 @@ public class BatteryChargingActivity extends AppCompatActivity {
         }
         if (item.getItemId() == R.id.lp_import) {//add the function to perform here
             System.out.println("Import attempt");
-            mLoadLoadShiftFile.launch("*/*");
+            mHWSchedulesFile.launch("*/*");
             return false;
         }
         if (item.getItemId() == R.id.lp_save) {//add the function to perform here
-            System.out.println("Save attempt, saving " + mLoadShifts.size());
+            System.out.println("Save attempt, saving " + mHWSchedules.size());
             mProgressBar.setVisibility(View.VISIBLE);
             if (!mSimulationInProgress) {
                 new Thread(() -> {
-                    if (!(null == mRemovedLoadShifts))for (Long loadShiftID: mRemovedLoadShifts) {
-                        mViewModel.deleteLoadShiftFromScenario(loadShiftID, mScenarioID);
+                    if (!(null == mRemovedHWSchedules))for (Long hwScheduleID: mRemovedHWSchedules) {
+                        mViewModel.deleteHWScheduleFromScenario(hwScheduleID, mScenarioID);
                     }
-                    for (LoadShift loadShift: mLoadShifts) {
-                        if (loadShift.getLoadShiftIndex() < 0) loadShift.setLoadShiftIndex(0);
-                        mViewModel.saveLoadShiftForScenario(mScenarioID, loadShift);
+                    for (HWSchedule hwSchedule: mHWSchedules) {
+                        if (hwSchedule.getHwScheduleIndex() < 0) hwSchedule.setHwScheduleIndex(0);
+                        mViewModel.saveHWScheduleForScenario(mScenarioID, hwSchedule);
                     }
                     mViewModel.deleteSimulationDataForScenarioID(mScenarioID);
                     mViewModel.deleteCostingDataForScenarioID(mScenarioID);
-                    refreshLoadShifts();
+                    refreshHWSchedules();
                     mMainHandler.post(this::setupViewPager);
                     mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
                 }).start();
@@ -438,8 +438,8 @@ public class BatteryChargingActivity extends AppCompatActivity {
             }
             ScenarioSelectDialog scenarioSelectDialog =
                     new ScenarioSelectDialog(this,
-                            ScenarioSelectDialog.BATTERY_SHIFT,
-                            fromScenarioID -> mViewModel.copyLoadShiftFromScenario(fromScenarioID, mScenarioID));
+                            ScenarioSelectDialog.TANK_SHIFT,
+                            fromScenarioID -> mViewModel.copyHWScheduleFromScenario(fromScenarioID, mScenarioID));
             scenarioSelectDialog.show();
             return false;
         }
@@ -453,8 +453,8 @@ public class BatteryChargingActivity extends AppCompatActivity {
             }
             ScenarioSelectDialog scenarioSelectDialog =
                     new ScenarioSelectDialog(this,
-                            ScenarioSelectDialog.BATTERY_SHIFT,
-                            fromScenarioID -> mViewModel.linkLoadShiftFromScenario(fromScenarioID, mScenarioID));
+                            ScenarioSelectDialog.TANK_SHIFT,
+                            fromScenarioID -> mViewModel.linkHWScheduleFromScenario(fromScenarioID, mScenarioID));
             scenarioSelectDialog.show();
             return false;
         }
@@ -467,7 +467,7 @@ public class BatteryChargingActivity extends AppCompatActivity {
         }
         if (item.getItemId() == R.id.lp_delete) {//add the function to perform here
             System.out.println("Delete attempt");
-            deleteAllLoadShiftsInTab();
+            deleteAllHWSchedulesInTab();
             return false;
         }
         return false;
@@ -489,7 +489,7 @@ public class BatteryChargingActivity extends AppCompatActivity {
         delItem.setVisible(true);
         mEdit = true;
         if (!(null == mViewPager.getAdapter())) {
-            ((BatteryChargingViewPageAdapter)mViewPager.getAdapter()).setEdit(mEdit);
+            ((WaterScheduleViewPageAdapter)mViewPager.getAdapter()).setEdit(mEdit);
         }
     }
 
@@ -500,15 +500,15 @@ public class BatteryChargingActivity extends AppCompatActivity {
         mViewPager.setOffscreenPageLimit(4);
         System.out.println("setupViewPager " + count + " fragments");
 
-        TabLayout tabLayout = findViewById(R.id.battery_charging_tab_layout);
+        TabLayout tabLayout = findViewById(R.id.water_schedule_tab_layout);
         mMediator = new TabLayoutMediator(tabLayout, mViewPager,
-                (tab, position) -> tab.setText("Charge")
+                (tab, position) -> tab.setText("Schedule")
         );
         mMediator.attach();
     }
 
-    private BatteryChargingViewPageAdapter createPanelAdapter(int count) {
-        return new BatteryChargingViewPageAdapter(this, count);
+    private WaterScheduleViewPageAdapter createPanelAdapter(int count) {
+        return new WaterScheduleViewPageAdapter(this, count);
     }
 
     @Override
@@ -555,32 +555,32 @@ public class BatteryChargingActivity extends AppCompatActivity {
             editItem.setVisible(true);
             mEdit = false;
             if (!(null == mViewPager.getAdapter())) {
-                ((BatteryChargingViewPageAdapter) mViewPager.getAdapter()).setEdit(mEdit);
+                ((WaterScheduleViewPageAdapter) mViewPager.getAdapter()).setEdit(mEdit);
             }
         }
     }
 
-    public List<LoadShift> getLoadShifts(int pos) {
+    public List<HWSchedule> getHWSchedules(int pos) {
         return mTabContents.get(pos);
     }
 
     public long getDatabaseID(int panelTabIndex) {
-        return mLoadShifts.get(panelTabIndex).getLoadShiftIndex();
+        return mHWSchedules.get(panelTabIndex).getHwScheduleIndex();
     }
 
-    public void deleteLoadShiftAtIndex(LoadShift loadShift, int loadShiftTabIndex, long loadShiftID) {
-        List<LoadShift> loadShiftsAtTab = mTabContents.get(loadShiftTabIndex);
-        if (!(null == loadShiftsAtTab) && loadShiftsAtTab.size() == 1) {
-            deleteAllLoadShiftsInTab();
+    public void deleteHWScheduleAtIndex(HWSchedule loadShift, int hwScheduleTabIndex, long hwScheduleID) {
+        List<HWSchedule> hwSchedulesAtTab = mTabContents.get(hwScheduleTabIndex);
+        if (!(null == hwSchedulesAtTab) && hwSchedulesAtTab.size() == 1) {
+            deleteAllHWSchedulesInTab();
         }
-        else if (!(null == loadShiftsAtTab) && loadShiftID != 0) {
-            for (LoadShift ls : loadShiftsAtTab) {
-                if (ls.getLoadShiftIndex() == loadShiftID) {
-                    System.out.println("Delete: " + ls);
-                    boolean removedFromTab = loadShiftsAtTab.remove(loadShift);
-                    boolean removedFromLeaderList = mLoadShifts.remove(loadShift);
-                    if (null == mRemovedLoadShifts) mRemovedLoadShifts = new ArrayList<>();
-                    if (removedFromTab && removedFromLeaderList) mRemovedLoadShifts.add(loadShiftID);
+        else if (!(null == hwSchedulesAtTab) && hwScheduleID != 0) {
+            for (HWSchedule hws : hwSchedulesAtTab) {
+                if (hws.getHwScheduleIndex() == hwScheduleID) {
+                    System.out.println("Delete: " + hws);
+                    boolean removedFromTab = hwSchedulesAtTab.remove(loadShift);
+                    boolean removedFromLeaderList = mHWSchedules.remove(loadShift);
+                    if (null == mRemovedHWSchedules) mRemovedHWSchedules = new ArrayList<>();
+                    if (removedFromTab && removedFromLeaderList) mRemovedHWSchedules.add(hwScheduleID);
                     break;
                 }
             }
@@ -588,41 +588,39 @@ public class BatteryChargingActivity extends AppCompatActivity {
         }
     }
 
-    public void updateLoadShiftAtIndex(LoadShift loadShift, int loadShiftTabIndex, long loadShiftID) {
+    public void updateHWScheduleAtIndex(HWSchedule hwSchedule, int hwScheduleTabIndex, long hwScheduleID) {
 
-        System.out.println("From fragment: " + loadShift);
-        List<LoadShift> loadShiftsAtTab = mTabContents.get(loadShiftTabIndex);
-        // Update inverter, days, months
-        if (!(null == loadShiftsAtTab) && loadShiftID == 0) {
-            for (LoadShift ls : loadShiftsAtTab) {
-                System.out.println("updating " + ls.getLoadShiftIndex() + " using " + loadShift.getLoadShiftIndex());
-                ls.getMonths().months = new ArrayList<>(loadShift.getMonths().months);
-                ls.getDays().ints = new ArrayList<>(loadShift.getDays().ints);
-                ls.setInverter(loadShift.getInverter());
+        System.out.println("From fragment: " + hwSchedule);
+        List<HWSchedule> hwSchedulesAtTab = mTabContents.get(hwScheduleTabIndex);
+        // Update days, months
+        if (!(null == hwSchedulesAtTab) && hwScheduleID == 0) {
+            for (HWSchedule hws : hwSchedulesAtTab) {
+                System.out.println("updating " + hws.getHwScheduleIndex() + " using " + hwSchedule.getHwScheduleIndex());
+                hws.getMonths().months = new ArrayList<>(hwSchedule.getMonths().months);
+                hws.getDays().ints = new ArrayList<>(hwSchedule.getDays().ints);
             }
         }
         // Update begin, end, stop
-        if (!(null == loadShiftsAtTab) && loadShiftID != 0) {
-            for (LoadShift ls : loadShiftsAtTab) {
-                if (ls.getLoadShiftIndex() == loadShiftID) {
-                    System.out.println("From activity: " + ls);
+        if (!(null == hwSchedulesAtTab) && hwScheduleID != 0) {
+            for (HWSchedule hws : hwSchedulesAtTab) {
+                if (hws.getHwScheduleIndex() == hwScheduleID) {
+                    System.out.println("From activity: " + hws);
                     // Nothing to do here as the state is shared
                     break;
                 }
             }
         }
 
-        List<LoadShiftJson> batteryJsons = JsonTools.createLoadShiftJson(mLoadShifts);
-        Type type = new TypeToken<List<LoadShiftJson>>() {
-        }.getType();
+        List<HWScheduleJson> hwScheduleJsons = JsonTools.createHWScheduleJson(mHWSchedules);
+        Type type = new TypeToken<List<HWScheduleJson>>() {}.getType();
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        mLoadShiftJsonString = gson.toJson(batteryJsons, type);
+        mHWScheduleJsonString = gson.toJson(hwScheduleJsons, type);
     }
 
     // PROGRESS BAR
     private void createProgressBar() {
         mProgressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleLarge);
-        ConstraintLayout constraintLayout = findViewById(R.id.battery_charging_activity);
+        ConstraintLayout constraintLayout = findViewById(R.id.water_schedule_activity);
         ConstraintSet set = new ConstraintSet();
 
         mProgressBar.setId(View.generateViewId());  // cannot set id after add
@@ -641,7 +639,7 @@ public class BatteryChargingActivity extends AppCompatActivity {
     // SIMULATION BAR
     private void createSimulationFeedback() {
         mSimulationInProgressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleLargeInverse);
-        ConstraintLayout constraintLayout = findViewById(R.id.battery_charging_activity);
+        ConstraintLayout constraintLayout = findViewById(R.id.water_schedule_activity);
         ConstraintSet set = new ConstraintSet();
 
         mSimulationInProgressBar.setId(View.generateViewId());  // cannot set id after add
@@ -679,4 +677,5 @@ public class BatteryChargingActivity extends AppCompatActivity {
                     }
                 });
     }
+
 }

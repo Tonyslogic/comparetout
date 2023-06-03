@@ -69,6 +69,7 @@ import com.tfcode.comparetout.scenario.battery.BatterySettingsActivity;
 import com.tfcode.comparetout.scenario.inverter.InverterActivity;
 import com.tfcode.comparetout.scenario.loadprofile.LoadProfileActivity;
 import com.tfcode.comparetout.scenario.panel.PanelActivity;
+import com.tfcode.comparetout.scenario.water.WaterScheduleActivity;
 import com.tfcode.comparetout.scenario.water.WaterSettingsActivity;
 
 import java.lang.reflect.Field;
@@ -420,9 +421,18 @@ public class ScenarioOverview extends Fragment {
                     }
                 }
                 else if (item.getItemId() == R.id.schedule) {
-                    if (!(null == getView())) Snackbar.make(getView(),
-                                    "You Clicked : " + item.getTitle(), Snackbar.LENGTH_LONG)
-                            .setAction("Action", null).show();
+                    if (!mScenario.isHasHWSystem()) {
+                        if (!(null == getView())) Snackbar.make(getView(),
+                                "Configure hot water system, before diverting to it",
+                                Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                    }
+                    else {
+                        Intent intent = new Intent(getActivity(), WaterScheduleActivity.class);
+                        intent.putExtra("ScenarioID", mScenarioID);
+                        intent.putExtra("ScenarioName", mScenario.getScenarioName());
+                        intent.putExtra("Edit", mEdit | !mScenario.isHasHWSystem());
+                        startActivity(intent);
+                    }
                 }
                 return true;
             });
@@ -571,7 +581,6 @@ public class ScenarioOverview extends Fragment {
                 if (!(null == mSimKPIs)) {
                     tableRow = new TableRow(getActivity());
                     PieChart pc = getPieChart("Self Consume", mSimKPIs.sold, "Sold", mSimKPIs.generated);
-//                    PieChart pc = getPieChart("Self Consume", 300, "Sold", 900);
                     tableRow.addView(pc);
                     PieChart pc2 = getPieChart("Self supplied", mSimKPIs.bought, "Bought", mSimKPIs.totalLoad);
                     tableRow.addView(pc2);
