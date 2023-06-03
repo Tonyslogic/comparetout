@@ -19,20 +19,27 @@ package com.tfcode.comparetout;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.TypedValue;
+import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
@@ -52,6 +59,10 @@ public class ScenarioNavFragment extends Fragment {
     private TableLayout mTableLayout;
     private List<Scenario> mScenarios;
 
+    private View mPopupView;
+    private PopupWindow mHelpWindow;
+    private int mOrientation = Configuration.ORIENTATION_PORTRAIT;
+
     public static ScenarioNavFragment newInstance() {
         return new ScenarioNavFragment();
     }
@@ -60,7 +71,11 @@ public class ScenarioNavFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        requireActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        if (!(null == getActivity())) {
+            mOrientation = getActivity().getResources().getConfiguration().orientation;
+            getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        }
+        else mOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
         updateView();
     }
 
@@ -79,6 +94,11 @@ public class ScenarioNavFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
+        mPopupView = inflater.inflate(R.layout.popup_help, container);
+        int width = LinearLayout.LayoutParams.WRAP_CONTENT;
+        int height = LinearLayout.LayoutParams.WRAP_CONTENT;
+        boolean focusable = true; // lets taps outside the popup also dismiss it
+        mHelpWindow = new PopupWindow(mPopupView, width, height, focusable);
         return inflater.inflate(R.layout.fragment_scenario_nav, container, false);
     }
 
@@ -130,6 +150,10 @@ public class ScenarioNavFragment extends Fragment {
                 b.setGravity(Gravity.CENTER_VERTICAL);
                 b.setAutoSizeTextTypeUniformWithConfiguration(
                         1, 17, 1, TypedValue.COMPLEX_UNIT_SP);
+                b.setOnLongClickListener(v -> {
+                    showHelp("Click here to view the details of a usage scenario");
+                 return true;
+                });
                 ImageButton c = new ImageButton(getActivity());
                 ImageButton d = new ImageButton(getActivity());
 
@@ -210,7 +234,6 @@ public class ScenarioNavFragment extends Fragment {
             }
         }
         else {
-            //TODO Popup help
             mTableLayout.setShrinkAllColumns(true);
             mTableLayout.setStretchAllColumns(false);
 
@@ -222,6 +245,16 @@ public class ScenarioNavFragment extends Fragment {
 
             mTableLayout.addView(help);
         }
+    }
+
+    private void showHelp(String s) {
+        if (mOrientation == Configuration.ORIENTATION_PORTRAIT)
+            mHelpWindow.setHeight((int) (requireActivity().getWindow().getDecorView().getHeight()*0.6));
+        else
+            mHelpWindow.setWidth((int) (requireActivity().getWindow().getDecorView().getWidth()*0.6));
+        mHelpWindow.showAtLocation(mTableLayout, Gravity.CENTER, 0, 0);
+        EditText editText = mPopupView.findViewById(R.id.helpText);
+        editText.setText(s);
     }
 
 }
