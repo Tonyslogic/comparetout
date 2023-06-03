@@ -165,4 +165,5 @@
     <string name="linked">Linked</string>
     <string name="NinetyPoint0">90.0</string>
     <string name="scroll_view_for_distribution_editor">Scroll view for distribution editor</string>
+    <string name="help_text">Help text</string>
 </resources>
