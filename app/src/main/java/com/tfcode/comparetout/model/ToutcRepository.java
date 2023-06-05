@@ -25,6 +25,7 @@ import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.EVCharge;
+import com.tfcode.comparetout.model.scenario.EVDivert;
 import com.tfcode.comparetout.model.scenario.HWDivert;
 import com.tfcode.comparetout.model.scenario.HWSchedule;
 import com.tfcode.comparetout.model.scenario.HWSystem;
@@ -38,6 +39,7 @@ import com.tfcode.comparetout.model.scenario.PanelPVSummary;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.Scenario2Battery;
 import com.tfcode.comparetout.model.scenario.Scenario2EVCharge;
+import com.tfcode.comparetout.model.scenario.Scenario2EVDivert;
 import com.tfcode.comparetout.model.scenario.Scenario2HWSchedule;
 import com.tfcode.comparetout.model.scenario.Scenario2HWSystem;
 import com.tfcode.comparetout.model.scenario.Scenario2Inverter;
@@ -67,6 +69,7 @@ public class ToutcRepository {
     private final LiveData<List<Scenario2HWSystem>> hwSystemRelations;
     private final LiveData<List<Scenario2HWSchedule>> hwScheduleRelations;
     private final LiveData<List<Scenario2EVCharge>> evChargeRelations;
+    private final LiveData<List<Scenario2EVDivert>> evDivertRelations;
     private final LiveData<List<PanelPVSummary>> panelPVSummary;
 
     private final CostingDAO costingDAO;
@@ -90,6 +93,7 @@ public class ToutcRepository {
         hwSystemRelations = scenarioDAO.loadHWSystemRelations();
         hwScheduleRelations = scenarioDAO.loadHWScheduleRelations();
         evChargeRelations = scenarioDAO.loadEVChargeRelations();
+        evDivertRelations = scenarioDAO.loadEVDivertRelations();
         panelPVSummary = scenarioDAO.getPanelPVSummary();
 
         costingDAO = db.costingDAO();
@@ -556,5 +560,35 @@ public class ToutcRepository {
     public void linkEVChargeFromScenario(long fromScenarioID, Long toScenarioID) {
         ToutcDB.databaseWriteExecutor.execute(() ->
                 scenarioDAO.linkEVChargeFromScenario(fromScenarioID, toScenarioID));
+    }
+
+    public List<String> getLinkedEVDiverts(long evDivertIndex, Long scenarioID) {
+        return scenarioDAO.getLinkedEVDiverts(evDivertIndex, scenarioID);
+    }
+
+    public LiveData<List<Scenario2EVDivert>> getAllEVDivertRelations() {
+        return evDivertRelations;
+    }
+
+    public List<EVDivert> getEVDivertsForScenario(Long scenarioID) {
+        return scenarioDAO.getEVDivertForScenarioID(scenarioID);
+    }
+
+    public void deleteEVDivertFromScenario(Long evDivertID, Long scenarioID) {
+        scenarioDAO.deleteEVDivertFromScenario(evDivertID, scenarioID);
+    }
+
+    public void saveEVDivertForScenario(Long scenarioID, EVDivert evDivert) {
+        scenarioDAO.saveEVDivertForScenario(scenarioID, evDivert);
+    }
+
+    public void copyEVDivertFromScenario(long fromScenarioID, Long toScenarioID) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                scenarioDAO.copyEVDivertFromScenario(fromScenarioID, toScenarioID));
+    }
+
+    public void linkEVDivertFromScenario(long fromScenarioID, Long toScenarioID) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                scenarioDAO.linkEVDivertFromScenario(fromScenarioID, toScenarioID));
     }
 }

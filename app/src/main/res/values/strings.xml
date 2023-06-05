@@ -169,4 +169,9 @@
     <string name="add_a_new_heating_schedule">Add a new water heating schedule</string>
     <string name="draw">Draw</string>
     <string name="ev_charge_schedule_name">EV charge schedule name</string>
+    <string name="ev_diversion_name">EV diversion name</string>
+    <string name="active">Active</string>
+    <string name="daily_max_diversion">Daily max diversion (kWh)</string>
+    <string name="ev_diversion_priority">EV diversion first</string>
+    <string name="diversion_threshold">Minimum kW to divert</string>
 </resources>

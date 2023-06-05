@@ -66,6 +66,7 @@ import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.model.scenario.SimKPIs;
 import com.tfcode.comparetout.scenario.battery.BatteryChargingActivity;
 import com.tfcode.comparetout.scenario.battery.BatterySettingsActivity;
+import com.tfcode.comparetout.scenario.ev.EVDivertActivity;
 import com.tfcode.comparetout.scenario.ev.EVScheduleActivity;
 import com.tfcode.comparetout.scenario.inverter.InverterActivity;
 import com.tfcode.comparetout.scenario.loadprofile.LoadProfileActivity;
@@ -487,9 +488,17 @@ public class ScenarioOverview extends Fragment {
                     }
                 }
                 if (item.getItemId() == R.id.divert) {
-                    if (!(null == getView())) Snackbar.make(getView(),
-                        "You clicked divert",
-                        Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                    if (!mScenario.isHasInverters()) {
+                        if (!(null == getView())) Snackbar.make(getView(),
+                                "Configure an inverter before configuring EV diversion",
+                                Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                    }else {
+                        Intent intent = new Intent(getActivity(), EVDivertActivity.class);
+                        intent.putExtra("ScenarioID", mScenarioID);
+                        intent.putExtra("ScenarioName", mScenario.getScenarioName());
+                        intent.putExtra("Edit", mEdit | !mScenario.isHasEVCharges());
+                        startActivity(intent);
+                    }
                 }
                 return true;
             });

@@ -1211,4 +1211,75 @@ public abstract class ScenarioDAO {
 
         deleteOrphanEVCharges();
     }
+
+    @Query("SELECT scenarioName FROM scenarios WHERE scenarioIndex IN (" +
+            "SELECT scenarioID FROM scenario2evdivert WHERE evDivertID = :evDivertIndex) AND scenarioIndex != :scenarioID")
+    public abstract List<String> getLinkedEVDiverts(long evDivertIndex, Long scenarioID);
+
+    @Query("SELECT * FROM scenario2evdivert")
+    public abstract LiveData<List<Scenario2EVDivert>> loadEVDivertRelations();
+
+    @Query("DELETE FROM scenario2evdivert WHERE scenarioID = :scenarioID AND evDivertID = :evDivertID")
+    public abstract void deleteEVDivertFromScenario(Long evDivertID, Long scenarioID);
+
+    @Transaction
+    public void saveEVDivertForScenario(Long scenarioID, EVDivert evDivert) {
+        long evScheduleIndex = evDivert.getEvDivertIndex();
+        if (evScheduleIndex == 0) {
+            evScheduleIndex = addNewEVDivert(evDivert);
+            Scenario2EVDivert scenario2EVDivert = new Scenario2EVDivert();
+            scenario2EVDivert.setScenarioID(scenarioID);
+            scenario2EVDivert.setEvDivertID(evScheduleIndex);
+            addNewScenario2EVDivert(scenario2EVDivert);
+
+            Scenario scenario = getScenario(scenarioID);
+            scenario.setHasEVDivert(true);
+            updateScenario(scenario);
+        }
+        else {
+            updateEVDivert(evDivert);
+        }
+    }
+
+    @Update (entity = EVDivert.class)
+    public abstract void updateEVDivert(EVDivert evDivert);
+
+    public void copyEVDivertFromScenario(long fromScenarioID, Long toScenarioID) {
+        List<EVDivert> evDiverts = getEVDivertForScenarioID(fromScenarioID);
+        for (EVDivert evDivert: evDiverts) {
+            evDivert.setEvDivertIndex(0L);
+            long newEVDivertID = addNewEVDivert(evDivert);
+
+            System.out.println("copyEVDivertFromScenario, new IID=" + newEVDivertID);
+
+            Scenario2EVDivert scenario2EVDivert = new Scenario2EVDivert();
+            scenario2EVDivert.setScenarioID(toScenarioID);
+            scenario2EVDivert.setEvDivertID(newEVDivertID);
+            addNewScenario2EVDivert(scenario2EVDivert);
+
+            Scenario toScenario = getScenario(toScenarioID);
+            toScenario.setHasEVDivert(true);
+            updateScenario(toScenario);
+        }
+
+        deleteOrphanEVDiverts();
+    }
+
+    public void linkEVDivertFromScenario(long fromScenarioID, Long toScenarioID) {
+        List<EVDivert> evDiverts = getEVDivertForScenarioID(fromScenarioID);
+        for (EVDivert evDivert: evDiverts) {
+            System.out.println("Linking evDivert with id= " + evDivert.getEvDivertIndex());
+
+            Scenario2EVDivert scenario2EVDivert = new Scenario2EVDivert();
+            scenario2EVDivert.setScenarioID(toScenarioID);
+            scenario2EVDivert.setEvDivertID(evDivert.getEvDivertIndex());
+            addNewScenario2EVDivert(scenario2EVDivert);
+
+            Scenario toScenario = getScenario(toScenarioID);
+            toScenario.setHasEVDivert(true);
+            updateScenario(toScenario);
+        }
+
+        deleteOrphanEVDiverts();
+    }
 }

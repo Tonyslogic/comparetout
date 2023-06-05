@@ -457,7 +457,7 @@ public class JsonTools {
         return sjf;
     }
 
-    private static ArrayList<EVDivertJson> createEVDivertJson(List<EVDivert> evDiverts) {
+    public static ArrayList<EVDivertJson> createEVDivertJson(List<EVDivert> evDiverts) {
         ArrayList<EVDivertJson> evDivertJsons = new ArrayList<>();
         if (!(null == evDiverts)){
             for (EVDivert evd : evDiverts) {
