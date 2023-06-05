@@ -226,25 +226,28 @@
 		"HWDivert": {
 			"active": true
 		},
-		"EVDivert": {
-			"Name": "Afternoon nap",
-			"active": true,
-			"ev1st": true,
-			"begin": 11,
-			"end": 16,
-			"dailyMax": 16.0,
-			"months": [
-				7
-			],
-			"days": [
-				0,
-				1,
-				2,
-				3,
-				4,
-				5,
-				6
-			]
-		}
+		"EVDiverts": [
+			{
+				"Name": "Afternoon nap",
+				"active": true,
+				"ev1st": true,
+				"begin": 11,
+				"end": 16,
+				"dailyMax": 16.0,
+				"months": [
+					7
+				],
+				"days": [
+					0,
+					1,
+					2,
+					3,
+					4,
+					5,
+					6
+				],
+				"minimum": 0.0
+			}
+		]
 	}
 ]

@@ -284,9 +284,10 @@ public class MainActivity extends AppCompatActivity {
             if (pos == COSTS_FRAGMENT) {
                 new Thread(() -> {
                     URL url;
+                    InputStreamReader reader;
                     try {
                         url = new URL("https://raw.githubusercontent.com/Tonyslogic/comparetout-doc/main/price-plans/rates.json");
-                        InputStreamReader reader = new InputStreamReader(url.openStream());
+                        reader = new InputStreamReader(url.openStream());
                         Type type = new TypeToken<List<PricePlanJsonFile>>() {
                         }.getType();
                         List<PricePlanJsonFile> ppList = new Gson().fromJson(reader, type);
@@ -301,6 +302,7 @@ public class MainActivity extends AppCompatActivity {
                             }
                             mViewModel.insertPricePlan(p, drs);
                         }
+                        reader.close();
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -312,9 +314,10 @@ public class MainActivity extends AppCompatActivity {
                 mProgressBar.setVisibility(View.VISIBLE);
                 new Thread(() -> {
                     URL url;
+                    InputStreamReader reader;
                     try {
                         url = new URL("https://raw.githubusercontent.com/Tonyslogic/comparetout-doc/main/usage-profiles/scenarios.json");
-                        InputStreamReader reader = new InputStreamReader(url.openStream());
+                        reader = new InputStreamReader(url.openStream());
                         Type type = new TypeToken<List<ScenarioJsonFile>>() {
                         }.getType();
                         List<ScenarioJsonFile> scenarioJsonFiles = new Gson().fromJson(reader, type);
@@ -322,6 +325,7 @@ public class MainActivity extends AppCompatActivity {
                         for (ScenarioComponents sc : scs) {
                             mViewModel.insertScenario(sc);
                         }
+                        reader.close();
                     } catch (IOException e) {
                         e.printStackTrace();
                     }

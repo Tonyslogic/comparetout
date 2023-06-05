@@ -16,6 +16,7 @@
 
 package com.tfcode.comparetout.model.scenario;
 
+import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
@@ -33,8 +34,18 @@ public class EVDivert {
     private int begin = 11;
     private int end = 16;
     private double dailyMax = 16.0;
+    @ColumnInfo(defaultValue = "0.0")
+    private double minimum = 0.0;
     private MonthHolder months = new MonthHolder();
     private IntHolder days = new IntHolder();
+
+    public double getMinimum() {
+        return minimum;
+    }
+
+    public void setMinimum(double minimum) {
+        this.minimum = minimum;
+    }
 
     public long getEvDivertIndex() {
         return evDivertIndex;

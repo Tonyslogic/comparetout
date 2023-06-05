@@ -18,6 +18,7 @@ package com.tfcode.comparetout.model;
 
 import android.content.Context;
 
+import androidx.room.AutoMigration;
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
@@ -69,7 +70,8 @@ import java.util.concurrent.Executors;
         EVDivert.class, Scenario2EVDivert.class,
         LoadProfileData.class, ScenarioSimulationData.class,
         Costings.class, PanelData.class
-        }, version = 1)
+        }, version = 2,
+        autoMigrations = {@AutoMigration(from = 1, to = 2)})
 
 @TypeConverters({Converters.class})
 

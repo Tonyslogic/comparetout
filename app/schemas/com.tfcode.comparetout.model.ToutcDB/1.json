@@ -1,0 +1,1482 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "08cf852bbbb7a9b30eaf71a6d4ae5dcc",
+    "entities": [
+      {
+        "tableName": "PricePlans",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`pricePlanIndex` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `supplier` TEXT NOT NULL, `planName` TEXT NOT NULL, `feed` REAL NOT NULL, `standingCharges` REAL NOT NULL, `signUpBonus` REAL NOT NULL, `lastUpdate` TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, `reference` TEXT NOT NULL, `active` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "pricePlanIndex",
+            "columnName": "pricePlanIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "supplier",
+            "columnName": "supplier",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "planName",
+            "columnName": "planName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "feed",
+            "columnName": "feed",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "standingCharges",
+            "columnName": "standingCharges",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "signUpBonus",
+            "columnName": "signUpBonus",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastUpdate",
+            "columnName": "lastUpdate",
+            "affinity": "TEXT",
+            "notNull": true,
+            "defaultValue": "CURRENT_TIMESTAMP"
+          },
+          {
+            "fieldPath": "reference",
+            "columnName": "reference",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "active",
+            "columnName": "active",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "pricePlanIndex"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_PricePlans_supplier_planName",
+            "unique": true,
+            "columnNames": [
+              "supplier",
+              "planName"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_PricePlans_supplier_planName` ON `${TABLE_NAME}` (`supplier`, `planName`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "DayRates",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`dayRateIndex` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `pricePlanId` INTEGER NOT NULL, `days` TEXT NOT NULL, `hours` TEXT NOT NULL, `startDate` TEXT NOT NULL, `endDate` TEXT NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "dayRateIndex",
+            "columnName": "dayRateIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pricePlanId",
+            "columnName": "pricePlanId",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "days",
+            "columnName": "days",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hours",
+            "columnName": "hours",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "startDate",
+            "columnName": "startDate",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "endDate",
+            "columnName": "endDate",
+            "affinity": "TEXT",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "dayRateIndex"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "scenarios",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`scenarioIndex` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `scenarioName` TEXT NOT NULL, `hasInverters` INTEGER NOT NULL, `hasBatteries` INTEGER NOT NULL, `hasPanels` INTEGER NOT NULL, `hasIRData` INTEGER NOT NULL, `hasHWSystem` INTEGER NOT NULL, `hasLoadProfiles` INTEGER NOT NULL, `hasLoadShifts` INTEGER NOT NULL, `hasEVCharges` INTEGER NOT NULL, `hasHWSchedules` INTEGER NOT NULL, `hasHWDivert` INTEGER NOT NULL, `hasEVDivert` INTEGER NOT NULL, `isActive` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "scenarioIndex",
+            "columnName": "scenarioIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scenarioName",
+            "columnName": "scenarioName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hasInverters",
+            "columnName": "hasInverters",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hasBatteries",
+            "columnName": "hasBatteries",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hasPanels",
+            "columnName": "hasPanels",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hasIRData",
+            "columnName": "hasIRData",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hasHWSystem",
+            "columnName": "hasHWSystem",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hasLoadProfiles",
+            "columnName": "hasLoadProfiles",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hasLoadShifts",
+            "columnName": "hasLoadShifts",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hasEVCharges",
+            "columnName": "hasEVCharges",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hasHWSchedules",
+            "columnName": "hasHWSchedules",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hasHWDivert",
+            "columnName": "hasHWDivert",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hasEVDivert",
+            "columnName": "hasEVDivert",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "isActive",
+            "columnName": "isActive",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "scenarioIndex"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_scenarios_scenarioName",
+            "unique": true,
+            "columnNames": [
+              "scenarioName"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_scenarios_scenarioName` ON `${TABLE_NAME}` (`scenarioName`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "inverters",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`inverterIndex` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `inverterName` TEXT NOT NULL, `minExcess` REAL NOT NULL, `maxInverterLoad` REAL NOT NULL, `mpptCount` INTEGER NOT NULL, `ac2dcLoss` INTEGER NOT NULL, `dc2acLoss` INTEGER NOT NULL, `dc2dcLoss` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "inverterIndex",
+            "columnName": "inverterIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "inverterName",
+            "columnName": "inverterName",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "minExcess",
+            "columnName": "minExcess",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "maxInverterLoad",
+            "columnName": "maxInverterLoad",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mpptCount",
+            "columnName": "mpptCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ac2dcLoss",
+            "columnName": "ac2dcLoss",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dc2acLoss",
+            "columnName": "dc2acLoss",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dc2dcLoss",
+            "columnName": "dc2dcLoss",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "inverterIndex"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "scenario2inverter",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`s2iID` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `inverterID` INTEGER NOT NULL, `scenarioID` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "s2iID",
+            "columnName": "s2iID",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "inverterID",
+            "columnName": "inverterID",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scenarioID",
+            "columnName": "scenarioID",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "s2iID"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "batteries",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`batteryIndex` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `batterySize` REAL NOT NULL, `dischargeStop` REAL NOT NULL, `chargeModel` TEXT, `maxDischarge` REAL NOT NULL, `maxCharge` REAL NOT NULL, `storageLoss` REAL NOT NULL, `inverter` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "batteryIndex",
+            "columnName": "batteryIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "batterySize",
+            "columnName": "batterySize",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dischargeStop",
+            "columnName": "dischargeStop",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "chargeModel",
+            "columnName": "chargeModel",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "maxDischarge",
+            "columnName": "maxDischarge",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "maxCharge",
+            "columnName": "maxCharge",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "storageLoss",
+            "columnName": "storageLoss",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "inverter",
+            "columnName": "inverter",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "batteryIndex"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "scenario2battery",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`s2bID` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `batteryID` INTEGER NOT NULL, `scenarioID` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "s2bID",
+            "columnName": "s2bID",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "batteryID",
+            "columnName": "batteryID",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scenarioID",
+            "columnName": "scenarioID",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "s2bID"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "panels",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`panelIndex` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `panelCount` INTEGER NOT NULL, `panelkWp` INTEGER NOT NULL, `azimuth` INTEGER NOT NULL, `slope` INTEGER NOT NULL, `latitude` REAL NOT NULL, `longitude` REAL NOT NULL, `inverter` TEXT, `mppt` INTEGER NOT NULL, `panelName` TEXT, `connectionMode` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "panelIndex",
+            "columnName": "panelIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "panelCount",
+            "columnName": "panelCount",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "panelkWp",
+            "columnName": "panelkWp",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "azimuth",
+            "columnName": "azimuth",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "slope",
+            "columnName": "slope",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "latitude",
+            "columnName": "latitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "longitude",
+            "columnName": "longitude",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "inverter",
+            "columnName": "inverter",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "mppt",
+            "columnName": "mppt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "panelName",
+            "columnName": "panelName",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "connectionMode",
+            "columnName": "connectionMode",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "panelIndex"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "scenario2panel",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`s2pID` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `panelID` INTEGER NOT NULL, `scenarioID` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "s2pID",
+            "columnName": "s2pID",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "panelID",
+            "columnName": "panelID",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scenarioID",
+            "columnName": "scenarioID",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "s2pID"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "hwsystem",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`hwSystemIndex` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `hwCapacity` INTEGER NOT NULL, `hwUsage` INTEGER NOT NULL, `hwIntake` INTEGER NOT NULL, `hwTarget` INTEGER NOT NULL, `hwLoss` INTEGER NOT NULL, `hwRate` REAL NOT NULL, `hwUse` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "hwSystemIndex",
+            "columnName": "hwSystemIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hwCapacity",
+            "columnName": "hwCapacity",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hwUsage",
+            "columnName": "hwUsage",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hwIntake",
+            "columnName": "hwIntake",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hwTarget",
+            "columnName": "hwTarget",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hwLoss",
+            "columnName": "hwLoss",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hwRate",
+            "columnName": "hwRate",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hwUse",
+            "columnName": "hwUse",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "hwSystemIndex"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "scenario2hwsystem",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`s2hwsysID` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `hwSystemID` INTEGER NOT NULL, `scenarioID` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "s2hwsysID",
+            "columnName": "s2hwsysID",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hwSystemID",
+            "columnName": "hwSystemID",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scenarioID",
+            "columnName": "scenarioID",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "s2hwsysID"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "loadprofile",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`loadProfileIndex` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `annualUsage` REAL NOT NULL, `hourlyBaseLoad` REAL NOT NULL, `gridImportMax` REAL NOT NULL, `distributionSource` TEXT, `gridExportMax` REAL NOT NULL, `hourlyDist` TEXT, `dowDist` TEXT, `monthlyDist` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "loadProfileIndex",
+            "columnName": "loadProfileIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "annualUsage",
+            "columnName": "annualUsage",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hourlyBaseLoad",
+            "columnName": "hourlyBaseLoad",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gridImportMax",
+            "columnName": "gridImportMax",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "distributionSource",
+            "columnName": "distributionSource",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "gridExportMax",
+            "columnName": "gridExportMax",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hourlyDist",
+            "columnName": "hourlyDist",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "dowDist",
+            "columnName": "dowDist",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "monthlyDist",
+            "columnName": "monthlyDist",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "loadProfileIndex"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "scenario2loadprofile",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`s2lpID` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `loadProfileID` INTEGER NOT NULL, `scenarioID` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "s2lpID",
+            "columnName": "s2lpID",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "loadProfileID",
+            "columnName": "loadProfileID",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scenarioID",
+            "columnName": "scenarioID",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "s2lpID"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "loadshift",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`loadShiftIndex` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT, `begin` INTEGER NOT NULL, `end` INTEGER NOT NULL, `stopAt` REAL NOT NULL, `months` TEXT, `days` TEXT, `inverter` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "loadShiftIndex",
+            "columnName": "loadShiftIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "begin",
+            "columnName": "begin",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "end",
+            "columnName": "end",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "stopAt",
+            "columnName": "stopAt",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "months",
+            "columnName": "months",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "days",
+            "columnName": "days",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "inverter",
+            "columnName": "inverter",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "loadShiftIndex"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "scenario2loadshift",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`s2lsID` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `loadShiftID` INTEGER NOT NULL, `scenarioID` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "s2lsID",
+            "columnName": "s2lsID",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "loadShiftID",
+            "columnName": "loadShiftID",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scenarioID",
+            "columnName": "scenarioID",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "s2lsID"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "evcharge",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`evChargeIndex` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT, `begin` INTEGER NOT NULL, `end` INTEGER NOT NULL, `draw` REAL NOT NULL, `months` TEXT, `days` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "evChargeIndex",
+            "columnName": "evChargeIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "begin",
+            "columnName": "begin",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "end",
+            "columnName": "end",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "draw",
+            "columnName": "draw",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "months",
+            "columnName": "months",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "days",
+            "columnName": "days",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "evChargeIndex"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "scenario2evcharge",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`s2evcID` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `evChargeID` INTEGER NOT NULL, `scenarioID` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "s2evcID",
+            "columnName": "s2evcID",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "evChargeID",
+            "columnName": "evChargeID",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scenarioID",
+            "columnName": "scenarioID",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "s2evcID"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "hwschedule",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`hwScheduleIndex` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT, `begin` INTEGER NOT NULL, `end` INTEGER NOT NULL, `months` TEXT, `days` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "hwScheduleIndex",
+            "columnName": "hwScheduleIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "begin",
+            "columnName": "begin",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "end",
+            "columnName": "end",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "months",
+            "columnName": "months",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "days",
+            "columnName": "days",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "hwScheduleIndex"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "scenario2hwschedule",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`s2hwsID` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `hwScheduleID` INTEGER NOT NULL, `scenarioID` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "s2hwsID",
+            "columnName": "s2hwsID",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hwScheduleID",
+            "columnName": "hwScheduleID",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scenarioID",
+            "columnName": "scenarioID",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "s2hwsID"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "hwdivert",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`hwDivertIndex` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `active` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "hwDivertIndex",
+            "columnName": "hwDivertIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "active",
+            "columnName": "active",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "hwDivertIndex"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "scenario2hwdivert",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`s2hwdID` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `hwDivertID` INTEGER NOT NULL, `scenarioID` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "s2hwdID",
+            "columnName": "s2hwdID",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hwDivertID",
+            "columnName": "hwDivertID",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scenarioID",
+            "columnName": "scenarioID",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "s2hwdID"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "evdivert",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`evDivertIndex` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT, `active` INTEGER NOT NULL, `ev1st` INTEGER NOT NULL, `begin` INTEGER NOT NULL, `end` INTEGER NOT NULL, `dailyMax` REAL NOT NULL, `months` TEXT, `days` TEXT)",
+        "fields": [
+          {
+            "fieldPath": "evDivertIndex",
+            "columnName": "evDivertIndex",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "name",
+            "columnName": "name",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "active",
+            "columnName": "active",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ev1st",
+            "columnName": "ev1st",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "begin",
+            "columnName": "begin",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "end",
+            "columnName": "end",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dailyMax",
+            "columnName": "dailyMax",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "months",
+            "columnName": "months",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "days",
+            "columnName": "days",
+            "affinity": "TEXT",
+            "notNull": false
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "evDivertIndex"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "scenario2evdivert",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`s2evdID` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `evDivertID` INTEGER NOT NULL, `scenarioID` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "s2evdID",
+            "columnName": "s2evdID",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "evDivertID",
+            "columnName": "evDivertID",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scenarioID",
+            "columnName": "scenarioID",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "s2evdID"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "loadprofiledata",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`loadProfileID` INTEGER NOT NULL, `date` TEXT NOT NULL, `minute` TEXT NOT NULL, `load` REAL NOT NULL, `mod` INTEGER NOT NULL, `dow` INTEGER NOT NULL, `do2001` INTEGER NOT NULL, PRIMARY KEY(`loadProfileID`, `date`, `minute`))",
+        "fields": [
+          {
+            "fieldPath": "loadProfileID",
+            "columnName": "loadProfileID",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "date",
+            "columnName": "date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "minute",
+            "columnName": "minute",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "load",
+            "columnName": "load",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mod",
+            "columnName": "mod",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dow",
+            "columnName": "dow",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "do2001",
+            "columnName": "do2001",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "loadProfileID",
+            "date",
+            "minute"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "scenariosimulationdata",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`scenarioID` INTEGER NOT NULL, `date` TEXT NOT NULL, `minuteOfDay` INTEGER NOT NULL, `dayOfWeek` INTEGER NOT NULL, `dayOf2001` INTEGER NOT NULL, `load` REAL NOT NULL, `Feed` REAL NOT NULL, `Buy` REAL NOT NULL, `SOC` REAL NOT NULL, `directEVcharge` REAL NOT NULL, `waterTemp` REAL NOT NULL, `kWHDivToWater` REAL NOT NULL, `kWHDivToEV` REAL NOT NULL, `pvToCharge` REAL NOT NULL, `pvToLoad` REAL NOT NULL, `batToLoad` REAL NOT NULL, `pv` REAL NOT NULL, `immersionLoad` REAL NOT NULL, PRIMARY KEY(`scenarioID`, `date`, `minuteOfDay`))",
+        "fields": [
+          {
+            "fieldPath": "scenarioID",
+            "columnName": "scenarioID",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "date",
+            "columnName": "date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "minuteOfDay",
+            "columnName": "minuteOfDay",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dayOfWeek",
+            "columnName": "dayOfWeek",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dayOf2001",
+            "columnName": "dayOf2001",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "load",
+            "columnName": "load",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "Feed",
+            "columnName": "Feed",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "Buy",
+            "columnName": "Buy",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "SOC",
+            "columnName": "SOC",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "directEVcharge",
+            "columnName": "directEVcharge",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "waterTemp",
+            "columnName": "waterTemp",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kWHDivToWater",
+            "columnName": "kWHDivToWater",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "kWHDivToEV",
+            "columnName": "kWHDivToEV",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pvToCharge",
+            "columnName": "pvToCharge",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pvToLoad",
+            "columnName": "pvToLoad",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "batToLoad",
+            "columnName": "batToLoad",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pv",
+            "columnName": "pv",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "immersionLoad",
+            "columnName": "immersionLoad",
+            "affinity": "REAL",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "scenarioID",
+            "date",
+            "minuteOfDay"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "costings",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`scenarioID` INTEGER NOT NULL, `pricePlanID` INTEGER NOT NULL, `buy` REAL NOT NULL, `sell` REAL NOT NULL, `subTotals` TEXT, `scenarioName` TEXT, `fullPlanName` TEXT, `net` REAL NOT NULL, PRIMARY KEY(`scenarioID`, `pricePlanID`))",
+        "fields": [
+          {
+            "fieldPath": "scenarioID",
+            "columnName": "scenarioID",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pricePlanID",
+            "columnName": "pricePlanID",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "buy",
+            "columnName": "buy",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sell",
+            "columnName": "sell",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "subTotals",
+            "columnName": "subTotals",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "scenarioName",
+            "columnName": "scenarioName",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "fullPlanName",
+            "columnName": "fullPlanName",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "net",
+            "columnName": "net",
+            "affinity": "REAL",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "scenarioID",
+            "pricePlanID"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_costings_scenarioID_pricePlanID",
+            "unique": true,
+            "columnNames": [
+              "scenarioID",
+              "pricePlanID"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_costings_scenarioID_pricePlanID` ON `${TABLE_NAME}` (`scenarioID`, `pricePlanID`)"
+          }
+        ],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "paneldata",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`panelID` INTEGER NOT NULL, `date` TEXT NOT NULL, `minute` TEXT NOT NULL, `pv` REAL NOT NULL, `mod` INTEGER NOT NULL, `dow` INTEGER NOT NULL, `do2001` INTEGER NOT NULL, PRIMARY KEY(`panelID`, `date`, `minute`))",
+        "fields": [
+          {
+            "fieldPath": "panelID",
+            "columnName": "panelID",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "date",
+            "columnName": "date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "minute",
+            "columnName": "minute",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "pv",
+            "columnName": "pv",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mod",
+            "columnName": "mod",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dow",
+            "columnName": "dow",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "do2001",
+            "columnName": "do2001",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "panelID",
+            "date",
+            "minute"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '08cf852bbbb7a9b30eaf71a6d4ae5dcc')"
+    ]
+  }
+}

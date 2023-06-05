@@ -34,6 +34,7 @@ import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.json.scenario.BatteryJson;
 import com.tfcode.comparetout.model.json.scenario.EVChargeJson;
+import com.tfcode.comparetout.model.json.scenario.EVDivertJson;
 import com.tfcode.comparetout.model.json.scenario.HWScheduleJson;
 import com.tfcode.comparetout.model.json.scenario.InverterJson;
 import com.tfcode.comparetout.model.json.scenario.LoadShiftJson;
@@ -62,6 +63,7 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 @RunWith(AndroidJUnit4.class)
 public class ScenarioDAOTest {
@@ -241,27 +243,44 @@ public class ScenarioDAOTest {
         List<EVCharge> evCharges = scenarioDAO.getEVChargesForScenarioID(scenarioID);
         List<HWSchedule> hwSchedules = scenarioDAO.getHWSchedulesForScenarioID(scenarioID);
         HWDivert hwDivert = scenarioDAO.getHWDivertForScenarioID(scenarioID);
-        EVDivert evDivert = scenarioDAO.getEVDivertForScenarioID(scenarioID);
+        List<EVDivert> evDiverts = scenarioDAO.getEVDivertForScenarioID(scenarioID);
 
         ScenarioComponents fromDB = new ScenarioComponents(scenario, inverters, batteries,
                 panels, hwSystem, loadProfile, loadShifts, evCharges, hwSchedules, hwDivert,
-                evDivert);
+                evDiverts);
         ArrayList<ScenarioComponents> fromDBList = new ArrayList<>();
         fromDBList.add(fromDB);
+        String outString = JsonTools.createScenarioList(fromDBList);
 
+        Gson gson = new Gson();
+        type = new TypeToken<List<Map<String, Object>>>(){}.getType();
+
+        List<Map<String, Object>> left = gson.fromJson(testData, type);
+        List<Map<String, Object>> right = gson.fromJson(outString, type);
+        Map<String, Object> leftmap = left.get(0);
+        Map<String, Object> rightmap = right.get(0);
+
+        boolean equal = leftmap.entrySet().stream()
+                .allMatch(e -> e.getValue().equals(rightmap.get(e.getKey())));
+
+        assertTrue(equal);
+
+        System.out.println(testData);
+        System.out.println("===================================================================================");
+        System.out.println(outString);
         // Cannot rely on json order -- need to remove commas, split and sort, then compare
-        String outString = JsonTools.createScenarioList(fromDBList).replaceAll(",","");
-        String[] outStingArray = outString.split("\n");
-        Arrays.sort(outStingArray);
-
-        // The original also needs to have whitespace removed
-        String inString = testData.replaceAll("\t", "").replaceAll(",", "");
-        String[] inStringArray = inString.split("\n");
-        Arrays.sort(inStringArray);
-
-        for (int index = 0; index < outStingArray.length; index++){
-            assertEquals(inStringArray[index], outStingArray[index]);
-        }
+//        outString = outString.replaceAll(",","");
+//        String[] outStringArray = outString.split("\n");
+//        Arrays.sort(outStringArray);
+//
+//        // The original also needs to have whitespace removed
+//        String inString = testData.replaceAll("\t", "").replaceAll(",", "");
+//        String[] inStringArray = inString.split("\n");
+//        Arrays.sort(inStringArray);
+//
+//        for (int index = 0; index < outStringArray.length; index++){
+//            assertEquals(inStringArray[index], outStringArray[index]);
+//        }
     }
 
     @Test
@@ -290,7 +309,7 @@ public class ScenarioDAOTest {
         ArrayList<EVCharge> evCharges = null;
         ArrayList<HWSchedule> hwSchedules = null;
         HWDivert hwDivert = null;
-        EVDivert evDivert = null;
+        List<EVDivert> evDiverts = null;
 
         for (ScenarioJsonFile sjf : scenarioList) {
             scenario = JsonTools.createScenario(sjf);
@@ -347,12 +366,16 @@ public class ScenarioDAOTest {
                 hwDivert = JsonTools.createHWDivert(sjf.hwDivert);
             }
             if (!(null == sjf.evDivert)){
-                evDivert = JsonTools.createEVDivert(sjf.evDivert);
+                evDiverts = new ArrayList<>();
+                for (EVDivertJson evDivertJson: sjf.evDiverts) {
+                    EVDivert evDivert = JsonTools.createEVDivert(evDivertJson);
+                    evDiverts.add(evDivert);
+                }
             }
 
             ScenarioComponents scenarioComponents =
                     new ScenarioComponents(scenario, inverters, batteries, panels, hwSystem,
-                            loadProfile, loadShifts, evCharges, hwSchedules, hwDivert, evDivert);
+                            loadProfile, loadShifts, evCharges, hwSchedules, hwDivert, evDiverts);
             scenarioDAO.addNewScenarioWithComponents(scenario, scenarioComponents);
         }
     }
@@ -585,13 +608,15 @@ public class ScenarioDAOTest {
             "    \"HWDivert\": {\n" +
             "      \"active\": true\n" +
             "    },\n" +
-            "    \"EVDivert\": {\n" +
+            "    \"EVDiverts\": [\n" +
+            "      {\n" +
             "      \"Name\": \"Afternoon nap\",\n" +
             "      \"active\": true,\n" +
             "      \"ev1st\": true,\n" +
             "      \"begin\": 11,\n" +
             "      \"end\": 16,\n" +
             "      \"dailyMax\": 16.0,\n" +
+            "      \"minimum\": 0.0,\n" +
             "      \"months\": [\n" +
             "        7\n" +
             "      ],\n" +
@@ -605,6 +630,7 @@ public class ScenarioDAOTest {
             "        6\n" +
             "      ]\n" +
             "    }\n" +
+            "   ]\n" +
             "  }\n" +
             "]";
 }

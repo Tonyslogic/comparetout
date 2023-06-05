@@ -26,8 +26,8 @@ public class HWSystemTest {
     public void heatWater() {
         HWSystem hwSystem = new HWSystem();
         HWSystem.Heat heat = hwSystem.heatWater(800, 50, 2);
-        assertEquals(2, heat.kWhUsed, 0);
-        assertEquals(60, heat.temperature, 1);
+        assertEquals(.2, heat.kWhUsed, 0.01);
+        assertEquals(51, heat.temperature, 1);
 
         heat = hwSystem.heatWater(480, 75, 0);
         assertEquals(0, heat.kWhUsed, 0);

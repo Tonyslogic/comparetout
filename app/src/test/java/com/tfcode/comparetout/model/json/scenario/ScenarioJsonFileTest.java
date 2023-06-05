@@ -41,10 +41,9 @@ import java.util.List;
 public class ScenarioJsonFileTest {
 
     private List<ScenarioJsonFile> scenarioList;
-    private static String testData = "";
 
     @Before
-    public void setUp() throws IOException, URISyntaxException {
+    public void setUp() throws IOException {
         loadTestData();
     }
 
@@ -71,8 +70,8 @@ public class ScenarioJsonFileTest {
         assertEquals(7.5, scenarioList.get(0).evCharges.get(0).draw, 0);
         assertTrue(scenarioList.get(0).hwSchedules.get(0).months.contains(6));
         assertTrue(scenarioList.get(0).hwDivert.active);
-        assertTrue(scenarioList.get(0).evDivert.ev1st);
-        assertEquals(16.0, scenarioList.get(0).evDivert.dailyMax, 0);
+        assertTrue(scenarioList.get(0).evDiverts.get(0).ev1st);
+        assertEquals(16.0, scenarioList.get(0).evDiverts.get(0).dailyMax, 0);
 
     }
 
@@ -87,7 +86,7 @@ public class ScenarioJsonFileTest {
 
     private void loadTestData() throws IOException {
         Path resourceDirectory = Paths.get("src","debug","res", "raw", "scenarios.json");
-        testData = readFile(resourceDirectory.toFile().getAbsolutePath());
+        String testData = readFile(resourceDirectory.toFile().getAbsolutePath());
         Type type = new TypeToken<List<ScenarioJsonFile>>() {}.getType();
         scenarioList = new Gson().fromJson(testData, type);
     }

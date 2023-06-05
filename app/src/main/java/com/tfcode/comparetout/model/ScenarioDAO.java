@@ -139,7 +139,7 @@ public abstract class ScenarioDAO {
             if (!(null == components.evCharges) && components.evCharges.size() > 0) scenario.setHasEVCharges(true);
             if (!(null == components.hwSchedules) && components.hwSchedules.size() > 0) scenario.setHasHWSchedules(true);
             if (!(null == components.hwDivert) && (components.hwDivert.isActive())) scenario.setHasHWDivert(true);
-            if (!(null == components.evDivert) && (components.evDivert.isActive())) scenario.setHasEVDivert(true);
+            if (!(null == components.evDiverts) && (components.evDiverts.size() > 0)) scenario.setHasEVDivert(true);
 
             long scenarioID = addNewScenario(scenario);
             if (!(null == components.inverters)) {
@@ -218,13 +218,15 @@ public abstract class ScenarioDAO {
                 s2hwd.setHwDivertID(hwDivertID);
                 addNewScenario2HWDivert(s2hwd);
             }
-            if (!(null == components.evDivert)) {
-            long evDivertID = addNewEVDivert(components.evDivert);
-            Scenario2EVDivert s2evd = new Scenario2EVDivert();
-            s2evd.setScenarioID(scenarioID);
-            s2evd.setEvDivertID(evDivertID);
-            addNewScenario2EVDivert(s2evd);
-        }
+            if (!(null == components.evDiverts)) {
+                for (EVDivert evd: components.evDiverts) {
+                    long evDivertID = addNewEVDivert(evd);
+                    Scenario2EVDivert s2evd = new Scenario2EVDivert();
+                    s2evd.setScenarioID(scenarioID);
+                    s2evd.setEvDivertID(evDivertID);
+                    addNewScenario2EVDivert(s2evd);
+                }
+            }
         }
         catch (SQLiteConstraintException e) {
             System.out.println("Silently ignoring a duplicate added as new");
@@ -282,7 +284,7 @@ public abstract class ScenarioDAO {
     @Query("SELECT * FROM evdivert, scenario2evdivert " +
             "WHERE scenarioID = :id AND evdivert.evDivertIndex = evDivertID")
     @RewriteQueriesToDropUnusedColumns
-    public abstract EVDivert getEVDivertForScenarioID(long id);
+    public abstract List<EVDivert> getEVDivertForScenarioID(long id);
 
     @Update (entity = Scenario.class)
     public abstract void updateScenario(Scenario scenario);
@@ -521,7 +523,7 @@ public abstract class ScenarioDAO {
         Scenario scenario = getScenarioForID(id);
         List<Battery> batteries = getBatteriesForScenarioID(id);
         List<EVCharge> evCharges = getEVChargesForScenarioID(id);
-        EVDivert evDivert = getEVDivertForScenarioID(id);
+        List<EVDivert> evDiverts = getEVDivertForScenarioID(id);
         HWDivert hwDivert = getHWDivertForScenarioID(id);
         List<HWSchedule> hwSchedules = getHWSchedulesForScenarioID(id);
         HWSystem hwSystem = getHWSystemForScenarioID(id);
@@ -534,7 +536,7 @@ public abstract class ScenarioDAO {
         scenario.setScenarioIndex(0);
         for (Battery b : batteries) b.setBatteryIndex(0);
         for (EVCharge e : evCharges) e.setEvChargeIndex(0);
-        if (!(null == evDivert)) evDivert.setEvDivertIndex(0);
+        for (EVDivert d : evDiverts) d.setEvDivertIndex(0);
         if (!(null == hwDivert)) hwDivert.setHwDivertIndex(0);
         for (HWSchedule h : hwSchedules) h.setHwScheduleIndex(0);
         if (!(null == hwSystem)) hwSystem.setHwSystemIndex(0);
@@ -546,7 +548,7 @@ public abstract class ScenarioDAO {
         addNewScenarioWithComponents(scenario, new ScenarioComponents(
                 scenario, inverters, batteries, panels, hwSystem,
                 loadProfile, loadShifts, evCharges, hwSchedules,
-                hwDivert, evDivert));
+                hwDivert, evDiverts));
     }
 
     @Transaction

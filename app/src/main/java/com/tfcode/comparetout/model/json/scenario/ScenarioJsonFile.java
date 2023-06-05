@@ -65,5 +65,9 @@ public class ScenarioJsonFile {
     @SerializedName("EVDivert")
     public
     EVDivertJson evDivert;
+
+    @SerializedName("EVDiverts")
+    public
+    ArrayList<EVDivertJson> evDiverts;
 }
 

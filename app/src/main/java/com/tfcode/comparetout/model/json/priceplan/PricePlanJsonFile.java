@@ -57,5 +57,8 @@ public class PricePlanJsonFile {
     @SerializedName("Reference")
     public
     String reference;
+
+    @SerializedName("DeemedExport")
+    public Boolean deemedExport = false;
 }
 

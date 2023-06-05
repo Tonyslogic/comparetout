@@ -29,7 +29,7 @@ public class ScenarioComponents {
     public List<EVCharge> evCharges;
     public List<HWSchedule> hwSchedules;
     public HWDivert hwDivert;
-    public EVDivert evDivert;
+    public List<EVDivert> evDiverts;
 
     public ScenarioComponents (
             Scenario scenario,
@@ -42,7 +42,7 @@ public class ScenarioComponents {
             List<EVCharge> evCharges,
             List<HWSchedule> hwSchedules,
             HWDivert hwDivert,
-            EVDivert evDivert) {
+            List<EVDivert> evDiverts) {
         this.scenario = scenario;
         this.inverters = inverters;
         this.batteries = batteries;
@@ -53,7 +53,7 @@ public class ScenarioComponents {
         this.evCharges = evCharges;
         this.hwSchedules = hwSchedules;
         this.hwDivert = hwDivert;
-        this.evDivert = evDivert;
+        this.evDiverts = evDiverts;
     }
 
 }

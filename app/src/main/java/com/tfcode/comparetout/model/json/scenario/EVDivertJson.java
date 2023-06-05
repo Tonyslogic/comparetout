@@ -53,4 +53,8 @@ public class EVDivertJson {
     @SerializedName("days")
     public
     ArrayList<Integer> days;
+
+    @SerializedName("minimum")
+    public
+    Double minimum = 0d;
 }

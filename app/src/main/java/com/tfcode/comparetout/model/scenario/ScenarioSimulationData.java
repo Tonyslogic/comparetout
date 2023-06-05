@@ -17,6 +17,7 @@
 package com.tfcode.comparetout.model.scenario;
 
 import androidx.annotation.NonNull;
+import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 
 @Entity(tableName = "scenariosimulationdata", primaryKeys = {"scenarioID", "date", "minuteOfDay"})
@@ -41,6 +42,16 @@ public class ScenarioSimulationData {
     private double batToLoad;
     private double pv;
     private double immersionLoad;
+    @ColumnInfo(defaultValue = "0")
+    private double gridToBattery = 0;
+
+    public double getGridToBattery() {
+        return gridToBattery;
+    }
+
+    public void setGridToBattery(double gridToBattery) {
+        this.gridToBattery = gridToBattery;
+    }
 
     public double getLoad() {
         return load;

@@ -78,6 +78,7 @@ public class JsonTools {
         p.setActive(pp.active);
         p.setLastUpdate(pp.lastUpdate);
         p.setReference(pp.reference);
+        p.setDeemedExport(pp.deemedExport);
         return p;
     }
 
@@ -121,6 +122,7 @@ public class JsonTools {
                 ppj.standingCharges = entry.getKey().getStandingCharges();
                 ppj.reference = entry.getKey().getReference();
                 ppj.supplier = entry.getKey().getSupplier();
+                ppj.deemedExport = entry.getKey().isDeemedExport();
                 ppList.add(ppj);
             }
         Type type = new TypeToken<List<PricePlanJsonFile>>(){}.getType();
@@ -149,6 +151,7 @@ public class JsonTools {
         ppj.standingCharges = pp.getStandingCharges();
         ppj.reference = pp.getReference();
         ppj.supplier = pp.getSupplier();
+        ppj.deemedExport = pp.isDeemedExport();
 
         Type type = new TypeToken<PricePlanJsonFile>(){}.getType();
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -381,6 +384,21 @@ public class JsonTools {
         return hwDivert;
     }
 
+    public static List<EVDivert> createEVDivertList(List<EVDivertJson> jsons, EVDivertJson evDivert) {
+        ArrayList<EVDivert> entityList = new ArrayList<>();
+        if (!(null == jsons)){
+            for (EVDivertJson json : jsons) {
+                EVDivert entity = createEVDivert(json);
+                entityList.add(entity);
+            }
+        }
+        if (!(null == evDivert)){
+            EVDivert entity = createEVDivert(evDivert);
+            entityList.add(entity);
+        }
+        return entityList;
+    }
+
     public static EVDivert createEVDivert(EVDivertJson evDivertJson) {
         EVDivert evDivert = null;
         try {
@@ -391,6 +409,7 @@ public class JsonTools {
             evDivert.setBegin(evDivertJson.begin);
             evDivert.setEnd(evDivertJson.end);
             evDivert.setDailyMax(evDivertJson.dailyMax);
+            evDivert.setMinimum((evDivertJson.minimum));
             MonthHolder monthHolder = new MonthHolder();
             monthHolder.months = evDivertJson.months;
             evDivert.setMonths(monthHolder);
@@ -421,7 +440,7 @@ public class JsonTools {
             List<EVCharge> evCharges,
             List<HWSchedule> hwSchedules,
             HWDivert hwDivert,
-            EVDivert evDivert) {
+            List<EVDivert> evDiverts) {
 
         ScenarioJsonFile sjf = new ScenarioJsonFile();
         sjf.name = scenario.getScenarioName();
@@ -434,8 +453,18 @@ public class JsonTools {
         sjf.evCharges = createEVChargeJson(evCharges);
         sjf.hwSchedules = createHWScheduleJson(hwSchedules);
         sjf.hwDivert = createHWDivertJson(hwDivert);
-        sjf.evDivert = createEVDivertJson(evDivert);
+        sjf.evDiverts = createEVDivertJson(evDiverts);
         return sjf;
+    }
+
+    private static ArrayList<EVDivertJson> createEVDivertJson(List<EVDivert> evDiverts) {
+        ArrayList<EVDivertJson> evDivertJsons = new ArrayList<>();
+        if (!(null == evDiverts)){
+            for (EVDivert evd : evDiverts) {
+                evDivertJsons.add(createEVDivertJson(evd));
+            }
+        }
+        return evDivertJsons;
     }
 
     private static EVDivertJson createEVDivertJson(EVDivert evDivert) {
@@ -449,6 +478,7 @@ public class JsonTools {
             evDivertJson.dailyMax = evDivert.getDailyMax();
             evDivertJson.months = (ArrayList<Integer>) evDivert.getMonths().months;
             evDivertJson.days = (ArrayList<Integer>) evDivert.getDays().ints;
+            evDivertJson.minimum = evDivert.getMinimum();
         }
         return evDivertJson;
     }
@@ -633,7 +663,7 @@ public class JsonTools {
         for (ScenarioComponents scenarioComponents : scenarios){
             scenarioJsonFiles.add(createSingleScenarioJson(scenarioComponents.scenario, scenarioComponents.inverters, scenarioComponents.batteries, scenarioComponents.panels,
                     scenarioComponents.hwSystem, scenarioComponents.loadProfile, scenarioComponents.loadShifts, scenarioComponents.evCharges, scenarioComponents.hwSchedules,
-                    scenarioComponents.hwDivert, scenarioComponents.evDivert));
+                    scenarioComponents.hwDivert, scenarioComponents.evDiverts));
         }
 
         Type type = new TypeToken<List<ScenarioJsonFile>>(){}.getType();
@@ -655,7 +685,7 @@ public class JsonTools {
                     createEVChargeList(scenarioJsonFile.evCharges),
                     createHWScheduleList(scenarioJsonFile.hwSchedules),
                     createHWDivert(scenarioJsonFile.hwDivert),
-                    createEVDivert(scenarioJsonFile.evDivert));
+                    createEVDivertList(scenarioJsonFile.evDiverts, scenarioJsonFile.evDivert));
             scenarioComponents.add(singleScenarioComponents);
         }
         return scenarioComponents;

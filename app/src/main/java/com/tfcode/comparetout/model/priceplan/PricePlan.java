@@ -49,6 +49,8 @@ public class PricePlan {
     private double feed = 0.0;
     private double standingCharges = 0.0;
     private double signUpBonus = 0.0;
+    @ColumnInfo(name = "deemedExport", defaultValue = "0")
+    private boolean deemedExport = false;
     @SuppressLint("SimpleDateFormat")
     @NonNull
     @ColumnInfo(defaultValue = "CURRENT_TIMESTAMP")
@@ -77,6 +79,14 @@ public class PricePlan {
         return (supplier + planName).hashCode();
     }
 
+
+    public boolean isDeemedExport() {
+        return deemedExport;
+    }
+
+    public void setDeemedExport(boolean deemedExport) {
+        this.deemedExport = deemedExport;
+    }
 
     public long getPricePlanIndex() {
         return pricePlanIndex;
