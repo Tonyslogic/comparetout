@@ -370,27 +370,27 @@ public class ScenarioYear extends Fragment {
             BarDataSet evDivertSet;
             BarDataSet hwDivertSet;
 
-            loadSet = new BarDataSet(loadEntries, "Daily load");
+            loadSet = new BarDataSet(loadEntries, "Monthly load");
             loadSet.setColor(Color.BLUE);
-            feedSet = new BarDataSet(feedEntries, "Daily feed");
+            feedSet = new BarDataSet(feedEntries, "Monthly feed");
             feedSet.setColor(Color.YELLOW);
-            buySet = new BarDataSet(buyEntries, "Daily buy");
+            buySet = new BarDataSet(buyEntries, "Monthly buy");
             buySet.setColor(Color.GREEN);
-            pvSet = new BarDataSet(pvEntries, "Daily PV");
+            pvSet = new BarDataSet(pvEntries, "Monthly PV");
             pvSet.setColor(Color.RED);
-            pv2BatterySet = new BarDataSet(pv2BatteryEntries, "Daily PV to battery");
+            pv2BatterySet = new BarDataSet(pv2BatteryEntries, "Monthly PV to battery");
             pv2BatterySet.setColor(Color.DKGRAY);
-            pv2LoadSet = new BarDataSet(pv2LoadEntries, "Daily PV to load");
+            pv2LoadSet = new BarDataSet(pv2LoadEntries, "Monthly PV to load");
             pv2LoadSet.setColor(Color.parseColor("#3ca567"));
-            battery2LoadSet = new BarDataSet(battery2LoadEntries, "Daily battery to load");
+            battery2LoadSet = new BarDataSet(battery2LoadEntries, "Monthly battery to load");
             battery2LoadSet.setColor(Color.parseColor("#309967"));
-            evScheduleSet = new BarDataSet(evScheduleEntries, "Daily EV charging");
+            evScheduleSet = new BarDataSet(evScheduleEntries, "Monthly EV charging");
             evScheduleSet.setColor(Color.parseColor("#476567"));
-            hwScheduleSet = new BarDataSet(hwScheduleEntries, "Daily water heating");
+            hwScheduleSet = new BarDataSet(hwScheduleEntries, "Monthly water heating");
             hwScheduleSet.setColor(Color.parseColor("#890567"));
-            evDivertSet = new BarDataSet(evDivertEntries, "Daily EV diversion");
+            evDivertSet = new BarDataSet(evDivertEntries, "Monthly EV diversion");
             evDivertSet.setColor(Color.parseColor("#a35567"));
-            hwDivertSet = new BarDataSet(hwDivertEntries, "Daily hot water diversion");
+            hwDivertSet = new BarDataSet(hwDivertEntries, "Monthly hot water diversion");
             hwDivertSet.setColor(Color.parseColor("#ff5f67"));
 
             ArrayList<IBarDataSet> dataSets = new ArrayList<>();

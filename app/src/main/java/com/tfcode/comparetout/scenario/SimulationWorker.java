@@ -34,6 +34,8 @@ import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.ChargeModel;
+import com.tfcode.comparetout.model.scenario.EVCharge;
+import com.tfcode.comparetout.model.scenario.EVDivert;
 import com.tfcode.comparetout.model.scenario.HWSchedule;
 import com.tfcode.comparetout.model.scenario.HWSystem;
 import com.tfcode.comparetout.model.scenario.Inverter;
@@ -177,10 +179,16 @@ public class SimulationWorker extends Worker {
                                 if (scenario.isHasHWDivert()) hotWaterDivert = scenarioComponents.hwDivert.isActive();
                                 if (scenario.isHasHWSchedules() && scenarioComponents.hwSchedules.size() > 0) hotWaterSchedules = scenarioComponents.hwSchedules;
                             }
+                            // Get the EV related components
+                            List<EVCharge> evCharges = null;
+                            List<EVDivert> evDiverts = null;
+                            if (scenario.isHasEVCharges() && scenarioComponents.evCharges.size() > 0) evCharges = scenarioComponents.evCharges;
+                            if (scenario.isHasEVDivert() && scenarioComponents.evDiverts.size() > 0) evDiverts = scenarioComponents.evDiverts;
                             // Associate the inverter and the load for use in simulation
                             InputData iData = new InputData(inverter, simulationInputData,
                                     connectedBattery, chargeFromGrid,
-                                    configuredHotWater, hotWaterDivert, hotWaterSchedules);
+                                    configuredHotWater, hotWaterDivert, hotWaterSchedules,
+                                    evCharges, evDiverts);
                             inputDataMap.put(inverter, iData);
                         }
                     } else { // No solar simulation, but we need a 'perfect' inverter
@@ -198,14 +206,15 @@ public class SimulationWorker extends Worker {
                             configuredHotWater = scenarioComponents.hwSystem;
                             if (scenario.isHasHWSchedules() && scenarioComponents.hwSchedules.size() > 0) hotWaterSchedules = scenarioComponents.hwSchedules;
                         }
+                        List<EVCharge> evCharges = null;
+                        if (scenario.isHasEVCharges() && scenarioComponents.evCharges.size() > 0) evCharges = scenarioComponents.evCharges;
                         InputData idata = new InputData(inverter, mToutcRepository.getSimulationInputNoSolar(scenarioID),
                                 null, null,
-                                configuredHotWater, null, hotWaterSchedules);
+                                configuredHotWater, null, hotWaterSchedules,
+                                evCharges, null);
                         inputDataMap.put(inverter, idata);
                         rowsToProcess = idata.inputData.size();
                     }
-
-                    // TODO: GET LOAD FROM CAR
 
                     builder.setContentText("Simulating: " + scenario.getScenarioName());
                     if (System.nanoTime() - notifyTime > 1e+9) {
@@ -362,8 +371,6 @@ public class SimulationWorker extends Worker {
 
         double locallyAvailable = effectivePV + batteryAvailableForDischarge;
         double purchaseShiftingLoad = chargeBatteriesFromGridIfNeeded(inputDataMap, row);
-        // TODO: Add GridToBattery as an output
-//        inputLoad += purchaseShiftingLoad;
 
         // COPY THE BASICS TO THE OUTPUT
         ScenarioSimulationData outputRow = new ScenarioSimulationData();
@@ -372,14 +379,19 @@ public class SimulationWorker extends Worker {
         outputRow.setMinuteOfDay(inputRow.getMod());
         outputRow.setDayOfWeek(inputRow.getDow());
         outputRow.setDayOf2001((inputRow.getDo2001()));
+        outputRow.setGridToBattery(purchaseShiftingLoad);
 
-        // TODO: Add scheduled EV load
+        int month = Integer.parseInt(inputRow.getDate().split("-")[1]);
+
+        EVCharge evCharge = firstInputData.isEVCharging(inputRow.getDow(), month, inputRow.mod);
+        double scheduledEVChargeLoad = 0;
+        if (!(null == evCharge)) scheduledEVChargeLoad = evCharge.getDraw() / 12d;
+        outputRow.setDirectEVcharge(scheduledEVChargeLoad);
 
         double previousWaterTemp = 0;
         double scheduledWaterLoad = 0;
         if (outputRows.size() > 0) previousWaterTemp = outputRows.get(row -1).getWaterTemp();
         double nowWaterTemp = previousWaterTemp;
-        int month = Integer.parseInt(inputRow.getDate().split("-")[1]);
         boolean immersionIsOn = firstInputData.isHotWaterHeatingScheduled(inputRow.getDow(), month, inputRow.mod);
         boolean hwDiversionIsOn = !(null == hwSystem) && !(null == hwDivert) && hwDivert;
         double draw = 0d;
@@ -394,6 +406,7 @@ public class SimulationWorker extends Worker {
 
         outputRow.setLoad(inputLoad); // Record the input load before extras -- there are separate counters for extras
         inputLoad += scheduledWaterLoad; // But capture the extras in case the solar can cover it
+        inputLoad += scheduledEVChargeLoad;
         outputRow.setPv(tPV);
 
         // SIMULATE WHERE STUFF GOES
@@ -460,8 +473,6 @@ public class SimulationWorker extends Worker {
 
         // ELECTRIC VEHICLE
         outputRow.setKWHDivToEV(0);
-        outputRow.setDirectEVcharge(0);
-
 
         // RECORD THE OUTPUT
         outputRows.add(outputRow);
@@ -538,12 +549,16 @@ public class SimulationWorker extends Worker {
         Boolean mHWDivert;
         List<HWSchedule> mHWSchedules;
 
+        List<EVCharge> mEVCharges;
+        List<EVDivert> mEVDiverts;
+
         // Volatile state members
         double soc = 0d;
 
         InputData(Inverter inverter, List<SimulationInputData> iData,
                   Battery battery, ChargeFromGrid chargeFromGrid,
-                  HWSystem hwSystem, Boolean hwDivert, List<HWSchedule> hotWaterSchedules) {
+                  HWSystem hwSystem, Boolean hwDivert, List<HWSchedule> hotWaterSchedules,
+                  List<EVCharge> evCharges, List<EVDivert> evDiverts) {
             id = inverter.getInverterIndex();
             dc2acLoss = (100d - inverter.getDc2acLoss()) / 100d;
             ac2dcLoss = (100d - inverter.getAc2dcLoss()) / 100d;
@@ -555,6 +570,8 @@ public class SimulationWorker extends Worker {
             mHWSystem = hwSystem;
             mHWDivert = hwDivert;
             mHWSchedules = hotWaterSchedules;
+            mEVCharges = evCharges;
+            mEVDiverts = evDiverts;
         }
 
         public boolean isHotWaterHeatingScheduled(int dayOfWeek, int monthOfYear, int minuteOfDay) {
@@ -563,9 +580,24 @@ public class SimulationWorker extends Worker {
             if (!(null == mHWSchedules)) for (HWSchedule hwSchedule: mHWSchedules) {
                 if (hwSchedule.getMonths().months.contains(monthOfYear) &&
                     hwSchedule.getDays().ints.contains(dayOfWeek) &&
-                    hwSchedule.getBegin() * 60 < minuteOfDay &&
+                    hwSchedule.getBegin() * 60 <= minuteOfDay &&
                     hwSchedule.getEnd() * 60 > minuteOfDay) {
                     ret = true;
+                    break; //
+                }
+            }
+            return ret;
+        }
+
+        public EVCharge isEVCharging(int dayOfWeek, int monthOfYear, int minuteOfDay) {
+            EVCharge ret = null;
+            if (dayOfWeek == 7) dayOfWeek = 0;
+            if (!(null == mEVCharges)) for (EVCharge evCharge: mEVCharges) {
+                if (evCharge.getMonths().months.contains(monthOfYear) &&
+                        evCharge.getDays().ints.contains(dayOfWeek) &&
+                        evCharge.getBegin() * 60 <= minuteOfDay &&
+                        evCharge.getEnd() * 60 > minuteOfDay) {
+                    ret = evCharge;
                     break; //
                 }
             }

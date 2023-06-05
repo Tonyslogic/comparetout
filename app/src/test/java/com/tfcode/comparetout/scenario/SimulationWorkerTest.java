@@ -58,7 +58,7 @@ public class SimulationWorkerTest {
         SimulationInputData sid = createSID(load, tpv);
         simulationInputData.add(sid);
 
-        SimulationWorker.InputData idata = new SimulationWorker.InputData(inverter, simulationInputData, battery, cfg, null, null, null);
+        SimulationWorker.InputData idata = new SimulationWorker.InputData(inverter, simulationInputData, battery, cfg, null, null, null, null, null);
 
         inputDataMap.put(inverter, idata);
 
@@ -151,12 +151,12 @@ public class SimulationWorkerTest {
         Inverter inverter1 = new Inverter();
         Battery battery1 = new Battery();
         battery1.setDischargeStop(100d);
-        SimulationWorker.InputData iData1 = new SimulationWorker.InputData(inverter1, simulationInputData1, battery1, null, null, null, null);
+        SimulationWorker.InputData iData1 = new SimulationWorker.InputData(inverter1, simulationInputData1, battery1, null, null, null, null, null, null);
         inputDataMap.put(inverter1, iData1);
 
         List<SimulationInputData> simulationInputData2 = new ArrayList<>();
         Inverter inverter2 = new Inverter();
-        SimulationWorker.InputData iData2 = new SimulationWorker.InputData(inverter2, simulationInputData2, null, null, null, null, null);
+        SimulationWorker.InputData iData2 = new SimulationWorker.InputData(inverter2, simulationInputData2, null, null, null, null, null, null, null);
         inputDataMap.put(inverter2, iData2);
         double load = 1.1;
         double tpv1 = 1.1;
@@ -194,13 +194,13 @@ public class SimulationWorkerTest {
         Inverter inverter1 = new Inverter();
         Battery battery1 = new Battery();
         battery1.setDischargeStop(100d);
-        SimulationWorker.InputData iData1 = new SimulationWorker.InputData(inverter1, simulationInputData1, battery1, null, null, null, null);
+        SimulationWorker.InputData iData1 = new SimulationWorker.InputData(inverter1, simulationInputData1, battery1, null, null, null, null, null, null);
         inputDataMap.put(inverter1, iData1);
 
         List<SimulationInputData> simulationInputData2 = new ArrayList<>();
         Inverter inverter2 = new Inverter();
         Battery battery2 = new Battery();
-        battery2.setDischargeStop(100d);SimulationWorker.InputData iData2 = new SimulationWorker.InputData(inverter2, simulationInputData2, battery2, null, null, null, null);
+        battery2.setDischargeStop(100d);SimulationWorker.InputData iData2 = new SimulationWorker.InputData(inverter2, simulationInputData2, battery2, null, null, null, null, null, null);
         inputDataMap.put(inverter2, iData2);
 
         double load = 1.1;
@@ -293,7 +293,7 @@ public class SimulationWorkerTest {
         SimulationInputData sid = createSID(load, tpv);
         simulationInputData.add(sid);
 
-        SimulationWorker.InputData idata = new SimulationWorker.InputData(inverter, simulationInputData, battery, null, null, null, null);
+        SimulationWorker.InputData idata = new SimulationWorker.InputData(inverter, simulationInputData, battery, null, null, null, null, null, null);
 
         inputDataMap.put(inverter, idata);
 
