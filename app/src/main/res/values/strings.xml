@@ -167,4 +167,6 @@
     <string name="scroll_view_for_distribution_editor">Scroll view for distribution editor</string>
     <string name="help_text">Help text</string>
     <string name="add_a_new_heating_schedule">Add a new water heating schedule</string>
+    <string name="draw">Draw</string>
+    <string name="ev_charge_schedule_name">EV charge schedule name</string>
 </resources>

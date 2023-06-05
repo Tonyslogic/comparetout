@@ -506,7 +506,7 @@ public class JsonTools {
         return hwScheduleJsons;
     }
 
-    private static ArrayList<EVChargeJson> createEVChargeJson(List<EVCharge> evCharges) {
+    public static ArrayList<EVChargeJson> createEVChargeJson(List<EVCharge> evCharges) {
         ArrayList<EVChargeJson> evChargeJsons = new ArrayList<>();
         if (!(null == evCharges)){
             for (EVCharge evc : evCharges) {

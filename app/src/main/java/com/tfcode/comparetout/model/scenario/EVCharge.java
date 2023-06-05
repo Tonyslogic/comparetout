@@ -89,4 +89,10 @@ public class EVCharge {
     public void setDays(IntHolder days) {
         this.days = days;
     }
+
+    public boolean equalDate(EVCharge other) {
+        if (this == other) return true;
+        return this.months.equals(other.getMonths()) &&
+                this.days.equals(other.getDays());
+    }
 }

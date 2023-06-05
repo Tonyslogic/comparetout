@@ -27,6 +27,13 @@
         android:theme="@style/Theme.comparetout"
         tools:targetApi="31">
         <activity
+            android:name=".scenario.ev.EVScheduleActivity"
+            android:exported="false">
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
+        </activity>
+        <activity
             android:name=".scenario.water.WaterScheduleActivity"
             android:exported="false">
             <meta-data

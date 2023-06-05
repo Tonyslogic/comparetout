@@ -26,6 +26,7 @@ import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.scenario.Battery;
+import com.tfcode.comparetout.model.scenario.EVCharge;
 import com.tfcode.comparetout.model.scenario.HWDivert;
 import com.tfcode.comparetout.model.scenario.HWSchedule;
 import com.tfcode.comparetout.model.scenario.HWSystem;
@@ -36,6 +37,7 @@ import com.tfcode.comparetout.model.scenario.Panel;
 import com.tfcode.comparetout.model.scenario.PanelPVSummary;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.Scenario2Battery;
+import com.tfcode.comparetout.model.scenario.Scenario2EVCharge;
 import com.tfcode.comparetout.model.scenario.Scenario2HWSchedule;
 import com.tfcode.comparetout.model.scenario.Scenario2HWSystem;
 import com.tfcode.comparetout.model.scenario.Scenario2Inverter;
@@ -373,5 +375,33 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public void linkHWScheduleFromScenario(long fromScenarioID, Long mScenarioID) {
         toutcRepository.linkHWScheduleFromScenario(fromScenarioID, mScenarioID);
+    }
+
+    public List<String> getLinkedEVCharges(long evChargeIndex, Long scenarioID) {
+        return toutcRepository.getLinkedEVCharges(evChargeIndex, scenarioID);
+    }
+
+    public LiveData<List<Scenario2EVCharge>> getAllEVChargeRelations() {
+        return toutcRepository.getAllEVChargeRelations();
+    }
+
+    public List<EVCharge> getEVChargesForScenario(Long scenarioID) {
+        return toutcRepository.getEVChargesForScenario(scenarioID);
+    }
+
+    public void deleteEVChargeFromScenario(Long evChargeID, Long scenarioID) {
+        toutcRepository.deleteEVChargeFromScenario(evChargeID, scenarioID);
+    }
+
+    public void saveEVChargeForScenario(Long scenarioID, EVCharge evCharge) {
+        toutcRepository.saveEVChargeForScenario(scenarioID, evCharge);
+    }
+
+    public void copyEVChargeFromScenario(long fromScenarioID, Long toScenarioID) {
+        toutcRepository.copyEVChargeFromScenario(fromScenarioID, toScenarioID);
+    }
+
+    public void linkEVChargeFromScenario(long fromScenarioID, Long toScenarioID) {
+        toutcRepository.linkEVChargeFromScenario(fromScenarioID, toScenarioID);
     }
 }

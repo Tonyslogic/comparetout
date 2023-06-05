@@ -66,6 +66,7 @@ import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.model.scenario.SimKPIs;
 import com.tfcode.comparetout.scenario.battery.BatteryChargingActivity;
 import com.tfcode.comparetout.scenario.battery.BatterySettingsActivity;
+import com.tfcode.comparetout.scenario.ev.EVScheduleActivity;
 import com.tfcode.comparetout.scenario.inverter.InverterActivity;
 import com.tfcode.comparetout.scenario.loadprofile.LoadProfileActivity;
 import com.tfcode.comparetout.scenario.panel.PanelActivity;
@@ -471,8 +472,25 @@ public class ScenarioOverview extends Fragment {
 
             //registering popup with OnMenuItemClickListener
             popup.setOnMenuItemClickListener(item -> {
-                if (!(null == getView())) Snackbar.make(getView(), "You Clicked : " + item.getTitle(), Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                System.out.println("Car: setOnMenuItemClickListener ==> " + item.getItemId());
+                if (item.getItemId() == R.id.schedule) {
+                    if (!mScenario.isHasLoadProfiles()) {
+                        if (!(null == getView())) Snackbar.make(getView(),
+                                "Create a load profile before configuring EV charging",
+                                Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                    } else {
+                        Intent intent = new Intent(getActivity(), EVScheduleActivity.class);
+                        intent.putExtra("ScenarioID", mScenarioID);
+                        intent.putExtra("ScenarioName", mScenario.getScenarioName());
+                        intent.putExtra("Edit", mEdit | !mScenario.isHasEVCharges());
+                        startActivity(intent);
+                    }
+                }
+                if (item.getItemId() == R.id.divert) {
+                    if (!(null == getView())) Snackbar.make(getView(),
+                        "You clicked divert",
+                        Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                }
                 return true;
             });
             try {

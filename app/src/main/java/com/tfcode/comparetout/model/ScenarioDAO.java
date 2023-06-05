@@ -1140,4 +1140,75 @@ public abstract class ScenarioDAO {
 
         deleteOrphanHWSchedules();
     }
+
+    @Query("SELECT scenarioName FROM scenarios WHERE scenarioIndex IN (" +
+            "SELECT scenarioID FROM scenario2evcharge WHERE evChargeID = :evChargeIndex) AND scenarioIndex != :scenarioID")
+    public abstract List<String> getLinkedEVCharges(long evChargeIndex, Long scenarioID);
+
+    @Query("SELECT * FROM scenario2evcharge")
+    public abstract LiveData<List<Scenario2EVCharge>> loadEVChargeRelations();
+
+    @Query("DELETE FROM scenario2evcharge WHERE scenarioID = :scenarioID AND evChargeID = :evChargeID")
+    public abstract void deleteEVChargeFromScenario(Long evChargeID, Long scenarioID);
+
+    @Transaction
+    public void saveEVChargeForScenario(Long scenarioID, EVCharge evCharge) {
+        long evScheduleIndex = evCharge.getEvChargeIndex();
+        if (evScheduleIndex == 0) {
+            evScheduleIndex = addNewEVCharge(evCharge);
+            Scenario2EVCharge scenario2EVCharge = new Scenario2EVCharge();
+            scenario2EVCharge.setScenarioID(scenarioID);
+            scenario2EVCharge.setEvChargeID(evScheduleIndex);
+            addNewScenario2EVCharge(scenario2EVCharge);
+
+            Scenario scenario = getScenario(scenarioID);
+            scenario.setHasEVCharges(true);
+            updateScenario(scenario);
+        }
+        else {
+            updateEVCharge(evCharge);
+        }
+    }
+
+    @Update (entity = EVCharge.class)
+    public abstract void updateEVCharge(EVCharge evCharge);
+
+    public void copyEVChargeFromScenario(long fromScenarioID, Long toScenarioID) {
+        List<EVCharge> evCharges = getEVChargesForScenarioID(fromScenarioID);
+        for (EVCharge evCharge: evCharges) {
+            evCharge.setEvChargeIndex(0L);
+            long newEVChargeID = addNewEVCharge(evCharge);
+
+            System.out.println("copyEVChargeFromScenario, new IID=" + newEVChargeID);
+
+            Scenario2EVCharge scenario2EVCharge = new Scenario2EVCharge();
+            scenario2EVCharge.setScenarioID(toScenarioID);
+            scenario2EVCharge.setEvChargeID(newEVChargeID);
+            addNewScenario2EVCharge(scenario2EVCharge);
+
+            Scenario toScenario = getScenario(toScenarioID);
+            toScenario.setHasEVCharges(true);
+            updateScenario(toScenario);
+        }
+
+        deleteOrphanEVCharges();
+    }
+
+    public void linkEVChargeFromScenario(long fromScenarioID, Long toScenarioID) {
+        List<EVCharge> evCharges = getEVChargesForScenarioID(fromScenarioID);
+        for (EVCharge evCharge: evCharges) {
+            System.out.println("Linking evCharge with id= " + evCharge.getEvChargeIndex());
+
+            Scenario2EVCharge scenario2EVCharge = new Scenario2EVCharge();
+            scenario2EVCharge.setScenarioID(toScenarioID);
+            scenario2EVCharge.setEvChargeID(evCharge.getEvChargeIndex());
+            addNewScenario2EVCharge(scenario2EVCharge);
+
+            Scenario toScenario = getScenario(toScenarioID);
+            toScenario.setHasEVCharges(true);
+            updateScenario(toScenario);
+        }
+
+        deleteOrphanEVCharges();
+    }
 }
