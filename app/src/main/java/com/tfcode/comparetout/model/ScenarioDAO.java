@@ -957,7 +957,7 @@ public abstract class ScenarioDAO {
     //##############################################
 
     @Query("SELECT minuteOfDay / 60 AS Hour, sum(load) AS Load, sum(feed) AS Feed, sum(Buy) AS Buy, " +
-            "sum(pv) AS PV, sum(pvToCharge) AS PV2Battery, sum(pvToLoad) AS PV2Load, sum(batToLoad) AS Battery2Load, " +
+            "sum(pv) AS PV, sum(pvToCharge) AS PV2Battery, sum(pvToLoad) AS PV2Load, sum(batToLoad) AS Battery2Load, sum(gridToBattery) AS Grid2Battery, " +
             "sum(directEVcharge) AS EVSchedule, sum(immersionLoad) AS HWSchedule, sum(kWHDivToEV) AS EVDivert, sum(kWHDivToWater) AS HWDivert " +
             "FROM scenariosimulationdata WHERE dayOf2001 = :dayOfYear AND scenarioID = :scenarioID " +
             "GROUP BY Hour ORDER BY Hour")
@@ -967,7 +967,7 @@ public abstract class ScenarioDAO {
     public abstract List<ScenarioLineGraphData> getLineData(Long scenarioID, int dayOfYear);
 
     @Query("SELECT substr(Date, 9) AS Hour, sum(load) AS Load, sum(feed) AS Feed, sum(Buy) AS Buy, " +
-            "sum(pv) AS PV, sum(pvToCharge) AS PV2Battery, sum(pvToLoad) AS PV2Load, sum(batToLoad) AS Battery2Load, " +
+            "sum(pv) AS PV, sum(pvToCharge) AS PV2Battery, sum(pvToLoad) AS PV2Load, sum(batToLoad) AS Battery2Load, sum(gridToBattery) AS Grid2Battery, " +
             "sum(directEVcharge) AS EVSchedule, sum(immersionLoad) AS HWSchedule, sum(kWHDivToEV) AS EVDivert, sum(kWHDivToWater) AS HWDivert " +
             "FROM scenariosimulationdata WHERE substr(Date, 6,2) IN (" +
             "SELECT DISTINCT substr(Date, 6,2) AS Month FROM scenariosimulationdata WHERE dayOf2001 = :dayOfYear) " +
@@ -975,7 +975,7 @@ public abstract class ScenarioDAO {
     public abstract List<ScenarioBarChartData> getMonthlyBarData(Long scenarioID, int dayOfYear);
 
     @Query("SELECT substr(Date, 6,2) AS Hour, sum(load) AS Load, sum(feed) AS Feed, sum(Buy) AS Buy, " +
-            "sum(pv) AS PV, sum(pvToCharge) AS PV2Battery, sum(pvToLoad) AS PV2Load, sum(batToLoad) AS Battery2Load, " +
+            "sum(pv) AS PV, sum(pvToCharge) AS PV2Battery, sum(pvToLoad) AS PV2Load, sum(batToLoad) AS Battery2Load, sum(gridToBattery) AS Grid2Battery, " +
             "sum(directEVcharge) AS EVSchedule, sum(immersionLoad) AS HWSchedule, sum(kWHDivToEV) AS EVDivert, sum(kWHDivToWater) AS HWDivert " +
             "FROM scenariosimulationdata WHERE scenarioID = :scenarioID " +
             "GROUP BY substr(Date, 6,2) ORDER BY substr(Date, 6,2)")

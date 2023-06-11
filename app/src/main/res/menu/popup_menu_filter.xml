@@ -52,6 +52,11 @@
         android:title="@string/battery_2_load"
         android:checkable="true"/>
     <item
+        android:id="@+id/gridToBattery"
+        android:checked="false"
+        android:title="@string/grid_to_battery"
+        android:checkable="true"/>
+    <item
         android:id="@+id/evSchedule"
         android:checked="false"
         android:title="@string/ev_schedule"

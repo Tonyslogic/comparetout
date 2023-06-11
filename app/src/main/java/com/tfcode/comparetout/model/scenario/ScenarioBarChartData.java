@@ -27,6 +27,7 @@ public class ScenarioBarChartData {
     @ColumnInfo(name= "PV") public double pv = 0D;
     @ColumnInfo(name= "PV2Battery") public double pv2Battery = 0D;
     @ColumnInfo(name= "PV2Load") public double pv2Load = 0D;
+    @ColumnInfo(name= "Grid2Battery") public double grid2Battery = 0D;
     @ColumnInfo(name= "Battery2Load") public double battery2Load = 0D;
     @ColumnInfo(name= "EVSchedule") public double evSchedule = 0D;
     @ColumnInfo(name= "HWSchedule") public double hwSchedule = 0D;

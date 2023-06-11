@@ -176,4 +176,5 @@
     <string name="diversion_threshold">Minimum kW to divert</string>
     <string name="No_generation">No generation</string>
     <string name="purchased_100">Purchased 100%</string>
+    <string name="grid_to_battery">Grid to battery</string>
 </resources>

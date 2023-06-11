@@ -79,6 +79,7 @@ public class ScenarioYear extends Fragment {
     private static final String SHOW_PV = "SHOW_PV";
     private static final String SHOW_PV2BAT = "SHOW_PV2BAT";
     private static final String SHOW_PV2LOAD = "SHOW_PV2LOAD";
+    private static final String SHOW_GRID2BAT = "SHOW_GRID2BAT";
     private static final String SHOW_BAT2LOAD = "SHOW_BAT2LOAD";
     private static final String SHOW_EVSCHEDULE = "SHOW_EVSCHEDULE";
     private static final String SHOW_HWSCHEDULE = "SHOW_HWSCHEDULE";
@@ -94,6 +95,7 @@ public class ScenarioYear extends Fragment {
     private boolean mShowPV = true;
     private boolean mShowPV2Bat;
     private boolean mShowPV2Load;
+    private boolean mShowGrid2Battery;
     private boolean mShowBat2Load;
     private boolean mShowEVSchedule;
     private boolean mShowHWSchedule;
@@ -129,6 +131,7 @@ public class ScenarioYear extends Fragment {
         outState.putBoolean(SHOW_PV, mShowPV);
         outState.putBoolean(SHOW_PV2BAT, mShowPV2Bat);
         outState.putBoolean(SHOW_PV2LOAD, mShowPV2Load);
+        outState.putBoolean(SHOW_GRID2BAT, mShowGrid2Battery);
         outState.putBoolean(SHOW_BAT2LOAD, mShowBat2Load);
         outState.putBoolean(SHOW_EVSCHEDULE, mShowEVSchedule);
         outState.putBoolean(SHOW_HWSCHEDULE, mShowHWSchedule);
@@ -149,6 +152,7 @@ public class ScenarioYear extends Fragment {
             mShowPV = savedInstanceState.getBoolean(SHOW_PV);
             mShowPV2Bat = savedInstanceState.getBoolean(SHOW_PV2BAT);
             mShowPV2Load = savedInstanceState.getBoolean(SHOW_PV2LOAD);
+            mShowGrid2Battery = savedInstanceState.getBoolean(SHOW_GRID2BAT);
             mShowBat2Load = savedInstanceState.getBoolean(SHOW_BAT2LOAD);
             mShowEVSchedule = savedInstanceState.getBoolean(SHOW_EVSCHEDULE);
             mShowHWSchedule = savedInstanceState.getBoolean(SHOW_HWSCHEDULE);
@@ -163,6 +167,7 @@ public class ScenarioYear extends Fragment {
             if (mShowBuy) mBarFilterCount++;
             if (mShowPV) mBarFilterCount++;
             if (mShowPV2Bat) mBarFilterCount++;
+            if (mShowGrid2Battery) mBarFilterCount++;
             if (mShowPV2Load) mBarFilterCount++;
             if (mShowBat2Load) mBarFilterCount++;
             if (mShowEVSchedule) mBarFilterCount++;
@@ -225,6 +230,7 @@ public class ScenarioYear extends Fragment {
             mPopup.getMenu().findItem(R.id.pv2bat).setChecked(mShowPV2Bat);
             mPopup.getMenu().findItem(R.id.pv2load).setChecked(mShowPV2Load);
             mPopup.getMenu().findItem(R.id.bat2load).setChecked(mShowBat2Load);
+            mPopup.getMenu().findItem(R.id.gridToBattery).setChecked(mShowGrid2Battery);
             mPopup.getMenu().findItem(R.id.evSchedule).setChecked(mShowEVSchedule);
             mPopup.getMenu().findItem(R.id.hwSchedule).setChecked(mShowHWSchedule);
             mPopup.getMenu().findItem(R.id.evDivert).setChecked(mShowEVDivert);
@@ -254,6 +260,10 @@ public class ScenarioYear extends Fragment {
             }
             if (itemID == R.id.pv2bat) {
                 mShowPV2Bat = item.isChecked();
+                mBarFilterCount = item.isChecked() ? mBarFilterCount + 1 : mBarFilterCount - 1;
+            }
+            if (itemID == R.id.gridToBattery) {
+                mShowGrid2Battery = item.isChecked();
                 mBarFilterCount = item.isChecked() ? mBarFilterCount + 1 : mBarFilterCount - 1;
             }
             if (itemID == R.id.pv2load) {
@@ -339,6 +349,7 @@ public class ScenarioYear extends Fragment {
             ArrayList<BarEntry> pvEntries = new ArrayList<>();
             ArrayList<BarEntry> pv2BatteryEntries = new ArrayList<>();
             ArrayList<BarEntry> pv2LoadEntries = new ArrayList<>();
+            ArrayList<BarEntry> grid2BatteryEntries = new ArrayList<>();
             ArrayList<BarEntry> battery2LoadEntries = new ArrayList<>();
             ArrayList<BarEntry> evScheduleEntries = new ArrayList<>();
             ArrayList<BarEntry> hwScheduleEntries = new ArrayList<>();
@@ -351,6 +362,7 @@ public class ScenarioYear extends Fragment {
                 pvEntries.add(new BarEntry(i, (float) mBarData.get(i).pv));
                 pv2BatteryEntries.add(new BarEntry(i, (float) mBarData.get(i).pv2Battery));
                 pv2LoadEntries.add(new BarEntry(i, (float) mBarData.get(i).pv2Load));
+                grid2BatteryEntries.add(new BarEntry(i, (float) mBarData.get(i).grid2Battery));
                 battery2LoadEntries.add(new BarEntry(i, (float) mBarData.get(i).battery2Load));
                 evScheduleEntries.add(new BarEntry(i, (float) mBarData.get(i).evSchedule));
                 hwScheduleEntries.add(new BarEntry(i, (float) mBarData.get(i).hwSchedule));
@@ -364,6 +376,7 @@ public class ScenarioYear extends Fragment {
             BarDataSet pvSet;
             BarDataSet pv2BatterySet;
             BarDataSet pv2LoadSet;
+            BarDataSet grid2BatterySet;
             BarDataSet battery2LoadSet;
             BarDataSet evScheduleSet;
             BarDataSet hwScheduleSet;
@@ -382,6 +395,8 @@ public class ScenarioYear extends Fragment {
             pv2BatterySet.setColor(Color.DKGRAY);
             pv2LoadSet = new BarDataSet(pv2LoadEntries, "Monthly PV to load");
             pv2LoadSet.setColor(Color.parseColor("#3ca567"));
+            grid2BatterySet = new BarDataSet(grid2BatteryEntries, "Monthly grid to battery");
+            grid2BatterySet.setColor(Color.parseColor("#aaaaaa"));
             battery2LoadSet = new BarDataSet(battery2LoadEntries, "Monthly battery to load");
             battery2LoadSet.setColor(Color.parseColor("#309967"));
             evScheduleSet = new BarDataSet(evScheduleEntries, "Monthly EV charging");
@@ -400,6 +415,7 @@ public class ScenarioYear extends Fragment {
             if (mShowPV) dataSets.add(pvSet);
             if (mShowPV2Bat) dataSets.add(pv2BatterySet);
             if (mShowPV2Load) dataSets.add(pv2LoadSet);
+            if (mShowGrid2Battery) dataSets.add(grid2BatterySet);
             if (mShowBat2Load) dataSets.add(battery2LoadSet);
             if (mShowEVSchedule) dataSets.add(evScheduleSet);
             if (mShowHWSchedule) dataSets.add(hwScheduleSet);
@@ -477,6 +493,7 @@ public class ScenarioYear extends Fragment {
             colors.add(Color.parseColor("#a35567"));
             colors.add(Color.parseColor("#ff5f67"));
             colors.add(Color.parseColor("#3ca567"));
+            colors.add(Color.parseColor("#aaaaaa"));
 
             for(String type: generationDestinationMap.keySet()){
                 pieEntries.add(new PieEntry(Objects.requireNonNull(generationDestinationMap.get(type)).floatValue(), type));
