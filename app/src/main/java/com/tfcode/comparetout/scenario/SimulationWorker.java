@@ -457,8 +457,42 @@ public class SimulationWorker extends Worker {
         outputRow.setBatToLoad(bat2Load);
 
         // DIVERSIONS
-        // WATER
         double divertedToWater = 0;
+        double divertedToEV = 0;
+        // ELECTRIC VEHICLE
+        double totalEVDivertedThisDay = firstInputData.mEVDivertDailyTotals.computeIfAbsent(inputRow.do2001, k -> 0D);
+        EVDivert evDivert = firstInputData.getEVDivertOrNull(inputRow.getDow(), month, inputRow.mod);
+        if (!(null == evDivert)) {
+            double maxEVDivert = evDivert.getDailyMax() - totalEVDivertedThisDay;
+            if (evDivert.isActive()) {
+                if (evDivert.isEv1st()) {
+                    if (feed > evDivert.getMinimum()) {
+                        if (maxEVDivert > 0) {
+                            divertedToEV = min (feed, maxEVDivert);
+                            firstInputData.mEVDivertDailyTotals.put(inputRow.do2001, totalEVDivertedThisDay + divertedToEV);
+                            feed = feed - divertedToEV;
+                        }
+                    }
+                    // else we can ignore this and let the later water divert take it
+                }
+                else { // Water diversion must happen to reduce the feed
+                    if ((!immersionIsOn) && hwDiversionIsOn) {
+                        HWSystem.Heat heat = hwSystem.heatWater(inputRow.mod, previousWaterTemp, feed);
+                        feed = feed - heat.kWhUsed;
+                        nowWaterTemp = heat.temperature;
+                        divertedToWater = heat.kWhUsed;
+                        if (feed > evDivert.getMinimum()) { // there may be some feed left fo the EV
+                            if (maxEVDivert > 0) {
+                                divertedToEV = min (feed, maxEVDivert);
+                                firstInputData.mEVDivertDailyTotals.put(inputRow.do2001, totalEVDivertedThisDay + divertedToEV);
+                                feed = feed - divertedToEV;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // WATER
         if ((!immersionIsOn) && hwDiversionIsOn) {
             HWSystem.Heat heat = hwSystem.heatWater(inputRow.mod, previousWaterTemp, feed);
             feed = feed - heat.kWhUsed;
@@ -470,9 +504,7 @@ public class SimulationWorker extends Worker {
         outputRow.setWaterTemp(nowWaterTemp);
         outputRow.setKWHDivToWater(divertedToWater);
         outputRow.setImmersionLoad(scheduledWaterLoad);
-
-        // ELECTRIC VEHICLE
-        outputRow.setKWHDivToEV(0);
+        outputRow.setKWHDivToEV(divertedToEV);
 
         // RECORD THE OUTPUT
         outputRows.add(outputRow);
@@ -551,6 +583,7 @@ public class SimulationWorker extends Worker {
 
         List<EVCharge> mEVCharges;
         List<EVDivert> mEVDiverts;
+        Map<Integer, Double> mEVDivertDailyTotals;
 
         // Volatile state members
         double soc = 0d;
@@ -572,6 +605,7 @@ public class SimulationWorker extends Worker {
             mHWSchedules = hotWaterSchedules;
             mEVCharges = evCharges;
             mEVDiverts = evDiverts;
+            mEVDivertDailyTotals = new HashMap<>();
         }
 
         public boolean isHotWaterHeatingScheduled(int dayOfWeek, int monthOfYear, int minuteOfDay) {
@@ -598,6 +632,21 @@ public class SimulationWorker extends Worker {
                         evCharge.getBegin() * 60 <= minuteOfDay &&
                         evCharge.getEnd() * 60 > minuteOfDay) {
                     ret = evCharge;
+                    break; //
+                }
+            }
+            return ret;
+        }
+
+        public EVDivert getEVDivertOrNull(int dayOfWeek, int monthOfYear, int minuteOfDay) {
+            EVDivert ret = null;
+            if (dayOfWeek == 7) dayOfWeek = 0;
+            if (!(null == mEVDiverts)) for (EVDivert evDivert: mEVDiverts) {
+                if (evDivert.getMonths().months.contains(monthOfYear) &&
+                        evDivert.getDays().ints.contains(dayOfWeek) &&
+                        evDivert.getBegin() * 60 <= minuteOfDay &&
+                        evDivert.getEnd() * 60 > minuteOfDay) {
+                    ret = evDivert;
                     break; //
                 }
             }

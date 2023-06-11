@@ -62,7 +62,7 @@ public class EVDivertFragment extends Fragment {
     private boolean mEdit;
     private List<View> mEditFields;
     private EVDivert mEVDivert;
-    private TableLayout mDateTableLayout;
+    private TableLayout mPropertiesTableLayout;
     private TableLayout mApplicableGrid;
     private TableLayout mEVDivertTimes;
 
@@ -91,7 +91,7 @@ public class EVDivertFragment extends Fragment {
                 mEdit = ((EVDivertActivity) requireActivity()).getEdit();
                 mEditFields = new ArrayList<>();
                 unpackEVDivert();
-                if (!(null == mDateTableLayout)) updateView();
+                if (!(null == mPropertiesTableLayout)) updateView();
             }
         });
     }
@@ -110,8 +110,8 @@ public class EVDivertFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        mDateTableLayout = requireView().findViewById(R.id.evDivertEditTable);
-        mDateTableLayout.setStretchAllColumns(true);
+        mPropertiesTableLayout = requireView().findViewById(R.id.evDivertEditTable);
+        mPropertiesTableLayout.setStretchAllColumns(true);
         mApplicableGrid = requireView().findViewById(R.id.scheduleApplicationTable);
         mApplicableGrid.setShrinkAllColumns(true);
         mApplicableGrid.setStretchAllColumns(true);
@@ -140,7 +140,7 @@ public class EVDivertFragment extends Fragment {
     @SuppressLint("SetTextI18n")
     private void updateView() {
         System.out.println("Updating ChargingFragment " + mEVDivertIndex + ", " + mEdit);
-        mDateTableLayout.removeAllViews();
+        mPropertiesTableLayout.removeAllViews();
         mApplicableGrid.removeAllViews();
         mEVDivertTimes.removeAllViews();
 
@@ -154,7 +154,7 @@ public class EVDivertFragment extends Fragment {
             int integerType = InputType.TYPE_CLASS_NUMBER;
             int doubleType = InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL;
 
-            // Inverter selection
+            // property selection
             TableLayout diversionDetailsTableLayout = new TableLayout(getActivity());
             diversionDetailsTableLayout.setStretchAllColumns(true);
             {
@@ -261,12 +261,29 @@ public class EVDivertFragment extends Fragment {
                 minThresholdRow.addView(minThresholdValue);
                 diversionDetailsTableLayout.addView(minThresholdRow);
             }
-            mDateTableLayout.addView(diversionDetailsTableLayout);
+            mPropertiesTableLayout.addView(diversionDetailsTableLayout);
 
             // Month & Day buttons
             TableLayout buttonTableLayout = new TableLayout(getActivity());
             buttonTableLayout.setStretchAllColumns(true);
             {
+                TableRow propertyButtons = new TableRow(getActivity());
+                Button propertyButton = new Button(getActivity());
+                propertyButton.setText("Hide EV divert properties");
+                propertyButton.setOnClickListener(v -> {
+                    propertyButton.setText("Show EV divert properties");
+                    if (diversionDetailsTableLayout.getVisibility() == View.VISIBLE) {
+                        diversionDetailsTableLayout.setVisibility(View.GONE);
+                    }
+                    else {
+                        propertyButton.setText("Hide EV divert properties");
+                        diversionDetailsTableLayout.setVisibility(View.VISIBLE);
+                    }
+                });
+
+                propertyButtons.addView(propertyButton);
+                buttonTableLayout.addView(propertyButtons);
+
                 TableRow buttons = new TableRow(getActivity());
                 Button daysMonthsButton = new Button(getActivity());
                 daysMonthsButton.setText(R.string.show_days_months);
@@ -293,79 +310,80 @@ public class EVDivertFragment extends Fragment {
 
                 buttons.addView(daysMonthsButton);
                 buttonTableLayout.addView(buttons);
-                mDateTableLayout.addView(buttonTableLayout);
+                mPropertiesTableLayout.addView(buttonTableLayout);
 
-                // Add a grid for the days/months that the Load shift applies to
-                {
-                    TableRow gridRow = new TableRow(getActivity());
-                    List<String> gridItems = Arrays.asList(
-                            "Mon", "Jan", "Jul",
-                            "Tue", "Feb", "Aug",
-                            "Wed", "Mar", "Sep",
-                            "Thu", "Apr", "Oct",
-                            "Fri", "May", "Nov",
-                            "Sat", "Jun", "Dec",
-                            "Sun");
-                    int colNo = 0;
-                    int rowNo = 0;
-                    for (String title : gridItems) {
-                        CheckBox cb = new CheckBox(getActivity());
-                        cb.setPadding(0,25,0,25);
-                        cb.setText(title);
-                        switch (colNo) {
-                            case 0:
-                                cb.setChecked(mEVDivert.getDays().ints.contains(rowNo));
-                                Integer finalRowNo = rowNo;
-                                cb.setOnClickListener(v -> {
-                                    if (cb.isChecked()) {
-                                        if (!mEVDivert.getDays().ints.contains(finalRowNo))
-                                            mEVDivert.getDays().ints.add(finalRowNo);
-                                    }
-                                    else
-                                        mEVDivert.getDays().ints.remove(finalRowNo);
-                                    ((EVDivertActivity) requireActivity()).updateEVDivertAtIndex(mEVDivert, mEVDivertIndex, 0);
-                                    ((EVDivertActivity) requireActivity()).setSaveNeeded(true);
-                                });
-                                break;
-                            case 1:
-                                cb.setChecked(mEVDivert.getMonths().months.contains(rowNo + 1));
-                                Integer finalMonthCol1No = rowNo;
-                                cb.setOnClickListener(v -> {
-                                    if (cb.isChecked()) {
-                                        if (!mEVDivert.getMonths().months.contains(finalMonthCol1No))
-                                            mEVDivert.getMonths().months.add(finalMonthCol1No);
-                                    }
-                                    else
-                                        mEVDivert.getMonths().months.remove(finalMonthCol1No);
-                                    ((EVDivertActivity) requireActivity()).updateEVDivertAtIndex(mEVDivert, mEVDivertIndex, 0);
-                                    ((EVDivertActivity) requireActivity()).setSaveNeeded(true);
-                                });
-                                break;
-                            case 2:
-                                cb.setChecked(mEVDivert.getMonths().months.contains(rowNo + 7));
-                                Integer finalMonthCol2No = rowNo + 7;
-                                cb.setOnClickListener(v -> {
-                                    if (cb.isChecked()) {
-                                        if (!mEVDivert.getMonths().months.contains(finalMonthCol2No))
-                                            mEVDivert.getMonths().months.add(finalMonthCol2No);
-                                    }
-                                    else
-                                        mEVDivert.getMonths().months.remove(finalMonthCol2No);
-                                    ((EVDivertActivity) requireActivity()).updateEVDivertAtIndex(mEVDivert, mEVDivertIndex, 0);
-                                    ((EVDivertActivity) requireActivity()).setSaveNeeded(true);
-                                });
-                                break;
-                        }
-                        cb.setEnabled(mEdit);
-                        mEditFields.add(cb);
-                        colNo++;
-                        gridRow.addView(cb);
-                        if (colNo == 3 || rowNo == 6) {
-                            colNo = 0;
-                            rowNo++;
-                            mApplicableGrid.addView(gridRow);
-                            gridRow = new TableRow(getActivity());
-                        }
+            }
+
+            // Add a grid for the days/months that the Load shift applies to
+            {
+                TableRow gridRow = new TableRow(getActivity());
+                List<String> gridItems = Arrays.asList(
+                        "Mon", "Jan", "Jul",
+                        "Tue", "Feb", "Aug",
+                        "Wed", "Mar", "Sep",
+                        "Thu", "Apr", "Oct",
+                        "Fri", "May", "Nov",
+                        "Sat", "Jun", "Dec",
+                        "Sun");
+                int colNo = 0;
+                int rowNo = 0;
+                for (String title : gridItems) {
+                    CheckBox cb = new CheckBox(getActivity());
+                    cb.setPadding(0,25,0,25);
+                    cb.setText(title);
+                    switch (colNo) {
+                        case 0:
+                            cb.setChecked(mEVDivert.getDays().ints.contains(rowNo));
+                            Integer finalRowNo = rowNo;
+                            cb.setOnClickListener(v -> {
+                                if (cb.isChecked()) {
+                                    if (!mEVDivert.getDays().ints.contains(finalRowNo))
+                                        mEVDivert.getDays().ints.add(finalRowNo);
+                                }
+                                else
+                                    mEVDivert.getDays().ints.remove(finalRowNo);
+                                ((EVDivertActivity) requireActivity()).updateEVDivertAtIndex(mEVDivert, mEVDivertIndex, 0);
+                                ((EVDivertActivity) requireActivity()).setSaveNeeded(true);
+                            });
+                            break;
+                        case 1:
+                            cb.setChecked(mEVDivert.getMonths().months.contains(rowNo + 1));
+                            Integer finalMonthCol1No = rowNo;
+                            cb.setOnClickListener(v -> {
+                                if (cb.isChecked()) {
+                                    if (!mEVDivert.getMonths().months.contains(finalMonthCol1No))
+                                        mEVDivert.getMonths().months.add(finalMonthCol1No);
+                                }
+                                else
+                                    mEVDivert.getMonths().months.remove(finalMonthCol1No);
+                                ((EVDivertActivity) requireActivity()).updateEVDivertAtIndex(mEVDivert, mEVDivertIndex, 0);
+                                ((EVDivertActivity) requireActivity()).setSaveNeeded(true);
+                            });
+                            break;
+                        case 2:
+                            cb.setChecked(mEVDivert.getMonths().months.contains(rowNo + 7));
+                            Integer finalMonthCol2No = rowNo + 7;
+                            cb.setOnClickListener(v -> {
+                                if (cb.isChecked()) {
+                                    if (!mEVDivert.getMonths().months.contains(finalMonthCol2No))
+                                        mEVDivert.getMonths().months.add(finalMonthCol2No);
+                                }
+                                else
+                                    mEVDivert.getMonths().months.remove(finalMonthCol2No);
+                                ((EVDivertActivity) requireActivity()).updateEVDivertAtIndex(mEVDivert, mEVDivertIndex, 0);
+                                ((EVDivertActivity) requireActivity()).setSaveNeeded(true);
+                            });
+                            break;
+                    }
+                    cb.setEnabled(mEdit);
+                    mEditFields.add(cb);
+                    colNo++;
+                    gridRow.addView(cb);
+                    if (colNo == 3 || rowNo == 6) {
+                        colNo = 0;
+                        rowNo++;
+                        mApplicableGrid.addView(gridRow);
+                        gridRow = new TableRow(getActivity());
                     }
                 }
             }
