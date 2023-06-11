@@ -56,6 +56,7 @@ import com.github.mikephil.charting.data.PieDataSet;
 import com.github.mikephil.charting.data.PieEntry;
 import com.github.mikephil.charting.formatter.PercentFormatter;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.textview.MaterialTextView;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.SimulatorLauncher;
@@ -550,12 +551,10 @@ public class ScenarioOverview extends Fragment {
             }
 
             TableRow tableRow = new TableRow(getActivity());
-            TextView a = new TextView(getActivity());
+            MaterialTextView a = new MaterialTextView(getActivity());
             if (mEdit) {
                 // CREATE TABLE ROWS
                 a.setText(R.string.UsageName);
-//                a.setMinimumHeight(80);
-//                a.setHeight(80);
                 a.setPadding(10,25, 0, 25);
                 EditText b = new EditText(getActivity());
                 b.setText(mScenario.getScenarioName());
@@ -578,8 +577,6 @@ public class ScenarioOverview extends Fragment {
                         ((ScenarioActivity) requireActivity()).setSaveNeeded(true);
                     }
                 });
-//                a.setLayoutParams(scenarioParams);
-//                b.setPadding(20,20,20,20);
                 tableRow.addView(a);
                 tableRow.addView(b);
                 mTableLayout.addView(tableRow);
@@ -600,27 +597,73 @@ public class ScenarioOverview extends Fragment {
                     b.setText(R.string.BestSupplier);
                 }
                 a.setLayoutParams(scenarioParams);
+                a.setPadding(0,20,0,20);
                 b.setLayoutParams(scenarioParams);
+                b.setPadding(0,20,0,20);
                 tableRow.addView(a);
                 tableRow.addView(b);
                 mTableLayout.addView(tableRow);
 
                 if (!(null == mSimKPIs)) {
                     tableRow = new TableRow(getActivity());
-                    PieChart pc = getPieChart("Self Consume", mSimKPIs.sold, "Sold", mSimKPIs.generated);
-                    tableRow.addView(pc);
-                    PieChart pc2 = getPieChart("Self supplied", mSimKPIs.bought, "Bought", mSimKPIs.totalLoad);
-                    tableRow.addView(pc2);
+                    if (mSimKPIs.generated > 0) {
+                        Map<String, Double> pieMap = new HashMap<>();
+                        pieMap.put("Self Consume", mSimKPIs.generated - mSimKPIs.sold);
+                        pieMap.put("Sold", mSimKPIs.sold);
+                        PieChart pc = getPieChart("", pieMap, true);
+                        tableRow.addView(pc);
+                        pieMap = new HashMap<>();
+                        pieMap.put("Self supplied", mSimKPIs.totalLoad - mSimKPIs.bought);
+                        pieMap.put("Sold", mSimKPIs.bought);
+                        PieChart pc2 = getPieChart("", pieMap, true);
+                        tableRow.addView(pc2);
+                    }
+                    else {
+                        MaterialTextView noGen = new MaterialTextView(getActivity());
+                        noGen.setText(R.string.No_generation);
+                        noGen.setPadding(0,20,0,20);
+                        tableRow.addView(noGen);
+                        MaterialTextView noSelf = new MaterialTextView(getActivity());
+                        noSelf.setText(R.string.purchased_100);
+                        noSelf.setPadding(0,20,0,20);
+                        tableRow.addView(noSelf);
+                    }
                     mTableLayout.addView(tableRow);
+
+                    tableRow = new TableRow(getActivity());
+                    Map<String, Double> pieMap = new HashMap<>();
+                    pieMap.put("\uD83C\uDFE0", mSimKPIs.house);
+                    pieMap.put("H2O", mSimKPIs.h20);
+                    pieMap.put("EV", mSimKPIs.ev);
+                    PieChart pc = getPieChart("Load", pieMap, false);
+                    tableRow.addView(pc);
+                    if (mSimKPIs.generated > 0) {
+                        pieMap = new HashMap<>();
+                        pieMap.put("EV", mSimKPIs.evDiv);
+                        pieMap.put("H2O", mSimKPIs.h2oDiv);
+                        pieMap.put("$$", mSimKPIs.sold);
+                        pieMap.put("\uD83C\uDFE0", mSimKPIs.pvToLoad);
+                        pieMap.put("\uD83D\uDD0B", mSimKPIs.pvToCharge);
+                        PieChart pc2 = getPieChart("PV", pieMap, false);
+                        tableRow.addView(pc2);
+                    }
+                    else {
+                        MaterialTextView noGen = new MaterialTextView(getActivity());
+                        noGen.setText("");
+                        noGen.setPadding(0,20,0,20);
+                        tableRow.addView(noGen);
+                    }
+                    mTableLayout.addView(tableRow);
+
                 }
             }
         }
     }
 
-    private PieChart getPieChart(String difference, double diff, String total, double tot) {
+    private PieChart getPieChart(String title, Map<String, Double> pieMap, boolean showPercent) {
         PieChart pieChart = new PieChart(getActivity());
 
-        pieChart.getDescription().setEnabled(false);
+        pieChart.getDescription().setEnabled(true);
         pieChart.setRotationEnabled(true);
         pieChart.setDragDecelerationFrictionCoef(0.9f);
         pieChart.setRotationAngle(270);
@@ -628,11 +671,7 @@ public class ScenarioOverview extends Fragment {
         pieChart.setHoleColor(Color.parseColor("#000000"));
 
         ArrayList<PieEntry> pieEntries = new ArrayList<>();
-//        String label = "Cost/kWh";
 
-        Map<String, Double> pieMap = new HashMap<>();
-        pieMap.put(difference, tot - diff);
-        pieMap.put(total, diff);
         ArrayList<Integer> colors = new ArrayList<>();
         colors.add(Color.parseColor("#304567"));
         colors.add(Color.parseColor("#309967"));
@@ -649,16 +688,22 @@ public class ScenarioOverview extends Fragment {
         pieDataSet.setValueTextSize(12f);
         pieDataSet.setColors(colors);
         PieData pieData = new PieData(pieDataSet);
-        pieData.setDrawValues(true);
+
+        pieData.setDrawValues(showPercent);
         pieData.setValueFormatter(new PercentFormatter(pieChart));
         pieChart.setData(pieData);
         pieChart.setUsePercentValues(true);
         pieChart.setDrawEntryLabels(false);
+
         Legend legend = pieChart.getLegend();
 //        int color = Color.getColor("?android:textColorPrimary");
         int color = 0;
         if (!(null == getContext())) color = ContextCompat.getColor(getContext(), R.color.colorPrimaryDark);
         legend.setTextColor(color);
+
+        pieChart.getDescription().setText(title);
+        pieChart.getDescription().setTextSize(12f);
+        pieChart.getDescription().setTextColor(color);
         pieChart.invalidate();
         pieChart.setMinimumHeight(500);
         return pieChart;

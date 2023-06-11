@@ -28,4 +28,15 @@ public class SimKPIs {
     @ColumnInfo(name= "load") public double totalLoad = 0D;
     @ColumnInfo(name= "bought") public double bought = 0D;
 
+    // PV distribution
+    @ColumnInfo(name="evDiv") public double evDiv = 0D;
+    @ColumnInfo(name="h2oDiv") public double h2oDiv = 0D;
+    @ColumnInfo(name="pvToLoad") public double pvToLoad = 0D;
+    @ColumnInfo(name="pvToCharge") public double pvToCharge = 0D;
+
+    // Load breakdown
+    @ColumnInfo(name="house") public double house = 0D;
+    @ColumnInfo(name="h20") public double h20 = 0D;
+    @ColumnInfo(name="EV") public double ev = 0D;
+
 }

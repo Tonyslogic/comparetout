@@ -174,4 +174,6 @@
     <string name="daily_max_diversion">Daily max diversion (kWh)</string>
     <string name="ev_diversion_priority">EV diversion first</string>
     <string name="diversion_threshold">Minimum kW to divert</string>
+    <string name="No_generation">No generation</string>
+    <string name="purchased_100">Purchased 100%</string>
 </resources>

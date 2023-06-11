@@ -632,7 +632,9 @@ public abstract class ScenarioDAO {
         deleteOrphanLoadProfiles();
     }
 
-    @Query("SELECT sum(pv) AS gen, SUM(Feed) AS sold, SUM(load) + SUM(immersionLoad) + SUM(directEVcharge) AS load, SUM(Buy) AS bought " +
+    @Query("SELECT sum(pv) AS gen, SUM(Feed) AS sold, SUM(load) + SUM(immersionLoad) + SUM(directEVcharge) AS load, SUM(Buy) AS bought, " +
+            "sum(kWHDivToEV) AS evDiv, sum(kWHDivToWater) AS h2oDiv, sum(pvToLoad) AS pvToLoad, sum(pvToCharge) AS pvToCharge, " +
+            "sum(load) AS house, sum(immersionLoad) AS h20, sum(directEVcharge) AS EV " +
             "FROM scenariosimulationdata WHERE scenarioID = :scenarioID")
     public abstract SimKPIs getSimKPIsForScenario(Long scenarioID);
 
