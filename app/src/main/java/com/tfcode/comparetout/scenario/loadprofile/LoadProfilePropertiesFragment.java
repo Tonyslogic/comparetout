@@ -48,6 +48,7 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
+import com.google.android.material.textview.MaterialTextView;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -227,162 +228,180 @@ public class LoadProfilePropertiesFragment extends Fragment {
         planParams.topMargin = 2;
         planParams.rightMargin = 2;
 
-        // CREATE TABLE ROWS
-        TableRow tableRow = new TableRow(getActivity());
-        TextView a = new TextView(getActivity());
-        a.setText(R.string.DistributionSource);
+        if (!(null == getActivity())) {
+
+            // CREATE TABLE ROWS
+            TableRow tableRow = new TableRow(getActivity());
+            MaterialTextView a = new MaterialTextView(getActivity());
+            a.setText(R.string.DistributionSource);
 //        a.setMinimumHeight(80);
 //        a.setHeight(80);
-        a.setPadding(10,25, 0, 25);
-        Spinner spinner = new Spinner(getActivity());
-        ArrayList<String> spinnerContent = new ArrayList<>();
-        spinnerContent.add("Custom");
-        spinnerContent.addAll(Arrays.asList(StandardLoadProfiles.standardLoadProfiles));
+            a.setPadding(10, 25, 0, 25);
+            Spinner spinner = new Spinner(getActivity());
+            ArrayList<String> spinnerContent = new ArrayList<>();
+            spinnerContent.add("Custom");
+            spinnerContent.addAll(Arrays.asList(StandardLoadProfiles.standardLoadProfiles));
 //        {"SLP 24hr Urban", "SLP 24hr Rural", "SLP Night saver Urban", "SLP Night saver Rural", "SLP Smart Urban", "SLP Smart Rural"};
-        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, spinnerContent);
-        spinner.setAdapter(spinnerAdapter);
-        spinner.setEnabled(mEdit);
-        int index = spinnerContent.indexOf(mLoadProfile.getDistributionSource());
-        spinner.setSelection(index);
+            ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, spinnerContent);
+            spinner.setAdapter(spinnerAdapter);
+            spinner.setEnabled(mEdit);
+            int index = spinnerContent.indexOf(mLoadProfile.getDistributionSource());
+            spinner.setSelection(index);
 
-        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                String loadProfileJsonString = null;
-                switch (position) {
-                    case 0: break;
-                    case 1: loadProfileJsonString = StandardLoadProfiles.SLP_24hr_urban; break;
-                    case 2: loadProfileJsonString = StandardLoadProfiles.SLP_24hr_rural; break;
-                    case 3: loadProfileJsonString = StandardLoadProfiles.SLP_NightSaver_urban; break;
-                    case 4: loadProfileJsonString = StandardLoadProfiles.SLP_NightSaver_rural; break;
-                    case 5: loadProfileJsonString = StandardLoadProfiles.SLP_Smart_urban; break;
-                    case 6: loadProfileJsonString = StandardLoadProfiles.SLP_Smart_rural; break;
+            spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                @Override
+                public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                    String loadProfileJsonString = null;
+                    switch (position) {
+                        case 0:
+                            break;
+                        case 1:
+                            loadProfileJsonString = StandardLoadProfiles.SLP_24hr_urban;
+                            break;
+                        case 2:
+                            loadProfileJsonString = StandardLoadProfiles.SLP_24hr_rural;
+                            break;
+                        case 3:
+                            loadProfileJsonString = StandardLoadProfiles.SLP_NightSaver_urban;
+                            break;
+                        case 4:
+                            loadProfileJsonString = StandardLoadProfiles.SLP_NightSaver_rural;
+                            break;
+                        case 5:
+                            loadProfileJsonString = StandardLoadProfiles.SLP_Smart_urban;
+                            break;
+                        case 6:
+                            loadProfileJsonString = StandardLoadProfiles.SLP_Smart_rural;
+                            break;
+                    }
+                    if (!(null == loadProfileJsonString)) {
+                        Type type = new TypeToken<LoadProfileJson>() {
+                        }.getType();
+                        LoadProfileJson lpj = new Gson().fromJson(loadProfileJsonString, type);
+                        LoadProfile slProfile = JsonTools.createLoadProfile(lpj);
+                        mLoadProfile.setHourlyDist(slProfile.getHourlyDist());
+                        mLoadProfile.setDowDist(slProfile.getDowDist());
+                        mLoadProfile.setMonthlyDist(slProfile.getMonthlyDist());
+                        mLoadProfile.setDistributionSource(spinnerContent.get(position));
+                        if (mEdit) updateMasterCopy();
+                    }
                 }
-                if (!(null == loadProfileJsonString)) {
-                    Type type = new TypeToken<LoadProfileJson>() {}.getType();
-                    LoadProfileJson lpj = new Gson().fromJson(loadProfileJsonString, type);
-                    LoadProfile slProfile = JsonTools.createLoadProfile(lpj);
-                    mLoadProfile.setHourlyDist(slProfile.getHourlyDist());
-                    mLoadProfile.setDowDist(slProfile.getDowDist());
-                    mLoadProfile.setMonthlyDist(slProfile.getMonthlyDist());
-                    mLoadProfile.setDistributionSource(spinnerContent.get(position));
-                    if (mEdit) updateMasterCopy();
-                }
-            }
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
-                // TODO Auto-generated method stub
-            }
-        });
-        spinner.setPadding(0, 25, 0, 25);
-        tableRow.addView(a);
-        tableRow.addView(spinner);
-        mTableLayout.addView(tableRow);
-        mEditFields.add(spinner);
 
-        tableRow = new TableRow(getActivity());
-        a = new TextView(getActivity());
-        a.setText(R.string.AnnualUsage);
+                @Override
+                public void onNothingSelected(AdapterView<?> parent) {
+                    // TODO Auto-generated method stub
+                }
+            });
+            spinner.setPadding(0, 25, 0, 25);
+            tableRow.addView(a);
+            tableRow.addView(spinner);
+            mTableLayout.addView(tableRow);
+            mEditFields.add(spinner);
+
+            tableRow = new TableRow(getActivity());
+            a = new MaterialTextView(getActivity());
+            a.setText(R.string.AnnualUsage);
 //        a.setMinimumHeight(80);
 //        a.setHeight(80);
-        a.setPadding(10,25, 0, 25);
-        EditText b = new EditText(getActivity());
-        b.setText(String.format("%s", mLoadProfile.getAnnualUsage()));
-        b.setEnabled(mEdit);
-        b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        b.addTextChangedListener(new AbstractTextWatcher() {
-            @Override
-            public void afterTextChanged(Editable s) {
-                mLoadProfile.setAnnualUsage(getDoubleOrZero(s));
-                System.out.println("Annual usage changed to : " + mLoadProfile.getAnnualUsage());
-                ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
-            }
-        });
-//        a.setLayoutParams(planParams);
-        b.setPadding(0, 25, 0, 25);
-        tableRow.addView(a);
-        tableRow.addView(b);
-        mTableLayout.addView(tableRow);
-        mEditFields.add(b);
-
-        tableRow = new TableRow(getActivity());
-        a = new TextView(getActivity());
-        a.setText(R.string.HourlyBaseLoad);
-//        a.setMinimumHeight(80);
-//        a.setHeight(80);
-        a.setPadding(10,25, 0, 25);
-        b = new EditText(getActivity());
-        b.setEnabled(mEdit);
-        b.setText(String.format("%s", mLoadProfile.getHourlyBaseLoad()));
-        b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        b.addTextChangedListener(new AbstractTextWatcher() {
-            @Override
-            public void afterTextChanged(Editable s) {
-                try {
-                    mLoadProfile.setHourlyBaseLoad(getDoubleOrZero(s));
-                    System.out.println("Base load changed to : " + mLoadProfile.getHourlyBaseLoad());
+            a.setPadding(10, 25, 0, 25);
+            EditText b = new EditText(getActivity());
+            b.setText(String.format("%s", mLoadProfile.getAnnualUsage()));
+            b.setEnabled(mEdit);
+            b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+            b.addTextChangedListener(new AbstractTextWatcher() {
+                @Override
+                public void afterTextChanged(Editable s) {
+                    mLoadProfile.setAnnualUsage(getDoubleOrZero(s));
+                    System.out.println("Annual usage changed to : " + mLoadProfile.getAnnualUsage());
                     ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
-                } catch (NumberFormatException nfe) {
-                    nfe.printStackTrace();
                 }
-            }
-        });
+            });
 //        a.setLayoutParams(planParams);
-        b.setPadding(0, 25, 0, 25);
-        tableRow.addView(a);
-        tableRow.addView(b);
-        mTableLayout.addView(tableRow);
-        mEditFields.add(b);
+            b.setPadding(0, 25, 0, 25);
+            tableRow.addView(a);
+            tableRow.addView(b);
+            mTableLayout.addView(tableRow);
+            mEditFields.add(b);
 
-        tableRow = new TableRow(getActivity());
-        a = new TextView(getActivity());
-        a.setText(R.string.GridImportMax);
+            tableRow = new TableRow(getActivity());
+            a = new MaterialTextView(getActivity());
+            a.setText(R.string.HourlyBaseLoad);
 //        a.setMinimumHeight(80);
 //        a.setHeight(80);
-        a.setPadding(10,25, 0, 25);
-        b = new EditText(getActivity());
-        b.setEnabled(mEdit);
-        b.setText(String.format("%s", mLoadProfile.getGridImportMax()));
-        b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        b.addTextChangedListener(new AbstractTextWatcher() {
-            @Override
-            public void afterTextChanged(Editable s) {
-                mLoadProfile.setGridImportMax(getDoubleOrZero(s));
-                System.out.println("Max import changed to : " + mLoadProfile.getAnnualUsage());
-                ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
-            }
-        });
+            a.setPadding(10, 25, 0, 25);
+            b = new EditText(getActivity());
+            b.setEnabled(mEdit);
+            b.setText(String.format("%s", mLoadProfile.getHourlyBaseLoad()));
+            b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+            b.addTextChangedListener(new AbstractTextWatcher() {
+                @Override
+                public void afterTextChanged(Editable s) {
+                    try {
+                        mLoadProfile.setHourlyBaseLoad(getDoubleOrZero(s));
+                        System.out.println("Base load changed to : " + mLoadProfile.getHourlyBaseLoad());
+                        ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
+                    } catch (NumberFormatException nfe) {
+                        nfe.printStackTrace();
+                    }
+                }
+            });
 //        a.setLayoutParams(planParams);
-        b.setPadding(0, 25, 0, 25);
-        tableRow.addView(a);
-        tableRow.addView(b);
-        mTableLayout.addView(tableRow);
-        mEditFields.add(b);
+            b.setPadding(0, 25, 0, 25);
+            tableRow.addView(a);
+            tableRow.addView(b);
+            mTableLayout.addView(tableRow);
+            mEditFields.add(b);
 
-        tableRow = new TableRow(getActivity());
-        a = new TextView(getActivity());
-        a.setText(R.string.GridExportMax);
+            tableRow = new TableRow(getActivity());
+            a = new MaterialTextView(getActivity());
+            a.setText(R.string.GridImportMax);
 //        a.setMinimumHeight(80);
 //        a.setHeight(80);
-        a.setPadding(10,25, 0, 25);
-        b = new EditText(getActivity());
-        b.setEnabled(mEdit);
-        b.setText(String.format("%s", mLoadProfile.getGridExportMax()));
-        b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        b.addTextChangedListener(new AbstractTextWatcher() {
-            @Override
-            public void afterTextChanged(Editable s) {
-                mLoadProfile.setGridExportMax(getDoubleOrZero(s));
-                System.out.println("Max export changed to : " + mLoadProfile.getAnnualUsage());
-                if (mEdit) ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
-            }
-        });
+            a.setPadding(10, 25, 0, 25);
+            b = new EditText(getActivity());
+            b.setEnabled(mEdit);
+            b.setText(String.format("%s", mLoadProfile.getGridImportMax()));
+            b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+            b.addTextChangedListener(new AbstractTextWatcher() {
+                @Override
+                public void afterTextChanged(Editable s) {
+                    mLoadProfile.setGridImportMax(getDoubleOrZero(s));
+                    System.out.println("Max import changed to : " + mLoadProfile.getAnnualUsage());
+                    ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
+                }
+            });
 //        a.setLayoutParams(planParams);
-        b.setPadding(0, 25, 0, 25);
-        tableRow.addView(a);
-        tableRow.addView(b);
-        mTableLayout.addView(tableRow);
-        mEditFields.add(b);
+            b.setPadding(0, 25, 0, 25);
+            tableRow.addView(a);
+            tableRow.addView(b);
+            mTableLayout.addView(tableRow);
+            mEditFields.add(b);
+
+            tableRow = new TableRow(getActivity());
+            a = new MaterialTextView(getActivity());
+            a.setText(R.string.GridExportMax);
+//        a.setMinimumHeight(80);
+//        a.setHeight(80);
+            a.setPadding(10, 25, 0, 25);
+            b = new EditText(getActivity());
+            b.setEnabled(mEdit);
+            b.setText(String.format("%s", mLoadProfile.getGridExportMax()));
+            b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+            b.addTextChangedListener(new AbstractTextWatcher() {
+                @Override
+                public void afterTextChanged(Editable s) {
+                    mLoadProfile.setGridExportMax(getDoubleOrZero(s));
+                    System.out.println("Max export changed to : " + mLoadProfile.getAnnualUsage());
+                    if (mEdit) ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
+                }
+            });
+//        a.setLayoutParams(planParams);
+            b.setPadding(0, 25, 0, 25);
+            tableRow.addView(a);
+            tableRow.addView(b);
+            mTableLayout.addView(tableRow);
+            mEditFields.add(b);
+        }
     }
 
     public void setEditMode(boolean ed) {
