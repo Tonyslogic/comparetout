@@ -21,16 +21,17 @@ import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.InputType;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.TableLayout;
 import android.widget.TableRow;
-import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -38,6 +39,8 @@ import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
+import com.google.android.material.checkbox.MaterialCheckBox;
+import com.google.android.material.textview.MaterialTextView;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.ComparisonUIViewModel;
@@ -202,194 +205,230 @@ public class PricePlanEditFragment extends Fragment {
         textParams.topMargin = 2;
         textParams.rightMargin = 2;
 
-        // CREATE TABLE ROWS
-        TableRow tableRow = new TableRow(getActivity());
-        TextView a = new TextView(getActivity());
-        a.setText(R.string.Supplier);
-        a.setMinimumHeight(80);
-        a.setHeight(80);
-        EditText b = new EditText(getActivity());
-        b.setText(mPricePlan.getSupplier());
-        b.setEnabled(mEdit);
-        b.addTextChangedListener(new AbstractTextWatcher() {
-            @Override
-            public void afterTextChanged(Editable s) {
-                System.out.println("Plan supplier edit lost focus");
-                mPricePlan.setSupplier(s.toString());
-                PricePlanActivity ppa = ((PricePlanActivity)requireActivity());
-                ppa.updateFocusedPlan(JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
-                ppa.setSaveNeeded(true);
-            }
-        });
-        a.setLayoutParams(planParams);
-//        b.setLayoutParams(planParams);
-        tableRow.addView(a);
-        tableRow.addView(b);
-        mTableLayout.addView(tableRow);
-        mEditFields.add(b);
-
-        tableRow = new TableRow(getActivity());
-        a = new TextView(getActivity());
-        a.setText(R.string.Plan);
-        a.setMinimumHeight(80);
-        a.setHeight(80);
-        b = new EditText(getActivity());
-        b.setEnabled(mEdit);
-        b.setText(mPricePlan.getPlanName());
-        b.addTextChangedListener(new AbstractTextWatcher() {
-            @Override
-            public void afterTextChanged(Editable s) {
-                System.out.println("Plan name edit lost focus");
-                mPricePlan.setPlanName( s.toString());
-                PricePlanActivity ppa = ((PricePlanActivity)requireActivity());
-                ppa.updateFocusedPlan(JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
-                if (!(mPricePlans == null)) {
-                    int nameOK = mPricePlan.checkNameUsageIn(mPricePlans);
-                    if (nameOK != PricePlan.VALID_PLAN) ppa.setPlanValidity(nameOK);
-                    else {
-                        int validity = mPricePlan.validatePlan(mDayRates);
-                        ppa.setPlanValidity(validity);
-                    }
+        if (!(null == getActivity())) {
+            // CREATE TABLE ROWS
+            TableRow tableRow = new TableRow(getActivity());
+            MaterialTextView a = new MaterialTextView(getActivity());
+            a.setText(R.string.Supplier);
+            a.setMinimumHeight(80);
+            a.setHeight(80);
+            EditText b = new EditText(getActivity());
+            b.setText(mPricePlan.getSupplier());
+            b.setEnabled(mEdit);
+            b.setPadding(0, 25, 0, 25);
+            b.addTextChangedListener(new AbstractTextWatcher() {
+                @Override
+                public void afterTextChanged(Editable s) {
+                    System.out.println("Plan supplier edit lost focus");
+                    mPricePlan.setSupplier(s.toString());
+                    PricePlanActivity ppa = ((PricePlanActivity) requireActivity());
+                    ppa.updateFocusedPlan(JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
+                    ppa.setSaveNeeded(true);
                 }
-                else System.out.println("mPricePlans is null ==> need another way to get the list of plans");
-                ppa.setSaveNeeded(true);
-            }
-        });
-        a.setLayoutParams(planParams);
-//        b.setLayoutParams(textParams);
-        tableRow.addView(a);
-        tableRow.addView(b);
-        mTableLayout.addView(tableRow);
-        mEditFields.add(b);
+            });
+            a.setLayoutParams(planParams);
+//        b.setLayoutParams(planParams);
+            tableRow.addView(a);
+            tableRow.addView(b);
+            mTableLayout.addView(tableRow);
+            mEditFields.add(b);
 
-        tableRow = new TableRow(getActivity());
-        a = new TextView(getActivity());
-        a.setText(R.string.FeedInRate);
-        a.setMinimumHeight(80);
-        a.setHeight(80);
-        b = new EditText(getActivity());
-        b.setEnabled(mEdit);
-        b.setText(String.format("%s", mPricePlan.getFeed()));
-        b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        b.addTextChangedListener(new AbstractTextWatcher() {
-            @Override
-            public void afterTextChanged(Editable s) {
-                System.out.println("Feed edit lost focus");
-                mPricePlan.setFeed( getDoubleOrZero(s));
-                ((PricePlanActivity)requireActivity()).updateFocusedPlan(
-                        JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
-                ((PricePlanActivity)requireActivity()).setSaveNeeded(true);
-            }
-        });
-        a.setLayoutParams(planParams);
+            tableRow = new TableRow(getActivity());
+            a = new MaterialTextView(getActivity());
+            a.setText(R.string.Plan);
+            a.setMinimumHeight(80);
+            a.setHeight(80);
+            b = new EditText(getActivity());
+            b.setEnabled(mEdit);
+            b.setPadding(0, 25, 0, 25);
+            b.setText(mPricePlan.getPlanName());
+            b.addTextChangedListener(new AbstractTextWatcher() {
+                @Override
+                public void afterTextChanged(Editable s) {
+                    System.out.println("Plan name edit lost focus");
+                    mPricePlan.setPlanName(s.toString());
+                    PricePlanActivity ppa = ((PricePlanActivity) requireActivity());
+                    ppa.updateFocusedPlan(JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
+                    if (!(mPricePlans == null)) {
+                        int nameOK = mPricePlan.checkNameUsageIn(mPricePlans);
+                        if (nameOK != PricePlan.VALID_PLAN) ppa.setPlanValidity(nameOK);
+                        else {
+                            int validity = mPricePlan.validatePlan(mDayRates);
+                            ppa.setPlanValidity(validity);
+                        }
+                    } else
+                        System.out.println("mPricePlans is null ==> need another way to get the list of plans");
+                    ppa.setSaveNeeded(true);
+                }
+            });
+            a.setLayoutParams(planParams);
 //        b.setLayoutParams(textParams);
-        tableRow.addView(a);
-        tableRow.addView(b);
-        mTableLayout.addView(tableRow);
-        mEditFields.add(b);
+            tableRow.addView(a);
+            tableRow.addView(b);
+            mTableLayout.addView(tableRow);
+            mEditFields.add(b);
 
-        tableRow = new TableRow(getActivity());
-        a = new TextView(getActivity());
-        a.setText(R.string.StandingCharges);
-        a.setMinimumHeight(80);
-        a.setHeight(80);
-        b = new EditText(getActivity());
-        b.setEnabled(mEdit);
-        b.setText(String.format("%s", mPricePlan.getStandingCharges()));
-        b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        b.addTextChangedListener(new AbstractTextWatcher() {
-            @Override
-            public void afterTextChanged(Editable s) {
-                System.out.println("Standing charged edit lost focus");
-                mPricePlan.setStandingCharges( getDoubleOrZero(s));
-                ((PricePlanActivity)requireActivity()).updateFocusedPlan(
-                        JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
-                ((PricePlanActivity)requireActivity()).setSaveNeeded(true);
-            }
-        });
-        a.setLayoutParams(planParams);
+            tableRow = new TableRow(getActivity());
+            a = new MaterialTextView(getActivity());
+            a.setText(R.string.FeedInRate);
+            a.setMinimumHeight(80);
+            a.setHeight(80);
+            b = new EditText(getActivity());
+            b.setEnabled(mEdit);
+            b.setPadding(0, 25, 0, 25);
+            b.setText(String.format("%s", mPricePlan.getFeed()));
+            b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+            b.addTextChangedListener(new AbstractTextWatcher() {
+                @Override
+                public void afterTextChanged(Editable s) {
+                    System.out.println("Feed edit lost focus");
+                    mPricePlan.setFeed(getDoubleOrZero(s));
+                    ((PricePlanActivity) requireActivity()).updateFocusedPlan(
+                            JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
+                    ((PricePlanActivity) requireActivity()).setSaveNeeded(true);
+                }
+            });
+            a.setLayoutParams(planParams);
 //        b.setLayoutParams(textParams);
-        tableRow.addView(a);
-        tableRow.addView(b);
-        mTableLayout.addView(tableRow);
-        mEditFields.add(b);
+            tableRow.addView(a);
+            tableRow.addView(b);
+            mTableLayout.addView(tableRow);
+            mEditFields.add(b);
 
-        tableRow = new TableRow(getActivity());
-        a = new TextView(getActivity());
-        a.setText(R.string.SignUpBonus);
-        a.setMinimumHeight(80);
-        a.setHeight(80);
-        b = new EditText(getActivity());
-        b.setEnabled(mEdit);
-        b.setText(String.format("%s", mPricePlan.getSignUpBonus()));
-        b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        b.addTextChangedListener(new AbstractTextWatcher() {
-            @Override
-            public void afterTextChanged(Editable s) {
-                System.out.println("Bonus edit lost focus");
-                mPricePlan.setSignUpBonus(getDoubleOrZero(s));
-                ((PricePlanActivity)requireActivity()).updateFocusedPlan(
-                        JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
-                ((PricePlanActivity)requireActivity()).setSaveNeeded(true);
-            }
-        });
-        a.setLayoutParams(planParams);
+            tableRow = new TableRow(getActivity());
+            a = new MaterialTextView(getActivity());
+            a.setText(R.string.StandingCharges);
+            a.setMinimumHeight(80);
+            a.setHeight(80);
+            b = new EditText(getActivity());
+            b.setEnabled(mEdit);
+            b.setPadding(0, 25, 0, 25);
+            b.setText(String.format("%s", mPricePlan.getStandingCharges()));
+            b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+            b.addTextChangedListener(new AbstractTextWatcher() {
+                @Override
+                public void afterTextChanged(Editable s) {
+                    System.out.println("Standing charged edit lost focus");
+                    mPricePlan.setStandingCharges(getDoubleOrZero(s));
+                    ((PricePlanActivity) requireActivity()).updateFocusedPlan(
+                            JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
+                    ((PricePlanActivity) requireActivity()).setSaveNeeded(true);
+                }
+            });
+            a.setLayoutParams(planParams);
 //        b.setLayoutParams(textParams);
-        tableRow.addView(a);
-        tableRow.addView(b);
-        mTableLayout.addView(tableRow);
-        mEditFields.add(b);
+            tableRow.addView(a);
+            tableRow.addView(b);
+            mTableLayout.addView(tableRow);
+            mEditFields.add(b);
 
-        tableRow = new TableRow(getActivity());
-        a = new TextView(getActivity());
-        a.setText(R.string.LastUpdate);
-        a.setMinimumHeight(80);
-        a.setHeight(80);
-        b = new EditText(getActivity());
-        b.setEnabled(mEdit);
-        b.setText(String.format("%s", mPricePlan.getLastUpdate()));
-        b.setInputType(InputType.TYPE_CLASS_DATETIME | InputType.TYPE_DATETIME_VARIATION_DATE);
-        b.addTextChangedListener(new AbstractTextWatcher() {
-            @Override
-            public void afterTextChanged(Editable s) {
-                System.out.println("Last update edit lost focus");
-                mPricePlan.setLastUpdate(s.toString());
-                PricePlanActivity ppa = ((PricePlanActivity)requireActivity());
+            tableRow = new TableRow(getActivity());
+            a = new MaterialTextView(getActivity());
+            a.setText(R.string.SignUpBonus);
+            a.setMinimumHeight(80);
+            a.setHeight(80);
+            b = new EditText(getActivity());
+            b.setEnabled(mEdit);
+            b.setPadding(0, 25, 0, 25);
+            b.setText(String.format("%s", mPricePlan.getSignUpBonus()));
+            b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+            b.addTextChangedListener(new AbstractTextWatcher() {
+                @Override
+                public void afterTextChanged(Editable s) {
+                    System.out.println("Bonus edit lost focus");
+                    mPricePlan.setSignUpBonus(getDoubleOrZero(s));
+                    ((PricePlanActivity) requireActivity()).updateFocusedPlan(
+                            JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
+                    ((PricePlanActivity) requireActivity()).setSaveNeeded(true);
+                }
+            });
+            a.setLayoutParams(planParams);
+//        b.setLayoutParams(textParams);
+            tableRow.addView(a);
+            tableRow.addView(b);
+            mTableLayout.addView(tableRow);
+            mEditFields.add(b);
+
+            tableRow = new TableRow(getActivity());
+            a = new MaterialTextView(getActivity());
+            a.setText(R.string.LastUpdate);
+            a.setMinimumHeight(80);
+            a.setHeight(80);
+            b = new EditText(getActivity());
+            b.setEnabled(mEdit);
+            b.setPadding(0, 25, 0, 25);
+            b.setText(String.format("%s", mPricePlan.getLastUpdate()));
+            b.setInputType(InputType.TYPE_CLASS_DATETIME | InputType.TYPE_DATETIME_VARIATION_DATE);
+            b.addTextChangedListener(new AbstractTextWatcher() {
+                @Override
+                public void afterTextChanged(Editable s) {
+                    System.out.println("Last update edit lost focus");
+                    mPricePlan.setLastUpdate(s.toString());
+                    PricePlanActivity ppa = ((PricePlanActivity) requireActivity());
+                    ppa.updateFocusedPlan(JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
+                    ppa.setSaveNeeded(true);
+                }
+            });
+            a.setLayoutParams(planParams);
+//        b.setLayoutParams(textParams);
+            tableRow.addView(a);
+            tableRow.addView(b);
+            mTableLayout.addView(tableRow);
+            mEditFields.add(b);
+
+            tableRow = new TableRow(getActivity());
+            a = new MaterialTextView(getActivity());
+            a.setText(R.string.Reference);
+            a.setMinimumHeight(80);
+            a.setHeight(80);
+            b = new EditText(getActivity());
+            b.setEnabled(mEdit);
+            b.setPadding(0, 25, 0, 25);
+            b.setText(mPricePlan.getReference());
+            b.setSingleLine(false);
+            b.setImeOptions(EditorInfo.IME_FLAG_NO_ENTER_ACTION);
+            b.setHorizontallyScrolling(false);
+            b.setInputType(InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_IME_MULTI_LINE);
+            b.addTextChangedListener(new AbstractTextWatcher() {
+                @Override
+                public void afterTextChanged(Editable s) {
+                    System.out.println("Reference edit lost focus");
+                    mPricePlan.setReference(s.toString());
+                    PricePlanActivity ppa = ((PricePlanActivity) requireActivity());
+                    ppa.updateFocusedPlan(JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
+                    ppa.setSaveNeeded(true);
+                }
+            });
+            a.setLayoutParams(planParams);
+//        b.setLayoutParams(textParams);
+            tableRow.addView(a);
+            tableRow.addView(b);
+            mTableLayout.addView(tableRow);
+            mEditFields.add(b);
+
+            tableRow = new TableRow(getActivity());
+            a = new MaterialTextView(getActivity());
+            a.setText(R.string.deemed_export_calculation);
+            a.setMinimumHeight(80);
+            a.setHeight(80);
+            MaterialCheckBox cb = new MaterialCheckBox(getActivity());
+            cb.setEnabled(mEdit);
+            cb.setPadding(0, 25, 0, 25);
+            cb.setGravity(Gravity.START);
+            cb.setChecked(mPricePlan.isDeemedExport());
+            cb.setOnClickListener(v -> {
+                mPricePlan.setDeemedExport(cb.isChecked());
+                PricePlanActivity ppa = ((PricePlanActivity) requireActivity());
                 ppa.updateFocusedPlan(JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
                 ppa.setSaveNeeded(true);
-            }
-        });
-        a.setLayoutParams(planParams);
+            });
+            cb.setText(R.string.use_deemed_export);
+            a.setLayoutParams(planParams);
 //        b.setLayoutParams(textParams);
-        tableRow.addView(a);
-        tableRow.addView(b);
-        mTableLayout.addView(tableRow);
-        mEditFields.add(b);
-
-        tableRow = new TableRow(getActivity());
-        a = new TextView(getActivity());
-        a.setText(R.string.Reference);
-        a.setMinimumHeight(80);
-        a.setHeight(80);
-        b = new EditText(getActivity());
-        b.setEnabled(mEdit);
-        b.setText(mPricePlan.getReference());
-        b.setInputType(InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_IME_MULTI_LINE);
-        b.addTextChangedListener(new AbstractTextWatcher() {
-            @Override
-            public void afterTextChanged(Editable s) {
-                System.out.println("Reference edit lost focus");
-                mPricePlan.setReference(s.toString());
-                PricePlanActivity ppa = ((PricePlanActivity)requireActivity());
-                ppa.updateFocusedPlan(JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
-                ppa.setSaveNeeded(true);
-            }
-        });
-        a.setLayoutParams(planParams);
-//        b.setLayoutParams(textParams);
-        tableRow.addView(a);
-        tableRow.addView(b);
-        mTableLayout.addView(tableRow);
-        mEditFields.add(b);
+            tableRow.addView(a);
+            tableRow.addView(cb);
+            mTableLayout.addView(tableRow);
+            mEditFields.add(cb);
+        }
     }
 }

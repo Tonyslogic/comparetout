@@ -1284,4 +1284,7 @@ public abstract class ScenarioDAO {
 
         deleteOrphanEVDiverts();
     }
+
+    @Query("SELECT DISTINCT gridExportMax FROM loadprofile, scenario2loadprofile WHERE loadProfileID = loadProfileIndex AND scenarioID = :scenarioID")
+    public abstract double getGridExportMaxForScenario(long scenarioID);
 }

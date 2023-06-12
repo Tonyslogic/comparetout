@@ -88,6 +88,7 @@ public class CostingWorker extends Worker {
                     builder.setContentText("Loading data");
                     notificationManager.notify(notificationId, builder.build());
                     List<ScenarioSimulationData> scenarioData = mToutcRepository.getSimulationDataForScenario(scenarioID);
+                    double gridExportMax = mToutcRepository.getGridExportMaxForScenario(scenarioID);
                     System.out.println("Retrieved " + scenarioData.size() + " rows of simulation data for " + scenarioID);
                     if (scenarioData.size() > 0) {
                         long startTime = System.nanoTime();
@@ -127,6 +128,11 @@ public class CostingWorker extends Worker {
                             costing.setSell(sell);
                             costing.setSubTotals(subTotals);
                             double days = 365; // TODO look at the biggest & smallest dates in the sim data
+                            if (pp.isDeemedExport()) {
+                                sell = gridExportMax * 0.8148 * days * pp.getFeed();
+                                costing.setSell(sell);
+                                System.out.println("Deemed export calculation = " +  sell);
+                            }
                             net = ((buy - sell) + (pp.getStandingCharges() * 100 * (days / 365))) - (pp.getSignUpBonus() * 100);
                             costing.setNet(net);
                             // store in comparison table

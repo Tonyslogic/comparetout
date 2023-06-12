@@ -591,4 +591,8 @@ public class ToutcRepository {
         ToutcDB.databaseWriteExecutor.execute(() ->
                 scenarioDAO.linkEVDivertFromScenario(fromScenarioID, toScenarioID));
     }
+
+    public double getGridExportMaxForScenario(long scenarioID) {
+        return scenarioDAO.getGridExportMaxForScenario(scenarioID);
+    }
 }

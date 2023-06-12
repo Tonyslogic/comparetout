@@ -177,4 +177,6 @@
     <string name="No_generation">No generation</string>
     <string name="purchased_100">Purchased 100%</string>
     <string name="grid_to_battery">Grid to battery</string>
+    <string name="use_deemed_export">Use deemed export</string>
+    <string name="deemed_export_calculation">Deemed export</string>
 </resources>
