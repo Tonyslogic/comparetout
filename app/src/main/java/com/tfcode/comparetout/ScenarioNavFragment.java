@@ -23,10 +23,8 @@ import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.TypedValue;
-import android.view.GestureDetector;
 import android.view.Gravity;
 import android.view.LayoutInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
@@ -39,7 +37,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.constraintlayout.widget.ConstraintSet;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
@@ -200,7 +198,20 @@ public class ScenarioNavFragment extends Fragment {
                     c.setBackgroundColor(Color.RED);
                     d.setBackgroundColor(Color.RED);
                     if (!(null == getActivity()) && ((MainActivity) getActivity()).isSimulationPassive()) {
-                        mViewModel.deleteScenario(v.getId());
+                        AlertDialog.Builder alert = new AlertDialog.Builder(getActivity());
+                        alert.setTitle("Delete entry");
+                        alert.setMessage("Are you sure you want to delete?");
+                        alert.setPositiveButton(android.R.string.yes, (dialog, which) -> mViewModel.deleteScenario(v.getId()));
+                        alert.setNegativeButton(android.R.string.no, (dialog, which) -> {
+                            // close dialog
+                            dialog.cancel();
+                            tableRow.setBackgroundColor(0);
+                            a.setBackgroundColor(0);
+                            b.setBackgroundColor(0);
+                            c.setBackgroundColor(0);
+                            d.setBackgroundColor(0);
+                        });
+                        alert.show();
                     }
                     else {
                         if (!(null == getView())) Snackbar.make(getView(),

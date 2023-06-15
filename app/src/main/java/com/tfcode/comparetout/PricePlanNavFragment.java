@@ -16,19 +16,11 @@
 
 package com.tfcode.comparetout;
 
-import androidx.lifecycle.ViewModelProvider;
-
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-import androidx.viewpager2.widget.ViewPager2;
-
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -40,12 +32,19 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.viewpager2.widget.ViewPager2;
+
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
+import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
-import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.priceplan.PricePlanActivity;
 
 import java.util.List;
@@ -188,8 +187,23 @@ public class PricePlanNavFragment extends Fragment {
                     d.setBackgroundColor(Color.RED);
                     System.out.println("Delete: " + v.getId());
                     if (!(null == getActivity()) && ((MainActivity) getActivity()).isSimulationPassive()) {
-                        mViewModel.deletePricePlan(v.getId());
-                        mViewModel.deleteRelatedCostings(v.getId());
+                        AlertDialog.Builder alert = new AlertDialog.Builder(getActivity());
+                        alert.setTitle("Delete entry");
+                        alert.setMessage("Are you sure you want to delete?");
+                        alert.setPositiveButton(android.R.string.yes, (dialog, which) -> {
+                            mViewModel.deletePricePlan(v.getId());
+                            mViewModel.deleteRelatedCostings(v.getId());
+                        });
+                        alert.setNegativeButton(android.R.string.no, (dialog, which) -> {
+                            // close dialog
+                            dialog.cancel();
+                            tableRow.setBackgroundColor(0);
+                            a.setBackgroundColor(0);
+                            b.setBackgroundColor(0);
+                            c.setBackgroundColor(0);
+                            d.setBackgroundColor(0);
+                        });
+                        alert.show();
                     }
                     else {
                         if (!(null == getView())) Snackbar.make(getView(),
