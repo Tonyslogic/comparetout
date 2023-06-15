@@ -748,7 +748,7 @@ public class ScenarioOverview extends Fragment {
             if (!(null == mScenarioComponents) && mScenarioComponents.hwSchedules.size() > 0)
                 hasHWSchedules = true;
         if (mScenario.isHasEVDivert())
-//            if (!(null == mScenarioComponents) && mScenarioComponents.evDivert.size() > 0)
+            if (!(null == mScenarioComponents) && mScenarioComponents.evDiverts.size() > 0)
                 hasEVDivert = true;
         if (mScenario.isHasEVCharges())
             if (!(null == mScenarioComponents) && mScenarioComponents.evCharges.size() > 0)

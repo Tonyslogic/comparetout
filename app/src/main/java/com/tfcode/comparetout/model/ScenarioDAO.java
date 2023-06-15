@@ -1078,7 +1078,18 @@ public abstract class ScenarioDAO {
     public abstract  LiveData<List<Scenario2HWSchedule>> loadHWScheduleRelations();
 
     @Query("DELETE FROM scenario2hwschedule WHERE scenarioID = :scenarioID AND hwScheduleID = :hwScheduleID")
-    public abstract  void deleteHWScheduleFromScenario(Long hwScheduleID, Long scenarioID);
+    public abstract void deleteHWScheduleFromScenario1(Long hwScheduleID, Long scenarioID);
+
+    @Transaction
+    public void deleteHWScheduleFromScenario(Long hwScheduleID, Long scenarioID) {
+        deleteHWScheduleFromScenario1(hwScheduleID, scenarioID);
+        List<HWSchedule> hwSchedules = getHWSchedulesForScenarioID(scenarioID);
+        if (hwSchedules.size() == 0) {
+            Scenario scenario = getScenario(scenarioID);
+            scenario.setHasHWSchedules(false);
+            updateScenario(scenario);
+        }
+    }
 
     @Transaction
     public void saveHWScheduleForScenario(Long scenarioID, HWSchedule hwSchedule) {
