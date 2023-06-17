@@ -16,8 +16,10 @@
 
 package com.tfcode.comparetout;
 
+import android.annotation.SuppressLint;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
@@ -26,9 +28,14 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.StrictMode;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.webkit.WebView;
+import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.ProgressBar;
 
 import androidx.activity.result.ActivityResultCallback;
@@ -39,6 +46,7 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
+import androidx.webkit.WebViewAssetLoader;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 
@@ -55,6 +63,7 @@ import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.priceplan.PricePlanActivity;
 import com.tfcode.comparetout.scenario.ScenarioActivity;
+import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -81,6 +90,10 @@ public class MainActivity extends AppCompatActivity {
     private Handler mMainHandler;
     private ProgressBar mSimulationInProgressBar;
     private boolean mSimulationInProgress = false;
+
+    private WebViewAssetLoader mAssetLoader;
+    private View mPopupView;
+    private PopupWindow mHelpWindow;
 
     final ActivityResultLauncher<String> mLoadPricePlansFromFile = registerForActivityResult(new ActivityResultContracts.GetContent(),
             new ActivityResultCallback<Uri>() {
@@ -156,6 +169,7 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
+    @SuppressLint("InflateParams")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         StrictMode.setVmPolicy(new StrictMode.VmPolicy.Builder()
@@ -167,9 +181,21 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         createNotificationChannel();
 
+        mAssetLoader = new WebViewAssetLoader.Builder()
+                    .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
+                    .addPathHandler("/res/", new WebViewAssetLoader.ResourcesPathHandler(this))
+                    .build();
+
         setContentView(R.layout.activity_main);
         createSimulationFeedback();
         createProgressBar();
+
+        LayoutInflater inflater = (LayoutInflater) this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        mPopupView = inflater.inflate(R.layout.popup_help, null);
+        int width = LinearLayout.LayoutParams.WRAP_CONTENT;
+        int height = LinearLayout.LayoutParams.WRAP_CONTENT;
+        boolean focusable = true; // lets taps outside the popup also dismiss it
+        mHelpWindow = new PopupWindow(mPopupView, width, height, focusable);
 
         viewPager = findViewById(R.id.view_pager);
         viewPager.setAdapter(createCardAdapter());
@@ -196,6 +222,16 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
+        fab.setOnLongClickListener(v -> {
+            int pos = viewPager.getCurrentItem();
+            if (pos == COSTS_FRAGMENT) {
+                showHelp("https://appassets.androidplatform.net/assets/main/addcost.html");
+            }
+            if (pos == USAGE_FRAGMENT) {
+                showHelp("https://appassets.androidplatform.net/assets/main/addscenario.html");
+            }
+            return true;
+        });
 
         /*
           Enable/Disable the floating 'add' button based on the visible fragment
@@ -221,6 +257,7 @@ public class MainActivity extends AppCompatActivity {
                         }
                         break;
                 }
+                setMenuLongClick();
             }
         });
     }
@@ -252,7 +289,41 @@ public class MainActivity extends AppCompatActivity {
             mMainMenu.findItem(R.id.load).setVisible(false);
             mMainMenu.findItem(R.id.download).setVisible(false);
         }
+        setMenuLongClick();
         return true;
+    }
+
+    private void setMenuLongClick() {
+        new Handler().post(() -> {
+            final View export = findViewById(R.id.export);
+            if (export != null) {
+                export.setOnLongClickListener(v -> {
+                    int pos = viewPager.getCurrentItem();
+                    if (pos == USAGE_FRAGMENT) showHelp("https://appassets.androidplatform.net/assets/main/exportscenario.html");
+                    if (pos == COSTS_FRAGMENT) showHelp("https://appassets.androidplatform.net/assets/main/exportcosts.html");
+                    if (pos == COMPARE_FRAGMENT) showHelp("https://appassets.androidplatform.net/assets/main/exportcomparison.html");
+                    return true;
+                });
+            }
+            final View load = findViewById(R.id.load);
+            if (load != null) {
+                load.setOnLongClickListener(v -> {
+                    int pos = viewPager.getCurrentItem();
+                    if (pos == USAGE_FRAGMENT) showHelp("https://appassets.androidplatform.net/assets/main/loadscenario.html");
+                    if (pos == COSTS_FRAGMENT) showHelp("https://appassets.androidplatform.net/assets/main/loadcosts.html");
+                    return true;
+                });
+            }
+            final View download = findViewById(R.id.download);
+            if (download != null) {
+                download.setOnLongClickListener(v -> {
+                    int pos = viewPager.getCurrentItem();
+                    if (pos == USAGE_FRAGMENT) showHelp("https://appassets.androidplatform.net/assets/main/downloadscenario.html");
+                    if (pos == COSTS_FRAGMENT) showHelp("https://appassets.androidplatform.net/assets/main/downloadcosts.html");
+                    return true;
+                });
+            }
+        });
     }
 
     @Override
@@ -469,5 +540,15 @@ public class MainActivity extends AppCompatActivity {
                         }
                     }
                 });
+    }
+
+    private void showHelp(String url) {
+        mHelpWindow.setHeight((int) (getWindow().getDecorView().getHeight()*0.6));
+        mHelpWindow.setWidth((int) (getWindow().getDecorView().getWidth()));
+        mHelpWindow.showAtLocation(viewPager.getRootView(), Gravity.CENTER, 0, 0);
+        WebView webView = mPopupView.findViewById(R.id.helpWebView);
+
+        webView.setWebViewClient(new LocalContentWebViewClient(mAssetLoader));
+        webView.loadUrl(url);
     }
 }

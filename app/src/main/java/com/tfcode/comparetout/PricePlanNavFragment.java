@@ -19,6 +19,7 @@ package com.tfcode.comparetout;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.util.TypedValue;
@@ -26,8 +27,11 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.WebView;
 import android.widget.CheckBox;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
@@ -38,6 +42,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
+import androidx.webkit.WebViewAssetLoader;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
@@ -46,6 +51,7 @@ import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.priceplan.PricePlanActivity;
+import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.util.List;
 import java.util.Map;
@@ -56,6 +62,11 @@ public class PricePlanNavFragment extends Fragment {
     private TableLayout mTableLayout;
     private Map<PricePlan, List<DayRate>> mPlans;
 
+    private WebViewAssetLoader mAssetLoader;
+    private View mPopupView;
+    private PopupWindow mHelpWindow;
+    private int mOrientation = Configuration.ORIENTATION_PORTRAIT;
+
     public static PricePlanNavFragment newInstance() {
         return new PricePlanNavFragment();
     }
@@ -65,11 +76,24 @@ public class PricePlanNavFragment extends Fragment {
     public void onResume() {
         super.onResume();
         requireActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        if (!(null == getActivity())) {
+            mOrientation = getActivity().getResources().getConfiguration().orientation;
+            getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        }
+        else mOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
         updateView();
     }
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        if (!(null == getContext())) {
+            mAssetLoader = new WebViewAssetLoader.Builder()
+                    .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(getContext()))
+                    .addPathHandler("/res/", new WebViewAssetLoader.ResourcesPathHandler(getContext()))
+                    .build();
+        }
+
         mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
 //        ((MainActivity)requireActivity()).startProgressIndicator();
         mViewModel.getAllPricePlans().observe(this, plans -> {
@@ -85,6 +109,11 @@ public class PricePlanNavFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
+        mPopupView = inflater.inflate(R.layout.popup_help, container);
+        int width = LinearLayout.LayoutParams.WRAP_CONTENT;
+        int height = LinearLayout.LayoutParams.WRAP_CONTENT;
+        boolean focusable = true; // lets taps outside the popup also dismiss it
+        mHelpWindow = new PopupWindow(mPopupView, width, height, focusable);
         return inflater.inflate(R.layout.fragment_price_plan_nav, container, false);
     }
 
@@ -240,6 +269,24 @@ public class PricePlanNavFragment extends Fragment {
                     startActivity(intent);
                 });
 
+                // HELP
+                a.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/main/comparecheck.html");
+                    return true;
+                });
+                b.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/main/plannav/name.html");
+                    return true;
+                });
+                c.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/main/delete.html");
+                    return true;
+                });
+                d.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/main/copy.html");
+                    return true;
+                });
+
                 // ADD TEXTVIEW TO TABLEROW
 
                 tableRow.addView(a);
@@ -265,6 +312,22 @@ public class PricePlanNavFragment extends Fragment {
             mTableLayout.addView(help);
 
         }
+    }
+
+    private void showHelp(String url) {
+        if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
+            mHelpWindow.setHeight((int) (requireActivity().getWindow().getDecorView().getHeight()*0.6));
+            mHelpWindow.setWidth((int) (requireActivity().getWindow().getDecorView().getWidth()));
+        }
+        else {
+            mHelpWindow.setWidth((int) (requireActivity().getWindow().getDecorView().getWidth() * 0.6));
+            mHelpWindow.setHeight((int) (requireActivity().getWindow().getDecorView().getHeight()));
+        }
+        mHelpWindow.showAtLocation(mTableLayout, Gravity.CENTER, 0, 0);
+        WebView webView = mPopupView.findViewById(R.id.helpWebView);
+
+        webView.setWebViewClient(new LocalContentWebViewClient(mAssetLoader));
+        webView.loadUrl(url);
     }
 
 }

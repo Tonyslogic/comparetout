@@ -27,7 +27,7 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.EditText;
+import android.webkit.WebView;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
@@ -41,6 +41,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
+import androidx.webkit.WebViewAssetLoader;
 
 import com.google.android.material.checkbox.MaterialCheckBox;
 import com.google.android.material.snackbar.Snackbar;
@@ -48,6 +49,7 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.scenario.ScenarioActivity;
+import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.util.List;
 
@@ -57,6 +59,7 @@ public class ScenarioNavFragment extends Fragment {
     private TableLayout mTableLayout;
     private List<Scenario> mScenarios;
 
+    private WebViewAssetLoader mAssetLoader;
     private View mPopupView;
     private PopupWindow mHelpWindow;
     private int mOrientation = Configuration.ORIENTATION_PORTRAIT;
@@ -80,6 +83,13 @@ public class ScenarioNavFragment extends Fragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        if (!(null == getContext())) {
+            mAssetLoader = new WebViewAssetLoader.Builder()
+                    .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(getContext()))
+                    .addPathHandler("/res/", new WebViewAssetLoader.ResourcesPathHandler(getContext()))
+                    .build();
+        }
         mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
         mViewModel.getAllScenarios().observe(this, scenarios -> {
             System.out.println("Observed a change in live scenario data " + scenarios.size());
@@ -148,10 +158,6 @@ public class ScenarioNavFragment extends Fragment {
                 b.setGravity(Gravity.CENTER_VERTICAL);
                 b.setAutoSizeTextTypeUniformWithConfiguration(
                         1, 17, 1, TypedValue.COMPLEX_UNIT_SP);
-                b.setOnLongClickListener(v -> {
-                    showHelp("Click here to view the details of a usage scenario");
-                 return true;
-                });
                 ImageButton c = new ImageButton(getActivity());
                 ImageButton d = new ImageButton(getActivity());
 
@@ -159,6 +165,24 @@ public class ScenarioNavFragment extends Fragment {
                 b.setContentDescription(String.format("%s, %s", "View or edit", scenario.getScenarioName()));
                 c.setContentDescription(String.format("%s, %s", "Delete", scenario.getScenarioName()));
                 d.setContentDescription(String.format("%s, %s", "Copy", scenario.getScenarioName()));
+
+                // HELP
+                a.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/main/comparecheck.html");
+                    return true;
+                });
+                b.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/main/scenarionav/name.html");
+                    return true;
+                });
+                c.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/main/delete.html");
+                    return true;
+                });
+                d.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/main/copy.html");
+                    return true;
+                });
 
                 // SET PARAMS
 
@@ -258,14 +282,20 @@ public class ScenarioNavFragment extends Fragment {
         }
     }
 
-    private void showHelp(String s) {
-        if (mOrientation == Configuration.ORIENTATION_PORTRAIT)
+    private void showHelp(String url) {
+        if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
             mHelpWindow.setHeight((int) (requireActivity().getWindow().getDecorView().getHeight()*0.6));
-        else
-            mHelpWindow.setWidth((int) (requireActivity().getWindow().getDecorView().getWidth()*0.6));
+            mHelpWindow.setWidth((int) (requireActivity().getWindow().getDecorView().getWidth()));
+        }
+        else {
+            mHelpWindow.setWidth((int) (requireActivity().getWindow().getDecorView().getWidth() * 0.6));
+            mHelpWindow.setHeight((int) (requireActivity().getWindow().getDecorView().getHeight()));
+        }
         mHelpWindow.showAtLocation(mTableLayout, Gravity.CENTER, 0, 0);
-        EditText editText = mPopupView.findViewById(R.id.helpText);
-        editText.setText(s);
+        WebView webView = mPopupView.findViewById(R.id.helpWebView);
+
+        webView.setWebViewClient(new LocalContentWebViewClient(mAssetLoader));
+        webView.loadUrl(url);
     }
 
 }

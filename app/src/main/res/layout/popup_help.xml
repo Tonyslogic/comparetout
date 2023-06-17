@@ -20,17 +20,11 @@
     android:layout_height="match_parent"
     android:background="#001234">
 
-    <EditText
-        android:id="@+id/helpText"
+    <WebView
+        android:id="@+id/helpWebView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:ems="10"
         android:gravity="center"
-        android:inputType="textMultiLine"
-        android:text="@string/help_text"
-        android:enabled="false"
-        android:hint="@string/help_text"
-        android:textColor="@color/green_700"
         android:autofillHints="" />
 
 </RelativeLayout>
