@@ -18,6 +18,7 @@ package com.tfcode.comparetout.priceplan;
 
 import android.annotation.SuppressLint;
 import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.InputType;
@@ -29,9 +30,12 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.WebView;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
@@ -40,6 +44,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
+import androidx.webkit.WebViewAssetLoader;
 
 import com.google.android.material.checkbox.MaterialCheckBox;
 import com.google.gson.Gson;
@@ -54,6 +59,7 @@ import com.tfcode.comparetout.model.priceplan.HourlyRate;
 import com.tfcode.comparetout.model.priceplan.HourlyRateRange;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.util.AbstractTextWatcher;
+import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -78,6 +84,11 @@ public class PricePlanEditDayFragment extends Fragment {
     private static final String FOCUS = "FOCUS";
     private static final String EDIT = "EDIT";
     private static final String INDEX = "INDEX";
+
+    private WebViewAssetLoader mAssetLoader;
+    private View mPopupView;
+    private PopupWindow mHelpWindow;
+    private int mOrientation = Configuration.ORIENTATION_PORTRAIT;
 
     public PricePlanEditDayFragment() {
         // Required empty public constructor
@@ -122,6 +133,13 @@ public class PricePlanEditDayFragment extends Fragment {
         }
         mEditFields = new ArrayList<>();
         unpackmFocus();
+
+        if (!(null == getContext())) {
+            mAssetLoader = new WebViewAssetLoader.Builder()
+                    .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(getContext()))
+                    .addPathHandler("/res/", new WebViewAssetLoader.ResourcesPathHandler(getContext()))
+                    .build();
+        }
     }
 
     private void unpackmFocus() {
@@ -140,6 +158,11 @@ public class PricePlanEditDayFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+        mPopupView = inflater.inflate(R.layout.popup_help, container);
+        int width = LinearLayout.LayoutParams.WRAP_CONTENT;
+        int height = LinearLayout.LayoutParams.WRAP_CONTENT;
+        boolean focusable = true; // lets taps outside the popup also dismiss it
+        mHelpWindow = new PopupWindow(mPopupView, width, height, focusable);
         // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_price_plan_edit_day, container, false);
     }
@@ -175,9 +198,13 @@ public class PricePlanEditDayFragment extends Fragment {
     @SuppressLint("SourceLockedOrientationActivity")
     @Override
     public void onResume() {
+
         super.onResume();
-        if (!(null == getActivity()))
+        mOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
+        if (!(null == getActivity())) {
             getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+            mOrientation = getActivity().getResources().getConfiguration().orientation;
+        }
         try {
             DayRate thisFragmentsDayRate = mDayRates.get(mRateIndex);
             mFocus = ((PricePlanActivity) requireActivity()).getFocusedPlan();
@@ -222,6 +249,10 @@ public class PricePlanEditDayFragment extends Fragment {
     @SuppressLint("DefaultLocale")
     public void updateView() {
         mTableLayout.removeAllViews();
+        mTableLayout.setOnLongClickListener(v -> {
+            showHelp("https://appassets.androidplatform.net/assets/priceplan/prices.html");
+            return true;
+        });
 
         if (!(null == getActivity())) {
 
@@ -241,6 +272,10 @@ public class PricePlanEditDayFragment extends Fragment {
             datesTable.setShrinkAllColumns(true);
             datesTable.setStretchAllColumns(true);
             TableRow datesRow = new TableRow(getActivity());
+            datesRow.setOnLongClickListener(v -> {
+                showHelp("https://appassets.androidplatform.net/assets/priceplan/dates.html");
+                return true;
+            });
             {
                 DayRate dRate = mDayRates.get(mRateIndex);
                 if (!(null == dRate)) {
@@ -290,8 +325,16 @@ public class PricePlanEditDayFragment extends Fragment {
             daysTable.setShrinkAllColumns(true);
             daysTable.setStretchAllColumns(true);
             TableRow daysRow = new TableRow(getActivity());
+            daysRow.setOnLongClickListener(v -> {
+                showHelp("https://appassets.androidplatform.net/assets/priceplan/days.html");
+                return true;
+            });
             {
                 TableRow tableRow = new TableRow(getActivity());
+                tableRow.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/priceplan/days.html");
+                    return true;
+                });
                 TextView a = new TextView(getActivity());
                 a.setText(R.string.Mon);
                 tableRow.addView(a);
@@ -369,6 +412,34 @@ public class PricePlanEditDayFragment extends Fragment {
                     c5.setEnabled(mEdit);
                     c6.setEnabled(mEdit);
                     c7.setEnabled(mEdit);
+                    c1.setOnLongClickListener(v -> {
+                        showHelp("https://appassets.androidplatform.net/assets/priceplan/days.html");
+                        return true;
+                    });
+                    c2.setOnLongClickListener(v -> {
+                        showHelp("https://appassets.androidplatform.net/assets/priceplan/days.html");
+                        return true;
+                    });
+                    c3.setOnLongClickListener(v -> {
+                        showHelp("https://appassets.androidplatform.net/assets/priceplan/days.html");
+                        return true;
+                    });
+                    c4.setOnLongClickListener(v -> {
+                        showHelp("https://appassets.androidplatform.net/assets/priceplan/days.html");
+                        return true;
+                    });
+                    c5.setOnLongClickListener(v -> {
+                        showHelp("https://appassets.androidplatform.net/assets/priceplan/days.html");
+                        return true;
+                    });
+                    c6.setOnLongClickListener(v -> {
+                        showHelp("https://appassets.androidplatform.net/assets/priceplan/days.html");
+                        return true;
+                    });
+                    c7.setOnLongClickListener(v -> {
+                        showHelp("https://appassets.androidplatform.net/assets/priceplan/days.html");
+                        return true;
+                    });
                     mEditFields.add(c1);
                     mEditFields.add(c2);
                     mEditFields.add(c3);
@@ -391,6 +462,10 @@ public class PricePlanEditDayFragment extends Fragment {
                 spacerTV.setText(R.string.Spacer);
                 spacerTV.setContentDescription("Separator element for price table");
                 spacer.addView(spacerTV);
+                spacer.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/priceplan/prices.html");
+                    return true;
+                });
                 mTableLayout.addView(spacer);
             }
 
@@ -399,6 +474,10 @@ public class PricePlanEditDayFragment extends Fragment {
             if (null == dRate) dRate = new DayRate();
             DoubleHolder ratesList = dRate.getHours();
             TableLayout pricesTable = new TableLayout(getActivity());
+            pricesTable.setOnLongClickListener(v -> {
+                showHelp("https://appassets.androidplatform.net/assets/priceplan/prices.html");
+                return true;
+            });
             pricesTable.setShrinkAllColumns(false);
             pricesTable.setColumnShrinkable(3, true);
             pricesTable.setStretchAllColumns(true);
@@ -425,6 +504,22 @@ public class PricePlanEditDayFragment extends Fragment {
                     d.setText(R.string.Del);
                     d.setGravity(Gravity.CENTER);
                     titleRow.addView(d);
+                    a.setOnLongClickListener(v -> {
+                        showHelp("https://appassets.androidplatform.net/assets/priceplan/prices.html");
+                        return true;
+                    });
+                    b.setOnLongClickListener(v -> {
+                        showHelp("https://appassets.androidplatform.net/assets/priceplan/prices.html");
+                        return true;
+                    });
+                    c.setOnLongClickListener(v -> {
+                        showHelp("https://appassets.androidplatform.net/assets/priceplan/prices.html");
+                        return true;
+                    });
+                    d.setOnLongClickListener(v -> {
+                        showHelp("https://appassets.androidplatform.net/assets/priceplan/prices.html");
+                        return true;
+                    });
                     pricesTable.addView(titleRow);
                 }
 
@@ -440,6 +535,10 @@ public class PricePlanEditDayFragment extends Fragment {
                     EditText to = new EditText(getActivity());
                     EditText price = new EditText(getActivity());
                     ImageButton del = new ImageButton(getActivity());
+                    del.setOnLongClickListener(v -> {
+                        showHelp("https://appassets.androidplatform.net/assets/priceplan/prices.html");
+                        return true;
+                    });
 
                     from.setLayoutParams(textParams);
                     to.setLayoutParams(textParams);
@@ -532,12 +631,20 @@ public class PricePlanEditDayFragment extends Fragment {
                 spacerTV.setText(R.string.Spacer);
                 spacerTV.setContentDescription("Separator element for adding");
                 spacer.addView(spacerTV);
+                spacer.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/priceplan/prices.html");
+                    return true;
+                });
                 mTableLayout.addView(spacer);
             }
 
             // ADD NEW RATE
             {
                 TableRow addPriceTableRow = new TableRow(getActivity());
+                addPriceTableRow.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/priceplan/prices.html");
+                    return true;
+                });
                 TableLayout addPriceTable = new TableLayout(getActivity());
                 addPriceTable.setShrinkAllColumns(false);
                 addPriceTable.setColumnShrinkable(3, true);
@@ -549,6 +656,10 @@ public class PricePlanEditDayFragment extends Fragment {
                 EditText to = new EditText(getActivity());
                 EditText price = new EditText(getActivity());
                 ImageButton add = new ImageButton(getActivity());
+                add.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/priceplan/prices.html");
+                    return true;
+                });
 
                 from.setLayoutParams(textParams);
                 to.setLayoutParams(textParams);
@@ -613,5 +724,21 @@ public class PricePlanEditDayFragment extends Fragment {
         ppa.updateFocusedPlan(JsonTools.createSinglePricePlanJsonObject(mPricePlan, new ArrayList<>(mDayRates.values())));
         ppa.setPlanValidity(mPricePlan.validatePlan(new ArrayList<>(mDayRates.values())));
         ppa.setSaveNeeded(true);
+    }
+
+    private void showHelp(String url) {
+        if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
+            mHelpWindow.setHeight((int) (requireActivity().getWindow().getDecorView().getHeight()*0.6));
+            mHelpWindow.setWidth((int) (requireActivity().getWindow().getDecorView().getWidth()));
+        }
+        else {
+            mHelpWindow.setWidth((int) (requireActivity().getWindow().getDecorView().getWidth() * 0.6));
+            mHelpWindow.setHeight((int) (requireActivity().getWindow().getDecorView().getHeight()));
+        }
+        mHelpWindow.showAtLocation(mTableLayout, Gravity.CENTER, 0, 0);
+        WebView webView = mPopupView.findViewById(R.id.helpWebView);
+
+        webView.setWebViewClient(new LocalContentWebViewClient(mAssetLoader));
+        webView.loadUrl(url);
     }
 }

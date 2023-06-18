@@ -16,21 +16,31 @@
 
 package com.tfcode.comparetout.priceplan;
 
+import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.webkit.WebView;
+import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
+import androidx.webkit.WebViewAssetLoader;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
@@ -44,6 +54,7 @@ import com.tfcode.comparetout.model.json.priceplan.DayRateJson;
 import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
+import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -71,6 +82,10 @@ public class PricePlanActivity extends AppCompatActivity {
     private boolean mDoubleBackToExitPressedOnce = false;
     private boolean mUnsavedChanges = false;
 
+    private WebViewAssetLoader mAssetLoader;
+    private View mPopupView;
+    private PopupWindow mHelpWindow;
+
     @Override
     public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
@@ -91,6 +106,7 @@ public class PricePlanActivity extends AppCompatActivity {
         mPlanValidity = savedInstanceState.getInt(PLAN_VALIDITY);
     }
 
+    @SuppressLint("InflateParams")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -108,10 +124,22 @@ public class PricePlanActivity extends AppCompatActivity {
             focusedPlan = intent.getStringExtra("Focus");
         }
 
+        mAssetLoader = new WebViewAssetLoader.Builder()
+                .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
+                .addPathHandler("/res/", new WebViewAssetLoader.ResourcesPathHandler(this))
+                .build();
+
         setContentView(R.layout.activity_price_plan);
         viewPager = findViewById(R.id.view_plan_pager);
 
         setupViewPager();
+
+        LayoutInflater inflater = (LayoutInflater) this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        mPopupView = inflater.inflate(R.layout.popup_help, null);
+        int width = LinearLayout.LayoutParams.WRAP_CONTENT;
+        int height = LinearLayout.LayoutParams.WRAP_CONTENT;
+        boolean focusable = true; // lets taps outside the popup also dismiss it
+        mHelpWindow = new PopupWindow(mPopupView, width, height, focusable);
 
         mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
         mActionBar = Objects.requireNonNull(getSupportActionBar());
@@ -136,6 +164,17 @@ public class PricePlanActivity extends AppCompatActivity {
                 (tab, position) -> tab.setText(tabTitlesList.get(position))
         );
         mMediator.attach();
+
+        LinearLayout linearLayout = (LinearLayout)tabLayout.getChildAt(0);
+        ((View)linearLayout.getChildAt(0)).setOnLongClickListener(v -> {
+            showHelp("https://appassets.androidplatform.net/assets/priceplan/detailtab.html");
+            return true;});
+        for (int i = 1; i < linearLayout.getChildCount(); i++) {
+            ((View) linearLayout.getChildAt(i)).setOnLongClickListener(v -> {
+                showHelp("https://appassets.androidplatform.net/assets/priceplan/ratestab.html");
+                return true;
+            });
+        }
     }
 
     private PricePlanViewPageAdapter createPlanAdapter(int count) {
@@ -155,7 +194,55 @@ public class PricePlanActivity extends AppCompatActivity {
         mMenu.findItem(R.id.export_a_plan).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         mMenu.findItem(R.id.del_a_day_rate).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         mMenu.findItem(R.id.save_a_plan).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        setMenuLongClick();
         return true;
+    }
+
+    private void setMenuLongClick() {
+        new Handler().post(() -> {
+            final View info = findViewById(R.id.info);
+            if (info != null) {
+                info.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/priceplan/price_plan_menu.html");
+                    return true;
+                });
+            }
+            final View edit_a_plan = findViewById(R.id.edit_a_plan);
+            if (edit_a_plan != null) {
+                edit_a_plan.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/priceplan/price_plan_menu.html");
+                    return true;
+                });
+            }
+            final View add_a_day_rate = findViewById(R.id.add_a_day_rate);
+            if (add_a_day_rate != null) {
+                add_a_day_rate.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/priceplan/price_plan_menu.html");
+                    return true;
+                });
+            }
+            final View export_a_plan = findViewById(R.id.export_a_plan);
+            if (export_a_plan != null) {
+                export_a_plan.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/priceplan/price_plan_menu.html");
+                    return true;
+                });
+            }
+            final View del_a_day_rate = findViewById(R.id.del_a_day_rate);
+            if (del_a_day_rate != null) {
+                del_a_day_rate.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/priceplan/price_plan_menu.html");
+                    return true;
+                });
+            }
+            final View save_a_plan = findViewById(R.id.save_a_plan);
+            if (save_a_plan != null) {
+                save_a_plan.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/priceplan/price_plan_menu.html");
+                    return true;
+                });
+            }
+        });
     }
 
     @Override
@@ -173,6 +260,7 @@ public class PricePlanActivity extends AppCompatActivity {
         }
         if (edit) editMenuItem.setVisible(false);
         checkPlanValidity();
+        setMenuLongClick();
         return super.onPrepareOptionsMenu(menu);
     }
 
@@ -244,6 +332,7 @@ public class PricePlanActivity extends AppCompatActivity {
             if (!(null == viewPager.getAdapter()))
                 ((PricePlanViewPageAdapter) viewPager.getAdapter()).setEdit(false);
 
+            setMenuLongClick();
             return (true);
         }
         if (item.getItemId() == R.id.del_a_day_rate) {
@@ -321,6 +410,17 @@ public class PricePlanActivity extends AppCompatActivity {
                 (tab, position) -> tab.setText(tabTitlesList.get(position))
         );
         mMediator.attach();
+
+        LinearLayout linearLayout = (LinearLayout)tabLayout.getChildAt(0);
+        ((View)linearLayout.getChildAt(0)).setOnLongClickListener(v -> {
+            showHelp("https://appassets.androidplatform.net/assets/priceplan/detailtab.html");
+            return true;});
+        for (int i = 1; i < linearLayout.getChildCount(); i++) {
+            ((View) linearLayout.getChildAt(i)).setOnLongClickListener(v -> {
+                showHelp("https://appassets.androidplatform.net/assets/priceplan/ratestab.html");
+                return true;
+            });
+        }
     }
 
     @Override
@@ -386,10 +486,21 @@ public class PricePlanActivity extends AppCompatActivity {
             MenuItem infoItem = mMenu.findItem(R.id.info);
             infoItem.setVisible(false);
         }
+        setMenuLongClick();
     }
 
     public void setSaveNeeded(boolean saveNeeded){
         mUnsavedChanges = saveNeeded;
+    }
+
+    private void showHelp(String url) {
+        mHelpWindow.setHeight((int) (getWindow().getDecorView().getHeight()*0.6));
+        mHelpWindow.setWidth((int) (getWindow().getDecorView().getWidth()));
+        mHelpWindow.showAtLocation(viewPager.getRootView(), Gravity.CENTER, 0, 0);
+        WebView webView = mPopupView.findViewById(R.id.helpWebView);
+
+        webView.setWebViewClient(new LocalContentWebViewClient(mAssetLoader));
+        webView.loadUrl(url);
     }
 
 }

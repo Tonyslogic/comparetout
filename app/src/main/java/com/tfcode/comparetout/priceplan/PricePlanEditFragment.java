@@ -18,6 +18,7 @@ package com.tfcode.comparetout.priceplan;
 
 import android.annotation.SuppressLint;
 import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.InputType;
@@ -29,7 +30,10 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
+import android.webkit.WebView;
 import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 
@@ -38,6 +42,7 @@ import androidx.annotation.Nullable;
 import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.webkit.WebViewAssetLoader;
 
 import com.google.android.material.checkbox.MaterialCheckBox;
 import com.google.android.material.textview.MaterialTextView;
@@ -51,6 +56,7 @@ import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.json.priceplan.DayRateJson;
 import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
 import com.tfcode.comparetout.util.AbstractTextWatcher;
+import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -74,6 +80,11 @@ public class PricePlanEditFragment extends Fragment {
     private static final String PLAN_ID = "PLAN_ID";
     private static final String FOCUS = "FOCUS";
     private static final String EDIT = "EDIT";
+
+    private WebViewAssetLoader mAssetLoader;
+    private View mPopupView;
+    private PopupWindow mHelpWindow;
+    private int mOrientation = Configuration.ORIENTATION_PORTRAIT;
 
     public PricePlanEditFragment() {
         // Required empty public constructor
@@ -118,6 +129,13 @@ public class PricePlanEditFragment extends Fragment {
             mFocus = ((PricePlanActivity) requireActivity()).getFocusedPlan();
             mEdit = ((PricePlanActivity) requireActivity()).getEdit();
         }
+
+        if (!(null == getContext())) {
+            mAssetLoader = new WebViewAssetLoader.Builder()
+                    .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(getContext()))
+                    .addPathHandler("/res/", new WebViewAssetLoader.ResourcesPathHandler(getContext()))
+                    .build();
+        }
         setOrResetState();
     }
 
@@ -138,6 +156,11 @@ public class PricePlanEditFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+        mPopupView = inflater.inflate(R.layout.popup_help, container);
+        int width = LinearLayout.LayoutParams.WRAP_CONTENT;
+        int height = LinearLayout.LayoutParams.WRAP_CONTENT;
+        boolean focusable = true; // lets taps outside the popup also dismiss it
+        mHelpWindow = new PopupWindow(mPopupView, width, height, focusable);
         // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_price_plan_edit, container, false);
     }
@@ -156,8 +179,11 @@ public class PricePlanEditFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        if (!(null == getActivity()))
+        if (!(null == getActivity())) {
+            mOrientation = getActivity().getResources().getConfiguration().orientation;
             getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+        }
+        else mOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
     }
 
     private void setupMenu() {
@@ -194,6 +220,10 @@ public class PricePlanEditFragment extends Fragment {
     public void updateView() {
         System.out.println("Updating PricePlanEditFragment " + mEdit);
         mTableLayout.removeAllViews();
+        mTableLayout.setOnLongClickListener(v -> {
+            showHelp();
+            return true;
+        });
 
         // CREATE PARAM FOR MARGINING
         TableRow.LayoutParams planParams = new TableRow.LayoutParams(
@@ -208,6 +238,10 @@ public class PricePlanEditFragment extends Fragment {
         if (!(null == getActivity())) {
             // CREATE TABLE ROWS
             TableRow tableRow = new TableRow(getActivity());
+            tableRow.setOnLongClickListener(v -> {
+                showHelp();
+                return true;
+            });
             MaterialTextView a = new MaterialTextView(getActivity());
             a.setText(R.string.Supplier);
             a.setMinimumHeight(80);
@@ -234,6 +268,10 @@ public class PricePlanEditFragment extends Fragment {
             mEditFields.add(b);
 
             tableRow = new TableRow(getActivity());
+            tableRow.setOnLongClickListener(v -> {
+                showHelp();
+                return true;
+            });
             a = new MaterialTextView(getActivity());
             a.setText(R.string.Plan);
             a.setMinimumHeight(80);
@@ -269,6 +307,10 @@ public class PricePlanEditFragment extends Fragment {
             mEditFields.add(b);
 
             tableRow = new TableRow(getActivity());
+            tableRow.setOnLongClickListener(v -> {
+                showHelp();
+                return true;
+            });
             a = new MaterialTextView(getActivity());
             a.setText(R.string.FeedInRate);
             a.setMinimumHeight(80);
@@ -296,6 +338,10 @@ public class PricePlanEditFragment extends Fragment {
             mEditFields.add(b);
 
             tableRow = new TableRow(getActivity());
+            tableRow.setOnLongClickListener(v -> {
+                showHelp();
+                return true;
+            });
             a = new MaterialTextView(getActivity());
             a.setText(R.string.StandingCharges);
             a.setMinimumHeight(80);
@@ -323,6 +369,10 @@ public class PricePlanEditFragment extends Fragment {
             mEditFields.add(b);
 
             tableRow = new TableRow(getActivity());
+            tableRow.setOnLongClickListener(v -> {
+                showHelp();
+                return true;
+            });
             a = new MaterialTextView(getActivity());
             a.setText(R.string.SignUpBonus);
             a.setMinimumHeight(80);
@@ -350,6 +400,10 @@ public class PricePlanEditFragment extends Fragment {
             mEditFields.add(b);
 
             tableRow = new TableRow(getActivity());
+            tableRow.setOnLongClickListener(v -> {
+                showHelp();
+                return true;
+            });
             a = new MaterialTextView(getActivity());
             a.setText(R.string.LastUpdate);
             a.setMinimumHeight(80);
@@ -377,6 +431,10 @@ public class PricePlanEditFragment extends Fragment {
             mEditFields.add(b);
 
             tableRow = new TableRow(getActivity());
+            tableRow.setOnLongClickListener(v -> {
+                showHelp();
+                return true;
+            });
             a = new MaterialTextView(getActivity());
             a.setText(R.string.Reference);
             a.setMinimumHeight(80);
@@ -407,6 +465,10 @@ public class PricePlanEditFragment extends Fragment {
             mEditFields.add(b);
 
             tableRow = new TableRow(getActivity());
+            tableRow.setOnLongClickListener(v -> {
+                showHelp();
+                return true;
+            });
             a = new MaterialTextView(getActivity());
             a.setText(R.string.deemed_export_calculation);
             a.setMinimumHeight(80);
@@ -430,5 +492,21 @@ public class PricePlanEditFragment extends Fragment {
             mTableLayout.addView(tableRow);
             mEditFields.add(cb);
         }
+    }
+
+    private void showHelp() {
+        if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
+            mHelpWindow.setHeight((int) (requireActivity().getWindow().getDecorView().getHeight()*0.6));
+            mHelpWindow.setWidth((int) (requireActivity().getWindow().getDecorView().getWidth()));
+        }
+        else {
+            mHelpWindow.setWidth((int) (requireActivity().getWindow().getDecorView().getWidth() * 0.6));
+            mHelpWindow.setHeight((int) (requireActivity().getWindow().getDecorView().getHeight()));
+        }
+        mHelpWindow.showAtLocation(mTableLayout, Gravity.CENTER, 0, 0);
+        WebView webView = mPopupView.findViewById(R.id.helpWebView);
+
+        webView.setWebViewClient(new LocalContentWebViewClient(mAssetLoader));
+        webView.loadUrl("https://appassets.androidplatform.net/assets/priceplan/table.html");
     }
 }
