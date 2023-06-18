@@ -595,4 +595,8 @@ public class ToutcRepository {
     public double getGridExportMaxForScenario(long scenarioID) {
         return scenarioDAO.getGridExportMaxForScenario(scenarioID);
     }
+
+    public List<String> getAllComparisonsNow() {
+        return costingDAO.getAllComparisonsNow();
+    }
 }

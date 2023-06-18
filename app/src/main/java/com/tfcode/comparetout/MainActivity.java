@@ -451,8 +451,21 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (itemID == R.id.share_comparison) {
-                Snackbar.make(viewPager.getRootView(), "TODO: Export comparisons", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+            mProgressBar.setVisibility(View.VISIBLE);
+
+            new Thread(() -> {
+                List<String> comparisonsRows = mViewModel.getAllComparisonsNow();
+                StringBuilder comparisonsBuilder = new StringBuilder().append("Usage, Plan, Net, Buy, Sell, Fixed, Bonus\n");
+                for(String comparison: comparisonsRows) comparisonsBuilder.append(comparison).append("\n");
+                mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
+                Intent sendIntent = new Intent();
+                sendIntent.setAction(Intent.ACTION_SEND);
+                sendIntent.putExtra(Intent.EXTRA_TEXT, comparisonsBuilder.toString());
+                sendIntent.setType("text/csv");
+
+                Intent shareIntent = Intent.createChooser(sendIntent, null);
+                startActivity(shareIntent);
+            }).start();
                 return(true);
         }
         return(super.onOptionsItemSelected(item));

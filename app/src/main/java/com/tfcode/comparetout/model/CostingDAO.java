@@ -44,4 +44,8 @@ public abstract class CostingDAO {
 
     @Query("SELECT EXISTS (SELECT * FROM costings WHERE scenarioID = :scenarioID AND pricePlanId = :pricePlanIndex) AS OK")
     public abstract boolean costingExists(long scenarioID, long pricePlanIndex);
+
+    @Query("SELECT DISTINCT REPLACE(scenarioName, ',', ';') || ', ' || fullPlanName || ', ' || net || ', ' || buy || ', ' || sell || ', ' || " +
+            "standingCharges || ', ' || signUpBonus AS line FROM costings, PricePlans WHERE pricePlanIndex = pricePlanID")
+    public abstract List<String> getAllComparisonsNow();
 }

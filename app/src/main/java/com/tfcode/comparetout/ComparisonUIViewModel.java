@@ -434,4 +434,8 @@ public class ComparisonUIViewModel extends AndroidViewModel {
     public void linkEVDivertFromScenario(long fromScenarioID, Long toScenarioID) {
         toutcRepository.linkEVDivertFromScenario(fromScenarioID, toScenarioID);
     }
+
+    public List<String> getAllComparisonsNow() {
+        return toutcRepository.getAllComparisonsNow();
+    }
 }
