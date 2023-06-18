@@ -28,12 +28,14 @@ import androidx.appcompat.widget.PopupMenu;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
+import androidx.webkit.WebViewAssetLoader;
 
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.WebView;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
@@ -52,6 +54,7 @@ import com.tfcode.comparetout.model.costings.Costings;
 import com.tfcode.comparetout.model.costings.SubTotals;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.Scenario;
+import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -92,6 +95,10 @@ public class ComparisonFragment extends Fragment {
 
     private View mPopupView;
     private PopupWindow mPieChartWindow;
+
+    private WebViewAssetLoader mAssetLoader;
+    private View mPopupHelpView;
+    private PopupWindow mHelpWindow;
 
     private int mOrientation = Configuration.ORIENTATION_PORTRAIT;
 
@@ -145,6 +152,13 @@ public class ComparisonFragment extends Fragment {
             if (mShowBuy) mVisibleColCount++;
             if (mShowFixed) mVisibleColCount++;
         }
+
+        if (!(null == getContext())) {
+            mAssetLoader = new WebViewAssetLoader.Builder()
+                    .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(getContext()))
+                    .addPathHandler("/res/", new WebViewAssetLoader.ResourcesPathHandler(getContext()))
+                    .build();
+        }
         ComparisonUIViewModel mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
         mViewModel.getAllComparisons().observe(this, costings -> {
             System.out.println("Observed a change in live comparison data " + costings.size());
@@ -167,11 +181,13 @@ public class ComparisonFragment extends Fragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         mPopupView = inflater.inflate(R.layout.popup_compare, container);
+        mPopupHelpView = inflater.inflate(R.layout.popup_help, container);
         // create the popup window
         int width = LinearLayout.LayoutParams.WRAP_CONTENT;
         int height = LinearLayout.LayoutParams.WRAP_CONTENT;
         boolean focusable = true; // lets taps outside the popup also dismiss it
         mPieChartWindow = new PopupWindow(mPopupView, width, height, focusable);
+        mHelpWindow = new PopupWindow(mPopupHelpView, width, height, focusable);
 
         return inflater.inflate(R.layout.fragment_comparison, container, false);
     }
@@ -194,6 +210,16 @@ public class ComparisonFragment extends Fragment {
         new TabLayoutMediator(tabLayout, viewPager,
                 (tab, position) -> tab.setText(tabTitles[position])
         ).attach();
+
+        ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(0)).setOnLongClickListener(v -> {
+            showHelp("https://appassets.androidplatform.net/assets/main/scenarionav/tab.html");
+            return true;});
+        ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(1)).setOnLongClickListener(v -> {
+            showHelp("https://appassets.androidplatform.net/assets/main/plannav/tab.html");
+            return true;});
+        ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(2)).setOnLongClickListener(v -> {
+            showHelp("https://appassets.androidplatform.net/assets/main/compare/tab.html");
+            return true;});
     }
 
     private void updateControl() {
@@ -294,6 +320,12 @@ public class ComparisonFragment extends Fragment {
             mShowPopup.show();
         });
 
+        mSortButton.setOnLongClickListener(v -> {
+            showHelp("https://appassets.androidplatform.net/assets/main/compare/sort.html");
+            return true;});
+        mFilterButton.setOnLongClickListener(v -> {
+            showHelp("https://appassets.androidplatform.net/assets/main/compare/filter.html");
+            return true;});
     }
 
     private void updateView() {
@@ -380,6 +412,9 @@ public class ComparisonFragment extends Fragment {
 
         TableRow tableRow;
         tableRow = new TableRow(getActivity());
+        tableRow.setOnLongClickListener(v -> {
+            showHelp("https://appassets.androidplatform.net/assets/main/compare/row.html");
+            return true;});
 
         // CREATE PARAM FOR MARGINING
         TableRow.LayoutParams planParams = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
@@ -502,6 +537,22 @@ public class ComparisonFragment extends Fragment {
     private PricePlan findPricePlanByID(Long id) {
         if (null == mPricePlans) return null;
         return mPricePlans.stream().filter(s -> id.equals(s.getPricePlanIndex())).findFirst().orElse(null);
+    }
+
+    private void showHelp(String url) {
+        if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
+            mHelpWindow.setHeight((int) (requireActivity().getWindow().getDecorView().getHeight()*0.6));
+            mHelpWindow.setWidth((int) (requireActivity().getWindow().getDecorView().getWidth()));
+        }
+        else {
+            mHelpWindow.setWidth((int) (requireActivity().getWindow().getDecorView().getWidth() * 0.6));
+            mHelpWindow.setHeight((int) (requireActivity().getWindow().getDecorView().getHeight()));
+        }
+        mHelpWindow.showAtLocation(mTableLayout, Gravity.CENTER, 0, 0);
+        WebView webView = mPopupHelpView.findViewById(R.id.helpWebView);
+
+        webView.setWebViewClient(new LocalContentWebViewClient(mAssetLoader));
+        webView.loadUrl(url);
     }
 }
 

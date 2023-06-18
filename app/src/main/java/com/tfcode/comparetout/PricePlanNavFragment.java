@@ -129,6 +129,16 @@ public class PricePlanNavFragment extends Fragment {
         new TabLayoutMediator(tabLayout, viewPager,
                 (tab, position) -> tab.setText(tabTitles[position])
         ).attach();
+
+        ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(0)).setOnLongClickListener(v -> {
+            showHelp("https://appassets.androidplatform.net/assets/main/scenarionav/tab.html");
+            return true;});
+        ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(1)).setOnLongClickListener(v -> {
+            showHelp("https://appassets.androidplatform.net/assets/main/plannav/tab.html");
+            return true;});
+        ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(2)).setOnLongClickListener(v -> {
+            showHelp("https://appassets.androidplatform.net/assets/main/compare/tab.html");
+            return true;});
     }
 
     public void updateView() {
