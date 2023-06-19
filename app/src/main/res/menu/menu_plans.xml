@@ -50,4 +50,9 @@
         app:showAsAction="ifRoom|withText"
         android:icon="@drawable/ic_baseline_delete_24"
         android:title="@string/delete_day_rate"/>
+    <item
+        android:id="@+id/help"
+        app:showAsAction="ifRoom|withText"
+        android:icon="@drawable/ic_baseline_help_outline_24"
+        android:title="@string/help"/>
 </menu>

@@ -1,0 +1,96 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="/assets/stylesheet.css">
+    </head>
+    <body>
+        <img style="float: right;" src="/res/drawable/launcher.png" alt="launcher" width="100">
+        <p><b>Help: App overview</b></p>
+        <div style="clear: right">
+            <p>The goal of this app is to create personalised comparisons.</p>
+            <p>There are two components to electricity comparisons:</p>
+            <ul>
+                <li>The consumer side (usage)</li>
+                <li>The supplier side (cost)</li>
+            </ul>
+            <p>Comparisons can be created for a single supplier with multiple variation in usage.
+                They may also be made for a single usage across multiple supplier plans.</p>
+            <p>There are three tabs presented:</p>
+            <table>
+                <tr>
+                    <th>Tab</th>
+                    <th>Purpose</th>
+                </tr>
+                <tr>
+                    <td>USAGE(S)</td>
+                    <td>Usage what-if scenario management/navigation and add/remove from comparison</td>
+                </tr>
+                <tr>
+                    <td>USAGE(S)</td>
+                    <td>Supplier plan (cost) management/navigation and add/remove from comparison</td>
+                </tr>
+                <tr>
+                    <td>COMPARE</td>
+                    <td>Show the results of the cost calculation, including breakdowns</td>
+                </tr>
+            </table>
+            <p>At least one usage and one cost must be selected for anything to appear in
+                the comparison tab.</p>
+            <p>There are several ways to get usages and costs:</p>
+            <ul>
+                <li>Load from file (menu)</li>
+                <li>Download from URL (menu)</li>
+                <li>Copy and existing entry</li>
+                <li>Create a new entry from scratch (button, bottom right)</li>
+            </ul>
+            <p>Additionally, sharing is possible for usages, costs and comparisons. For usages
+                and costs, a json string is shared. For comparisons a csv of all the usages
+                and costs is generated. These can be saved or shared based on the capabilities
+                of you device.</p>
+            <p>Clicking on the table entry will:</p>
+            <table>
+                <tr>
+                    <th>Tab</th>
+                    <th>Item</th>
+                    <th>Result</th>
+                </tr>
+                <tr>
+                    <th>USAGE(S)</th>
+                    <td>Name</td>
+                    <td>Launch the usage what-if scenario viewer/editor</td>
+                </tr>
+                <tr>
+                    <th>COSTS</th>
+                    <td>Name</td>
+                    <td>Launch the usage supplier plan viewer/editor</td>
+                </tr>
+                <tr>
+                    <th>COMPARE</th>
+                    <td>Name</td>
+                    <td>Display a breakdown of the purchased electricity by rate in a pie chart</td>
+                </tr>
+                <tr>
+                    <th>USAGE(S)</th>
+                    <td>Delete</td>
+                    <td>Delete the entry after confirmation.</td>
+                </tr>
+                <tr>
+                    <th>COSTS</th>
+                    <td>Delete</td>
+                    <td>Delete the entry after confirmation</td>
+                </tr>
+                <tr>
+                    <th>USAGE(S)</th>
+                    <td>Copy</td>
+                    <td>Create a new entry with an '_copy' suffix</td>
+                </tr>
+                <tr>
+                    <th>COSTS</th>
+                    <td>Copy</td>
+                    <td>Create a new entry with an '_copy' suffix</td>
+                </tr>
+            </table>
+            <p>On the filter tab, it is possible to filter the fields shown, and sort based on
+                any of the fields.</p>
+        </div>
+    </body>
+</html>

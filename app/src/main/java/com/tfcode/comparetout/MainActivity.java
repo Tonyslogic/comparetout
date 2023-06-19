@@ -285,6 +285,7 @@ public class MainActivity extends AppCompatActivity {
         mMainMenu.findItem(R.id.load).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         mMainMenu.findItem(R.id.download).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         mMainMenu.findItem(R.id.export).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        mMainMenu.findItem(R.id.help).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         if (viewPager.getCurrentItem() == COMPARE_FRAGMENT) {
             mMainMenu.findItem(R.id.load).setVisible(false);
             mMainMenu.findItem(R.id.download).setVisible(false);
@@ -467,6 +468,9 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(shareIntent);
             }).start();
                 return(true);
+        }
+        if (itemID == R.id.help) {
+            showHelp("https://appassets.androidplatform.net/assets/main/help.html");
         }
         return(super.onOptionsItemSelected(item));
     }

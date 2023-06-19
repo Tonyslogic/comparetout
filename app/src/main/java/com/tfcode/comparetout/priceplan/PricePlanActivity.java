@@ -194,6 +194,7 @@ public class PricePlanActivity extends AppCompatActivity {
         mMenu.findItem(R.id.export_a_plan).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         mMenu.findItem(R.id.del_a_day_rate).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         mMenu.findItem(R.id.save_a_plan).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        mMenu.findItem(R.id.help).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         setMenuLongClick();
         return true;
     }
@@ -396,6 +397,9 @@ public class PricePlanActivity extends AppCompatActivity {
             System.out.println("Rendering info");
             Snackbar.make(getWindow().getDecorView().getRootView(), PricePlan.getInvalidReason(mPlanValidity), Snackbar.LENGTH_LONG)
                     .setAction("Action", null).show();
+        }
+        if (item.getItemId() == R.id.help) {
+            showHelp("https://appassets.androidplatform.net/assets/priceplan/help.html");
         }
         return false;
     }
