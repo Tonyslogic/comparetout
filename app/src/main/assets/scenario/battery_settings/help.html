@@ -1,0 +1,46 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="/assets/stylesheet.css">
+    </head>
+    <body>
+        <img style="float: right;" src="/res/drawable/launcher.png" alt="launcher" width="100">
+        <p><b>Help: Battery settings</b></p>
+        <div style="clear: right">
+            <p>The battery is an optional component if you have solar panels.
+                The battery stores electricity for later use. Batteries must be configured before
+                purchase shifting schedules can be created. Multiple batteries are supported by the
+                app, but only a single battery for each inverter..</p>
+            <p>In edit mode, batteries can be added (button in bottom right), and deleted (menu)</p>
+            <p>The battery settings page has nine entries:</p>
+            <table>
+                <tr><th>Entry</th><th>Description</th></tr>
+                <tr><td>Connected Inverter name</td><td>Used to identify the specific inverter.
+                    This is needed to ensure that the batteries are charged by the correct panel
+                    string first.</td></tr>
+                <tr><td>Battery size (kWh)</td><td>The usable capacity of the battery.</td></tr>
+                <tr><td>Discharge stop (%)</td><td>At what point should the inverter stop
+                    discharging the battery. There are two reasons to do this: (1) you want to
+                    prolong the life of the battery and (2) you want ensure there is some capacity
+                    in the battery in case of a grid outage.</td></tr>
+                <tr><td>Max discharge in 5 minutes (kWh)</td><td>Batteries have physical/chemical
+                    limits in terms of how fast they can provide electricity. This value is used
+                    in the simulation to determine how much should be drawn from the grid.</td></tr>
+                <tr><td>Max charge in 5 minutes (kWh)</td><td>Batteries have physical/chemical
+                    limits in terms of how fast they can charge. This value is used
+                    in the simulation to determine how much should of the generation excess
+                    can be diverted to the battery and how much should be drawn from the grid
+                    when charging is scheduled.</td></tr>
+                <tr><td>Storage Loss (%)</td><td>Batteries lose charge when not in use, and there
+                    is a cost associated with converting electrical to chemical energy. Normally
+                    this is not a large number.</td></tr>
+                <tr><td>Charge rates @... (%)</td><td>To keep things simple, the battery settings
+                    include the Battery Management System (BMS). The BMS has one role in life:
+                    to protect the battery. The Charge rates provide a very simple model to
+                    describe the behaviour of the BMS at various battery states of charge (SOC).
+                    Typically batteries will have charging throttled when near empty or full.
+                    These values are used to modify the 'Max charge' figure during simulation.</td></tr>
+            </table>
+            <p>The menu options for the inverter can be seen <a href="menu.html">here</a>.</p>
+        </div>
+    </body>
+</html>
