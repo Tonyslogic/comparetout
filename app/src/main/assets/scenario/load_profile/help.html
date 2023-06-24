@@ -1,0 +1,51 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="/assets/stylesheet.css">
+    </head>
+    <body>
+        <img style="float: right;" src="/res/drawable/launcher.png" alt="launcher" width="100">
+        <p><b>Help: Load profile</b></p>
+        <div style="clear: right">
+            <p>The load profile is the only mandatory part of a usage what-if scenario. It
+                consists of a basic profile, and how electricity usage is distributed by hour,
+                day of week and month of year. The idea being that as creatures of habit we follow
+                daily, weekly and seasonal patterns that can be used to provide a simple but
+                effective simulation input.</p>
+            <p>Each year ESBN and the CRU publish "Standard Load Profiles". The standard load
+                profiles are a statistical average of all users categorised by meter type. These
+                are included as options for specifying distributions. Your basic profile is still
+                needed.</p>
+            <p>If you have a smart meter (and do not yet export), ESBN also provide (once
+                you register) a Harmonised Data Format (HDF) file from which your load profile
+                may be extracted (coming soon).</p>
+            <p>In future additional sources of load profiles (inverter data and Home Assistant)
+                will be added.</p>
+            <p>The profile has only five entries:</p>
+            <table>
+                <tr><th>Entry</th><th>Description</th></tr>
+                <tr><td>Distribution source</td><td>Select an option for how the distribution of
+                    electricity is specified.</td></tr>
+                <tr><td>Annual usage</td><td>The typical annual usage of electricity.
+                    This should be easily retrieved from electricity bills.</td></tr>
+                <tr><td>Hourly base load</td><td>Most houses have a base load. Fridge, freezer,
+                    standby devices, internet routers, etc. If you don't know what yours is, don't
+                    worry the default 300W is about right.</td></tr>
+                <tr><td>Grid import max</td><td>Most domestic grid connections have a max rating of
+                    15kW. If you draw more than this fuses will blow and switches will trip. The
+                    simulator uses this to curtail the draw when combinations of load profile, hot
+                    water schedule and ev charge schedule temporarily exceed the limit.</td></tr>
+                <tr><td>Grid export max</td><td>To protect the grid from imbalance, ESBN limit
+                    the amount of electricity that can be exported. The limit depends on your
+                    connection. In Ireland the normal domestic limit is ~5kW. There are exceptions
+                    .</td></tr>
+            </table>
+            <p>Follow the links for more help on the distribution tabs.</p>
+            <table>
+                <tr><th>Other tab help</th></tr>
+                <tr><td><a href="daily_tab.html">DAILY</a></td></tr>
+                <tr><td><a href="monthly_tab.html">MONTHLY</a></td></tr>
+                <tr><td><a href="hourly_tab.html">HOURLY</a></td></tr>
+            </table>
+        </div>
+    </body>
+</html>

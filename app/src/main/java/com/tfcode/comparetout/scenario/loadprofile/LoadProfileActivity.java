@@ -16,20 +16,29 @@
 
 package com.tfcode.comparetout.scenario.loadprofile;
 
+import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.webkit.WebView;
+import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
+import androidx.webkit.WebViewAssetLoader;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
@@ -45,6 +54,7 @@ import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.json.scenario.LoadProfileJson;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
 import com.tfcode.comparetout.scenario.ScenarioSelectDialog;
+import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -60,6 +70,10 @@ public class LoadProfileActivity extends AppCompatActivity {
     private Menu mMenu;
     private boolean mDoubleBackToExitPressedOnce = false;
     private boolean mUnsavedChanges = false;
+
+    private WebViewAssetLoader mAssetLoader;
+    private View mPopupView;
+    private PopupWindow mHelpWindow;
 
     private String mLoadProfileJson = "";
 
@@ -89,6 +103,7 @@ public class LoadProfileActivity extends AppCompatActivity {
             .setAction("Action", null).show());
     }
 
+    @SuppressLint("InflateParams")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -96,11 +111,24 @@ public class LoadProfileActivity extends AppCompatActivity {
         scenarioID = intent.getLongExtra("ScenarioID", 0L);
         String scenarioName = intent.getStringExtra("ScenarioName");
         mEdit = intent.getBooleanExtra("Edit", false);
+
+        mAssetLoader = new WebViewAssetLoader.Builder()
+                .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
+                .addPathHandler("/res/", new WebViewAssetLoader.ResourcesPathHandler(this))
+                .build();
+
         setContentView(R.layout.activity_load_profile);
 
         mViewPager = findViewById(R.id.load_profile_view_pager);
 
         setupViewPager();
+
+        LayoutInflater inflater = (LayoutInflater) this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        mPopupView = inflater.inflate(R.layout.popup_help, null);
+        int width = LinearLayout.LayoutParams.WRAP_CONTENT;
+        int height = LinearLayout.LayoutParams.WRAP_CONTENT;
+        boolean focusable = true; // lets taps outside the popup also dismiss it
+        mHelpWindow = new PopupWindow(mPopupView, width, height, focusable);
 
         mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
         ActionBar mActionBar = Objects.requireNonNull(getSupportActionBar());
@@ -124,7 +152,69 @@ public class LoadProfileActivity extends AppCompatActivity {
         mMenu.findItem(R.id.lp_copy).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         mMenu.findItem(R.id.lp_link).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         mMenu.findItem(R.id.lp_help).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        setMenuLongClick();
         return true;
+    }
+
+    private void setMenuLongClick() {
+        new Handler().post(() -> {
+            final View info = findViewById(R.id.lp_info);
+            if (info != null) {
+                info.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/load_profile/menu.html");
+                    return true;
+                });
+            }
+            final View edit_a_plan = findViewById(R.id.lp_edit);
+            if (edit_a_plan != null) {
+                edit_a_plan.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/load_profile/menu.html");
+                    return true;
+                });
+            }
+            final View export_a_plan = findViewById(R.id.lp_share);
+            if (export_a_plan != null) {
+                export_a_plan.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/load_profile/menu.html");
+                    return true;
+                });
+            }
+            final View save_a_plan = findViewById(R.id.lp_save);
+            if (save_a_plan != null) {
+                save_a_plan.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/load_profile/menu.html");
+                    return true;
+                });
+            }
+            final View help = findViewById(R.id.lp_help);
+            if (help != null) {
+                help.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/load_profile/menu.html");
+                    return true;
+                });
+            }
+            final View lpImport = findViewById(R.id.lp_import);
+            if (lpImport != null) {
+                lpImport.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/load_profile/menu.html");
+                    return true;
+                });
+            }
+            final View copy = findViewById(R.id.lp_copy);
+            if (copy != null) {
+                copy.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/load_profile/menu.html");
+                    return true;
+                });
+            }
+            final View link = findViewById(R.id.lp_link);
+            if (link != null) {
+                link.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/load_profile/menu.html");
+                    return true;
+                });
+            }
+        });
     }
 
     @Override
@@ -141,6 +231,7 @@ public class LoadProfileActivity extends AppCompatActivity {
         if (!(mEdit)) linkItem.setVisible(false);
         MenuItem editItem = menu.findItem((R.id.lp_edit));
         if (mEdit) editItem.setVisible(false);
+        setMenuLongClick();
         return super.onPrepareOptionsMenu(menu);
     }
 
@@ -201,9 +292,7 @@ public class LoadProfileActivity extends AppCompatActivity {
             return false;
         }
         if (item.getItemId() == R.id.lp_help) {//add the function to perform here
-            Snackbar.make(getWindow().getDecorView().getRootView(),
-                "Help attempt", Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show();
+            showHelp("https://appassets.androidplatform.net/assets/scenario/load_profile/help.html");
             return false;
         }
         return false;
@@ -223,6 +312,20 @@ public class LoadProfileActivity extends AppCompatActivity {
                 (tab, position) -> tab.setText(tabTitlesList.get(position))
         );
         mMediator.attach();
+
+        LinearLayout linearLayout = (LinearLayout)tabLayout.getChildAt(0);
+        ((View)linearLayout.getChildAt(0)).setOnLongClickListener(v -> {
+            showHelp("https://appassets.androidplatform.net/assets/scenario/load_profile/help.html");
+            return true;});
+        ((View)linearLayout.getChildAt(1)).setOnLongClickListener(v -> {
+            showHelp("https://appassets.androidplatform.net/assets/scenario/load_profile/daily_tab.html");
+            return true;});
+        ((View)linearLayout.getChildAt(2)).setOnLongClickListener(v -> {
+            showHelp("https://appassets.androidplatform.net/assets/scenario/load_profile/monthly_tab.html");
+            return true;});
+        ((View)linearLayout.getChildAt(3)).setOnLongClickListener(v -> {
+            showHelp("https://appassets.androidplatform.net/assets/scenario/load_profile/hourly_tab.html");
+            return true;});
     }
 
     @Override
@@ -293,5 +396,15 @@ public class LoadProfileActivity extends AppCompatActivity {
     public void propagateDistribution() {
         if (!(null == mViewPager.getAdapter()))
             ((LoadProfileViewPageAdapter) mViewPager.getAdapter()).updateDistributionFromLeader();
+    }
+
+    private void showHelp(String url) {
+        mHelpWindow.setHeight((int) (getWindow().getDecorView().getHeight()*0.6));
+        mHelpWindow.setWidth((int) (getWindow().getDecorView().getWidth()));
+        mHelpWindow.showAtLocation(mViewPager.getRootView(), Gravity.CENTER, 0, 0);
+        WebView webView = mPopupView.findViewById(R.id.helpWebView);
+
+        webView.setWebViewClient(new LocalContentWebViewClient(mAssetLoader));
+        webView.loadUrl(url);
     }
 }

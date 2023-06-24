@@ -324,7 +324,6 @@ public class ScenarioActivity extends AppCompatActivity {
         set.applyTo(constraintLayout);
         mSimulationInProgressBar.setVisibility(View.GONE);
 
-        Handler mMainHandler = new Handler(Looper.getMainLooper());
         observerSimulationWorker();
     }
 
