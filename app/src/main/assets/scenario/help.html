@@ -1,0 +1,123 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="/assets/stylesheet.css">
+    </head>
+    <body>
+        <img style="float: right;" src="/res/drawable/launcher.png" alt="launcher" width="100">
+        <p><b>Help: Usage what-if scenario</b></p>
+        <div style="clear: right">
+            <p>This is the one stop shop for all thing usage what-if scenario related.</p>
+            <p>From here you can specify the characteristics of a what-if scenario, and once
+                simulations have completed, explore the results on a daily monthly or annual basis.</p>
+            <p>There are four tabs in this area of the app. The first provides a launch point
+                for the usage what-if scenario specification. The other three graphical views of
+                the simulation output that help in understanding how the scenario works.</p>
+            <p>There are six main configuration points for a usage what-if scenario:</p>
+            <table>
+                <tr><th>Icon</th><th>Description</th></tr>
+                <tr>
+                    <td>
+                        <img src="/res/drawable/housetickpng.png" alt="Domestic usage" width="100">
+                        <p>Domestic usage</p>
+                    </td>
+                    <td>The only mandatory configuration in the usage what-if scenario. This
+                        item captures how electricity is used. There are several sources that
+                        can help with the population of this data. Note that this should not
+                        include usage of an immersion, or EV. Heat-pumps should as there is as
+                        yet no other means to add this to the scenario. The more accurate this
+                        data, the more accurate will be the simulation. A green tick indicates
+                        that house load has been defined.</td>
+                </tr>
+                <tr>
+                    <td>
+                        <img src="/res/drawable/inverterpng.png" alt="Inverter" width="100">
+                        <p>Inverter</p>
+                    </td>
+                    <td>The inverter is used to connect one or both solar panels and/or batteries
+                        to the house. Houses use AC electricity. Panels and batteries use DC.
+                        Conversion between the two is not perfect, and manufacturers have minor
+                        differences. If you don't know the figures for you inverter, the defaults
+                        will provide a reasonable result. More accurate data, the more accurate
+                        will be the simulation. A green tick indicates that at least one inverter
+                        has been defined.</td>
+                </tr>
+                <tr>
+                    <td>
+                        <img src="/res/drawable/panelpng.png" alt="Panels" width="100">
+                        <p>Panels</p>
+                    </td>
+                    <td>Panels convert light to electricity. They are connected to inverters. This
+                        area captures the vital statistics for panels, and how they are arranged.
+                        Once configured, a green tick will be present on the panel button. The app
+                        must also have data for the amount of light expected. There are various
+                        sources of this data. When this data is present, the panel will have a
+                        small sun symbol in the top left. Usage what-if scenarios with configured
+                        panels but no solar data are not eligible for simulation.</td>
+                </tr>
+                <tr>
+                    <td>
+                        <img src="/res/drawable/batterypng.png" alt="Battery" width="100">
+                        <p>Panels</p>
+                    </td>
+                    <td>Batteries can be used to store electricity for later use. Batteries can
+                        be charged from excess (beyond the instant need of the house load) solar or
+                        scheduled from the grid. Batteries must be connected to an inverter. You
+                        cannot configure batteries until an inverter is configured. Only one
+                        battery per inverter is supported. Once configured a green settings icon
+                        will appear under the battery button. If purchase shifting (charging from
+                        the grid is enabled, a clock icon will also be visible.</td>
+                </tr>
+                <tr>
+                    <td>
+                        <img src="/res/drawable/waterpng.png" alt="Water" width="100">
+                        <p>Water</p>
+                    </td>
+                    <td>Water is an excellent energy store -- though it will cool over time if not
+                        used. Hot water is also useful to have in a domestic environment -- though
+                        this utility is subjective. There are products that will monitor for excess
+                        solar generation (beyond the instant need of the house load), and divert
+                        that to a hot water immersion heater. On some time of use tariffs, it is
+                        more cost effective to use electricity to heat water, the ability to
+                        schedule is important. This area covers three aspects of hot water:
+                        system configuration; scheduling; diversion. When present in the usage
+                        what-if scenario icons for settings, clock and divert icons will be
+                        visible under the water button.</td>
+                </tr>
+                <tr>
+                    <td>
+                        <img src="/res/drawable/evpng.png" alt="EV" width="100">
+                        <p>EV</p>
+                    </td>
+                    <td>Domestic charging of EVs is an important use of excess solar generation
+                        (beyond the instant need of the house load). Of course solar is not always
+                        sufficient, the ability to schedule is needed. When EV charge schedules or
+                        diversions are configured, clock and divert icons will be visible under the
+                        EV button.</td>
+                </tr>
+            </table>
+            <p>The lower part of the screen is populated when the usage what-if scenario has been
+                simulated and costed. It provides a quick overview of:</p>
+            <ul>
+                <li>The cheapest supplier and plan (cost) for this usage what-if scenario</li>
+                <li>Self consumption (pie, top left). How much of the generated electricity was
+                    used locally, and how much was exported.</li>
+                <li>Self supplied (pie, top right). How much of the total load was serviced by
+                    local generation, and grid import.</li>
+                <li>Load breakdown. How much of the overall load came form EV charging, Hot water
+                    heating and general domestic use. If there is no local generation, only this
+                    pie chart will be visible.</li>
+                <li>Distribution of self generation (pie, bottom left). Where did the local
+                    generation go. Destinations are: export; EV; Hot water; battery; domestic load.</li>
+            </ul>
+            <p>Editing (menu) the overview page can be used to specify the name of the usage
+                what-if scenario.</p>
+            <p>Sharing (menu) is used to share or backup a usage what-if scenario.</p>
+            <table>
+                <tr><th>Other tab help</th></tr>
+                <tr><td><a href="detail_tab.html">DAILY DETAILS</a></td></tr>
+                <tr><td><a href="monthly_tab.html">MONTHLY ROLLUP</a></td></tr>
+                <tr><td><a href="annual_tab.html">YEAR SUMMARY</a></td></tr>
+            </table>
+        </div>
+    </body>
+</html>

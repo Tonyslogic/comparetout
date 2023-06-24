@@ -16,15 +16,22 @@
 
 package com.tfcode.comparetout.scenario;
 
+import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.webkit.WebView;
+import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.ProgressBar;
 
 import androidx.annotation.NonNull;
@@ -34,6 +41,7 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
+import androidx.webkit.WebViewAssetLoader;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 
@@ -44,6 +52,7 @@ import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
+import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -64,6 +73,10 @@ public class ScenarioActivity extends AppCompatActivity {
     private boolean mDoubleBackToExitPressedOnce = false;
     private boolean mUnsavedChanges = false;
 
+    private WebViewAssetLoader mAssetLoader;
+    private View mPopupView;
+    private PopupWindow mHelpWindow;
+
     @Override
     public void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
@@ -72,6 +85,7 @@ public class ScenarioActivity extends AppCompatActivity {
     }
 
 
+    @SuppressLint("InflateParams")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -84,12 +98,25 @@ public class ScenarioActivity extends AppCompatActivity {
             scenarioID = intent.getLongExtra("ScenarioID", 0L);
             mEdit = intent.getBooleanExtra("Edit", false);
         }
+
+        mAssetLoader = new WebViewAssetLoader.Builder()
+                .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
+                .addPathHandler("/res/", new WebViewAssetLoader.ResourcesPathHandler(this))
+                .build();
+
         setContentView(R.layout.activity_scenario);
         createSimulationFeedback();
 
         viewPager = findViewById(R.id.view_scenario_pager);
 
         setupViewPager();
+
+        LayoutInflater inflater = (LayoutInflater) this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        mPopupView = inflater.inflate(R.layout.popup_help, null);
+        int width = LinearLayout.LayoutParams.WRAP_CONTENT;
+        int height = LinearLayout.LayoutParams.WRAP_CONTENT;
+        boolean focusable = true; // lets taps outside the popup also dismiss it
+        mHelpWindow = new PopupWindow(mPopupView, width, height, focusable);
 
         ActionBar mActionBar = Objects.requireNonNull(getSupportActionBar());
         mActionBar.setTitle("Scenario");
@@ -106,7 +133,49 @@ public class ScenarioActivity extends AppCompatActivity {
         mMenu.findItem(R.id.share_scenario).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         mMenu.findItem(R.id.info_scenario).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         mMenu.findItem(R.id.save_scenario).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        mMenu.findItem(R.id.help).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        setMenuLongClick();
         return true;
+    }
+
+    private void setMenuLongClick() {
+        new Handler().post(() -> {
+            final View info = findViewById(R.id.info_scenario);
+            if (info != null) {
+                info.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/menu.html");
+                    return true;
+                });
+            }
+            final View edit_a_plan = findViewById(R.id.edit_scenario);
+            if (edit_a_plan != null) {
+                edit_a_plan.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/menu.html");
+                    return true;
+                });
+            }
+            final View export_a_plan = findViewById(R.id.share_scenario);
+            if (export_a_plan != null) {
+                export_a_plan.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/menu.html");
+                    return true;
+                });
+            }
+            final View save_a_plan = findViewById(R.id.save_scenario);
+            if (save_a_plan != null) {
+                save_a_plan.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/menu.html");
+                    return true;
+                });
+            }
+            final View help = findViewById(R.id.help);
+            if (help != null) {
+                help.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/menu.html");
+                    return true;
+                });
+            }
+        });
     }
 
     @Override
@@ -117,6 +186,7 @@ public class ScenarioActivity extends AppCompatActivity {
         if (!(mEdit)) saveItem.setVisible(false);
         MenuItem editItem = menu.findItem((R.id.edit_scenario));
         if (mEdit) editItem.setVisible(false);
+        setMenuLongClick();
         return super.onPrepareOptionsMenu(menu);
     }
 
@@ -157,6 +227,9 @@ public class ScenarioActivity extends AppCompatActivity {
                 startActivity(shareIntent);
             }).start();
         }
+        if (item.getItemId() == R.id.help) {
+            showHelp("https://appassets.androidplatform.net/assets/scenario/help.html");
+        }
         return false;
     }
 
@@ -173,6 +246,20 @@ public class ScenarioActivity extends AppCompatActivity {
                 (tab, position) -> tab.setText(tabTitlesList.get(position))
         );
         mMediator.attach();
+
+        LinearLayout linearLayout = (LinearLayout)tabLayout.getChildAt(0);
+        ((View)linearLayout.getChildAt(0)).setOnLongClickListener(v -> {
+            showHelp("https://appassets.androidplatform.net/assets/scenario/help.html");
+            return true;});
+        ((View)linearLayout.getChildAt(1)).setOnLongClickListener(v -> {
+            showHelp("https://appassets.androidplatform.net/assets/scenario/detail_tab.html");
+            return true;});
+        ((View)linearLayout.getChildAt(2)).setOnLongClickListener(v -> {
+            showHelp("https://appassets.androidplatform.net/assets/scenario/monthly_tab.html");
+            return true;});
+        ((View)linearLayout.getChildAt(3)).setOnLongClickListener(v -> {
+            showHelp("https://appassets.androidplatform.net/assets/scenario/annual_tab.html");
+            return true;});
     }
 
     @Override
@@ -262,5 +349,15 @@ public class ScenarioActivity extends AppCompatActivity {
                         }
                     }
                 });
+    }
+
+    private void showHelp(String url) {
+        mHelpWindow.setHeight((int) (getWindow().getDecorView().getHeight()*0.6));
+        mHelpWindow.setWidth((int) (getWindow().getDecorView().getWidth()));
+        mHelpWindow.showAtLocation(viewPager.getRootView(), Gravity.CENTER, 0, 0);
+        WebView webView = mPopupView.findViewById(R.id.helpWebView);
+
+        webView.setWebViewClient(new LocalContentWebViewClient(mAssetLoader));
+        webView.loadUrl(url);
     }
 }
