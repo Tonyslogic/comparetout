@@ -17,6 +17,7 @@
 package com.tfcode.comparetout.scenario.water;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
@@ -27,11 +28,15 @@ import android.os.Looper;
 import android.text.Editable;
 import android.text.InputType;
 import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.webkit.WebView;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.ProgressBar;
 import android.widget.TableLayout;
 import android.widget.TableRow;
@@ -45,6 +50,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.webkit.WebViewAssetLoader;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 
@@ -62,6 +68,7 @@ import com.tfcode.comparetout.model.scenario.HWSystem;
 import com.tfcode.comparetout.model.scenario.Scenario2HWSystem;
 import com.tfcode.comparetout.scenario.ScenarioSelectDialog;
 import com.tfcode.comparetout.util.AbstractTextWatcher;
+import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -88,6 +95,10 @@ public class WaterSettingsActivity extends AppCompatActivity {
     private boolean mDoubleBackToExitPressedOnce = false;
     private boolean mUnsavedChanges = false;
     private ComparisonUIViewModel mViewModel;
+
+    private WebViewAssetLoader mAssetLoader;
+    private View mPopupView;
+    private PopupWindow mHelpWindow;
 
     private String mHWSystemJsonString = "";
     private HWSystem mHWSystem;
@@ -151,6 +162,7 @@ public class WaterSettingsActivity extends AppCompatActivity {
                 .setAction("Action", null).show());
     }
 
+    @SuppressLint("InflateParams")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -161,6 +173,11 @@ public class WaterSettingsActivity extends AppCompatActivity {
         mScenarioID = intent.getLongExtra("ScenarioID", 0L);
         String scenarioName = intent.getStringExtra("ScenarioName");
         mEdit = intent.getBooleanExtra("Edit", false);
+
+        mAssetLoader = new WebViewAssetLoader.Builder()
+                .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
+                .addPathHandler("/res/", new WebViewAssetLoader.ResourcesPathHandler(this))
+                .build();
 
         mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
         ActionBar mActionBar = Objects.requireNonNull(getSupportActionBar());
@@ -175,6 +192,13 @@ public class WaterSettingsActivity extends AppCompatActivity {
         mTableSettings.setStretchAllColumns(true);
 
         loadFromDB();
+
+        LayoutInflater inflater = (LayoutInflater) this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        mPopupView = inflater.inflate(R.layout.popup_help, null);
+        int width = LinearLayout.LayoutParams.WRAP_CONTENT;
+        int height = LinearLayout.LayoutParams.WRAP_CONTENT;
+        boolean focusable = true; // lets taps outside the popup also dismiss it
+        mHelpWindow = new PopupWindow(mPopupView, width, height, focusable);
 
         mViewModel.getAllHWSystemRelations().observe(this, relations -> {
             System.out.println("Observed a change in live HWSystem relations ");
@@ -223,7 +247,69 @@ public class WaterSettingsActivity extends AppCompatActivity {
         mMenu.findItem(R.id.lp_copy).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         mMenu.findItem(R.id.lp_link).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         mMenu.findItem(R.id.lp_help).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        setMenuLongClick();
         return true;
+    }
+
+    private void setMenuLongClick() {
+        new Handler().post(() -> {
+            final View info = findViewById(R.id.lp_info);
+            if (info != null) {
+                info.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/water_settings/menu.html");
+                    return true;
+                });
+            }
+            final View edit_a_plan = findViewById(R.id.lp_edit);
+            if (edit_a_plan != null) {
+                edit_a_plan.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/water_settings/menu.html");
+                    return true;
+                });
+            }
+            final View export_a_plan = findViewById(R.id.lp_share);
+            if (export_a_plan != null) {
+                export_a_plan.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/water_settings/menu.html");
+                    return true;
+                });
+            }
+            final View save_a_plan = findViewById(R.id.lp_save);
+            if (save_a_plan != null) {
+                save_a_plan.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/water_settings/menu.html");
+                    return true;
+                });
+            }
+            final View help = findViewById(R.id.lp_help);
+            if (help != null) {
+                help.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/water_settings/menu.html");
+                    return true;
+                });
+            }
+            final View lpImport = findViewById(R.id.lp_import);
+            if (lpImport != null) {
+                lpImport.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/water_settings/menu.html");
+                    return true;
+                });
+            }
+            final View copy = findViewById(R.id.lp_copy);
+            if (copy != null) {
+                copy.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/water_settings/menu.html");
+                    return true;
+                });
+            }
+            final View link = findViewById(R.id.lp_link);
+            if (link != null) {
+                link.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/water_settings/menu.html");
+                    return true;
+                });
+            }
+        });
     }
 
     @Override
@@ -242,6 +328,7 @@ public class WaterSettingsActivity extends AppCompatActivity {
         if (mEdit) editItem.setVisible(false);
         MenuItem delItem = menu.findItem((R.id.lp_delete));
         delItem.setVisible(false);
+        setMenuLongClick();
         return super.onPrepareOptionsMenu(menu);
     }
 
@@ -325,10 +412,7 @@ public class WaterSettingsActivity extends AppCompatActivity {
             return false;
         }
         if (item.getItemId() == R.id.lp_help) {//add the function to perform here
-            System.out.println("Help attempt");
-            Snackbar.make(getWindow().getDecorView().getRootView(),
-                            "TODO: Help", Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show();
+            showHelp("https://appassets.androidplatform.net/assets/scenario/water_settings/help.html");
             return false;
         }
         return false;
@@ -612,5 +696,15 @@ public class WaterSettingsActivity extends AppCompatActivity {
                         }
                     }
                 });
+    }
+
+    private void showHelp(String url) {
+        mHelpWindow.setHeight((int) (getWindow().getDecorView().getHeight()*0.6));
+        mHelpWindow.setWidth((int) (getWindow().getDecorView().getWidth()));
+        mHelpWindow.showAtLocation(getWindow().getDecorView().getRootView(), Gravity.CENTER, 0, 0);
+        WebView webView = mPopupView.findViewById(R.id.helpWebView);
+
+        webView.setWebViewClient(new LocalContentWebViewClient(mAssetLoader));
+        webView.loadUrl(url);
     }
 }
