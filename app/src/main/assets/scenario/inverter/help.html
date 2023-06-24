@@ -1,0 +1,44 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="/assets/stylesheet.css">
+    </head>
+    <body>
+        <img style="float: right;" src="/res/drawable/launcher.png" alt="launcher" width="100">
+        <p><b>Help: Inverters</b></p>
+        <div style="clear: right">
+            <p>The inverter is an essential component if you have solar panels and or a battery.
+                The inverter transforms electricity from one form to another depending on a
+                number of factors. Without an inverter configured, the app will not allow adding
+                solar panels or batteries. Multiple inverters are supported by the app. In
+                practice you need to get professional advice on a multi-inverter system.</p>
+            <p>In edit mode, inverters can be added (button in bottom right), and deleted (menu)</p>
+            <p>The inverter has seven entries:</p>
+            <table>
+                <tr><th>Entry</th><th>Description</th></tr>
+                <tr><td>Inverter name</td><td>Used to identify a specific inverter when connecting
+                    panels or batteries.</td></tr>
+                <tr><td>Minimum excess (kW)</td><td>The level of clear excess generation needed
+                    before battery charging will occur.</td></tr>
+                <tr><td>Maximum load(kW)</td><td>The output rating of the inverter.</td></tr>
+                <tr><td>Number of MPPT</td><td>Solar inverters include ports (Maximum Power Point
+                    Tracking) to attach strings of inverters. This is useful when you have
+                    different strings with different orientations. This is used when attaching
+                    panels to the inverter.</td></tr>
+                <tr><td>AC to DC Loss (%)</td><td>When charging from the grid, the inverter must
+                    convert from AD to DC. No inverter is perfect, so there will be loss. This
+                    loss is normally well documented. It you don't know then stick with the
+                    default.</td></tr>
+                <tr><td>DC to AC Loss (%)</td><td>When providing electricity to the house load,
+                    the inverter must convert from DC to AC. No inverter is perfect, so there
+                    will be loss. This loss is normally well documented. It you don't know then
+                    stick with the default.</td></tr>
+                <tr><td>DC to DC Loss (%)</td><td>Some inverters (Hybrid) can bypass AC when there
+                    is a viable excess and a connected battery has capacity. The inverter still
+                    has a little work to do to match the battery and PV DC and no inverter is
+                    perfect, so there will be loss. This loss is normally well documented.
+                    It you don't know then stick with the default.</td></tr>
+            </table>
+            <p>The menu options for the inverter can be seen <a href="menu.html">here</a>.</p>
+        </div>
+    </body>
+</html>

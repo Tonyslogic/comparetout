@@ -16,15 +16,22 @@
 
 package com.tfcode.comparetout.scenario.inverter;
 
+import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.webkit.WebView;
+import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.ProgressBar;
 
 import androidx.activity.result.ActivityResultLauncher;
@@ -36,6 +43,7 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
+import androidx.webkit.WebViewAssetLoader;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 
@@ -54,6 +62,7 @@ import com.tfcode.comparetout.model.json.scenario.InverterJson;
 import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.Scenario2Inverter;
 import com.tfcode.comparetout.scenario.ScenarioSelectDialog;
+import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -81,6 +90,10 @@ public class InverterActivity extends AppCompatActivity {
     private FloatingActionButton mFab;
     private boolean mDoubleBackToExitPressedOnce = false;
     private boolean mUnsavedChanges = false;
+
+    private WebViewAssetLoader mAssetLoader;
+    private View mPopupView;
+    private PopupWindow mHelpWindow;
 
     private String mInvertersJsonString = "";
     private List<Inverter> mInverters;
@@ -142,6 +155,7 @@ public class InverterActivity extends AppCompatActivity {
                 .setAction("Action", null).show());
     }
 
+    @SuppressLint("InflateParams")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -155,6 +169,12 @@ public class InverterActivity extends AppCompatActivity {
         mScenarioID = intent.getLongExtra("ScenarioID", 0L);
         String mScenarioName = intent.getStringExtra("ScenarioName");
         mEdit = intent.getBooleanExtra("Edit", false);
+
+        mAssetLoader = new WebViewAssetLoader.Builder()
+                .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
+                .addPathHandler("/res/", new WebViewAssetLoader.ResourcesPathHandler(this))
+                .build();
+
         setContentView(R.layout.activity_inverter);
 
         mViewPager = findViewById(R.id.inverter_view_pager);
@@ -197,6 +217,13 @@ public class InverterActivity extends AppCompatActivity {
             mMainHandler.post(this::setupViewPager);
             mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
         }).start();
+
+        LayoutInflater inflater = (LayoutInflater) this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        mPopupView = inflater.inflate(R.layout.popup_help, null);
+        int width = LinearLayout.LayoutParams.WRAP_CONTENT;
+        int height = LinearLayout.LayoutParams.WRAP_CONTENT;
+        boolean focusable = true; // lets taps outside the popup also dismiss it
+        mHelpWindow = new PopupWindow(mPopupView, width, height, focusable);
 
         mViewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
@@ -267,6 +294,14 @@ public class InverterActivity extends AppCompatActivity {
                 (tab, position) -> tab.setText(tabTitlesList.get(position))
         );
         mMediator.attach();
+
+        LinearLayout linearLayout = (LinearLayout)tabLayout.getChildAt(0);
+        for (int i = 0; i < linearLayout.getChildCount(); i++) {
+            ((View) linearLayout.getChildAt(i)).setOnLongClickListener(v -> {
+                showHelp("https://appassets.androidplatform.net/assets/scenario/inverter/help.html");
+                return true;
+            });
+        }
     }
 
     // MENU
@@ -285,7 +320,76 @@ public class InverterActivity extends AppCompatActivity {
         mMenu.findItem(R.id.lp_link).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         mMenu.findItem(R.id.lp_help).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         mMenu.findItem(R.id.lp_delete).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        setMenuLongClick();
         return true;
+    }
+
+    private void setMenuLongClick() {
+        new Handler().post(() -> {
+            final View info = findViewById(R.id.lp_info);
+            if (info != null) {
+                info.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/inverter/menu.html");
+                    return true;
+                });
+            }
+            final View edit_a_plan = findViewById(R.id.lp_edit);
+            if (edit_a_plan != null) {
+                edit_a_plan.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/inverter/menu.html");
+                    return true;
+                });
+            }
+            final View export_a_plan = findViewById(R.id.lp_share);
+            if (export_a_plan != null) {
+                export_a_plan.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/inverter/menu.html");
+                    return true;
+                });
+            }
+            final View save_a_plan = findViewById(R.id.lp_save);
+            if (save_a_plan != null) {
+                save_a_plan.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/inverter/menu.html");
+                    return true;
+                });
+            }
+            final View help = findViewById(R.id.lp_help);
+            if (help != null) {
+                help.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/inverter/menu.html");
+                    return true;
+                });
+            }
+            final View lpImport = findViewById(R.id.lp_import);
+            if (lpImport != null) {
+                lpImport.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/inverter/menu.html");
+                    return true;
+                });
+            }
+            final View copy = findViewById(R.id.lp_copy);
+            if (copy != null) {
+                copy.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/inverter/menu.html");
+                    return true;
+                });
+            }
+            final View link = findViewById(R.id.lp_link);
+            if (link != null) {
+                link.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/inverter/menu.html");
+                    return true;
+                });
+            }
+            final View del = findViewById(R.id.lp_delete);
+            if (del != null) {
+                del.setOnLongClickListener(v -> {
+                    showHelp("https://appassets.androidplatform.net/assets/scenario/inverter/menu.html");
+                    return true;
+                });
+            }
+        });
     }
 
     @Override
@@ -304,6 +408,7 @@ public class InverterActivity extends AppCompatActivity {
         if (mEdit) editItem.setVisible(false);
         MenuItem delItem = menu.findItem((R.id.lp_delete));
         if (mEdit) delItem.setVisible(true);
+        setMenuLongClick();
         return super.onPrepareOptionsMenu(menu);
     }
 
@@ -386,10 +491,7 @@ public class InverterActivity extends AppCompatActivity {
             return false;
         }
         if (item.getItemId() == R.id.lp_help) {//add the function to perform here
-            System.out.println("Help attempt");
-            Snackbar.make(getWindow().getDecorView().getRootView(),
-                "TODO : " + item.getTitle(), Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show();
+            showHelp("https://appassets.androidplatform.net/assets/scenario/inverter/help.html");
             return false;
         }
         if (item.getItemId() == R.id.lp_delete) {//add the function to perform here
@@ -560,5 +662,15 @@ public class InverterActivity extends AppCompatActivity {
                         }
                     }
                 });
+    }
+
+    private void showHelp(String url) {
+        mHelpWindow.setHeight((int) (getWindow().getDecorView().getHeight()*0.6));
+        mHelpWindow.setWidth((int) (getWindow().getDecorView().getWidth()));
+        mHelpWindow.showAtLocation(mViewPager.getRootView(), Gravity.CENTER, 0, 0);
+        WebView webView = mPopupView.findViewById(R.id.helpWebView);
+
+        webView.setWebViewClient(new LocalContentWebViewClient(mAssetLoader));
+        webView.loadUrl(url);
     }
 }
