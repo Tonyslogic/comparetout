@@ -1,0 +1,32 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="/assets/stylesheet.css">
+    </head>
+    <body>
+        <img style="float: right;" src="/res/drawable/launcher.png" alt="launcher" width="100">
+        <p><b>Help: Battery charge scheduling</b></p>
+        <div style="clear: right">
+            <p>Once the battery is defined, it can be charged from the grid. This is a great
+                cost saving option when the cost of electricity varies by time of day.</p>
+            <p>If you supplier price plan includes being paid for export, and export rate is
+                greater than a off-peak or night rate, then it makes financial sense to
+                charge the battery, and sell more excess generation.</p>
+            <p>In edit mode, charge schedules can be added (button in bottom right), and deleted (menu)</p>
+            <p>The battery charge schedule page has three areas:</p>
+            <table>
+                <tr><th>Area</th><th>Description</th></tr>
+                <tr><td>Connected Inverter name</td><td>Used to identify the specific inverter.
+                    This is needed to ensure that the batteries are charged by the correct panel
+                    string first.</td></tr>
+                <tr><td>Days and months</td><td>The days of the week and months of the year
+                    on which the battery should be charged. All charge times listed share these
+                    days and months. Use the button to show/hide this area.</td></tr>
+                <tr><td>Charge times</td><td>Multiple charge times (From, to and the charge stop
+                    point -- a percentage of SOC) can be defined for each applicable day. Charge
+                    times can be added and removed. Linked charge times are indicated by an
+                    enabled link button.</td></tr>
+            </table>
+            <p>The menu options for the inverter can be seen <a href="menu.html">here</a>.</p>
+        </div>
+    </body>
+</html>
