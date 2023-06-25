@@ -24,6 +24,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -32,9 +34,16 @@ import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
 import android.text.InputType;
+import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
+import android.webkit.WebView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.PopupWindow;
 import android.widget.ProgressBar;
 import android.widget.TableLayout;
 import android.widget.TableRow;
@@ -49,6 +58,7 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.webkit.WebViewAssetLoader;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 
@@ -63,6 +73,7 @@ import com.tfcode.comparetout.SimulatorLauncher;
 import com.tfcode.comparetout.model.scenario.Panel;
 import com.tfcode.comparetout.model.scenario.PanelPVSummary;
 import com.tfcode.comparetout.util.AbstractTextWatcher;
+import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.io.File;
 import java.text.DecimalFormat;
@@ -80,6 +91,10 @@ public class PVGISActivity extends AppCompatActivity {
     private boolean mPanelDataInDB = false;
     private boolean mFileCached = false;
     private boolean mLocationChanged = false;
+
+    private WebViewAssetLoader mAssetLoader;
+    private View mPopupView;
+    private PopupWindow mHelpWindow;
 
     public static String[] storge_permissions = {
             Manifest.permission.WRITE_EXTERNAL_STORAGE,
@@ -224,6 +239,7 @@ public class PVGISActivity extends AppCompatActivity {
     }
 
 
+    @SuppressLint("InflateParams")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -238,6 +254,11 @@ public class PVGISActivity extends AppCompatActivity {
         Intent intent = getIntent();
         mPanelID = intent.getLongExtra("PanelID", 0L);
         mEdit = intent.getBooleanExtra("Edit", false);
+
+        mAssetLoader = new WebViewAssetLoader.Builder()
+                .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
+                .addPathHandler("/res/", new WebViewAssetLoader.ResourcesPathHandler(this))
+                .build();
 
         System.out.println("mPanelID = " +mPanelID);
 
@@ -271,7 +292,34 @@ public class PVGISActivity extends AppCompatActivity {
             updateView();
         });
 
+        LayoutInflater inflater = (LayoutInflater) this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        mPopupView = inflater.inflate(R.layout.popup_help, null);
+        int width = LinearLayout.LayoutParams.WRAP_CONTENT;
+        int height = LinearLayout.LayoutParams.WRAP_CONTENT;
+        boolean focusable = true; // lets taps outside the popup also dismiss it
+        mHelpWindow = new PopupWindow(mPopupView, width, height, focusable);
+
         registerReceiver(onDownloadComplete,new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE));
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_prices, menu);
+        int colour = Color.parseColor("White");
+        menu.findItem(R.id.help).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        menu.findItem(R.id.load).setVisible(false);
+        menu.findItem(R.id.download).setVisible(false);
+        menu.findItem(R.id.export).setVisible(false);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.help) {
+            showHelp();
+        }
+        return(super.onOptionsItemSelected(item));
     }
 
     @Override
@@ -488,5 +536,15 @@ public class PVGISActivity extends AppCompatActivity {
         mProgressBar.setVisibility(View.GONE);
 
         mMainHandler = new Handler(Looper.getMainLooper());
+    }
+
+    private void showHelp() {
+        mHelpWindow.setHeight((int) (getWindow().getDecorView().getHeight()*0.6));
+        mHelpWindow.setWidth((int) (getWindow().getDecorView().getWidth()));
+        mHelpWindow.showAtLocation(getWindow().getDecorView().getRootView(), Gravity.CENTER, 0, 0);
+        WebView webView = mPopupView.findViewById(R.id.helpWebView);
+
+        webView.setWebViewClient(new LocalContentWebViewClient(mAssetLoader));
+        webView.loadUrl("https://appassets.androidplatform.net/assets/scenario/panel/pvgis_help.html");
     }
 }
