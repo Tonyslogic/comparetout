@@ -1,0 +1,45 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="/assets/stylesheet.css">
+    </head>
+    <body>
+        <img style="float: right;" src="/res/drawable/launcher.png" alt="launcher" width="100">
+        <p><b>Help: Panels</b></p>
+        <div style="clear: right">
+            <p>.</p>
+            <p>In edit mode, panels can be added (button in bottom right), and deleted (menu)</p>
+            <p>Panel design can be quite complex depending on available space, orientation and
+                shading. In line with the spirit of this app, a simple model is provided to
+                cover the majority of installations.</p>
+            <p>The panel input has six entries:</p>
+            <table>
+                <tr><th>Entry</th><th>Description</th></tr>
+                <tr><td>Panel name</td><td>A convenient reference for a set of panels (string).</td></tr>
+                <tr><td>Panel count</td><td>The number of panels in this string.</td></tr>
+                <tr><td>Panel kWp</td><td>The maximum that an individual panel will produce. If
+                    you have mixed panels, use the lowest value.</td></tr>
+                <tr><td>Optimised</td><td>When several strings are connected to the same
+                    inverter/MPPT, the simulator needs to know if optimizers are present.
+                    <p>If multiple strings are connected to a single MPPT, and optimised is
+                        checked, the maximum of the strings is used.</p>
+                    <p>If multiple strings are connected to a single MPPT, and optimised is <b>not</b>
+                        checked, the configuration is assumed to be parallel, and the sum is used.
+                        This assumes that the inverter can handle the increased current.</p>
+                </td></tr>
+                <tr><td>Connected inverter name</td><td>The inverter to which the panels are
+                    connected. The simulator needs to understand this in scenarios where multiple
+                    inverters are defined.</td></tr>
+                <tr><td>Connected inverter mppt</td><td>The MPPT (Maximum Power Point Tracking)
+                    port that the string(s) are attached to.</td></tr>
+            </table>
+            <p>The lower half of the page shows a 12 month summary of the projected energy
+                generation from this panel string. If it is not present a reminder to fetch
+                is displayed. Usage what-if scenarios that have panels defined but no solar
+                data are not eligible for simulation.</p>
+            <p>Solar data can be fetched or updated using the button at the bottom of the screen
+                while in edit mode. At the moment only PVGIS is integrated as a source of PV data.
+                In the future additional sources will be added.</p>
+            <p>The menu options for the panels can be seen <a href="menu.html">here</a>.</p>
+        </div>
+    </body>
+</html>
