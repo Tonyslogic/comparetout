@@ -19,7 +19,6 @@ package com.tfcode.comparetout.priceplan;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.ColorDrawable;
@@ -299,7 +298,7 @@ public class PricePlanActivity extends AppCompatActivity {
         if (item.getItemId() == R.id.export_a_plan){
             Intent sendIntent = new Intent();
             sendIntent.setAction(Intent.ACTION_SEND);
-            sendIntent.putExtra(Intent.EXTRA_TEXT, focusedPlan);
+            sendIntent.putExtra(Intent.EXTRA_TEXT, "[" + focusedPlan + "]");
             sendIntent.setType("text/json");
 
             Intent shareIntent = Intent.createChooser(sendIntent, null);
