@@ -75,6 +75,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -352,65 +353,68 @@ public class MainActivity extends AppCompatActivity {
         if (itemID == R.id.download) {
             //add the function to perform here
             System.out.println("Download attempt");
-            mProgressBar.setVisibility(View.VISIBLE);
-            if (pos == COSTS_FRAGMENT) {
-                new Thread(() -> {
-                    URL url;
-                    InputStreamReader reader;
-                    try {
-                        url = new URL("https://raw.githubusercontent.com/Tonyslogic/comparetout-doc/main/price-plans/rates.json");
-                        reader = new InputStreamReader(url.openStream());
-                        Type type = new TypeToken<List<PricePlanJsonFile>>() {
-                        }.getType();
-                        List<PricePlanJsonFile> ppList = new Gson().fromJson(reader, type);
-                        reader.close();
-                        for (PricePlanJsonFile pp : ppList) {
-                            System.out.println(pp.plan);
-                            PricePlan p = JsonTools.createPricePlan(pp);
-                            ArrayList<DayRate> drs = new ArrayList<>();
-                            for (DayRateJson drj : pp.rates) {
-                                DayRate dr = JsonTools.createDayRate(drj);
-                                drs.add(dr);
-                            }
-                            mViewModel.insertPricePlan(p, drs);
-                        }
-                        reader.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
-                }).start();
-                return (true);
-            }
-            if (pos == USAGE_FRAGMENT) {
-                mProgressBar.setVisibility(View.VISIBLE);
-                new Thread(() -> {
-                    URL url;
-                    InputStreamReader reader;
-                    try {
-                        url = new URL("https://raw.githubusercontent.com/Tonyslogic/comparetout-doc/main/usage-profiles/scenarios.json");
-                        reader = new InputStreamReader(url.openStream());
-                        Type type = new TypeToken<List<ScenarioJsonFile>>() {
-                        }.getType();
-                        List<ScenarioJsonFile> scenarioJsonFiles = new Gson().fromJson(reader, type);
-                        List<ScenarioComponents> scs = JsonTools.createScenarioComponentList(scenarioJsonFiles);
-                        for (ScenarioComponents sc : scs) {
-                            mViewModel.insertScenario(sc);
-                        }
-                        reader.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
-                }).start();
+            AtomicReference<String> urlString = new AtomicReference<>("https://raw.githubusercontent.com/Tonyslogic/comparetout-doc/main/price-plans/rates.json");
+            if (pos == USAGE_FRAGMENT) urlString.set("https://raw.githubusercontent.com/Tonyslogic/comparetout-doc/main/usage-profiles/scenarios.json");
 
-                return (true);
-            }
-            if (pos == COMPARE_FRAGMENT) {
-                Snackbar.make(viewPager.getRootView(), "TODO Hide download on compare tab", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-                return (true);
-            }
+            DownloadDialog downloadDialog = new DownloadDialog(this, urlString.get(), newURL -> {
+                urlString.set(newURL);
+                mProgressBar.setVisibility(View.VISIBLE);
+                if (pos == COSTS_FRAGMENT) {
+                    String finalUrlString = urlString.get();
+                    new Thread(() -> {
+                        URL url;
+                        InputStreamReader reader;
+                        try {
+                            url = new URL(finalUrlString);
+                            reader = new InputStreamReader(url.openStream());
+                            Type type = new TypeToken<List<PricePlanJsonFile>>() {
+                            }.getType();
+                            List<PricePlanJsonFile> ppList = new Gson().fromJson(reader, type);
+                            reader.close();
+                            for (PricePlanJsonFile pp : ppList) {
+                                System.out.println(pp.plan);
+                                PricePlan p = JsonTools.createPricePlan(pp);
+                                ArrayList<DayRate> drs = new ArrayList<>();
+                                for (DayRateJson drj : pp.rates) {
+                                    DayRate dr = JsonTools.createDayRate(drj);
+                                    drs.add(dr);
+                                }
+                                mViewModel.insertPricePlan(p, drs);
+                            }
+                            reader.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
+                    }).start();
+                }
+                if (pos == USAGE_FRAGMENT) {
+                    mProgressBar.setVisibility(View.VISIBLE);
+                    String finalUrlString1 = urlString.get();
+                    new Thread(() -> {
+                        URL url;
+                        InputStreamReader reader;
+                        try {
+                            url = new URL(finalUrlString1);
+                            reader = new InputStreamReader(url.openStream());
+                            Type type = new TypeToken<List<ScenarioJsonFile>>() {
+                            }.getType();
+                            List<ScenarioJsonFile> scenarioJsonFiles = new Gson().fromJson(reader, type);
+                            List<ScenarioComponents> scs = JsonTools.createScenarioComponentList(scenarioJsonFiles);
+                            for (ScenarioComponents sc : scs) {
+                                mViewModel.insertScenario(sc);
+                            }
+                            reader.close();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
+                    }).start();
+                }
+            });
+            downloadDialog.show();
+
+            return true;
         }
 
 

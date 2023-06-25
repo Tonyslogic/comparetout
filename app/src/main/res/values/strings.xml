@@ -179,4 +179,6 @@
     <string name="grid_to_battery">Grid to battery</string>
     <string name="use_deemed_export">Use deemed export</string>
     <string name="deemed_export_calculation">Deemed export</string>
+    <string name="download">Download</string>
+    <string name="download_disclaimer">You may download costs and usages by supplying a URL. The default URLs are aimed to get you started. There is no guarantee that contents are correct. It is advisable to check the costs and usages for suitability and correctness.</string>
 </resources>

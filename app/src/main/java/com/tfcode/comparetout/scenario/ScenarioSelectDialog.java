@@ -93,7 +93,6 @@ public class ScenarioSelectDialog extends Dialog  {
     }
 
     private void updateView(List<Scenario> scenarios){
-        System.out.println("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$");
         mTableLayout.removeAllViews();
         mTableLayout.setShrinkAllColumns(false);
         mTableLayout.setStretchAllColumns(true);
