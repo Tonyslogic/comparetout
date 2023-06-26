@@ -610,12 +610,12 @@ public class ScenarioOverview extends Fragment {
                         Map<String, Double> pieMap = new HashMap<>();
                         pieMap.put("Self Consume", mSimKPIs.generated - mSimKPIs.sold);
                         pieMap.put("Sold", mSimKPIs.sold);
-                        PieChart pc = getPieChart("", pieMap, true);
+                        PieChart pc = getPieChart("", pieMap, true, false);
                         tableRow.addView(pc);
                         pieMap = new HashMap<>();
                         pieMap.put("Self supplied", mSimKPIs.totalLoad - mSimKPIs.bought);
                         pieMap.put("Sold", mSimKPIs.bought);
-                        PieChart pc2 = getPieChart("", pieMap, true);
+                        PieChart pc2 = getPieChart("", pieMap, true, false);
                         tableRow.addView(pc2);
                     }
                     else {
@@ -633,18 +633,18 @@ public class ScenarioOverview extends Fragment {
                     tableRow = new TableRow(getActivity());
                     Map<String, Double> pieMap = new HashMap<>();
                     pieMap.put("\uD83C\uDFE0", mSimKPIs.house);
-                    pieMap.put("H2O", mSimKPIs.h20);
-                    pieMap.put("EV", mSimKPIs.ev);
-                    PieChart pc = getPieChart("Load", pieMap, false);
+                    pieMap.put("\uD83D\uDCA6", mSimKPIs.h20);
+                    pieMap.put("\uD83D\uDE97", mSimKPIs.ev);
+                    PieChart pc = getPieChart("Load", pieMap, false, true);
                     tableRow.addView(pc);
                     if (mSimKPIs.generated > 0) {
                         pieMap = new HashMap<>();
-                        pieMap.put("EV", mSimKPIs.evDiv);
-                        pieMap.put("H2O", mSimKPIs.h2oDiv);
+                        pieMap.put("\uD83D\uDE97", mSimKPIs.evDiv);
+                        pieMap.put("\uD83D\uDCA6", mSimKPIs.h2oDiv);
                         pieMap.put("$$", mSimKPIs.sold);
                         pieMap.put("\uD83C\uDFE0", mSimKPIs.pvToLoad);
                         pieMap.put("\uD83D\uDD0B", mSimKPIs.pvToCharge);
-                        PieChart pc2 = getPieChart("PV", pieMap, false);
+                        PieChart pc2 = getPieChart("PV", pieMap, false, true);
                         tableRow.addView(pc2);
                     }
                     else {
@@ -660,7 +660,7 @@ public class ScenarioOverview extends Fragment {
         }
     }
 
-    private PieChart getPieChart(String title, Map<String, Double> pieMap, boolean showPercent) {
+    private PieChart getPieChart(String title, Map<String, Double> pieMap, boolean showPercent, boolean showLabels) {
         PieChart pieChart = new PieChart(getActivity());
 
         pieChart.getDescription().setEnabled(true);
@@ -693,7 +693,7 @@ public class ScenarioOverview extends Fragment {
         pieData.setValueFormatter(new PercentFormatter(pieChart));
         pieChart.setData(pieData);
         pieChart.setUsePercentValues(true);
-        pieChart.setDrawEntryLabels(false);
+        pieChart.setDrawEntryLabels(showLabels);
 
         Legend legend = pieChart.getLegend();
 //        int color = Color.getColor("?android:textColorPrimary");
