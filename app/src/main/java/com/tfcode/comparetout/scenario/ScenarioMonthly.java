@@ -35,6 +35,8 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.PopupMenu;
+import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -113,6 +115,8 @@ public class ScenarioMonthly extends Fragment {
     private int mBarFilterCount = 3;
     private int mLineFilterCount = 2;
 
+    private int mOrientation = Configuration.ORIENTATION_PORTRAIT;
+
     public ScenarioMonthly() {
         // Required empty public constructor
     }
@@ -124,8 +128,10 @@ public class ScenarioMonthly extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        if (!(null == getActivity()))
+        if (!(null == getActivity())) {
             getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+            mOrientation = getActivity().getResources().getConfiguration().orientation;
+        }
     }
 
     @Override
@@ -506,7 +512,16 @@ public class ScenarioMonthly extends Fragment {
             mBarChart.refreshDrawableState();
         }
 
-        if (!(null == mPieChart) && (!(null == mBarData)) && !mBarData.isEmpty())  {
+        if (!(null == mBarChart) && mOrientation == Configuration.ORIENTATION_LANDSCAPE) {
+
+            ConstraintLayout constraintLayout = (ConstraintLayout) mBarChart.getParent();
+            ConstraintSet constraintSet = new ConstraintSet();
+            constraintSet.clone(constraintLayout);
+            constraintSet.connect(R.id.scenario_detail_chart, ConstraintSet.BOTTOM, R.id.scenario_detail_filter_layout, ConstraintSet.TOP, 0);
+            constraintSet.connect(R.id.scenario_detail_filter_layout, ConstraintSet.TOP, R.id.scenario_detail_chart, ConstraintSet.BOTTOM, 0);
+            constraintSet.applyTo(constraintLayout);
+        }
+        else if (!(null == mPieChart) && (!(null == mBarData)) && !mBarData.isEmpty())  {
             mPieChart.getDescription().setEnabled(true);
             mPieChart.getDescription().setTextColor(Color.DKGRAY);
             mPieChart.setRotationEnabled(true);
