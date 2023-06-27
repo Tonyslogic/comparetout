@@ -86,6 +86,9 @@ import java.util.Objects;
 
 public class ScenarioOverview extends Fragment {
 
+    private static final String SCENARIO_ID = "SCENARIO_ID";
+    private static final String EDIT = "EDIT";
+
     private ActionBar mActionBar;
     private Handler mMainHandler;
 
@@ -119,11 +122,25 @@ public class ScenarioOverview extends Fragment {
     }
 
     @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putBoolean(EDIT, mEdit);
+        outState.putLong(SCENARIO_ID, mScenarioID);
+    }
+
+    @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mScenarioID = ((ScenarioActivity) requireActivity()).getScenarioID();
-        mEdit = ((ScenarioActivity) requireActivity()).getEdit();
-        if (mEdit) ((ScenarioActivity) requireActivity()).setSaveNeeded(true);
+        if (!(null == savedInstanceState)) {
+            mEdit = savedInstanceState.getBoolean(EDIT);
+            mScenarioID = savedInstanceState.getLong(SCENARIO_ID);
+        }
+        else if (!(null == getActivity())) {
+            if ((null == mScenarioID) || mScenarioID == 0)
+                mScenarioID = ((ScenarioActivity) getActivity()).getScenarioID();
+            mEdit = ((ScenarioActivity) getActivity()).getEdit();
+            if (mEdit) ((ScenarioActivity) getActivity()).setSaveNeeded(true);
+        }
 
         mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
         mViewModel.getAllScenarios().observe(this, scenarios -> {
@@ -610,12 +627,12 @@ public class ScenarioOverview extends Fragment {
                         Map<String, Double> pieMap = new HashMap<>();
                         pieMap.put("Self Consume", mSimKPIs.generated - mSimKPIs.sold);
                         pieMap.put("Sold", mSimKPIs.sold);
-                        PieChart pc = getPieChart("", pieMap, true, false);
+                        PieChart pc = getPieChart("", pieMap, true);
                         tableRow.addView(pc);
                         pieMap = new HashMap<>();
                         pieMap.put("Self supplied", mSimKPIs.totalLoad - mSimKPIs.bought);
                         pieMap.put("Sold", mSimKPIs.bought);
-                        PieChart pc2 = getPieChart("", pieMap, true, false);
+                        PieChart pc2 = getPieChart("", pieMap, true);
                         tableRow.addView(pc2);
                     }
                     else {
@@ -635,7 +652,7 @@ public class ScenarioOverview extends Fragment {
                     pieMap.put("\uD83C\uDFE0", mSimKPIs.house);
                     pieMap.put("\uD83D\uDCA6", mSimKPIs.h20);
                     pieMap.put("\uD83D\uDE97", mSimKPIs.ev);
-                    PieChart pc = getPieChart("Load", pieMap, false, true);
+                    PieChart pc = getPieChart("Load", pieMap, false);
                     tableRow.addView(pc);
                     if (mSimKPIs.generated > 0) {
                         pieMap = new HashMap<>();
@@ -644,7 +661,7 @@ public class ScenarioOverview extends Fragment {
                         pieMap.put("$$", mSimKPIs.sold);
                         pieMap.put("\uD83C\uDFE0", mSimKPIs.pvToLoad);
                         pieMap.put("\uD83D\uDD0B", mSimKPIs.pvToCharge);
-                        PieChart pc2 = getPieChart("PV", pieMap, false, true);
+                        PieChart pc2 = getPieChart("PV", pieMap, false);
                         tableRow.addView(pc2);
                     }
                     else {
@@ -660,7 +677,7 @@ public class ScenarioOverview extends Fragment {
         }
     }
 
-    private PieChart getPieChart(String title, Map<String, Double> pieMap, boolean showPercent, boolean showLabels) {
+    private PieChart getPieChart(String title, Map<String, Double> pieMap, boolean showPercent) {
         PieChart pieChart = new PieChart(getActivity());
 
         pieChart.getDescription().setEnabled(true);
@@ -693,7 +710,7 @@ public class ScenarioOverview extends Fragment {
         pieData.setValueFormatter(new PercentFormatter(pieChart));
         pieChart.setData(pieData);
         pieChart.setUsePercentValues(true);
-        pieChart.setDrawEntryLabels(showLabels);
+        pieChart.setDrawEntryLabels(false);
 
         Legend legend = pieChart.getLegend();
 //        int color = Color.getColor("?android:textColorPrimary");
