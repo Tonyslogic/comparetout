@@ -19,6 +19,17 @@ package com.tfcode.comparetout.scenario.loadprofile;
 import android.annotation.SuppressLint;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.InputType;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.EditText;
+import android.widget.TableLayout;
+import android.widget.TableRow;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -32,22 +43,8 @@ import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
 import androidx.work.WorkRequest;
 
-import android.text.Editable;
-import android.text.InputType;
-import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.EditText;
-import android.widget.Spinner;
-import android.widget.TableLayout;
-import android.widget.TableRow;
-import android.widget.TextView;
-
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textview.MaterialTextView;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -66,7 +63,6 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 public class LoadProfilePropertiesFragment extends Fragment {
@@ -129,12 +125,6 @@ public class LoadProfilePropertiesFragment extends Fragment {
                 updateMasterCopy();
                 checkForDataAndGenerateIfNeeded();
             }
-//            else mLoadProfile = new LoadProfile();
-//            LoadProfileJson lpj = JsonTools.createLoadProfileJson(mLoadProfile);
-//            Type type = new TypeToken<LoadProfileJson>(){}.getType();
-//            Gson gson = new GsonBuilder().setPrettyPrinting().create();
-//            String loadProfileJsonString =  gson.toJson(lpj, type);
-//            ((LoadProfileActivity) requireActivity()).setLoadProfileJson(loadProfileJsonString);
             else {
                 String loadProfileJsonString = ((LoadProfileActivity) requireActivity()).getLoadProfileJson();
                 Type type = new TypeToken<LoadProfileJson>(){}.getType();
@@ -234,75 +224,75 @@ public class LoadProfilePropertiesFragment extends Fragment {
             TableRow tableRow = new TableRow(getActivity());
             MaterialTextView a = new MaterialTextView(getActivity());
             a.setText(R.string.DistributionSource);
-//        a.setMinimumHeight(80);
-//        a.setHeight(80);
             a.setPadding(10, 25, 0, 25);
-            Spinner spinner = new Spinner(getActivity());
-            ArrayList<String> spinnerContent = new ArrayList<>();
-            spinnerContent.add("Custom");
-            spinnerContent.addAll(Arrays.asList(StandardLoadProfiles.standardLoadProfiles));
-//        {"SLP 24hr Urban", "SLP 24hr Rural", "SLP Night saver Urban", "SLP Night saver Rural", "SLP Smart Urban", "SLP Smart Rural"};
-            ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, spinnerContent);
-            spinner.setAdapter(spinnerAdapter);
-            spinner.setEnabled(mEdit);
-            int index = spinnerContent.indexOf(mLoadProfile.getDistributionSource());
-            spinner.setSelection(index);
-
-            spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                @Override
-                public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                    String loadProfileJsonString = null;
-                    switch (position) {
-                        case 0:
+            MaterialButton source = new MaterialButton(getActivity());
+            source.setText(mLoadProfile.getDistributionSource());
+            source.setEnabled(mEdit);
+            source.setOnClickListener(v -> {
+                SourceDialog sourceDialog = new SourceDialog(getActivity(), newSource -> {
+                    switch (newSource) {
+                        case SourceDialog.CUSTOM:
+                            LoadProfile lLoadProfile = new LoadProfile();
+                            mLoadProfile.setHourlyDist(lLoadProfile.getHourlyDist());
+                            mLoadProfile.setDowDist(lLoadProfile.getDowDist());
+                            mLoadProfile.setMonthlyDist(lLoadProfile.getMonthlyDist());
+                            mLoadProfile.setDistributionSource("Custom");
+                            if (mEdit) updateMasterCopy();
                             break;
-                        case 1:
-                            loadProfileJsonString = StandardLoadProfiles.SLP_24hr_urban;
+                        case SourceDialog.SLP:
+                            StandardLoadProfileDialog slpDialog = new StandardLoadProfileDialog(getActivity(), newSLP -> {
+                                String loadProfileJsonString = null;
+                                switch (newSLP) {
+                                    case StandardLoadProfiles.URBAN_24:
+                                        loadProfileJsonString = StandardLoadProfiles.SLP_24hr_urban;
+                                        break;
+                                    case StandardLoadProfiles.RURAL_24:
+                                        loadProfileJsonString = StandardLoadProfiles.SLP_24hr_rural;
+                                        break;
+                                    case StandardLoadProfiles.URBAN_NIGHT:
+                                        loadProfileJsonString = StandardLoadProfiles.SLP_NightSaver_urban;
+                                        break;
+                                    case StandardLoadProfiles.RURAL_NIGHT:
+                                        loadProfileJsonString = StandardLoadProfiles.SLP_NightSaver_rural;
+                                        break;
+                                    case StandardLoadProfiles.URBAN_SMART:
+                                        loadProfileJsonString = StandardLoadProfiles.SLP_Smart_urban;
+                                        break;
+                                    case StandardLoadProfiles.RURAL_SMART:
+                                        loadProfileJsonString = StandardLoadProfiles.SLP_Smart_rural;
+                                        break;
+                                }
+                                if (!(null == loadProfileJsonString)) {
+                                    Type type = new TypeToken<LoadProfileJson>() {
+                                    }.getType();
+                                    LoadProfileJson lpj = new Gson().fromJson(loadProfileJsonString, type);
+                                    LoadProfile slProfile = JsonTools.createLoadProfile(lpj);
+                                    mLoadProfile.setHourlyDist(slProfile.getHourlyDist());
+                                    mLoadProfile.setDowDist(slProfile.getDowDist());
+                                    mLoadProfile.setMonthlyDist(slProfile.getMonthlyDist());
+                                    mLoadProfile.setDistributionSource(newSLP);
+                                    if (mEdit) updateMasterCopy();
+                                }
+                            });
+                            slpDialog.show();
                             break;
-                        case 2:
-                            loadProfileJsonString = StandardLoadProfiles.SLP_24hr_rural;
-                            break;
-                        case 3:
-                            loadProfileJsonString = StandardLoadProfiles.SLP_NightSaver_urban;
-                            break;
-                        case 4:
-                            loadProfileJsonString = StandardLoadProfiles.SLP_NightSaver_rural;
-                            break;
-                        case 5:
-                            loadProfileJsonString = StandardLoadProfiles.SLP_Smart_urban;
-                            break;
-                        case 6:
-                            loadProfileJsonString = StandardLoadProfiles.SLP_Smart_rural;
+                        case SourceDialog.HDF:
+                            if (!(null == getView())) Snackbar.make(getView(),
+                                            "ESBN HDF loading coming soon", Snackbar.LENGTH_LONG)
+                                    .setAction("Action", null).show();
                             break;
                     }
-                    if (!(null == loadProfileJsonString)) {
-                        Type type = new TypeToken<LoadProfileJson>() {
-                        }.getType();
-                        LoadProfileJson lpj = new Gson().fromJson(loadProfileJsonString, type);
-                        LoadProfile slProfile = JsonTools.createLoadProfile(lpj);
-                        mLoadProfile.setHourlyDist(slProfile.getHourlyDist());
-                        mLoadProfile.setDowDist(slProfile.getDowDist());
-                        mLoadProfile.setMonthlyDist(slProfile.getMonthlyDist());
-                        mLoadProfile.setDistributionSource(spinnerContent.get(position));
-                        if (mEdit) updateMasterCopy();
-                    }
-                }
-
-                @Override
-                public void onNothingSelected(AdapterView<?> parent) {
-                    // TODO Auto-generated method stub
-                }
+                });
+                sourceDialog.show();
             });
-            spinner.setPadding(0, 25, 0, 25);
             tableRow.addView(a);
-            tableRow.addView(spinner);
+            tableRow.addView(source);
+            mEditFields.add(source);
             mTableLayout.addView(tableRow);
-            mEditFields.add(spinner);
 
             tableRow = new TableRow(getActivity());
             a = new MaterialTextView(getActivity());
             a.setText(R.string.AnnualUsage);
-//        a.setMinimumHeight(80);
-//        a.setHeight(80);
             a.setPadding(10, 25, 0, 25);
             EditText b = new EditText(getActivity());
             b.setText(String.format("%s", mLoadProfile.getAnnualUsage()));
@@ -316,7 +306,6 @@ public class LoadProfilePropertiesFragment extends Fragment {
                     ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
                 }
             });
-//        a.setLayoutParams(planParams);
             b.setPadding(0, 25, 0, 25);
             tableRow.addView(a);
             tableRow.addView(b);
@@ -326,8 +315,6 @@ public class LoadProfilePropertiesFragment extends Fragment {
             tableRow = new TableRow(getActivity());
             a = new MaterialTextView(getActivity());
             a.setText(R.string.HourlyBaseLoad);
-//        a.setMinimumHeight(80);
-//        a.setHeight(80);
             a.setPadding(10, 25, 0, 25);
             b = new EditText(getActivity());
             b.setEnabled(mEdit);
@@ -345,7 +332,6 @@ public class LoadProfilePropertiesFragment extends Fragment {
                     }
                 }
             });
-//        a.setLayoutParams(planParams);
             b.setPadding(0, 25, 0, 25);
             tableRow.addView(a);
             tableRow.addView(b);
@@ -355,8 +341,6 @@ public class LoadProfilePropertiesFragment extends Fragment {
             tableRow = new TableRow(getActivity());
             a = new MaterialTextView(getActivity());
             a.setText(R.string.GridImportMax);
-//        a.setMinimumHeight(80);
-//        a.setHeight(80);
             a.setPadding(10, 25, 0, 25);
             b = new EditText(getActivity());
             b.setEnabled(mEdit);
@@ -370,7 +354,6 @@ public class LoadProfilePropertiesFragment extends Fragment {
                     ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
                 }
             });
-//        a.setLayoutParams(planParams);
             b.setPadding(0, 25, 0, 25);
             tableRow.addView(a);
             tableRow.addView(b);
@@ -380,8 +363,6 @@ public class LoadProfilePropertiesFragment extends Fragment {
             tableRow = new TableRow(getActivity());
             a = new MaterialTextView(getActivity());
             a.setText(R.string.GridExportMax);
-//        a.setMinimumHeight(80);
-//        a.setHeight(80);
             a.setPadding(10, 25, 0, 25);
             b = new EditText(getActivity());
             b.setEnabled(mEdit);
@@ -395,7 +376,6 @@ public class LoadProfilePropertiesFragment extends Fragment {
                     if (mEdit) ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
                 }
             });
-//        a.setLayoutParams(planParams);
             b.setPadding(0, 25, 0, 25);
             tableRow.addView(a);
             tableRow.addView(b);

@@ -24,7 +24,6 @@ import android.text.TextWatcher;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.Window;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TableLayout;
 import android.widget.TableRow;
@@ -32,8 +31,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 
-import com.google.android.material.snackbar.Snackbar;
-import com.tfcode.comparetout.scenario.ScenarioActivity;
+import com.google.android.material.button.MaterialButton;
 
 public class DownloadDialog extends Dialog  {
 
@@ -102,7 +100,7 @@ public class DownloadDialog extends Dialog  {
         // And the ok and cancel buttons
         {
             TableRow tableRowOK = new TableRow(getContext());
-            Button okb = new Button(getContext());
+            MaterialButton okb = new MaterialButton(getContext());
             okb.setText(R.string.download);
             okb.setOnClickListener(v -> {
                 mDownloadDialogListener.urlSpecified(url);
@@ -111,7 +109,7 @@ public class DownloadDialog extends Dialog  {
             tableRowOK.addView(okb);
             mTableLayout.addView(tableRowOK);
             TableRow tableRow = new TableRow(getContext());
-            Button button = new Button(getContext());
+            MaterialButton button = new MaterialButton(getContext());
             button.setText(R.string.cancel);
             button.setOnClickListener(v -> dismiss());
             tableRow.addView(button);

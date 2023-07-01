@@ -181,4 +181,7 @@
     <string name="deemed_export_calculation">Deemed export</string>
     <string name="download">Download</string>
     <string name="download_disclaimer">You may download costs and usages by supplying a URL. The default URLs are aimed to get you started. There is no guarantee that contents are correct. It is advisable to check the costs and usages for suitability and correctness.</string>
+    <string name="reset_custom_lp">Reset Custom</string>
+    <string name="standard_lp">Standard Load Profile</string>
+    <string name="hdf_lp">ESBN HDF File</string>
 </resources>

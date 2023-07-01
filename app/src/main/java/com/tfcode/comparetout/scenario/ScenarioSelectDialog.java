@@ -25,7 +25,6 @@ import android.os.Looper;
 import android.view.Gravity;
 import android.view.View;
 import android.view.Window;
-import android.widget.Button;
 import android.widget.ProgressBar;
 import android.widget.TableLayout;
 import android.widget.TableRow;
@@ -35,6 +34,7 @@ import androidx.annotation.NonNull;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 
+import com.google.android.material.button.MaterialButton;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.scenario.Scenario;
@@ -113,7 +113,7 @@ public class ScenarioSelectDialog extends Dialog  {
         // Scenario rows
         for (Scenario scenario: scenarios){
             TableRow tableRow = new TableRow(getContext());
-            Button button = new Button(getContext());
+            MaterialButton button = new MaterialButton(getContext());
             button.setText(scenario.getScenarioName());
             button.setOnClickListener(v -> {
                 mScenarioSelectDialogListener.scenarioSelected(scenario.getScenarioIndex());
@@ -187,7 +187,7 @@ public class ScenarioSelectDialog extends Dialog  {
         // And the cancel button
         {
             TableRow tableRow = new TableRow(getContext());
-            Button button = new Button(getContext());
+            MaterialButton button = new MaterialButton(getContext());
             button.setText(R.string.cancel);
             button.setOnClickListener(v -> dismiss());
             tableRow.addView(button);
