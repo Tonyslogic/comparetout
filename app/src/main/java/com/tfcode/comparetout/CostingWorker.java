@@ -27,6 +27,7 @@ import androidx.core.app.NotificationManagerCompat;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
+import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.util.RateLookup;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.costings.Costings;
@@ -110,7 +111,8 @@ public class CostingWorker extends Worker {
                             }
                             Costings costing = new Costings();
                             costing.setScenarioID(scenarioID);
-                            costing.setScenarioName(mToutcRepository.getScenarioForID(scenarioID).getScenarioName());
+                            Scenario scenario = mToutcRepository.getScenarioForID(scenarioID);
+                            costing.setScenarioName(scenario.getScenarioName());
                             costing.setPricePlanID(pp.getPricePlanIndex());
                             costing.setFullPlanName(pp.getSupplier() + ":" + pp.getPlanName());
                             double buy = 0D;
@@ -128,7 +130,7 @@ public class CostingWorker extends Worker {
                             costing.setSell(sell);
                             costing.setSubTotals(subTotals);
                             double days = 365; // TODO look at the biggest & smallest dates in the sim data
-                            if (pp.isDeemedExport()) {
+                            if (pp.isDeemedExport() && scenario.isHasInverters()) {
                                 sell = gridExportMax * 0.8148 * days * pp.getFeed();
                                 costing.setSell(sell);
                                 System.out.println("Deemed export calculation = " +  sell);
