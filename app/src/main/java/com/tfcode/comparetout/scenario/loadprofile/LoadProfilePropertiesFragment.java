@@ -17,6 +17,7 @@
 package com.tfcode.comparetout.scenario.loadprofile;
 
 import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.text.Editable;
@@ -44,7 +45,6 @@ import androidx.work.WorkManager;
 import androidx.work.WorkRequest;
 
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textview.MaterialTextView;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -54,6 +54,7 @@ import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.json.scenario.LoadProfileJson;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
+import com.tfcode.comparetout.scenario.loadprofile.hdf.HDFActivity;
 import com.tfcode.comparetout.util.AbstractTextWatcher;
 
 import java.io.FileNotFoundException;
@@ -277,9 +278,10 @@ public class LoadProfilePropertiesFragment extends Fragment {
                             slpDialog.show();
                             break;
                         case SourceDialog.HDF:
-                            if (!(null == getView())) Snackbar.make(getView(),
-                                            "ESBN HDF loading coming soon", Snackbar.LENGTH_LONG)
-                                    .setAction("Action", null).show();
+                            Intent intent = new Intent(getActivity(), HDFActivity.class);
+                            intent.putExtra("LoadProfileID", mLoadProfileID);
+                            intent.putExtra("ScenarioID", mScenarioID);
+                            startActivity(intent);
                             break;
                     }
                 });

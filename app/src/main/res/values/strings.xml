@@ -184,4 +184,13 @@
     <string name="reset_custom_lp">Reset Custom</string>
     <string name="standard_lp">Standard Load Profile</string>
     <string name="hdf_lp">ESBN HDF File</string>
+    <string name="done">Done</string>
+    <string name="costing_selection">Costing selection</string>
+    <string name="cost_hdf_file">Cost HDF file</string>
+    <string name="generating_load_profile">Generating load profile</string>
+    <string name="set_load_profile">Set Load Profile</string>
+    <string name="select_dates">Select dates</string>
+    <string name="dates_available">Dates available</string>
+    <string name="loading">Loading…</string>
+    <string name="load_hdf_file">Load HDF file…</string>
 </resources>

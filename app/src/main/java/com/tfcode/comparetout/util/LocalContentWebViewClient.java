@@ -42,7 +42,8 @@ public class LocalContentWebViewClient extends WebViewClient {
     @Override
     public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
         if (request != null && (request.getUrl().getHost().startsWith("re.jrc.ec.europa.eu") ||
-                request.getUrl().getHost().startsWith("joint-research-centre.ec.europa.eu"))) {
+                request.getUrl().getHost().startsWith("joint-research-centre.ec.europa.eu") ||
+                request.getUrl().getHost().startsWith("www.esbnetworks.ie"))) {
             view.getContext().startActivity(
                     new Intent(Intent.ACTION_VIEW, request.getUrl()));
             return true;
