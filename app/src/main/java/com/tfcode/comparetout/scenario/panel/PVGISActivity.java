@@ -84,6 +84,7 @@ public class PVGISActivity extends AppCompatActivity {
     private Handler mMainHandler;
     private ProgressBar mProgressBar;
     private TableLayout mTableLayout;
+    private TableLayout mStatusTable;
     private Long mPanelID = 0L;
     private Panel mPanel;
     private boolean mEdit = false;
@@ -96,13 +97,13 @@ public class PVGISActivity extends AppCompatActivity {
     private View mPopupView;
     private PopupWindow mHelpWindow;
 
-    public static String[] storge_permissions = {
+    public static String[] storage_permissions = {
             Manifest.permission.WRITE_EXTERNAL_STORAGE,
             Manifest.permission.READ_EXTERNAL_STORAGE
     };
 
     @RequiresApi(api = Build.VERSION_CODES.TIRAMISU)
-    public static String[] storge_permissions_33 = {
+    public static String[] storage_permissions_33 = {
             Manifest.permission.READ_MEDIA_IMAGES,
             Manifest.permission.READ_MEDIA_AUDIO,
             Manifest.permission.READ_MEDIA_VIDEO
@@ -111,9 +112,9 @@ public class PVGISActivity extends AppCompatActivity {
     public static String[] permissions() {
         String[] p;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            p = storge_permissions_33;
+            p = storage_permissions_33;
         } else {
-            p = storge_permissions;
+            p = storage_permissions;
         }
         return p;
     }
@@ -194,6 +195,7 @@ public class PVGISActivity extends AppCompatActivity {
                                 "Download complete, loading DB", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
                 scheduleLoad(context);
+                mMainHandler.post(()-> updateStatusView(STATE_LOADING_DB));
             }
         }
     };
@@ -210,6 +212,7 @@ public class PVGISActivity extends AppCompatActivity {
                         fileExist();
                         mLocationChanged = true;
                         updateView();
+                        mMainHandler.post(()->updateStatusView(STATE_LOCATION_CHANGED));
                     }
                 });
 
@@ -226,6 +229,7 @@ public class PVGISActivity extends AppCompatActivity {
                         fileExist();
                         mLocationChanged = false;
                         mMainHandler.post(this::updateView);
+                        mMainHandler.post(() -> updateStatusView(STATE_UPDATED));
                         mMainHandler.post(this::loadCompleteFeedback);
                     }
                 }
@@ -270,6 +274,10 @@ public class PVGISActivity extends AppCompatActivity {
         mTableLayout.setShrinkAllColumns(true);
         mTableLayout.setStretchAllColumns(true);
 
+        mStatusTable = findViewById(R.id.pvgis_status);
+        mStatusTable.setShrinkAllColumns(true);
+        mStatusTable.setStretchAllColumns(true);
+
         mProgressBar.setVisibility(View.VISIBLE);
         new Thread(() -> {
             mPanel = mViewModel.getPanelForID(mPanelID);
@@ -278,6 +286,8 @@ public class PVGISActivity extends AppCompatActivity {
             else System.out.println("DOH!");
             mMainHandler.post(this::updateView);
             mMainHandler.post(this::fileExist);
+            if (mFileCached && mPanelDataInDB) mMainHandler.post(() -> updateStatusView(STATE_ALL_GOOD));
+            else mMainHandler.post(() -> updateStatusView(STATE_UNKNOWN));
             mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
         }).start();
         
@@ -290,6 +300,8 @@ public class PVGISActivity extends AppCompatActivity {
                 }
             }
             updateView();
+            if (mFileCached && mPanelDataInDB) mMainHandler.post(() -> updateStatusView(STATE_ALL_GOOD));
+//            else mMainHandler.post(() -> updateStatusView(STATE_UNKNOWN));
         });
 
         LayoutInflater inflater = (LayoutInflater) this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
@@ -328,6 +340,34 @@ public class PVGISActivity extends AppCompatActivity {
         unregisterReceiver(onDownloadComplete);
     }
 
+    private static final int STATE_ALL_GOOD = 0;
+    private static final int STATE_LOCATION_CHANGED = 1;
+    private static final int STATE_DOWNLOADING = 2;
+    private static final int STATE_LOADING_DB = 3;
+    private static final int STATE_UPDATED = 4;
+    private static final int STATE_UNKNOWN = 5;
+    private void updateStatusView(int state) {
+        mStatusTable.removeAllViews();
+        TextView status = new TextView(this);
+        status.setGravity(Gravity.CENTER);
+        status.setTextSize(20f);
+        switch (state) {
+            case STATE_ALL_GOOD: status.setText(R.string.panel_data_all_good);
+            break;
+            case STATE_LOCATION_CHANGED: status.setText(R.string.panel_data_location_change);
+            break;
+            case STATE_DOWNLOADING: status.setText(R.string.panel_data_downloading);
+            break;
+            case STATE_LOADING_DB: status.setText(R.string.panel_data_loading);
+            break;
+            case STATE_UPDATED: status.setText(R.string.panel_data_updated);
+            break;
+            case STATE_UNKNOWN:
+            default: status.setText(R.string.checking_for_panel_data);
+        }
+        mStatusTable.addView(status);
+    }
+
     private void updateView() {
         System.out.println("PVGIS Activity, updateView"); // CREATE PARAM FOR MARGINING
         mTableLayout.removeAllViews();
@@ -352,6 +392,7 @@ public class PVGISActivity extends AppCompatActivity {
                     mPanel.setLatitude(getDoubleOrZero(s));
                     fileExist();
                     mLocationChanged = true;
+                    updateStatusView(STATE_LOCATION_CHANGED);
                     setStatusTexts(downloadIndicator, dbRefreshIndicator);
                 }
             }
@@ -364,6 +405,7 @@ public class PVGISActivity extends AppCompatActivity {
                     mPanel.setLongitude(getDoubleOrZero(s));
                     fileExist();
                     mLocationChanged = true;
+                    updateStatusView(STATE_LOCATION_CHANGED);
                     setStatusTexts(downloadIndicator, dbRefreshIndicator);
                 }
             }
@@ -376,6 +418,7 @@ public class PVGISActivity extends AppCompatActivity {
                     mPanel.setAzimuth(getIntegerOrZero(s));
                     fileExist();
                     mLocationChanged = true;
+                    updateStatusView(STATE_LOCATION_CHANGED);
                     setStatusTexts(downloadIndicator, dbRefreshIndicator);
                 }
             }
@@ -388,6 +431,7 @@ public class PVGISActivity extends AppCompatActivity {
                     mPanel.setSlope(getIntegerOrZero(s));
                     fileExist();
                     mLocationChanged = true;
+                    updateStatusView(STATE_LOCATION_CHANGED);
                     setStatusTexts(downloadIndicator, dbRefreshIndicator);
                 }
             }
@@ -487,6 +531,7 @@ public class PVGISActivity extends AppCompatActivity {
 
     private void fetch() {
         mProgressBar.setVisibility(View.VISIBLE);
+        updateStatusView(STATE_DOWNLOADING);
 
         String fileName = fileExist();
         if (!mFileCached) {

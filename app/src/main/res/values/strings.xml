@@ -194,4 +194,10 @@
     <string name="loading">Loading…</string>
     <string name="load_hdf_file">Load HDF file…</string>
     <string name="estimate">Estimate</string>
+    <string name="checking_for_panel_data">Checking for data for this location and panel string.</string>
+    <string name="panel_data_updated">The data in the DB for this panel string was updated. You may change the location or return to the panels. A bar chart will appear there shortly.</string>
+    <string name="panel_data_loading">PVGIS data was downloaded, now adding to the DB.</string>
+    <string name="panel_data_downloading">PVGIS is being queried for data that matches the location.</string>
+    <string name="panel_data_location_change">The location has changed. A DB update is needed to confirm the change.</string>
+    <string name="panel_data_all_good">There is data in the DB for this panel string. You may change the location or return to the panels. A bar chart will appear there shortly.</string>
 </resources>
