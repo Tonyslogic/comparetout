@@ -539,7 +539,7 @@ public class HDFActivity extends AppCompatActivity {
                         Costings costing = new Costings();
                         costing.setScenarioID(mScenarioID);
                         Scenario scenario = mToutcRepository.getScenarioForID(mScenarioID);
-                        costing.setScenarioName(scenario.getScenarioName());
+                        if (!(null == scenario)) costing.setScenarioName(scenario.getScenarioName());
                         costing.setPricePlanID(pp.getPricePlanIndex());
                         costing.setFullPlanName(pp.getSupplier() + ":" + pp.getPlanName());
                         double buy = 0D;
@@ -559,7 +559,7 @@ public class HDFActivity extends AppCompatActivity {
                             }
                         }
                         costing.setBuy(buy);
-                        if (pp.isDeemedExport() && scenario.isHasInverters()) {
+                        if (pp.isDeemedExport() && !(null == scenario) && scenario.isHasInverters()) {
                             sell = gridExportMax * 0.8148 * mHDFViewModel.getTotalDaysSelected() * pp.getFeed();
                             costing.setSell(sell);
                         }

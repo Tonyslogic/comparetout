@@ -63,6 +63,7 @@ import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.priceplan.PricePlanActivity;
 import com.tfcode.comparetout.scenario.ScenarioActivity;
+import com.tfcode.comparetout.scenario.loadprofile.hdf.HDFActivity;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.io.FileNotFoundException;
@@ -248,6 +249,7 @@ public class MainActivity extends AppCompatActivity {
                         if (!(null == mMainMenu)) {
                             mMainMenu.findItem(R.id.load).setVisible(true);
                             mMainMenu.findItem(R.id.download).setVisible(true);
+                            mMainMenu.findItem(R.id.estimate).setVisible(false);
                         }
                         break;
                     default:
@@ -255,6 +257,7 @@ public class MainActivity extends AppCompatActivity {
                         if (!(null == mMainMenu)) {
                             mMainMenu.findItem(R.id.load).setVisible(false);
                             mMainMenu.findItem(R.id.download).setVisible(false);
+                            mMainMenu.findItem(R.id.estimate).setVisible(true);
                         }
                         break;
                 }
@@ -287,9 +290,11 @@ public class MainActivity extends AppCompatActivity {
         mMainMenu.findItem(R.id.download).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         mMainMenu.findItem(R.id.export).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         mMainMenu.findItem(R.id.help).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        mMainMenu.findItem(R.id.estimate).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         if (viewPager.getCurrentItem() == COMPARE_FRAGMENT) {
             mMainMenu.findItem(R.id.load).setVisible(false);
             mMainMenu.findItem(R.id.download).setVisible(false);
+            mMainMenu.findItem(R.id.estimate).setVisible(true);
         }
         setMenuLongClick();
         return true;
@@ -417,7 +422,6 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
 
-
         if (itemID == R.id.share_plans) {
             //add the function to perform here
             System.out.println("Export attempt ");
@@ -473,9 +477,18 @@ public class MainActivity extends AppCompatActivity {
             }).start();
                 return(true);
         }
+
         if (itemID == R.id.help) {
             showHelp("https://appassets.androidplatform.net/assets/main/help.html");
         }
+
+        if (itemID == R.id.estimate) {
+            Intent intent = new Intent(this, HDFActivity.class);
+            intent.putExtra("LoadProfileID", 0L);
+            intent.putExtra("ScenarioID", 0L);
+            startActivity(intent);
+        }
+
         return(super.onOptionsItemSelected(item));
     }
 
