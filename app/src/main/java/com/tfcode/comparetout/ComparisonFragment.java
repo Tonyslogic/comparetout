@@ -33,6 +33,7 @@ import androidx.webkit.WebViewAssetLoader;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebView;
@@ -276,7 +277,21 @@ public class ComparisonFragment extends Fragment {
                     mTableLayout.setColumnCollapsed(6, !item.isChecked());
                     mShowFixed = item.isChecked();
                 }
-                return true;
+                // Keep the popup menu open
+                item.setShowAsAction(MenuItem.SHOW_AS_ACTION_COLLAPSE_ACTION_VIEW);
+                item.setActionView(new View(getActivity()));
+                item.setOnActionExpandListener(new MenuItem.OnActionExpandListener() {
+                    @Override
+                    public boolean onMenuItemActionExpand(MenuItem item) {
+                        return false;
+                    }
+
+                    @Override
+                    public boolean onMenuItemActionCollapse(MenuItem item) {
+                        return false;
+                    }
+                });
+                return false;
             });
             mFilterPopup.show();
         });
@@ -455,13 +470,13 @@ public class ComparisonFragment extends Fragment {
         g.setLayoutParams(planParams);
 
         // SET PADDING
-        a.setPadding(10, 10, 10, 10);
-        b.setPadding(10, 10, 10, 10);
-        c.setPadding(10, 10, 10, 10);
-        d.setPadding(10, 10, 10, 10);
-        e.setPadding(10, 10, 10, 10);
-        f.setPadding(10, 10, 10, 10);
-        g.setPadding(10, 10, 10, 10);
+        a.setPadding(10, 20, 10, 10);
+        b.setPadding(10, 20, 10, 10);
+        c.setPadding(10, 20, 10, 10);
+        d.setPadding(10, 20, 10, 10);
+        e.setPadding(10, 20, 10, 10);
+        f.setPadding(10, 20, 10, 10);
+        g.setPadding(10, 20, 10, 10);
 
         a.setText(scenarioName);
         b.setText(planName);

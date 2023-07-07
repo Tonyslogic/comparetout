@@ -26,6 +26,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
@@ -242,8 +243,8 @@ public class ScenarioYear extends Fragment {
             mPopup.getMenu().findItem(R.id.hwSchedule).setChecked(mShowHWSchedule);
             mPopup.getMenu().findItem(R.id.evDivert).setChecked(mShowEVDivert);
             mPopup.getMenu().findItem(R.id.hwSchedule).setChecked(mShowHWSchedule);
-            mPopup.getMenu().findItem(R.id.soc).setVisible(false);
-            mPopup.getMenu().findItem(R.id.hwTemp).setVisible(false);
+            mPopup.getMenu().findItem(R.id.soc).setEnabled(false);
+            mPopup.getMenu().findItem(R.id.hwTemp).setEnabled(false);
         }
 
         mPopup.setOnMenuItemClickListener(item -> {
@@ -307,6 +308,20 @@ public class ScenarioYear extends Fragment {
             }
 
             updateKPIs();
+            // Keep the popup menu open
+            item.setShowAsAction(MenuItem.SHOW_AS_ACTION_COLLAPSE_ACTION_VIEW);
+            item.setActionView(new View(getActivity()));
+            item.setOnActionExpandListener(new MenuItem.OnActionExpandListener() {
+                @Override
+                public boolean onMenuItemActionExpand(MenuItem item) {
+                    return false;
+                }
+
+                @Override
+                public boolean onMenuItemActionCollapse(MenuItem item) {
+                    return false;
+                }
+            });
             return false;
         });
 
