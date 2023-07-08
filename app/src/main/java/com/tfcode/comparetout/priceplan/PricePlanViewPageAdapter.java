@@ -60,7 +60,6 @@ public class PricePlanViewPageAdapter extends FragmentStateAdapter {
     }
 
     public void add(int index) {
-        System.out.println("Adding day rate at " + index);
         PricePlanEditDayFragment pricePlanEditDayFragment = PricePlanEditDayFragment.newInstance(index);
         for (PricePlanEditDayFragment frag : mDayRateFragments.values()) frag.refreshFocus();
         mDayRateFragments.put(index,pricePlanEditDayFragment);

@@ -184,9 +184,7 @@ public class PricePlanEditDayFragment extends Fragment {
 
             @Override
             public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-                System.out.println("PricePlanEditFragment.onOptionsItemSelected");
                 if (menuItem.getItemId() == R.id.edit_a_plan) {//add the function to perform here
-                    System.out.println("Edit attempt");
                     setEditMode(true);
                     return (false);
                 }
@@ -234,14 +232,12 @@ public class PricePlanEditDayFragment extends Fragment {
     }
 
     public void dayRateDeleted(Integer newPosition) {
-        System.out.println("Updating fragment index from " + mRateIndex + " to " + (newPosition -1));
         mRateIndex = newPosition -1;
         try {
             mFocus = ((PricePlanActivity) requireActivity()).getFocusedPlan();
             unpackmFocus();
             updateView();
         } catch (java.lang.IllegalStateException ise) {
-            System.out.println("Fragment " + (mRateIndex + 1) + " was detached from activity during delete");
             ise.printStackTrace();
         }
     }
@@ -287,7 +283,6 @@ public class PricePlanEditDayFragment extends Fragment {
                     b.setText(dRate.getStartDate());
                     b.setOnFocusChangeListener((v, hasFocus) -> {
                         if (!hasFocus) {
-                            System.out.println("FROM edit lost focus");
                             DayRate dayRate = mDayRates.get(mRateIndex);
                             if (!(null == dayRate))
                                 dayRate.setStartDate(((EditText) v).getText().toString());
@@ -303,7 +298,6 @@ public class PricePlanEditDayFragment extends Fragment {
                     d.setText(dRate.getEndDate());
                     d.setOnFocusChangeListener((v, hasFocus) -> {
                         if (!hasFocus) {
-                            System.out.println("TO edit lost focus");
                             DayRate dayRate = mDayRates.get(mRateIndex);
                             if (!(null == dayRate))
                                 dayRate.setEndDate(((EditText) v).getText().toString());
@@ -560,7 +554,6 @@ public class PricePlanEditDayFragment extends Fragment {
                             Integer fromValue = Integer.parseInt(from.getText().toString());
                             Double rate = Double.parseDouble((price.getText().toString()));
                             ratesList.update(fromValue, newToValue, rate);
-                            System.out.println("TO_HOUR edit lost focus " + ratesList);
                             DayRate dayRate = mDayRates.get(mRateIndex);
                             if (!(null == dayRate)) dayRate.setHours(ratesList);
                             if (!(null == finalNextFrom))
@@ -580,7 +573,6 @@ public class PricePlanEditDayFragment extends Fragment {
                             Integer toValue = Integer.parseInt(to.getText().toString());
                             Integer fromValue = Integer.parseInt(from.getText().toString());
                             ratesList.update(fromValue, toValue, newValue);
-                            System.out.println("PRICE edit lost focus " + ratesList);
                             DayRate dayRate = mDayRates.get(mRateIndex);
                             if (!(null == dayRate)) dayRate.setHours(ratesList);
                             updateFocusAndValidate();
@@ -590,14 +582,12 @@ public class PricePlanEditDayFragment extends Fragment {
                     del.setImageResource(R.drawable.ic_baseline_delete_24);
                     EditText finalNextPrice = nextPrice;
                     del.setOnClickListener(v -> {
-                        System.out.println("delete: " + v.getId());
                         double newValue = 0;
                         if (!(null == finalNextPrice))
                             newValue = Double.parseDouble(finalNextPrice.getText().toString());
                         Integer toValue = Integer.parseInt(to.getText().toString());
                         Integer fromValue = Integer.parseInt(from.getText().toString());
                         ratesList.update(fromValue, toValue, newValue);
-                        System.out.println("PRICE edit lost focus " + ratesList);
                         DayRate dayRate = mDayRates.get(mRateIndex);
                         if (!(null == dayRate)) dayRate.setHours(ratesList);
                         updateFocusAndValidate();
@@ -683,7 +673,6 @@ public class PricePlanEditDayFragment extends Fragment {
                     Integer toValue = Integer.parseInt(to.getText().toString());
                     Integer fromValue = Integer.parseInt(from.getText().toString());
                     ratesList.update(fromValue, toValue, buyPrice);
-                    System.out.println("Adding an hourly rate " + ratesList);
                     DayRate dayRate = mDayRates.get(mRateIndex);
                     if (!(null == dayRate)) dayRate.setHours(ratesList);
                     updateFocusAndValidate();
@@ -706,7 +695,6 @@ public class PricePlanEditDayFragment extends Fragment {
     }
 
     private void updateDays(boolean checked, Integer integer) {
-        System.out.println("Select day: " + integer + " " + checked);
         DayRate dayRate = mDayRates.get(mRateIndex);
         if (!(null == dayRate)) {
             if (checked) {

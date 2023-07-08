@@ -242,7 +242,6 @@ public class PricePlan {
     public int checkNameUsageIn(Set<PricePlan> plans){
         for (PricePlan pp: plans) {
             if (this.equals(pp) && this.pricePlanIndex != pp.getPricePlanIndex()) {
-                System.out.println("PP " + pp.supplier + " " + pp.planName + " " + pp.pricePlanIndex);
                 return INVALID_PLAN_NAME_IN_USE;
             }
         }

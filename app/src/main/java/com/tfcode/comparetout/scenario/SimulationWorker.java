@@ -78,7 +78,6 @@ public class SimulationWorker extends Worker {
 
     @Override
     public void onStopped(){
-        System.out.println("SimulationWorker::onStopped");
         super.onStopped();
     }
 
@@ -86,7 +85,6 @@ public class SimulationWorker extends Worker {
     @Override
     public Result doWork() {
         List<Long> scenarioIDs = mToutcRepository.getAllScenariosThatNeedSimulation();
-        System.out.println("Found " + scenarioIDs.size() + " scenarios that need simulation");
 
         try {
             if (scenarioIDs.size() > 0) {
@@ -110,16 +108,13 @@ public class SimulationWorker extends Worker {
                     notificationManager.notify(notificationId, builder.build());
                 }
 
-                long startTime = System.nanoTime();
-                long notifyTime = startTime;
+                long notifyTime = System.nanoTime();
                 for (long scenarioID : scenarioIDs) {
                     ScenarioComponents scenarioComponents = mToutcRepository.getScenarioComponentsForScenarioID(scenarioID);
                     Scenario scenario = scenarioComponents.scenario;
-                    System.out.println("Working on scenario " + scenario.getScenarioName());
                     if (scenario.isHasPanels()) {
                         // Check for panel data
                         boolean hasData = mToutcRepository.checkForMissingPanelData(scenarioID);// NOTIFICATION PROGRESS
-                        System.out.println("SimulationWorker checkForMissingPanelData hasData = " + hasData);
                         PROGRESS_CURRENT += PROGRESS_CHUNK;
                         builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
                         if (System.nanoTime() - notifyTime > 1e+9) {
@@ -231,7 +226,6 @@ public class SimulationWorker extends Worker {
                     // TODO: APPLY DIVERSION FOR EV
 
                     // STORE THE SIMULATION RESULT
-                    System.out.println("adding " + outputRows.size() + " rows to DB for simulation: " + scenario.getScenarioName());
 
                     builder.setContentText("Saving data");
                     if (System.nanoTime() - notifyTime > 1e+9) {
@@ -250,7 +244,6 @@ public class SimulationWorker extends Worker {
                     }
                 }
                 long endTime = System.nanoTime();
-                System.out.println("Took " + (endTime - startTime) / 1000000 + "mS to simulate " + scenarioIDs.size() + " scenarios");
 
                 if (scenarioIDs.size() > 0) {
                     // NOTIFICATION COMPLETE
@@ -726,7 +719,6 @@ public class SimulationWorker extends Worker {
                 active = active.plusMinutes(5);
                 row++;
             }
-            System.out.println("CFG processed to " + active);
         }
 
         private static Map<Integer, List<LoadShift>> sortLoadShifts(List<LoadShift> loadShifts) {
@@ -739,7 +731,6 @@ public class SimulationWorker extends Worker {
                     else if (maxKey < tabContent.getKey()) maxKey = tabContent.getKey();
                     if (tabContent.getValue().get(0) != null) {
                         if (tabContent.getValue().get(0).equalDateAndInverter(loadShift)) {
-                            System.out.println("Comparing " + tabContent.getValue().get(0).toString());
                             tabContent.getValue().add(loadShift);
                             sorted = true;
                             break; // stop looking in the map, exit inner loop
@@ -754,7 +745,6 @@ public class SimulationWorker extends Worker {
                     maxKey++;
                 }
             }
-            System.out.println("Sorted " + groupedLoadShifts.size() + " from " + loadShifts.size() + " loadShifts in DB");
             return groupedLoadShifts;
         }
     }

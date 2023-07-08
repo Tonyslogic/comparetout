@@ -56,7 +56,6 @@ public class GenerateMissingLoadDataWorker extends Worker {
     @Override
     public ListenableWorker.Result doWork() {
         List<Long> missing = mToutcRepository.checkForMissingLoadProfileData();
-        System.out.println("checkForDataAndGenerateIfNeeded found ==> " + missing.size());
 
         if (missing.size() > 0) {
             // NOTIFICATION SETUP
@@ -80,8 +79,6 @@ public class GenerateMissingLoadDataWorker extends Worker {
             }
 
             for (long loadProfileID : missing) {
-                System.out.println("*** Generating missing load data for " + loadProfileID + " *******");
-
                 builder.setContentText("Generating data");
                 notificationManager.notify(notificationId, builder.build());
 
@@ -104,7 +101,6 @@ public class GenerateMissingLoadDataWorker extends Worker {
                     rows.add(row);
                     active = active.plusMinutes(5);
                 }
-                System.out.println("adding " + rows.size() + " rows to DB for Load Profile: " + loadProfileID);
 
                 builder.setContentText("Saving data");
                 notificationManager.notify(notificationId, builder.build());

@@ -85,7 +85,6 @@ public class EVDivertFragment extends Fragment {
 
         // The activity may not be created, so these calls wait for the activity creation to complete
         ((EVDivertActivity) requireActivity()).getLifecycle().addObserver((LifecycleEventObserver) (source, event) -> {
-            System.out.println(event.getTargetState());
             if ((event.getTargetState() ==  Lifecycle.State.CREATED ) && !(null == getActivity()) ) {
                 mEVDivertsFromActivity = ((EVDivertActivity) requireActivity()).getEVDiverts(mEVDivertIndex);
                 mEdit = ((EVDivertActivity) requireActivity()).getEdit();
@@ -139,7 +138,6 @@ public class EVDivertFragment extends Fragment {
 
     @SuppressLint("SetTextI18n")
     private void updateView() {
-        System.out.println("Updating ChargingFragment " + mEVDivertIndex + ", " + mEdit);
         mPropertiesTableLayout.removeAllViews();
         mApplicableGrid.removeAllViews();
         mEVDivertTimes.removeAllViews();
@@ -447,7 +445,6 @@ public class EVDivertFragment extends Fragment {
                         @Override
                         public void afterTextChanged(Editable s) {
                             if (!(s.toString().equals(String.valueOf(evDivert.getBegin())))) {
-                                System.out.println("Update the from");
                                 evDivert.setBegin(getIntegerOrZero(s));
                                 ((EVDivertActivity) requireActivity()).updateEVDivertAtIndex(evDivert, mEVDivertIndex, evDivert.getEvDivertIndex());
                                 ((EVDivertActivity) requireActivity()).setSaveNeeded(true);
@@ -457,7 +454,6 @@ public class EVDivertFragment extends Fragment {
                         @Override
                         public void afterTextChanged(Editable s) {
                             if (!(s.toString().equals(String.valueOf(evDivert.getEnd())))) {
-                                System.out.println("Update the to");
                                 evDivert.setEnd(getIntegerOrZero(s));
                                 ((EVDivertActivity) requireActivity()).updateEVDivertAtIndex(evDivert, mEVDivertIndex, evDivert.getEvDivertIndex());
                                 ((EVDivertActivity) requireActivity()).setSaveNeeded(true);
@@ -542,7 +538,6 @@ public class EVDivertFragment extends Fragment {
     }
 
     public void batteryDeleted(int newPosition) {
-        System.out.println("Updating fragment index from " + mEVDivertIndex + " to " + (newPosition));
         mEVDivertIndex = newPosition;
         try {
             mEVDivertsFromActivity = ((EVDivertActivity) requireActivity()).getEVDiverts(mEVDivertIndex);

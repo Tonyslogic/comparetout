@@ -41,15 +41,9 @@ public class DeleteLoadDataFromProfileWorker extends Worker {
     @NonNull
     @Override
     public Result doWork() {
-        boolean needsDataGen = mToutcRepository.loadProfileDataCheck(mLoadProfileID);
-        System.out.println("checkForDataAndGenerateIfNeeded ==> " + needsDataGen);
-
         if (mDeleteFirst) {
-            System.out.println("Deleting load profile data for " + mLoadProfileID);
             mToutcRepository.deleteLoadProfileData(mLoadProfileID);
-            System.out.println("Deleting simulation data for " + mLoadProfileID);
             mToutcRepository.deleteSimulationDataForProfileID(mLoadProfileID);
-            System.out.println("Deleting costing data for " + mLoadProfileID);
             mToutcRepository.deleteCostingDataForProfileID(mLoadProfileID);
         }
         return Result.success();

@@ -71,7 +71,6 @@ public class WaterScheduleViewPageAdapter extends FragmentStateAdapter {
     }
 
     public void add(int index) {
-        System.out.println("Adding water schedule charging at " + index);
         WaterScheduleFragment waterScheduleFragment = WaterScheduleFragment.newInstance(index);
         for (WaterScheduleFragment frag : mWaterScheduleFragments.values()) frag.refreshFocus();
         mWaterScheduleFragments.put(index,waterScheduleFragment);

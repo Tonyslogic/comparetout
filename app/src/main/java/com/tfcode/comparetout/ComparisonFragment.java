@@ -162,7 +162,6 @@ public class ComparisonFragment extends Fragment {
         }
         ComparisonUIViewModel mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
         mViewModel.getAllComparisons().observe(this, costings -> {
-            System.out.println("Observed a change in live comparison data " + costings.size());
             mCostings = costings;
             updateView();
         });

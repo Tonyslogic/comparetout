@@ -92,7 +92,6 @@ public class BatteryChargingFragment extends Fragment {
 
         // The activity may not be created, so these calls wait for the activity creation to complete
         ((BatteryChargingActivity) requireActivity()).getLifecycle().addObserver((LifecycleEventObserver) (source, event) -> {
-            System.out.println(event.getTargetState());
             if ((event.getTargetState() ==  Lifecycle.State.CREATED ) && !(null == getActivity()) ) {
                 mScenarioID = ((BatteryChargingActivity) requireActivity()).getScenarioID();
                 mLoadShiftsFromActivity = ((BatteryChargingActivity) requireActivity()).getLoadShifts(mBatteryScheduleIndex);
@@ -150,7 +149,6 @@ public class BatteryChargingFragment extends Fragment {
     }
 
     private void updateView() {
-        System.out.println("Updating ChargingFragment " + mBatteryScheduleIndex + ", " + mEdit);
         mInverterDate.removeAllViews();
         mApplicableGrid.removeAllViews();
         mLoadShiftTimes.removeAllViews();
@@ -392,7 +390,6 @@ public class BatteryChargingFragment extends Fragment {
                         @Override
                         public void afterTextChanged(Editable s) {
                             if (!(s.toString().equals(String.valueOf(loadShift.getBegin())))) {
-                                System.out.println("Update the from");
                                 loadShift.setBegin(getIntegerOrZero(s));
                                 ((BatteryChargingActivity) requireActivity()).updateLoadShiftAtIndex(loadShift, mBatteryScheduleIndex, loadShift.getLoadShiftIndex());
                                 ((BatteryChargingActivity) requireActivity()).setSaveNeeded(true);
@@ -402,7 +399,6 @@ public class BatteryChargingFragment extends Fragment {
                         @Override
                         public void afterTextChanged(Editable s) {
                             if (!(s.toString().equals(String.valueOf(loadShift.getEnd())))) {
-                                System.out.println("Update the to");
                                 loadShift.setEnd(getIntegerOrZero(s));
                                 ((BatteryChargingActivity) requireActivity()).updateLoadShiftAtIndex(loadShift, mBatteryScheduleIndex, loadShift.getLoadShiftIndex());
                                 ((BatteryChargingActivity) requireActivity()).setSaveNeeded(true);
@@ -412,7 +408,6 @@ public class BatteryChargingFragment extends Fragment {
                         @Override
                         public void afterTextChanged(Editable s) {
                             if (!(s.toString().equals(String.valueOf(loadShift.getStopAt())))) {
-                                System.out.println("Update the stop");
                                 loadShift.setStopAt(getDoubleOrZero(s));
                                 ((BatteryChargingActivity) requireActivity()).updateLoadShiftAtIndex(loadShift, mBatteryScheduleIndex, loadShift.getLoadShiftIndex());
                                 ((BatteryChargingActivity) requireActivity()).setSaveNeeded(true);
@@ -511,7 +506,6 @@ public class BatteryChargingFragment extends Fragment {
     }
 
     public void batteryDeleted(int newPosition) {
-        System.out.println("Updating fragment index from " + mBatteryScheduleIndex + " to " + (newPosition));
         mBatteryScheduleIndex = newPosition;
         try {
             mLoadShiftsFromActivity = ((BatteryChargingActivity) requireActivity()).getLoadShifts(mBatteryScheduleIndex);

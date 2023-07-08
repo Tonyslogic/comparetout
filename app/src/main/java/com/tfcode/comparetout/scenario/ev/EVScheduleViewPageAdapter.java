@@ -71,7 +71,6 @@ public class EVScheduleViewPageAdapter  extends FragmentStateAdapter {
     }
 
     public void add(int index) {
-        System.out.println("Adding battery charging at " + index);
         EVScheduleFragment evScheduleFragment = EVScheduleFragment.newInstance(index);
         for (EVScheduleFragment frag : mEVScheduleFragments.values()) frag.refreshFocus();
         mEVScheduleFragments.put(index,evScheduleFragment);

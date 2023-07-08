@@ -68,7 +68,6 @@ public class PVGISLoader extends Worker {
 
     @Override
     public void onStopped(){
-        System.out.println("PVGISLoader::onStopped");
         super.onStopped();
     }
 
@@ -147,8 +146,6 @@ public class PVGISLoader extends Worker {
                     active = active.plusMinutes(5);
                 }
             }
-            System.out.println("Got " + panelDataList.size() + " rows to store");
-
 
             builder.setProgress(PROGRESS_MAX, 60, false);
             builder.setContentText("Data formatted, storing...");
@@ -160,8 +157,6 @@ public class PVGISLoader extends Worker {
             builder.setContentText("DB update complete")
                     .setProgress(0, 0, false);
             notificationManager.notify(notificationId, builder.build());
-
-            System.out.println("Stored panelData in DB");
 
         } catch (FileNotFoundException e) {
             e.printStackTrace();

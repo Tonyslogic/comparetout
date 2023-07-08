@@ -71,7 +71,6 @@ public class BatteryChargingViewPageAdapter extends FragmentStateAdapter {
     }
 
     public void add(int index) {
-        System.out.println("Adding battery charging at " + index);
         BatteryChargingFragment batteryChargingFragment = BatteryChargingFragment.newInstance(index);
         for (BatteryChargingFragment frag : mBatteryChargingFragments.values()) frag.refreshFocus();
         mBatteryChargingFragments.put(index,batteryChargingFragment);

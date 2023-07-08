@@ -183,7 +183,6 @@ public class BatteryChargingActivity extends AppCompatActivity {
         else mFab.hide();
 
         mViewModel.getAllLoadShiftRelations().observe(this, relations -> {
-            System.out.println("Observed a change in live load shift relations ");
             for (Scenario2LoadShift loadShift: relations) {
                 if (loadShift.getScenarioID() == mScenarioID) {
                     new Thread(() -> {
@@ -201,7 +200,6 @@ public class BatteryChargingActivity extends AppCompatActivity {
                             iCountOld++;
                         }
                     }).start();
-                    System.out.println("Refreshing the UI");
                     break;
                 }
             }
@@ -250,7 +248,6 @@ public class BatteryChargingActivity extends AppCompatActivity {
                 else if (maxKey < tabContent.getKey()) maxKey = tabContent.getKey();
                 if (tabContent.getValue().get(0) != null) {
                     if (tabContent.getValue().get(0).equalDateAndInverter(loadShift)) {
-                        System.out.println("Comparing " + tabContent.getValue().get(0).toString());
                         tabContent.getValue().add(loadShift);
                         sorted = true;
                         break; // stop looking in the map, exit inner loop
@@ -265,7 +262,6 @@ public class BatteryChargingActivity extends AppCompatActivity {
                 maxKey++;
             }
         }
-        System.out.println("Sorted " + mTabContents.size() + " from " + mLoadShifts.size() + " loadShifts in DB");
     }
 
     private void addNewLoadShift() {
@@ -281,7 +277,6 @@ public class BatteryChargingActivity extends AppCompatActivity {
         int tabIndex = 0;
         if (!(null == mViewPager) && !(null == mViewPager.getAdapter()))
             tabIndex = mViewPager.getAdapter().getItemCount();
-        System.out.println("Adding mTabContent: " + tabIndex);
         mTabContents.put(tabIndex, temp);
         if (!(null == mViewPager.getAdapter())) {
             ((BatteryChargingViewPageAdapter) mViewPager.getAdapter()).add(tabIndex);
@@ -474,22 +469,17 @@ public class BatteryChargingActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        System.out.println("BatteryChargingActivity.onOptionsItemSelected");
-
         if (item.getItemId() == R.id.lp_info) {//add the function to perform here
-            System.out.println("Report status");
             Snackbar.make(getWindow().getDecorView().getRootView(),
                             "Status hint", Snackbar.LENGTH_LONG)
                     .setAction("Action", null).show();
             return false;
         }
         if (item.getItemId() == R.id.lp_edit) {//add the function to perform here
-            System.out.println("Edit attempt");
             enableEdit();
             return false;
         }
         if (item.getItemId() == R.id.lp_share) {//add the function to perform here
-            System.out.println("Share attempt");
             Intent sendIntent = new Intent();
             sendIntent.setAction(Intent.ACTION_SEND);
             sendIntent.putExtra(Intent.EXTRA_TEXT, mLoadShiftJsonString);
@@ -500,12 +490,10 @@ public class BatteryChargingActivity extends AppCompatActivity {
             return true;
         }
         if (item.getItemId() == R.id.lp_import) {//add the function to perform here
-            System.out.println("Import attempt");
             mLoadLoadShiftFile.launch("*/*");
             return false;
         }
         if (item.getItemId() == R.id.lp_save) {//add the function to perform here
-            System.out.println("Save attempt, saving " + mLoadShifts.size());
             mProgressBar.setVisibility(View.VISIBLE);
             if (!mSimulationInProgress) {
                 new Thread(() -> {
@@ -533,7 +521,6 @@ public class BatteryChargingActivity extends AppCompatActivity {
             return false;
         }
         if (item.getItemId() == R.id.lp_copy) {//add the function to perform here
-            System.out.println("Copy attempt");
             if (mUnsavedChanges) {
                 Snackbar.make(getWindow().getDecorView().getRootView(),
                                 "Save changes first", Snackbar.LENGTH_LONG)
@@ -548,7 +535,6 @@ public class BatteryChargingActivity extends AppCompatActivity {
             return false;
         }
         if (item.getItemId() == R.id.lp_link) {//add the function to perform here
-            System.out.println("Link attempt");
             if (mUnsavedChanges) {
                 Snackbar.make(getWindow().getDecorView().getRootView(),
                                 "Save changes first", Snackbar.LENGTH_LONG)
@@ -567,7 +553,6 @@ public class BatteryChargingActivity extends AppCompatActivity {
             return false;
         }
         if (item.getItemId() == R.id.lp_delete) {//add the function to perform here
-            System.out.println("Delete attempt");
             deleteAllLoadShiftsInTab();
             return false;
         }
@@ -599,7 +584,6 @@ public class BatteryChargingActivity extends AppCompatActivity {
 
         mViewPager.setAdapter(createPanelAdapter(count));
         mViewPager.setOffscreenPageLimit(4);
-        System.out.println("setupViewPager " + count + " fragments");
 
         TabLayout tabLayout = findViewById(R.id.battery_charging_tab_layout);
         mMediator = new TabLayoutMediator(tabLayout, mViewPager,
@@ -677,7 +661,6 @@ public class BatteryChargingActivity extends AppCompatActivity {
         else if (!(null == loadShiftsAtTab) && loadShiftID != 0) {
             for (LoadShift ls : loadShiftsAtTab) {
                 if (ls.getLoadShiftIndex() == loadShiftID) {
-                    System.out.println("Delete: " + ls);
                     boolean removedFromTab = loadShiftsAtTab.remove(loadShift);
                     boolean removedFromLeaderList = mLoadShifts.remove(loadShift);
                     if (null == mRemovedLoadShifts) mRemovedLoadShifts = new ArrayList<>();
@@ -691,12 +674,10 @@ public class BatteryChargingActivity extends AppCompatActivity {
 
     public void updateLoadShiftAtIndex(LoadShift loadShift, int loadShiftTabIndex, long loadShiftID) {
 
-        System.out.println("From fragment: " + loadShift);
         List<LoadShift> loadShiftsAtTab = mTabContents.get(loadShiftTabIndex);
         // Update inverter, days, months
         if (!(null == loadShiftsAtTab) && loadShiftID == 0) {
             for (LoadShift ls : loadShiftsAtTab) {
-                System.out.println("updating " + ls.getLoadShiftIndex() + " using " + loadShift.getLoadShiftIndex());
                 ls.getMonths().months = new ArrayList<>(loadShift.getMonths().months);
                 ls.getDays().ints = new ArrayList<>(loadShift.getDays().ints);
                 ls.setInverter(loadShift.getInverter());
@@ -706,7 +687,6 @@ public class BatteryChargingActivity extends AppCompatActivity {
         if (!(null == loadShiftsAtTab) && loadShiftID != 0) {
             for (LoadShift ls : loadShiftsAtTab) {
                 if (ls.getLoadShiftIndex() == loadShiftID) {
-                    System.out.println("From activity: " + ls);
                     // Nothing to do here as the state is shared
                     break;
                 }
@@ -761,11 +741,9 @@ public class BatteryChargingActivity extends AppCompatActivity {
     private void observerSimulationWorker() {
         WorkManager.getInstance(this).getWorkInfosForUniqueWorkLiveData("Simulation")
                 .observe(this, workInfos -> {
-                    System.out.println("Observing simulation change " + workInfos.size());
                     for (WorkInfo workInfo: workInfos){
                         if ( workInfo.getState().isFinished() &&
                                 ( workInfo.getTags().contains("com.tfcode.comparetout.CostingWorker" ))) {
-                            System.out.println(workInfo.getTags().iterator().next());
                             mSimulationInProgressBar.setVisibility(View.GONE);
                             mSimulationInProgress = false;
                         }
@@ -773,7 +751,6 @@ public class BatteryChargingActivity extends AppCompatActivity {
                                 && ( workInfo.getTags().contains("com.tfcode.comparetout.scenario.loadprofile.GenerateMissingLoadDataWorker")
                                 || workInfo.getTags().contains("com.tfcode.comparetout.scenario.SimulationWorker")
                                 || workInfo.getTags().contains("com.tfcode.comparetout.CostingWorker" ))) {
-                            System.out.println(workInfo.getTags().iterator().next());
                             mSimulationInProgressBar.setVisibility(View.VISIBLE);
                             mSimulationInProgress = true;
                         }

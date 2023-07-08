@@ -150,7 +150,6 @@ public class WaterSettingsActivity extends AppCompatActivity {
         }
         new Thread(() -> {
             mLinkedScenarios = mViewModel.getLinkedHWSystems(mHWSystem.getHwSystemIndex(), mScenarioID);
-            System.out.println("mLinkedScenarios " + mLinkedScenarios);
             new Handler(Looper.getMainLooper()).post(() -> {
                 if (mLinkedScenarios.isEmpty()) hideLinkedFAB();
                 else showLinkedFAB();
@@ -201,11 +200,9 @@ public class WaterSettingsActivity extends AppCompatActivity {
         mHelpWindow = new PopupWindow(mPopupView, width, height, focusable);
 
         mViewModel.getAllHWSystemRelations().observe(this, relations -> {
-            System.out.println("Observed a change in live HWSystem relations ");
             for (Scenario2HWSystem scenario2hwSystem: relations) {
                 if (scenario2hwSystem.getScenarioID() == mScenarioID) {
                     loadFromDB();
-                    System.out.println("Refreshing the UI");
                     break;
                 }
             }
@@ -334,22 +331,17 @@ public class WaterSettingsActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        System.out.println("WaterSettingsActivity.onOptionsItemSelected");
-
         if (item.getItemId() == R.id.lp_info) {//add the function to perform here
-            System.out.println("Report status");
             Snackbar.make(getWindow().getDecorView().getRootView(),
                             "Status hint", Snackbar.LENGTH_LONG)
                     .setAction("Action", null).show();
             return false;
         }
         if (item.getItemId() == R.id.lp_edit) {//add the function to perform here
-            System.out.println("Edit attempt");
             enableEdit();
             return false;
         }
         if (item.getItemId() == R.id.lp_share) {//add the function to perform here
-            System.out.println("Share attempt");
             Intent sendIntent = new Intent();
             sendIntent.setAction(Intent.ACTION_SEND);
             sendIntent.putExtra(Intent.EXTRA_TEXT, mHWSystemJsonString);
@@ -360,12 +352,10 @@ public class WaterSettingsActivity extends AppCompatActivity {
             return true;
         }
         if (item.getItemId() == R.id.lp_import) {//add the function to perform here
-            System.out.println("Import attempt");
             mLoadHWSettingsFile.launch("*/*");
             return false;
         }
         if (item.getItemId() == R.id.lp_save) {//add the function to perform here
-            System.out.println("Save attempt");
             if (!mSimulationInProgress) {
                 new Thread(() -> {
                     mViewModel.saveHWSystemForScenario(mScenarioID, mHWSystem);
@@ -382,7 +372,6 @@ public class WaterSettingsActivity extends AppCompatActivity {
             return false;
         }
         if (item.getItemId() == R.id.lp_copy) {//add the function to perform here
-            System.out.println("Copy attempt");
             if (mUnsavedChanges) {
                 Snackbar.make(getWindow().getDecorView().getRootView(),
                                 "Save changes first", Snackbar.LENGTH_LONG)
@@ -397,7 +386,6 @@ public class WaterSettingsActivity extends AppCompatActivity {
             return false;
         }
         if (item.getItemId() == R.id.lp_link) {//add the function to perform here
-            System.out.println("Link attempt");
             if (mUnsavedChanges) {
                 Snackbar.make(getWindow().getDecorView().getRootView(),
                                 "Save changes first", Snackbar.LENGTH_LONG)
@@ -468,7 +456,6 @@ public class WaterSettingsActivity extends AppCompatActivity {
 
     @SuppressLint("SetTextI18n")
     private void updateView() {
-        System.out.println("Updating HotWaterActivity, " + mEdit);
         mTableSettings.removeAllViews();
         mUseTable.removeAllViews();
         TableRow.LayoutParams params = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
@@ -485,7 +472,6 @@ public class WaterSettingsActivity extends AppCompatActivity {
                 @Override
                 public void afterTextChanged(Editable s) {
                     if (!(s.toString().equals(String.valueOf(mHWSystem.getHwCapacity())))) {
-                        System.out.println("HW Capacity changed");
                         mHWSystem.setHwCapacity(getIntegerOrZero(s));
                         setSaveNeeded(true);
                     }
@@ -495,7 +481,6 @@ public class WaterSettingsActivity extends AppCompatActivity {
                 @Override
                 public void afterTextChanged(Editable s) {
                     if (!(s.toString().equals(String.valueOf(mHWSystem.getHwIntake())))) {
-                        System.out.println("HW intake changed");
                         mHWSystem.setHwIntake(getIntegerOrZero(s));
                         setSaveNeeded(true);
                     }
@@ -505,7 +490,6 @@ public class WaterSettingsActivity extends AppCompatActivity {
                 @Override
                 public void afterTextChanged(Editable s) {
                     if (!(s.toString().equals(String.valueOf(mHWSystem.getHwLoss())))) {
-                        System.out.println("HW loss changed");
                         mHWSystem.setHwLoss(getIntegerOrZero(s));
                         setSaveNeeded(true);
                     }
@@ -515,7 +499,6 @@ public class WaterSettingsActivity extends AppCompatActivity {
                 @Override
                 public void afterTextChanged(Editable s) {
                     if (!(s.toString().equals(String.valueOf(mHWSystem.getHwRate())))) {
-                        System.out.println("HW rate changed");
                         mHWSystem.setHwRate(getIntegerOrZero(s));
                         setSaveNeeded(true);
                     }
@@ -525,7 +508,6 @@ public class WaterSettingsActivity extends AppCompatActivity {
                 @Override
                 public void afterTextChanged(Editable s) {
                     if (!(s.toString().equals(String.valueOf(mHWSystem.getHwTarget())))) {
-                        System.out.println("HW Target changed");
                         mHWSystem.setHwTarget(getIntegerOrZero(s));
                         setSaveNeeded(true);
                     }
@@ -535,7 +517,6 @@ public class WaterSettingsActivity extends AppCompatActivity {
                 @Override
                 public void afterTextChanged(Editable s) {
                     if (!(s.toString().equals(String.valueOf(mHWSystem.getHwUsage())))) {
-                        System.out.println("HW Usage changed");
                         mHWSystem.setHwUsage(getIntegerOrZero(s));
                         setSaveNeeded(true);
                     }
@@ -678,11 +659,9 @@ public class WaterSettingsActivity extends AppCompatActivity {
     private void observerSimulationWorker() {
         WorkManager.getInstance(this).getWorkInfosForUniqueWorkLiveData("Simulation")
                 .observe(this, workInfos -> {
-                    System.out.println("Observing simulation change " + workInfos.size());
                     for (WorkInfo workInfo: workInfos){
                         if ( workInfo.getState().isFinished() &&
                                 ( workInfo.getTags().contains("com.tfcode.comparetout.CostingWorker" ))) {
-                            System.out.println(workInfo.getTags().iterator().next());
                             mSimulationInProgressBar.setVisibility(View.GONE);
                             mSimulationInProgress = false;
                         }
@@ -690,7 +669,6 @@ public class WaterSettingsActivity extends AppCompatActivity {
                                 && ( workInfo.getTags().contains("com.tfcode.comparetout.scenario.loadprofile.GenerateMissingLoadDataWorker")
                                 || workInfo.getTags().contains("com.tfcode.comparetout.scenario.SimulationWorker")
                                 || workInfo.getTags().contains("com.tfcode.comparetout.CostingWorker" ))) {
-                            System.out.println(workInfo.getTags().iterator().next());
                             mSimulationInProgressBar.setVisibility(View.VISIBLE);
                             mSimulationInProgress = true;
                         }

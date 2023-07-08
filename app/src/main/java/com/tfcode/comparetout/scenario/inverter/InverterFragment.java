@@ -111,7 +111,6 @@ public class InverterFragment extends Fragment {
     }
 
     private void updateView() {
-        System.out.println("Updating InverterFragment " + mInverterIndex + ", " + mEdit);
         mTableLayout.removeAllViews();
 
         // CREATE PARAM FOR MARGINING
@@ -217,7 +216,6 @@ public class InverterFragment extends Fragment {
     }
 
     public void inverterDeleted(int newPosition) {
-        System.out.println("Updating fragment index from " + mInverterIndex + " to " + (newPosition));
         mInverterIndex = newPosition;
         try {
             mInverterJsonString = ((InverterActivity) requireActivity()).getInverterJson();

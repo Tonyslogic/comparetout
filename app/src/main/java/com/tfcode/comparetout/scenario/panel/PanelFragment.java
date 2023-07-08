@@ -89,24 +89,16 @@ public class PanelFragment extends Fragment {
 
     private final ActivityResultLauncher<Intent> mStartForResult = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
             result -> {
-                System.out.println("mStartForResult " + result.getResultCode());
                 if (result.getResultCode() == Activity.RESULT_OK) {
-                    System.out.println("mStartForResult: RESULT_OK");
                     Intent intent = result.getData();
                     // Handle the Intent
                     if (!(null == intent)) {
-                        System.out.println("mPanelDataChanged, RESULT = " + intent.getBooleanExtra("RESULT", false));
                         if (intent.getBooleanExtra("RESULT", false)) {
                             new Thread(() -> {
-                                System.out.println("Deleting simulation data for " + mPanel.getPanelIndex());
                                 mViewModel.deleteSimulationDataForPanelID(mPanel.getPanelIndex());
-                                System.out.println("Deleting costing data for " + mPanel.getPanelIndex());
                                 mViewModel.deleteCostingDataForPanelID(mPanel.getPanelIndex());
                             }).start();
                         }
-                    }
-                    else {
-                        System.out.println("No idea if the panel data was updated. The intent did not return data");
                     }
                 }
             });
@@ -219,7 +211,6 @@ public class PanelFragment extends Fragment {
 
     private void updateChartView() {
         if (null == mPanelPVSummaries) return;
-        System.out.println("updateChartView " + mPanelPVSummaries.size());
 
         final ArrayList<String> xLabel = new ArrayList<>();
         xLabel.add("Jan");
@@ -315,7 +306,6 @@ public class PanelFragment extends Fragment {
                 @Override
                 public void afterTextChanged(Editable s) {
                     if (!(s.toString().equals(mPanel.getPanelName()))) {
-                        System.out.println("Panel name changed");
                         mPanel.setPanelName(s.toString());
                         ((PanelActivity) requireActivity()).updatePanelAtIndex(mPanel, mPanelIndex);
                         ((PanelActivity) requireActivity()).setSaveNeeded(true);
@@ -326,7 +316,6 @@ public class PanelFragment extends Fragment {
                 @Override
                 public void afterTextChanged(Editable s) {
                     if (!(s.toString().equals(String.valueOf(mPanel.getPanelCount())))) {
-                        System.out.println("Inverter mppt changed");
                         mPanel.setPanelCount(getIntegerOrZero(s));
                         ((PanelActivity) requireActivity()).updatePanelAtIndex(mPanel, mPanelIndex);
                         ((PanelActivity) requireActivity()).setSaveNeeded(true);
@@ -337,7 +326,6 @@ public class PanelFragment extends Fragment {
                 @Override
                 public void afterTextChanged(Editable s) {
                     if (!(s.toString().equals(String.valueOf(mPanel.getPanelkWp())))) {
-                        System.out.println("Inverter mppt changed");
                         mPanel.setPanelkWp(getIntegerOrZero(s));
                         ((PanelActivity) requireActivity()).updatePanelAtIndex(mPanel, mPanelIndex);
                         ((PanelActivity) requireActivity()).setSaveNeeded(true);
@@ -355,7 +343,6 @@ public class PanelFragment extends Fragment {
             mEditFields.add(optimizedCheck);
             optimizedCheck.setChecked(mPanel.getConnectionMode() == Panel.OPTIMIZED);
             optimizedCheck.setOnClickListener(v -> {
-                System.out.println("Selected optimized: " + v.getId() + " " + optimizedCheck.isChecked());
                 if (optimizedCheck.isChecked()) mPanel.setConnectionMode(Panel.OPTIMIZED);
                 else mPanel.setConnectionMode(Panel.PARALLEL);
                 ((PanelActivity) requireActivity()).updatePanelAtIndex(mPanel, mPanelIndex);
@@ -405,7 +392,6 @@ public class PanelFragment extends Fragment {
                 public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                     int mppt = Integer.parseInt(mpptSpinnerContent.get(position));
                     mPanel.setMppt(mppt);
-                    System.out.println("Setting MPPT to:" + mPanel.getMppt());
                     ((PanelActivity) requireActivity()).updatePanelAtIndex(mPanel, mPanelIndex);
                     if (initialMPPT != mPanel.getMppt())
                         ((PanelActivity) requireActivity()).setSaveNeeded(true);
@@ -433,7 +419,6 @@ public class PanelFragment extends Fragment {
                 public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                     String inverter = inverterSpinnerContent.get(position);
                     mPanel.setInverter(inverter);
-                    System.out.println("Setting Inverter to: " + mPanel.getInverter());
                     mpptSpinnerContent.clear();
                     for (int i = 0; i < mInverters.get(position).getMpptCount(); i++)
                         mpptSpinnerContent.add(String.valueOf(i + 1));

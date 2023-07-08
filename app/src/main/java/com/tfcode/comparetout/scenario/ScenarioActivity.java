@@ -192,10 +192,7 @@ public class ScenarioActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        System.out.println("ScenarioActivity.onOptionsItemSelected");
-
         if (item.getItemId() == R.id.share_scenario) {//add the function to perform here
-            System.out.println("Share attempt");
             if (scenarioID == 0) {
                 Snackbar.make(getWindow().getDecorView().getRootView(), "Save before sharing", Snackbar.LENGTH_LONG)
                     .setAction("Action", null).show();
@@ -330,11 +327,9 @@ public class ScenarioActivity extends AppCompatActivity {
     private void observerSimulationWorker() {
         WorkManager.getInstance(this).getWorkInfosForUniqueWorkLiveData("Simulation")
                 .observe(this, workInfos -> {
-                    System.out.println("Observing simulation change " + workInfos.size());
                     for (WorkInfo workInfo: workInfos){
                         if ( workInfo.getState().isFinished() &&
                                 ( workInfo.getTags().contains("com.tfcode.comparetout.CostingWorker" ))) {
-                            System.out.println(workInfo.getTags().iterator().next());
                             mSimulationInProgressBar.setVisibility(View.GONE);
                             mSimulationInProgress = false;
                         }
@@ -342,7 +337,6 @@ public class ScenarioActivity extends AppCompatActivity {
                                 && ( workInfo.getTags().contains("com.tfcode.comparetout.scenario.loadprofile.GenerateMissingLoadDataWorker")
                                 || workInfo.getTags().contains("com.tfcode.comparetout.scenario.SimulationWorker")
                                 || workInfo.getTags().contains("com.tfcode.comparetout.CostingWorker" ))) {
-                            System.out.println(workInfo.getTags().iterator().next());
                             mSimulationInProgressBar.setVisibility(View.VISIBLE);
                             mSimulationInProgress = true;
                         }

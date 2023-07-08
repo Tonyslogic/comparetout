@@ -194,16 +194,12 @@ public class ScenarioDetails extends Fragment {
         }
         if (mScenarioID == 0) mScenarioID = ((ScenarioActivity) requireActivity()).getScenarioID();
         mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
-        mViewModel.getAllComparisons().observe(this, costings -> {
-            System.out.println("Observed a change in the costings");
-            updateKPIs();
-        });
+        mViewModel.getAllComparisons().observe(this, costings -> updateKPIs());
     }
 
     private void updateKPIs() {
         new Thread(() -> {
             mBarData = mViewModel.getBarData(mScenarioID, mDayOfYear);
-            System.out.println("mBarData has " + mBarData.size() + " entries." + mViewModel.toString() + " : " + mScenarioID + " : " + mDayOfYear);
             mLineData = mViewModel.getLineData(mScenarioID, mDayOfYear);
             mMainHandler.post(this::updateView);
         }).start();
@@ -382,7 +378,6 @@ public class ScenarioDetails extends Fragment {
     }
 
     private void updateView() {
-        System.out.println("updateView");
         boolean showText;
         if (!(null == mBarChart) && (!(null == mBarData)) && !mBarData.isEmpty()) {
             mBarChart.setVisibility(View.VISIBLE);

@@ -245,7 +245,6 @@ public class LoadProfileActivity extends AppCompatActivity {
             return false;
         }
         if (item.getItemId() == R.id.lp_edit) {//add the function to perform here
-            System.out.println("Edit attempt");
             MenuItem saveItem = mMenu.findItem(R.id.lp_save);
             saveItem.setVisible(true);
             MenuItem loadItem = mMenu.findItem(R.id.lp_import);

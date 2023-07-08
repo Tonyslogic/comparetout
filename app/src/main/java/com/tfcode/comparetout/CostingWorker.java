@@ -55,7 +55,6 @@ public class CostingWorker extends Worker {
     public Result doWork() {
         // Find distinct scenarios
         List<Long> scenarioIDs = mToutcRepository.getAllScenariosThatNeedCosting();
-        System.out.println("Found " + scenarioIDs.size() + " scenarios that need costing");
 
         try {
             if (scenarioIDs.size() > 0) {
@@ -74,7 +73,6 @@ public class CostingWorker extends Worker {
 
                 // Load PricePlans
                 List<PricePlan> plans = mToutcRepository.getAllPricePlansNow();
-                System.out.println("Found " + plans.size() + " plans to calculate costs for");
                 int PROGRESS_CHUNK = PROGRESS_MAX;
                 if ((scenarioIDs.size() > 0) && (plans.size() > 0)) {
                     PROGRESS_CHUNK = PROGRESS_MAX / (scenarioIDs.size() * plans.size());
@@ -90,10 +88,8 @@ public class CostingWorker extends Worker {
                     notificationManager.notify(notificationId, builder.build());
                     List<ScenarioSimulationData> scenarioData = mToutcRepository.getSimulationDataForScenario(scenarioID);
                     double gridExportMax = mToutcRepository.getGridExportMaxForScenario(scenarioID);
-                    System.out.println("Retrieved " + scenarioData.size() + " rows of simulation data for " + scenarioID);
                     if (scenarioData.size() > 0) {
-                        long startTime = System.nanoTime();
-                        long notifyTime = startTime;
+                        long notifyTime = System.nanoTime();
                         for (PricePlan pp : plans) {
                             // Confirm the need for costing
                             if (mToutcRepository.costingExists(scenarioID, pp.getPricePlanIndex()))
@@ -133,12 +129,10 @@ public class CostingWorker extends Worker {
                             if (pp.isDeemedExport() && scenario.isHasInverters()) {
                                 sell = gridExportMax * 0.8148 * days * pp.getFeed();
                                 costing.setSell(sell);
-                                System.out.println("Deemed export calculation = " +  sell);
                             }
                             net = ((buy - sell) + (pp.getStandingCharges() * 100 * (days / 365))) - (pp.getSignUpBonus() * 100);
                             costing.setNet(net);
                             // store in comparison table
-                            System.out.println("Storing " + costing);
                             builder.setContentText("Saving data");
                             if (System.nanoTime() - notifyTime > 1e+9) {
                                 notifyTime = System.nanoTime();
@@ -155,7 +149,6 @@ public class CostingWorker extends Worker {
                             }
                         }
                         long endTime = System.nanoTime();
-                        System.out.println("Took " + (endTime - startTime) / 1000000 + "mS to cost " + plans.size() + " plans");
                     } else {
                         builder.setContentText("Missing panel data");
                         notificationManager.notify(notificationId, builder.build());

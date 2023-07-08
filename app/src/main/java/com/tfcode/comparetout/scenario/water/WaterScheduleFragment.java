@@ -84,7 +84,6 @@ public class WaterScheduleFragment extends Fragment {
 
         // The activity may not be created, so these calls wait for the activity creation to complete
         requireActivity().getLifecycle().addObserver((LifecycleEventObserver) (source, event) -> {
-            System.out.println(event.getTargetState());
             if ((event.getTargetState() ==  Lifecycle.State.CREATED ) && !(null == getActivity()) ) {
                 mHWSchedulesFromActivity = ((WaterScheduleActivity) requireActivity()).getHWSchedules(mHWScheduleIndex);
                 mEdit = ((WaterScheduleActivity) requireActivity()).getEdit();
@@ -137,7 +136,6 @@ public class WaterScheduleFragment extends Fragment {
     }
 
     private void updateView() {
-        System.out.println("Updating WaterScheduleFragment " + mHWScheduleIndex + ", " + mEdit);
         mDateTableLayout.removeAllViews();
         mApplicableGrid.removeAllViews();
         mHWScheduleTimes.removeAllViews();
@@ -317,7 +315,6 @@ public class WaterScheduleFragment extends Fragment {
                         @Override
                         public void afterTextChanged(Editable s) {
                             if (!(s.toString().equals(String.valueOf(hwSchedule.getBegin())))) {
-                                System.out.println("Update the from");
                                 hwSchedule.setBegin(getIntegerOrZero(s));
                                 ((WaterScheduleActivity) requireActivity()).updateHWScheduleAtIndex(hwSchedule, mHWScheduleIndex, hwSchedule.getHwScheduleIndex());
                                 ((WaterScheduleActivity) requireActivity()).setSaveNeeded(true);
@@ -327,7 +324,6 @@ public class WaterScheduleFragment extends Fragment {
                         @Override
                         public void afterTextChanged(Editable s) {
                             if (!(s.toString().equals(String.valueOf(hwSchedule.getEnd())))) {
-                                System.out.println("Update the to");
                                 hwSchedule.setEnd(getIntegerOrZero(s));
                                 ((WaterScheduleActivity) requireActivity()).updateHWScheduleAtIndex(hwSchedule, mHWScheduleIndex, hwSchedule.getHwScheduleIndex());
                                 ((WaterScheduleActivity) requireActivity()).setSaveNeeded(true);
@@ -412,7 +408,6 @@ public class WaterScheduleFragment extends Fragment {
     }
 
     public void scheduleDeleted(int newPosition) {
-        System.out.println("Updating fragment index from " + mHWScheduleIndex + " to " + (newPosition));
         mHWScheduleIndex = newPosition;
         try {
             mHWSchedulesFromActivity = ((WaterScheduleActivity) requireActivity()).getHWSchedules(mHWScheduleIndex);

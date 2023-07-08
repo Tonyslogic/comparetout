@@ -162,8 +162,6 @@ public class HDFActivity extends AppCompatActivity {
                         }
                         mHDFViewModel.setAvailableDates(mHDFViewModel.getFileStart().format(DISPLAY_FORMAT) + " <-> " + mHDFViewModel.getFileEnd().format(DISPLAY_FORMAT));
                         mHDFViewModel.setLoaded(true);
-                        System.out.println(mHDFViewModel.getAvailableDates());
-                        System.out.println("Extracted import = " + mHDFViewModel.getImports().size() + " and export = " + mHDFViewModel.getExports().size());
                     } catch (IOException e) {
                         e.printStackTrace();
                     } finally {
@@ -424,7 +422,6 @@ public class HDFActivity extends AppCompatActivity {
                 mHDFViewModel.setSelectedEnd(LocalDateTime.ofInstant(Instant.ofEpochMilli(selection.second), ZoneId.ofOffset("UTC", ZoneOffset.UTC)));
 
                 long days = DAYS.between(mHDFViewModel.getSelectedStart(), mHDFViewModel.getSelectedEnd());
-                System.out.println("DAYS = " + days);
                 mHDFViewModel.setHasSelectedDates(false);
                 if(days > 366) mHDFViewModel.setSelectedDates("Too many days");
                 if (days < 7) mHDFViewModel.setSelectedDates("Too few days");
@@ -576,7 +573,6 @@ public class HDFActivity extends AppCompatActivity {
                         costing.setSubTotals(subTotals);
                         net = ((buy - sell) + (pp.getStandingCharges() * 100 * (mHDFViewModel.getTotalDaysSelected() / 365d)));
                         costing.setNet(net);
-                        System.out.println(costing);
                         mHDFViewModel.getCostings().add(costing);
                         mMainHandler.post(this::updateCostView);
                     }

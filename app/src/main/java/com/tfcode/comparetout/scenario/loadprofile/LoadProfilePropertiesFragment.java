@@ -210,7 +210,6 @@ public class LoadProfilePropertiesFragment extends Fragment {
     }
 
     private void updateView() {
-        System.out.println("Updating LoadProfilePropertiesFragment " + mEdit);
         mTableLayout.removeAllViews();
 
         // CREATE PARAM FOR MARGINING
@@ -304,7 +303,6 @@ public class LoadProfilePropertiesFragment extends Fragment {
                 @Override
                 public void afterTextChanged(Editable s) {
                     mLoadProfile.setAnnualUsage(getDoubleOrZero(s));
-                    System.out.println("Annual usage changed to : " + mLoadProfile.getAnnualUsage());
                     ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
                 }
             });
@@ -327,7 +325,6 @@ public class LoadProfilePropertiesFragment extends Fragment {
                 public void afterTextChanged(Editable s) {
                     try {
                         mLoadProfile.setHourlyBaseLoad(getDoubleOrZero(s));
-                        System.out.println("Base load changed to : " + mLoadProfile.getHourlyBaseLoad());
                         ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
                     } catch (NumberFormatException nfe) {
                         nfe.printStackTrace();
@@ -352,7 +349,6 @@ public class LoadProfilePropertiesFragment extends Fragment {
                 @Override
                 public void afterTextChanged(Editable s) {
                     mLoadProfile.setGridImportMax(getDoubleOrZero(s));
-                    System.out.println("Max import changed to : " + mLoadProfile.getAnnualUsage());
                     ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
                 }
             });
@@ -374,7 +370,6 @@ public class LoadProfilePropertiesFragment extends Fragment {
                 @Override
                 public void afterTextChanged(Editable s) {
                     mLoadProfile.setGridExportMax(getDoubleOrZero(s));
-                    System.out.println("Max export changed to : " + mLoadProfile.getAnnualUsage());
                     if (mEdit) ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
                 }
             });

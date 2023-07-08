@@ -71,7 +71,6 @@ public class BatterySettingsViewPageAdapter extends FragmentStateAdapter {
     }
 
     public void add(int index) {
-        System.out.println("Adding battery settings at " + index);
         BatterySettingsFragment panelFragment = BatterySettingsFragment.newInstance(index);
         for (BatterySettingsFragment frag : mBatterySettingsFragments.values()) frag.refreshFocus();
         mBatterySettingsFragments.put(index,panelFragment);

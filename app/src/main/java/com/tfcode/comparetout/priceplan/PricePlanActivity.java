@@ -153,7 +153,6 @@ public class PricePlanActivity extends AppCompatActivity {
 
         viewPager.setAdapter(createPlanAdapter(count));
         viewPager.setOffscreenPageLimit(4);
-        System.out.println("setupViewPager " + count + " fragments");
 
         ArrayList<String> tabTitlesList = new ArrayList<>();
         tabTitlesList.add("Plan details");
@@ -278,10 +277,8 @@ public class PricePlanActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        System.out.println("PricePlanActivity.onOptionsItemSelected");
 
         if (item.getItemId() == R.id.edit_a_plan) {//add the function to perform here
-            System.out.println("Edit attempt");
             edit = true;
             setPlanValidity(mPlanValidity);
             MenuItem saveMenuItem = mMenu.findItem(R.id.save_a_plan);
@@ -306,10 +303,8 @@ public class PricePlanActivity extends AppCompatActivity {
             return (true);
         }
         if (item.getItemId() == R.id.save_a_plan){
-            System.out.println("Saving the changed plan");
             Type type = new TypeToken<PricePlanJsonFile>() {}.getType();
             PricePlanJsonFile pp = new Gson().fromJson(focusedPlan, type);
-            System.out.println(pp.plan);
             PricePlan p = JsonTools.createPricePlan(pp);
             p.setPricePlanIndex(planID);
             ArrayList<DayRate> drs = new ArrayList<>();
@@ -338,7 +333,6 @@ public class PricePlanActivity extends AppCompatActivity {
         if (item.getItemId() == R.id.del_a_day_rate) {
             int pos = viewPager.getCurrentItem();
             if (pos > 0) {
-                System.out.println("Deleting a dayRate @ position " + pos);
                 Type type = new TypeToken<PricePlanJsonFile>() {}.getType();
                 PricePlanJsonFile ppj = new Gson().fromJson(focusedPlan, type);
                 PricePlan pricePlan = JsonTools.createPricePlan(ppj);
@@ -346,7 +340,6 @@ public class PricePlanActivity extends AppCompatActivity {
                 for (DayRateJson drj : ppj.rates) {
                     dayRates.add(JsonTools.createDayRate(drj));
                 }
-                System.out.println("REMOVING DAY RATE. TOTAL BEFORE: " + dayRates.size());
                 dayRates.remove(pos - 1);
 
                 focusedPlan = JsonTools.createSinglePricePlanJsonObject(pricePlan, dayRates);
@@ -366,7 +359,6 @@ public class PricePlanActivity extends AppCompatActivity {
             return true;
         }
         if (item.getItemId() == R.id.add_a_day_rate) {
-            System.out.println("Adding a dayRate");
             int pos = 0;
             if (!(null == viewPager.getAdapter()))
                 pos = viewPager.getAdapter().getItemCount(); //.getCurrentItem();
@@ -377,11 +369,9 @@ public class PricePlanActivity extends AppCompatActivity {
             for (DayRateJson drj : ppj.rates) {
                 dayRates.add(JsonTools.createDayRate(drj));
             }
-            System.out.println("ADDING DAY RATE. TOTAL BEFORE: " + dayRates.size());
             DayRate newDayRate = new DayRate();
             newDayRate.setPricePlanId(pricePlan.getPricePlanIndex());
             dayRates.add(newDayRate);
-            System.out.println("ADDING DAY RATE. TOTAL NOW: " + dayRates.size());
 
             focusedPlan = JsonTools.createSinglePricePlanJsonObject(pricePlan, dayRates);
 
@@ -393,7 +383,6 @@ public class PricePlanActivity extends AppCompatActivity {
             return true;
         }
         if (item.getItemId() == R.id.info) {
-            System.out.println("Rendering info");
             Snackbar.make(getWindow().getDecorView().getRootView(), PricePlan.getInvalidReason(mPlanValidity), Snackbar.LENGTH_LONG)
                     .setAction("Action", null).show();
         }
@@ -466,7 +455,6 @@ public class PricePlanActivity extends AppCompatActivity {
     }
 
     public void setPlanValidity(int validityCode) {
-        System.out.println("PPA Setting validity to: " + validityCode);
         mPlanValidity = validityCode;
         boolean valid = (mPlanValidity == PricePlan.VALID_PLAN);
         if (!valid) {

@@ -145,7 +145,6 @@ public abstract class ScenarioDAO {
             if (!(null == components.inverters)) {
                 for (Inverter i : components.inverters) {
                     long inverterID = addNewInverter(i);
-                    System.out.println("Stored inverter: " + i.getInverterName());
                     Scenario2Inverter s2i = new Scenario2Inverter();
                     s2i.setScenarioID(scenarioID);
                     s2i.setInverterID(inverterID);
@@ -615,14 +614,11 @@ public abstract class ScenarioDAO {
     @Transaction
     public void linkLoadProfileFromScenario(long fromScenarioID, Long toScenarioID) {
         LoadProfile lp = getLoadProfileForScenarioID(fromScenarioID);
-        System.out.println("Linking LP with id= " + lp.getLoadProfileIndex());
-
         deleteLoadProfileRelationsForScenario(Math.toIntExact(toScenarioID));
 
         Scenario2LoadProfile scenario2LoadProfile = new Scenario2LoadProfile();
         scenario2LoadProfile.setScenarioID(toScenarioID);
         scenario2LoadProfile.setLoadProfileID(lp.getLoadProfileIndex());
-        System.out.println("prep:" +scenario2LoadProfile.getS2lpID() + ", " + scenario2LoadProfile.getLoadProfileID() + ", " + scenario2LoadProfile.getScenarioID());
         addNewScenario2LoadProfile(scenario2LoadProfile);
 
         Scenario toScenario = getScenario(toScenarioID);
@@ -660,8 +656,6 @@ public abstract class ScenarioDAO {
             inverter.setInverterIndex(0L);
             long newInverterID = addNewInverter(inverter);
 
-            System.out.println("copyInverterFromScenario, new IID=" + newInverterID);
-
             Scenario2Inverter s2i = new Scenario2Inverter();
             s2i.setScenarioID(toScenarioID);
             s2i.setInverterID(newInverterID);
@@ -682,8 +676,6 @@ public abstract class ScenarioDAO {
     public void linkInverterFromScenario(long fromScenarioID, Long toScenarioID) {
         List<Inverter> inverters = getInvertersForScenarioID(fromScenarioID);
         for (Inverter lp: inverters) {
-            System.out.println("Linking inverter with id= " + lp.getInverterIndex());
-
             Scenario2Inverter scenario2Inverter = new Scenario2Inverter();
             scenario2Inverter.setScenarioID(toScenarioID);
             scenario2Inverter.setInverterID(lp.getInverterIndex());
@@ -741,8 +733,6 @@ public abstract class ScenarioDAO {
             panel.setPanelIndex(0L);
             long newPanelID = addNewPanels(panel);
 
-            System.out.println("copyPanelFromScenario, new IID=" + newPanelID);
-
             Scenario2Panel s2p = new Scenario2Panel();
             s2p.setScenarioID(toScenarioID);
             s2p.setPanelID(newPanelID);
@@ -760,8 +750,6 @@ public abstract class ScenarioDAO {
     public void linkPanelFromScenario(long fromScenarioID, Long toScenarioID) {
         List<Panel> panels = getPanelsForScenarioID(fromScenarioID);
         for (Panel panel: panels) {
-            System.out.println("Linking panel with id= " + panel.getPanelIndex());
-
             Scenario2Panel scenario2Panel = new Scenario2Panel();
             scenario2Panel.setScenarioID(toScenarioID);
             scenario2Panel.setPanelID(panel.getPanelIndex());
@@ -847,8 +835,6 @@ public abstract class ScenarioDAO {
             battery.setBatteryIndex(0L);
             long newBatteryID = addNewBattery(battery);
 
-            System.out.println("copyBatteryFromScenario, new IID=" + newBatteryID);
-
             Scenario2Battery s2b = new Scenario2Battery();
             s2b.setScenarioID(toScenarioID);
             s2b.setBatteryID(newBatteryID);
@@ -866,8 +852,6 @@ public abstract class ScenarioDAO {
     public void linkBatteryFromScenario(long fromScenarioID, Long toScenarioID) {
         List<Battery> batteries = getBatteriesForScenarioID(fromScenarioID);
         for (Battery battery: batteries) {
-            System.out.println("Linking battery with id= " + battery.getBatteryIndex());
-
             Scenario2Battery scenario2Battery = new Scenario2Battery();
             scenario2Battery.setScenarioID(toScenarioID);
             scenario2Battery.setBatteryID(battery.getBatteryIndex());
@@ -921,8 +905,6 @@ public abstract class ScenarioDAO {
             loadShift.setLoadShiftIndex(0L);
             long newLoadShiftID = addNewLoadShift(loadShift);
 
-            System.out.println("copyLoadShiftFromScenario, new IID=" + newLoadShiftID);
-
             Scenario2LoadShift s2ls = new Scenario2LoadShift();
             s2ls.setScenarioID(toScenarioID);
             s2ls.setLoadShiftID(newLoadShiftID);
@@ -940,8 +922,6 @@ public abstract class ScenarioDAO {
     public void linkLoadShiftFromScenario(long fromScenarioID, Long toScenarioID) {
         List<LoadShift> loadShifts = getLoadShiftsForScenarioID(fromScenarioID);
         for (LoadShift loadShift: loadShifts) {
-            System.out.println("Linking loadShift with id= " + loadShift.getLoadShiftIndex());
-
             Scenario2LoadShift scenario2LoadShift = new Scenario2LoadShift();
             scenario2LoadShift.setScenarioID(toScenarioID);
             scenario2LoadShift.setLoadShiftID(loadShift.getLoadShiftIndex());
@@ -1012,14 +992,12 @@ public abstract class ScenarioDAO {
     @Transaction
     public void linkHWSystemFromScenario(long fromScenarioID, Long toScenarioID) {
         HWSystem hwSystem = getHWSystemForScenarioID(fromScenarioID);
-        System.out.println("Linking HWS with id= " + hwSystem.getHwSystemIndex());
 
         deleteHWSystemRelationsForScenario(Math.toIntExact(toScenarioID));
 
         Scenario2HWSystem scenario2HWSystem = new Scenario2HWSystem();
         scenario2HWSystem.setScenarioID(toScenarioID);
         scenario2HWSystem.setHwSystemID(hwSystem.getHwSystemIndex());
-        System.out.println("prep:" +scenario2HWSystem.getS2hwsysID() + ", " + scenario2HWSystem.getHwSystemID() + ", " + scenario2HWSystem.getScenarioID());
         addNewScenario2HWSystem(scenario2HWSystem);
 
         Scenario toScenario = getScenario(toScenarioID);
@@ -1120,8 +1098,6 @@ public abstract class ScenarioDAO {
             hwSchedule.setHwScheduleIndex(0L);
             long newHWScheduleID = addNewHWSchedule(hwSchedule);
 
-            System.out.println("copyHWScheduleFromScenario, new IID=" + newHWScheduleID);
-
             Scenario2HWSchedule scenario2HWSchedule = new Scenario2HWSchedule();
             scenario2HWSchedule.setScenarioID(toScenarioID);
             scenario2HWSchedule.setHwScheduleID(newHWScheduleID);
@@ -1139,8 +1115,6 @@ public abstract class ScenarioDAO {
     public void linkHWScheduleFromScenario(long fromScenarioID, long toScenarioID) {
         List<HWSchedule> hwSchedules = getHWSchedulesForScenarioID(fromScenarioID);
         for (HWSchedule hwSchedule: hwSchedules) {
-            System.out.println("Linking hwSchedule with id= " + hwSchedule.getHwScheduleIndex());
-
             Scenario2HWSchedule scenario2HWSchedule = new Scenario2HWSchedule();
             scenario2HWSchedule.setScenarioID(toScenarioID);
             scenario2HWSchedule.setHwScheduleID(hwSchedule.getHwScheduleIndex());
@@ -1192,8 +1166,6 @@ public abstract class ScenarioDAO {
             evCharge.setEvChargeIndex(0L);
             long newEVChargeID = addNewEVCharge(evCharge);
 
-            System.out.println("copyEVChargeFromScenario, new IID=" + newEVChargeID);
-
             Scenario2EVCharge scenario2EVCharge = new Scenario2EVCharge();
             scenario2EVCharge.setScenarioID(toScenarioID);
             scenario2EVCharge.setEvChargeID(newEVChargeID);
@@ -1210,7 +1182,6 @@ public abstract class ScenarioDAO {
     public void linkEVChargeFromScenario(long fromScenarioID, Long toScenarioID) {
         List<EVCharge> evCharges = getEVChargesForScenarioID(fromScenarioID);
         for (EVCharge evCharge: evCharges) {
-            System.out.println("Linking evCharge with id= " + evCharge.getEvChargeIndex());
 
             Scenario2EVCharge scenario2EVCharge = new Scenario2EVCharge();
             scenario2EVCharge.setScenarioID(toScenarioID);
@@ -1263,8 +1234,6 @@ public abstract class ScenarioDAO {
             evDivert.setEvDivertIndex(0L);
             long newEVDivertID = addNewEVDivert(evDivert);
 
-            System.out.println("copyEVDivertFromScenario, new IID=" + newEVDivertID);
-
             Scenario2EVDivert scenario2EVDivert = new Scenario2EVDivert();
             scenario2EVDivert.setScenarioID(toScenarioID);
             scenario2EVDivert.setEvDivertID(newEVDivertID);
@@ -1281,7 +1250,6 @@ public abstract class ScenarioDAO {
     public void linkEVDivertFromScenario(long fromScenarioID, Long toScenarioID) {
         List<EVDivert> evDiverts = getEVDivertForScenarioID(fromScenarioID);
         for (EVDivert evDivert: evDiverts) {
-            System.out.println("Linking evDivert with id= " + evDivert.getEvDivertIndex());
 
             Scenario2EVDivert scenario2EVDivert = new Scenario2EVDivert();
             scenario2EVDivert.setScenarioID(toScenarioID);

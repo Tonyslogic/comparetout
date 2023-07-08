@@ -97,7 +97,6 @@ public class PricePlanNavFragment extends Fragment {
         mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
 //        ((MainActivity)requireActivity()).startProgressIndicator();
         mViewModel.getAllPricePlans().observe(this, plans -> {
-            System.out.println("Observed a change in live plans data " + plans.entrySet().size());
             SimulatorLauncher.simulateIfNeeded(getContext());
             mPlans = plans;
             updateView();
@@ -213,10 +212,7 @@ public class PricePlanNavFragment extends Fragment {
                 c.setId((int) p.getPricePlanIndex());
                 d.setId((int) p.getPricePlanIndex());
 
-                a.setOnClickListener(v -> {
-                    System.out.println("Select for comparison: " + v.getId() + " " + a.isChecked());
-                    mViewModel.updatePricePlanActiveStatus(v.getId(), a.isChecked());
-                });
+                a.setOnClickListener(v -> mViewModel.updatePricePlanActiveStatus(v.getId(), a.isChecked()));
 
                 c.setOnClickListener(v -> {
                     tableRow.setBackgroundColor(Color.RED);
@@ -224,7 +220,6 @@ public class PricePlanNavFragment extends Fragment {
                     b.setBackgroundColor(Color.RED);
                     c.setBackgroundColor(Color.RED);
                     d.setBackgroundColor(Color.RED);
-                    System.out.println("Delete: " + v.getId());
                     if (!(null == getActivity()) && ((MainActivity) getActivity()).isSimulationPassive()) {
                         AlertDialog.Builder alert = new AlertDialog.Builder(getActivity());
                         alert.setTitle("Delete entry");
@@ -252,12 +247,10 @@ public class PricePlanNavFragment extends Fragment {
                 });
 
                 d.setOnClickListener(v -> {
-                    System.out.println("Copy/Add: " + v.getId());
                     Map<PricePlan, List<DayRate>> pricePlanMap = mViewModel.getAllPricePlans().getValue();
                     if (pricePlanMap != null) {
                         for (PricePlan pp : pricePlanMap.keySet()) {
                             if (pp.getPricePlanIndex() == v.getId()) {
-                                System.out.println(pp.getPricePlanIndex() + "  " + v.getId());
                                 PricePlan newPP = pp.copy();
                                 mViewModel.insertPricePlan(newPP, pricePlanMap.get(pp));
                             }
@@ -271,7 +264,6 @@ public class PricePlanNavFragment extends Fragment {
                     b.setBackgroundColor(Color.LTGRAY);
                     c.setBackgroundColor(Color.LTGRAY);
                     d.setBackgroundColor(Color.LTGRAY);
-                    System.out.println("View: " + v.getId());
                     Intent intent = new Intent(getActivity(), PricePlanActivity.class);
                     intent.putExtra("PlanID", p.getPricePlanIndex());
                     intent.putExtra("Edit", false);

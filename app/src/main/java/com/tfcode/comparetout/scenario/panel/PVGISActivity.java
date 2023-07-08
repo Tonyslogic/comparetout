@@ -224,7 +224,6 @@ public class PVGISActivity extends AppCompatActivity {
             .observe(this, workInfos -> {
                 for (WorkInfo workInfo: workInfos){
                     if (workInfo.getState().isFinished() && workInfo.getTags().contains("com.tfcode.comparetout.scenario.panel.PVGISLoader")) {
-                        System.out.println(workInfo.getTags().iterator().next());
                         mProgressBar.setVisibility(View.GONE);
                         fileExist();
                         mLocationChanged = false;
@@ -264,8 +263,6 @@ public class PVGISActivity extends AppCompatActivity {
                 .addPathHandler("/res/", new WebViewAssetLoader.ResourcesPathHandler(this))
                 .build();
 
-        System.out.println("mPanelID = " +mPanelID);
-
         mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
         ActionBar mActionBar = Objects.requireNonNull(getSupportActionBar());
         mActionBar.setTitle("PVGIS data grabber");
@@ -282,8 +279,6 @@ public class PVGISActivity extends AppCompatActivity {
         new Thread(() -> {
             mPanel = mViewModel.getPanelForID(mPanelID);
             mLocationChanged = false;
-            if (!(null == mPanel)) System.out.println(mPanel.getAzimuth());
-            else System.out.println("DOH!");
             mMainHandler.post(this::updateView);
             mMainHandler.post(this::fileExist);
             if (mFileCached && mPanelDataInDB) mMainHandler.post(() -> updateStatusView(STATE_ALL_GOOD));
@@ -369,7 +364,6 @@ public class PVGISActivity extends AppCompatActivity {
     }
 
     private void updateView() {
-        System.out.println("PVGIS Activity, updateView"); // CREATE PARAM FOR MARGINING
         mTableLayout.removeAllViews();
         TableRow.LayoutParams params = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
         params.topMargin = 2;
@@ -388,7 +382,6 @@ public class PVGISActivity extends AppCompatActivity {
             @Override
             public void afterTextChanged(Editable s) {
                 if (!(s.toString().equals(df.format(mPanel.getLatitude())))) {
-                    System.out.println("Latitude changed");
                     mPanel.setLatitude(getDoubleOrZero(s));
                     fileExist();
                     mLocationChanged = true;
@@ -401,7 +394,6 @@ public class PVGISActivity extends AppCompatActivity {
             @Override
             public void afterTextChanged(Editable s) {
                 if (!(s.toString().equals(df.format(mPanel.getLongitude())))) {
-                    System.out.println("Longitude changed");
                     mPanel.setLongitude(getDoubleOrZero(s));
                     fileExist();
                     mLocationChanged = true;
@@ -414,7 +406,6 @@ public class PVGISActivity extends AppCompatActivity {
             @Override
             public void afterTextChanged(Editable s) {
                 if (!(s.toString().equals(String.valueOf(mPanel.getAzimuth())))) {
-                    System.out.println("Azimuth changed");
                     mPanel.setAzimuth(getIntegerOrZero(s));
                     fileExist();
                     mLocationChanged = true;
@@ -427,7 +418,6 @@ public class PVGISActivity extends AppCompatActivity {
             @Override
             public void afterTextChanged(Editable s) {
                 if (!(s.toString().equals(String.valueOf(mPanel.getSlope())))) {
-                    System.out.println("Slope changed");
                     mPanel.setSlope(getIntegerOrZero(s));
                     fileExist();
                     mLocationChanged = true;

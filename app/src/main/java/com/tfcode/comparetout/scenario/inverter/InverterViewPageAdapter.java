@@ -73,7 +73,6 @@ public class InverterViewPageAdapter extends FragmentStateAdapter {
     }
 
     public void add(int index) {
-        System.out.println("Adding inverter at " + index);
         InverterFragment inverterFragment = InverterFragment.newInstance(index);
         for (InverterFragment frag : mInverterFragments.values()) frag.refreshFocus();
         mInverterFragments.put(index,inverterFragment);

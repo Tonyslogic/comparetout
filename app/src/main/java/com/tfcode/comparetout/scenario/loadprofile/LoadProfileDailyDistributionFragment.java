@@ -122,7 +122,6 @@ public class LoadProfileDailyDistributionFragment extends Fragment {
 
     @SuppressLint("DefaultLocale")
     private void updateView() {
-        System.out.println("Updating LoadProfileDailyDistributionFragment " + mEdit);
         if (!mEdit) {
             mEditTable.setVisibility(View.INVISIBLE);
             mBarChart.setVisibility(View.VISIBLE);
@@ -228,7 +227,6 @@ public class LoadProfileDailyDistributionFragment extends Fragment {
                     @Override
                     public void afterTextChanged(Editable s) {
                         mLoadProfile.getDowDist().dowDist.set(finalDayIndex, getDoubleOrZero(s));
-                        System.out.println(day + "changed to : " + getDoubleOrZero(s));
                         ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
                         updateMasterCopy();
                         totalPercent.setText(String.format("%d", calculateTotalPercentValue(mLoadProfile.getDowDist().dowDist)));

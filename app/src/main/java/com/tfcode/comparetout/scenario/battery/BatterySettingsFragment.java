@@ -132,7 +132,6 @@ public class BatterySettingsFragment extends Fragment {
     }
 
     private void updateView() {
-        System.out.println("Updating BatteryFragment " + mBatteryIndex + ", " + mEdit);
         mTableLayout.removeAllViews();
 
         if (!(null == getActivity())) {
@@ -173,7 +172,6 @@ public class BatterySettingsFragment extends Fragment {
                 public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                     String inverter = inverterSpinnerContent.get(position);
                     mBattery.setInverter(inverter);
-                    System.out.println("Setting Inverter to: " + inverter);
                     ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
                     if (null == finalInitialInverter)
                         ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
@@ -198,7 +196,6 @@ public class BatterySettingsFragment extends Fragment {
                 @Override
                 public void afterTextChanged(Editable s) {
                     if (!(s.toString().equals(String.valueOf(mBattery.getBatterySize())))) {
-                        System.out.println("TODO: Update the batterySize");
                         mBattery.setBatterySize(getDoubleOrZero(s));
                         ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
                         ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
@@ -209,7 +206,6 @@ public class BatterySettingsFragment extends Fragment {
                 @Override
                 public void afterTextChanged(Editable s) {
                     if (!(s.toString().equals(String.valueOf(mBattery.getDischargeStop())))) {
-                        System.out.println("TODO: Update the discharge stop percentage");
                         mBattery.setDischargeStop(getDoubleOrZero(s));
                         ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
                         ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
@@ -220,7 +216,6 @@ public class BatterySettingsFragment extends Fragment {
                 @Override
                 public void afterTextChanged(Editable s) {
                     if (!(s.toString().equals(String.valueOf(mBattery.getMaxDischarge())))) {
-                        System.out.println("TODO: Update the max discharge");
                         mBattery.setMaxDischarge(getDoubleOrZero(s));
                         ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
                         ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
@@ -231,7 +226,6 @@ public class BatterySettingsFragment extends Fragment {
                 @Override
                 public void afterTextChanged(Editable s) {
                     if (!(s.toString().equals(String.valueOf(mBattery.getMaxCharge())))) {
-                        System.out.println("TODO: Update the max charge");
                         mBattery.setMaxCharge(getDoubleOrZero(s));
                         ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
                         ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
@@ -242,7 +236,6 @@ public class BatterySettingsFragment extends Fragment {
                 @Override
                 public void afterTextChanged(Editable s) {
                     if (!(s.toString().equals(String.valueOf(mBattery.getStorageLoss())))) {
-                        System.out.println("TODO: Update the storage loss");
                         mBattery.setStorageLoss(getDoubleOrZero(s));
                         ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
                         ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
@@ -253,7 +246,6 @@ public class BatterySettingsFragment extends Fragment {
                 @Override
                 public void afterTextChanged(Editable s) {
                     if (!(s.toString().equals(String.valueOf(mBattery.getChargeModel().percent0)))) {
-                        System.out.println("TODO: Update the charge model");
                         mBattery.getChargeModel().percent0 = getIntegerOrZero(s);
                         ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
                         ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
@@ -264,7 +256,6 @@ public class BatterySettingsFragment extends Fragment {
                 @Override
                 public void afterTextChanged(Editable s) {
                     if (!(s.toString().equals(String.valueOf(mBattery.getChargeModel().percent12)))) {
-                        System.out.println("TODO: Update the charge model");
                         mBattery.getChargeModel().percent12 = getIntegerOrZero(s);
                         ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
                         ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
@@ -275,7 +266,6 @@ public class BatterySettingsFragment extends Fragment {
                 @Override
                 public void afterTextChanged(Editable s) {
                     if (!(s.toString().equals(String.valueOf(mBattery.getChargeModel().percent90)))) {
-                        System.out.println("TODO: Update the charge model");
                         mBattery.getChargeModel().percent90 = getIntegerOrZero(s);
                         ((BatterySettingsActivity) requireActivity()).updateBatteryAtIndex(mBattery, mBatteryIndex);
                         ((BatterySettingsActivity) requireActivity()).setSaveNeeded(true);
@@ -306,7 +296,6 @@ public class BatterySettingsFragment extends Fragment {
     }
 
     public void batteryDeleted(int newPosition) {
-        System.out.println("Updating fragment index from " + mBatteryIndex + " to " + (newPosition));
         mBatteryIndex = newPosition;
         try {
             mBatteryJsonString = ((BatterySettingsActivity) requireActivity()).getBatteryJson();

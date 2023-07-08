@@ -83,7 +83,6 @@ public class EVScheduleFragment extends Fragment {
 
         // The activity may not be created, so these calls wait for the activity creation to complete
         ((EVScheduleActivity) requireActivity()).getLifecycle().addObserver((LifecycleEventObserver) (source, event) -> {
-            System.out.println(event.getTargetState());
             if ((event.getTargetState() ==  Lifecycle.State.CREATED ) && !(null == getActivity()) ) {
                 mEVChargesFromActivity = ((EVScheduleActivity) requireActivity()).getEVCharges(mEVChargeIndex);
                 mEdit = ((EVScheduleActivity) requireActivity()).getEdit();
@@ -136,7 +135,6 @@ public class EVScheduleFragment extends Fragment {
     }
 
     private void updateView() {
-        System.out.println("Updating ChargingFragment " + mEVChargeIndex + ", " + mEdit);
         mDateTableLayout.removeAllViews();
         mApplicableGrid.removeAllViews();
         mEVChargeTimes.removeAllViews();
@@ -354,7 +352,6 @@ public class EVScheduleFragment extends Fragment {
                         @Override
                         public void afterTextChanged(Editable s) {
                             if (!(s.toString().equals(String.valueOf(evCharge.getBegin())))) {
-                                System.out.println("Update the from");
                                 evCharge.setBegin(getIntegerOrZero(s));
                                 ((EVScheduleActivity) requireActivity()).updateEVChargeAtIndex(evCharge, mEVChargeIndex, evCharge.getEvChargeIndex());
                                 ((EVScheduleActivity) requireActivity()).setSaveNeeded(true);
@@ -364,7 +361,6 @@ public class EVScheduleFragment extends Fragment {
                         @Override
                         public void afterTextChanged(Editable s) {
                             if (!(s.toString().equals(String.valueOf(evCharge.getEnd())))) {
-                                System.out.println("Update the to");
                                 evCharge.setEnd(getIntegerOrZero(s));
                                 ((EVScheduleActivity) requireActivity()).updateEVChargeAtIndex(evCharge, mEVChargeIndex, evCharge.getEvChargeIndex());
                                 ((EVScheduleActivity) requireActivity()).setSaveNeeded(true);
@@ -374,7 +370,6 @@ public class EVScheduleFragment extends Fragment {
                         @Override
                         public void afterTextChanged(Editable s) {
                             if (!(s.toString().equals(String.valueOf(evCharge.getDraw())))) {
-                                System.out.println("Update the stop");
                                 evCharge.setDraw(getDoubleOrZero(s));
                                 ((EVScheduleActivity) requireActivity()).updateEVChargeAtIndex(evCharge, mEVChargeIndex, evCharge.getEvChargeIndex());
                                 ((EVScheduleActivity) requireActivity()).setSaveNeeded(true);
@@ -472,7 +467,6 @@ public class EVScheduleFragment extends Fragment {
     }
 
     public void batteryDeleted(int newPosition) {
-        System.out.println("Updating fragment index from " + mEVChargeIndex + " to " + (newPosition));
         mEVChargeIndex = newPosition;
         try {
             mEVChargesFromActivity = ((EVScheduleActivity) requireActivity()).getEVCharges(mEVChargeIndex);

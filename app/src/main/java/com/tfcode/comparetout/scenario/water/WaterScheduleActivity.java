@@ -183,7 +183,6 @@ public class WaterScheduleActivity extends AppCompatActivity {
         else mFab.hide();
 
         mViewModel.getAllHWScheduleRelations().observe(this, relations -> {
-            System.out.println("Observed a change in live hot water schedule relations ");
             for (Scenario2HWSchedule hwSchedule: relations) {
                 if (hwSchedule.getScenarioID() == mScenarioID) {
                     new Thread(() -> {
@@ -201,7 +200,6 @@ public class WaterScheduleActivity extends AppCompatActivity {
                             iCountOld++;
                         }
                     }).start();
-                    System.out.println("Refreshing the UI");
                     break;
                 }
             }
@@ -250,7 +248,6 @@ public class WaterScheduleActivity extends AppCompatActivity {
                 else if (maxKey < tabContent.getKey()) maxKey = tabContent.getKey();
                 if (tabContent.getValue().get(0) != null) {
                     if (tabContent.getValue().get(0).equalDate(hwSchedule)) {
-                        System.out.println("Comparing " + tabContent.getValue().get(0).toString());
                         tabContent.getValue().add(hwSchedule);
                         sorted = true;
                         break; // stop looking in the map, exit inner loop
@@ -265,7 +262,6 @@ public class WaterScheduleActivity extends AppCompatActivity {
                 maxKey++;
             }
         }
-        System.out.println("Sorted " + mTabContents.size() + " from " + mHWSchedules.size() + " hot water schedules in DB");
     }
 
     private void addNewHWSchedule() {
@@ -281,7 +277,6 @@ public class WaterScheduleActivity extends AppCompatActivity {
         int tabIndex = 0;
         if (!(null == mViewPager) && !(null == mViewPager.getAdapter()))
             tabIndex = mViewPager.getAdapter().getItemCount();
-        System.out.println("Adding mTabContent: " + tabIndex);
         mTabContents.put(tabIndex, temp);
         if (!(null == mViewPager.getAdapter())) {
             ((WaterScheduleViewPageAdapter) mViewPager.getAdapter()).add(tabIndex);
@@ -474,22 +469,18 @@ public class WaterScheduleActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        System.out.println("WaterScheduleActivity.onOptionsItemSelected");
 
         if (item.getItemId() == R.id.lp_info) {//add the function to perform here
-            System.out.println("Report status");
             Snackbar.make(getWindow().getDecorView().getRootView(),
                             "Status hint", Snackbar.LENGTH_LONG)
                     .setAction("Action", null).show();
             return false;
         }
         if (item.getItemId() == R.id.lp_edit) {//add the function to perform here
-            System.out.println("Edit attempt");
             enableEdit();
             return false;
         }
         if (item.getItemId() == R.id.lp_share) {//add the function to perform here
-            System.out.println("Share attempt");
             Intent sendIntent = new Intent();
             sendIntent.setAction(Intent.ACTION_SEND);
             sendIntent.putExtra(Intent.EXTRA_TEXT, mHWScheduleJsonString);
@@ -500,12 +491,10 @@ public class WaterScheduleActivity extends AppCompatActivity {
             return true;
         }
         if (item.getItemId() == R.id.lp_import) {//add the function to perform here
-            System.out.println("Import attempt");
             mHWSchedulesFile.launch("*/*");
             return false;
         }
         if (item.getItemId() == R.id.lp_save) {//add the function to perform here
-            System.out.println("Save attempt, saving " + mHWSchedules.size());
             mProgressBar.setVisibility(View.VISIBLE);
             if (!mSimulationInProgress) {
                 new Thread(() -> {
@@ -533,7 +522,6 @@ public class WaterScheduleActivity extends AppCompatActivity {
             return false;
         }
         if (item.getItemId() == R.id.lp_copy) {//add the function to perform here
-            System.out.println("Copy attempt");
             if (mUnsavedChanges) {
                 Snackbar.make(getWindow().getDecorView().getRootView(),
                                 "Save changes first", Snackbar.LENGTH_LONG)
@@ -548,7 +536,6 @@ public class WaterScheduleActivity extends AppCompatActivity {
             return false;
         }
         if (item.getItemId() == R.id.lp_link) {//add the function to perform here
-            System.out.println("Link attempt");
             if (mUnsavedChanges) {
                 Snackbar.make(getWindow().getDecorView().getRootView(),
                                 "Save changes first", Snackbar.LENGTH_LONG)
@@ -567,7 +554,6 @@ public class WaterScheduleActivity extends AppCompatActivity {
             return false;
         }
         if (item.getItemId() == R.id.lp_delete) {//add the function to perform here
-            System.out.println("Delete attempt");
             deleteAllHWSchedulesInTab();
             return false;
         }
@@ -599,7 +585,6 @@ public class WaterScheduleActivity extends AppCompatActivity {
 
         mViewPager.setAdapter(createPanelAdapter(count));
         mViewPager.setOffscreenPageLimit(4);
-        System.out.println("setupViewPager " + count + " fragments");
 
         TabLayout tabLayout = findViewById(R.id.water_schedule_tab_layout);
         mMediator = new TabLayoutMediator(tabLayout, mViewPager,
@@ -672,7 +657,6 @@ public class WaterScheduleActivity extends AppCompatActivity {
         else if (!(null == hwSchedulesAtTab) && hwScheduleID != 0) {
             for (HWSchedule hws : hwSchedulesAtTab) {
                 if (hws.getHwScheduleIndex() == hwScheduleID) {
-                    System.out.println("Delete: " + hws);
                     boolean removedFromTab = hwSchedulesAtTab.remove(loadShift);
                     boolean removedFromLeaderList = mHWSchedules.remove(loadShift);
                     if (null == mRemovedHWSchedules) mRemovedHWSchedules = new ArrayList<>();
@@ -685,13 +669,10 @@ public class WaterScheduleActivity extends AppCompatActivity {
     }
 
     public void updateHWScheduleAtIndex(HWSchedule hwSchedule, int hwScheduleTabIndex, long hwScheduleID) {
-
-        System.out.println("From fragment: " + hwSchedule);
         List<HWSchedule> hwSchedulesAtTab = mTabContents.get(hwScheduleTabIndex);
         // Update days, months
         if (!(null == hwSchedulesAtTab) && hwScheduleID == 0) {
             for (HWSchedule hws : hwSchedulesAtTab) {
-                System.out.println("updating " + hws.getHwScheduleIndex() + " using " + hwSchedule.getHwScheduleIndex());
                 hws.getMonths().months = new ArrayList<>(hwSchedule.getMonths().months);
                 hws.getDays().ints = new ArrayList<>(hwSchedule.getDays().ints);
             }
@@ -700,7 +681,6 @@ public class WaterScheduleActivity extends AppCompatActivity {
         if (!(null == hwSchedulesAtTab) && hwScheduleID != 0) {
             for (HWSchedule hws : hwSchedulesAtTab) {
                 if (hws.getHwScheduleIndex() == hwScheduleID) {
-                    System.out.println("From activity: " + hws);
                     // Nothing to do here as the state is shared
                     break;
                 }
@@ -754,11 +734,9 @@ public class WaterScheduleActivity extends AppCompatActivity {
     private void observerSimulationWorker() {
         WorkManager.getInstance(this).getWorkInfosForUniqueWorkLiveData("Simulation")
                 .observe(this, workInfos -> {
-                    System.out.println("Observing simulation change " + workInfos.size());
                     for (WorkInfo workInfo: workInfos){
                         if ( workInfo.getState().isFinished() &&
                                 ( workInfo.getTags().contains("com.tfcode.comparetout.CostingWorker" ))) {
-                            System.out.println(workInfo.getTags().iterator().next());
                             mSimulationInProgressBar.setVisibility(View.GONE);
                             mSimulationInProgress = false;
                         }
@@ -766,7 +744,6 @@ public class WaterScheduleActivity extends AppCompatActivity {
                                 && ( workInfo.getTags().contains("com.tfcode.comparetout.scenario.loadprofile.GenerateMissingLoadDataWorker")
                                 || workInfo.getTags().contains("com.tfcode.comparetout.scenario.SimulationWorker")
                                 || workInfo.getTags().contains("com.tfcode.comparetout.CostingWorker" ))) {
-                            System.out.println(workInfo.getTags().iterator().next());
                             mSimulationInProgressBar.setVisibility(View.VISIBLE);
                             mSimulationInProgress = true;
                         }

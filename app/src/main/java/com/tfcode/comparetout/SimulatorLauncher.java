@@ -31,8 +31,6 @@ public class SimulatorLauncher {
 
 
     public static void simulateIfNeeded(Context context) {
-        System.out.println("************* looking for scenarios to simulate *************");
-        System.out.println("*************************************************************");
         OneTimeWorkRequest generateLoadData =
                 new OneTimeWorkRequest.Builder(GenerateMissingLoadDataWorker.class)
                         .build();
@@ -54,7 +52,6 @@ public class SimulatorLauncher {
 
     public static void storePVGISData(Context context, Long panelID) {
 
-        System.out.println("Starting panel storage for " + panelID);
         Data.Builder data = new Data.Builder();
         data.putLong("panelID", panelID);
 

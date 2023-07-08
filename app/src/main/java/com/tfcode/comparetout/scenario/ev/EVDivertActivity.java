@@ -183,7 +183,6 @@ public class EVDivertActivity extends AppCompatActivity {
         else mFab.hide();
 
         mViewModel.getAllEVDivertRelations().observe(this, relations -> {
-            System.out.println("Observed a change in live ev divert relations ");
             for (Scenario2EVDivert evCharge: relations) {
                 if (evCharge.getScenarioID() == mScenarioID) {
                     new Thread(() -> {
@@ -201,7 +200,6 @@ public class EVDivertActivity extends AppCompatActivity {
                             iCountOld++;
                         }
                     }).start();
-                    System.out.println("Refreshing the UI");
                     break;
                 }
             }
@@ -250,7 +248,6 @@ public class EVDivertActivity extends AppCompatActivity {
                 else if (maxKey < tabContent.getKey()) maxKey = tabContent.getKey();
                 if (tabContent.getValue().get(0) != null) {
                     if (tabContent.getValue().get(0).equalDate(evCharge)) {
-                        System.out.println("Comparing " + tabContent.getValue().get(0).toString());
                         tabContent.getValue().add(evCharge);
                         sorted = true;
                         break; // stop looking in the map, exit inner loop
@@ -265,7 +262,6 @@ public class EVDivertActivity extends AppCompatActivity {
                 maxKey++;
             }
         }
-        System.out.println("Sorted " + mTabContents.size() + " from " + mEVDiverts.size() + " evCharges in DB");
     }
 
     private void addNewEVDivert() {
@@ -281,7 +277,6 @@ public class EVDivertActivity extends AppCompatActivity {
         int tabIndex = 0;
         if (!(null == mViewPager) && !(null == mViewPager.getAdapter()))
             tabIndex = mViewPager.getAdapter().getItemCount();
-        System.out.println("Adding mTabContent: " + tabIndex);
         mTabContents.put(tabIndex, temp);
         if (!(null == mViewPager.getAdapter())) {
             ((EVDivertViewPageAdapter) mViewPager.getAdapter()).add(tabIndex);
@@ -474,22 +469,18 @@ public class EVDivertActivity extends AppCompatActivity {
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        System.out.println("EVDivertActivity.onOptionsItemSelected");
 
         if (item.getItemId() == R.id.lp_info) {//add the function to perform here
-            System.out.println("Report status");
             Snackbar.make(getWindow().getDecorView().getRootView(),
                             "Status hint", Snackbar.LENGTH_LONG)
                     .setAction("Action", null).show();
             return false;
         }
         if (item.getItemId() == R.id.lp_edit) {//add the function to perform here
-            System.out.println("Edit attempt");
             enableEdit();
             return false;
         }
         if (item.getItemId() == R.id.lp_share) {//add the function to perform here
-            System.out.println("Share attempt");
             Intent sendIntent = new Intent();
             sendIntent.setAction(Intent.ACTION_SEND);
             sendIntent.putExtra(Intent.EXTRA_TEXT, mEVScheduleJsonString);
@@ -500,12 +491,10 @@ public class EVDivertActivity extends AppCompatActivity {
             return true;
         }
         if (item.getItemId() == R.id.lp_import) {//add the function to perform here
-            System.out.println("Import attempt");
             mLoadEVDivertFile.launch("*/*");
             return false;
         }
         if (item.getItemId() == R.id.lp_save) {//add the function to perform here
-            System.out.println("Save attempt, saving " + mEVDiverts.size());
             mProgressBar.setVisibility(View.VISIBLE);
             if (!mSimulationInProgress) {
                 new Thread(() -> {
@@ -533,7 +522,6 @@ public class EVDivertActivity extends AppCompatActivity {
             return false;
         }
         if (item.getItemId() == R.id.lp_copy) {//add the function to perform here
-            System.out.println("Copy attempt");
             if (mUnsavedChanges) {
                 Snackbar.make(getWindow().getDecorView().getRootView(),
                                 "Save changes first", Snackbar.LENGTH_LONG)
@@ -548,7 +536,6 @@ public class EVDivertActivity extends AppCompatActivity {
             return false;
         }
         if (item.getItemId() == R.id.lp_link) {//add the function to perform here
-            System.out.println("Link attempt");
             if (mUnsavedChanges) {
                 Snackbar.make(getWindow().getDecorView().getRootView(),
                                 "Save changes first", Snackbar.LENGTH_LONG)
@@ -567,7 +554,6 @@ public class EVDivertActivity extends AppCompatActivity {
             return false;
         }
         if (item.getItemId() == R.id.lp_delete) {//add the function to perform here
-            System.out.println("Delete attempt");
             deleteAllEVDivertsInTab();
             return false;
         }
@@ -599,7 +585,6 @@ public class EVDivertActivity extends AppCompatActivity {
 
         mViewPager.setAdapter(createPanelAdapter(count));
         mViewPager.setOffscreenPageLimit(4);
-        System.out.println("setupViewPager " + count + " fragments");
 
         TabLayout tabLayout = findViewById(R.id.ev_divert_tab_layout);
         mMediator = new TabLayoutMediator(tabLayout, mViewPager,
@@ -672,7 +657,6 @@ public class EVDivertActivity extends AppCompatActivity {
         else if (!(null == evChargesAtTab) && evChargeID != 0) {
             for (EVDivert ls : evChargesAtTab) {
                 if (ls.getEvDivertIndex() == evChargeID) {
-                    System.out.println("Delete: " + ls);
                     boolean removedFromTab = evChargesAtTab.remove(evCharge);
                     boolean removedFromLeaderList = mEVDiverts.remove(evCharge);
                     if (null == mRemovedEVDiverts) mRemovedEVDiverts = new ArrayList<>();
@@ -686,12 +670,10 @@ public class EVDivertActivity extends AppCompatActivity {
 
     public void updateEVDivertAtIndex(EVDivert evCharge, int evChargeTabIndex, long evChargeID) {
 
-        System.out.println("From fragment: " + evCharge);
         List<EVDivert> evChargesAtTab = mTabContents.get(evChargeTabIndex);
         // Update name, days, months
         if (!(null == evChargesAtTab) && evChargeID == 0) {
             for (EVDivert evc : evChargesAtTab) {
-                System.out.println("updating " + evc.getEvDivertIndex() + " using " + evCharge.getEvDivertIndex());
                 evc.getMonths().months = new ArrayList<>(evCharge.getMonths().months);
                 evc.getDays().ints = new ArrayList<>(evCharge.getDays().ints);
                 evc.setName(evCharge.getName());
@@ -701,7 +683,6 @@ public class EVDivertActivity extends AppCompatActivity {
         if (!(null == evChargesAtTab) && evChargeID != 0) {
             for (EVDivert ls : evChargesAtTab) {
                 if (ls.getEvDivertIndex() == evChargeID) {
-                    System.out.println("From activity: " + ls);
                     // Nothing to do here as the state is shared
                     break;
                 }
@@ -756,11 +737,9 @@ public class EVDivertActivity extends AppCompatActivity {
     private void observerSimulationWorker() {
         WorkManager.getInstance(this).getWorkInfosForUniqueWorkLiveData("Simulation")
                 .observe(this, workInfos -> {
-                    System.out.println("Observing simulation change " + workInfos.size());
                     for (WorkInfo workInfo: workInfos){
                         if ( workInfo.getState().isFinished() &&
                                 ( workInfo.getTags().contains("com.tfcode.comparetout.CostingWorker" ))) {
-                            System.out.println(workInfo.getTags().iterator().next());
                             mSimulationInProgressBar.setVisibility(View.GONE);
                             mSimulationInProgress = false;
                         }
@@ -768,7 +747,6 @@ public class EVDivertActivity extends AppCompatActivity {
                                 && ( workInfo.getTags().contains("com.tfcode.comparetout.scenario.loadprofile.GenerateMissingLoadDataWorker")
                                 || workInfo.getTags().contains("com.tfcode.comparetout.scenario.SimulationWorker")
                                 || workInfo.getTags().contains("com.tfcode.comparetout.CostingWorker" ))) {
-                            System.out.println(workInfo.getTags().iterator().next());
                             mSimulationInProgressBar.setVisibility(View.VISIBLE);
                             mSimulationInProgress = true;
                         }

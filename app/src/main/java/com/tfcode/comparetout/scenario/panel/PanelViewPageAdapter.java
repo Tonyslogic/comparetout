@@ -71,7 +71,6 @@ public class PanelViewPageAdapter extends FragmentStateAdapter {
     }
 
     public void add(int index) {
-        System.out.println("Adding panel at " + index);
         PanelFragment panelFragment = PanelFragment.newInstance(index);
         for (PanelFragment frag : mPanelFragments.values()) frag.refreshFocus();
         mPanelFragments.put(index,panelFragment);

@@ -131,7 +131,6 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
 
     @SuppressLint("DefaultLocale")
     private void updateView() {
-        System.out.println("Updating LoadProfileHourlyDistributionFragment " + mEditTableHeight + ", " + mEditTable.getHeight());
         if (null == mEditTableHeight) mEditTableHeight = mEditTable.getHeight();
         if (!mEdit) {
             mEditTable.setVisibility(View.INVISIBLE);
@@ -338,7 +337,6 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
                             HourlyDist hd = new HourlyDist();
                             hd.dist = doubleHolder.doubles;
                             mLoadProfile.setHourlyDist(hd);
-                            System.out.println("to changed to : " + getDoubleOrZero(s));
                             if(mEdit) ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
                             updateMasterCopy();
                             totalPercent.setText(String.format("%d", calculatePercentageTotal(doubleHolder)));
@@ -361,7 +359,6 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
                             HourlyDist hd = new HourlyDist();
                             hd.dist = doubleHolder.doubles;
                             mLoadProfile.setHourlyDist(hd);
-                            System.out.println("percent changed to : " + getIntegerOrZero(s));
                             if(mEdit)((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
                             updateMasterCopy();
                             totalPercent.setText(String.format("%d", calculatePercentageTotal(doubleHolder)));
@@ -391,7 +388,6 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
                         if (fr > 0)
                             p = hourlyPercentageRange.lookup(fr-1);
                         doubleHolder.update(fr, t, p);
-                        System.out.println(doubleHolder);
                         HourlyDist dist = new HourlyDist();
                         dist.dist = doubleHolder.doubles;
                         mLoadProfile.setHourlyDist(dist);

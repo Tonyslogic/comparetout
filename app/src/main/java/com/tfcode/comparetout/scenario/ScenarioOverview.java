@@ -152,10 +152,8 @@ public class ScenarioOverview extends Fragment {
                     mScenario.setScenarioName("<New scenario>");
                 }
                 else {
-                    System.out.println("Trying to find id for " + mScenario.getScenarioName());
                     mScenarioID = findByName(scenarios, mScenario.getScenarioName());
                     if (mScenarioID == null) mScenarioID = 0L;
-                    System.out.println("Found id " + mScenarioID);
                 }
             }
             else{
@@ -194,7 +192,6 @@ public class ScenarioOverview extends Fragment {
     private static Long findByName(List<Scenario> scenarios, String name) {
         Scenario scenario = scenarios.stream().filter(s -> name.equals(s.getScenarioName())).findFirst().orElse(null);
         if (!(scenario == null)) {
-            System.out.println("Found id " + scenario.getScenarioIndex() + " for " + name);
             return scenario.getScenarioIndex();
         }
         else return null;
@@ -233,15 +230,12 @@ public class ScenarioOverview extends Fragment {
 
             @Override
             public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-                System.out.println("ScenarioOverview.onOptionsItemSelected");
                 if (menuItem.getItemId() == R.id.edit_scenario) {
-                    System.out.println("Edit attempt");
                     setEditMode(true);
                     updateView();
                     return (false);
                 }
                 if (menuItem.getItemId() == R.id.save_scenario) {
-                    System.out.println("save attempt");
                     if (!(null == getActivity()) && !((ScenarioActivity)getActivity()).isSimulationInProgress()) {
                         if (mScenarioID == 0) {
                             ScenarioComponents scenarioComponents = new ScenarioComponents(mScenario,
@@ -491,7 +485,6 @@ public class ScenarioOverview extends Fragment {
 
             //registering popup with OnMenuItemClickListener
             popup.setOnMenuItemClickListener(item -> {
-                System.out.println("Car: setOnMenuItemClickListener ==> " + item.getItemId());
                 if (item.getItemId() == R.id.schedule) {
                     if (!mScenario.isHasLoadProfiles()) {
                         if (!(null == getView())) Snackbar.make(getView(),
@@ -585,7 +578,6 @@ public class ScenarioOverview extends Fragment {
                     @Override
                     public void afterTextChanged(Editable s) {
                         mScenario.setScenarioName(s.toString());
-                        System.out.println("Scenario name changed to : " + mScenario.getScenarioName());
                         if (mScenarioNames.contains(s.toString())) {
                             if (!(null == getView())) Snackbar.make(getView(),
                                             s + " already exists. Change before saving", Snackbar.LENGTH_LONG)

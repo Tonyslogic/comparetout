@@ -141,11 +141,9 @@ public class PricePlanEditFragment extends Fragment {
 
     private void setOrResetState() {
         mEditFields = new ArrayList<>();
-        System.out.println("Plan id = " + mPlanID);
         Type type = new TypeToken<PricePlanJsonFile>(){}.getType();
         PricePlanJsonFile ppj = new Gson().fromJson(mFocus, type);
         mPricePlan = JsonTools.createPricePlan(ppj);
-        System.out.println("Plan:" + mPricePlan.getPlanName());
         mDayRates = new ArrayList<>();
         for (DayRateJson drj : ppj.rates){
             DayRate dr = JsonTools.createDayRate(drj);
@@ -197,9 +195,7 @@ public class PricePlanEditFragment extends Fragment {
 
             @Override
             public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
-                System.out.println("PricePlanEditFragment.onOptionsItemSelected");
                 if (menuItem.getItemId() == R.id.edit_a_plan) {//add the function to perform here
-                    System.out.println("Edit attempt");
                     if (!mEdit) {
                         mEdit = true;
                         for (View v : mEditFields) v.setEnabled(true);
@@ -218,7 +214,6 @@ public class PricePlanEditFragment extends Fragment {
     }
 
     public void updateView() {
-        System.out.println("Updating PricePlanEditFragment " + mEdit);
         mTableLayout.removeAllViews();
         mTableLayout.setOnLongClickListener(v -> {
             showHelp();
@@ -253,7 +248,6 @@ public class PricePlanEditFragment extends Fragment {
             b.addTextChangedListener(new AbstractTextWatcher() {
                 @Override
                 public void afterTextChanged(Editable s) {
-                    System.out.println("Plan supplier edit lost focus");
                     mPricePlan.setSupplier(s.toString());
                     PricePlanActivity ppa = ((PricePlanActivity) requireActivity());
                     ppa.updateFocusedPlan(JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
@@ -283,7 +277,6 @@ public class PricePlanEditFragment extends Fragment {
             b.addTextChangedListener(new AbstractTextWatcher() {
                 @Override
                 public void afterTextChanged(Editable s) {
-                    System.out.println("Plan name edit lost focus");
                     mPricePlan.setPlanName(s.toString());
                     PricePlanActivity ppa = ((PricePlanActivity) requireActivity());
                     ppa.updateFocusedPlan(JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
@@ -294,8 +287,7 @@ public class PricePlanEditFragment extends Fragment {
                             int validity = mPricePlan.validatePlan(mDayRates);
                             ppa.setPlanValidity(validity);
                         }
-                    } else
-                        System.out.println("mPricePlans is null ==> need another way to get the list of plans");
+                    }
                     ppa.setSaveNeeded(true);
                 }
             });
@@ -323,7 +315,6 @@ public class PricePlanEditFragment extends Fragment {
             b.addTextChangedListener(new AbstractTextWatcher() {
                 @Override
                 public void afterTextChanged(Editable s) {
-                    System.out.println("Feed edit lost focus");
                     mPricePlan.setFeed(getDoubleOrZero(s));
                     ((PricePlanActivity) requireActivity()).updateFocusedPlan(
                             JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
@@ -354,7 +345,6 @@ public class PricePlanEditFragment extends Fragment {
             b.addTextChangedListener(new AbstractTextWatcher() {
                 @Override
                 public void afterTextChanged(Editable s) {
-                    System.out.println("Standing charged edit lost focus");
                     mPricePlan.setStandingCharges(getDoubleOrZero(s));
                     ((PricePlanActivity) requireActivity()).updateFocusedPlan(
                             JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
@@ -385,7 +375,6 @@ public class PricePlanEditFragment extends Fragment {
             b.addTextChangedListener(new AbstractTextWatcher() {
                 @Override
                 public void afterTextChanged(Editable s) {
-                    System.out.println("Bonus edit lost focus");
                     mPricePlan.setSignUpBonus(getDoubleOrZero(s));
                     ((PricePlanActivity) requireActivity()).updateFocusedPlan(
                             JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
@@ -416,7 +405,6 @@ public class PricePlanEditFragment extends Fragment {
             b.addTextChangedListener(new AbstractTextWatcher() {
                 @Override
                 public void afterTextChanged(Editable s) {
-                    System.out.println("Last update edit lost focus");
                     mPricePlan.setLastUpdate(s.toString());
                     PricePlanActivity ppa = ((PricePlanActivity) requireActivity());
                     ppa.updateFocusedPlan(JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
@@ -450,7 +438,6 @@ public class PricePlanEditFragment extends Fragment {
             b.addTextChangedListener(new AbstractTextWatcher() {
                 @Override
                 public void afterTextChanged(Editable s) {
-                    System.out.println("Reference edit lost focus");
                     mPricePlan.setReference(s.toString());
                     PricePlanActivity ppa = ((PricePlanActivity) requireActivity());
                     ppa.updateFocusedPlan(JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
