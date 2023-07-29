@@ -243,7 +243,7 @@ public class EVScheduleFragment extends Fragment {
                                 });
                                 break;
                             case 1:
-                                cb.setChecked(mEVCharge.getMonths().months.contains(rowNo + 1));
+                                cb.setChecked(mEVCharge.getMonths().months.contains(rowNo));
                                 Integer finalMonthCol1No = rowNo;
                                 cb.setOnClickListener(v -> {
                                     if (cb.isChecked()) {

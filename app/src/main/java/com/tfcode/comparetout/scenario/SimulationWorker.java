@@ -459,7 +459,7 @@ public class SimulationWorker extends Worker {
             double maxEVDivert = evDivert.getDailyMax() - totalEVDivertedThisDay;
             if (evDivert.isActive()) {
                 if (evDivert.isEv1st()) {
-                    if (feed > evDivert.getMinimum()) {
+                    if (feed > evDivert.getMinimum()/12d) {
                         if (maxEVDivert > 0) {
                             divertedToEV = min (feed, maxEVDivert);
                             firstInputData.mEVDivertDailyTotals.put(inputRow.do2001, totalEVDivertedThisDay + divertedToEV);
@@ -474,7 +474,7 @@ public class SimulationWorker extends Worker {
                         feed = feed - heat.kWhUsed;
                         nowWaterTemp = heat.temperature;
                         divertedToWater = heat.kWhUsed;
-                        if (feed > evDivert.getMinimum()) { // there may be some feed left fo the EV
+                        if (feed > evDivert.getMinimum()/12d) { // there may be some feed left fo the EV
                             if (maxEVDivert > 0) {
                                 divertedToEV = min (feed, maxEVDivert);
                                 firstInputData.mEVDivertDailyTotals.put(inputRow.do2001, totalEVDivertedThisDay + divertedToEV);

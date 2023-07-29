@@ -281,7 +281,7 @@ public class BatteryChargingFragment extends Fragment {
                                 });
                                 break;
                             case 1:
-                                cb.setChecked(mLoadShift.getMonths().months.contains(rowNo + 1));
+                                cb.setChecked(mLoadShift.getMonths().months.contains(rowNo));
                                 Integer finalMonthCol1No = rowNo;
                                 cb.setOnClickListener(v -> {
                                     if (cb.isChecked()) {
