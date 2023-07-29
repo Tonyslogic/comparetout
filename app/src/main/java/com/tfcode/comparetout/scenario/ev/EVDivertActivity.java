@@ -266,7 +266,6 @@ public class EVDivertActivity extends AppCompatActivity {
 
     private void addNewEVDivert() {
         EVDivert evCharge = new EVDivert();
-        evCharge.getDays().ints.remove(1);
         evCharge.setEvDivertIndex(mNextAddedEVDivertID);
         evCharge.setName("New evCharge " + mNextAddedEVDivertID);
         mNextAddedEVDivertID--;

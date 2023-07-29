@@ -495,7 +495,7 @@ public class WaterSettingsActivity extends AppCompatActivity {
                     }
                 }
             }, params, integerType));
-            mTableSettings.addView(createRow("Immersion rating (kWh)", String.valueOf(mHWSystem.getHwRate()), new AbstractTextWatcher() {
+            mTableSettings.addView(createRow("Immersion rating (kW)", String.valueOf(mHWSystem.getHwRate()), new AbstractTextWatcher() {
                 @Override
                 public void afterTextChanged(Editable s) {
                     if (!(s.toString().equals(String.valueOf(mHWSystem.getHwRate())))) {

@@ -623,7 +623,7 @@ public class ScenarioOverview extends Fragment {
                         tableRow.addView(pc);
                         pieMap = new HashMap<>();
                         pieMap.put("Self supplied", mSimKPIs.totalLoad - mSimKPIs.bought);
-                        pieMap.put("Sold", mSimKPIs.bought);
+                        pieMap.put("Bought", mSimKPIs.bought);
                         PieChart pc2 = getPieChart("", pieMap, true);
                         tableRow.addView(pc2);
                     }
@@ -640,27 +640,34 @@ public class ScenarioOverview extends Fragment {
                     mTableLayout.addView(tableRow);
 
                     tableRow = new TableRow(getActivity());
-                    Map<String, Double> pieMap = new HashMap<>();
-                    pieMap.put("\uD83C\uDFE0", mSimKPIs.house);
-                    pieMap.put("\uD83D\uDCA6", mSimKPIs.h20);
-                    pieMap.put("\uD83D\uDE97", mSimKPIs.ev);
-                    PieChart pc = getPieChart("Load", pieMap, false);
-                    tableRow.addView(pc);
-                    if (mSimKPIs.generated > 0) {
-                        pieMap = new HashMap<>();
-                        pieMap.put("\uD83D\uDE97", mSimKPIs.evDiv);
-                        pieMap.put("\uD83D\uDCA6", mSimKPIs.h2oDiv);
-                        pieMap.put("$$", mSimKPIs.sold);
-                        pieMap.put("\uD83C\uDFE0", mSimKPIs.pvToLoad);
-                        pieMap.put("\uD83D\uDD0B", mSimKPIs.pvToCharge);
-                        PieChart pc2 = getPieChart("PV", pieMap, false);
-                        tableRow.addView(pc2);
+                    if (mScenario.isHasPanels() && !mHasPanelData) {
+                        MaterialTextView noSun = new MaterialTextView(getActivity());
+                        noSun.setText(R.string.no_panel_data);
+                        noSun.setPadding(0,20,0,20);
+                        tableRow.addView(noSun);
                     }
                     else {
-                        MaterialTextView noGen = new MaterialTextView(getActivity());
-                        noGen.setText("");
-                        noGen.setPadding(0,20,0,20);
-                        tableRow.addView(noGen);
+                        Map<String, Double> pieMap = new HashMap<>();
+                        pieMap.put("\uD83C\uDFE0", mSimKPIs.house);
+                        pieMap.put("\uD83D\uDCA6", mSimKPIs.h20);
+                        pieMap.put("\uD83D\uDE97", mSimKPIs.ev);
+                        PieChart pc = getPieChart("Load", pieMap, false);
+                        tableRow.addView(pc);
+                        if (mSimKPIs.generated > 0) {
+                            pieMap = new HashMap<>();
+                            pieMap.put("\uD83D\uDE97", mSimKPIs.evDiv);
+                            pieMap.put("\uD83D\uDCA6", mSimKPIs.h2oDiv);
+                            pieMap.put("$$", mSimKPIs.sold);
+                            pieMap.put("\uD83C\uDFE0", mSimKPIs.pvToLoad);
+                            pieMap.put("\uD83D\uDD0B", mSimKPIs.pvToCharge);
+                            PieChart pc2 = getPieChart("PV", pieMap, false);
+                            tableRow.addView(pc2);
+                        } else {
+                            MaterialTextView noGen = new MaterialTextView(getActivity());
+                            noGen.setText("");
+                            noGen.setPadding(0, 20, 0, 20);
+                            tableRow.addView(noGen);
+                        }
                     }
                     mTableLayout.addView(tableRow);
 

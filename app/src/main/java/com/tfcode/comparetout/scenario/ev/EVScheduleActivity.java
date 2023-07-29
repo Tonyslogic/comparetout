@@ -266,7 +266,6 @@ public class EVScheduleActivity extends AppCompatActivity {
 
     private void addNewEVCharge() {
         EVCharge evCharge = new EVCharge();
-        evCharge.getDays().ints.remove(1);
         evCharge.setEvChargeIndex(mNextAddedEVChargeID);
         evCharge.setName("New evCharge " + mNextAddedEVChargeID);
         mNextAddedEVChargeID--;

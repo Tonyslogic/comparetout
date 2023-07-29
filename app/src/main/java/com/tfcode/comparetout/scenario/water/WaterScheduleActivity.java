@@ -266,7 +266,6 @@ public class WaterScheduleActivity extends AppCompatActivity {
 
     private void addNewHWSchedule() {
         HWSchedule hwSchedule = new HWSchedule();
-        hwSchedule.getDays().ints.remove(1);
         hwSchedule.setHwScheduleIndex(mNextAddedScheduleID);
         hwSchedule.setName("New hwSchedule " + mNextAddedScheduleID);
         mNextAddedScheduleID--;

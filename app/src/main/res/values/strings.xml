@@ -86,8 +86,8 @@
     <string name="Del">Del</string>
     <string name="To">To</string>
     <string name="From">From</string>
-    <string name="GridExportMax">Grid export max (kWh)</string>
-    <string name="GridImportMax">Grid import max (kWh)</string>
+    <string name="GridExportMax">Grid export max (kW)</string>
+    <string name="GridImportMax">Grid import max (kW)</string>
     <string name="HourlyBaseLoad">Hourly base load (kWh)</string>
     <string name="AnnualUsage">Annual usage (kWh)</string>
     <string name="DistributionSource">Distribution source</string>
@@ -200,4 +200,5 @@
     <string name="panel_data_downloading">PVGIS is being queried for data that matches the location.</string>
     <string name="panel_data_location_change">The location has changed. A DB update is needed to confirm the change.</string>
     <string name="panel_data_all_good">There is data in the DB for this panel string. You may change the location or return to the panels. A bar chart will appear there shortly.</string>
+    <string name="no_panel_data">No simulation, add panel data</string>
 </resources>

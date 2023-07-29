@@ -266,7 +266,6 @@ public class BatteryChargingActivity extends AppCompatActivity {
 
     private void addNewLoadShift() {
         LoadShift loadShift = new LoadShift();
-        loadShift.getDays().ints.remove(1);
         loadShift.setLoadShiftIndex(mNextAddedLoadShiftID);
         loadShift.setName("New loadShift " + mNextAddedLoadShiftID);
         mNextAddedLoadShiftID--;
