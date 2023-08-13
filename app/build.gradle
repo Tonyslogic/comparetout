@@ -73,6 +73,10 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-livedata:$rootProject.lifecycleVersion"
     implementation "androidx.lifecycle:lifecycle-common-java8:$rootProject.lifecycleVersion"
 
+    // Disclaimers
+    implementation "androidx.datastore:datastore-preferences-core:1.0.0"
+    implementation "androidx.datastore:datastore-preferences-rxjava2:1.0.0"
+
 //    // UI
 //    implementation "androidx.constraintlayout:constraintlayout:$rootProject.constraintLayoutVersion"
 //    implementation "com.google.android.material:material:$rootProject.materialVersion"

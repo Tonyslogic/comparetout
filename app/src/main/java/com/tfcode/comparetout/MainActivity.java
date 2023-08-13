@@ -16,6 +16,8 @@
 
 package com.tfcode.comparetout;
 
+import static com.tfcode.comparetout.TOUTCApplication.FIRST_USE;
+
 import android.annotation.SuppressLint;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -44,12 +46,15 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
+import androidx.datastore.preferences.core.Preferences;
+import androidx.datastore.preferences.core.PreferencesKeys;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 import androidx.webkit.WebViewAssetLoader;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
@@ -78,6 +83,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
+import io.reactivex.Single;
+
 public class MainActivity extends AppCompatActivity {
 
     public static final String CHANNEL_ID = "TOUTC-PROGRESS";
@@ -96,6 +103,44 @@ public class MainActivity extends AppCompatActivity {
     private WebViewAssetLoader mAssetLoader;
     private View mPopupView;
     private PopupWindow mHelpWindow;
+
+    private boolean mFirstLaunch = true;
+
+    private void loadSettingsFromDataStore() {
+        new Thread(() -> {
+            Preferences.Key<String> FirstUse = PreferencesKeys.stringKey(FIRST_USE);
+            TOUTCApplication application = ((TOUTCApplication)getApplication());
+            Single<String> value = application.getDataStore()
+                    .data().firstOrError()
+                    .map(prefs -> prefs.get(FirstUse)).onErrorReturnItem("True");
+            String ret =  value.blockingGet();
+            System.out.println("Got a value from the dataStore:" + ret);
+            if (ret.equals("False")) {
+//                mMainHandler.post(() -> showDisclaimers(application));
+                mFirstLaunch = false;
+            }
+        }).start();
+    }
+
+    private void showDisclaimers(TOUTCApplication application) {
+        new MaterialAlertDialogBuilder(this)
+                .setMessage("Solar data is variable. This app uses historical solar data in estimations.\n\n" +
+                        "Solar panels may be shaded. This app makes no attempt to consider shading.\n\n" +
+                        "Price plan accuracy determines calculation accuracy. Check price plan details.\n\n" +
+                        "Price plans do not include Public Services Obligations. Estimates will not include this.\n\n" +
+                        "Price plans do not include rate usage limitations or complex contracts. Estimates will be " +
+                        "wrong where limitations are exceeded or conditions triggered.\n\n" +
+                        "All estimates are based on user input. If the input is bad, the output will be too.\n\n" +
+                        "This app provides the ability to explore possibilities, estimations are not advice (financial or otherwise). " +
+                        "The app is provided as-is, no representation or warranty of any kind, express or implied, regarding " +
+                        "the accuracy, adequacy, validity, reliability, availability, or completeness of any information is made.\n\n" +
+                        "Enjoy!" )
+                .setPositiveButton("Ok", (dialog, which) -> {
+                        boolean x = application.putStringValueIntoDataStore(FIRST_USE, "False");
+                        boolean y = application.putStringValueIntoDataStore("Test", "True");
+                        if (x != y && !y) System.out.println("Something is wrong with the properties");})
+                .show();
+    }
 
     final ActivityResultLauncher<String> mLoadPricePlansFromFile = registerForActivityResult(new ActivityResultContracts.GetContent(),
             new ActivityResultCallback<Uri>() {
@@ -183,6 +228,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         createNotificationChannel();
 
+        loadSettingsFromDataStore();
+
         mAssetLoader = new WebViewAssetLoader.Builder()
                     .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
                     .addPathHandler("/res/", new WebViewAssetLoader.ResourcesPathHandler(this))
@@ -262,6 +309,7 @@ public class MainActivity extends AppCompatActivity {
                         break;
                 }
                 setMenuLongClick();
+                if (mFirstLaunch) showDisclaimers((TOUTCApplication)getApplication() );
             }
         });
     }
