@@ -265,6 +265,7 @@ public class ScenarioDetails extends Fragment {
             }
             DatePickerDialog dpd = new DatePickerDialog(getActivity(), pickerTheme, date, 2001 ,localDate.getMonth().getValue() - 1, localDate.getDayOfMonth());
             View yearView = dpd.getDatePicker().findViewById(getResources().getIdentifier("year", "id", "android"));
+            dpd.getDatePicker().setCalendarViewShown(false);
             if (!(null == yearView)) yearView.setVisibility(View.GONE);
             dpd.show();
         });
