@@ -138,6 +138,7 @@ public class MainActivity extends AppCompatActivity {
                 .setPositiveButton("Ok", (dialog, which) -> {
                         boolean x = application.putStringValueIntoDataStore(FIRST_USE, "False");
                         boolean y = application.putStringValueIntoDataStore("Test", "True");
+                        mFirstLaunch = false;
                         if (x != y && !y) System.out.println("Something is wrong with the properties");})
                 .show();
     }
@@ -626,7 +627,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void showHelp(String url) {
         mHelpWindow.setHeight((int) (getWindow().getDecorView().getHeight()*0.6));
-        mHelpWindow.setWidth((int) (getWindow().getDecorView().getWidth()));
+        mHelpWindow.setWidth(getWindow().getDecorView().getWidth());
         mHelpWindow.showAtLocation(viewPager.getRootView(), Gravity.CENTER, 0, 0);
         WebView webView = mPopupView.findViewById(R.id.helpWebView);
 
