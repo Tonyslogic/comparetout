@@ -13,3 +13,4 @@
 .externalNativeBuild
 .cxx
 local.properties
+app/src/test/java/com/tfcode/comparetout/scenario/loadprofile/alphaess/retrofit/Secrets.java
