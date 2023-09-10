@@ -19,8 +19,12 @@ package com.tfcode.comparetout.model;
 import android.app.Application;
 
 import androidx.lifecycle.LiveData;
+import androidx.room.Insert;
 
 import com.tfcode.comparetout.model.costings.Costings;
+import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawEnergy;
+import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawPower;
+import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.Battery;
@@ -75,6 +79,8 @@ public class ToutcRepository {
     private final CostingDAO costingDAO;
     private final LiveData<List<Costings>> allCostings;
 
+    private final AlphaEssDAO alphaEssDAO;
+
     // Note that in order to unit test the WordRepository, you have to remove the Application
     // dependency. This adds complexity and much more code, and this sample is not about testing.
     // See the BasicSample in the android-architecture-components repository at
@@ -98,6 +104,8 @@ public class ToutcRepository {
 
         costingDAO = db.costingDAO();
         allCostings = costingDAO.loadCostings();
+
+        alphaEssDAO = db.alphaEssDAO();
     }
 
     // Room executes all queries on a separate thread.
@@ -598,5 +606,18 @@ public class ToutcRepository {
 
     public List<String> getAllComparisonsNow() {
         return costingDAO.getAllComparisonsNow();
+    }
+
+    // Methods for AlphaESS
+    public void addRawEnergy(AlphaESSRawEnergy energy) {
+        alphaEssDAO.addRawEnergy(energy);
+    }
+
+    public void addRawPower(AlphaESSRawPower power){
+        alphaEssDAO.addRawPower(power);
+    }
+
+    public void addTransformedData(AlphaESSTransformedData data){
+        alphaEssDAO.addTransformedData(data);
     }
 }

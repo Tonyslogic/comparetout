@@ -25,6 +25,9 @@ import androidx.room.RoomDatabase;
 import androidx.room.TypeConverters;
 
 import com.tfcode.comparetout.model.costings.Costings;
+import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawEnergy;
+import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawPower;
+import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.Battery;
@@ -69,9 +72,13 @@ import java.util.concurrent.Executors;
         HWDivert.class, Scenario2HWDivert.class,
         EVDivert.class, Scenario2EVDivert.class,
         LoadProfileData.class, ScenarioSimulationData.class,
-        Costings.class, PanelData.class
-        }, version = 2,
-        autoMigrations = {@AutoMigration(from = 1, to = 2)})
+        Costings.class, PanelData.class,
+        AlphaESSRawPower.class, AlphaESSRawEnergy.class,
+        AlphaESSTransformedData.class
+        }, version = 3,
+        autoMigrations = {
+            @AutoMigration(from = 1, to = 2),
+            @AutoMigration(from = 2, to = 3)})
 
 @TypeConverters({Converters.class})
 
@@ -80,6 +87,7 @@ public abstract class ToutcDB extends RoomDatabase {
     public abstract PricePlanDAO pricePlanDAO();
     public abstract ScenarioDAO scenarioDAO();
     public abstract CostingDAO costingDAO();
+    public abstract AlphaEssDAO alphaEssDAO();
 
     private static volatile ToutcDB INSTANCE;
     private static final int NUMBER_OF_THREADS = 8;
