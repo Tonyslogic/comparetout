@@ -250,6 +250,7 @@ public class HDFActivity extends AppCompatActivity {
         menu.findItem(R.id.load).setVisible(false);
         menu.findItem(R.id.download).setVisible(false);
         menu.findItem(R.id.export).setVisible(false);
+        menu.findItem(R.id.fetch).setVisible(false);
         return true;
     }
 
@@ -417,7 +418,7 @@ public class HDFActivity extends AppCompatActivity {
             final MaterialDatePicker<Pair<Long, Long>> materialDatePicker = materialDateBuilder.build();
             selectDatesButton.setOnClickListener(v -> materialDatePicker.show(getSupportFragmentManager(), "MATERIAL_DATE_PICKER"));
 
-            materialDatePicker.addOnPositiveButtonClickListener((MaterialPickerOnPositiveButtonClickListener<Pair<Long, Long>>) selection -> {
+            materialDatePicker.addOnPositiveButtonClickListener(selection -> {
                 mHDFViewModel.setSelectedStart(LocalDateTime.ofInstant(Instant.ofEpochMilli(selection.first), ZoneId.ofOffset("UTC", ZoneOffset.UTC)));
                 mHDFViewModel.setSelectedEnd(LocalDateTime.ofInstant(Instant.ofEpochMilli(selection.second), ZoneId.ofOffset("UTC", ZoneOffset.UTC)));
 
@@ -614,7 +615,7 @@ public class HDFActivity extends AppCompatActivity {
 
     private void showHelp(String url) {
         mHelpWindow.setHeight((int) (getWindow().getDecorView().getHeight()*0.6));
-        mHelpWindow.setWidth((int) (getWindow().getDecorView().getWidth()));
+        mHelpWindow.setWidth(getWindow().getDecorView().getWidth());
         mHelpWindow.showAtLocation(getWindow().getDecorView().getRootView(), Gravity.CENTER, 0, 0);
         WebView webView = mPopupView.findViewById(R.id.helpWebView);
 

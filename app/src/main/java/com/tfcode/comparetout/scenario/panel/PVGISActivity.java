@@ -318,6 +318,7 @@ public class PVGISActivity extends AppCompatActivity {
         menu.findItem(R.id.load).setVisible(false);
         menu.findItem(R.id.download).setVisible(false);
         menu.findItem(R.id.export).setVisible(false);
+        menu.findItem(R.id.fetch).setVisible(false);
         return true;
     }
 
@@ -575,7 +576,7 @@ public class PVGISActivity extends AppCompatActivity {
 
     private void showHelp() {
         mHelpWindow.setHeight((int) (getWindow().getDecorView().getHeight()*0.6));
-        mHelpWindow.setWidth((int) (getWindow().getDecorView().getWidth()));
+        mHelpWindow.setWidth(getWindow().getDecorView().getWidth());
         mHelpWindow.showAtLocation(getWindow().getDecorView().getRootView(), Gravity.CENTER, 0, 0);
         WebView webView = mPopupView.findViewById(R.id.helpWebView);
 

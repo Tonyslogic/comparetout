@@ -59,6 +59,7 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.tfcode.comparetout.importers.alphaess.ImportAlphaActivity;
 import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.json.priceplan.DayRateJson;
 import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
@@ -292,11 +293,20 @@ public class MainActivity extends AppCompatActivity {
                 super.onPageScrolled(position, positionOffset, positionOffsetPixels);
                 switch (position) {
                     case COSTS_FRAGMENT:
+                        showFAB();
+                        if (!(null == mMainMenu)) {
+                            mMainMenu.findItem(R.id.load).setVisible(true);
+                            mMainMenu.findItem(R.id.download).setVisible(true);
+                            mMainMenu.findItem(R.id.fetch).setVisible(false);
+                            mMainMenu.findItem(R.id.estimate).setVisible(false);
+                        }
+                        break;
                     case USAGE_FRAGMENT:
                         showFAB();
                         if (!(null == mMainMenu)) {
                             mMainMenu.findItem(R.id.load).setVisible(true);
                             mMainMenu.findItem(R.id.download).setVisible(true);
+                            mMainMenu.findItem(R.id.fetch).setVisible(true);
                             mMainMenu.findItem(R.id.estimate).setVisible(false);
                         }
                         break;
@@ -305,6 +315,7 @@ public class MainActivity extends AppCompatActivity {
                         if (!(null == mMainMenu)) {
                             mMainMenu.findItem(R.id.load).setVisible(false);
                             mMainMenu.findItem(R.id.download).setVisible(false);
+                            mMainMenu.findItem(R.id.fetch).setVisible(false);
                             mMainMenu.findItem(R.id.estimate).setVisible(true);
                         }
                         break;
@@ -340,9 +351,11 @@ public class MainActivity extends AppCompatActivity {
         mMainMenu.findItem(R.id.export).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         mMainMenu.findItem(R.id.help).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         mMainMenu.findItem(R.id.estimate).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        mMainMenu.findItem(R.id.fetch).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         if (viewPager.getCurrentItem() == COMPARE_FRAGMENT) {
             mMainMenu.findItem(R.id.load).setVisible(false);
             mMainMenu.findItem(R.id.download).setVisible(false);
+            mMainMenu.findItem(R.id.fetch).setVisible(false);
             mMainMenu.findItem(R.id.estimate).setVisible(true);
         }
         setMenuLongClick();
@@ -536,6 +549,21 @@ public class MainActivity extends AppCompatActivity {
             intent.putExtra("LoadProfileID", 0L);
             intent.putExtra("ScenarioID", 0L);
             startActivity(intent);
+        }
+
+        if (itemID == R.id.fetch_alpha) {
+            Intent intent = new Intent(this, ImportAlphaActivity.class);
+            startActivity(intent);
+        }
+
+        if (itemID == R.id.fetch_home_assistant) {
+            Snackbar.make(viewPager.getRootView(), "Home assistant integration is on the backlog", Snackbar.LENGTH_LONG)
+                    .setAction("Action", null).show();
+        }
+
+        if (itemID == R.id.fetch_solis) {
+            Snackbar.make(viewPager.getRootView(), "Solis Cloud integration is on the backlog", Snackbar.LENGTH_LONG)
+                    .setAction("Action", null).show();
         }
 
         return(super.onOptionsItemSelected(item));
