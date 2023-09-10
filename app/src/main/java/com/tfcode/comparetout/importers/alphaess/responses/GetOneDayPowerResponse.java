@@ -14,7 +14,7 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.scenario.loadprofile.alphaess.retrofit.responses;
+package com.tfcode.comparetout.importers.alphaess.responses;
 
 import com.google.gson.annotations.SerializedName;
 import java.util.List;

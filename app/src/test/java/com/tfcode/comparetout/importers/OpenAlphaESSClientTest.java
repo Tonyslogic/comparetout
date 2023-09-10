@@ -14,12 +14,14 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.scenario.loadprofile.alphaess.retrofit;
+package com.tfcode.comparetout.importers;
 
 import static org.junit.Assert.*;
 
-import com.tfcode.comparetout.scenario.loadprofile.alphaess.retrofit.responses.GetOneDayEnergyResponse;
-import com.tfcode.comparetout.scenario.loadprofile.alphaess.retrofit.responses.GetOneDayPowerResponse;
+import com.tfcode.comparetout.importers.alphaess.AlphaESSException;
+import com.tfcode.comparetout.importers.alphaess.OpenAlphaESSClient;
+import com.tfcode.comparetout.importers.alphaess.responses.GetOneDayEnergyResponse;
+import com.tfcode.comparetout.importers.alphaess.responses.GetOneDayPowerResponse;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -31,9 +33,9 @@ public class OpenAlphaESSClientTest {
     @Before
     public void setup() {
         mClient = new OpenAlphaESSClient(
-                Secrets.SERIAL,
-                Secrets.APPID,
-                Secrets.SECRET);
+                TestSecrets.SERIAL,
+                TestSecrets.APPID,
+                TestSecrets.SECRET);
     }
 
     @Test
@@ -59,8 +61,8 @@ public class OpenAlphaESSClientTest {
         String queryDate = "2023-08-24";
         mClient = new OpenAlphaESSClient(
                 "AL2342125067171",
-                Secrets.APPID,
-                Secrets.SECRET);
+                TestSecrets.APPID,
+                TestSecrets.SECRET);
         try {
             GetOneDayEnergyResponse energy = mClient.getOneDayEnergyBySn(queryDate);
         } catch (AlphaESSException ae) {

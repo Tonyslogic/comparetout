@@ -14,7 +14,7 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.scenario.loadprofile.alphaess.retrofit;
+package com.tfcode.comparetout.importers.alphaess;
 
 import java.util.Map;
 

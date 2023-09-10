@@ -14,14 +14,14 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.scenario.loadprofile.alphaess.retrofit;
+package com.tfcode.comparetout.importers.alphaess;
 
 import androidx.annotation.NonNull;
 
 import com.google.gson.Gson;
-import com.tfcode.comparetout.scenario.loadprofile.alphaess.retrofit.responses.ErrorResponse;
-import com.tfcode.comparetout.scenario.loadprofile.alphaess.retrofit.responses.GetOneDayEnergyResponse;
-import com.tfcode.comparetout.scenario.loadprofile.alphaess.retrofit.responses.GetOneDayPowerResponse;
+import com.tfcode.comparetout.importers.alphaess.responses.ErrorResponse;
+import com.tfcode.comparetout.importers.alphaess.responses.GetOneDayEnergyResponse;
+import com.tfcode.comparetout.importers.alphaess.responses.GetOneDayPowerResponse;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
