@@ -1,0 +1,16 @@
+{
+  "code": 200,
+  "msg": "Success",
+  "expMsg": null,
+  "data": {
+    "sysSn": "AL***************",
+    "theDate": "2022-09-11",
+    "eCharge": 3.60,
+    "epv": 3.30,
+    "eOutput": 0.02,
+    "eInput": 17.69,
+    "eGridCharge": 3.70,
+    "eDischarge": 3.50,
+    "eChargingPile": 0.00
+  }
+}

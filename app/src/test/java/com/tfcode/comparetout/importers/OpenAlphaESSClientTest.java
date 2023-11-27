@@ -33,9 +33,9 @@ public class OpenAlphaESSClientTest {
     @Before
     public void setup() {
         mClient = new OpenAlphaESSClient(
-                TestSecrets.SERIAL,
                 TestSecrets.APPID,
                 TestSecrets.SECRET);
+        mClient.setSerial(TestSecrets.SERIAL);
     }
 
     @Test
@@ -59,10 +59,7 @@ public class OpenAlphaESSClientTest {
     @Test
     public void badSerial() {
         String queryDate = "2023-08-24";
-        mClient = new OpenAlphaESSClient(
-                "AL2342125067171",
-                TestSecrets.APPID,
-                TestSecrets.SECRET);
+        mClient.setSerial("AL2342125067171");
         try {
             GetOneDayEnergyResponse energy = mClient.getOneDayEnergyBySn(queryDate);
         } catch (AlphaESSException ae) {

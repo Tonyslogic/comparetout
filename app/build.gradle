@@ -7,7 +7,7 @@ android {
     compileSdk 33
 
     defaultConfig {
-        applicationId "com.tfcode.comparetout"
+        applicationId "com.tfcode.comparetout.test"
         minSdk 28
         targetSdk 33
         versionCode 22
@@ -88,6 +88,7 @@ dependencies {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
     androidTestImplementation "androidx.test.ext:junit:$rootProject.androidxJunitVersion"
+    androidTestImplementation "androidx.arch.core:core-testing:2.1.0"
 //    androidTestImplementation "com.google.truth.truth:1.0.1"
 //    testImplementation "androidx.test.monitor"
 

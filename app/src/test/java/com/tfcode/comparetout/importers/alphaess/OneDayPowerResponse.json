@@ -1,0 +1,2617 @@
+{
+	"code": 200,
+	"msg": "OK",
+	"expMsg": "OK",
+	"data": [
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 23:57:12",
+			"ppv": 0,
+			"load": 418.0,
+			"cbat": 38.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 23:51:12",
+			"ppv": 0,
+			"load": 2413.0,
+			"cbat": 39.2,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 23:46:12",
+			"ppv": 0,
+			"load": 2445.0,
+			"cbat": 41.6,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 23:41:11",
+			"ppv": 0,
+			"load": 2356.0,
+			"cbat": 43.6,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 23:35:50",
+			"ppv": 0,
+			"load": 336.0,
+			"cbat": 44.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 23:30:16",
+			"ppv": 0,
+			"load": 369.0,
+			"cbat": 44.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 23:24:11",
+			"ppv": 0,
+			"load": 461.0,
+			"cbat": 44.8,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 23:19:05",
+			"ppv": 0,
+			"load": 421.0,
+			"cbat": 45.2,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 23:14:05",
+			"ppv": 0,
+			"load": 367.0,
+			"cbat": 46.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 23:08:20",
+			"ppv": 0,
+			"load": 311.0,
+			"cbat": 46.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 23:03:15",
+			"ppv": 0,
+			"load": 369.0,
+			"cbat": 46.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 22:58:15",
+			"ppv": 0,
+			"load": 444.0,
+			"cbat": 46.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 22:52:29",
+			"ppv": 0,
+			"load": 454.0,
+			"cbat": 46.8,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 22:47:25",
+			"ppv": 0,
+			"load": 503.0,
+			"cbat": 47.2,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 22:42:25",
+			"ppv": 0,
+			"load": 421.0,
+			"cbat": 48.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 22:37:24",
+			"ppv": 0,
+			"load": 429.0,
+			"cbat": 48.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 22:31:39",
+			"ppv": 0,
+			"load": 433.0,
+			"cbat": 48.8,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 22:25:52",
+			"ppv": 0,
+			"load": 510.0,
+			"cbat": 49.2,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 22:20:06",
+			"ppv": 0,
+			"load": 490.0,
+			"cbat": 49.2,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 22:15:05",
+			"ppv": 0,
+			"load": 2443.0,
+			"cbat": 50.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 22:09:56",
+			"ppv": 0,
+			"load": 2366.0,
+			"cbat": 51.2,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 22:04:55",
+			"ppv": 0,
+			"load": 2725.0,
+			"cbat": 52.0,
+			"feedIn": 0,
+			"gridCharge": 1889.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 21:58:38",
+			"ppv": 0,
+			"load": 449.0,
+			"cbat": 52.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 21:53:37",
+			"ppv": 0,
+			"load": 436.0,
+			"cbat": 52.8,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 21:48:11",
+			"ppv": 0,
+			"load": 411.0,
+			"cbat": 52.8,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 21:43:11",
+			"ppv": 0,
+			"load": 364.0,
+			"cbat": 53.2,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 21:37:14",
+			"ppv": 0,
+			"load": 2632.0,
+			"cbat": 53.6,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 21:32:13",
+			"ppv": 0,
+			"load": 562.0,
+			"cbat": 55.2,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 21:27:13",
+			"ppv": 0,
+			"load": 2732.0,
+			"cbat": 56.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 21:21:45",
+			"ppv": 0,
+			"load": 663.0,
+			"cbat": 58.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 21:15:50",
+			"ppv": 0,
+			"load": 2621.0,
+			"cbat": 60.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 21:10:49",
+			"ppv": 0,
+			"load": 446.0,
+			"cbat": 60.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 21:05:49",
+			"ppv": 0,
+			"load": 2664.0,
+			"cbat": 62.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 21:00:00",
+			"ppv": 0,
+			"load": 2659.0,
+			"cbat": 64.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 20:54:41",
+			"ppv": 0,
+			"load": 2717.0,
+			"cbat": 66.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 20:49:18",
+			"ppv": 0,
+			"load": 3411.0,
+			"cbat": 68.0,
+			"feedIn": 0,
+			"gridCharge": 155.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 20:43:49",
+			"ppv": 0,
+			"load": 2672.0,
+			"cbat": 70.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 20:38:49",
+			"ppv": 0,
+			"load": 542.0,
+			"cbat": 72.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 20:33:03",
+			"ppv": 0,
+			"load": 449.0,
+			"cbat": 72.8,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 20:27:27",
+			"ppv": 0,
+			"load": 521.0,
+			"cbat": 73.2,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 20:21:41",
+			"ppv": 0,
+			"load": 539.0,
+			"cbat": 73.6,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 20:16:02",
+			"ppv": 0,
+			"load": 1109.0,
+			"cbat": 74.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 20:10:13",
+			"ppv": 0,
+			"load": 429.0,
+			"cbat": 74.8,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 20:04:38",
+			"ppv": 20.0,
+			"load": 639.0,
+			"cbat": 75.2,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 19:59:09",
+			"ppv": 42.0,
+			"load": 450.0,
+			"cbat": 75.6,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 19:54:08",
+			"ppv": 64.0,
+			"load": 447.0,
+			"cbat": 76.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 19:48:50",
+			"ppv": 59.0,
+			"load": 607.0,
+			"cbat": 76.4,
+			"feedIn": 0,
+			"gridCharge": 167.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 19:43:42",
+			"ppv": 86.0,
+			"load": 428.0,
+			"cbat": 76.8,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 19:37:56",
+			"ppv": 109.0,
+			"load": 1066.0,
+			"cbat": 77.2,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 19:32:55",
+			"ppv": 109.0,
+			"load": 513.0,
+			"cbat": 77.6,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 19:27:55",
+			"ppv": 224.0,
+			"load": 518.0,
+			"cbat": 78.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 19:22:01",
+			"ppv": 107.0,
+			"load": 440.0,
+			"cbat": 78.8,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 19:17:01",
+			"ppv": 127.0,
+			"load": 590.0,
+			"cbat": 79.2,
+			"feedIn": 1701.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 19:10:50",
+			"ppv": 131.0,
+			"load": 2198.0,
+			"cbat": 81.6,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 19:05:49",
+			"ppv": 104.0,
+			"load": 2676.0,
+			"cbat": 83.6,
+			"feedIn": 0,
+			"gridCharge": 1222.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 18:59:41",
+			"ppv": 176.0,
+			"load": 1885.0,
+			"cbat": 84.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 18:53:39",
+			"ppv": 220.0,
+			"load": 438.0,
+			"cbat": 85.6,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 18:48:27",
+			"ppv": 412.0,
+			"load": 406.0,
+			"cbat": 85.6,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 18:43:27",
+			"ppv": 273.0,
+			"load": 408.0,
+			"cbat": 85.6,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 18:38:26",
+			"ppv": 366.0,
+			"load": 781.0,
+			"cbat": 86.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 18:33:23",
+			"ppv": 201.0,
+			"load": 731.0,
+			"cbat": 86.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 18:28:05",
+			"ppv": 173.0,
+			"load": 728.0,
+			"cbat": 86.8,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 18:22:04",
+			"ppv": 288.0,
+			"load": 574.0,
+			"cbat": 87.2,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 18:16:43",
+			"ppv": 412.0,
+			"load": 499.0,
+			"cbat": 88.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 18:10:30",
+			"ppv": 429.0,
+			"load": 532.0,
+			"cbat": 88.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 18:03:06",
+			"ppv": 529.0,
+			"load": 669.0,
+			"cbat": 88.8,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 17:58:06",
+			"ppv": 525.0,
+			"load": 2887.0,
+			"cbat": 90.0,
+			"feedIn": 0,
+			"gridCharge": 587.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 17:53:06",
+			"ppv": 516.0,
+			"load": 5022.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 587.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 17:48:04",
+			"ppv": 578.0,
+			"load": 2344.0,
+			"cbat": 94.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 17:43:04",
+			"ppv": 721.0,
+			"load": 2221.0,
+			"cbat": 96.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 17:38:04",
+			"ppv": 508.0,
+			"load": 3973.0,
+			"cbat": 97.6,
+			"feedIn": 458.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 17:32:07",
+			"ppv": 458.0,
+			"load": 3277.0,
+			"cbat": 99.2,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 17:27:07",
+			"ppv": 716.0,
+			"load": 999.0,
+			"cbat": 100.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 17:21:21",
+			"ppv": 501.0,
+			"load": 3248.0,
+			"cbat": 100.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 17:15:11",
+			"ppv": 969.0,
+			"load": 3673.0,
+			"cbat": 100.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 17:09:17",
+			"ppv": 1042.0,
+			"load": 904.0,
+			"cbat": 100.0,
+			"feedIn": 102.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 17:04:17",
+			"ppv": 1268.0,
+			"load": 1217.0,
+			"cbat": 100.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 16:59:09",
+			"ppv": 850.0,
+			"load": 849.0,
+			"cbat": 100.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 16:53:53",
+			"ppv": 1269.0,
+			"load": 1087.0,
+			"cbat": 100.0,
+			"feedIn": 144.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 16:47:20",
+			"ppv": 1341.0,
+			"load": 744.0,
+			"cbat": 100.0,
+			"feedIn": 579.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 16:41:34",
+			"ppv": 1314.0,
+			"load": 747.0,
+			"cbat": 100.0,
+			"feedIn": 542.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 16:36:34",
+			"ppv": 1187.0,
+			"load": 752.0,
+			"cbat": 100.0,
+			"feedIn": 433.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 16:30:59",
+			"ppv": 1482.0,
+			"load": 1153.0,
+			"cbat": 100.0,
+			"feedIn": 309.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 16:25:43",
+			"ppv": 1523.0,
+			"load": 344.0,
+			"cbat": 100.0,
+			"feedIn": 1170.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 16:19:52",
+			"ppv": 1730.0,
+			"load": 981.0,
+			"cbat": 100.0,
+			"feedIn": 767.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 16:14:51",
+			"ppv": 1738.0,
+			"load": 334.0,
+			"cbat": 100.0,
+			"feedIn": 1421.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 16:09:46",
+			"ppv": 2078.0,
+			"load": 469.0,
+			"cbat": 100.0,
+			"feedIn": 1562.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 16:04:45",
+			"ppv": 985.0,
+			"load": 445.0,
+			"cbat": 100.0,
+			"feedIn": 505.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 15:58:46",
+			"ppv": 2307.0,
+			"load": 411.0,
+			"cbat": 100.0,
+			"feedIn": 1792.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 15:53:45",
+			"ppv": 1403.0,
+			"load": 355.0,
+			"cbat": 100.0,
+			"feedIn": 1029.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 15:47:03",
+			"ppv": 2511.0,
+			"load": 316.0,
+			"cbat": 100.0,
+			"feedIn": 1531.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 15:42:03",
+			"ppv": 1115.0,
+			"load": 491.0,
+			"cbat": 100.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 15:36:52",
+			"ppv": 3132.0,
+			"load": 483.0,
+			"cbat": 100.0,
+			"feedIn": 1942.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 15:30:25",
+			"ppv": 1261.0,
+			"load": 485.0,
+			"cbat": 100.0,
+			"feedIn": 150.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 15:25:24",
+			"ppv": 987.0,
+			"load": 417.0,
+			"cbat": 100.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 15:19:08",
+			"ppv": 1061.0,
+			"load": 435.0,
+			"cbat": 100.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 15:14:08",
+			"ppv": 1030.0,
+			"load": 948.0,
+			"cbat": 100.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 15:09:08",
+			"ppv": 3142.0,
+			"load": 492.0,
+			"cbat": 100.0,
+			"feedIn": 1972.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 15:04:07",
+			"ppv": 2881.0,
+			"load": 447.0,
+			"cbat": 100.0,
+			"feedIn": 1811.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 14:57:47",
+			"ppv": 3192.0,
+			"load": 433.0,
+			"cbat": 100.0,
+			"feedIn": 2083.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 14:52:47",
+			"ppv": 3823.0,
+			"load": 458.0,
+			"cbat": 100.0,
+			"feedIn": 2739.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 14:47:47",
+			"ppv": 2256.0,
+			"load": 683.0,
+			"cbat": 100.0,
+			"feedIn": 904.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 14:41:55",
+			"ppv": 2870.0,
+			"load": 516.0,
+			"cbat": 100.0,
+			"feedIn": 1665.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 14:36:25",
+			"ppv": 2557.0,
+			"load": 0,
+			"cbat": 100.0,
+			"feedIn": 2119.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 14:30:35",
+			"ppv": 1861.0,
+			"load": 461.0,
+			"cbat": 100.0,
+			"feedIn": 752.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 14:25:34",
+			"ppv": 3270.0,
+			"load": 457.0,
+			"cbat": 100.0,
+			"feedIn": 2137.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 14:19:35",
+			"ppv": 3336.0,
+			"load": 367.0,
+			"cbat": 99.6,
+			"feedIn": 2303.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 14:14:34",
+			"ppv": 1945.0,
+			"load": 370.0,
+			"cbat": 99.2,
+			"feedIn": 934.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 14:09:02",
+			"ppv": 1014.0,
+			"load": 437.0,
+			"cbat": 98.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 14:04:02",
+			"ppv": 858.0,
+			"load": 482.0,
+			"cbat": 98.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 13:57:48",
+			"ppv": 2197.0,
+			"load": 570.0,
+			"cbat": 97.6,
+			"feedIn": 964.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 13:52:42",
+			"ppv": 1086.0,
+			"load": 480.0,
+			"cbat": 97.2,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 13:46:55",
+			"ppv": 2824.0,
+			"load": 390.0,
+			"cbat": 96.4,
+			"feedIn": 0,
+			"gridCharge": 246.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 13:41:18",
+			"ppv": 2567.0,
+			"load": 612.0,
+			"cbat": 94.8,
+			"feedIn": 0,
+			"gridCharge": 119.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 13:36:18",
+			"ppv": 1946.0,
+			"load": 609.0,
+			"cbat": 94.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 13:29:45",
+			"ppv": 1052.0,
+			"load": 2656.0,
+			"cbat": 94.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 13:24:44",
+			"ppv": 458.0,
+			"load": 575.0,
+			"cbat": 94.8,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 13:18:22",
+			"ppv": 221.0,
+			"load": 382.0,
+			"cbat": 95.2,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 13:13:14",
+			"ppv": 1379.0,
+			"load": 2544.0,
+			"cbat": 96.8,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 13:07:46",
+			"ppv": 4247.0,
+			"load": 2535.0,
+			"cbat": 96.8,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 13:02:12",
+			"ppv": 1358.0,
+			"load": 2596.0,
+			"cbat": 97.6,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 12:57:12",
+			"ppv": 3904.0,
+			"load": 2667.0,
+			"cbat": 97.2,
+			"feedIn": 505.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 12:50:48",
+			"ppv": 3956.0,
+			"load": 2627.0,
+			"cbat": 96.8,
+			"feedIn": 619.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 12:45:48",
+			"ppv": 4125.0,
+			"load": 2622.0,
+			"cbat": 96.0,
+			"feedIn": 183.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 12:40:44",
+			"ppv": 2740.0,
+			"load": 2600.0,
+			"cbat": 96.4,
+			"feedIn": 258.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 12:34:47",
+			"ppv": 1991.0,
+			"load": 2701.0,
+			"cbat": 96.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 12:29:47",
+			"ppv": 1034.0,
+			"load": 2672.0,
+			"cbat": 97.6,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 12:24:36",
+			"ppv": 1356.0,
+			"load": 3210.0,
+			"cbat": 98.8,
+			"feedIn": 273.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 12:18:29",
+			"ppv": 1903.0,
+			"load": 603.0,
+			"cbat": 99.6,
+			"feedIn": 657.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 12:12:34",
+			"ppv": 4409.0,
+			"load": 2706.0,
+			"cbat": 99.6,
+			"feedIn": 929.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 12:07:34",
+			"ppv": 1049.0,
+			"load": 2605.0,
+			"cbat": 100.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 12:01:35",
+			"ppv": 1995.0,
+			"load": 2710.0,
+			"cbat": 100.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 11:56:35",
+			"ppv": 4575.0,
+			"load": 562.0,
+			"cbat": 100.0,
+			"feedIn": 3264.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 11:50:14",
+			"ppv": 1213.0,
+			"load": 474.0,
+			"cbat": 100.0,
+			"feedIn": 113.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 11:45:13",
+			"ppv": 1500.0,
+			"load": 703.0,
+			"cbat": 100.0,
+			"feedIn": 181.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 11:40:10",
+			"ppv": 1067.0,
+			"load": 450.0,
+			"cbat": 99.6,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 11:33:34",
+			"ppv": 4151.0,
+			"load": 697.0,
+			"cbat": 99.2,
+			"feedIn": 2727.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 11:28:34",
+			"ppv": 4317.0,
+			"load": 532.0,
+			"cbat": 99.2,
+			"feedIn": 3116.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 11:23:34",
+			"ppv": 2227.0,
+			"load": 6.0,
+			"cbat": 98.8,
+			"feedIn": 1672.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 11:17:20",
+			"ppv": 1415.0,
+			"load": 457.0,
+			"cbat": 98.4,
+			"feedIn": 330.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 11:12:14",
+			"ppv": 2543.0,
+			"load": 740.0,
+			"cbat": 98.0,
+			"feedIn": 1041.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 11:07:08",
+			"ppv": 4239.0,
+			"load": 511.0,
+			"cbat": 97.2,
+			"feedIn": 3009.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 11:01:00",
+			"ppv": 4018.0,
+			"load": 2298.0,
+			"cbat": 96.0,
+			"feedIn": 0,
+			"gridCharge": 129.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 10:55:59",
+			"ppv": 1514.0,
+			"load": 2494.0,
+			"cbat": 95.2,
+			"feedIn": 0,
+			"gridCharge": 992.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 10:49:40",
+			"ppv": 3563.0,
+			"load": 2157.0,
+			"cbat": 94.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 10:44:40",
+			"ppv": 4015.0,
+			"load": 555.0,
+			"cbat": 92.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 10:39:01",
+			"ppv": 946.0,
+			"load": 503.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 10:32:42",
+			"ppv": 962.0,
+			"load": 1177.0,
+			"cbat": 92.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 10:27:27",
+			"ppv": 1770.0,
+			"load": 1096.0,
+			"cbat": 92.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 10:21:17",
+			"ppv": 1284.0,
+			"load": 541.0,
+			"cbat": 91.2,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 10:15:56",
+			"ppv": 921.0,
+			"load": 407.0,
+			"cbat": 90.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 10:10:37",
+			"ppv": 1205.0,
+			"load": 357.0,
+			"cbat": 90.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 10:04:49",
+			"ppv": 952.0,
+			"load": 369.0,
+			"cbat": 89.6,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 09:59:19",
+			"ppv": 2600.0,
+			"load": 218.0,
+			"cbat": 89.2,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 09:53:27",
+			"ppv": 1596.0,
+			"load": 532.0,
+			"cbat": 88.8,
+			"feedIn": 0,
+			"gridCharge": 122.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 09:47:02",
+			"ppv": 915.0,
+			"load": 336.0,
+			"cbat": 88.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 09:42:02",
+			"ppv": 1457.0,
+			"load": 321.0,
+			"cbat": 86.8,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 09:35:23",
+			"ppv": 671.0,
+			"load": 352.0,
+			"cbat": 86.8,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 09:30:19",
+			"ppv": 1117.0,
+			"load": 356.0,
+			"cbat": 86.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 09:25:19",
+			"ppv": 1195.0,
+			"load": 431.0,
+			"cbat": 85.6,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 09:20:19",
+			"ppv": 1098.0,
+			"load": 425.0,
+			"cbat": 85.2,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 09:13:58",
+			"ppv": 3220.0,
+			"load": 337.0,
+			"cbat": 83.6,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 09:08:58",
+			"ppv": 2925.0,
+			"load": 209.0,
+			"cbat": 82.4,
+			"feedIn": 731.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 09:03:17",
+			"ppv": 1239.0,
+			"load": 414.0,
+			"cbat": 81.6,
+			"feedIn": 0,
+			"gridCharge": 122.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 08:58:11",
+			"ppv": 751.0,
+			"load": 443.0,
+			"cbat": 81.2,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 08:53:00",
+			"ppv": 270.0,
+			"load": 441.0,
+			"cbat": 81.2,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 08:47:34",
+			"ppv": 585.0,
+			"load": 424.0,
+			"cbat": 81.2,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 08:42:00",
+			"ppv": 204.0,
+			"load": 357.0,
+			"cbat": 81.6,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 08:36:16",
+			"ppv": 202.0,
+			"load": 355.0,
+			"cbat": 81.6,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 08:30:30",
+			"ppv": 274.0,
+			"load": 361.0,
+			"cbat": 81.6,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 08:25:06",
+			"ppv": 345.0,
+			"load": 437.0,
+			"cbat": 81.6,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 08:19:43",
+			"ppv": 395.0,
+			"load": 384.0,
+			"cbat": 82.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 08:12:53",
+			"ppv": 252.0,
+			"load": 327.0,
+			"cbat": 82.0,
+			"feedIn": 108.0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 08:07:19",
+			"ppv": 255.0,
+			"load": 300.0,
+			"cbat": 82.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 08:01:21",
+			"ppv": 251.0,
+			"load": 314.0,
+			"cbat": 82.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 07:55:02",
+			"ppv": 399.0,
+			"load": 1015.0,
+			"cbat": 82.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 07:49:30",
+			"ppv": 272.0,
+			"load": 1047.0,
+			"cbat": 83.2,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 07:43:22",
+			"ppv": 134.0,
+			"load": 402.0,
+			"cbat": 83.6,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 07:36:52",
+			"ppv": 60.0,
+			"load": 320.0,
+			"cbat": 84.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 07:31:52",
+			"ppv": 43.0,
+			"load": 305.0,
+			"cbat": 84.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 07:25:55",
+			"ppv": 87.0,
+			"load": 303.0,
+			"cbat": 84.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 07:20:52",
+			"ppv": 86.0,
+			"load": 378.0,
+			"cbat": 84.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 07:14:44",
+			"ppv": 66.0,
+			"load": 376.0,
+			"cbat": 84.8,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 07:09:43",
+			"ppv": 66.0,
+			"load": 211.0,
+			"cbat": 84.8,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 07:04:42",
+			"ppv": 64.0,
+			"load": 211.0,
+			"cbat": 85.2,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 06:58:21",
+			"ppv": 43.0,
+			"load": 1362.0,
+			"cbat": 86.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 06:53:04",
+			"ppv": 21.0,
+			"load": 347.0,
+			"cbat": 86.8,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 06:47:25",
+			"ppv": 0,
+			"load": 344.0,
+			"cbat": 87.2,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 06:42:09",
+			"ppv": 0,
+			"load": 348.0,
+			"cbat": 88.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 06:37:08",
+			"ppv": 0,
+			"load": 266.0,
+			"cbat": 88.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 06:31:35",
+			"ppv": 0,
+			"load": 346.0,
+			"cbat": 88.8,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 06:26:34",
+			"ppv": 0,
+			"load": 957.0,
+			"cbat": 89.6,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 06:20:14",
+			"ppv": 0,
+			"load": 194.0,
+			"cbat": 90.8,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 06:14:43",
+			"ppv": 0,
+			"load": 204.0,
+			"cbat": 91.2,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 06:09:43",
+			"ppv": 0,
+			"load": 204.0,
+			"cbat": 91.6,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 06:03:46",
+			"ppv": 0,
+			"load": 218.0,
+			"cbat": 91.6,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 05:58:46",
+			"ppv": 0,
+			"load": 347.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 347.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 05:53:01",
+			"ppv": 0,
+			"load": 333.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 333.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 05:46:50",
+			"ppv": 0,
+			"load": 260.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 260.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 05:40:41",
+			"ppv": 0,
+			"load": 254.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 254.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 05:34:10",
+			"ppv": 0,
+			"load": 262.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 262.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 05:28:44",
+			"ppv": 0,
+			"load": 340.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 340.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 05:22:26",
+			"ppv": 0,
+			"load": 338.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 338.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 05:17:26",
+			"ppv": 0,
+			"load": 342.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 342.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 05:11:06",
+			"ppv": 0,
+			"load": 256.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 256.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 05:05:58",
+			"ppv": 0,
+			"load": 263.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 263.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 05:00:03",
+			"ppv": 0,
+			"load": 314.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 314.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 04:55:03",
+			"ppv": 0,
+			"load": 395.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 395.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 04:48:38",
+			"ppv": 0,
+			"load": 382.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 382.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 04:43:37",
+			"ppv": 0,
+			"load": 316.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 316.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 04:38:30",
+			"ppv": 0,
+			"load": 321.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 321.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 04:32:54",
+			"ppv": 0,
+			"load": 265.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 265.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 04:27:45",
+			"ppv": 0,
+			"load": 3004.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 3004.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 04:22:24",
+			"ppv": 0,
+			"load": 339.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 339.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 04:17:19",
+			"ppv": 0,
+			"load": 325.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 325.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 04:10:45",
+			"ppv": 0,
+			"load": 267.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 267.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 04:05:18",
+			"ppv": 0,
+			"load": 256.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 256.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 04:00:18",
+			"ppv": 0,
+			"load": 2923.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 2923.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 03:54:41",
+			"ppv": 0,
+			"load": 332.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 332.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 03:48:33",
+			"ppv": 0,
+			"load": 336.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 336.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 03:43:04",
+			"ppv": 0,
+			"load": 2983.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 2983.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 03:38:04",
+			"ppv": 0,
+			"load": 2910.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 2910.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 03:32:12",
+			"ppv": 0,
+			"load": 2899.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 2899.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 03:25:33",
+			"ppv": 0,
+			"load": 2951.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 2951.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 03:20:08",
+			"ppv": 0,
+			"load": 3012.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 3012.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 03:13:48",
+			"ppv": 0,
+			"load": 2993.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 2993.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 03:08:48",
+			"ppv": 0,
+			"load": 2911.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 2911.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 03:02:35",
+			"ppv": 0,
+			"load": 2862.0,
+			"cbat": 92.0,
+			"feedIn": 0,
+			"gridCharge": 2862.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 02:57:11",
+			"ppv": 0,
+			"load": 251.0,
+			"cbat": 90.4,
+			"feedIn": 0,
+			"gridCharge": 4764.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 02:52:02",
+			"ppv": 0,
+			"load": 337.0,
+			"cbat": 86.8,
+			"feedIn": 0,
+			"gridCharge": 4838.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 02:46:53",
+			"ppv": 0,
+			"load": 338.0,
+			"cbat": 83.6,
+			"feedIn": 0,
+			"gridCharge": 4851.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 02:40:09",
+			"ppv": 0,
+			"load": 323.0,
+			"cbat": 79.2,
+			"feedIn": 0,
+			"gridCharge": 4830.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 02:35:07",
+			"ppv": 0,
+			"load": 245.0,
+			"cbat": 76.0,
+			"feedIn": 0,
+			"gridCharge": 4754.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 02:29:50",
+			"ppv": 0,
+			"load": 256.0,
+			"cbat": 72.8,
+			"feedIn": 0,
+			"gridCharge": 4755.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 02:23:47",
+			"ppv": 0,
+			"load": 267.0,
+			"cbat": 68.4,
+			"feedIn": 0,
+			"gridCharge": 4761.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 02:18:46",
+			"ppv": 0,
+			"load": 346.0,
+			"cbat": 65.2,
+			"feedIn": 0,
+			"gridCharge": 4837.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 02:13:46",
+			"ppv": 0,
+			"load": 332.0,
+			"cbat": 61.6,
+			"feedIn": 0,
+			"gridCharge": 4832.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 02:08:34",
+			"ppv": 0,
+			"load": 323.0,
+			"cbat": 58.4,
+			"feedIn": 0,
+			"gridCharge": 4819.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 02:02:43",
+			"ppv": 0,
+			"load": 257.0,
+			"cbat": 54.4,
+			"feedIn": 0,
+			"gridCharge": 4754.0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 01:57:43",
+			"ppv": 0,
+			"load": 208.0,
+			"cbat": 52.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 01:51:53",
+			"ppv": 0,
+			"load": 215.0,
+			"cbat": 52.8,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 01:45:44",
+			"ppv": 0,
+			"load": 288.0,
+			"cbat": 53.2,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 01:39:17",
+			"ppv": 0,
+			"load": 291.0,
+			"cbat": 53.6,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 01:34:16",
+			"ppv": 0,
+			"load": 268.0,
+			"cbat": 53.6,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 01:27:46",
+			"ppv": 0,
+			"load": 258.0,
+			"cbat": 54.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 01:22:16",
+			"ppv": 0,
+			"load": 270.0,
+			"cbat": 54.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 01:16:53",
+			"ppv": 0,
+			"load": 351.0,
+			"cbat": 54.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 01:11:48",
+			"ppv": 0,
+			"load": 351.0,
+			"cbat": 54.8,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 01:05:18",
+			"ppv": 0,
+			"load": 344.0,
+			"cbat": 55.2,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 01:00:10",
+			"ppv": 0,
+			"load": 212.0,
+			"cbat": 55.2,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 00:55:05",
+			"ppv": 0,
+			"load": 218.0,
+			"cbat": 56.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 00:50:05",
+			"ppv": 0,
+			"load": 211.0,
+			"cbat": 56.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 00:45:05",
+			"ppv": 0,
+			"load": 280.0,
+			"cbat": 56.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 00:40:04",
+			"ppv": 0,
+			"load": 286.0,
+			"cbat": 56.8,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 00:33:31",
+			"ppv": 0,
+			"load": 280.0,
+			"cbat": 57.2,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 00:28:31",
+			"ppv": 0,
+			"load": 207.0,
+			"cbat": 57.6,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 00:22:15",
+			"ppv": 0,
+			"load": 256.0,
+			"cbat": 57.6,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 00:17:14",
+			"ppv": 0,
+			"load": 224.0,
+			"cbat": 58.0,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 00:10:52",
+			"ppv": 0,
+			"load": 315.0,
+			"cbat": 58.4,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 00:05:36",
+			"ppv": 0,
+			"load": 411.0,
+			"cbat": 58.8,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		},
+		{
+			"sysSn": "AL************",
+			"uploadTime": "2023-08-26 00:00:35",
+			"ppv": 0,
+			"load": 422.0,
+			"cbat": 58.8,
+			"feedIn": 0,
+			"gridCharge": 0,
+			"pchargingPile": 0
+		}
+	]
+}

@@ -61,8 +61,7 @@ public class TOUTCApplication extends Application {
         }
     };
 
-    boolean putStringValueIntoDataStore(String key, String value){
-        System.out.println("Storing: " + key + ", " + value);
+    public boolean putStringValueIntoDataStore(String key, String value){
         boolean returnValue;
         Preferences.Key<String> PREF_KEY = PreferencesKeys.stringKey(key);
         Single<Preferences> updateResult =  dataStore.updateDataAsync(prefsIn -> {
@@ -73,9 +72,8 @@ public class TOUTCApplication extends Application {
 
         returnValue = updateResult.blockingGet() != pref_error;
 
-        System.out.println("Stored: " + key + ", " + value);
         return returnValue;
     }
 
-    RxDataStore<Preferences> getDataStore() {return dataStore;}
+    public RxDataStore<Preferences> getDataStore() {return dataStore;}
 }

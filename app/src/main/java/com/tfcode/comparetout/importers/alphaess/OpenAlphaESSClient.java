@@ -20,6 +20,7 @@ import androidx.annotation.NonNull;
 
 import com.google.gson.Gson;
 import com.tfcode.comparetout.importers.alphaess.responses.ErrorResponse;
+import com.tfcode.comparetout.importers.alphaess.responses.GetEssListResponse;
 import com.tfcode.comparetout.importers.alphaess.responses.GetOneDayEnergyResponse;
 import com.tfcode.comparetout.importers.alphaess.responses.GetOneDayPowerResponse;
 
@@ -39,14 +40,13 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class OpenAlphaESSClient {
 
     private static final String BASE_URL = "https://openapi.alphaess.com/";
-    private final String mSystemSerialNumber;
+    private String mSystemSerialNumber = "";
     private final String mApplicationID;
     private final String mApplicationSecret;
 
     private final OpenAlphaESSService mApiService;
 
-    public OpenAlphaESSClient(String serialNumber, String applicationID, String applicationSecret) {
-        mSystemSerialNumber = serialNumber;
+    public OpenAlphaESSClient(String applicationID, String applicationSecret) {
         mApplicationID = applicationID;
         mApplicationSecret = applicationSecret;
         Retrofit mRetrofit = new Retrofit.Builder()
@@ -54,6 +54,45 @@ public class OpenAlphaESSClient {
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
         mApiService = mRetrofit.create(OpenAlphaESSService.class);
+    }
+
+    public void setSerial(String serialNumber) {
+        mSystemSerialNumber = serialNumber;
+    }
+
+    public GetEssListResponse getEssList() throws AlphaESSException {
+        GetEssListResponse ret = null;
+        Call<ResponseBody> call = mApiService.getESSList(
+                getHeaders());
+        Response<ResponseBody> response = null;
+        String responseBody = "";
+        try {
+            response = call.execute();
+            assert response.body() != null;
+            responseBody = response.body().string();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if (!(null == response) && response.isSuccessful()) {
+            Gson gson = new Gson();
+            try {
+                ret = gson.fromJson(responseBody, GetEssListResponse.class);
+            }
+            catch (IllegalStateException ise) {
+                System.out.println("Expecting GetEssListResponse, but not one :-(");
+            }
+            if ((null == ret) || (null == ret.data)) {
+                ErrorResponse err = gson.fromJson(responseBody, ErrorResponse.class);
+                System.out.println(err.code);
+                throwAppropriateException(err);
+            }
+        } else if (!(null == response)) {
+            ErrorResponse errorResponse= new ErrorResponse();
+            errorResponse.code = response.code();
+            errorResponse.msg = response.message();
+            throwAppropriateException(errorResponse);
+        }
+        return ret;
     }
 
     public GetOneDayPowerResponse getOneDayPowerBySn(String queryDate) throws AlphaESSException {

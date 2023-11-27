@@ -204,4 +204,16 @@
     <string name="alphaess">AlphaESS</string>
     <string name="home_assistant">Home Assistant</string>
     <string name="solis_cloud">Solis Cloud</string>
+    <string name="ok">OK</string>
+    <string name="appSecret">App Secret</string>
+    <string name="appId">App ID</string>
+    <string name="Idle">Idle</string>
+    <string name="fetch_alpha_channel_id">AlphaESSCatchup</string>
+    <string name="fetch_alpha_notification_title">AlphaESS Catchup</string>
+    <string name="cancel_fetch_alpha">Cancel</string>
+    <string name="CostData">Cost data</string>
+    <string name="RemoveData">Remove data</string>
+    <string name="FetchData">Fetch data</string>
+    <string name="SelectSystem">Select system</string>
+    <string name="SetCredentials">Set credentials</string>
 </resources>

@@ -29,6 +29,7 @@ public class AlphaESSTransformedData {
     private String minute = ""; // HH:mm
     private double pv;
     private double load;
+    private double feed;
 
     @NonNull
     public String getSysSn() {
@@ -72,4 +73,8 @@ public class AlphaESSTransformedData {
     public void setLoad(double load) {
         this.load = load;
     }
+
+    public double getFeed() { return feed; }
+
+    public void setFeed(double feed) { this.feed = feed;}
 }

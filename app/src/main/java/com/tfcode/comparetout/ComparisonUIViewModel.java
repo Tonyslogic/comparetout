@@ -22,6 +22,7 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 
 import com.tfcode.comparetout.model.costings.Costings;
+import com.tfcode.comparetout.model.importers.alphaess.InverterDateRange;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.ToutcRepository;
@@ -437,5 +438,14 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public List<String> getAllComparisonsNow() {
         return toutcRepository.getAllComparisonsNow();
+    }
+
+    // AlphaESS methods
+    public LiveData<List<InverterDateRange>> getLiveDateRanges() {
+        return toutcRepository.getLiveDateRanges();
+    }
+
+    public void clearInverterBySN (String sysSN) {
+        toutcRepository.clearAlphaESSDataForSN(sysSN);
     }
 }

@@ -19,7 +19,7 @@ package com.tfcode.comparetout.importers.alphaess.responses;
 import com.google.gson.annotations.SerializedName;
 import java.util.List;
 
-public class GetOneDayPowerResponse {
+public class GetEssListResponse {
     @SerializedName("code")
     public int code;
     @SerializedName("msg")
@@ -29,24 +29,30 @@ public class GetOneDayPowerResponse {
     @SerializedName("data")
     public List<DataItem> data;
 
+    // Getter and setter methods for all fields
+
     public static class DataItem {
         @SerializedName("sysSn")
         public String sysSn;
-        @SerializedName("uploadTime")
-        public String uploadTime;
-        @SerializedName("ppv")
-        public double ppv;
-        @SerializedName("load")
-        public double load;
-        @SerializedName("cbat")
-        public double cbat;
-        @SerializedName("feedIn")
-        public double feedIn;
-        @SerializedName("gridCharge")
-        public double gridCharge;
-        @SerializedName("pchargingPile")
-        public double pchargingPile;
-
+        @SerializedName("popv")
+        public double popv;
+        @SerializedName("minv")
+        public String minv;
+        @SerializedName("poinv")
+        public double poinv;
+        @SerializedName("cobat")
+        public double cobat;
+        @SerializedName("mbat")
+        public String mbat;
+        @SerializedName("surplusCobat")
+        public double surplusCobat;
+        @SerializedName("usCapacity")
+        public double usCapacity;
+        @SerializedName("emsStatus")
+        public String emsStatus;
     }
-
 }
+
+
+
+

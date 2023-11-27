@@ -16,12 +16,19 @@
 
 package com.tfcode.comparetout.model;
 
+import androidx.lifecycle.LiveData;
 import androidx.room.Dao;
 import androidx.room.Insert;
+import androidx.room.OnConflictStrategy;
+import androidx.room.Query;
+import androidx.room.Transaction;
 
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawEnergy;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawPower;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
+import com.tfcode.comparetout.model.importers.alphaess.InverterDateRange;
+
+import java.util.List;
 
 
 @Dao
@@ -30,10 +37,31 @@ public abstract class AlphaEssDAO {
     @Insert
     public abstract void addRawEnergy(AlphaESSRawEnergy energy);
 
-    @Insert
-    public abstract void addRawPower(AlphaESSRawPower power);
+    @Insert (onConflict = OnConflictStrategy.IGNORE)
+    public abstract void addRawPower(List<AlphaESSRawPower> power);
 
-    @Insert
-    public abstract void addTransformedData(AlphaESSTransformedData data);
+    @Insert (onConflict = OnConflictStrategy.REPLACE)
+    public abstract void addTransformedData(List<AlphaESSTransformedData> data);
 
+    @Transaction
+    public void clearAlphaESSDataForSN(String systemSN) {
+        deleteAlphaESSPowerForSN(systemSN);
+        deleteAlphaESSEnergyForSN(systemSN);
+        deleteAlphaESSTransformedForSN(systemSN);
+    }
+
+    @Query("DELETE FROM alphaESSTransformedData WHERE sysSn = :systemSN")
+    public abstract void deleteAlphaESSTransformedForSN(String systemSN);
+
+    @Query("DELETE FROM alphaESSRawEnergy WHERE sysSn = :systemSN")
+    public abstract void deleteAlphaESSEnergyForSN(String systemSN);
+
+    @Query("DELETE FROM alphaESSRawPower WHERE sysSn = :systemSN")
+    public abstract void deleteAlphaESSPowerForSN(String systemSN);
+
+    @Query("SELECT sysSn, MIN(theDate) AS start, MAX(theDate) AS finish FROM alphaESSRawEnergy GROUP by sysSn")
+    public abstract LiveData<List<InverterDateRange>> loadDateRanges();
+
+    @Query("SELECT CASE WHEN EXISTS (SELECT sysSn, theDate FROM alphaESSRawEnergy WHERE sysSn = :sysSn AND theDate = :date) THEN 1 ELSE 0 END AS date_exists")
+    public abstract boolean checkSysSnForDataOnDate(String sysSn, String date);
 }

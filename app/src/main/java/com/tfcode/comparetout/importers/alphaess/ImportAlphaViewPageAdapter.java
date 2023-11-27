@@ -44,9 +44,4 @@ public class ImportAlphaViewPageAdapter  extends FragmentStateAdapter {
     public int getItemCount() {
         return 4;
     }
-
-
-    public void setEdit(boolean ed) {
-        mAlphaOverview.setEditMode(ed);
-    }
 }
