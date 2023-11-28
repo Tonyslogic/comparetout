@@ -79,6 +79,7 @@ public class AlphaESSEntityUtil {
             entity.setPv(entry.getValue().pv);
             entity.setLoad(entry.getValue().load);
             entity.setFeed(entry.getValue().feed);
+            entity.setBuy(entry.getValue().buy);
             entities.add(entity);
         }
         return entities;

@@ -20,10 +20,12 @@ public class FiveMinuteEnergies {
     public Double pv;
     public Double load;
     public Double feed;
+    public Double buy;
 
-    public FiveMinuteEnergies(Double pv, Double load, Double feed) {
+    public FiveMinuteEnergies(Double pv, Double load, Double feed, Double buy) {
         this.pv = (pv.isNaN()) ? 0d : pv;
         this.load = (load.isNaN()) ? 0d : load;
         this.feed = (feed.isNaN()) ? 0d: feed;
+        this.buy = (buy.isNaN()) ? 0d: buy;
     }
 }

@@ -30,6 +30,7 @@ public class AlphaESSTransformedData {
     private double pv;
     private double load;
     private double feed;
+    private double buy;
 
     @NonNull
     public String getSysSn() {
@@ -77,4 +78,8 @@ public class AlphaESSTransformedData {
     public double getFeed() { return feed; }
 
     public void setFeed(double feed) { this.feed = feed;}
+
+    public double getBuy() { return buy; }
+
+    public void setBuy(double buy) { this.buy = buy; }
 }

@@ -152,26 +152,30 @@ public class DataMassagerTest {
         double ePV = energyResponse.data.epv;
         double eLoad = (ePV - energyResponse.data.eOutput) + energyResponse.data.eInput;
         double eFeed = energyResponse.data.eOutput;
+        double eBuy = energyResponse.data.eInput;
         // Unitize and scale power
-        Map<Long, FiveMinuteEnergies> massaged = DataMassager.massage(fixed, ePV, eLoad, eFeed);
+        Map<Long, FiveMinuteEnergies> massaged = DataMassager.massage(fixed, ePV, eLoad, eFeed, eBuy);
         assertEquals(288, massaged.size());
 
         double totalPowerPV = 0;
         double totalPowerLoad = 0;
         double totalPowerFeed = 0;
+        double totalPowerBuy = 0;
         for (Map.Entry<Long, FiveMinuteEnergies> entry : massaged.entrySet()) {
             Long key = entry.getKey();
             FiveMinuteEnergies value = entry.getValue();
             totalPowerPV += entry.getValue().pv;
             totalPowerLoad += entry.getValue().load;
             totalPowerFeed += entry.getValue().feed;
+            totalPowerBuy += entry.getValue().buy;
             SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
-            System.out.println("Key: " + sdf.format(new Date(key)) + " pv: " + value.pv + " l: " + value.load + " f: " + value.feed);
+            System.out.println("Key: " + sdf.format(new Date(key)) + " pv: " + value.pv + " l: " + value.load + " f: " + value.feed + " b: " + value.buy);
 //            System.out.println("Key: " + key + " pv: " + value.first + " l: " + value.second);
         }
         assertEquals(ePV, totalPowerPV, 0.1);
         assertEquals(eLoad, totalPowerLoad, 0.1);
         assertEquals(eFeed, totalPowerFeed, 0.1);
+        assertEquals(eBuy, totalPowerBuy, 0.1);
         checkForDuplicates(massaged);
     }
 

@@ -115,15 +115,16 @@ public class CatchUpWorker extends Worker {
                     double ePV = oneDayEnergyBySn.data.epv;
                     double eLoad = (ePV - oneDayEnergyBySn.data.eOutput) + oneDayEnergyBySn.data.eInput;
                     double eFeed = oneDayEnergyBySn.data.eOutput;
+                    double eBuy = oneDayEnergyBySn.data.eInput;
                     // Unitize and scale power (in kWh 5 minute intervals)
-                    Map<Long, FiveMinuteEnergies> massaged = DataMassager.massage(fixed, ePV, eLoad, eFeed);
+                    Map<Long, FiveMinuteEnergies> massaged = DataMassager.massage(fixed, ePV, eLoad, eFeed, eBuy);
                     System.out.println("CatchupWorker storing data for " + current);
-                    // Store raw power
-                    List<AlphaESSRawPower> powerEntityList = AlphaESSEntityUtil.getPowerRowsFromJson(oneDayPowerBySn);
-                    mToutcRepository.addRawPower(powerEntityList);
                     // Store raw energy
                     AlphaESSRawEnergy energyEntity = AlphaESSEntityUtil.getEnergyRowFromJson(oneDayEnergyBySn);
                     mToutcRepository.addRawEnergy(energyEntity);
+                    // Store raw power
+                    List<AlphaESSRawPower> powerEntityList = AlphaESSEntityUtil.getPowerRowsFromJson(oneDayPowerBySn);
+                    mToutcRepository.addRawPower(powerEntityList);
                     // Store transformed data
                     List<AlphaESSTransformedData> normalizedEntityList = AlphaESSEntityUtil.getTransformedDataRows(massaged, systemSN);
                     mToutcRepository.addTransformedData(normalizedEntityList);

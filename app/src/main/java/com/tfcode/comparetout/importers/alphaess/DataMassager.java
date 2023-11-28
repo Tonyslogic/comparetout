@@ -36,15 +36,17 @@ import java.util.TreeMap;
 
 public class DataMassager {
 
-    public static Map<Long, FiveMinuteEnergies> massage(Map<Long, FiveMinuteEnergies> fixed, double ePV, double eLoad, double eFeed) {
+    public static Map<Long, FiveMinuteEnergies> massage(Map<Long, FiveMinuteEnergies> fixed, double ePV, double eLoad, double eFeed, double eBuy) {
         Map<Long, FiveMinuteEnergies> massaged = new TreeMap<>();
-        double pPVTotal = 0;
-        double pLoadTotal = 0;
-        double pFeedTotal = 0;
+        double pPVTotal = 0D;
+        double pLoadTotal = 0D;
+        double pFeedTotal = 0D;
+        double pBuyTotal = 0D;
         for (Map.Entry<Long, FiveMinuteEnergies> entry : fixed.entrySet()) {
             pPVTotal += entry.getValue().pv ;
             pLoadTotal += entry.getValue().load;
             pFeedTotal += entry.getValue().feed;
+            pBuyTotal += entry.getValue().buy;
         }
         // fixed values are W
         // we treat them as 5 minute samples for kWh
@@ -52,12 +54,14 @@ public class DataMassager {
         pPVTotal = (pPVTotal / 1000d) / 12d;
         pLoadTotal = (pLoadTotal / 1000d) / 12d;
         pFeedTotal = (pFeedTotal / 1000d) / 12d;
+        pBuyTotal = (pBuyTotal / 1000d) / 12d;
         // Unitize and scale to total load
         for (Map.Entry<Long, FiveMinuteEnergies> entry : fixed.entrySet()) {
             double mPV = ((entry.getValue().pv / 1000d) / 12d) / pPVTotal * ePV;
             double mLoad = ((entry.getValue().load / 1000d) / 12d) / pLoadTotal * eLoad;
             double mFeed = ((entry.getValue().feed / 1000d) / 12d) / pFeedTotal * eFeed;
-            massaged.put(entry.getKey(), new FiveMinuteEnergies(mPV, mLoad, mFeed));
+            double mBuy = ((entry.getValue().buy / 1000d) / 12d) / pBuyTotal * eBuy;
+            massaged.put(entry.getKey(), new FiveMinuteEnergies(mPV, mLoad, mFeed, mBuy));
         }
         // Handle fallback DST
         if (massaged.size() == 289) {
@@ -85,7 +89,9 @@ public class DataMassager {
                     (Double) (pairToRemove != null ? pairToRemove.load : 0.0);
             Double updatedFeed = (Double) (pairToUpdate != null ? pairToUpdate.feed : 0.0) +
                     (Double) (pairToRemove != null ? pairToRemove.feed : 0.0);
-            massaged.put(keyToUpdate, new FiveMinuteEnergies(updatedPV, updatedLoad, updatedFeed));
+            Double updatedBuy = (Double) (pairToUpdate != null ? pairToUpdate.buy : 0.0) +
+                    (Double) (pairToRemove != null ? pairToRemove.buy : 0.0);
+            massaged.put(keyToUpdate, new FiveMinuteEnergies(updatedPV, updatedLoad, updatedFeed, updatedBuy));
             massaged.remove(keyToRemove);
         }
         return massaged;
@@ -95,12 +101,14 @@ public class DataMassager {
         double ppv;
         double load;
         double feed;
+        double buy;
         long timestamp; // Assuming timestamps are in milliseconds
 
-        public DataPoint(double ppv, double load, double feed, long timestamp) {
+        public DataPoint(double ppv, double load, double feed, double buy, long timestamp) {
             this.ppv = ppv;
             this.load = load;
             this.feed = feed;
+            this.buy = buy;
             this.timestamp = timestamp;
         }
     }
@@ -121,7 +129,8 @@ public class DataMassager {
                 double ppv = item.ppv;
                 double load = item.load;
                 double feed = item.feedIn;
-                DataPoint dp = new DataPoint(ppv, load, feed, uplTime);
+                double buy = item.gridCharge;
+                DataPoint dp = new DataPoint(ppv, load, feed, buy, uplTime);
                 dataPointList.add(dp);
             }
         }
@@ -133,6 +142,7 @@ public class DataMassager {
         Map<Long, FiveMinuteEnergies> averagedData = new TreeMap<>();
         Map<Long, List<Double>> loadIntervalMap = new TreeMap<>();
         Map<Long, List<Double>> feedIntervalMap = new TreeMap<>();
+        Map<Long, List<Double>> buyIntervalMap = new TreeMap<>();
 
         int intervalSize = 5 * 60 * 1000; // Interval size in milliseconds (5 minutes)
 
@@ -157,6 +167,7 @@ public class DataMassager {
             ppvIntervalMap.computeIfAbsent(intervalKey, k -> new ArrayList<>()).add(dataPoint.ppv);
             loadIntervalMap.computeIfAbsent(intervalKey, k -> new ArrayList<>()).add(dataPoint.load);
             feedIntervalMap.computeIfAbsent(intervalKey, k -> new ArrayList<>()).add(dataPoint.feed);
+            buyIntervalMap.computeIfAbsent(intervalKey, k -> new ArrayList<>()).add(dataPoint.buy);
         }
         if (null == ppvIntervalMap.get(midnightHour)) {
             // Looks like the first entry arrived after 00:05
@@ -164,6 +175,7 @@ public class DataMassager {
             ppvIntervalMap.computeIfAbsent(midnightHour, k -> new ArrayList<>()).add(0D);
             loadIntervalMap.computeIfAbsent(midnightHour, k -> new ArrayList<>()).add(0D);
             feedIntervalMap.computeIfAbsent(midnightHour, k -> new ArrayList<>()).add(0D);
+            buyIntervalMap.computeIfAbsent(midnightHour, k -> new ArrayList<>()).add(0D);
         }
         if (null == ppvIntervalMap.get(fiveBefore)) {
             // Looks like the first entry arrived after 00:05
@@ -171,6 +183,7 @@ public class DataMassager {
             ppvIntervalMap.computeIfAbsent(fiveBefore, k -> new ArrayList<>()).add(0D);
             loadIntervalMap.computeIfAbsent(fiveBefore, k -> new ArrayList<>()).add(0D);
             feedIntervalMap.computeIfAbsent(fiveBefore, k -> new ArrayList<>()).add(0D);
+            buyIntervalMap.computeIfAbsent(fiveBefore, k -> new ArrayList<>()).add(0D);
         }
 
         // Calculate averages for each interval
@@ -179,6 +192,7 @@ public class DataMassager {
             List<Double> pvValues = entry.getValue();
             List<Double> loadValues = loadIntervalMap.get(intervalStart);
             List<Double> feedValues = feedIntervalMap.get(intervalStart);
+            List<Double> buyValues = buyIntervalMap.get(intervalStart);
 
             double pvSum = 0.0;
             for (double value : pvValues) pvSum += value;
@@ -191,7 +205,6 @@ public class DataMassager {
                 loadAverage = loadSum / loadValues.size();
             }
 
-
             double feedSum = 0.0;
             double feedAverage = 0.0;
             if (feedValues != null) {
@@ -199,7 +212,14 @@ public class DataMassager {
                 feedAverage = feedSum / feedValues.size();
             }
 
-            averagedData.put(intervalStart, new FiveMinuteEnergies(pvAverage, loadAverage, feedAverage));
+            double buySum = 0.0;
+            double buyAverage = 0.0;
+            if (buyValues != null) {
+                for (double value : buyValues) buySum += value;
+                buyAverage = buySum / buyValues.size();
+            }
+
+            averagedData.put(intervalStart, new FiveMinuteEnergies(pvAverage, loadAverage, feedAverage, buyAverage));
         }
 
         // Find missing intervals and add linear interpretation
@@ -214,41 +234,46 @@ public class DataMassager {
         Double previousPV = null;
         Double previousLoad = null;
         Double previousFeed = null;
+        Double previousBuy = null;
 
         for (Map.Entry<Long, FiveMinuteEnergies> entry : data.entrySet()) {
             if (previousKey != null && previousKey + 1 != entry.getKey()) {
-                interpolate(previousKey, entry.getKey(), previousPV, previousLoad, previousFeed, entry.getValue(), interpolatedData);
+                interpolate(previousKey, entry.getKey(), previousPV, previousLoad, previousFeed, previousBuy, entry.getValue(), interpolatedData);
             }
             interpolatedData.put(entry.getKey(), entry.getValue());
             previousKey = entry.getKey();
             previousPV = entry.getValue().pv;
             previousLoad = entry.getValue().load;
             previousFeed = entry.getValue().feed;
+            previousBuy = entry.getValue().buy;
         }
         return interpolatedData;
     }
 
     private static void interpolate(long startKey, long endKey,
-                        double startPV, double startLoad, double startFeed,
+                        double startPV, double startLoad, double startFeed, double startBuy,
                         FiveMinuteEnergies endValue, Map<Long, FiveMinuteEnergies> data) {
         long interval = endKey - startKey;
         double pvInterval = endValue.pv - startPV;
         double loadInterval = endValue.load - startLoad;
         double feedInterval = endValue.feed - startFeed;
+        double buyInterval = endValue.buy - startBuy;
         if (startKey + 5 * 60 * 1000 > endKey) {
             for (long i = startKey + 5 * 60 * 1000; i < endKey; i += 5 * 60 * 1000) {
                 double fraction = (i - startKey) / (double)interval;
                 double interpolatedPV = startPV + (fraction * pvInterval);
                 double interpolatedLoad = startLoad + (fraction * loadInterval);
                 double interpolatedFeed = startFeed + (fraction * feedInterval);
-                data.put(i, new FiveMinuteEnergies(interpolatedPV, interpolatedLoad, interpolatedFeed));
+                double interpolatedBuy = startBuy + (fraction * buyInterval);
+                data.put(i, new FiveMinuteEnergies(interpolatedPV, interpolatedLoad, interpolatedFeed, interpolatedBuy));
             }
         }
         else {
             double interpolatedPV = (startPV + endValue.pv) / 2;
             double interpolatedLoad = (startLoad + endValue.load) / 2;
             double interpolatedFeed = (startFeed + endValue.feed) / 2;
-            data.put(startKey + 5 * 60 * 1000, new FiveMinuteEnergies(interpolatedPV, interpolatedLoad, interpolatedFeed));
+            double interpolatedBuy = (startBuy + endValue.buy) / 2;
+            data.put(startKey + 5 * 60 * 1000, new FiveMinuteEnergies(interpolatedPV, interpolatedLoad, interpolatedFeed, interpolatedBuy));
         }
     }
 }
