@@ -401,6 +401,7 @@ public class ImportAlphaOverview extends Fragment {
                 @Override
                 public void serialSelected(String serial) {
                     mSerialNumber = serial;
+                    ((ImportAlphaActivity) requireActivity()).setSelectedSystemSN(mSerialNumber);
                     mSystemSelected = true;
                     // Cleanup if needed
                     if (!(null == mCatchupLiveDataForSN) && !(null == mCatchupWorkObserver)) {

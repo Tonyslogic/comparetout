@@ -24,6 +24,7 @@ import com.tfcode.comparetout.model.costings.Costings;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawEnergy;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawPower;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
+import com.tfcode.comparetout.model.importers.alphaess.IntervalRow;
 import com.tfcode.comparetout.model.importers.alphaess.InverterDateRange;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
@@ -634,5 +635,45 @@ public class ToutcRepository {
 
     public boolean checkSysSnForDataOnDate(String sysSn, String date) {
         return alphaEssDAO.checkSysSnForDataOnDate(sysSn, date);
+    }
+
+    public List<IntervalRow> getSumHour(String systemSN, String from, String to) {
+        return alphaEssDAO.sumHour(systemSN, from, to);
+    }
+
+    public List<IntervalRow> getSumDOY(String systemSN, String from, String to) {
+        return alphaEssDAO.sumDOY(systemSN, from, to);
+    }
+
+    public List<IntervalRow> getSumDOW(String systemSN, String from, String to) {
+        return alphaEssDAO.sumDOW(systemSN, from, to);
+    }
+
+    public List<IntervalRow> getSumMonth(String systemSN, String from, String to) {
+        return alphaEssDAO.sumMonth(systemSN, from, to);
+    }
+
+    public List<IntervalRow> getSumYear(String systemSN, String from, String to) {
+        return alphaEssDAO.sumYear(systemSN, from, to);
+    }
+
+    public List<IntervalRow> getAvgHour(String systemSN, String from, String to) {
+        return alphaEssDAO.avgHour(systemSN, from, to);
+    }
+
+    public List<IntervalRow> getAvgDOY(String systemSN, String from, String to) {
+        return alphaEssDAO.avgDOY(systemSN, from, to);
+    }
+
+    public List<IntervalRow> getAvgDOW(String systemSN, String from, String to) {
+        return alphaEssDAO.avgDOW(systemSN, from, to);
+    }
+
+    public List<IntervalRow> getAvgMonth(String systemSN, String from, String to) {
+        return alphaEssDAO.avgMonth(systemSN, from, to);
+    }
+
+    public List<IntervalRow> getAvgYear(String systemSN, String from, String to) {
+        return alphaEssDAO.avgYear(systemSN, from, to);
     }
 }

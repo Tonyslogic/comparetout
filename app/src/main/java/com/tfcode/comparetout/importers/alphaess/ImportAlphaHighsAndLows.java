@@ -26,13 +26,13 @@ import android.view.ViewGroup;
 
 import com.tfcode.comparetout.R;
 
-public class ImportAlphaYearly extends Fragment {
+public class ImportAlphaHighsAndLows extends Fragment {
 
-    public ImportAlphaYearly() {
+    public ImportAlphaHighsAndLows() {
         // Required empty public constructor
     }
 
-    public static ImportAlphaYearly newInstance() {return new ImportAlphaYearly();}
+    public static ImportAlphaHighsAndLows newInstance() {return new ImportAlphaHighsAndLows();}
 
     @Override
     public void onCreate(Bundle savedInstanceState) {

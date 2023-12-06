@@ -26,13 +26,13 @@ import android.view.ViewGroup;
 
 import com.tfcode.comparetout.R;
 
-public class ImportAlphaMonthly extends Fragment {
+public class ImportAlphaKeyStats extends Fragment {
 
-    public ImportAlphaMonthly() {
+    public ImportAlphaKeyStats() {
         // Required empty public constructor
     }
 
-    public static ImportAlphaMonthly newInstance() {return new ImportAlphaMonthly();}
+    public static ImportAlphaKeyStats newInstance() {return new ImportAlphaKeyStats();}
 
     @Override
     public void onCreate(Bundle savedInstanceState) {

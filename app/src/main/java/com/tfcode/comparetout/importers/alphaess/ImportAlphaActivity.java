@@ -16,16 +16,9 @@
 
 package com.tfcode.comparetout.importers.alphaess;
 
-import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.viewpager2.widget.ViewPager2;
-import androidx.webkit.WebViewAssetLoader;
-
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -33,11 +26,14 @@ import android.webkit.WebView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 
-import com.google.android.material.snackbar.Snackbar;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.viewpager2.widget.ViewPager2;
+import androidx.webkit.WebViewAssetLoader;
+
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.R;
-import com.tfcode.comparetout.scenario.ScenarioViewPageAdapter;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.util.ArrayList;
@@ -45,11 +41,9 @@ import java.util.Objects;
 
 public class ImportAlphaActivity extends AppCompatActivity {
 
-    ViewPager2 viewPager;
-    private boolean mEdit = false;
+    ViewPager2 mViewPager;
 
-    private boolean mDoubleBackToExitPressedOnce = false;
-    private boolean mUnsavedChanges = false;
+    private String mSerialNumber;
 
     private WebViewAssetLoader mAssetLoader;
     private View mPopupView;
@@ -67,7 +61,7 @@ public class ImportAlphaActivity extends AppCompatActivity {
                 .build();
 
         setContentView(R.layout.activity_import_alpha);
-        viewPager = findViewById(R.id.import_alpha_view_pager);
+        mViewPager = findViewById(R.id.import_alpha_view_pager);
         setupViewPager();
 
 
@@ -84,14 +78,14 @@ public class ImportAlphaActivity extends AppCompatActivity {
     }
 
     private void setupViewPager() {
-        viewPager.setAdapter(new ImportAlphaViewPageAdapter(this, 3));
+        mViewPager.setAdapter(new ImportAlphaViewPageAdapter(this, 3));
         ArrayList<String> tabTitlesList = new ArrayList<>();
         tabTitlesList.add("AlphaESS overview");
-        tabTitlesList.add("Daily graphs");
-        tabTitlesList.add("Monthly graphs");
-        tabTitlesList.add("Yearly graphs");
+        tabTitlesList.add("Data graphs");
+        tabTitlesList.add("Key stats");
+        tabTitlesList.add("Highs and lows");
         TabLayout tabLayout = findViewById(R.id.import_alpha_tab_layout);
-        TabLayoutMediator mMediator = new TabLayoutMediator(tabLayout, viewPager,
+        TabLayoutMediator mMediator = new TabLayoutMediator(tabLayout, mViewPager,
                 (tab, position) -> tab.setText(tabTitlesList.get(position))
         );
         mMediator.attach();
@@ -113,27 +107,29 @@ public class ImportAlphaActivity extends AppCompatActivity {
 
     @Override
     public void onBackPressed() {
-        if (viewPager.getCurrentItem() == 0) {
-            if (mDoubleBackToExitPressedOnce || !(mUnsavedChanges)) {
-                super.onBackPressed();
-                return;
-            }
-            this.mDoubleBackToExitPressedOnce = true;
-            Snackbar.make(getWindow().getDecorView().getRootView(),
-                    "Unsaved changes. Please click BACK again to discard and exit",
-                    Snackbar.LENGTH_LONG).setAction("Action", null).show();
-            new Handler(Looper.getMainLooper()).postDelayed(() -> mDoubleBackToExitPressedOnce =false, 2000);
+        if (mViewPager.getCurrentItem() == 0) {
+            super.onBackPressed();
         }
-        else viewPager.setCurrentItem(viewPager.getCurrentItem() - 1);
+        else mViewPager.setCurrentItem(mViewPager.getCurrentItem() - 1);
     }
 
     private void showHelp(String url) {
         mHelpWindow.setHeight((int) (getWindow().getDecorView().getHeight()*0.6));
         mHelpWindow.setWidth((int) (getWindow().getDecorView().getWidth()));
-        mHelpWindow.showAtLocation(viewPager.getRootView(), Gravity.CENTER, 0, 0);
+        mHelpWindow.showAtLocation(mViewPager.getRootView(), Gravity.CENTER, 0, 0);
         WebView webView = mPopupView.findViewById(R.id.helpWebView);
 
         webView.setWebViewClient(new LocalContentWebViewClient(mAssetLoader));
         webView.loadUrl(url);
+    }
+
+    public String getSelectedSystemSN() {
+        return mSerialNumber;
+    }
+
+    public void setSelectedSystemSN(String serialNumber) {
+        mSerialNumber = serialNumber;
+        if (!(null == mViewPager.getAdapter()))
+            ((ImportAlphaViewPageAdapter)mViewPager.getAdapter()).setSelectedSystemSN(mSerialNumber);
     }
 }

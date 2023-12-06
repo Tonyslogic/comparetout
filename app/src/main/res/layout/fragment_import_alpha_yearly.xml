@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".importers.alphaess.ImportAlphaYearly">
+    tools:context=".importers.alphaess.ImportAlphaHighsAndLows">
 
     <!-- TODO: Update blank fragment layout -->
     <TextView

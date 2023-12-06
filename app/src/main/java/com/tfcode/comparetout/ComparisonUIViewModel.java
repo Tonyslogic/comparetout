@@ -22,6 +22,7 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 
 import com.tfcode.comparetout.model.costings.Costings;
+import com.tfcode.comparetout.model.importers.alphaess.IntervalRow;
 import com.tfcode.comparetout.model.importers.alphaess.InverterDateRange;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
@@ -447,5 +448,45 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public void clearInverterBySN (String sysSN) {
         toutcRepository.clearAlphaESSDataForSN(sysSN);
+    }
+
+    public List<IntervalRow> getSumHour(String systemSN, String from, String to) {
+        return toutcRepository.getSumHour(systemSN, from, to);
+    }
+
+    public List<IntervalRow> getSumDOY(String systemSN, String from, String to) {
+        return toutcRepository.getSumDOY(systemSN, from, to);
+    }
+
+    public List<IntervalRow> getSumDOW(String systemSN, String from, String to) {
+        return toutcRepository.getSumDOW(systemSN, from, to);
+    }
+
+    public List<IntervalRow> getSumMonth(String systemSN, String from, String to) {
+        return toutcRepository.getSumMonth(systemSN, from, to);
+    }
+
+    public List<IntervalRow> getSumYear(String systemSN, String from, String to) {
+        return toutcRepository.getSumYear(systemSN, from, to);
+    }
+
+    public List<IntervalRow> getAvgHour(String systemSN, String from, String to) {
+        return toutcRepository.getAvgHour(systemSN, from, to);
+    }
+
+    public List<IntervalRow> getAvgDOY(String systemSN, String from, String to) {
+        return toutcRepository.getAvgDOY(systemSN, from, to);
+    }
+
+    public List<IntervalRow> getAvgDOW(String systemSN, String from, String to) {
+        return toutcRepository.getAvgDOW(systemSN, from, to);
+    }
+
+    public List<IntervalRow> getAvgMonth(String systemSN, String from, String to) {
+        return toutcRepository.getAvgMonth(systemSN, from, to);
+    }
+
+    public List<IntervalRow> getAvgYear(String systemSN, String from, String to) {
+        return toutcRepository.getAvgYear(systemSN, from, to);
     }
 }

@@ -216,4 +216,8 @@
     <string name="FetchData">Fetch data</string>
     <string name="SelectSystem">Select system</string>
     <string name="SetCredentials">Set credentials</string>
+    <string name="NoRange">Range: ??-??</string>
+    <string name="no_data_available">No data available</string>
+    <string name="hour">HOUR</string>
+    <string name="sum">Sum</string>
 </resources>
