@@ -96,7 +96,6 @@ public class ImportAlphaGraphs extends Fragment {
     private ImageButton mFilterButton;
     private PopupMenu mFilterPopup;
 
-
     private BarChart mBarChart;
     private LineChart mLineChart;
     private PieChart mPieChart;
@@ -183,6 +182,11 @@ public class ImportAlphaGraphs extends Fragment {
             if (null == mInverterDateRangesBySN) mInverterDateRangesBySN = new HashMap<>();
             for (InverterDateRange inverterDateRange : dateRanges) {
                 mInverterDateRangesBySN.put(inverterDateRange.sysSn, new Pair<>(inverterDateRange.startDate, inverterDateRange.finishDate));
+            }
+            if (!(null == mSystemSN) && !(null == mInverterDateRangesBySN.get(mSystemSN))) {
+                mFrom = Objects.requireNonNull(mInverterDateRangesBySN.get(mSystemSN)).first;
+                mTo = Objects.requireNonNull(mInverterDateRangesBySN.get(mSystemSN)).second;
+                mMainHandler.post(this::setSelectionText);
                 mMainHandler.post(this::updateKPIs);
             }
         });
@@ -497,7 +501,7 @@ public class ImportAlphaGraphs extends Fragment {
         }
         else showText = true;
 
-        if (showText) {
+        if (showText || (null == mSystemSN)) {
             if (mBarChart != null) {
                 mBarChart.setVisibility(View.INVISIBLE);
             }
@@ -508,7 +512,7 @@ public class ImportAlphaGraphs extends Fragment {
                 mPieChart.setVisibility(View.INVISIBLE);
             }
             mNoGraphDataTextView.setVisibility(View.VISIBLE);
-            mNoGraphDataTextView.setText(R.string.NoChartData);
+            mNoGraphDataTextView.setText(R.string.no_data_available);
         }
     }
 
@@ -679,6 +683,11 @@ public class ImportAlphaGraphs extends Fragment {
 
     public void setSelectedSystemSN(String serialNumber) {
         mSystemSN = serialNumber;
+        if (!(null == mSystemSN) && !(null == mInverterDateRangesBySN.get(mSystemSN))) {
+            mFrom = Objects.requireNonNull(mInverterDateRangesBySN.get(mSystemSN)).first;
+            mTo = Objects.requireNonNull(mInverterDateRangesBySN.get(mSystemSN)).second;
+        }
+        setSelectionText();
         updateKPIs();
     }
 }
