@@ -65,7 +65,14 @@
                     android:layout_height="match_parent"
                     android:visibility="invisible"/>
 
-                <com.github.mikephil.charting.charts.PieChart
+<!--                <com.github.mikephil.charting.charts.PieChart-->
+<!--                    android:id="@+id/alphaess_pie_chart"-->
+<!--                    android:layout_width="match_parent"-->
+<!--                    android:layout_height="match_parent"-->
+<!--                    android:visibility="invisible"/>-->
+
+
+                <TableLayout
                     android:id="@+id/alphaess_pie_chart"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"

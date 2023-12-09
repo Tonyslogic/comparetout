@@ -20,11 +20,13 @@ import android.annotation.SuppressLint;
 import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.graphics.DashPathEffect;
+import android.icu.text.DecimalFormat;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.PopupMenu;
+import androidx.core.content.ContextCompat;
 import androidx.core.util.Pair;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
@@ -37,11 +39,14 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
+import android.widget.TableLayout;
+import android.widget.TableRow;
 import android.widget.TextView;
 
 import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.charts.PieChart;
+import com.github.mikephil.charting.components.Legend;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.data.BarData;
 import com.github.mikephil.charting.data.BarDataSet;
@@ -49,12 +54,17 @@ import com.github.mikephil.charting.data.BarEntry;
 import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
+import com.github.mikephil.charting.data.PieData;
+import com.github.mikephil.charting.data.PieDataSet;
+import com.github.mikephil.charting.data.PieEntry;
+import com.github.mikephil.charting.formatter.PercentFormatter;
 import com.github.mikephil.charting.formatter.ValueFormatter;
 import com.github.mikephil.charting.interfaces.datasets.IBarDataSet;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.datepicker.CalendarConstraints;
 import com.google.android.material.datepicker.MaterialDatePicker;
+import com.google.android.material.snackbar.Snackbar;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.importers.alphaess.IntervalRow;
@@ -81,7 +91,8 @@ public class ImportAlphaGraphs extends Fragment {
 
     private Map<String, Pair<String, String >> mInverterDateRangesBySN;
 
-    private IntervalType mInterval = IntervalType.HOUR;
+    private IntervalType mDisplayInterval = IntervalType.HOUR;
+    private StepIntervalType mStepInterval = StepIntervalType.DAY;
     private CalculationType mCalculation = CalculationType.SUM;
     private ChartView mChartView = ChartView.BAR;
 
@@ -98,7 +109,7 @@ public class ImportAlphaGraphs extends Fragment {
 
     private BarChart mBarChart;
     private LineChart mLineChart;
-    private PieChart mPieChart;
+    private TableLayout mPieCharts;
     private TextView mPicks;
     private TextView mNoGraphDataTextView;
 
@@ -112,6 +123,7 @@ public class ImportAlphaGraphs extends Fragment {
     private static final String FROM = "FROM";
     private static final String TO = "TO";
     private static final String INTERVAL = "INTERVAL";
+    private static final String STEP_INTERVAL = "STEP_INTERVAL";
     private static final String CALCULATION = "CALCULATION";
     private static final String CHART = "CHART";
 
@@ -147,7 +159,8 @@ public class ImportAlphaGraphs extends Fragment {
         outState.putString(SYSTEM, mSystemSN);
         outState.putString(FROM, mFrom);
         outState.putString(TO, mTo);
-        outState.putInt(INTERVAL, mInterval.ordinal());
+        outState.putInt(INTERVAL, mDisplayInterval.ordinal());
+        outState.putInt(STEP_INTERVAL, mStepInterval.ordinal());
         outState.putInt(CALCULATION, mCalculation.ordinal());
         outState.putInt(CHART, mChartView.ordinal());
     }
@@ -170,7 +183,8 @@ public class ImportAlphaGraphs extends Fragment {
             mSystemSN = savedInstanceState.getString(SYSTEM);
             mFrom = savedInstanceState.getString(FROM);
             mTo = savedInstanceState.getString(TO);
-            mInterval = IntervalType.values()[savedInstanceState.getInt(INTERVAL)];
+            mDisplayInterval = IntervalType.values()[savedInstanceState.getInt(INTERVAL)];
+            mStepInterval = StepIntervalType.values()[savedInstanceState.getInt(STEP_INTERVAL)];
             mCalculation = CalculationType.values()[savedInstanceState.getInt(CALCULATION)];
             mChartView = ChartView.values()[savedInstanceState.getInt(CHART)];
         }
@@ -195,6 +209,7 @@ public class ImportAlphaGraphs extends Fragment {
 
     private void updateKPIs() {
         new Thread(() -> {
+            mGraphData = null;
             if (!(null == mViewModel)) {
                 if (null == mFrom) mFrom = "1970-01-01";
                 if (null == mTo) {
@@ -204,7 +219,7 @@ public class ImportAlphaGraphs extends Fragment {
                 if (null == mSystemSN) mSystemSN = ((ImportAlphaActivity) requireActivity()).getSelectedSystemSN();
                 switch (mCalculation) {
                     case SUM:
-                        switch (mInterval) {
+                        switch (mDisplayInterval) {
                             case HOUR:
                                 mGraphData = mViewModel.getSumHour(mSystemSN, mFrom, mTo);
                                 break;
@@ -223,7 +238,7 @@ public class ImportAlphaGraphs extends Fragment {
                         }
                         break;
                     case AVG:
-                        switch (mInterval) {
+                        switch (mDisplayInterval) {
                             case HOUR:
                                 mGraphData = mViewModel.getAvgHour(mSystemSN, mFrom, mTo);
                                 break;
@@ -268,12 +283,13 @@ public class ImportAlphaGraphs extends Fragment {
         mNoGraphDataTextView = view.findViewById((R.id.alphaess_no_data));
         mBarChart = view.findViewById((R.id.alphaess_bar_chart));
         mLineChart = view.findViewById((R.id.alphaess_line_chart));
-        mPieChart = view.findViewById((R.id.alphaess_pie_chart));
+        mPieCharts = view.findViewById((R.id.alphaess_pie_chart));
 
         mIntervalButton = view.findViewById((R.id.interval));
         mIntervalButton.setOnClickListener(v -> {
-            mInterval = mInterval.next();
-            mIntervalButton.setText(mInterval.toString());
+            mDisplayInterval = mDisplayInterval.next();
+            mIntervalButton.setText(mDisplayInterval.toString());
+            mIntervalButton.setGravity(Gravity.CENTER);
             setSelectionText();
             updateKPIs();
         });
@@ -283,6 +299,7 @@ public class ImportAlphaGraphs extends Fragment {
             mCalculation = mCalculation.next();
             setSelectionText();
             mModeButton.setText(mCalculation.toString());
+            mModeButton.setGravity(Gravity.CENTER);
             updateKPIs();
         });
 
@@ -290,9 +307,8 @@ public class ImportAlphaGraphs extends Fragment {
         mPreviousButton.setOnClickListener(v -> {
             LocalDateTime start = LocalDateTime.parse(mFrom + MIDNIGHT, PARSER_FORMATTER);
             LocalDateTime end = LocalDateTime.parse(mTo + MIDNIGHT, PARSER_FORMATTER);
-            switch (mInterval) {
-                case DOY:
-                case HOUR:
+            switch (mStepInterval) {
+                case DAY:
                     // + 1 day
                     start = start.plusDays(-1);
                     mFrom = start.format(DATE_FORMAT);
@@ -305,7 +321,7 @@ public class ImportAlphaGraphs extends Fragment {
                     end = end.plusDays(-7);
                     mTo = end.format(DATE_FORMAT);
                     break;
-                case MNTH:
+                case MONTH:
                     // + 1 month
                     start = start.plusMonths(-1);
                     mFrom = start.format(DATE_FORMAT);
@@ -322,6 +338,13 @@ public class ImportAlphaGraphs extends Fragment {
             }
             setSelectionText();
             updateKPIs();
+        });
+        mPreviousButton.setOnLongClickListener(v -> {
+            mStepInterval = mStepInterval.next();
+            if (!(null == getView())) Snackbar.make(getView(),
+                            "Step increment is now: " + mStepInterval.toString(), Snackbar.LENGTH_LONG)
+                    .setAction("Action", null).show();
+            return true;
         });
 
         ImageButton mSelectionButton = view.findViewById(R.id.date);
@@ -351,17 +374,23 @@ public class ImportAlphaGraphs extends Fragment {
                 mFrom = LocalDateTime.ofInstant(Instant.ofEpochMilli(selection.first), ZoneId.systemDefault()).format(DATE_FORMAT);
                 mTo = LocalDateTime.ofInstant(Instant.ofEpochMilli(selection.second), ZoneId.systemDefault()).format(DATE_FORMAT);
                 setSelectionText();
+                updateKPIs();
             });
-            updateKPIs();
+        });
+        mSelectionButton.setOnLongClickListener(v -> {
+            mStepInterval = mStepInterval.next();
+            if (!(null == getView())) Snackbar.make(getView(),
+                            "Step increment is now: " + mStepInterval.toString(), Snackbar.LENGTH_LONG)
+                    .setAction("Action", null).show();
+            return true;
         });
 
         ImageButton mNextButton = view.findViewById(R.id.next);
         mNextButton.setOnClickListener(v -> {
             LocalDateTime start = LocalDateTime.parse(mFrom + MIDNIGHT, PARSER_FORMATTER);
             LocalDateTime end = LocalDateTime.parse(mTo + MIDNIGHT, PARSER_FORMATTER);
-            switch (mInterval) {
-                case DOY:
-                case HOUR:
+            switch (mStepInterval) {
+                case DAY:
                     // + 1 day
                     start = start.plusDays(1);
                     mFrom = start.format(DATE_FORMAT);
@@ -374,7 +403,7 @@ public class ImportAlphaGraphs extends Fragment {
                     end = end.plusDays(7);
                     mTo = end.format(DATE_FORMAT);
                     break;
-                case MNTH:
+                case MONTH:
                     // + 1 month
                     start = start.plusMonths(1);
                     mFrom = start.format(DATE_FORMAT);
@@ -392,6 +421,13 @@ public class ImportAlphaGraphs extends Fragment {
             setSelectionText();
             updateKPIs();
         });
+        mNextButton.setOnLongClickListener(v -> {
+            mStepInterval = mStepInterval.next();
+            if (!(null == getView())) Snackbar.make(getView(),
+                            "Step increment is now: " + mStepInterval.toString(), Snackbar.LENGTH_LONG)
+                    .setAction("Action", null).show();
+            return true;
+        });
 
         ImageButton mChartTypeButton = view.findViewById(R.id.chartType);
         mChartTypeButton.setOnClickListener(v -> {
@@ -406,7 +442,8 @@ public class ImportAlphaGraphs extends Fragment {
 
     @SuppressLint("SetTextI18n")
     private void setSelectionText() {
-        mPicks.setText("Range: " + mFrom + "<->" + mTo);
+        if (!(null == mFrom) && !(null == mTo) && !(null == mPicks))
+            mPicks.setText("Range: " + mFrom + "<->" + mTo);
     }
 
     private void setupPopupFilterMenu() {
@@ -480,22 +517,23 @@ public class ImportAlphaGraphs extends Fragment {
                 case BAR:
                     mBarChart.setVisibility(View.VISIBLE);
                     mLineChart.setVisibility(View.INVISIBLE);
-                    mPieChart.setVisibility(View.INVISIBLE);
+                    mPieCharts.setVisibility(View.INVISIBLE);
                     mNoGraphDataTextView.setVisibility(View.INVISIBLE);
                     buildBarChart();
                     break;
                 case LINE:
                     mBarChart.setVisibility(View.INVISIBLE);
                     mLineChart.setVisibility(View.VISIBLE);
-                    mPieChart.setVisibility(View.INVISIBLE);
+                    mPieCharts.setVisibility(View.INVISIBLE);
                     mNoGraphDataTextView.setVisibility(View.INVISIBLE);
                     buildLineChart();
                     break;
                 case PIE:
                     mBarChart.setVisibility(View.INVISIBLE);
                     mLineChart.setVisibility(View.INVISIBLE);
-                    mPieChart.setVisibility(View.VISIBLE);
+                    mPieCharts.setVisibility(View.VISIBLE);
                     mNoGraphDataTextView.setVisibility(View.INVISIBLE);
+                    buildPieCharts();
                     break;
             }
         }
@@ -508,12 +546,177 @@ public class ImportAlphaGraphs extends Fragment {
             if (mLineChart != null) {
                 mLineChart.setVisibility(View.INVISIBLE);
             }
-            if (mPieChart != null) {
-                mPieChart.setVisibility(View.INVISIBLE);
+            if (mPieCharts != null) {
+                mPieCharts.setVisibility(View.INVISIBLE);
             }
             mNoGraphDataTextView.setVisibility(View.VISIBLE);
             mNoGraphDataTextView.setText(R.string.no_data_available);
         }
+    }
+
+    private void buildPieCharts() {
+        if (!(null == mPieCharts) && (!(null == getActivity()))) {
+            mPieCharts.removeAllViews();
+            mPieCharts.setStretchAllColumns(true);
+            TableRow topRow = new TableRow(getActivity());
+            TableRow bottomRow = new TableRow(getActivity());
+            Map<String, Double> loadMap = new HashMap<>();
+            Map<String, Double> pvMap = new HashMap<>();
+            Map<String, Double> buyMap = new HashMap<>();
+            Map<String, Double> feedMap = new HashMap<>();
+            double load = 0D;
+            double pv = 0D;
+            double buy = 0D;
+            double feed = 0D;
+            switch (mDisplayInterval) {
+                case YEAR:
+                    if (mCalculation == CalculationType.SUM) {
+                        for (IntervalRow intervalRow : mGraphData) {
+                            loadMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.load);
+                            pvMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.pv);
+                            buyMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.buy);
+                            feedMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.feed);
+                            load += intervalRow.load;
+                            pv += intervalRow.pv;
+                            buy += intervalRow.buy;
+                            feed += intervalRow.feed;
+                        }
+                    }
+                    else {
+                        for (IntervalRow intervalRow : mGraphData) {
+                            loadMap.put("All", intervalRow.load);
+                            pvMap.put("All", intervalRow.pv);
+                            buyMap.put("All", intervalRow.buy);
+                            feedMap.put("All", intervalRow.feed);
+                            load += intervalRow.load;
+                            pv += intervalRow.pv;
+                            buy += intervalRow.buy;
+                            feed += intervalRow.feed;
+                        }
+                    }
+                    break;
+                case MNTH:
+                    if (mCalculation == CalculationType.SUM) {
+                        for (IntervalRow intervalRow : mGraphData) {
+                            if (intervalRow.load > 0) loadMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.load);
+                            if (intervalRow.pv > 0) pvMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.pv);
+                            if (intervalRow.buy > 0) buyMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.buy);
+                            if (intervalRow.feed > 0) feedMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.feed);
+                            load += intervalRow.load;
+                            pv += intervalRow.pv;
+                            buy += intervalRow.buy;
+                            feed += intervalRow.feed;
+                        }
+                    }
+                    else {
+                        final String[] xLabels = {"NaM", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                                "Jul", "Aug", "Sep", "Oct", "Nov", "Dec", };
+                        final ArrayList<String> xLabel = new ArrayList<>(Arrays.asList(xLabels));
+                        for (IntervalRow intervalRow : mGraphData) {
+                            if (intervalRow.load > 0) loadMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.load);
+                            if (intervalRow.pv > 0) pvMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.pv);
+                            if (intervalRow.buy > 0) buyMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.buy);
+                            if (intervalRow.feed > 0) feedMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.feed);
+                            load += intervalRow.load;
+                            pv += intervalRow.pv;
+                            buy += intervalRow.buy;
+                            feed += intervalRow.feed;
+                        }
+                    }
+                    break;
+                case WEEK:
+                    final String[] xLabels = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat",};
+                    final ArrayList<String> xLabel = new ArrayList<>(Arrays.asList(xLabels));
+                    for (IntervalRow intervalRow : mGraphData) {
+                        if (intervalRow.load > 0) loadMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.load);
+                        if (intervalRow.pv > 0) pvMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.pv);
+                        if (intervalRow.buy > 0) buyMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.buy);
+                        if (intervalRow.feed > 0) feedMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.feed);
+                        load += intervalRow.load;
+                        pv += intervalRow.pv;
+                        buy += intervalRow.buy;
+                        feed += intervalRow.feed;
+                    }
+                    break;
+                case DOY:
+                case HOUR:
+                    for (IntervalRow intervalRow : mGraphData) {
+                        if (intervalRow.load > 0) loadMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.load);
+                        if (intervalRow.pv > 0) pvMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.pv);
+                        if (intervalRow.buy > 0) buyMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.buy);
+                        if (intervalRow.feed > 0) feedMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.feed);
+                        load += intervalRow.load;
+                        pv += intervalRow.pv;
+                        buy += intervalRow.buy;
+                        feed += intervalRow.feed;
+                    }
+                    break;
+
+            }
+
+            PieChart loadPie = getPieChart("Load (" + new DecimalFormat("0.00").format(load) + " kWh)", loadMap);
+            PieChart pvPie = getPieChart("PV (" + new DecimalFormat("0.00").format(pv) + " kWh)", pvMap);
+            PieChart buyPie = getPieChart("Buy (" + new DecimalFormat("0.00").format(buy) + " kWh)", buyMap);
+            PieChart feedPie = getPieChart("Feed ("+ new DecimalFormat("0.00").format(feed) + " kWh)", feedMap);
+
+            topRow.addView(loadPie);
+            topRow.addView(pvPie);
+            bottomRow.addView(buyPie);
+            bottomRow.addView(feedPie);
+
+            mPieCharts.addView(topRow);
+            mPieCharts.addView(bottomRow);
+        }
+    }
+
+    private PieChart getPieChart(String title, Map<String, Double> pieMap) {
+        PieChart pieChart = new PieChart(getActivity());
+
+        pieChart.getDescription().setEnabled(true);
+        pieChart.setRotationEnabled(true);
+        pieChart.setDragDecelerationFrictionCoef(0.9f);
+        pieChart.setRotationAngle(270);
+        pieChart.setHighlightPerTapEnabled(true);
+        pieChart.setHoleColor(Color.parseColor("#000000"));
+
+        ArrayList<PieEntry> pieEntries = new ArrayList<>();
+
+        ArrayList<Integer> colors = new ArrayList<>();
+        colors.add(Color.parseColor("#304567"));
+        colors.add(Color.parseColor("#309967"));
+        colors.add(Color.parseColor("#476567"));
+        colors.add(Color.parseColor("#890567"));
+        colors.add(Color.parseColor("#a35567"));
+        colors.add(Color.parseColor("#ff5f67"));
+        colors.add(Color.parseColor("#3ca567"));
+
+        for(String type: pieMap.keySet()){
+            pieEntries.add(new PieEntry(Objects.requireNonNull(pieMap.get(type)).floatValue(), type));
+        }
+        PieDataSet pieDataSet = new PieDataSet(pieEntries,"");
+        pieDataSet.setValueTextSize(12f);
+        pieDataSet.setColors(colors);
+        PieData pieData = new PieData(pieDataSet);
+
+        pieData.setDrawValues(false);
+        pieData.setValueFormatter(new PercentFormatter(pieChart));
+        pieChart.setData(pieData);
+        pieChart.setUsePercentValues(true);
+        pieChart.setDrawEntryLabels(pieMap.size() <= 24);
+
+        Legend legend = pieChart.getLegend();
+//        int color = Color.getColor("?android:textColorPrimary");
+        int color = 0;
+        if (!(null == getContext())) color = ContextCompat.getColor(getContext(), R.color.colorPrimaryDark);
+        legend.setTextColor(color);
+        legend.setEnabled(false);
+
+        pieChart.getDescription().setText(title);
+        pieChart.getDescription().setTextSize(12f);
+        pieChart.getDescription().setTextColor(color);
+        pieChart.invalidate();
+        pieChart.setMinimumHeight(600);
+        return pieChart;
     }
 
     private void buildLineChart() {
@@ -535,10 +738,10 @@ public class ImportAlphaGraphs extends Fragment {
         ArrayList<Entry> buyEntries = new ArrayList<>();
         ArrayList<Entry> pvEntries = new ArrayList<>();
         for (IntervalRow intervalRow : mGraphData) {
-            loadEntries.add(new Entry(intervalRow.interval, (float) intervalRow.load));
-            feedEntries.add(new Entry(intervalRow.interval, (float) intervalRow.feed));
-            buyEntries.add(new Entry(intervalRow.interval, (float) intervalRow.buy));
-            pvEntries.add(new Entry(intervalRow.interval, (float) intervalRow.pv));
+            loadEntries.add(new Entry(Float.parseFloat(intervalRow.interval), (float) intervalRow.load));
+            feedEntries.add(new Entry(Float.parseFloat(intervalRow.interval), (float) intervalRow.feed));
+            buyEntries.add(new Entry(Float.parseFloat(intervalRow.interval), (float) intervalRow.buy));
+            pvEntries.add(new Entry(Float.parseFloat(intervalRow.interval), (float) intervalRow.pv));
         }
 
         LineDataSet loadSet = configureLine(loadEntries, Color.BLUE, "Load");
@@ -562,6 +765,9 @@ public class ImportAlphaGraphs extends Fragment {
     }
 
     private LineDataSet configureLine(ArrayList<Entry> loadEntries, int color, String label) {
+        int lcolor = 0;
+        if (!(null == getContext())) lcolor = ContextCompat.getColor(getContext(), R.color.colorPrimaryDark);
+
         LineDataSet lineDataSet;
         lineDataSet = new LineDataSet(loadEntries, label);
         lineDataSet.setDrawIcons(false);
@@ -573,6 +779,7 @@ public class ImportAlphaGraphs extends Fragment {
         lineDataSet.setCircleRadius(3f);
         lineDataSet.setDrawCircleHole(false);
         lineDataSet.setValueTextSize(9f);
+        lineDataSet.setValueTextColor(lcolor);
         lineDataSet.setDrawFilled(false);
         lineDataSet.setFormLineWidth(1f);
         lineDataSet.setFormLineDashEffect(new DashPathEffect(new float[]{10f, 5f}, 0f));
@@ -590,7 +797,7 @@ public class ImportAlphaGraphs extends Fragment {
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
         xAxis.setDrawGridLines(false);
 
-        switch (mInterval) {
+        switch (mDisplayInterval) {
             case WEEK:
                 final String[] xLabels = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat",};
                 final ArrayList<String> xLabel = new ArrayList<>(Arrays.asList(xLabels));
@@ -608,7 +815,7 @@ public class ImportAlphaGraphs extends Fragment {
                     @Override
                     public String getFormattedValue(float value) {
                         if ((int)value > mGraphData.size()) return "??";
-                        else return Integer.toString(mGraphData.get((int) value).interval);
+                        else return mGraphData.get((int) value).interval;
                     }
                 });
                 break;
@@ -683,7 +890,7 @@ public class ImportAlphaGraphs extends Fragment {
 
     public void setSelectedSystemSN(String serialNumber) {
         mSystemSN = serialNumber;
-        if (!(null == mSystemSN) && !(null == mInverterDateRangesBySN.get(mSystemSN))) {
+        if (!(null == mSystemSN) && !(null == mInverterDateRangesBySN) && !(null == mInverterDateRangesBySN.get(mSystemSN))) {
             mFrom = Objects.requireNonNull(mInverterDateRangesBySN.get(mSystemSN)).first;
             mTo = Objects.requireNonNull(mInverterDateRangesBySN.get(mSystemSN)).second;
         }

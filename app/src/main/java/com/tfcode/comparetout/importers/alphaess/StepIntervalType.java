@@ -14,15 +14,15 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.model.importers.alphaess;
+package com.tfcode.comparetout.importers.alphaess;
 
-import androidx.room.ColumnInfo;
+public enum StepIntervalType {
+    DAY,
+    WEEK,
+    MONTH,
+    YEAR;
 
-public class IntervalRow {
-    // SELECT PV, LOAD, FEED, BUY, INTERVAL
-    @ColumnInfo(name= "PV") public double pv;
-    @ColumnInfo(name= "LOAD") public double load;
-    @ColumnInfo(name= "FEED") public double feed;
-    @ColumnInfo(name= "BUY") public double buy;
-    @ColumnInfo(name= "INTERVAL") public String interval;
+    public StepIntervalType next() {
+        return values()[(this.ordinal() + 1) % values().length];
+    }
 }

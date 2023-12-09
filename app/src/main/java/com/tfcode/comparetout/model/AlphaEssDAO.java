@@ -157,7 +157,7 @@ public abstract class AlphaEssDAO {
     public abstract List<IntervalRow> avgDOW(String sysSN, String from, String to);
 
     @Query("SELECT avg(PV) AS PV, AVG(LOAD) AS LOAD, AVG(FEED) AS FEED, AVG(BUY) AS BUY, INTERVAL FROM (" +
-            " SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, strftime('%Y', date) || strftime('%m', date) as INTERVAL" +
+            " SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, strftime('%m', date) as INTERVAL" +
             " FROM alphaESSTransformedData WHERE date > :from AND date <= :to AND sysSn = :sysSN " +
             " GROUP BY INTERVAL ORDER BY INTERVAL, date) GROUP BY INTERVAL")
     public abstract List<IntervalRow> avgMonth(String sysSN, String from, String to);
