@@ -23,15 +23,19 @@ import androidx.fragment.app.FragmentActivity;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 
 public class ViewPagerAdapter extends FragmentStateAdapter {
-    private static final int CARD_ITEM_SIZE = 3;
+    private static final int CARD_ITEM_SIZE = 4;
     private final PricePlanNavFragment pricePlanNavFragment = PricePlanNavFragment.newInstance();
     private final ScenarioNavFragment scenarioNavFragment = ScenarioNavFragment.newInstance();
     private final ComparisonFragment comparisonFragment = ComparisonFragment.newInstance();
+    private final DataManagementFragment dataManagementFragment = DataManagementFragment.newInstance();
 
     public ViewPagerAdapter(@NonNull FragmentActivity fragmentActivity) {
         super(fragmentActivity);
     }
     @NonNull @Override public Fragment createFragment(int position) {
+        if (position == MainActivity.DATA_MANAGEMENT_FRAGMENT) {
+            return dataManagementFragment;
+        }
         if (position == MainActivity.COSTS_FRAGMENT) {
             return pricePlanNavFragment;
         }

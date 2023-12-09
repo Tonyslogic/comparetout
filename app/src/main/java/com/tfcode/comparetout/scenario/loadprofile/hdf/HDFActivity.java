@@ -249,7 +249,6 @@ public class HDFActivity extends AppCompatActivity {
         menu.findItem(R.id.load).setVisible(false);
         menu.findItem(R.id.download).setVisible(false);
         menu.findItem(R.id.export).setVisible(false);
-        menu.findItem(R.id.fetch).setVisible(false);
         return true;
     }
 

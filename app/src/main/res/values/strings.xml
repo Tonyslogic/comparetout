@@ -23,7 +23,7 @@
     <string name="save">Save</string>
     <string name="delete_day_rate">Delete day rate</string>
     <!-- TODO: Remove or change this placeholder text -->
-    <string name="main_activity_usage">Usage(s)</string>
+    <string name="main_activity_usage">Usages</string>
     <string name="main_activity_costs">Costs</string>
     <string name="main_activity_compare">Compare</string>
     <string name="hello_blank_fragment">Hello blank fragment</string>
@@ -201,7 +201,7 @@
     <string name="panel_data_location_change">The location has changed. A DB update is needed to confirm the change.</string>
     <string name="panel_data_all_good">There is data in the DB for this panel string. You may change the location or return to the panels. A bar chart will appear there shortly.</string>
     <string name="no_panel_data">No simulation, add panel data</string>
-    <string name="alphaess">AlphaESS</string>
+    <string name="alphaess">AlphaESS Open API</string>
     <string name="home_assistant">Home Assistant</string>
     <string name="solis_cloud">Solis Cloud</string>
     <string name="ok">OK</string>
@@ -220,4 +220,7 @@
     <string name="no_data_available">No data available</string>
     <string name="hour">HOUR</string>
     <string name="sum">Sum</string>
+    <string name="DataTabName">Data</string>
+    <string name="esbn_hdf_file">ESBN HDF, File</string>
+    <string name="dataMgmtOnScreenHelp">Manage your data sources</string>
 </resources>

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_gravity="center"
+    android:orientation="vertical"
+    android:id="@+id/dataLayout"
+    tools:context=".DataManagementFragment">
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/esbnHDFLoader"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="20dp"
+        android:text="@string/esbn_hdf_file" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/alphaESSLoader"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="20dp"
+        android:text="@string/alphaess" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/haLoader"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="20dp"
+        android:enabled="false"
+        android:text="@string/home_assistant" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/solisLoader"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="20dp"
+        android:enabled="false"
+        android:text="@string/solis_cloud" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="20dp"
+        android:gravity="center_horizontal"
+        android:text="@string/dataMgmtOnScreenHelp"/>
+
+
+</LinearLayout>

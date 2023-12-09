@@ -206,18 +206,18 @@ public class ComparisonFragment extends Fragment {
         TabLayout tabLayout = requireActivity().findViewById(R.id.tab_layout);
         ViewPager2 viewPager = requireActivity().findViewById(R.id.view_pager);
 
-        String[] tabTitles = {getString(R.string.main_activity_usage), getString(R.string.main_activity_costs), getString(R.string.main_activity_compare)};
+        String[] tabTitles = {getString(R.string.DataTabName), getString(R.string.main_activity_usage), getString(R.string.main_activity_costs), getString(R.string.main_activity_compare)};
         new TabLayoutMediator(tabLayout, viewPager,
                 (tab, position) -> tab.setText(tabTitles[position])
         ).attach();
 
-        ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(0)).setOnLongClickListener(v -> {
+        ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.USAGE_FRAGMENT)).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/main/scenarionav/tab.html");
             return true;});
-        ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(1)).setOnLongClickListener(v -> {
+        ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.COSTS_FRAGMENT)).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/main/plannav/tab.html");
             return true;});
-        ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(2)).setOnLongClickListener(v -> {
+        ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.COMPARE_FRAGMENT)).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/main/compare/tab.html");
             return true;});
     }

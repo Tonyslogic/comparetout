@@ -89,9 +89,10 @@ import io.reactivex.Single;
 public class MainActivity extends AppCompatActivity {
 
     public static final String CHANNEL_ID = "TOUTC-PROGRESS";
-    public static final int USAGE_FRAGMENT = 0;
-    public static final int COSTS_FRAGMENT = 1;
-    public static final int COMPARE_FRAGMENT = 2;
+    public static final int USAGE_FRAGMENT = 1;
+    public static final int COSTS_FRAGMENT = 2;
+    public static final int COMPARE_FRAGMENT = 3;
+    public static final int DATA_MANAGEMENT_FRAGMENT = 0;
 
     ViewPager2 viewPager;
     private ComparisonUIViewModel mViewModel;
@@ -250,6 +251,7 @@ public class MainActivity extends AppCompatActivity {
 
         viewPager = findViewById(R.id.view_pager);
         viewPager.setAdapter(createCardAdapter());
+        viewPager.setCurrentItem(MainActivity.USAGE_FRAGMENT);
         mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
 
         /*
@@ -293,30 +295,28 @@ public class MainActivity extends AppCompatActivity {
                 super.onPageScrolled(position, positionOffset, positionOffsetPixels);
                 switch (position) {
                     case COSTS_FRAGMENT:
-                        showFAB();
-                        if (!(null == mMainMenu)) {
-                            mMainMenu.findItem(R.id.load).setVisible(true);
-                            mMainMenu.findItem(R.id.download).setVisible(true);
-                            mMainMenu.findItem(R.id.fetch).setVisible(false);
-                            mMainMenu.findItem(R.id.estimate).setVisible(false);
-                        }
-                        break;
                     case USAGE_FRAGMENT:
                         showFAB();
                         if (!(null == mMainMenu)) {
                             mMainMenu.findItem(R.id.load).setVisible(true);
                             mMainMenu.findItem(R.id.download).setVisible(true);
-                            mMainMenu.findItem(R.id.fetch).setVisible(true);
-                            mMainMenu.findItem(R.id.estimate).setVisible(false);
+                            mMainMenu.findItem(R.id.export).setVisible(true);
                         }
                         break;
-                    default:
+                    case DATA_MANAGEMENT_FRAGMENT:
                         hideFAB();
                         if (!(null == mMainMenu)) {
                             mMainMenu.findItem(R.id.load).setVisible(false);
                             mMainMenu.findItem(R.id.download).setVisible(false);
-                            mMainMenu.findItem(R.id.fetch).setVisible(false);
-                            mMainMenu.findItem(R.id.estimate).setVisible(true);
+                            mMainMenu.findItem(R.id.export).setVisible(false);
+                        }
+                        break;
+                    case COMPARE_FRAGMENT:
+                        hideFAB();
+                        if (!(null == mMainMenu)) {
+                            mMainMenu.findItem(R.id.load).setVisible(false);
+                            mMainMenu.findItem(R.id.download).setVisible(false);
+                            mMainMenu.findItem(R.id.export).setVisible(true);
                         }
                         break;
                 }
@@ -350,13 +350,9 @@ public class MainActivity extends AppCompatActivity {
         mMainMenu.findItem(R.id.download).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         mMainMenu.findItem(R.id.export).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         mMainMenu.findItem(R.id.help).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMainMenu.findItem(R.id.estimate).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMainMenu.findItem(R.id.fetch).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         if (viewPager.getCurrentItem() == COMPARE_FRAGMENT) {
             mMainMenu.findItem(R.id.load).setVisible(false);
             mMainMenu.findItem(R.id.download).setVisible(false);
-            mMainMenu.findItem(R.id.fetch).setVisible(false);
-            mMainMenu.findItem(R.id.estimate).setVisible(true);
         }
         setMenuLongClick();
         return true;
@@ -542,28 +538,6 @@ public class MainActivity extends AppCompatActivity {
 
         if (itemID == R.id.help) {
             showHelp("https://appassets.androidplatform.net/assets/main/help.html");
-        }
-
-        if (itemID == R.id.estimate) {
-            Intent intent = new Intent(this, HDFActivity.class);
-            intent.putExtra("LoadProfileID", 0L);
-            intent.putExtra("ScenarioID", 0L);
-            startActivity(intent);
-        }
-
-        if (itemID == R.id.fetch_alpha) {
-            Intent intent = new Intent(this, ImportAlphaActivity.class);
-            startActivity(intent);
-        }
-
-        if (itemID == R.id.fetch_home_assistant) {
-            Snackbar.make(viewPager.getRootView(), "Home assistant integration is on the backlog", Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show();
-        }
-
-        if (itemID == R.id.fetch_solis) {
-            Snackbar.make(viewPager.getRootView(), "Solis Cloud integration is on the backlog", Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show();
         }
 
         return(super.onOptionsItemSelected(item));
