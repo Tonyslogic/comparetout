@@ -24,6 +24,7 @@ import com.tfcode.comparetout.model.costings.Costings;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawEnergy;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawPower;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
+import com.tfcode.comparetout.model.importers.alphaess.CostInputRow;
 import com.tfcode.comparetout.model.importers.alphaess.IntervalRow;
 import com.tfcode.comparetout.model.importers.alphaess.InverterDateRange;
 import com.tfcode.comparetout.model.priceplan.DayRate;
@@ -675,5 +676,9 @@ public class ToutcRepository {
 
     public List<IntervalRow> getAvgYear(String systemSN, String from, String to) {
         return alphaEssDAO.avgYear(systemSN, from, to);
+    }
+
+    public List<CostInputRow> getSelectedAlphaESSData(String serialNumber, String from, String to) {
+        return alphaEssDAO.getSelectedAlphaESSData(serialNumber, from, to);
     }
 }

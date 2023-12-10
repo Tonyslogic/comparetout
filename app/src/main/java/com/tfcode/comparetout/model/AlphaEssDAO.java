@@ -26,6 +26,7 @@ import androidx.room.Transaction;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawEnergy;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawPower;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
+import com.tfcode.comparetout.model.importers.alphaess.CostInputRow;
 import com.tfcode.comparetout.model.importers.alphaess.IntervalRow;
 import com.tfcode.comparetout.model.importers.alphaess.InverterDateRange;
 
@@ -166,5 +167,10 @@ public abstract class AlphaEssDAO {
             " SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, cast (strftime('%Y', date) as INTEGER) AS INTERVAL" +
             " FROM alphaESSTransformedData WHERE date > :from AND date <= :to AND sysSn = :sysSN GROUP BY INTERVAL ORDER BY INTERVAL )")
     public abstract List<IntervalRow> avgYear(String sysSN, String from, String to);
+
+    @Query("SELECT date || ' ' || minute || ':00' AS DATE_TIME, SUM(buy) AS BUY, SUM(feed) as FEED " +
+            "FROM alphaESSTransformedData WHERE date > :from AND date <= :to AND sysSn = :sysSN " +
+            "GROUP BY date, substr(minute, 0, instr(minute,':')) ORDER BY DATE_TIME")
+    public abstract List<CostInputRow> getSelectedAlphaESSData(String sysSN, String from, String to);
 }
 
