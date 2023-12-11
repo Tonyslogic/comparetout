@@ -172,5 +172,17 @@ public abstract class AlphaEssDAO {
             "FROM alphaESSTransformedData WHERE date > :from AND date <= :to AND sysSn = :sysSN " +
             "GROUP BY date, substr(minute, 0, instr(minute,':')) ORDER BY DATE_TIME")
     public abstract List<CostInputRow> getSelectedAlphaESSData(String sysSN, String from, String to);
+
+    @Query("SELECT * FROM alphaESSRawPower WHERE sysSn = :serialNumber AND uploadTime LIKE :from || '%'")
+    public abstract List<AlphaESSRawPower> getAlphaESSPowerForSharing(String serialNumber, String from);
+
+    @Query("SELECT * FROM alphaESSRawEnergy WHERE sysSn = :serialNumber ")
+    public abstract List<AlphaESSRawEnergy> getAlphaESSEnergyForSharing(String serialNumber);
+
+    @Query("SELECT * FROM alphaESSRawEnergy WHERE sysSn = :serialNumber AND theDate = :date")
+    public abstract AlphaESSRawEnergy getAlphaESSEnergyForDate(String serialNumber, String date);
+
+    @Query("SELECT DISTINCT theDate FROM alphaESSRawEnergy WHERE sysSn = :serialNumber ORDER BY theDate ASC")
+    public abstract List<String> getExportDatesForSN(String serialNumber);
 }
 

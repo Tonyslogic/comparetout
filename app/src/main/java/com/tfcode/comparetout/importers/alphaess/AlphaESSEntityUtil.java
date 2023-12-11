@@ -54,6 +54,18 @@ public class AlphaESSEntityUtil {
         return entities;
     }
 
+    public static AlphaESSRawPower getPowerRowFromJsonDataItem (GetOneDayPowerResponse.DataItem entry) {
+        AlphaESSRawPower entity = new AlphaESSRawPower();
+        entity.setSysSn(entry.sysSn);
+        entity.setUploadTime(entry.uploadTime);
+        entity.setPpv(entry.ppv);
+        entity.setLoad(entry.load);
+        entity.setCbat(entry.cbat);
+        entity.setFeedIn(entry.feedIn);
+        entity.setGridCharge(entry.gridCharge);
+        entity.setPchargingPile(entry.pchargingPile);
+        return entity;
+    }
     public static AlphaESSRawEnergy getEnergyRowFromJson (GetOneDayEnergyResponse oder) {
         AlphaESSRawEnergy entity = new AlphaESSRawEnergy();
         entity.setSysSn(oder.data.sysSn);
@@ -65,6 +77,20 @@ public class AlphaESSEntityUtil {
         entity.setEnergyGridCharge(oder.data.eGridCharge);
         entity.setEnergyDischarge(oder.data.eDischarge);
         entity.setEnergyChargingPile(oder.data.eChargingPile);
+        return entity;
+    }
+
+    public static AlphaESSRawEnergy getEnergyRowFromJsonDataItem (GetOneDayEnergyResponse.DataItem data) {
+        AlphaESSRawEnergy entity = new AlphaESSRawEnergy();
+        entity.setSysSn(data.sysSn);
+        entity.setTheDate(data.theDate);
+        entity.setEnergyCharge(data.eCharge);
+        entity.setEnergypv(data.epv);
+        entity.setEnergyOutput(data.eOutput);
+        entity.setEnergyInput(data.eInput);
+        entity.setEnergyGridCharge(data.eGridCharge);
+        entity.setEnergyDischarge(data.eDischarge);
+        entity.setEnergyChargingPile(data.eChargingPile);
         return entity;
     }
 

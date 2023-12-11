@@ -18,18 +18,30 @@ package com.tfcode.comparetout.importers.alphaess;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.webkit.WebView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager2.widget.ViewPager2;
 import androidx.webkit.WebViewAssetLoader;
+import androidx.work.Data;
+import androidx.work.ExistingWorkPolicy;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
 
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
@@ -49,8 +61,33 @@ public class ImportAlphaActivity extends AppCompatActivity {
     private View mPopupView;
     private PopupWindow mHelpWindow;
 
+    final ActivityResultLauncher<String> mLoadAlphaESSDataFromFile = registerForActivityResult(new ActivityResultContracts.GetContent(),
+            new ActivityResultCallback<Uri>() {
+                @Override
+                public void onActivityResult(Uri uri) {
+                    // Handle the returned Uri
+                    if (uri == null) return;
+                    String uri_s = uri.toString();
 
-    @SuppressLint("MissingInflatedId")
+                    Data inputData = new Data.Builder()
+                            .putString(ImportWorker.KEY_SYSTEM_SN, mSerialNumber)
+                            .putString(ImportWorker.KEY_URI, uri_s)
+                            .build();
+                    OneTimeWorkRequest importWorkRequest =
+                            new OneTimeWorkRequest.Builder(ImportWorker.class)
+                                    .setInputData(inputData)
+                                    .addTag(mSerialNumber + "Import")
+                                    .build();
+                    WorkManager.getInstance(getApplicationContext()).pruneWork();
+                    WorkManager
+                            .getInstance(getApplicationContext())
+                            .beginUniqueWork(mSerialNumber, ExistingWorkPolicy.APPEND, importWorkRequest)
+                            .enqueue();
+                }
+            });
+
+
+    @SuppressLint({"MissingInflatedId", "InflateParams"})
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -74,7 +111,49 @@ public class ImportAlphaActivity extends AppCompatActivity {
 
         ActionBar mActionBar = Objects.requireNonNull(getSupportActionBar());
         mActionBar.setTitle("AlphaESS Importer");
+    }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_importer, menu);
+        int colour = Color.parseColor("White");
+        menu.findItem(R.id.load).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        menu.findItem(R.id.export).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        menu.findItem(R.id.help).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int itemID = item.getItemId();
+        if (itemID == R.id.load) {
+            mLoadAlphaESSDataFromFile.launch("*/*");
+            return (true);
+        }
+        if (itemID == R.id.export) {
+            System.out.println("Export attempt ");
+            // start the  worker for the selected serial
+            Data inputData = new Data.Builder()
+                    .putString(ExportWorker.KEY_SYSTEM_SN, mSerialNumber)
+                    .build();
+            OneTimeWorkRequest exportWorkRequest =
+                    new OneTimeWorkRequest.Builder(ExportWorker.class)
+                            .setInputData(inputData)
+                            .addTag(mSerialNumber + "Export")
+                            .build();
+            WorkManager.getInstance(this).pruneWork();
+            WorkManager
+                    .getInstance(this)
+                    .beginUniqueWork(mSerialNumber, ExistingWorkPolicy.APPEND, exportWorkRequest)
+                    .enqueue();
+            return (true);
+        }
+        if (itemID == R.id.help) {
+            showHelp("https://appassets.androidplatform.net/assets/main/TODO.html");
+        }
+
+        return(super.onOptionsItemSelected(item));
     }
 
     private void setupViewPager() {

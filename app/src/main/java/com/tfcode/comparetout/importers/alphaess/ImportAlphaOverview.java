@@ -622,12 +622,12 @@ public class ImportAlphaOverview extends Fragment {
 
                     if (!(null == mSerialNumber)) {
                         String range = mInverterDateRangesBySN.get(mSerialNumber);
-                        String[] parts = new String[2];
+                        String[] parts;
                         if (range != null) {
                             parts = range.split(" <-> ");
+                            mCostViewModel.setDBStart(LocalDateTime.parse(parts[0] + MIDNIGHT, PARSER_FORMATTER));
+                            mCostViewModel.setDBEnd(LocalDateTime.parse(parts[1] + MIDNIGHT, PARSER_FORMATTER));
                         }
-                        mCostViewModel.setDBStart(LocalDateTime.parse(parts[0] + MIDNIGHT, PARSER_FORMATTER));
-                        mCostViewModel.setDBEnd(LocalDateTime.parse(parts[1] + MIDNIGHT, PARSER_FORMATTER));
 //                        mCostViewModel.setAvailableDates(mCostViewModel.getDBStart().format(DISPLAY_FORMAT) + " <-> " + mCostViewModel.getDBEnd().format(DISPLAY_FORMAT));
                     }
 

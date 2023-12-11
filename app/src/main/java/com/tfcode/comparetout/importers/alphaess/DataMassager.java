@@ -19,6 +19,7 @@ package com.tfcode.comparetout.importers.alphaess;
 import android.annotation.SuppressLint;
 
 import com.tfcode.comparetout.importers.alphaess.responses.GetOneDayPowerResponse;
+import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawPower;
 
 import java.text.SimpleDateFormat;
 import java.time.Instant;
@@ -130,6 +131,30 @@ public class DataMassager {
                 double load = item.load;
                 double feed = item.feedIn;
                 double buy = item.gridCharge;
+                DataPoint dp = new DataPoint(ppv, load, feed, buy, uplTime);
+                dataPointList.add(dp);
+            }
+        }
+        return dataPointList;
+    }
+
+    public static List<DataPoint> getDataPointsForPowerResponse(List<AlphaESSRawPower> oneDayPowerResponse) {
+        List<DataPoint> dataPointList = new ArrayList<>();
+        if (!(null == oneDayPowerResponse) && !(oneDayPowerResponse.isEmpty())) {
+            for (AlphaESSRawPower item : oneDayPowerResponse) {
+                // Get uploadTime and get milliseconds for it
+                long uplTime = 0;
+                @SuppressLint("SimpleDateFormat") SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                try {
+                    Date date = dateFormat.parse(item.getUploadTime());
+                    if (!(null == date)) uplTime = date.getTime();
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+                double ppv = item.getPpv();
+                double load = item.getLoad();
+                double feed = item.getFeedIn();
+                double buy = item.getGridCharge();
                 DataPoint dp = new DataPoint(ppv, load, feed, buy, uplTime);
                 dataPointList.add(dp);
             }

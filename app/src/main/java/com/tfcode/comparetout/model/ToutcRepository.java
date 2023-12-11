@@ -681,4 +681,19 @@ public class ToutcRepository {
     public List<CostInputRow> getSelectedAlphaESSData(String serialNumber, String from, String to) {
         return alphaEssDAO.getSelectedAlphaESSData(serialNumber, from, to);
     }
+
+    public List<AlphaESSRawPower> getAlphaESSPowerForSharing(String serialNumber, String from) {
+        return alphaEssDAO.getAlphaESSPowerForSharing(serialNumber, from);
+    }
+
+    public List<AlphaESSRawEnergy> getAlphaESSEnergyForSharing(String serialNumber) {
+        return alphaEssDAO.getAlphaESSEnergyForSharing(serialNumber);
+    }
+    public AlphaESSRawEnergy getAlphaESSEnergyForDate (String serialNumber, String date) {
+        return alphaEssDAO.getAlphaESSEnergyForDate(serialNumber, date);
+    }
+
+    public List<String> getExportDatesForSN(String serialNumber) {
+        return alphaEssDAO.getExportDatesForSN(serialNumber);
+    }
 }

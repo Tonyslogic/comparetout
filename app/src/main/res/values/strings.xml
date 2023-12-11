@@ -223,4 +223,7 @@
     <string name="DataTabName">Data</string>
     <string name="esbn_hdf_file">ESBN HDF, File</string>
     <string name="dataMgmtOnScreenHelp">Manage your data sources</string>
+    <string name="alphaess_export_notification_title">AlphaESS Export</string>
+    <string name="export_alpha_channel_id">AlphaESS Export</string>
+    <string name="alphaess_import_notification_title">AlphaESS file import</string>
 </resources>

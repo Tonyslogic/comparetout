@@ -22,6 +22,8 @@ import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 
 import com.tfcode.comparetout.model.costings.Costings;
+import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawEnergy;
+import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawPower;
 import com.tfcode.comparetout.model.importers.alphaess.CostInputRow;
 import com.tfcode.comparetout.model.importers.alphaess.IntervalRow;
 import com.tfcode.comparetout.model.importers.alphaess.InverterDateRange;
@@ -493,5 +495,17 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public List<CostInputRow> getSelectedAlphaESSData(String serialNumber, String from, String to) {
         return toutcRepository.getSelectedAlphaESSData(serialNumber, from, to);
+    }
+
+    public List<AlphaESSRawPower> getAlphaESSPowerForSharing(String serialNumber, String from) {
+        return toutcRepository.getAlphaESSPowerForSharing(serialNumber, from);
+    }
+
+    public List<AlphaESSRawEnergy> getAlphaESSEnergyForSharing(String serialNumber) {
+        return toutcRepository.getAlphaESSEnergyForSharing(serialNumber);
+    }
+
+    public List<String> getExportDatesForSN(String serialNumber) {
+        return toutcRepository.getExportDatesForSN(serialNumber);
     }
 }
