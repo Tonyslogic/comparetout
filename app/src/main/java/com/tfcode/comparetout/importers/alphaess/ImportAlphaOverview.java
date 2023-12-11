@@ -395,7 +395,7 @@ public class ImportAlphaOverview extends Fragment {
             selectDatesButton.setText(R.string.select_dates);
             selectDatesButton.setEnabled(!(null == mInverterDateRangesBySN) && !(null == mInverterDateRangesBySN.get(mSerialNumber)));
             CalendarConstraints.Builder calendarConstraintsBuilder = new CalendarConstraints.Builder();
-            if (mCostViewModel.isLoaded()) {
+            if (mCostViewModel.isReadyToCost()) {
                 calendarConstraintsBuilder.setEnd(mCostViewModel.getDBEnd().atZone(ZoneId.ofOffset("UTC", ZoneOffset.UTC)).toInstant().toEpochMilli());
                 calendarConstraintsBuilder.setStart(mCostViewModel.getDBStart().atZone(ZoneId.ofOffset("UTC", ZoneOffset.UTC)).toInstant().toEpochMilli());
             }
@@ -420,7 +420,8 @@ public class ImportAlphaOverview extends Fragment {
                     mCostViewModel.setTotalDaysSelected(DAYS.between(mCostViewModel.getSelectedStart(), mCostViewModel.getSelectedEnd()));
                     mCostViewModel.setCostings(null);
                 }
-                loadSelectedDatesIntoCostViewModel();
+                mCostViewModel.setLoaded(true);
+//                loadSelectedDatesIntoCostViewModel();
                 updateView();
             });
 
@@ -450,8 +451,11 @@ public class ImportAlphaOverview extends Fragment {
             costButton.setText(R.string.CostData);
             assert availableDateValue != null;
 //            costButton.setEnabled(!(availableDateValue.equals("Awaiting data")));
-            costButton.setEnabled(mCostViewModel.isLoaded());
+            costButton.setEnabled(mCostViewModel.isReadyToCost());
             costButton.setOnClickListener(v -> new Thread(() -> {
+                costButton.setText(R.string.loading);
+                loadSelectedDatesIntoCostViewModel();
+                costButton.setText(R.string.CostData);
                 mCostViewModel.setCostings(new CopyOnWriteArrayList<>());
                 // Do the costing
                 // Load PricePlans
@@ -647,7 +651,7 @@ public class ImportAlphaOverview extends Fragment {
 
         mCostViewModel.setLoaded(false);
         if (!(null == mInverterDateRangesBySN) && !(null == mSerialNumber) && !(null == mInverterDateRangesBySN.get(mSerialNumber))) {
-            new Thread(() -> {
+//            new Thread(() -> {
                 String range = mInverterDateRangesBySN.get(mSerialNumber);
 
                 String[] parts = new String[2];
@@ -664,7 +668,7 @@ public class ImportAlphaOverview extends Fragment {
                 }
                 mCostViewModel.setLoaded(true);
                 mMainHandler.post(this::updateView);
-            }).start();
+//            }).start();
         }
     }
 

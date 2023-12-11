@@ -55,7 +55,7 @@ public class CostViewModel extends AndroidViewModel {
         this.mPlans = mPlans;
     }
 
-    public boolean isLoaded() {
+    public boolean isReadyToCost() {
         return mLoaded;
     }
 

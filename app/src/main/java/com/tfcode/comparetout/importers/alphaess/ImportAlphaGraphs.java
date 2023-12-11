@@ -804,7 +804,7 @@ public class ImportAlphaGraphs extends Fragment {
                 xAxis.setValueFormatter(new ValueFormatter() {
                     @Override
                     public String getFormattedValue(float value) {
-                        if ((int)value > xLabel.size()) return "??";
+                        if ((int)value >= xLabel.size()) return "??";
                         else return xLabel.get((int) value);
                     }
                 });
@@ -814,7 +814,7 @@ public class ImportAlphaGraphs extends Fragment {
                 xAxis.setValueFormatter(new ValueFormatter() {
                     @Override
                     public String getFormattedValue(float value) {
-                        if ((int)value > mGraphData.size()) return "??";
+                        if ((int)value >= mGraphData.size()) return "??";
                         else return mGraphData.get((int) value).interval;
                     }
                 });

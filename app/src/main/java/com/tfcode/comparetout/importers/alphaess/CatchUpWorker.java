@@ -131,11 +131,11 @@ public class CatchUpWorker extends Worker {
                     System.out.println("CatchupWorker storing normalizedEntityList " + normalizedEntityList.size());
 
                     // Sleep to avoid API limits
-                    Thread.sleep(1100);
+                    Thread.sleep(1200);
                 }
                 else {
                     System.out.println("CatchupWorker got null data for " + current);
-                    Thread.sleep(1100);
+                    Thread.sleep(1200);
                     continue;
                 }
             } catch (AlphaESSException e) {

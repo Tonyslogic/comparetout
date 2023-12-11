@@ -34,9 +34,17 @@ import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
 import com.tfcode.comparetout.R;
+import com.tfcode.comparetout.importers.alphaess.responses.GetOneDayEnergyResponse;
+import com.tfcode.comparetout.importers.alphaess.responses.GetOneDayPowerResponse;
 import com.tfcode.comparetout.model.ToutcRepository;
+import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawEnergy;
+import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawPower;
+import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+import java.util.Map;
 
 public class DailyWorker extends Worker {
 
@@ -45,11 +53,11 @@ public class DailyWorker extends Worker {
     private static final int mNotificationId = 2;
     private boolean mStopped = false;
 
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     public static final String KEY_SYSTEM_SN = "KEY_SYSTEM_SN";
     public static final String KEY_APP_ID = "KEY_APP_ID";
     public static final String KEY_APP_SECRET = "KEY_APP_SECRET";
-    public static final String KEY_START_DATE = "KEY_START_DATE";
 
     public static final String PROGRESS = "PROGRESS";
 
@@ -73,28 +81,65 @@ public class DailyWorker extends Worker {
     public Result doWork() {
         System.out.println("DailyWorker:doWork invoked ");
         Data inputData = getInputData();
-        OpenAlphaESSClient mOpenAlphaESSClient = new OpenAlphaESSClient(inputData.getString(KEY_APP_ID), inputData.getString(KEY_APP_SECRET));
+        OpenAlphaESSClient mOpenAlphaESSClient = new OpenAlphaESSClient(
+                inputData.getString(KEY_APP_ID), 
+                inputData.getString(KEY_APP_SECRET));
         String systemSN = inputData.getString(KEY_SYSTEM_SN);
 
-        LocalDate today = LocalDate.now();
-
-        // TODO: Ensure the data is not already in the DB (in case the catchup did it
-
-        // Mark the Worker as important
-        String progress = "Fetching yesterday";
-        setProgressAsync(new Data.Builder().putString(PROGRESS, today.toString()).build());
-        System.out.println("DailyWorker:Fetch " + today);
-        setProgressAsync(new Data.Builder().putString(PROGRESS, today.toString()).build());
-        ForegroundInfo foregroundInfo = createForegroundInfo("Done daily fetch of " + today);
-        mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
-        if (mStopped) mNotificationManager.cancel(mNotificationId);
-
-        try {
-            Thread.sleep(3000L);
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        LocalDate yesterday = LocalDate.now().plusDays(-1);
+        if (mToutcRepository.checkSysSnForDataOnDate(systemSN, yesterday.format(DATE_FORMAT))) {
+            System.out.println("DailyWorker skipping " + yesterday);
         }
+        else try {
+            System.out.println("DailyWorker fetching data for " + yesterday);
+            // Mark the Worker as important
+            String progress = "Starting Fetch";
+            setForegroundAsync(createForegroundInfo(progress));
+            setProgressAsync(new Data.Builder().putString(PROGRESS, yesterday.toString()).build());
 
+            // Get the data from AlphaESS (a) power, (b) energy
+            GetOneDayPowerResponse oneDayPowerBySn = mOpenAlphaESSClient.getOneDayPowerBySn(yesterday.format(DATE_FORMAT));
+            GetOneDayEnergyResponse oneDayEnergyBySn = mOpenAlphaESSClient.getOneDayEnergyBySn(yesterday.format(DATE_FORMAT));
+
+            if (!(null == oneDayPowerBySn) && !(null == oneDayEnergyBySn) && !(null == oneDayPowerBySn.data)) {
+                // Fix the power-data (5 minute alignment and missing entries)
+                List<DataMassager.DataPoint> points = DataMassager.getDataPointsForPowerResponse(oneDayPowerBySn);
+                Map<Long, FiveMinuteEnergies> fixed = DataMassager.oneDayDataInFiveMinuteIntervals(points);
+                // Get the total load (ePV - eOutput) + eInput
+                double ePV = oneDayEnergyBySn.data.epv;
+                double eLoad = (ePV - oneDayEnergyBySn.data.eOutput) + oneDayEnergyBySn.data.eInput;
+                double eFeed = oneDayEnergyBySn.data.eOutput;
+                double eBuy = oneDayEnergyBySn.data.eInput;
+                // Unitize and scale power (in kWh 5 minute intervals)
+                Map<Long, FiveMinuteEnergies> massaged = DataMassager.massage(fixed, ePV, eLoad, eFeed, eBuy);
+                System.out.println("DailyWorker storing data for " + yesterday);
+                // Store raw energy
+                AlphaESSRawEnergy energyEntity = AlphaESSEntityUtil.getEnergyRowFromJson(oneDayEnergyBySn);
+                mToutcRepository.addRawEnergy(energyEntity);
+                // Store raw power
+                List<AlphaESSRawPower> powerEntityList = AlphaESSEntityUtil.getPowerRowsFromJson(oneDayPowerBySn);
+                mToutcRepository.addRawPower(powerEntityList);
+                // Store transformed data
+                List<AlphaESSTransformedData> normalizedEntityList = AlphaESSEntityUtil.getTransformedDataRows(massaged, systemSN);
+                mToutcRepository.addTransformedData(normalizedEntityList);
+                System.out.println("DailyWorker storing normalizedEntityList " + normalizedEntityList.size());
+            }
+            else {
+                System.out.println("DailyWorker got null data for " + yesterday);
+            }
+            System.out.println("CatchUpWorker finished with " + yesterday);
+            setProgressAsync(new Data.Builder().putString(PROGRESS, yesterday.toString()).build());
+            ForegroundInfo foregroundInfo = createForegroundInfo("Done catching up with " + yesterday);
+            mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
+
+        } catch (AlphaESSException e) {
+            // check to see if we are exceeding limits and retry
+            e.printStackTrace();
+            System.out.println("CatchupWorker got a rate limit for " + yesterday);
+            if (!(null == e.getMessage()) && e.getMessage().startsWith("err.code=6053"))
+                return Result.retry();
+        }
+        if (mStopped) mNotificationManager.cancel(mNotificationId);
         return Result.success();
     }
 
