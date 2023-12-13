@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright (c) 2023. Tony Finnerty
+  ~
+  ~   Licensed under the Apache License, Version 2.0 (the "License");
+  ~    you may not use this file except in compliance with the License.
+  ~    You may obtain a copy of the License at
+  ~
+  ~        http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~    Unless required by applicable law or agreed to in writing, software
+  ~    distributed under the License is distributed on an "AS IS" BASIS,
+  ~    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~    See the License for the specific language governing permissions and
+  ~    limitations under the License.
+  -->
+
+<androidx.core.widget.NestedScrollView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    tools:context=".importers.alphaess.ImportAlphaGraphs">
+
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        tools:context=".importers.alphaess.ImportAlphaGraphs">
+
+        <TableLayout
+            android:id="@+id/alphaess_graph_layout"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintLeft_toRightOf="@id/alphaess_filter_layout"
+            app:layout_constraintRight_toRightOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintWidth_percent="0.92">
+
+            <TextView
+                android:id="@+id/picks"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center|top"
+                android:padding="2dp"
+                android:scaleType="fitCenter"
+                android:text="@string/NoRange"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/picks">
+
+                <com.github.mikephil.charting.charts.BarChart
+                    android:id="@+id/alphaess_bar_chart"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:visibility="invisible" >
+                </com.github.mikephil.charting.charts.BarChart>
+
+                <com.github.mikephil.charting.charts.LineChart
+                    android:id="@+id/alphaess_line_chart"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:visibility="invisible" />
+
+                <TableLayout
+                    android:id="@+id/alphaess_pie_chart"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:visibility="invisible" />
+
+                <TextView
+                    android:id="@+id/alphaess_no_data"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:padding="2dp"
+                    android:scaleType="fitCenter"
+                    android:text="@string/no_data_available"
+                    android:visibility="visible"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/picks" />
+
+            </FrameLayout>
+
+        </TableLayout>
+
+        <LinearLayout
+            android:id="@+id/alphaess_filter_layout"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:orientation="vertical"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintLeft_toLeftOf="parent"
+            app:layout_constraintRight_toLeftOf="@id/alphaess_graph_layout"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintWidth_percent="0.08">
+
+            <!--            <ImageButton -->
+            <!--                android:layout_height="wrap_content" -->
+            <!--                android:layout_width="match_parent">-->
+
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/interval"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:adjustViewBounds="true"
+                android:gravity="center|center_horizontal"
+                android:padding="2dp"
+                android:scaleType="fitCenter"
+                android:text="@string/hour" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/mode"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:adjustViewBounds="true"
+                android:gravity="center|center_horizontal"
+                android:padding="2dp"
+                android:scaleType="fitCenter"
+                android:text="@string/sum" />
+
+            <ImageButton
+                android:id="@+id/previous"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="2"
+                android:adjustViewBounds="true"
+                android:background="@null"
+                android:contentDescription="@string/go_back_one_day"
+                android:padding="2dp"
+                android:scaleType="fitCenter"
+                android:src="@android:drawable/ic_media_rew" />
+
+            <ImageButton
+                android:id="@+id/date"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="2"
+                android:adjustViewBounds="true"
+                android:background="@null"
+                android:contentDescription="@string/select_dates"
+                android:gravity="center|center_horizontal"
+                android:padding="2dp"
+                android:scaleType="fitCenter"
+                android:src="@android:drawable/ic_menu_my_calendar" />
+
+            <ImageButton
+                android:id="@+id/next"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="2"
+                android:adjustViewBounds="true"
+                android:background="@null"
+                android:contentDescription="@string/go_forward_one_day"
+                android:padding="2dp"
+                android:scaleType="fitCenter"
+                android:src="@android:drawable/ic_media_ff" />
+
+            <ImageButton
+                android:id="@+id/chartType"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="2"
+                android:adjustViewBounds="true"
+                android:background="@null"
+                android:contentDescription="@string/go_forward_one_day"
+                android:padding="2dp"
+                android:scaleType="fitCenter"
+                android:src="@android:drawable/ic_menu_view" />
+
+            <ImageButton
+                android:id="@+id/filter"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="2"
+                android:adjustViewBounds="true"
+                android:background="@null"
+                android:contentDescription="@string/filter_graph_content"
+                android:padding="2dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_baseline_filter_list_24"
+                app:tint="@android:color/darker_gray" />
+
+        </LinearLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.core.widget.NestedScrollView>

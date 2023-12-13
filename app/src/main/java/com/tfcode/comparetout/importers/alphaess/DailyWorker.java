@@ -86,7 +86,7 @@ public class DailyWorker extends Worker {
                 inputData.getString(KEY_APP_SECRET));
         String systemSN = inputData.getString(KEY_SYSTEM_SN);
 
-        LocalDate yesterday = LocalDate.now().plusDays(-1);
+        LocalDate yesterday = LocalDate.now();//.plusDays(-1);
         if (mToutcRepository.checkSysSnForDataOnDate(systemSN, yesterday.format(DATE_FORMAT))) {
             System.out.println("DailyWorker skipping " + yesterday);
         }

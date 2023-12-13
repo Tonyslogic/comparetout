@@ -226,4 +226,5 @@
     <string name="alphaess_export_notification_title">AlphaESS Export</string>
     <string name="export_alpha_channel_id">AlphaESS Export</string>
     <string name="alphaess_import_notification_title">AlphaESS file import</string>
+    <string name="zoom">Show or hide the menu bar and tabs</string>
 </resources>

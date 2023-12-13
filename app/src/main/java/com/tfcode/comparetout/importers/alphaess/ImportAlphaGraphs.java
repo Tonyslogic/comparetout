@@ -18,6 +18,7 @@ package com.tfcode.comparetout.importers.alphaess;
 
 import android.annotation.SuppressLint;
 import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.DashPathEffect;
 import android.icu.text.DecimalFormat;
@@ -183,6 +184,7 @@ public class ImportAlphaGraphs extends Fragment {
             mSystemSN = savedInstanceState.getString(SYSTEM);
             mFrom = savedInstanceState.getString(FROM);
             mTo = savedInstanceState.getString(TO);
+            setSelectionText();
             mDisplayInterval = IntervalType.values()[savedInstanceState.getInt(INTERVAL)];
             mStepInterval = StepIntervalType.values()[savedInstanceState.getInt(STEP_INTERVAL)];
             mCalculation = CalculationType.values()[savedInstanceState.getInt(CALCULATION)];
@@ -198,9 +200,11 @@ public class ImportAlphaGraphs extends Fragment {
                 mInverterDateRangesBySN.put(inverterDateRange.sysSn, new Pair<>(inverterDateRange.startDate, inverterDateRange.finishDate));
             }
             if (!(null == mSystemSN) && !(null == mInverterDateRangesBySN.get(mSystemSN))) {
-                mFrom = Objects.requireNonNull(mInverterDateRangesBySN.get(mSystemSN)).first;
-                mTo = Objects.requireNonNull(mInverterDateRangesBySN.get(mSystemSN)).second;
-                mMainHandler.post(this::setSelectionText);
+                if (null == savedInstanceState) {
+                    mFrom = Objects.requireNonNull(mInverterDateRangesBySN.get(mSystemSN)).first;
+                    mTo = Objects.requireNonNull(mInverterDateRangesBySN.get(mSystemSN)).second;
+                    mMainHandler.post(this::setSelectionText);
+                }
                 mMainHandler.post(this::updateKPIs);
             }
         });
@@ -511,6 +515,11 @@ public class ImportAlphaGraphs extends Fragment {
     }
 
     private void updateView() {
+        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
+            ImportAlphaActivity activity = (ImportAlphaActivity)getActivity();
+            if (!(null == activity)) activity.hideFAB();
+        }
+
         boolean showText = false;
         if (!(null == mGraphData) && !mGraphData.isEmpty()) {
             switch (mChartView) {
@@ -661,11 +670,17 @@ public class ImportAlphaGraphs extends Fragment {
 
             topRow.addView(loadPie);
             topRow.addView(pvPie);
-            bottomRow.addView(buyPie);
-            bottomRow.addView(feedPie);
-
-            mPieCharts.addView(topRow);
-            mPieCharts.addView(bottomRow);
+            if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                topRow.addView(buyPie);
+                topRow.addView(feedPie);
+                mPieCharts.addView(topRow);
+            }
+            else {
+                bottomRow.addView(buyPie);
+                bottomRow.addView(feedPie);
+                mPieCharts.addView(topRow);
+                mPieCharts.addView(bottomRow);
+            }
         }
     }
 

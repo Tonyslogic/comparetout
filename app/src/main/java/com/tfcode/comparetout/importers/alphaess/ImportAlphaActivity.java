@@ -43,6 +43,7 @@ import androidx.work.ExistingWorkPolicy;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
 
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.R;
@@ -60,6 +61,8 @@ public class ImportAlphaActivity extends AppCompatActivity {
     private WebViewAssetLoader mAssetLoader;
     private View mPopupView;
     private PopupWindow mHelpWindow;
+
+    private boolean mZoom = false;
 
     final ActivityResultLauncher<String> mLoadAlphaESSDataFromFile = registerForActivityResult(new ActivityResultContracts.GetContent(),
             new ActivityResultCallback<Uri>() {
@@ -86,6 +89,29 @@ public class ImportAlphaActivity extends AppCompatActivity {
                 }
             });
 
+    private void showFAB() {
+        FloatingActionButton fab = findViewById(R.id.zoom);
+        if (!(null == fab)) {
+            if (mViewPager.getCurrentItem() == 1) fab.show();
+            else {
+                fab.hide();
+                if (mZoom) {
+                    ActionBar actionBar = getSupportActionBar();
+                    TabLayout tabLayout = findViewById(R.id.import_alpha_tab_layout);
+                    if (!(null == actionBar) && !(null == tabLayout)) {
+                        actionBar.show();
+                        tabLayout.setVisibility(View.VISIBLE);
+                        mZoom = false;
+                    }
+                }
+            }
+        }
+    }
+
+    public void hideFAB() {
+        FloatingActionButton fab = findViewById(R.id.zoom);
+        if (!(null == fab)) fab.hide();
+    }
 
     @SuppressLint({"MissingInflatedId", "InflateParams"})
     @Override
@@ -111,6 +137,23 @@ public class ImportAlphaActivity extends AppCompatActivity {
 
         ActionBar mActionBar = Objects.requireNonNull(getSupportActionBar());
         mActionBar.setTitle("AlphaESS Importer");
+
+        FloatingActionButton fab = findViewById(R.id.zoom);
+        fab.setOnClickListener(view -> {
+            ActionBar actionBar = getSupportActionBar();
+            TabLayout tabLayout = findViewById(R.id.import_alpha_tab_layout);
+            if (!(null == actionBar) && !(null == tabLayout)) {
+                if (!(mZoom)) {
+                    actionBar.hide();
+                    tabLayout.setVisibility(View.GONE);
+                    mZoom = true;
+                }
+                else {
+                    actionBar.show();
+                    tabLayout.setVisibility(View.VISIBLE);
+                    mZoom = false;
+                }}
+        });
     }
 
     @Override
@@ -170,18 +213,27 @@ public class ImportAlphaActivity extends AppCompatActivity {
         mMediator.attach();
 
         LinearLayout linearLayout = (LinearLayout)tabLayout.getChildAt(0);
-        ((View)linearLayout.getChildAt(0)).setOnLongClickListener(v -> {
+        linearLayout.getChildAt(0).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/scenario/help.html");
             return true;});
-        ((View)linearLayout.getChildAt(1)).setOnLongClickListener(v -> {
+        linearLayout.getChildAt(1).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/scenario/detail_tab.html");
             return true;});
-        ((View)linearLayout.getChildAt(2)).setOnLongClickListener(v -> {
+        linearLayout.getChildAt(2).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/scenario/monthly_tab.html");
             return true;});
-        ((View)linearLayout.getChildAt(3)).setOnLongClickListener(v -> {
+        linearLayout.getChildAt(3).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/scenario/annual_tab.html");
             return true;});
+
+        mViewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+                super.onPageScrolled(position, positionOffset, positionOffsetPixels);
+                System.out.println("ImportAlphaActivity::onPageScrolled " + position);
+                showFAB();
+            }
+        });
     }
 
     @Override
@@ -194,7 +246,7 @@ public class ImportAlphaActivity extends AppCompatActivity {
 
     private void showHelp(String url) {
         mHelpWindow.setHeight((int) (getWindow().getDecorView().getHeight()*0.6));
-        mHelpWindow.setWidth((int) (getWindow().getDecorView().getWidth()));
+        mHelpWindow.setWidth(getWindow().getDecorView().getWidth());
         mHelpWindow.showAtLocation(mViewPager.getRootView(), Gravity.CENTER, 0, 0);
         WebView webView = mPopupView.findViewById(R.id.helpWebView);
 
