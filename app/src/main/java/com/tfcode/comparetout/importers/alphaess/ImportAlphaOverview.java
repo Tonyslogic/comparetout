@@ -79,7 +79,6 @@ import com.tfcode.comparetout.model.costings.SubTotals;
 import com.tfcode.comparetout.model.importers.alphaess.CostInputRow;
 import com.tfcode.comparetout.model.importers.alphaess.InverterDateRange;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
-import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 import com.tfcode.comparetout.util.RateLookup;
 
@@ -450,70 +449,62 @@ public class ImportAlphaOverview extends Fragment {
             MaterialButton costButton = new MaterialButton(activity);
             costButton.setText(R.string.CostData);
             assert availableDateValue != null;
-//            costButton.setEnabled(!(availableDateValue.equals("Awaiting data")));
             costButton.setEnabled(mCostViewModel.isReadyToCost());
-            costButton.setOnClickListener(v -> new Thread(() -> {
-                costButton.setText(R.string.loading);
-                loadSelectedDatesIntoCostViewModel();
-                costButton.setText(R.string.CostData);
-                mCostViewModel.setCostings(new CopyOnWriteArrayList<>());
-                // Do the costing
-                // Load PricePlans
-                List<PricePlan> plans = mToutcRepository.getAllPricePlansNow();
-                mCostViewModel.setPlans(plans);
-                double gridExportMax = mToutcRepository.getGridExportMaxForScenario(0L);
-                for (PricePlan pp : plans) {
-                    RateLookup lookup = new RateLookup(
-                            mToutcRepository.getAllDayRatesForPricePlanID(pp.getPricePlanIndex()));
-                    Costings costing = new Costings();
-                    costing.setScenarioID(0L);
-                    Scenario scenario = mToutcRepository.getScenarioForID(0L);
-                    if (!(null == scenario)) costing.setScenarioName(scenario.getScenarioName());
-                    costing.setPricePlanID(pp.getPricePlanIndex());
-                    costing.setFullPlanName(pp.getSupplier() + ":" + pp.getPlanName());
-                    double buy = 0D;
-                    double sell = 0D;
-                    double net;
-                    SubTotals subTotals = new SubTotals();
-                    for (Map.Entry<LocalDateTime, Double> usage : mCostViewModel.getImports().entrySet()) {
-                        if (usage.getKey().isAfter(mCostViewModel.getSelectedStart()) && usage.getKey().isBefore(mCostViewModel.getSelectedEnd())) {
-                            LocalDateTime ldt = usage.getKey();
-                            int doy = ldt.getDayOfYear();
-                            int mod = ldt.getHour() * 60 + ldt.getMinute();
-                            int dow = ldt.getDayOfWeek().getValue();
-                            double price = lookup.getRate(doy, mod, dow);
-                            double rowBuy = price * usage.getValue() / 2D;
-                            buy += rowBuy;
-                            subTotals.addToPrice(price, usage.getValue() / 2D);
-                        }
-                    }
-                    costing.setBuy(buy);
-                    if (pp.isDeemedExport() && !(null == scenario) && scenario.isHasInverters()) {
-                        sell = gridExportMax * 0.8148 * mCostViewModel.getTotalDaysSelected() * pp.getFeed();
-                        costing.setSell(sell);
-                    }
-                    else {
-                        for (Map.Entry<LocalDateTime, Double> usage : mCostViewModel.getExports().entrySet()) {
-                            if (usage.getKey().isAfter(mCostViewModel.getSelectedStart()) && usage.getKey().isBefore(mCostViewModel.getSelectedEnd())) {
-                                double price = pp.getFeed();
-                                double rowSell = price * usage.getValue() / 2D;
-                                sell += rowSell;
-                            }
-                        }
-                    }
-                    costing.setSell(sell);
-                    costing.setSubTotals(subTotals);
-                    net = ((buy - sell) + (pp.getStandingCharges() * 100 * (mCostViewModel.getTotalDaysSelected() / 365d)));
-                    costing.setNet(net);
-                    mCostViewModel.getCostings().add(costing);
-                    mMainHandler.post(this::updateCostView);
-                }
-            }).start());
+            costButton.setOnClickListener(v -> new Thread(() -> costSelection(costButton)).start());
             actionRow.addView(clearButton);
             actionRow.addView(costButton);
             mInputTable.addView(actionRow);
         }
         updateCostView();
+    }
+
+    private void costSelection(MaterialButton costButton) {
+        mMainHandler.post(() -> costButton.setText(R.string.loading));
+        loadSelectedDatesIntoCostViewModel();
+        mMainHandler.post(() -> costButton.setText(R.string.CostData));
+        mCostViewModel.setCostings(new CopyOnWriteArrayList<>());
+        // Do the costing
+        // Load PricePlans
+        List<PricePlan> plans = mToutcRepository.getAllPricePlansNow();
+        mCostViewModel.setPlans(plans);
+        for (PricePlan pp : plans) {
+            RateLookup lookup = new RateLookup(
+                    mToutcRepository.getAllDayRatesForPricePlanID(pp.getPricePlanIndex()));
+            Costings costing = new Costings();
+            costing.setScenarioID(0L);
+            costing.setPricePlanID(pp.getPricePlanIndex());
+            costing.setFullPlanName(pp.getSupplier() + ":" + pp.getPlanName());
+            double buy = 0D;
+            double sell = 0D;
+            double net;
+            SubTotals subTotals = new SubTotals();
+            for (Map.Entry<LocalDateTime, Double> usage : mCostViewModel.getImports().entrySet()) {
+                if (usage.getKey().isAfter(mCostViewModel.getSelectedStart()) && usage.getKey().isBefore(mCostViewModel.getSelectedEnd())) {
+                    LocalDateTime ldt = usage.getKey();
+                    int doy = ldt.getDayOfYear();
+                    int mod = ldt.getHour() * 60 + ldt.getMinute();
+                    int dow = ldt.getDayOfWeek().getValue();
+                    double price = lookup.getRate(doy, mod, dow);
+                    double rowBuy = price * usage.getValue();
+                    buy += rowBuy;
+                    subTotals.addToPrice(price, usage.getValue());
+                }
+            }
+            costing.setBuy(buy);
+            for (Map.Entry<LocalDateTime, Double> usage : mCostViewModel.getExports().entrySet()) {
+                if (usage.getKey().isAfter(mCostViewModel.getSelectedStart()) && usage.getKey().isBefore(mCostViewModel.getSelectedEnd())) {
+                    double price = pp.getFeed();
+                    double rowSell = price * usage.getValue();
+                    sell += rowSell;
+                }
+            }
+            costing.setSell(sell);
+            costing.setSubTotals(subTotals);
+            net = ((buy - sell) + (pp.getStandingCharges() * 100 * (mCostViewModel.getTotalDaysSelected() / 365d)));
+            costing.setNet(net);
+            mCostViewModel.getCostings().add(costing);
+            mMainHandler.post(this::updateCostView);
+        }
     }
 
     private void startWorkers(String serialNumber, Object startDate) {
@@ -632,7 +623,6 @@ public class ImportAlphaOverview extends Fragment {
                             mCostViewModel.setDBStart(LocalDateTime.parse(parts[0] + MIDNIGHT, PARSER_FORMATTER));
                             mCostViewModel.setDBEnd(LocalDateTime.parse(parts[1] + MIDNIGHT, PARSER_FORMATTER));
                         }
-//                        mCostViewModel.setAvailableDates(mCostViewModel.getDBStart().format(DISPLAY_FORMAT) + " <-> " + mCostViewModel.getDBEnd().format(DISPLAY_FORMAT));
                     }
 
                     mMainHandler.post(() -> updateView());
@@ -651,24 +641,22 @@ public class ImportAlphaOverview extends Fragment {
 
         mCostViewModel.setLoaded(false);
         if (!(null == mInverterDateRangesBySN) && !(null == mSerialNumber) && !(null == mInverterDateRangesBySN.get(mSerialNumber))) {
-//            new Thread(() -> {
-                String range = mInverterDateRangesBySN.get(mSerialNumber);
+            String range = mInverterDateRangesBySN.get(mSerialNumber);
 
-                String[] parts = new String[2];
-                if (!(null == range)) {
-                    parts = range.split(" <-> ");
-                }
-                List<CostInputRow> costInputRows = mViewModel.getSelectedAlphaESSData(mSerialNumber, parts[0], parts[1]);
-                mCostViewModel.setExports(new TreeMap<>());
-                mCostViewModel.setImports(new TreeMap<>());
-                for (CostInputRow costInputRow : costInputRows) {
-                    LocalDateTime readTime = LocalDateTime.parse(costInputRow.dateTime, PARSER_FORMATTER);
-                    mCostViewModel.getExports().put(readTime, costInputRow.feed);
-                    mCostViewModel.getImports().put(readTime, costInputRow.buy);
-                }
-                mCostViewModel.setLoaded(true);
-                mMainHandler.post(this::updateView);
-//            }).start();
+            String[] parts = new String[2];
+            if (!(null == range)) {
+                parts = range.split(" <-> ");
+            }
+            List<CostInputRow> costInputRows = mViewModel.getSelectedAlphaESSData(mSerialNumber, parts[0], parts[1]);
+            mCostViewModel.setExports(new TreeMap<>());
+            mCostViewModel.setImports(new TreeMap<>());
+            for (CostInputRow costInputRow : costInputRows) {
+                LocalDateTime readTime = LocalDateTime.parse(costInputRow.dateTime, PARSER_FORMATTER);
+                mCostViewModel.getExports().put(readTime, costInputRow.feed);
+                mCostViewModel.getImports().put(readTime, costInputRow.buy);
+            }
+            mCostViewModel.setLoaded(true);
+            mMainHandler.post(this::updateView);
         }
     }
 

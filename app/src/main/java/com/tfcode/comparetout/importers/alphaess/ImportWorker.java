@@ -25,7 +25,6 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.net.Uri;
-import android.os.Environment;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
@@ -36,9 +35,7 @@ import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonWriter;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.importers.alphaess.responses.GetOneDayEnergyResponse;
 import com.tfcode.comparetout.importers.alphaess.responses.GetOneDayPowerResponse;
@@ -46,16 +43,10 @@ import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawEnergy;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawPower;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
-import com.tfcode.comparetout.model.json.AlphaESSJsonTools;
-import com.tfcode.comparetout.model.json.importers.alphaess.AlphaESSExportJsonFile;
-import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
 
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
@@ -196,7 +187,10 @@ public class ImportWorker extends Worker {
             double ePV = energy.getEnergypv();
             double eLoad = (ePV - energy.getEnergyOutput()) + energy.getEnergyInput();
             double eFeed = energy.getEnergyOutput();
-            double eBuy = energy.getEnergyInput();
+//            double eBuy = energy.getEnergyInput() + energy.getEnergyGridCharge();
+            double eBuy = eLoad - (ePV - energy.getEnergyOutput() - energy.getEnergyCharge())
+                    - energy.getEnergyDischarge();
+            if (eBuy < 0D) eBuy = 0D;
             // Unitize and scale power (in kWh 5 minute intervals)
             Map<Long, FiveMinuteEnergies> massaged = DataMassager.massage(fixed, ePV, eLoad, eFeed, eBuy);
 

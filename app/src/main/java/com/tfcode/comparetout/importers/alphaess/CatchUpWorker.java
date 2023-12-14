@@ -115,7 +115,7 @@ public class CatchUpWorker extends Worker {
                     double ePV = oneDayEnergyBySn.data.epv;
                     double eLoad = (ePV - oneDayEnergyBySn.data.eOutput) + oneDayEnergyBySn.data.eInput;
                     double eFeed = oneDayEnergyBySn.data.eOutput;
-                    double eBuy = oneDayEnergyBySn.data.eInput;
+                    double eBuy = oneDayEnergyBySn.data.eInput + oneDayEnergyBySn.data.eGridCharge;
                     // Unitize and scale power (in kWh 5 minute intervals)
                     Map<Long, FiveMinuteEnergies> massaged = DataMassager.massage(fixed, ePV, eLoad, eFeed, eBuy);
                     System.out.println("CatchupWorker storing data for " + current);
