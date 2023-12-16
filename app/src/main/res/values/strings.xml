@@ -227,4 +227,15 @@
     <string name="export_alpha_channel_id">AlphaESS Export</string>
     <string name="alphaess_import_notification_title">AlphaESS file import</string>
     <string name="zoom">Show or hide the menu bar and tabs</string>
+    <string name="display_scale">Display scale</string>
+    <string name="by_hour">By Hour</string>
+    <string name="by_week">By Week</string>
+    <string name="by_day_of_year">By Day of Year</string>
+    <string name="by_month">By Month</string>
+    <string name="by_year">By Year</string>
+    <string name="steps_prev_next">Steps: Prev | Next</string>
+    <string name="by_day">By Day</string>
+    <string name="display_configuration">Display configuration</string>
+    <string name="calculation_configuration">Calculation configuration</string>
+    <string name="pick_a_chart_type">Pick a chart type</string>
 </resources>

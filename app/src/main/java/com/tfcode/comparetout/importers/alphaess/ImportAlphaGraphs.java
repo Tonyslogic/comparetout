@@ -16,6 +16,10 @@
 
 package com.tfcode.comparetout.importers.alphaess;
 
+import static com.tfcode.comparetout.importers.alphaess.IntervalType.*;
+import static com.tfcode.comparetout.importers.alphaess.IntervalType.WEEK;
+import static com.tfcode.comparetout.importers.alphaess.IntervalType.YEAR;
+
 import android.annotation.SuppressLint;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
@@ -92,7 +96,7 @@ public class ImportAlphaGraphs extends Fragment {
 
     private Map<String, Pair<String, String >> mInverterDateRangesBySN;
 
-    private IntervalType mDisplayInterval = IntervalType.HOUR;
+    private IntervalType mDisplayInterval = HOUR;
     private StepIntervalType mStepInterval = StepIntervalType.DAY;
     private CalculationType mCalculation = CalculationType.SUM;
     private ChartView mChartView = ChartView.BAR;
@@ -103,10 +107,11 @@ public class ImportAlphaGraphs extends Fragment {
     private static final DateTimeFormatter PARSER_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final String MIDNIGHT = " 00:00:00";
 
-    private MaterialButton mIntervalButton;
-    private MaterialButton mModeButton;
+    private ImageButton mIntervalButton;
+    private ImageButton mModeButton;
     private ImageButton mFilterButton;
     private PopupMenu mFilterPopup;
+    private PopupMenu mGraphConfigPopup;
 
     private BarChart mBarChart;
     private LineChart mLineChart;
@@ -185,7 +190,7 @@ public class ImportAlphaGraphs extends Fragment {
             mFrom = savedInstanceState.getString(FROM);
             mTo = savedInstanceState.getString(TO);
             setSelectionText();
-            mDisplayInterval = IntervalType.values()[savedInstanceState.getInt(INTERVAL)];
+            mDisplayInterval = values()[savedInstanceState.getInt(INTERVAL)];
             mStepInterval = StepIntervalType.values()[savedInstanceState.getInt(STEP_INTERVAL)];
             mCalculation = CalculationType.values()[savedInstanceState.getInt(CALCULATION)];
             mChartView = ChartView.values()[savedInstanceState.getInt(CHART)];
@@ -290,20 +295,14 @@ public class ImportAlphaGraphs extends Fragment {
         mPieCharts = view.findViewById((R.id.alphaess_pie_chart));
 
         mIntervalButton = view.findViewById((R.id.interval));
-        mIntervalButton.setOnClickListener(v -> {
-            mDisplayInterval = mDisplayInterval.next();
-            mIntervalButton.setText(mDisplayInterval.toString());
-            mIntervalButton.setGravity(Gravity.CENTER);
-            setSelectionText();
-            updateKPIs();
-        });
+        setupPopupGraphConfigurationMenu();
 
         mModeButton = view.findViewById(R.id.mode);
         mModeButton.setOnClickListener(v -> {
             mCalculation = mCalculation.next();
             setSelectionText();
-            mModeButton.setText(mCalculation.toString());
-            mModeButton.setGravity(Gravity.CENTER);
+            if (mCalculation == CalculationType.SUM) mModeButton.setImageResource(R.drawable.sigma);
+            else mModeButton.setImageResource(R.drawable.value_average);
             updateKPIs();
         });
 
@@ -343,13 +342,6 @@ public class ImportAlphaGraphs extends Fragment {
             setSelectionText();
             updateKPIs();
         });
-        mPreviousButton.setOnLongClickListener(v -> {
-            mStepInterval = mStepInterval.next();
-            if (!(null == getView())) Snackbar.make(getView(),
-                            "Step increment is now: " + mStepInterval.toString(), Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show();
-            return true;
-        });
 
         ImageButton mSelectionButton = view.findViewById(R.id.date);
         mSelectionButton.setOnClickListener(v -> {
@@ -380,13 +372,6 @@ public class ImportAlphaGraphs extends Fragment {
                 setSelectionText();
                 updateKPIs();
             });
-        });
-        mSelectionButton.setOnLongClickListener(v -> {
-            mStepInterval = mStepInterval.next();
-            if (!(null == getView())) Snackbar.make(getView(),
-                            "Step increment is now: " + mStepInterval.toString(), Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show();
-            return true;
         });
 
         ImageButton mNextButton = view.findViewById(R.id.next);
@@ -425,17 +410,13 @@ public class ImportAlphaGraphs extends Fragment {
             setSelectionText();
             updateKPIs();
         });
-        mNextButton.setOnLongClickListener(v -> {
-            mStepInterval = mStepInterval.next();
-            if (!(null == getView())) Snackbar.make(getView(),
-                            "Step increment is now: " + mStepInterval.toString(), Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show();
-            return true;
-        });
 
         ImageButton mChartTypeButton = view.findViewById(R.id.chartType);
         mChartTypeButton.setOnClickListener(v -> {
             mChartView = mChartView.next();
+            if (mChartView == ChartView.BAR) mChartTypeButton.setImageResource(R.drawable.barchart);
+            if (mChartView == ChartView.LINE) mChartTypeButton.setImageResource(R.drawable.line_chart);
+            if (mChartView == ChartView.PIE) mChartTypeButton.setImageResource(R.drawable.piechart_25);
             setSelectionText();
             updateKPIs();
         });
@@ -448,6 +429,80 @@ public class ImportAlphaGraphs extends Fragment {
     private void setSelectionText() {
         if (!(null == mFrom) && !(null == mTo) && !(null == mPicks))
             mPicks.setText("Range: " + mFrom + "<->" + mTo);
+    }
+
+    private void setupPopupGraphConfigurationMenu() {
+        if (null == mGraphConfigPopup) {
+            mGraphConfigPopup = new PopupMenu(requireActivity(), mIntervalButton, Gravity.CENTER_HORIZONTAL);
+            mGraphConfigPopup.getMenuInflater().inflate(R.menu.popup_menu_graph, mGraphConfigPopup.getMenu());
+
+            switch (mDisplayInterval) {
+                case HOUR:
+                    mGraphConfigPopup.getMenu().findItem(R.id.display_hour).setChecked(true);
+                    break;
+                case WEEK:
+                    mGraphConfigPopup.getMenu().findItem(R.id.display_week).setChecked(true);
+                    break;
+                case DOY:
+                    mGraphConfigPopup.getMenu().findItem(R.id.display_doy).setChecked(true);
+                    break;
+                case MNTH:
+                    mGraphConfigPopup.getMenu().findItem(R.id.display_month).setChecked(true);
+                    break;
+                case YEAR:
+                    mGraphConfigPopup.getMenu().findItem(R.id.display_year).setChecked(true);
+                    break;
+            }
+            switch (mStepInterval) {
+                case DAY:
+                    mGraphConfigPopup.getMenu().findItem(R.id.step_day).setChecked(true);
+                    break;
+                case WEEK:
+                    mGraphConfigPopup.getMenu().findItem(R.id.step_week).setChecked(true);
+                    break;
+                case MONTH:
+                    mGraphConfigPopup.getMenu().findItem(R.id.step_month).setChecked(true);
+                    break;
+                case YEAR:
+                    mGraphConfigPopup.getMenu().findItem(R.id.step_year).setChecked(true);
+                    break;
+            }
+
+
+            mGraphConfigPopup.setOnMenuItemClickListener(item -> {
+                item.setChecked(!item.isChecked());
+                int itemID = item.getItemId();
+
+                if (itemID == R.id.display_hour) mDisplayInterval = HOUR;
+                if (itemID == R.id.display_week) mDisplayInterval = WEEK;
+                if (itemID == R.id.display_doy) mDisplayInterval = DOY;
+                if (itemID == R.id.display_month) mDisplayInterval = MNTH;
+                if (itemID == R.id.display_year) mDisplayInterval = YEAR;
+
+                if (itemID == R.id.step_day) mStepInterval = StepIntervalType.DAY;
+                if (itemID == R.id.step_week) mStepInterval = StepIntervalType.WEEK;
+                if (itemID == R.id.step_month) mStepInterval = StepIntervalType.MONTH;
+                if (itemID == R.id.step_year) mStepInterval = StepIntervalType.YEAR;
+
+                updateKPIs();
+                // Keep the popup menu open
+                item.setShowAsAction(MenuItem.SHOW_AS_ACTION_COLLAPSE_ACTION_VIEW);
+                item.setActionView(new View(getActivity()));
+                item.setOnActionExpandListener(new MenuItem.OnActionExpandListener() {
+                    @Override
+                    public boolean onMenuItemActionExpand(MenuItem item) {
+                        return false;
+                    }
+
+                    @Override
+                    public boolean onMenuItemActionCollapse(MenuItem item) {
+                        return false;
+                    }
+                });
+                return false;
+            });
+        }
+        mIntervalButton.setOnClickListener(v -> mGraphConfigPopup.show());
     }
 
     private void setupPopupFilterMenu() {
@@ -829,8 +884,11 @@ public class ImportAlphaGraphs extends Fragment {
                 xAxis.setValueFormatter(new ValueFormatter() {
                     @Override
                     public String getFormattedValue(float value) {
-                        if ((int)value >= mGraphData.size()) return "??";
-                        else return mGraphData.get((int) value).interval;
+                        if (!(null == mGraphData)) {
+                            if ((int) value >= mGraphData.size()) return "??";
+                            else return mGraphData.get((int) value).interval;
+                        }
+                        else return "??";
                     }
                 });
                 break;

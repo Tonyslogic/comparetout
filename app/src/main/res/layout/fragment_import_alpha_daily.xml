@@ -108,27 +108,32 @@
                 android:gravity="center_horizontal"
                 tools:ignore="UselessParent">
 
-                <com.google.android.material.button.MaterialButton
+                <ImageButton
                     android:id="@+id/interval"
+                    android:background="@null"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:adjustViewBounds="true"
-                    android:gravity="center|center_vertical"
+                    android:contentDescription="@string/display_configuration"
                     android:padding="2dp"
                     android:scaleType="fitCenter"
-                    android:text="@string/hour"/>
+                    android:src="@android:drawable/ic_menu_gallery">
+                </ImageButton>
 
-                <com.google.android.material.button.MaterialButton
+                <ImageButton
                     android:id="@+id/mode"
+                    android:background="@null"
+                    android:src="@drawable/sigma"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:adjustViewBounds="true"
-                    android:gravity="center|center_vertical"
+                    android:contentDescription="@string/calculation_configuration"
                     android:padding="2dp"
                     android:scaleType="fitCenter"
-                    android:text="@string/sum" />
+                    app:tint="#9F9F9F">
+                </ImageButton>
 
                 <ImageButton
                     android:id="@+id/previous"
@@ -170,14 +175,15 @@
                 <ImageButton
                     android:id="@+id/chartType"
                     android:background="@null"
-                    android:src="@android:drawable/ic_menu_view"
+                    android:src="@drawable/barchart"
                     android:layout_width="0dp"
                     android:layout_height="match_parent"
                     android:layout_weight="1"
                     android:adjustViewBounds="true"
                     android:padding="2dp"
                     android:scaleType="fitCenter"
-                    android:contentDescription="@string/go_forward_one_day"/>
+                    android:contentDescription="@string/pick_a_chart_type"
+                    app:tint="#9F9F9F"/>
 
                 <ImageButton
                     android:id="@+id/filter"

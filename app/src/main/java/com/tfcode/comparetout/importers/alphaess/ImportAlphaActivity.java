@@ -260,7 +260,7 @@ public class ImportAlphaActivity extends AppCompatActivity {
 
     public void setSelectedSystemSN(String serialNumber) {
         mSerialNumber = serialNumber;
-        if (!(null == mViewPager.getAdapter()))
+        if (!(null == mViewPager) && !(null == mViewPager.getAdapter()))
             ((ImportAlphaViewPageAdapter)mViewPager.getAdapter()).setSelectedSystemSN(mSerialNumber);
     }
 }

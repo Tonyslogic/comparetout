@@ -1,0 +1,36 @@
+<!--
+  ~ Copyright (c) 2023. Tony Finnerty
+  ~
+  ~   Licensed under the Apache License, Version 2.0 (the "License");
+  ~    you may not use this file except in compliance with the License.
+  ~    You may obtain a copy of the License at
+  ~
+  ~        http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~    Unless required by applicable law or agreed to in writing, software
+  ~    distributed under the License is distributed on an "AS IS" BASIS,
+  ~    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~    See the License for the specific language governing permissions and
+  ~    limitations under the License.
+  -->
+
+<vector android:height="24dp" android:viewportHeight="744.09"
+    android:viewportWidth="744.09" android:width="24dp"
+    xmlns:aapt="http://schemas.android.com/aapt" xmlns:android="http://schemas.android.com/apk/res/android">
+    <path android:fillColor="#606675"
+        android:pathData="m97.38,110.24c-4.02,0 -7.25,3.07 -7.25,6.88v522.94,13.76c0,3.81 3.23,6.88 7.25,6.88h14.49,550.81c4.02,0 7.25,-3.07 7.25,-6.88v-13.76c0,-3.81 -3.23,-6.88 -7.25,-6.88H119.12V117.12c0,-3.81 -3.23,-6.88 -7.25,-6.88z" android:strokeWidth="1.61411"/>
+    <path android:fillColor="#5e6372"
+        android:pathData="m522.51,230.84c-11.75,0 -21.21,8.71 -21.21,19.52v338.41c0,10.82 9.46,19.52 21.21,19.52h113.13c11.75,0 21.21,-8.71 21.21,-19.52V250.36c0,-10.82 -9.46,-19.52 -21.21,-19.52z" android:strokeWidth="1.61411"/>
+    <path
+        android:pathData="m345.57,382.79c-11.75,0 -21.21,13.97 -21.21,31.32v162.86c0,17.35 9.46,31.32 21.21,31.32h113.13c11.75,0 21.21,-13.97 21.21,-31.32V414.11c0,-17.35 -9.46,-31.32 -21.21,-31.32z" android:strokeWidth="1.61411">
+        <aapt:attr name="android:fillColor">
+            <gradient android:endX="670.92" android:endY="32.02"
+                android:startX="192.93" android:startY="670.93" android:type="linear">
+                <item android:color="#FF4E505D" android:offset="0"/>
+                <item android:color="#FF7A8597" android:offset="1"/>
+            </gradient>
+        </aapt:attr>
+    </path>
+    <path android:fillColor="#606675"
+        android:pathData="m168.97,170.96c-11.75,0 -21.21,8.71 -21.21,19.52v398.28c0,10.82 9.46,19.52 21.21,19.52h113.13c11.75,0 21.21,-8.71 21.21,-19.52V190.49c0,-10.82 -9.46,-19.52 -21.21,-19.52z" android:strokeWidth="1.61411"/>
+</vector>

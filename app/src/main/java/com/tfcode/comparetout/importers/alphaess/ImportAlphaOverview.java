@@ -220,6 +220,7 @@ public class ImportAlphaOverview extends Fragment {
             mSerialNumber = savedInstanceState.getString(SERIAL_NUMBER);
             mHasCredentials = savedInstanceState.getBoolean(HAS_CREDENTIALS);
             mCredentialsAreGood = savedInstanceState.getBoolean(GOOD_CREDENTIALS);
+            if (!(null == mSerialNumber) && !(mSerialNumber.length() == 0)) serialUpdated(this.getContext());
         }
         mToutcRepository = new ToutcRepository(requireActivity().getApplication());
         mCostViewModel = new ViewModelProvider(this).get(CostViewModel.class);
@@ -409,8 +410,8 @@ public class ImportAlphaOverview extends Fragment {
                 mCostViewModel.setSelectedEnd(LocalDateTime.ofInstant(Instant.ofEpochMilli(selection.second), ZoneId.ofOffset("UTC", ZoneOffset.UTC)));
 
                 long days = DAYS.between(mCostViewModel.getSelectedStart(), mCostViewModel.getSelectedEnd());
-                if(days > 366) mCostViewModel.setSelectedDates("Too many days");
-                if (days < 7) mCostViewModel.setSelectedDates("Too few days");
+//                if(days > 366) mCostViewModel.setSelectedDates("Too many days");
+//                if (days < 7) mCostViewModel.setSelectedDates("Too few days");
                 if (mCostViewModel.getSelectedStart().isBefore(mCostViewModel.getDBStart())) mCostViewModel.setSelectedDates("Start not available");
                 if (mCostViewModel.getSelectedEnd().isAfter(mCostViewModel.getDBEnd())) mCostViewModel.setSelectedDates("End not available");
                 if (days >= 7 && days <= 366 && !(mCostViewModel.getSelectedStart().isBefore(mCostViewModel.getDBStart()))
@@ -437,7 +438,6 @@ public class ImportAlphaOverview extends Fragment {
             clearButton.setText(R.string.RemoveData);
             clearButton.setEnabled(!mFetchOngoing && !(null == mSerialNumber));
             clearButton.setOnClickListener(v -> {
-
                 AlertDialog.Builder alert = new AlertDialog.Builder(activity);
                 alert.setTitle("Delete system data");
                 alert.setMessage("Are you sure you want to delete?");
@@ -558,74 +558,7 @@ public class ImportAlphaOverview extends Fragment {
                 @Override
                 public void serialSelected(String serial) {
                     mSerialNumber = serial;
-                    ((ImportAlphaActivity) requireActivity()).setSelectedSystemSN(mSerialNumber);
-                    mSystemSelected = true;
-                    // Cleanup if needed
-                    if (!(null == mCatchupLiveDataForSN) && !(null == mCatchupWorkObserver)) {
-                        mCatchupLiveDataForSN.removeObserver(mCatchupWorkObserver);
-                        mFetchState = null;
-                    }
-                    if (!(null == mDailyLiveDataForSN) && !(null == mDailyWorkObserver)) {
-                        mDailyLiveDataForSN.removeObserver(mDailyWorkObserver);
-                    }
-                    // set up the observer for the selected systems workers
-                    mCatchupLiveDataForSN = WorkManager.getInstance(context)
-                            .getWorkInfosByTagLiveData(mSerialNumber);
-                    mCatchupWorkObserver = workInfos -> {
-                        for (WorkInfo wi : workInfos) {
-                            if ((!(null == wi)) && (wi.getState() == WorkInfo.State.RUNNING)) {
-                                Data progress = wi.getProgress();
-                                mFetchState = progress.getString(DailyWorker.PROGRESS);
-                                if (null == mFetchState) mFetchState = "Catchup done";
-                                mMainHandler.post(ImportAlphaOverview.this::updateView);
-                            }
-                            if ((!(null == wi)) && (wi.getState() == WorkInfo.State.SUCCEEDED)) {
-                                mFetchState = "Catchup done";
-                                mMainHandler.post(() -> updateView());
-                            }
-                        }
-                    };
-                    mCatchupLiveDataForSN.observe((AppCompatActivity) context, mCatchupWorkObserver);
-
-                    mDailyLiveDataForSN = WorkManager.getInstance(context)
-                            .getWorkInfosByTagLiveData(mSerialNumber + "daily");
-                    mDailyWorkObserver = workInfos -> {
-                        for (WorkInfo wi : workInfos) {
-                            if ((!(null == wi)) && (wi.getState() == WorkInfo.State.ENQUEUED)) {
-                                Data progress = wi.getProgress();
-                                mFetchState = progress.getString(CatchUpWorker.PROGRESS);
-                                if (null == mFetchState) mFetchState = "Daily fetch waiting";
-                                mMainHandler.post(ImportAlphaOverview.this::updateView);
-                            }
-                            if ((!(null == wi)) && (wi.getState() == WorkInfo.State.RUNNING)) {
-                                Data progress = wi.getProgress();
-                                mFetchState = progress.getString(CatchUpWorker.PROGRESS);
-                                if (null == mFetchState) mFetchState = "Daily fetching";
-                                mMainHandler.post(ImportAlphaOverview.this::updateView);
-                            }
-                            if ((!(null == wi)) && (wi.getState() == WorkInfo.State.SUCCEEDED)) {
-                                mFetchState = "Daily fetching done";
-                                mMainHandler.post(ImportAlphaOverview.this::updateView);
-                            }
-                        }
-                    };
-                    mDailyLiveDataForSN.observe((AppCompatActivity) context, mDailyWorkObserver);
-
-                    boolean d = isWorkScheduled(mSerialNumber + "daily");
-                    boolean c = isWorkScheduled(mSerialNumber);
-                    mFetchOngoing = d || c;
-
-                    if (!(null == mSerialNumber)) {
-                        String range = mInverterDateRangesBySN.get(mSerialNumber);
-                        String[] parts;
-                        if (range != null) {
-                            parts = range.split(" <-> ");
-                            mCostViewModel.setDBStart(LocalDateTime.parse(parts[0] + MIDNIGHT, PARSER_FORMATTER));
-                            mCostViewModel.setDBEnd(LocalDateTime.parse(parts[1] + MIDNIGHT, PARSER_FORMATTER));
-                        }
-                    }
-
-                    mMainHandler.post(() -> updateView());
+                    serialUpdated(context);
                 }
 
                 @Override
@@ -635,6 +568,77 @@ public class ImportAlphaOverview extends Fragment {
             });
             selectSerialDialog.show();
         }
+    }
+
+    private void serialUpdated(Context context) {
+        ((ImportAlphaActivity) requireActivity()).setSelectedSystemSN(mSerialNumber);
+        mSystemSelected = true;
+        // Cleanup if needed
+        if (!(null == mCatchupLiveDataForSN) && !(null == mCatchupWorkObserver)) {
+            mCatchupLiveDataForSN.removeObserver(mCatchupWorkObserver);
+            mFetchState = null;
+        }
+        if (!(null == mDailyLiveDataForSN) && !(null == mDailyWorkObserver)) {
+            mDailyLiveDataForSN.removeObserver(mDailyWorkObserver);
+        }
+        // set up the observer for the selected systems workers
+        mCatchupLiveDataForSN = WorkManager.getInstance(context)
+                .getWorkInfosByTagLiveData(mSerialNumber);
+        mCatchupWorkObserver = workInfos -> {
+            for (WorkInfo wi : workInfos) {
+                if ((!(null == wi)) && (wi.getState() == WorkInfo.State.RUNNING)) {
+                    Data progress = wi.getProgress();
+                    mFetchState = progress.getString(DailyWorker.PROGRESS);
+                    if (null == mFetchState) mFetchState = "Catchup done";
+                    mMainHandler.post(ImportAlphaOverview.this::updateView);
+                }
+                if ((!(null == wi)) && (wi.getState() == WorkInfo.State.SUCCEEDED)) {
+                    mFetchState = "Catchup done";
+                    mMainHandler.post(this::updateView);
+                }
+            }
+        };
+        mCatchupLiveDataForSN.observe((AppCompatActivity) context, mCatchupWorkObserver);
+
+        mDailyLiveDataForSN = WorkManager.getInstance(context)
+                .getWorkInfosByTagLiveData(mSerialNumber + "daily");
+        mDailyWorkObserver = workInfos -> {
+            for (WorkInfo wi : workInfos) {
+                if ((!(null == wi)) && (wi.getState() == WorkInfo.State.ENQUEUED)) {
+                    Data progress = wi.getProgress();
+                    mFetchState = progress.getString(CatchUpWorker.PROGRESS);
+                    if (null == mFetchState) mFetchState = "Daily fetch waiting";
+                    mMainHandler.post(ImportAlphaOverview.this::updateView);
+                }
+                if ((!(null == wi)) && (wi.getState() == WorkInfo.State.RUNNING)) {
+                    Data progress = wi.getProgress();
+                    mFetchState = progress.getString(CatchUpWorker.PROGRESS);
+                    if (null == mFetchState) mFetchState = "Daily fetching";
+                    mMainHandler.post(ImportAlphaOverview.this::updateView);
+                }
+                if ((!(null == wi)) && (wi.getState() == WorkInfo.State.SUCCEEDED)) {
+                    mFetchState = "Daily fetching done";
+                    mMainHandler.post(ImportAlphaOverview.this::updateView);
+                }
+            }
+        };
+        mDailyLiveDataForSN.observe((AppCompatActivity) context, mDailyWorkObserver);
+
+        boolean d = isWorkScheduled(mSerialNumber + "daily");
+        boolean c = isWorkScheduled(mSerialNumber);
+        mFetchOngoing = d || c;
+
+        if (!(null == mSerialNumber) && !(null == mInverterDateRangesBySN)) {
+            String range = mInverterDateRangesBySN.get(mSerialNumber);
+            String[] parts;
+            if (range != null) {
+                parts = range.split(" <-> ");
+                mCostViewModel.setDBStart(LocalDateTime.parse(parts[0] + MIDNIGHT, PARSER_FORMATTER));
+                mCostViewModel.setDBEnd(LocalDateTime.parse(parts[1] + MIDNIGHT, PARSER_FORMATTER));
+            }
+        }
+
+        if (!(null == mMainHandler)) mMainHandler.post(this::updateView);
     }
 
     private void loadSelectedDatesIntoCostViewModel() {
