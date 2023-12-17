@@ -29,6 +29,8 @@ import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
 import com.tfcode.comparetout.model.importers.alphaess.CostInputRow;
 import com.tfcode.comparetout.model.importers.alphaess.IntervalRow;
 import com.tfcode.comparetout.model.importers.alphaess.InverterDateRange;
+import com.tfcode.comparetout.model.importers.alphaess.KPIRow;
+import com.tfcode.comparetout.model.importers.alphaess.KeyStatsRow;
 
 import java.util.List;
 
@@ -184,5 +186,34 @@ public abstract class AlphaEssDAO {
 
     @Query("SELECT DISTINCT theDate FROM alphaESSRawEnergy WHERE sysSn = :serialNumber ORDER BY theDate ASC")
     public abstract List<String> getExportDatesForSN(String serialNumber);
+
+    @Query("SELECT main.Month, " +
+            "tot AS 'PV tot (kWh)', " +
+            "best || ' on ' || bestday AS 'Best', " +
+            "worst.bad || ' on ' || badday AS 'Worst' " +
+            "FROM  " +
+            "(SELECT substr(theDate, 3, 5) AS Month, " +
+            "SUM(energypv) AS tot, " +
+            "MAX(energypv) AS best, " +
+            "substr(theDate,9,2) AS bestday " +
+            "FROM alphaESSRawEnergy " +
+            "WHERE theDate >= :from AND theDate <= :to AND sysSn = :systemSN " +
+            "GROUP BY Month " +
+            ") AS main, " +
+            "( " +
+            "SELECT substr(theDate, 3, 5) AS bMonth, " +
+            "MIN(energypv) AS bad, " +
+            "substr(theDate,9,2) AS badday " +
+            "FROM alphaESSRawEnergy " +
+            "WHERE theDate >= :from AND theDate <= :to AND sysSn = :systemSN " +
+            "GROUP BY bMonth " +
+            ") AS worst " +
+            "WHERE worst.bMonth = main.Month " +
+            "GROUP BY Month ORDER BY Month ASC")
+    public abstract List<KeyStatsRow> getKeyStats(String from, String to, String systemSN);
+
+    @Query("SELECT ((sum(pv) - sum(feed)) / sum(pv)) * 100 AS SC, ((sum(pv) - sum(feed)) / sum(load)) * 100 AS SS " +
+            "FROM alphaESSTransformedData WHERE date >= :from AND date <= :to AND sysSn = :systemSN")
+    public abstract KPIRow getKPIs(String from, String to, String systemSN);
 }
 

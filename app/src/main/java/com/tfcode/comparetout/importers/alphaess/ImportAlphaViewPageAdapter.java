@@ -24,7 +24,7 @@ import androidx.viewpager2.adapter.FragmentStateAdapter;
 public class ImportAlphaViewPageAdapter  extends FragmentStateAdapter {
     ImportAlphaOverview mAlphaOverview = ImportAlphaOverview.newInstance();
     ImportAlphaGraphs mAlphaDaily = ImportAlphaGraphs.newInstance();
-    ImportAlphaKeyStats mAlphaMonthly = ImportAlphaKeyStats.newInstance();
+    ImportAlphaKeyStats mAlphaKeys = ImportAlphaKeyStats.newInstance();
     ImportAlphaHighsAndLows mAlphaYearly = ImportAlphaHighsAndLows.newInstance();
 
     public ImportAlphaViewPageAdapter(@NonNull FragmentActivity fragmentActivity, int ignoredCount) {
@@ -36,7 +36,7 @@ public class ImportAlphaViewPageAdapter  extends FragmentStateAdapter {
     public Fragment createFragment(int position) {
         if (position == 0) return mAlphaOverview;
         if (position == 1) return mAlphaDaily;
-        if (position == 2) return mAlphaMonthly;
+        if (position == 2) return mAlphaKeys;
         else return mAlphaYearly;
     }
 
@@ -47,5 +47,6 @@ public class ImportAlphaViewPageAdapter  extends FragmentStateAdapter {
 
     public void setSelectedSystemSN(String serialNumber) {
         mAlphaDaily.setSelectedSystemSN(serialNumber);
+        mAlphaKeys.setSelectedSystemSN(serialNumber);
     }
 }

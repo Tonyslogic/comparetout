@@ -27,6 +27,8 @@ import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
 import com.tfcode.comparetout.model.importers.alphaess.CostInputRow;
 import com.tfcode.comparetout.model.importers.alphaess.IntervalRow;
 import com.tfcode.comparetout.model.importers.alphaess.InverterDateRange;
+import com.tfcode.comparetout.model.importers.alphaess.KPIRow;
+import com.tfcode.comparetout.model.importers.alphaess.KeyStatsRow;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.Battery;
@@ -695,5 +697,13 @@ public class ToutcRepository {
 
     public List<String> getExportDatesForSN(String serialNumber) {
         return alphaEssDAO.getExportDatesForSN(serialNumber);
+    }
+
+    public List<KeyStatsRow> getKeyStats(String from, String to, String systemSN) {
+        return alphaEssDAO.getKeyStats(from, to, systemSN);
+    }
+
+    public KPIRow getKPIs(String from, String to, String systemSN) {
+        return alphaEssDAO.getKPIs(from, to, systemSN);
     }
 }

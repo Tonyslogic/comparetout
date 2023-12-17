@@ -224,6 +224,10 @@ public class ImportAlphaOverview extends Fragment {
         }
         mToutcRepository = new ToutcRepository(requireActivity().getApplication());
         mCostViewModel = new ViewModelProvider(this).get(CostViewModel.class);
+        if (!(null == savedInstanceState)) {
+            mCostViewModel.setDBStart(LocalDateTime.parse("1970-01-02" + MIDNIGHT, PARSER_FORMATTER));
+            mCostViewModel.setDBEnd(LocalDateTime.now());
+        }
         mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
         mViewModel.getLiveDateRanges().observe(this, dateRanges -> {
             if (null == mInverterDateRangesBySN) mInverterDateRangesBySN = new HashMap<>();
@@ -537,10 +541,16 @@ public class ImportAlphaOverview extends Fragment {
                     .putString(DailyWorker.KEY_SYSTEM_SN, serialNumber)
                     .build();
             int delay = 25 - LocalDateTime.now().getHour(); // Going for 01:00 <-> 02:00
+//            PeriodicWorkRequest dailyWorkRequest =
+//                    new PeriodicWorkRequest.Builder(DailyWorker.class, 1, TimeUnit.DAYS)
+//                            .setInputData(dailyData)
+//                            .setInitialDelay(delay, TimeUnit.HOURS)
+//                            .addTag(serialNumber + "daily")
+//                            .build();
             PeriodicWorkRequest dailyWorkRequest =
-                    new PeriodicWorkRequest.Builder(DailyWorker.class, 1, TimeUnit.DAYS)
+                    new PeriodicWorkRequest.Builder(DailyWorker.class, 1, TimeUnit.HOURS)
                             .setInputData(dailyData)
-                            .setInitialDelay(delay, TimeUnit.HOURS)
+                            .setInitialDelay(delay, TimeUnit.MINUTES)
                             .addTag(serialNumber + "daily")
                             .build();
             WorkManager

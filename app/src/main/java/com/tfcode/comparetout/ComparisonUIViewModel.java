@@ -27,6 +27,8 @@ import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawPower;
 import com.tfcode.comparetout.model.importers.alphaess.CostInputRow;
 import com.tfcode.comparetout.model.importers.alphaess.IntervalRow;
 import com.tfcode.comparetout.model.importers.alphaess.InverterDateRange;
+import com.tfcode.comparetout.model.importers.alphaess.KPIRow;
+import com.tfcode.comparetout.model.importers.alphaess.KeyStatsRow;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.ToutcRepository;
@@ -507,5 +509,13 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public List<String> getExportDatesForSN(String serialNumber) {
         return toutcRepository.getExportDatesForSN(serialNumber);
+    }
+
+    public List<KeyStatsRow> getKeyStats(String from, String to, String systemSN) {
+        return toutcRepository.getKeyStats(from, to, systemSN);
+    }
+
+    public KPIRow getKPIs(String from, String to, String systemSN) {
+        return toutcRepository.getKPIs(from, to, systemSN);
     }
 }

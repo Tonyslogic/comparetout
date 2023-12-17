@@ -18,6 +18,7 @@ package com.tfcode.comparetout.importers.alphaess;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.net.Uri;
@@ -91,9 +92,8 @@ public class ImportAlphaActivity extends AppCompatActivity {
 
     private void showFAB() {
         FloatingActionButton fab = findViewById(R.id.zoom);
-        if (!(null == fab)) {
-            if (mViewPager.getCurrentItem() == 1) fab.show();
-            else {
+        if (!(null == fab))
+            if ((mViewPager.getCurrentItem() != 1) && (mViewPager.getCurrentItem() != 2)) {
                 fab.hide();
                 if (mZoom) {
                     ActionBar actionBar = getSupportActionBar();
@@ -104,7 +104,11 @@ public class ImportAlphaActivity extends AppCompatActivity {
                         mZoom = false;
                     }
                 }
+            } else {
+                fab.show();
             }
+        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
+            hideFAB();
         }
     }
 

@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<androidx.core.widget.NestedScrollView
+xmlns:android="http://schemas.android.com/apk/res/android"
+xmlns:app="http://schemas.android.com/apk/res-auto"
+xmlns:tools="http://schemas.android.com/tools"
+android:layout_width="match_parent"
+android:layout_height="match_parent"
+android:fillViewport="true"
+tools:context=".importers.alphaess.ImportAlphaKeyStats">
+
+<androidx.constraintlayout.widget.ConstraintLayout
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".importers.alphaess.ImportAlphaGraphs">
+
+    <TableLayout
+        android:id="@+id/alphaess_graph_layout"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintHeight_percent="0.9"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/alphaess_filter_layout">
+
+        <TextView
+            android:id="@+id/picks"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center|top"
+            android:padding="2dp"
+            android:scaleType="fitCenter"
+            android:text="@string/NoRange"
+            app:layout_constraintTop_toTopOf="parent" />
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:layout_constraintTop_toBottomOf="@id/picks"
+            app:layout_constraintBottom_toBottomOf="parent">
+
+            <androidx.core.widget.NestedScrollView
+                android:layout_width="match_parent"
+                android:layout_height="match_parent" >
+                <TableLayout
+                    android:id="@+id/alphaess_key_stats"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:visibility="invisible"/>
+            </androidx.core.widget.NestedScrollView>
+
+            <TextView
+                android:id="@+id/alphaess_no_data"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center"
+                android:padding="2dp"
+                android:scaleType="fitCenter"
+                android:text="@string/no_data_available"
+                android:visibility="visible"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/picks" />
+
+        </FrameLayout>
+
+    </TableLayout>
+
+    <TableLayout
+        android:id="@+id/alphaess_filter_layout"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintHeight_percent="0.1"
+        app:layout_constraintTop_toBottomOf="@id/alphaess_graph_layout"
+        app:layout_constraintBottom_toBottomOf="parent" >
+
+        <TableRow
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_horizontal"
+            tools:ignore="UselessParent">
+
+            <ImageButton
+                android:id="@+id/interval"
+                android:background="@null"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:adjustViewBounds="true"
+                android:contentDescription="@string/display_configuration"
+                android:padding="2dp"
+                android:scaleType="fitCenter"
+                android:src="@android:drawable/ic_menu_gallery">
+            </ImageButton>
+
+            <ImageButton
+                android:id="@+id/previous"
+                android:background="@null"
+                android:src="@android:drawable/ic_media_rew"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:adjustViewBounds="true"
+                android:padding="2dp"
+                android:scaleType="fitCenter"
+                android:contentDescription="@string/go_back_one_day" />
+
+            <ImageButton
+                android:id="@+id/date"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:adjustViewBounds="true"
+                android:gravity="center|center_vertical"
+                android:padding="2dp"
+                android:scaleType="fitCenter"
+                android:background="@null"
+                android:src="@android:drawable/ic_menu_my_calendar"
+                android:contentDescription="@string/select_dates"  />
+
+            <ImageButton
+                android:id="@+id/next"
+                android:background="@null"
+                android:src="@android:drawable/ic_media_ff"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:adjustViewBounds="true"
+                android:padding="2dp"
+                android:scaleType="fitCenter"
+                android:contentDescription="@string/go_forward_one_day"/>
+
+            <ImageButton
+                android:id="@+id/filter"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:adjustViewBounds="true"
+                android:background="@null"
+                android:padding="2dp"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_baseline_filter_list_24"
+                app:tint="@android:color/darker_gray"
+                android:contentDescription="@string/filter_graph_content" />
+        </TableRow>
+    </TableLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.core.widget.NestedScrollView>
