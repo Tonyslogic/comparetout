@@ -16,7 +16,9 @@
 
 package com.tfcode.comparetout.importers.alphaess;
 
-import static com.tfcode.comparetout.importers.alphaess.IntervalType.*;
+import static com.tfcode.comparetout.importers.alphaess.IntervalType.DOY;
+import static com.tfcode.comparetout.importers.alphaess.IntervalType.HOUR;
+import static com.tfcode.comparetout.importers.alphaess.IntervalType.MNTH;
 import static com.tfcode.comparetout.importers.alphaess.IntervalType.WEEK;
 import static com.tfcode.comparetout.importers.alphaess.IntervalType.YEAR;
 
@@ -27,15 +29,6 @@ import android.graphics.Color;
 import android.graphics.DashPathEffect;
 import android.icu.text.DecimalFormat;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.widget.PopupMenu;
-import androidx.core.content.ContextCompat;
-import androidx.core.util.Pair;
-import androidx.fragment.app.Fragment;
-import androidx.lifecycle.ViewModelProvider;
-
 import android.os.Handler;
 import android.os.Looper;
 import android.view.Gravity;
@@ -47,6 +40,14 @@ import android.widget.ImageButton;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.widget.PopupMenu;
+import androidx.core.content.ContextCompat;
+import androidx.core.util.Pair;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.charts.LineChart;
@@ -66,10 +67,8 @@ import com.github.mikephil.charting.formatter.PercentFormatter;
 import com.github.mikephil.charting.formatter.ValueFormatter;
 import com.github.mikephil.charting.interfaces.datasets.IBarDataSet;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
-import com.google.android.material.button.MaterialButton;
 import com.google.android.material.datepicker.CalendarConstraints;
 import com.google.android.material.datepicker.MaterialDatePicker;
-import com.google.android.material.snackbar.Snackbar;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.importers.alphaess.IntervalRow;
@@ -190,7 +189,7 @@ public class ImportAlphaGraphs extends Fragment {
             mFrom = savedInstanceState.getString(FROM);
             mTo = savedInstanceState.getString(TO);
             setSelectionText();
-            mDisplayInterval = values()[savedInstanceState.getInt(INTERVAL)];
+            mDisplayInterval = IntervalType.values()[savedInstanceState.getInt(INTERVAL)];
             mStepInterval = StepIntervalType.values()[savedInstanceState.getInt(STEP_INTERVAL)];
             mCalculation = CalculationType.values()[savedInstanceState.getInt(CALCULATION)];
             mChartView = ChartView.values()[savedInstanceState.getInt(CHART)];
@@ -298,6 +297,8 @@ public class ImportAlphaGraphs extends Fragment {
         setupPopupGraphConfigurationMenu();
 
         mModeButton = view.findViewById(R.id.mode);
+        if (mCalculation == CalculationType.SUM) mModeButton.setImageResource(R.drawable.sigma);
+        else mModeButton.setImageResource(R.drawable.value_average);
         mModeButton.setOnClickListener(v -> {
             mCalculation = mCalculation.next();
             setSelectionText();
@@ -412,6 +413,9 @@ public class ImportAlphaGraphs extends Fragment {
         });
 
         ImageButton mChartTypeButton = view.findViewById(R.id.chartType);
+        if (mChartView == ChartView.BAR) mChartTypeButton.setImageResource(R.drawable.barchart);
+        if (mChartView == ChartView.LINE) mChartTypeButton.setImageResource(R.drawable.line_chart);
+        if (mChartView == ChartView.PIE) mChartTypeButton.setImageResource(R.drawable.piechart_25);
         mChartTypeButton.setOnClickListener(v -> {
             mChartView = mChartView.next();
             if (mChartView == ChartView.BAR) mChartTypeButton.setImageResource(R.drawable.barchart);
@@ -723,18 +727,35 @@ public class ImportAlphaGraphs extends Fragment {
             PieChart buyPie = getPieChart("Buy (" + new DecimalFormat("0.00").format(buy) + " kWh)", buyMap);
             PieChart feedPie = getPieChart("Feed ("+ new DecimalFormat("0.00").format(feed) + " kWh)", feedMap);
 
-            topRow.addView(loadPie);
-            topRow.addView(pvPie);
+            int visible = 0;
+            int shown = 0;
+            if (mShowLoad) visible++;
+            if (mShowPV) visible++;
+            if (mShowBuy) visible++;
+            if (mShowFeed) visible++;
+            if (mShowLoad) {
+                topRow.addView(loadPie);
+                shown++;
+            }
+            if (mShowPV) {
+                topRow.addView(pvPie);
+                shown++;
+            }
             if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
-                topRow.addView(buyPie);
-                topRow.addView(feedPie);
+                if (mShowBuy) topRow.addView(buyPie);
+                if (mShowFeed) topRow.addView(feedPie);
                 mPieCharts.addView(topRow);
             }
             else {
-                bottomRow.addView(buyPie);
-                bottomRow.addView(feedPie);
+                if (mShowBuy) {
+                    if (shown < 2) topRow.addView(buyPie);
+                    else bottomRow.addView(buyPie);
+                    shown++;
+                }
+                if (mShowFeed && (shown < 2)) topRow.addView(feedPie);
+                else bottomRow.addView(feedPie);
                 mPieCharts.addView(topRow);
-                mPieCharts.addView(bottomRow);
+                if (visible >= 3) mPieCharts.addView(bottomRow);
             }
         }
     }
