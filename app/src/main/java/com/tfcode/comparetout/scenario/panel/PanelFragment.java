@@ -43,6 +43,8 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Lifecycle;
+import androidx.lifecycle.LifecycleEventObserver;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.github.mikephil.charting.charts.BarChart;
@@ -119,22 +121,27 @@ public class PanelFragment extends Fragment {
         super.onCreate(savedInstanceState);
         mMainHandler = new Handler(Looper.getMainLooper());
 
-        mScenarioID = ((PanelActivity) requireActivity()).getScenarioID();
-        mPanelJsonString = ((PanelActivity) requireActivity()).getPanelJson();
-        mEdit = ((PanelActivity) requireActivity()).getEdit();
-        mEditFields = new ArrayList<>();
-        unpackPanel();
-        mPanel.setPanelIndex(((PanelActivity) requireActivity()).getDatabaseID(mPanelIndex));
+        // The activity may not be created, so these calls wait for the activity creation to complete
+        ((PanelActivity) requireActivity()).getLifecycle().addObserver((LifecycleEventObserver) (source, event) -> {
+            if ((event.getTargetState() ==  Lifecycle.State.CREATED ) && !(null == getActivity()) ) {
+                mScenarioID = ((PanelActivity) requireActivity()).getScenarioID();
+                mPanelJsonString = ((PanelActivity) requireActivity()).getPanelJson();
+                mEdit = ((PanelActivity) requireActivity()).getEdit();
+                mEditFields = new ArrayList<>();
+                unpackPanel();
+                mPanel.setPanelIndex(((PanelActivity) requireActivity()).getDatabaseID(mPanelIndex));
 
-        mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
-        mViewModel.getPanelDataSummary().observe(this, summaries -> {
-            mPanelPVSummaries = summaries;
-            updateChartView();
+                mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
+                mViewModel.getPanelDataSummary().observe(this, summaries -> {
+                    mPanelPVSummaries = summaries;
+                    updateChartView();
+                });
+                new Thread(() -> {
+                    mInverters = mViewModel.getInvertersForScenario(mScenarioID);
+                    mMainHandler.post(() -> {if (!(null == mTableLayout)) updateEditorView();});
+                }).start();
+            }
         });
-        new Thread(() -> {
-            mInverters = mViewModel.getInvertersForScenario(mScenarioID);
-            mMainHandler.post(() -> {if (!(null == mTableLayout)) updateEditorView();});
-        }).start();
     }
 
     private void unpackPanel() {
@@ -290,7 +297,7 @@ public class PanelFragment extends Fragment {
     private void updateEditorView() {
         mTableLayout.removeAllViews();
 
-        if (!(null == getActivity())) {
+        if (!(null == getActivity()) && !(null == mInverters)) {
 
             // CREATE PARAM FOR MARGINING
             TableRow.LayoutParams params = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
