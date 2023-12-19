@@ -184,6 +184,7 @@ public class OpenAlphaESSClient {
         // 6010 -- Sign is empty ==>
         // 6012 -- AppId is empty ==> bad app id
         // 6053 -- The request was too fast, please try again later
+        // 7001 -- The network was not available
         throw new AlphaESSException("err.code=" + err.code + " err.msg=" + err.msg);
     }
 

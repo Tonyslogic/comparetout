@@ -69,6 +69,7 @@ import com.google.android.material.datepicker.CalendarConstraints;
 import com.google.android.material.datepicker.MaterialDatePicker;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.gson.Gson;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.TOUTCApplication;
@@ -117,6 +118,7 @@ public class ImportAlphaOverview extends Fragment {
     private static final String APP_ID_KEY = "app_id";
     private static final String APP_SECRET_KEY = "app_secret";
     private static final String GOOD_CREDENTIAL_KEY = "cred_good";
+    private static final String SYSTEM_LIST_KEY = "system_list";
     private OpenAlphaESSClient mOpenAlphaESSClient;
     private String mSerialNumber;
     private List<String> mSerialNumbers;
@@ -160,41 +162,55 @@ public class ImportAlphaOverview extends Fragment {
         new Thread(() -> {
             Activity activity = getActivity();
             if (!(null == activity)) {
-            Preferences.Key<String> appIdKey = PreferencesKeys.stringKey(APP_ID_KEY);
-            TOUTCApplication application = ((TOUTCApplication)activity.getApplication());
-            Single<String> value = application.getDataStore()
-                    .data().firstOrError()
-                    .map(prefs -> prefs.get(appIdKey)).onErrorReturnItem("null");
-            String appId =  value.blockingGet();
-            Preferences.Key<String> appSecretKey = PreferencesKeys.stringKey(APP_SECRET_KEY);
-            Single<String> value2 = application.getDataStore()
-                    .data().firstOrError()
-                    .map(prefs -> prefs.get(appSecretKey)).onErrorReturnItem("null");
+                Preferences.Key<String> appIdKey = PreferencesKeys.stringKey(APP_ID_KEY);
+                TOUTCApplication application = ((TOUTCApplication)activity.getApplication());
+                Single<String> value = application.getDataStore()
+                        .data().firstOrError()
+                        .map(prefs -> prefs.get(appIdKey)).onErrorReturnItem("null");
+                String appId =  value.blockingGet();
 
-            Preferences.Key<String> goodKey = PreferencesKeys.stringKey(GOOD_CREDENTIAL_KEY);
-            Single<String> value3 = application.getDataStore()
-                    .data().firstOrError()
-                    .map(prefs -> prefs.get(goodKey)).onErrorReturnItem("False");
-            String goodCreds =  value3.blockingGet();
+                Preferences.Key<String> appSecretKey = PreferencesKeys.stringKey(APP_SECRET_KEY);
+                Single<String> value2 = application.getDataStore()
+                        .data().firstOrError()
+                        .map(prefs -> prefs.get(appSecretKey)).onErrorReturnItem("null");
+                String appSecret =  value2.blockingGet();
 
-            String appSecret =  value2.blockingGet();
-            if (("null".equals(appId)) || ("null".equals(appSecret))) {
-                mHasCredentials = false;
-                mCredentialsAreGood = false;
-            }
-            else {
-                // TODO Decrypt the stored keys
-                mOpenAlphaESSClient = new OpenAlphaESSClient(appId, appSecret);
-                try {
-                    reLoadSystemList();
-                    mMainHandler.post(this::updateView);
-                } catch (AlphaESSException e) {
-                    e.printStackTrace();
+                Preferences.Key<String> goodKey = PreferencesKeys.stringKey(GOOD_CREDENTIAL_KEY);
+                Single<String> value3 = application.getDataStore()
+                        .data().firstOrError()
+                        .map(prefs -> prefs.get(goodKey)).onErrorReturnItem("False");
+                String goodCreds =  value3.blockingGet();
+
+                Preferences.Key<String> systemList = PreferencesKeys.stringKey(SYSTEM_LIST_KEY);
+                Single<String> value4 = application.getDataStore()
+                       .data().firstOrError()
+                       .map(prefs -> prefs.get(systemList)).onErrorReturnItem("{\"code\": 200, \"msg\": \"Success\", \"expMsg\": null, \"data\": []}");
+                String systemListJsonString =  value4.blockingGet();
+                GetEssListResponse getEssListResponse = new Gson().fromJson(systemListJsonString, GetEssListResponse.class);
+                if (!(null == getEssListResponse) && !(getEssListResponse.data.isEmpty())) {
+                    mSerialNumbers = new ArrayList<>();
+                    for (GetEssListResponse.DataItem system : getEssListResponse.data) {
+                        mSerialNumbers.add(system.sysSn);
+                    }
                 }
-                mCredentialsAreGood = !(goodCreds.equals("False"));
-                mAppID = appId;
-                mAppSecret = appSecret;
-            }
+
+                if (("null".equals(appId)) || ("null".equals(appSecret))) {
+                    mHasCredentials = false;
+                    mCredentialsAreGood = false;
+                }
+                else {
+                    // TODO Decrypt the stored keys
+                    mOpenAlphaESSClient = new OpenAlphaESSClient(appId, appSecret);
+                    try {
+                        reLoadSystemList();
+                        mMainHandler.post(this::updateView);
+                    } catch (AlphaESSException e) {
+                        e.printStackTrace();
+                    }
+                    mCredentialsAreGood = !(goodCreds.equals("False"));
+                    mAppID = appId;
+                    mAppSecret = appSecret;
+                }
         }}).start();
     }
 
@@ -734,10 +750,18 @@ public class ImportAlphaOverview extends Fragment {
     }
 
     private void reLoadSystemList() throws AlphaESSException {
-        List<GetEssListResponse.DataItem> systems = mOpenAlphaESSClient.getEssList().data;
+        GetEssListResponse response = mOpenAlphaESSClient.getEssList();
+        if (null == response) throw new AlphaESSException("err.code=7001 err.msg=The network was not available" );
+        List<GetEssListResponse.DataItem> systems = response.data;
         mSerialNumbers = new ArrayList<>();
         for (GetEssListResponse.DataItem system : systems) {
             mSerialNumbers.add(system.sysSn);
+        }
+        String stringResponse = new Gson().toJson(response);
+        if (!(null == getActivity()) && !(null == getActivity().getApplication()) ) {
+            TOUTCApplication application = (TOUTCApplication) getActivity().getApplication();
+            boolean x = application.putStringValueIntoDataStore(SYSTEM_LIST_KEY, stringResponse);
+            if (!x) System.out.println("ImportAlphaOverview::reLoadSystemList, failed to store list");
         }
     }
 

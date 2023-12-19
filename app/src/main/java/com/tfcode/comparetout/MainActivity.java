@@ -107,6 +107,7 @@ public class MainActivity extends AppCompatActivity {
     private PopupWindow mHelpWindow;
 
     private boolean mFirstLaunch = true;
+    private boolean mFirstLaunchDialogRendered = false;
 
     private void loadSettingsFromDataStore() {
         new Thread(() -> {
@@ -321,7 +322,10 @@ public class MainActivity extends AppCompatActivity {
                         break;
                 }
                 setMenuLongClick();
-                if (mFirstLaunch) showDisclaimers((TOUTCApplication)getApplication() );
+                if (mFirstLaunch && !(mFirstLaunchDialogRendered)) {
+                    showDisclaimers((TOUTCApplication)getApplication() );
+                    mFirstLaunchDialogRendered = true;
+                }
             }
         });
     }
