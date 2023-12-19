@@ -209,7 +209,7 @@ public class ImportAlphaActivity extends AppCompatActivity {
         tabTitlesList.add("AlphaESS overview");
         tabTitlesList.add("Data graphs");
         tabTitlesList.add("Key stats");
-        tabTitlesList.add("Highs and lows");
+        tabTitlesList.add("Generate usage");
         TabLayout tabLayout = findViewById(R.id.import_alpha_tab_layout);
         TabLayoutMediator mMediator = new TabLayoutMediator(tabLayout, mViewPager,
                 (tab, position) -> tab.setText(tabTitlesList.get(position))

@@ -574,6 +574,7 @@ public class ImportAlphaGraphs extends Fragment {
     }
 
     private void updateView() {
+        if (null == getContext()) return;
         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
             ImportAlphaActivity activity = (ImportAlphaActivity)getActivity();
             if (!(null == activity)) activity.hideFAB();

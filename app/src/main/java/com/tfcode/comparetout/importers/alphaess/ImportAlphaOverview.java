@@ -353,6 +353,8 @@ public class ImportAlphaOverview extends Fragment {
             TextView addFetchStatus = new TextView(activity);
             addFetchStatus.setText((null == mFetchState) ? getContext().getString(R.string.Idle) : mFetchState);
             addFetchStatus.setGravity(Gravity.CENTER);
+            // TODO Remove the next line
+            if (!(null == getContext())) WorkManager.getInstance(getContext()).cancelAllWorkByTag("daily");
             addFetchButton.setOnClickListener(v -> {
                 if (mFetchOngoing) {
                     if (!(null == getContext())) {
@@ -371,7 +373,7 @@ public class ImportAlphaOverview extends Fragment {
                             .setSelection(MaterialDatePicker.todayInUtcMilliseconds())
                             .build();
                     startPicker.addOnPositiveButtonClickListener(startDateAsLong -> {
-                        if (!(null == startDateAsLong)) {
+                        if (!(null == startDateAsLong) && !("".equals(mSerialNumber))) {
                             startWorkers(mSerialNumber, startDateAsLong);
                         } else {
                             addFetchStatus.setText((null == mFetchState) ? context.getString(R.string.Idle) : mFetchState);
@@ -530,7 +532,7 @@ public class ImportAlphaOverview extends Fragment {
     private void startWorkers(String serialNumber, Object startDate) {
         @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
         Context context = getContext();
-        if (!(null == context)) {
+        if (!(null == context) && !("".equals(serialNumber))) {
             // start the catchup worker for the selected serial
             Data inputData = new Data.Builder()
                     .putString(CatchUpWorker.KEY_APP_ID, mAppID)

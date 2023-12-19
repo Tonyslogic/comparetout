@@ -1,14 +1,153 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     tools:context=".importers.alphaess.ImportAlphaGenerateScenario">
 
-    <!-- TODO: Update blank fragment layout -->
-    <TextView
+    <TableLayout
+        android:id="@+id/buttonTable"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:text="@string/hello_blank_fragment" />
+        android:layout_height="wrap_content"
+        android:gravity="top"
+        android:stretchColumns="0,1"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toTopOf="@id/checkbox_scroll">
 
-</FrameLayout>
+        <TableRow >
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/gen_pick_range"
+                android:text="@string/pick_date_range" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/gen_scenario"
+                android:text="@string/generate_usage"
+                android:enabled="false" />
+        </TableRow>
+        <TableRow>
+            <TextView android:text="@string/selected_date_range"
+                android:gravity="center_horizontal" />
+            <TextView
+                android:id="@+id/gen_selected_dates"
+                android:text="@string/no_dates_selected"
+                android:gravity="center_horizontal"/>
+        </TableRow>
+    </TableLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/checkbox_scroll"
+        android:paddingTop="10dp"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        app:layout_constraintTop_toBottomOf="@id/buttonTable"
+        app:layout_constraintBottom_toBottomOf="parent">
+        <LinearLayout
+            android:id="@+id/checkbox"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:orientation="vertical">
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/gen_lp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/generate_load_profile"
+                android:enabled="false"
+                android:layout_marginStart="20dp"/>
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/gen_inv"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/generate_inverter"
+                android:enabled="false"
+                android:layout_marginStart="20dp"/>
+            <TableLayout
+                android:id="@+id/gen_inv_detail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="top"
+                android:stretchColumns="0,1"
+                android:layout_marginStart="40dp"
+                android:visibility="visible">
+                <TableRow tools:ignore="UselessParent">
+                    <TextView android:text="@string/mppt_count"
+                        android:width="70dp" />
+                    <EditText
+                        android:id="@+id/gen_mppt_count"
+                        android:inputType="numberDecimal"
+                        android:layout_marginEnd="20dp"
+                        android:text="@string/_2"
+                        android:hint="@string/mppt_count"
+                        android:autofillHints="" />
+                </TableRow>
+            </TableLayout>
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/gen_panels"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/generate_panels"
+                android:enabled="false"
+                android:layout_marginStart="20dp"/>
+
+            <TableLayout
+                android:id="@+id/gen_panel_detail"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="40dp"
+                android:gravity="top"
+                android:stretchColumns="0,1"
+                android:visibility="gone">
+
+<!--                <TableRow>-->
+
+<!--                    <TextView-->
+<!--                        android:width="70dp"-->
+<!--                        android:text="@string/string_1_panel_count" />-->
+
+<!--                    <EditText-->
+<!--                        android:id="@+id/gen_panel_string_count1"-->
+<!--                        android:layout_marginEnd="20dp"-->
+<!--                        android:inputType="numberDecimal"-->
+<!--                        android:text="@string/_7" />-->
+<!--                </TableRow>-->
+
+<!--                <TableRow>-->
+
+<!--                    <TextView-->
+<!--                        android:width="70dp"-->
+<!--                        android:text="@string/string_2_panel_count" />-->
+
+<!--                    <EditText-->
+<!--                        android:id="@+id/gen_panel_string_count2"-->
+<!--                        android:layout_marginEnd="20dp"-->
+<!--                        android:inputType="numberDecimal"-->
+<!--                        android:text="@string/_7" />-->
+<!--                </TableRow>-->
+            </TableLayout>
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/gen_panel_data"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/generate_panel_data"
+                android:enabled="false"
+                android:layout_marginStart="20dp"/>
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/gen_battery"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/generate_battery"
+                android:enabled="false"
+                android:layout_marginStart="20dp"/>
+            <com.google.android.material.checkbox.MaterialCheckBox
+                android:id="@+id/gen_battery_schedule"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/generate_battery_schedule"
+                android:enabled="false"
+                android:layout_marginStart="20dp"/>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>

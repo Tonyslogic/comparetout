@@ -105,6 +105,8 @@ public class DailyWorker extends Worker {
             System.out.println("DailyWorker got a rate limit for " + yesterday);
             if (!(null == e.getMessage()) && e.getMessage().startsWith("err.code=6053"))
                 return Result.retry();
+            System.out.println(systemSN + ", " + inputData.getString(KEY_APP_ID) + ", "
+                    + inputData.getString(KEY_APP_SECRET));
         }
         if (mStopped) mNotificationManager.cancel(mNotificationId);
         return Result.success();
