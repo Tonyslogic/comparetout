@@ -26,13 +26,13 @@ import android.view.ViewGroup;
 
 import com.tfcode.comparetout.R;
 
-public class ImportAlphaHighsAndLows extends Fragment {
+public class ImportAlphaGenerateScenario extends Fragment {
 
-    public ImportAlphaHighsAndLows() {
+    public ImportAlphaGenerateScenario() {
         // Required empty public constructor
     }
 
-    public static ImportAlphaHighsAndLows newInstance() {return new ImportAlphaHighsAndLows();}
+    public static ImportAlphaGenerateScenario newInstance() {return new ImportAlphaGenerateScenario();}
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -45,6 +45,6 @@ public class ImportAlphaHighsAndLows extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_import_alpha_yearly, container, false);
+        return inflater.inflate(R.layout.fragment_import_alpha_scenario_geeration, container, false);
     }
 }

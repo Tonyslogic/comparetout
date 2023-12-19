@@ -25,7 +25,7 @@ public class ImportAlphaViewPageAdapter  extends FragmentStateAdapter {
     ImportAlphaOverview mAlphaOverview = ImportAlphaOverview.newInstance();
     ImportAlphaGraphs mAlphaDaily = ImportAlphaGraphs.newInstance();
     ImportAlphaKeyStats mAlphaKeys = ImportAlphaKeyStats.newInstance();
-    ImportAlphaHighsAndLows mAlphaYearly = ImportAlphaHighsAndLows.newInstance();
+    ImportAlphaGenerateScenario mAlphaYearly = ImportAlphaGenerateScenario.newInstance();
 
     public ImportAlphaViewPageAdapter(@NonNull FragmentActivity fragmentActivity, int ignoredCount) {
         super(fragmentActivity);

@@ -75,10 +75,8 @@ public class PricePlanNavFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        requireActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         if (!(null == getActivity())) {
             mOrientation = getActivity().getResources().getConfiguration().orientation;
-            getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         }
         else mOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
         updateView();
