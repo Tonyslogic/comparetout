@@ -148,6 +148,11 @@ public class ToutcRepository {
                 scenarioDAO.addNewScenarioWithComponents(sc.scenario, sc));
     }
 
+    public long insertScenarioAndReturnID(ScenarioComponents sc) {
+        return scenarioDAO.addNewScenarioWithComponents(sc.scenario, sc);
+    }
+
+
     public LiveData<List<Scenario>> getAllScenarios() {
         return allScenarios;
     }
@@ -164,6 +169,10 @@ public class ToutcRepository {
     public void saveLoadProfile(Long scenarioID, LoadProfile loadProfile) {
         ToutcDB.databaseWriteExecutor.execute(() ->
                 scenarioDAO.saveLoadProfile(scenarioID, loadProfile));
+    }
+
+    public long saveLoadProfileAndReturnID(Long scenarioID, LoadProfile loadProfile) {
+        return scenarioDAO.saveLoadProfile(scenarioID, loadProfile);
     }
 
     // Methods for Worker (LoadProfileData)
@@ -297,8 +306,8 @@ public class ToutcRepository {
         return scenarioDAO.getInvertersForScenarioID(scenarioID);
     }
 
-    public void saveInverter(Long scenarioID, Inverter inverter) {
-        scenarioDAO.saveInverter(scenarioID, inverter);
+    public long saveInverter(Long scenarioID, Inverter inverter) {
+        return scenarioDAO.saveInverter(scenarioID, inverter);
     }
 
     public void deleteInverterFromScenario(Long inverterID, Long scenarioID) {
@@ -331,8 +340,8 @@ public class ToutcRepository {
         scenarioDAO.deletePanelFromScenario(panelID, scenarioID);
     }
 
-    public void savePanel(Long scenarioID, Panel panel) {
-        scenarioDAO.savePanel(scenarioID, panel);
+    public long savePanel(Long scenarioID, Panel panel) {
+        return scenarioDAO.savePanel(scenarioID, panel);
     }
 
     public void copyPanelFromScenario(long fromScenarioID, Long toScenarioID) {
@@ -705,5 +714,17 @@ public class ToutcRepository {
 
     public KPIRow getKPIs(String from, String to, String systemSN) {
         return alphaEssDAO.getKPIs(from, to, systemSN);
+    }
+
+    public List<AlphaESSTransformedData> getAlphaESSTransformedData(String systemSN, String from, String to) {
+        return alphaEssDAO.getAlphaESSTransformedData(systemSN, from, to);
+    }
+
+    public Double getBaseLoad(String systemSN, String from, String to) {
+        return alphaEssDAO.getBaseLoad(systemSN, from, to);
+    }
+
+    public Double getLosses(String systemSN) {
+        return alphaEssDAO.getLosses(systemSN);
     }
 }

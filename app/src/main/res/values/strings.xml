@@ -251,8 +251,7 @@
     <string name="october">October</string>
     <string name="november">November</string>
     <string name="december">December</string>
-    <string name="panel_count">\" panel count\"</string>
-    <string name="string">\"String \"</string>
+    <string name="string_panel_count">String %s panel count</string>
     <string name="generate_battery_schedule">Generate battery schedule</string>
     <string name="generate_battery">Generate battery</string>
     <string name="generate_panel_data">Generate panel data</string>
@@ -268,4 +267,10 @@
     <string name="selected_date_range">Selected date range:</string>
     <string name="pick_date_range">Pick date range</string>
     <string name="generate_usage">Generate usage</string>
+    <string name="generation_status">Generation status:</string>
+    <string name="not_requested">Not requested</string>
+    <string name="completed">Completed %s</string>
+    <string name="adding_data">Adding data</string>
+    <string name="gen_load_profile">Generating load profile</string>
+    <string name="creating_usage">Creating usage</string>
 </resources>

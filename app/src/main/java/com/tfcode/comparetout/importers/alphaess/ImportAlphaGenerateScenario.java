@@ -37,17 +37,23 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.util.Pair;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.LifecycleOwner;
+import androidx.lifecycle.LiveData;
+import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.webkit.WebViewAssetLoader;
+import androidx.work.Data;
+import androidx.work.ExistingWorkPolicy;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkInfo;
+import androidx.work.WorkManager;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.checkbox.MaterialCheckBox;
 import com.google.android.material.datepicker.CalendarConstraints;
 import com.google.android.material.datepicker.MaterialDatePicker;
-import com.google.android.material.snackbar.Snackbar;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
-import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.importers.alphaess.InverterDateRange;
 import com.tfcode.comparetout.util.AbstractTextWatcher;
 
@@ -68,8 +74,6 @@ import java.util.stream.Collectors;
 public class ImportAlphaGenerateScenario extends Fragment {
 
     private String mSystemSN;
-    private ComparisonUIViewModel mViewModel;
-    private ToutcRepository mToutcRepository;
     private Handler mMainHandler;
 
     private Map<String, Pair<String, String >> mInverterDateRangesBySN;
@@ -82,13 +86,12 @@ public class ImportAlphaGenerateScenario extends Fragment {
     private static final DateTimeFormatter PARSER_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final String MIDNIGHT = " 00:00:00";
 
-    private MaterialButton mDateSelection;
     private MaterialButton mGenerateUsage;
     private TextView mGenSelectedDates;
+    private TextView mGenStatus;
     private MaterialCheckBox mGenLoadProfile;
     private MaterialCheckBox mGenInverter;
     private TableLayout mGenInverterInput;
-    private EditText mMPPTCount;
     private MaterialCheckBox mGenPanels;
     private TableLayout mGenPanelInput;
     private MaterialCheckBox mGenPanelData;
@@ -167,8 +170,7 @@ public class ImportAlphaGenerateScenario extends Fragment {
         }
         if (null == mSystemSN)
             mSystemSN = ((ImportAlphaActivity) requireActivity()).getSelectedSystemSN();
-        mToutcRepository = new ToutcRepository(requireActivity().getApplication());
-        mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
+        ComparisonUIViewModel mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
 
         mViewModel.getLiveDateRanges().observe(this, dateRanges -> {
             if (null == mInverterDateRangesBySN) mInverterDateRangesBySN = new HashMap<>();
@@ -211,13 +213,14 @@ public class ImportAlphaGenerateScenario extends Fragment {
 
         mMainHandler = new Handler(Looper.getMainLooper());
 
-        mDateSelection = view.findViewById(R.id.gen_pick_range);
+        MaterialButton mDateSelection = view.findViewById(R.id.gen_pick_range);
         mGenerateUsage = view.findViewById(R.id.gen_scenario);
         mGenSelectedDates = view.findViewById(R.id.gen_selected_dates);
+        mGenStatus = view.findViewById(R.id.gen_selected_status);
         mGenLoadProfile = view.findViewById(R.id.gen_lp);
         mGenInverter = view.findViewById(R.id.gen_inv);
         mGenInverterInput = view.findViewById(R.id.gen_inv_detail);
-        mMPPTCount = view.findViewById(R.id.gen_mppt_count);
+        EditText mMPPTCount = view.findViewById(R.id.gen_mppt_count);
         mGenPanels = view.findViewById(R.id.gen_panels);
         mGenPanelInput = view.findViewById(R.id.gen_panel_detail);
         mGenPanelData = view.findViewById(R.id.gen_panel_data);
@@ -265,8 +268,172 @@ public class ImportAlphaGenerateScenario extends Fragment {
             startPicker.show(getParentFragmentManager(), "FETCH_START_DATE_PICKER");
         });
 
-        mGenerateUsage.setOnClickListener(v -> Snackbar.make(view, "TODO the generation", Snackbar.LENGTH_LONG)
-                .setAction("Action", null).show());
+        mGenerateUsage.setOnClickListener(v -> {
+
+            Context context = getContext();
+            if (null == context) return;
+
+            String serializedPanelCounts = mStringPanelCount.stream()
+                    .map(Object::toString)
+                    .reduce("", (str, num) -> str.isEmpty() ? num : str + "," + num);
+            Data inputData = new Data.Builder()
+                    .putString(GenerationWorker.KEY_SYSTEM_SN, mSystemSN)
+                    .putBoolean(GenerationWorker.LP, mLP)
+                    .putBoolean(GenerationWorker.INV, mINV)
+                    .putBoolean(GenerationWorker.PAN, mPNL)
+                    .putBoolean(GenerationWorker.PAN_D, mPNLD)
+                    .putBoolean(GenerationWorker.BAT, mBAT)
+                    .putBoolean(GenerationWorker.BAT_SCH, mBATS)
+                    .putString(GenerationWorker.FROM, mFrom)
+                    .putString(GenerationWorker.TO, mTo)
+                    .putInt(GenerationWorker.MPPT_COUNT, mMPPTCountValue)
+                    .putString(PANEL_COUNTS, serializedPanelCounts)
+                    .build();
+            OneTimeWorkRequest generationWorkRequest =
+                    new OneTimeWorkRequest.Builder(GenerationWorker.class)
+                            .setInputData(inputData)
+                            .addTag(mSystemSN)
+                            .build();
+
+            WorkManager.getInstance(context).pruneWork();
+            WorkManager
+                    .getInstance(context)
+                    .beginUniqueWork(mSystemSN, ExistingWorkPolicy.APPEND, generationWorkRequest)
+                    .enqueue();
+
+
+            // set up the observer for the selected systems workers
+            LiveData<List<WorkInfo>> mCatchupLiveDataForSN = WorkManager.getInstance(context)
+                    .getWorkInfosByTagLiveData(mSystemSN);
+            Observer<List<WorkInfo>> mCatchupWorkObserver = workInfos -> {
+                for (WorkInfo wi : workInfos) {
+                    String mFetchState;
+                    if ((!(null == wi)) && (wi.getState() == WorkInfo.State.RUNNING)) {
+                        Data progress = wi.getProgress();
+                        mFetchState = progress.getString(DailyWorker.PROGRESS);
+                        if (null == mFetchState) mFetchState = "Unknown state";
+                        String finalMFetchState = mFetchState;
+                        mMainHandler.post(() -> mGenStatus.setText(finalMFetchState));
+                    }
+                    if ((!(null == wi)) && (wi.getState() == WorkInfo.State.SUCCEEDED)) {
+                        mMainHandler.post(this::updateView);
+                    }
+                }
+            };
+            mCatchupLiveDataForSN.observe((LifecycleOwner) context, mCatchupWorkObserver);
+
+//            new Thread(() -> {
+//                // check for mandatory members
+//                if (null == mScenarioNames) return;
+//                if (null == mToutcRepository) return;
+//
+//                long createdLoadProfileID = 0;
+//
+//                // Create a scenario && get its id
+//                mMainHandler.post(() -> mGenStatus.setText(getString(R.string.creating_usage)));
+//                Scenario scenario = new Scenario();
+//                String scenarioName = mSystemSN;
+//                int suffix = 1;
+//                while (mScenarioNames.contains(scenarioName)) {
+//                    scenarioName = scenarioName + "_" + suffix;
+//                    suffix++;
+//                }
+//                String finalScenarioName = scenarioName;
+//                scenario.setScenarioName(scenarioName);
+//                ScenarioComponents scenarioComponents = new ScenarioComponents(scenario,
+//                        null, null, null, null, null,
+//                        null, null, null, null, null);
+//                long assignedScenarioID = mViewModel.insertScenarioAndReturnID(scenarioComponents);
+//
+//                // Create & store a load profile
+//                if (mLP) {
+//                    mMainHandler.post(() -> mGenStatus.setText(getString(R.string.gen_load_profile)));
+//                    List<IntervalRow> hourly = mToutcRepository.getSumHour(mSystemSN, mFrom, mTo);
+//                    List<IntervalRow> weekly = mToutcRepository.getSumDOW(mSystemSN, mFrom, mTo);
+//                    List<IntervalRow> monthly = mToutcRepository.getAvgMonth(mSystemSN, mFrom, mTo);
+//                    Double baseLoad = mToutcRepository.getBaseLoad(mSystemSN, mFrom, mTo);
+//
+//                    Double totalLoad = 0D;
+//                    for (IntervalRow row : weekly) totalLoad += row.load;
+//
+//                    LoadProfile loadProfile = new LoadProfile();
+//                    loadProfile.setAnnualUsage(totalLoad);
+//                    loadProfile.setDistributionSource(mSystemSN);
+//                    loadProfile.setHourlyBaseLoad(baseLoad);
+//                    HourlyDist hd = new HourlyDist();
+//                    List<Double> hourOfDayDist = new ArrayList<>();
+//                    for (int i = 0; i < 24; i++) {
+//                        Double hv = hourly.get(i).load;
+//                        if (!(null == hv)) hourOfDayDist.add((hv / totalLoad) * 100);
+//                    }
+//                    hd.dist = hourOfDayDist;
+//                    loadProfile.setHourlyDist(hd);
+//                    DOWDist dd = new DOWDist();
+//                    List<Double> dowDist = new ArrayList<>();
+//                    for (int i = 0; i < 7; i++) {
+//                        Double dv = weekly.get(i).load;
+//                        if (!(null == dv)) dowDist.add((dv / totalLoad) * 100);
+//                    }
+//                    dd.dowDist = dowDist;
+//                    loadProfile.setDowDist(dd);
+//                    MonthlyDist md = new MonthlyDist();
+//                    List<Double> moyDist = new ArrayList<>();
+//                    for (int i = 0; i < 12; i++) {
+//                        Double mv = monthly.get(i).load;
+//                        if (!(null == mv)) moyDist.add((mv / totalLoad) * 100);
+//                        else
+//                            moyDist.add(((loadProfile.getAnnualUsage() / 12D) / loadProfile.getAnnualUsage()) * 100);
+//                    }
+//                    md.monthlyDist = moyDist;
+//                    loadProfile.setMonthlyDist(md);
+//                    createdLoadProfileID = mViewModel.saveLoadProfileAndReturnID(assignedScenarioID, loadProfile);
+//                }
+//
+//                // Create and store load profile data
+//                if (mLP) {
+//                    mMainHandler.post(() -> mGenStatus.setText(getString(R.string.adding_data)));
+//
+//                    List<AlphaESSTransformedData> dbRows =
+//                            mToutcRepository.getAlphaESSTransformedData(mSystemSN, mFrom, mTo);
+//                    int dbRowIndex = 0;
+//                    mMainHandler.post(() -> mGenStatus.setText("Loaded data"));
+//
+//                    ArrayList<LoadProfileData> rows = new ArrayList<>();
+//                    LocalDateTime active = LocalDateTime.of(2001, 1, 1, 0, 0);
+//                    LocalDateTime end = LocalDateTime.of(2002, 1, 1, 0, 0);
+//                    DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+//                    DateTimeFormatter minFormat = DateTimeFormatter.ofPattern("HH:mm");
+//                    while (active.isBefore(end)) {
+//                        LoadProfileData row = new LoadProfileData();
+//                        row.setDo2001(active.getDayOfYear());
+//                        row.setLoadProfileID(createdLoadProfileID);
+//                        row.setDate(active.format(dateFormat));
+//                        row.setMinute(active.format(minFormat));
+//                        row.setDow(active.getDayOfWeek().getValue());
+//                        row.setMod(active.getHour() * 60 + active.getMinute());
+//                        // Not every 5 minute interval has data uploaded to AlphaESS
+//                        if (row.getMinute().equals(dbRows.get(dbRowIndex).getMinute())) {
+//                            row.setLoad(dbRows.get(dbRowIndex).getLoad());
+//                            dbRowIndex++;
+//                        }
+//                        else {
+//                            // A value is needed to ensure the simulation algorithm works correctly
+//                            row.setLoad(0D);
+//                        }
+//                        rows.add(row);
+//                        active = active.plusMinutes(5);
+//                    }
+//                    mMainHandler.post(() -> mGenStatus.setText("Storing data"));
+//
+//                    mToutcRepository.createLoadProfileDataEntries(rows);
+//                    mMainHandler.post(() -> mGenStatus.setText("Stored data"));
+//                }
+//
+//                // Done :-)
+//                mMainHandler.post(() -> mGenStatus.setText(getString(R.string.completed, finalScenarioName)));
+//
+//            }).start();
+        });
         mGenerateUsage.setEnabled(mLP && mDatesOK);
         setSelectionText();
 
@@ -289,7 +456,7 @@ public class ImportAlphaGenerateScenario extends Fragment {
 
         mGenInverterInput.setVisibility(mINV ? View.VISIBLE : View.GONE);
 
-        mMPPTCount.addTextChangedListener( new AbstractTextWatcher() {
+        mMPPTCount.addTextChangedListener(new AbstractTextWatcher() {
             @Override
             public void afterTextChanged(Editable s) {
             if (!(s.toString().equals(String.valueOf(mMPPTCountValue)))) {
@@ -340,7 +507,7 @@ public class ImportAlphaGenerateScenario extends Fragment {
             TextView stringPrompt = new TextView(getActivity());
             EditText stringValue = new EditText(getActivity());
 
-            stringPrompt.setText(getString(R.string.string) + (i + 1) + getString(R.string.panel_count));
+            stringPrompt.setText(getString(R.string.string_panel_count, String.valueOf(i+1)));
             int finalI = i;
             stringValue.setText(String.valueOf(mStringPanelCount.get(i)));
             stringValue.setInputType(InputType.TYPE_CLASS_NUMBER);

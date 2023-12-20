@@ -85,6 +85,7 @@ public class DailyWorker extends Worker {
                 inputData.getString(KEY_APP_ID), 
                 inputData.getString(KEY_APP_SECRET));
         String systemSN = inputData.getString(KEY_SYSTEM_SN);
+        mOpenAlphaESSClient.setSerial(systemSN);
 
         LocalDate yesterday = LocalDate.now().plusDays(-1);
         if (mToutcRepository.checkSysSnForDataOnDate(systemSN, yesterday.format(DATE_FORMAT))) {

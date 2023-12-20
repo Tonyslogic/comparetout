@@ -128,20 +128,29 @@ public abstract class ScenarioDAO {
     abstract void addNewScenario2EVDivert(Scenario2EVDivert scenario2EVDivert);
 
     @Transaction
-    void addNewScenarioWithComponents(Scenario scenario, ScenarioComponents components) {
+    long addNewScenarioWithComponents(Scenario scenario, ScenarioComponents components) {
+        long scenarioID = 0;
         try {
-            if (!(null == components.inverters) && components.inverters.size() > 0) scenario.setHasInverters(true);
-            if (!(null == components.batteries) && components.batteries.size() > 0) scenario.setHasBatteries(true);
-            if (!(null == components.panels) && components.panels.size() > 0) scenario.setHasPanels(true);
+            if (!(null == components.inverters) && components.inverters.size() > 0)
+                scenario.setHasInverters(true);
+            if (!(null == components.batteries) && components.batteries.size() > 0)
+                scenario.setHasBatteries(true);
+            if (!(null == components.panels) && components.panels.size() > 0)
+                scenario.setHasPanels(true);
             if (!(null == components.hwSystem)) scenario.setHasHWSystem(true);
             if (!(null == components.loadProfile)) scenario.setHasLoadProfiles(true);
-            if (!(null == components.loadShifts) && components.loadShifts.size() > 0) scenario.setHasLoadShifts(true);
-            if (!(null == components.evCharges) && components.evCharges.size() > 0) scenario.setHasEVCharges(true);
-            if (!(null == components.hwSchedules) && components.hwSchedules.size() > 0) scenario.setHasHWSchedules(true);
-            if (!(null == components.hwDivert) && (components.hwDivert.isActive())) scenario.setHasHWDivert(true);
-            if (!(null == components.evDiverts) && (components.evDiverts.size() > 0)) scenario.setHasEVDivert(true);
+            if (!(null == components.loadShifts) && components.loadShifts.size() > 0)
+                scenario.setHasLoadShifts(true);
+            if (!(null == components.evCharges) && components.evCharges.size() > 0)
+                scenario.setHasEVCharges(true);
+            if (!(null == components.hwSchedules) && components.hwSchedules.size() > 0)
+                scenario.setHasHWSchedules(true);
+            if (!(null == components.hwDivert) && (components.hwDivert.isActive()))
+                scenario.setHasHWDivert(true);
+            if (!(null == components.evDiverts) && (components.evDiverts.size() > 0))
+                scenario.setHasEVDivert(true);
 
-            long scenarioID = addNewScenario(scenario);
+            scenarioID = addNewScenario(scenario);
             if (!(null == components.inverters)) {
                 for (Inverter i : components.inverters) {
                     long inverterID = addNewInverter(i);
@@ -218,7 +227,7 @@ public abstract class ScenarioDAO {
                 addNewScenario2HWDivert(s2hwd);
             }
             if (!(null == components.evDiverts)) {
-                for (EVDivert evd: components.evDiverts) {
+                for (EVDivert evd : components.evDiverts) {
                     long evDivertID = addNewEVDivert(evd);
                     Scenario2EVDivert s2evd = new Scenario2EVDivert();
                     s2evd.setScenarioID(scenarioID);
@@ -226,10 +235,10 @@ public abstract class ScenarioDAO {
                     addNewScenario2EVDivert(s2evd);
                 }
             }
-        }
-        catch (SQLiteConstraintException e) {
+        } catch (SQLiteConstraintException e) {
             System.out.println("Silently ignoring a duplicate added as new");
         }
+        return scenarioID;
     }
 
     @Query("SELECT * FROM scenarios ORDER BY scenarios.scenarioName ASC")
@@ -304,7 +313,7 @@ public abstract class ScenarioDAO {
 
 
     @Transaction
-    public void saveLoadProfile(Long scenarioID, LoadProfile loadProfile) {
+    public long saveLoadProfile(Long scenarioID, LoadProfile loadProfile) {
         long loadProfileID = loadProfile.getLoadProfileIndex();
         if (loadProfileID == 0) {
             loadProfileID = addNewLoadProfile(loadProfile);
@@ -321,6 +330,7 @@ public abstract class ScenarioDAO {
         Scenario scenario = getScenario(scenarioID);
         scenario.setHasLoadProfiles(true);
         updateScenario(scenario);
+        return loadProfileID;
     }
 
     @Update (entity = Inverter.class)
@@ -330,7 +340,7 @@ public abstract class ScenarioDAO {
     public abstract void updatePanel(Panel panel);
 
     @Transaction
-    public void saveInverter(Long scenarioID, Inverter inverter){
+    public long saveInverter(Long scenarioID, Inverter inverter){
         long inverterID = inverter.getInverterIndex();
         if (inverterID == 0) {
             inverterID = addNewInverter(inverter);
@@ -346,6 +356,7 @@ public abstract class ScenarioDAO {
         else {
             updateInverter(inverter);
         }
+        return inverterID;
     }
 
     @Query("SELECT DISTINCT loadProfileID FROM loadprofiledata WHERE loadProfileID = :id")
@@ -709,7 +720,7 @@ public abstract class ScenarioDAO {
     }
 
     @Transaction
-    public void savePanel(Long scenarioID, Panel panel) {
+    public long savePanel(Long scenarioID, Panel panel) {
         long panelID = panel.getPanelIndex();
         if (panelID == 0) {
             panelID = addNewPanels(panel);
@@ -725,6 +736,7 @@ public abstract class ScenarioDAO {
         else {
             updatePanel(panel);
         }
+        return panelID;
     }
 
     public void copyPanelFromScenario(long fromScenarioID, Long toScenarioID) {

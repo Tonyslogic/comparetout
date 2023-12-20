@@ -98,6 +98,11 @@ public class ComparisonUIViewModel extends AndroidViewModel {
         toutcRepository.insertScenario(sc);
     }
 
+    public long insertScenarioAndReturnID(ScenarioComponents sc) {
+        return toutcRepository.insertScenarioAndReturnID(sc);
+    }
+
+
     public LiveData<List<Scenario>> getAllScenarios() {
         return toutcRepository.getAllScenarios();
     }
@@ -112,6 +117,10 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public void saveLoadProfile(Long scenarioID, LoadProfile loadProfile) {
         toutcRepository.saveLoadProfile(scenarioID, loadProfile);
+    }
+
+    public long saveLoadProfileAndReturnID(Long scenarioID, LoadProfile loadProfile) {
+        return toutcRepository.saveLoadProfileAndReturnID(scenarioID, loadProfile);
     }
 
     public LiveData<List<Costings>> getAllComparisons() {

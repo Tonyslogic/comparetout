@@ -215,5 +215,20 @@ public abstract class AlphaEssDAO {
     @Query("SELECT ((sum(pv) - sum(feed)) / sum(pv)) * 100 AS SC, ((sum(pv) - sum(feed)) / sum(load)) * 100 AS SS " +
             "FROM alphaESSTransformedData WHERE date >= :from AND date <= :to AND sysSn = :systemSN")
     public abstract KPIRow getKPIs(String from, String to, String systemSN);
+
+    @Query("SELECT * FROM alphaESSTransformedData WHERE sysSn = :systemSN AND date >= :from AND date <= :to " +
+            "ORDER BY substr(date, 5, length(date)), minute")
+    public abstract List<AlphaESSTransformedData> getAlphaESSTransformedData(String systemSN, String from, String to);
+
+    @Query("SELECT AVG(sub.load) * 12 AS BaseLoad FROM (SELECT load FROM alphaESSTransformedData WHERE load > 0.0 " +
+            "AND sysSn = :systemSN AND date >= :from AND date <= :to ORDER BY load " +
+            "LIMIT CAST((SELECT COUNT(load) * 0.3 FROM alphaESSTransformedData WHERE load > 0 " +
+            "AND sysSn = :systemSN AND date >= :from AND date <= :to) AS INTEGER)) sub")
+    public abstract Double getBaseLoad(String systemSN, String from, String to);
+
+    @Query("SELECT (charge - discharge)/charge * 100 " +
+            "FROM (SELECT sum(energyCharge) AS charge, sum(energyDischarge) AS discharge FROM alphaESSRawEnergy " +
+            "WHERE sysSn = :systemSN)")
+    public abstract Double getLosses(String systemSN);
 }
 

@@ -28,10 +28,22 @@
         </TableRow>
         <TableRow>
             <TextView android:text="@string/selected_date_range"
+                android:layout_marginTop="10dp"
                 android:gravity="center_horizontal" />
             <TextView
                 android:id="@+id/gen_selected_dates"
+                android:layout_marginTop="10dp"
                 android:text="@string/no_dates_selected"
+                android:gravity="center_horizontal"/>
+        </TableRow>
+        <TableRow>
+            <TextView android:text="@string/generation_status"
+                android:gravity="center_horizontal"
+                android:layout_marginTop="10dp"/>
+            <TextView
+                android:id="@+id/gen_selected_status"
+                android:layout_marginTop="10dp"
+                android:text="@string/not_requested"
                 android:gravity="center_horizontal"/>
         </TableRow>
     </TableLayout>

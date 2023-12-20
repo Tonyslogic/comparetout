@@ -557,16 +557,10 @@ public class ImportAlphaOverview extends Fragment {
                     .putString(DailyWorker.KEY_SYSTEM_SN, serialNumber)
                     .build();
             int delay = 25 - LocalDateTime.now().getHour(); // Going for 01:00 <-> 02:00
-//            PeriodicWorkRequest dailyWorkRequest =
-//                    new PeriodicWorkRequest.Builder(DailyWorker.class, 1, TimeUnit.DAYS)
-//                            .setInputData(dailyData)
-//                            .setInitialDelay(delay, TimeUnit.HOURS)
-//                            .addTag(serialNumber + "daily")
-//                            .build();
             PeriodicWorkRequest dailyWorkRequest =
-                    new PeriodicWorkRequest.Builder(DailyWorker.class, 1, TimeUnit.HOURS)
+                    new PeriodicWorkRequest.Builder(DailyWorker.class, 1, TimeUnit.DAYS)
                             .setInputData(dailyData)
-                            .setInitialDelay(10, TimeUnit.MINUTES)
+                            .setInitialDelay(delay, TimeUnit.HOURS)
                             .addTag(serialNumber + "daily")
                             .build();
             WorkManager
