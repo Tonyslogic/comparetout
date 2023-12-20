@@ -353,8 +353,6 @@ public class ImportAlphaOverview extends Fragment {
             TextView addFetchStatus = new TextView(activity);
             addFetchStatus.setText((null == mFetchState) ? getContext().getString(R.string.Idle) : mFetchState);
             addFetchStatus.setGravity(Gravity.CENTER);
-            // TODO Remove the next line
-            if (!(null == getContext())) WorkManager.getInstance(getContext()).cancelAllWorkByTag("daily");
             addFetchButton.setOnClickListener(v -> {
                 if (mFetchOngoing) {
                     if (!(null == getContext())) {
@@ -559,18 +557,18 @@ public class ImportAlphaOverview extends Fragment {
                     .putString(DailyWorker.KEY_SYSTEM_SN, serialNumber)
                     .build();
             int delay = 25 - LocalDateTime.now().getHour(); // Going for 01:00 <-> 02:00
-            PeriodicWorkRequest dailyWorkRequest =
-                    new PeriodicWorkRequest.Builder(DailyWorker.class, 1, TimeUnit.DAYS)
-                            .setInputData(dailyData)
-                            .setInitialDelay(delay, TimeUnit.HOURS)
-                            .addTag(serialNumber + "daily")
-                            .build();
 //            PeriodicWorkRequest dailyWorkRequest =
-//                    new PeriodicWorkRequest.Builder(DailyWorker.class, 1, TimeUnit.HOURS)
+//                    new PeriodicWorkRequest.Builder(DailyWorker.class, 1, TimeUnit.DAYS)
 //                            .setInputData(dailyData)
-//                            .setInitialDelay(delay, TimeUnit.MINUTES)
+//                            .setInitialDelay(delay, TimeUnit.HOURS)
 //                            .addTag(serialNumber + "daily")
 //                            .build();
+            PeriodicWorkRequest dailyWorkRequest =
+                    new PeriodicWorkRequest.Builder(DailyWorker.class, 1, TimeUnit.HOURS)
+                            .setInputData(dailyData)
+                            .setInitialDelay(10, TimeUnit.MINUTES)
+                            .addTag(serialNumber + "daily")
+                            .build();
             WorkManager
                     .getInstance(context)
                     .enqueueUniquePeriodicWork(serialNumber + "daily", ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE, dailyWorkRequest);

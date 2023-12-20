@@ -249,17 +249,25 @@ public class ImportAlphaGenerateScenario extends Fragment {
                 mFrom = ldt.format(DATE_FORMAT);
                 mTo = ldt.plusYears(1).plusDays(-1).format(DATE_FORMAT);
                 LocalDate ldtTo = LocalDate.parse(mTo);
-                LocalDate ldtLast = LocalDate.parse(mDBLast);
+                LocalDate ldtLast = LocalDate.parse((null == mDBLast) ? "1970-01-01" : mDBLast);
                 mDatesOK = (ldtTo.isBefore(ldtLast.plusDays(1)));
                 setSelectionText();
-                mGenLoadProfile.setEnabled(mDatesOK);
+                {
+                    mGenerateUsage.setEnabled(mLP && mDatesOK);
+                    mGenLoadProfile.setEnabled(mDatesOK);
+                    mGenInverter.setEnabled(mLP && mDatesOK);
+                    mGenPanels.setEnabled(mINV && mDatesOK);
+                    mGenPanelData.setEnabled(mPNL && mDatesOK);
+                    mGenBattery.setEnabled(mINV && mDatesOK);
+                    mGenBatterySchedule.setEnabled(mBAT && mDatesOK);
+                }
             });
             startPicker.show(getParentFragmentManager(), "FETCH_START_DATE_PICKER");
         });
 
         mGenerateUsage.setOnClickListener(v -> Snackbar.make(view, "TODO the generation", Snackbar.LENGTH_LONG)
                 .setAction("Action", null).show());
-        mGenerateUsage.setEnabled(mLP);
+        mGenerateUsage.setEnabled(mLP && mDatesOK);
         setSelectionText();
 
         mGenLoadProfile.setChecked(mLP);
@@ -271,11 +279,11 @@ public class ImportAlphaGenerateScenario extends Fragment {
         });
 
         mGenInverter.setChecked(mINV);
-        mGenInverter.setEnabled(mLP);
+        mGenInverter.setEnabled(mLP && mDatesOK);
         mGenInverter.setOnClickListener(v -> {
             mINV = mGenInverter.isChecked();
-            mGenPanels.setEnabled(mINV);
-            mGenBattery.setEnabled(mINV);
+            mGenPanels.setEnabled(mINV && mDatesOK);
+            mGenBattery.setEnabled(mINV && mDatesOK);
             mGenInverterInput.setVisibility(mINV ? View.VISIBLE : View.GONE);
         });
 
@@ -291,28 +299,28 @@ public class ImportAlphaGenerateScenario extends Fragment {
         });
 
         mGenPanels.setChecked(mPNL);
-        mGenPanels.setEnabled(mINV);
+        mGenPanels.setEnabled(mINV && mDatesOK);
         mGenPanels.setOnClickListener(v -> {
             mPNL = mGenPanels.isChecked();
-            mGenPanelData.setEnabled(mPNL);
+            mGenPanelData.setEnabled(mPNL && mDatesOK);
             mGenPanelInput.setVisibility(mPNL ? View.VISIBLE : View.GONE);
         });
 
         mGenPanelInput.setVisibility(mPNL ? View.VISIBLE : View.GONE);
 
         mGenPanelData.setChecked(mPNLD);
-        mGenPanelData.setEnabled(mPNL);
+        mGenPanelData.setEnabled(mPNL && mDatesOK);
         mGenPanelData.setOnClickListener(v -> mPNLD = mGenPanelData.isChecked());
 
         mGenBattery.setChecked(mBAT);
-        mGenBattery.setEnabled(mINV);
+        mGenBattery.setEnabled(mINV && mDatesOK);
         mGenBattery.setOnClickListener(v -> {
             mBAT = mGenBattery.isChecked();
-            mGenBatterySchedule.setEnabled(mBAT);
+            mGenBatterySchedule.setEnabled(mBAT && mDatesOK);
         });
 
         mGenBatterySchedule.setChecked(mBATS);
-        mGenBatterySchedule.setEnabled(mBAT);
+        mGenBatterySchedule.setEnabled(mBAT && mDatesOK);
         mGenBatterySchedule.setOnClickListener(v -> mBATS = mGenBatterySchedule.isChecked());
         updateView();
     }

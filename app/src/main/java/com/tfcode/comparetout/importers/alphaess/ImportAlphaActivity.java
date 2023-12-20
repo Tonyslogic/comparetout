@@ -234,7 +234,6 @@ public class ImportAlphaActivity extends AppCompatActivity {
             @Override
             public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
                 super.onPageScrolled(position, positionOffset, positionOffsetPixels);
-                System.out.println("ImportAlphaActivity::onPageScrolled " + position);
                 showFAB();
             }
         });
