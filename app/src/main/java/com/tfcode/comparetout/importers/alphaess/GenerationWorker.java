@@ -42,6 +42,9 @@ import com.tfcode.comparetout.importers.alphaess.responses.GetEssListResponse;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
 import com.tfcode.comparetout.model.importers.alphaess.IntervalRow;
+import com.tfcode.comparetout.model.importers.alphaess.MaxCalcRow;
+import com.tfcode.comparetout.model.scenario.Battery;
+import com.tfcode.comparetout.model.scenario.ChargeModel;
 import com.tfcode.comparetout.model.scenario.DOWDist;
 import com.tfcode.comparetout.model.scenario.HourlyDist;
 import com.tfcode.comparetout.model.scenario.Inverter;
@@ -57,6 +60,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -166,7 +170,6 @@ public class GenerationWorker extends Worker {
                 null, null, null, null, null,
                 null, null, null, null, null);
         long assignedScenarioID = mToutcRepository.insertScenarioAndReturnID(scenarioComponents);
-        long inverterID;
         List<AlphaESSTransformedData> dbRows = null;
 
         // Create & store a load profile
@@ -262,7 +265,7 @@ public class GenerationWorker extends Worker {
             inverter.setDc2acLoss(loss);
             inverter.setDc2dcLoss(0);
 
-            inverterID = mToutcRepository.saveInverter(assignedScenarioID, inverter);
+            mToutcRepository.saveInverter(assignedScenarioID, inverter);
             report("Stored inverter");
         }
 
@@ -285,7 +288,7 @@ public class GenerationWorker extends Worker {
                 if (mPNLD) {
 
                     int dbRowIndex = 0;
-                    report("Loaded data");
+                    report("Loaded raw data");
 
                     double proportionOfPV = (double)stringSize/(double)totalPanelCount;
 
@@ -320,19 +323,122 @@ public class GenerationWorker extends Worker {
                     report("Storing PV data");
 
                     mToutcRepository.savePanelData(rows);
-                    report("Stored PV data");
                 }
             }
         }
 
         // Battery
         if (mBAT) {
+            Battery battery = new Battery();
+            battery.setBatterySize(theSystemData.surplusCobat);
+            battery.setStorageLoss(1);
+            ChargeModel chargeModel = new ChargeModel();
+            report("Creating battery settings");
+            {
+                double maxRate = 0;
+                List<Double> cmInput0_13 = mToutcRepository.getChargeModelInput(mSystemSN, 0, 13);
+                double total = 0d;
+                double count = 0d;
+                for (int i = (int) (cmInput0_13.size() * 0.2); i < (int) (cmInput0_13.size() * 0.8); i++) {
+                    double rate = cmInput0_13.get(i);
+                    total += rate;
+                    count++;
+                    if (maxRate < rate) maxRate = rate;
+                }
+                double average_0_13 = total / count;
 
-        }
+                List<Double> cmInput13_90 = mToutcRepository.getChargeModelInput(mSystemSN, 13, 90);
+                total = 0d;
+                count = 0d;
+                for (int i = (int) (cmInput13_90.size() * 0.2); i < (int) (cmInput13_90.size() * 0.8); i++) {
+                    double rate = cmInput13_90.get(i);
+                    if (total < rate) total = rate;
+                    count++;
+                    if (maxRate < rate) maxRate = rate;
+                }
+                double average_13_90 = total;
 
-        // Battery schedules
-        if (mBATS) {
+                List<Double> cmInput90_100 = mToutcRepository.getChargeModelInput(mSystemSN, 90, 101);
+                total = 0d;
+                count = 0d;
+                for (int i = (int) (cmInput90_100.size() * 0.2); i < (int) (cmInput90_100.size() * 0.8); i++) {
+                    double rate = cmInput90_100.get(i);
+                    total += rate;
+                    count++;
+                    if (maxRate < rate) maxRate = rate;
+                }
+                double average_90_100 = total / count;
 
+                chargeModel.percent0 = (int) ((average_0_13 / maxRate) * 100);
+                chargeModel.percent12 = (int) ((average_13_90 / maxRate) * 100);
+                chargeModel.percent90 = (int) ((average_90_100 / maxRate) * 100);
+                chargeModel.percent100 = 0;
+            }
+            battery.setChargeModel(chargeModel);
+            report("Finding battery kpis");
+            //Discharge stop
+            double dischargeStop;
+            {
+                List<Double> minCharges = mToutcRepository.getDischargeStopInput(mSystemSN);
+
+                double minimum = 10000000000d;
+                for (int i = (int) (minCharges.size() * 0.2); i < (int) (minCharges.size() * 0.8); i++) {
+                    double rate = minCharges.get(i);
+                    if (minimum > rate) minimum = rate;
+                }
+                dischargeStop = minimum ;
+            }
+            battery.setDischargeStop(dischargeStop);
+            double maxDischarge;
+            double maxCharge;
+            double maxBatDischarge = 0;
+            double maxBatCharge = 0;
+            List<MaxCalcRow> maxCalcRows = mToutcRepository.getMaxCalcInput(mSystemSN);
+            Iterator<MaxCalcRow> rowIterator = maxCalcRows.listIterator();
+            MaxCalcRow previous = rowIterator.next();
+            // assuming max charge and discharge is 0.5 C, we need to see the max for a 5min period
+            // as a percentage of full capacity
+            double maxCD = ((theSystemData.surplusCobat / 2d / 12d) / theSystemData.surplusCobat) * 100;
+
+            while (rowIterator.hasNext()) {
+                MaxCalcRow current = rowIterator.next();
+                // Contiguous
+                if (current.longtime == previous.longtime + 300) {
+                    // cBat increasing or decreasing (charging or discharging)
+                    if ( current.cbat > previous.cbat) { // Charging
+                        double charge = current.cbat - previous.cbat;
+                        if (charge > maxBatCharge && charge <= maxCD) {
+                            maxBatCharge = charge;
+                        }
+                    }
+                    else { // Discharging
+                        double discharge = previous.cbat - current.cbat;
+                        if (discharge > maxBatDischarge && discharge <= maxCD) {
+                            maxBatDischarge = discharge;
+                        }
+                    }
+                }
+                previous = current;
+            }
+            // load converted to percentage
+            maxDischarge = (theSystemData.surplusCobat/100d) * maxBatDischarge;
+            maxCharge =  (theSystemData.surplusCobat/100d) * maxBatCharge;
+
+            maxDischarge = ((int) (maxDischarge * 10000)) / 10000d;
+            maxCharge = ((int) (maxCharge * 10000)) / 10000d;
+
+            battery.setMaxDischarge(maxDischarge);
+            battery.setMaxCharge(maxCharge);
+            battery.setInverter(mSystemSN);
+            report("Storing battery");
+            mToutcRepository.saveBatteryForScenario(assignedScenarioID, battery);
+
+
+            // Battery schedules
+            if (mBATS) {
+                report("Finding schedules");
+
+            }
         }
 
         // Done :-)

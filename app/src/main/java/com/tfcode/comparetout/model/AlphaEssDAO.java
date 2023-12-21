@@ -31,6 +31,7 @@ import com.tfcode.comparetout.model.importers.alphaess.IntervalRow;
 import com.tfcode.comparetout.model.importers.alphaess.InverterDateRange;
 import com.tfcode.comparetout.model.importers.alphaess.KPIRow;
 import com.tfcode.comparetout.model.importers.alphaess.KeyStatsRow;
+import com.tfcode.comparetout.model.importers.alphaess.MaxCalcRow;
 
 import java.util.List;
 
@@ -230,5 +231,17 @@ public abstract class AlphaEssDAO {
             "FROM (SELECT sum(energyCharge) AS charge, sum(energyDischarge) AS discharge FROM alphaESSRawEnergy " +
             "WHERE sysSn = :systemSN)")
     public abstract Double getLosses(String systemSN);
+
+    @Query("SELECT gridCharge AS rate FROM alphaESSRawPower WHERE gridCharge > 0 " +
+            "AND sysSn = :systemSN AND CAST (ROUND(cbat) AS INTEGER) >= :low " +
+            "AND CAST (ROUND(cbat) AS INTEGER) < :high ORDER BY gridCharge\n")
+    public abstract List<Double> getChargeModelInput(String systemSN, int low, int high);
+
+    @Query("SELECT min(cbat) FROM alphaESSRawPower WHERE cbat > 0 AND sysSn = :systemSN GROUP BY uploadTime ORDER BY min(cbat)")
+    public abstract List<Double> getDischargeStopInput(String systemSN);
+
+    @Query("SELECT strftime('%s', datetime((strftime('%s', uploadTime) / 300) * 300, 'unixepoch')) " +
+            "AS longtime, load, cbat FROM alphaESSRawPower WHERE sysSn = :systemSN AND cbat > 0 ORDER BY longtime")
+    public abstract List<MaxCalcRow> getMaxCalcInput(String systemSN);
 }
 

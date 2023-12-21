@@ -524,4 +524,14 @@ public class ImportAlphaGenerateScenario extends Fragment {
             mGenPanelInput.addView(stringRow);
         }
     }
+
+    public void setSelectedSystemSN(String serialNumber) {
+        mSystemSN = serialNumber;
+        if (!(null == mSystemSN) && !(null == mInverterDateRangesBySN) && !(null == mInverterDateRangesBySN.get(mSystemSN))) {
+            mFrom = Objects.requireNonNull(mInverterDateRangesBySN.get(mSystemSN)).first;
+            mTo = Objects.requireNonNull(mInverterDateRangesBySN.get(mSystemSN)).second;
+            mDBLast = mTo;
+        }
+        setSelectionText();
+    }
 }

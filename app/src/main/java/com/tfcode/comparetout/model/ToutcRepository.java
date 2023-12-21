@@ -29,6 +29,7 @@ import com.tfcode.comparetout.model.importers.alphaess.IntervalRow;
 import com.tfcode.comparetout.model.importers.alphaess.InverterDateRange;
 import com.tfcode.comparetout.model.importers.alphaess.KPIRow;
 import com.tfcode.comparetout.model.importers.alphaess.KeyStatsRow;
+import com.tfcode.comparetout.model.importers.alphaess.MaxCalcRow;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.Battery;
@@ -726,5 +727,17 @@ public class ToutcRepository {
 
     public Double getLosses(String systemSN) {
         return alphaEssDAO.getLosses(systemSN);
+    }
+
+    public List<Double> getChargeModelInput(String systemSN, int low, int high) {
+        return alphaEssDAO.getChargeModelInput(systemSN, low, high);
+    }
+
+    public List<Double> getDischargeStopInput(String systemSN) {
+        return alphaEssDAO.getDischargeStopInput(systemSN);
+    }
+
+    public List<MaxCalcRow> getMaxCalcInput(String systemSN) {
+        return alphaEssDAO.getMaxCalcInput(systemSN);
     }
 }
