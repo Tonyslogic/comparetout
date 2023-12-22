@@ -266,8 +266,6 @@ public class ImportAlphaGraphs extends Fragment {
                         break;
                 }
 
-                System.out.println("ImportAlphaGraphs::updateKPIs input: " + mSystemSN + ", " + mFrom + ", " + mTo);
-                System.out.println("ImportAlphaGraphs::updateKPIs returned: " + mGraphData.size());
                 if (!(null == mMainHandler)) mMainHandler.post(this::updateView);
             }
         }).start();
@@ -882,7 +880,6 @@ public class ImportAlphaGraphs extends Fragment {
     }
 
     private void buildBarChart() {
-        System.out.println("ImportAlphaGraphs::buildBarChart");
         mBarChart.clear();
 
         XAxis xAxis = mBarChart.getXAxis();

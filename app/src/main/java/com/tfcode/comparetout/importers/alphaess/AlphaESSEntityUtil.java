@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 
 public class AlphaESSEntityUtil {
 
@@ -36,6 +37,11 @@ public class AlphaESSEntityUtil {
     private static final SimpleDateFormat HH_MM_FORMAT = new SimpleDateFormat("HH:mm");
     @SuppressLint("SimpleDateFormat")
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+    static {
+        DATE_FORMAT.setTimeZone(TimeZone.getDefault());
+        HH_MM_FORMAT.setTimeZone(TimeZone.getDefault());
+    }
+
 
     public static List<AlphaESSRawPower> getPowerRowsFromJson (GetOneDayPowerResponse odpr) {
         List<AlphaESSRawPower> entities = new ArrayList<>();

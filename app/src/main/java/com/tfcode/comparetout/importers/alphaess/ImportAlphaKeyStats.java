@@ -154,9 +154,6 @@ public class ImportAlphaKeyStats extends Fragment {
                 // TODO: DB Query
                 mKeyStats = mViewModel.getKeyStats(mFrom, mTo, mSystemSN);
                 mKPIs = mViewModel.getKPIs(mFrom, mTo, mSystemSN);
-
-                System.out.println("ImportAlphaKeyStats::updateKPIs input: " + mSystemSN + ", " + mFrom + ", " + mTo);
-                System.out.println("ImportAlphaKeyStats::updateKPIs returned: " + mKeyStats.size());
                 if (!(null == mMainHandler)) mMainHandler.post(this::updateView);
             }
         }).start();
