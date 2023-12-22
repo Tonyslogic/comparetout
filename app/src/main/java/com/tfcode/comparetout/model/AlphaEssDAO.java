@@ -32,6 +32,7 @@ import com.tfcode.comparetout.model.importers.alphaess.InverterDateRange;
 import com.tfcode.comparetout.model.importers.alphaess.KPIRow;
 import com.tfcode.comparetout.model.importers.alphaess.KeyStatsRow;
 import com.tfcode.comparetout.model.importers.alphaess.MaxCalcRow;
+import com.tfcode.comparetout.model.importers.alphaess.ScheduleRIInput;
 
 import java.util.List;
 
@@ -243,5 +244,21 @@ public abstract class AlphaEssDAO {
     @Query("SELECT strftime('%s', datetime((strftime('%s', uploadTime) / 300) * 300, 'unixepoch')) " +
             "AS longtime, load, cbat FROM alphaESSRawPower WHERE sysSn = :systemSN AND cbat > 0 ORDER BY longtime")
     public abstract List<MaxCalcRow> getMaxCalcInput(String systemSN);
+
+    @Query("SELECT DISTINCT " +
+            "CAST (strftime('%m', uploadTime) AS INTEGER) AS month, " +
+            "strftime('%w', uploadTime) AS day_of_week, " +
+            "CAST (strftime('%H', uploadTime) AS INTEGER) AS hour, " +
+            "cbat, " +
+            "CASE " +
+            "WHEN gridCharge - load > 0 THEN gridCharge " +
+            "WHEN gridCharge - load < -0.0 THEN 1 " +
+            "ELSE 0 " +
+            "END AS CFG " +
+            "FROM alphaESSRawPower WHERE gridCharge - load > -0.1 " +
+            "AND uploadTime >= :from AND uploadTime <= :to AND sysSn = :systemSN " +
+            "GROUP BY month, day_of_week, hour " +
+            "ORDER BY uploadTime, month, day_of_week, hour")
+    public abstract List<ScheduleRIInput> getScheduleRIInput(String systemSN, String from , String to);
 }
 

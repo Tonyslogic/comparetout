@@ -30,6 +30,7 @@ import com.tfcode.comparetout.model.importers.alphaess.InverterDateRange;
 import com.tfcode.comparetout.model.importers.alphaess.KPIRow;
 import com.tfcode.comparetout.model.importers.alphaess.KeyStatsRow;
 import com.tfcode.comparetout.model.importers.alphaess.MaxCalcRow;
+import com.tfcode.comparetout.model.importers.alphaess.ScheduleRIInput;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.Battery;
@@ -739,5 +740,9 @@ public class ToutcRepository {
 
     public List<MaxCalcRow> getMaxCalcInput(String systemSN) {
         return alphaEssDAO.getMaxCalcInput(systemSN);
+    }
+
+    public List<ScheduleRIInput> getScheduleRIInput(String systemSN, String from , String to) {
+        return alphaEssDAO.getScheduleRIInput(systemSN, from, to);
     }
 }

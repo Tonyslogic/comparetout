@@ -301,138 +301,24 @@ public class ImportAlphaGenerateScenario extends Fragment {
                     .beginUniqueWork(mSystemSN, ExistingWorkPolicy.APPEND, generationWorkRequest)
                     .enqueue();
 
-
             // set up the observer for the selected systems workers
             LiveData<List<WorkInfo>> mCatchupLiveDataForSN = WorkManager.getInstance(context)
                     .getWorkInfosByTagLiveData(mSystemSN);
             Observer<List<WorkInfo>> mCatchupWorkObserver = workInfos -> {
                 for (WorkInfo wi : workInfos) {
                     String mFetchState;
-                    if ((!(null == wi)) && (wi.getState() == WorkInfo.State.RUNNING)) {
+                    if ( (!(null == wi)) &&
+                            ((wi.getState() == WorkInfo.State.RUNNING) ||
+                                    (wi.getState() == WorkInfo.State.SUCCEEDED)) ) {
                         Data progress = wi.getProgress();
                         mFetchState = progress.getString(DailyWorker.PROGRESS);
                         if (null == mFetchState) mFetchState = "Unknown state";
                         String finalMFetchState = mFetchState;
                         mMainHandler.post(() -> mGenStatus.setText(finalMFetchState));
                     }
-                    if ((!(null == wi)) && (wi.getState() == WorkInfo.State.SUCCEEDED)) {
-                        mMainHandler.post(this::updateView);
-                    }
                 }
             };
             mCatchupLiveDataForSN.observe((LifecycleOwner) context, mCatchupWorkObserver);
-
-//            new Thread(() -> {
-//                // check for mandatory members
-//                if (null == mScenarioNames) return;
-//                if (null == mToutcRepository) return;
-//
-//                long createdLoadProfileID = 0;
-//
-//                // Create a scenario && get its id
-//                mMainHandler.post(() -> mGenStatus.setText(getString(R.string.creating_usage)));
-//                Scenario scenario = new Scenario();
-//                String scenarioName = mSystemSN;
-//                int suffix = 1;
-//                while (mScenarioNames.contains(scenarioName)) {
-//                    scenarioName = scenarioName + "_" + suffix;
-//                    suffix++;
-//                }
-//                String finalScenarioName = scenarioName;
-//                scenario.setScenarioName(scenarioName);
-//                ScenarioComponents scenarioComponents = new ScenarioComponents(scenario,
-//                        null, null, null, null, null,
-//                        null, null, null, null, null);
-//                long assignedScenarioID = mViewModel.insertScenarioAndReturnID(scenarioComponents);
-//
-//                // Create & store a load profile
-//                if (mLP) {
-//                    mMainHandler.post(() -> mGenStatus.setText(getString(R.string.gen_load_profile)));
-//                    List<IntervalRow> hourly = mToutcRepository.getSumHour(mSystemSN, mFrom, mTo);
-//                    List<IntervalRow> weekly = mToutcRepository.getSumDOW(mSystemSN, mFrom, mTo);
-//                    List<IntervalRow> monthly = mToutcRepository.getAvgMonth(mSystemSN, mFrom, mTo);
-//                    Double baseLoad = mToutcRepository.getBaseLoad(mSystemSN, mFrom, mTo);
-//
-//                    Double totalLoad = 0D;
-//                    for (IntervalRow row : weekly) totalLoad += row.load;
-//
-//                    LoadProfile loadProfile = new LoadProfile();
-//                    loadProfile.setAnnualUsage(totalLoad);
-//                    loadProfile.setDistributionSource(mSystemSN);
-//                    loadProfile.setHourlyBaseLoad(baseLoad);
-//                    HourlyDist hd = new HourlyDist();
-//                    List<Double> hourOfDayDist = new ArrayList<>();
-//                    for (int i = 0; i < 24; i++) {
-//                        Double hv = hourly.get(i).load;
-//                        if (!(null == hv)) hourOfDayDist.add((hv / totalLoad) * 100);
-//                    }
-//                    hd.dist = hourOfDayDist;
-//                    loadProfile.setHourlyDist(hd);
-//                    DOWDist dd = new DOWDist();
-//                    List<Double> dowDist = new ArrayList<>();
-//                    for (int i = 0; i < 7; i++) {
-//                        Double dv = weekly.get(i).load;
-//                        if (!(null == dv)) dowDist.add((dv / totalLoad) * 100);
-//                    }
-//                    dd.dowDist = dowDist;
-//                    loadProfile.setDowDist(dd);
-//                    MonthlyDist md = new MonthlyDist();
-//                    List<Double> moyDist = new ArrayList<>();
-//                    for (int i = 0; i < 12; i++) {
-//                        Double mv = monthly.get(i).load;
-//                        if (!(null == mv)) moyDist.add((mv / totalLoad) * 100);
-//                        else
-//                            moyDist.add(((loadProfile.getAnnualUsage() / 12D) / loadProfile.getAnnualUsage()) * 100);
-//                    }
-//                    md.monthlyDist = moyDist;
-//                    loadProfile.setMonthlyDist(md);
-//                    createdLoadProfileID = mViewModel.saveLoadProfileAndReturnID(assignedScenarioID, loadProfile);
-//                }
-//
-//                // Create and store load profile data
-//                if (mLP) {
-//                    mMainHandler.post(() -> mGenStatus.setText(getString(R.string.adding_data)));
-//
-//                    List<AlphaESSTransformedData> dbRows =
-//                            mToutcRepository.getAlphaESSTransformedData(mSystemSN, mFrom, mTo);
-//                    int dbRowIndex = 0;
-//                    mMainHandler.post(() -> mGenStatus.setText("Loaded data"));
-//
-//                    ArrayList<LoadProfileData> rows = new ArrayList<>();
-//                    LocalDateTime active = LocalDateTime.of(2001, 1, 1, 0, 0);
-//                    LocalDateTime end = LocalDateTime.of(2002, 1, 1, 0, 0);
-//                    DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-//                    DateTimeFormatter minFormat = DateTimeFormatter.ofPattern("HH:mm");
-//                    while (active.isBefore(end)) {
-//                        LoadProfileData row = new LoadProfileData();
-//                        row.setDo2001(active.getDayOfYear());
-//                        row.setLoadProfileID(createdLoadProfileID);
-//                        row.setDate(active.format(dateFormat));
-//                        row.setMinute(active.format(minFormat));
-//                        row.setDow(active.getDayOfWeek().getValue());
-//                        row.setMod(active.getHour() * 60 + active.getMinute());
-//                        // Not every 5 minute interval has data uploaded to AlphaESS
-//                        if (row.getMinute().equals(dbRows.get(dbRowIndex).getMinute())) {
-//                            row.setLoad(dbRows.get(dbRowIndex).getLoad());
-//                            dbRowIndex++;
-//                        }
-//                        else {
-//                            // A value is needed to ensure the simulation algorithm works correctly
-//                            row.setLoad(0D);
-//                        }
-//                        rows.add(row);
-//                        active = active.plusMinutes(5);
-//                    }
-//                    mMainHandler.post(() -> mGenStatus.setText("Storing data"));
-//
-//                    mToutcRepository.createLoadProfileDataEntries(rows);
-//                    mMainHandler.post(() -> mGenStatus.setText("Stored data"));
-//                }
-//
-//                // Done :-)
-//                mMainHandler.post(() -> mGenStatus.setText(getString(R.string.completed, finalScenarioName)));
-//
-//            }).start();
         });
         mGenerateUsage.setEnabled(mLP && mDatesOK);
         setSelectionText();

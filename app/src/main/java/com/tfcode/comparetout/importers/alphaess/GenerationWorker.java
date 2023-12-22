@@ -24,6 +24,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
+import android.util.Pair;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
@@ -43,6 +44,7 @@ import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
 import com.tfcode.comparetout.model.importers.alphaess.IntervalRow;
 import com.tfcode.comparetout.model.importers.alphaess.MaxCalcRow;
+import com.tfcode.comparetout.model.importers.alphaess.ScheduleRIInput;
 import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.ChargeModel;
 import com.tfcode.comparetout.model.scenario.DOWDist;
@@ -50,6 +52,7 @@ import com.tfcode.comparetout.model.scenario.HourlyDist;
 import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
 import com.tfcode.comparetout.model.scenario.LoadProfileData;
+import com.tfcode.comparetout.model.scenario.LoadShift;
 import com.tfcode.comparetout.model.scenario.MonthlyDist;
 import com.tfcode.comparetout.model.scenario.Panel;
 import com.tfcode.comparetout.model.scenario.PanelData;
@@ -60,9 +63,13 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import io.reactivex.Single;
@@ -87,8 +94,6 @@ public class GenerationWorker extends Worker {
     public static final String TO = "TO";
     public static final String PANEL_COUNTS = "PANEL_COUNTS";
     public static final String MPPT_COUNT = "MPPT_COUNT";
-
-    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
     public static final String PROGRESS = "PROGRESS";
 
@@ -438,6 +443,66 @@ public class GenerationWorker extends Worker {
             if (mBATS) {
                 report("Finding schedules");
 
+                // Get input from the DB
+                List<ScheduleRIInput> scheduleRIInputs = mToutcRepository.getScheduleRIInput(mSystemSN, mFrom, mTo);
+
+                Iterator<ScheduleRIInput> scheduleRIInputIterator = scheduleRIInputs.listIterator();
+                ScheduleRIInput previousInput = null;
+                if (scheduleRIInputIterator.hasNext()) previousInput = scheduleRIInputIterator.next();
+                Map<BES, List<Pair<Integer, Integer>>> schedules = new HashMap<>();
+                BES bes = new BES();
+                if (!(null == previousInput)) while (scheduleRIInputIterator.hasNext()) {
+                    // Search for the begin/end and stop cbat %
+                    // Also the months, and days
+                    ScheduleRIInput current = scheduleRIInputIterator.next();
+                    // Reset conditions: (1) begin is set; (2) non-contiguous hours; (3) reducing cbat
+                    if ((bes.begin != -1)
+                            && (current.hour-1 != previousInput.hour)
+                            && (current.cbat < previousInput.cbat)) {
+                        List<Pair<Integer, Integer>> scheduleInputs = schedules.computeIfAbsent(bes, k -> new ArrayList<>());
+                        scheduleInputs.add(new Pair<>((int) previousInput.month, (int) previousInput.dow));
+                        // Reset
+                        bes = new BES();
+                    }
+                    // Range conditions: (1) begin is set; (2) contiguous hours; (3) at least equal cbat
+                    if ((bes.begin != -1)
+                            && (current.hour-1 == previousInput.hour)
+                            && (current.cbat >= previousInput.cbat)) {
+                        bes.end = current.hour + 1;
+                        bes.stop = current.cbat;
+                    }
+                    // Start conditions (1) Begin is unset; (2) CFG > 0; (3) CFG > previousCFG
+                    if ((bes.begin == -1) && (current.cfg > 0) && (current.cfg > previousInput.cfg)) {
+                        bes.begin = current.hour;
+                        bes.end = current.hour + 1;
+                        bes.stop = current.cbat;
+                    }
+                    previousInput = current;
+                }
+                int loadShiftNameSuffix = 1;
+                for (Map.Entry<BES, List<Pair<Integer, Integer>>> schedule : schedules.entrySet()) {
+                    if (schedule.getKey().stop > 100d) continue;
+                    if (schedule.getKey().begin == schedule.getKey().end) continue;
+                    LoadShift loadShift = new LoadShift();
+                    loadShift.setName("Generated_" + loadShiftNameSuffix);
+                    loadShift.setInverter(mSystemSN);
+                    loadShift.setBegin((int) schedule.getKey().begin);
+                    loadShift.setEnd((int) schedule.getKey().end);
+                    loadShift.setStopAt(schedule.getKey().stop);
+                    Set<Integer> days = new HashSet<>();
+                    Set<Integer> months = new HashSet<>();
+                    for (Pair<Integer, Integer> monthsDays : schedule.getValue()) {
+                        days.add(monthsDays.second);
+                        months.add(monthsDays.first);
+                    }
+                    if (days.size() == 1 && months.size() == 1) continue;
+                    loadShift.getMonths().months = months.stream().sorted().collect(Collectors.toList());
+                    loadShift.getDays().ints = days.stream().sorted().collect(Collectors.toList());
+
+                    System.out.println(loadShift);
+                    mToutcRepository.saveLoadShiftForScenario(assignedScenarioID, loadShift);
+                    loadShiftNameSuffix++;
+                }
             }
         }
 
@@ -506,4 +571,41 @@ public class GenerationWorker extends Worker {
         NotificationManager notificationManager = getApplicationContext().getSystemService(NotificationManager.class);
         notificationManager.createNotificationChannel(channel);
     }
+}
+
+class BES implements Comparable<BES> {
+    long begin = -1;
+    long end;
+    double stop;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+
+        if (o == null || getClass() != o.getClass())
+            return false;
+
+        BES other = (BES) o;
+
+        return begin == other.begin && end == other.end && Double.compare(other.stop, stop) == 0;
+    }
+
+
+    @Override
+    public int compareTo(BES o) {
+        if (begin == o.begin) {
+            if (end == o.end) {
+                return Double.compare(stop, o.stop);
+            }
+            return Long.compare(end, o.end);
+        }
+        return Long.compare(begin, o.begin);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(begin, end, stop);
+    }
+
 }
