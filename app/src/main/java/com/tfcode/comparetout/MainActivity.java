@@ -59,7 +59,6 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.tfcode.comparetout.importers.alphaess.ImportAlphaActivity;
 import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.json.priceplan.DayRateJson;
 import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
@@ -69,7 +68,6 @@ import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.priceplan.PricePlanActivity;
 import com.tfcode.comparetout.scenario.ScenarioActivity;
-import com.tfcode.comparetout.scenario.loadprofile.hdf.HDFActivity;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.io.FileNotFoundException;
@@ -252,7 +250,7 @@ public class MainActivity extends AppCompatActivity {
 
         viewPager = findViewById(R.id.view_pager);
         viewPager.setAdapter(createCardAdapter());
-        viewPager.setCurrentItem(MainActivity.USAGE_FRAGMENT);
+        viewPager.setCurrentItem(MainActivity.DATA_MANAGEMENT_FRAGMENT);
         mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
 
         /*

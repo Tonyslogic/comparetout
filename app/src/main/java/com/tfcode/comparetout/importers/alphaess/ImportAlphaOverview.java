@@ -119,6 +119,7 @@ public class ImportAlphaOverview extends Fragment {
     private static final String APP_SECRET_KEY = "app_secret";
     private static final String GOOD_CREDENTIAL_KEY = "cred_good";
     private static final String SYSTEM_LIST_KEY = "system_list";
+    private static final String SYSTEM_PREVIOUSLY_SELECTED = "system_previously_selected";
     private OpenAlphaESSClient mOpenAlphaESSClient;
     private String mSerialNumber;
     private List<String> mSerialNumbers;
@@ -167,19 +168,19 @@ public class ImportAlphaOverview extends Fragment {
                 Single<String> value = application.getDataStore()
                         .data().firstOrError()
                         .map(prefs -> prefs.get(appIdKey)).onErrorReturnItem("null");
-                String appId =  value.blockingGet();
+                String appId = value.blockingGet();
 
                 Preferences.Key<String> appSecretKey = PreferencesKeys.stringKey(APP_SECRET_KEY);
                 Single<String> value2 = application.getDataStore()
                         .data().firstOrError()
                         .map(prefs -> prefs.get(appSecretKey)).onErrorReturnItem("null");
-                String appSecret =  value2.blockingGet();
+                String appSecret = value2.blockingGet();
 
                 Preferences.Key<String> goodKey = PreferencesKeys.stringKey(GOOD_CREDENTIAL_KEY);
                 Single<String> value3 = application.getDataStore()
                         .data().firstOrError()
                         .map(prefs -> prefs.get(goodKey)).onErrorReturnItem("False");
-                String goodCreds =  value3.blockingGet();
+                String goodCreds = value3.blockingGet();
 
                 Preferences.Key<String> systemList = PreferencesKeys.stringKey(SYSTEM_LIST_KEY);
                 Single<String> value4 = application.getDataStore()
@@ -192,6 +193,18 @@ public class ImportAlphaOverview extends Fragment {
                     for (GetEssListResponse.DataItem system : getEssListResponse.data) {
                         mSerialNumbers.add(system.sysSn);
                     }
+                }
+
+                Preferences.Key<String> previousKey = PreferencesKeys.stringKey(SYSTEM_PREVIOUSLY_SELECTED);
+                Single<String> value5 = application.getDataStore()
+                        .data().firstOrError()
+                        .map(prefs -> prefs.get(previousKey)).onErrorReturnItem("");
+                mSerialNumber = value5.blockingGet();
+                if ("".equals(mSerialNumber)) mSerialNumber = null;
+                if (!(null == mSerialNumber) && !(null == getContext())) {
+                    mMainHandler.post(() -> serialUpdated(getContext()));
+                    mCostViewModel.setDBStart(LocalDateTime.parse("1970-01-02" + MIDNIGHT, PARSER_FORMATTER));
+                    mCostViewModel.setDBEnd(LocalDateTime.now());
                 }
 
                 if (("null".equals(appId)) || ("null".equals(appSecret))) {
@@ -592,6 +605,14 @@ public class ImportAlphaOverview extends Fragment {
     private void serialUpdated(Context context) {
         ((ImportAlphaActivity) requireActivity()).setSelectedSystemSN(mSerialNumber);
         mSystemSelected = true;
+
+        if (!(null == getActivity()) && !(null == getActivity().getApplication())) {
+            TOUTCApplication application = (TOUTCApplication) getActivity().getApplication();
+            boolean x = application.putStringValueIntoDataStore(SYSTEM_PREVIOUSLY_SELECTED, mSerialNumber);
+            if (!x)
+                System.out.println("ImportAlphaOverview::serialUpdated, failed to store mSerialNumber");
+        }
+
         // Cleanup if needed
         if (!(null == mCatchupLiveDataForSN) && !(null == mCatchupWorkObserver)) {
             mCatchupLiveDataForSN.removeObserver(mCatchupWorkObserver);
