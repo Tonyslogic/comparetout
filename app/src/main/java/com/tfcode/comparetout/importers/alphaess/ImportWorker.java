@@ -187,9 +187,7 @@ public class ImportWorker extends Worker {
             double ePV = energy.getEnergypv();
             double eLoad = (ePV - energy.getEnergyOutput()) + energy.getEnergyInput();
             double eFeed = energy.getEnergyOutput();
-//            double eBuy = energy.getEnergyInput() + energy.getEnergyGridCharge();
-            double eBuy = eLoad - (ePV - energy.getEnergyOutput() - energy.getEnergyCharge())
-                    - energy.getEnergyDischarge();
+            double eBuy = energy.getEnergyInput();
             if (eBuy < 0D) eBuy = 0D;
             // Unitize and scale power (in kWh 5 minute intervals)
             Map<Long, FiveMinuteEnergies> massaged = DataMassager.massage(fixed, ePV, eLoad, eFeed, eBuy);
