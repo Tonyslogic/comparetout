@@ -734,6 +734,8 @@ public class ImportAlphaOverview extends Fragment {
                     // TODO Encrypt the keys
                     boolean x = application.putStringValueIntoDataStore(APP_ID_KEY, appId);
                     boolean y = application.putStringValueIntoDataStore(APP_SECRET_KEY, appSecret);
+                    mAppID = appId;
+                    mAppSecret = appSecret;
                     mHasCredentials = true;
                     updateView();
                     if (x != y && !y) System.out.println("Something is wrong with the properties");
