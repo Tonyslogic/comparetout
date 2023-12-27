@@ -415,6 +415,7 @@ public class ImportAlphaKeyStats extends Fragment {
 
     @SuppressLint("DefaultLocale")
     private void updateView() {
+        if (null == getContext()) return;
         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
             ImportAlphaActivity activity = (ImportAlphaActivity)getActivity();
             if (!(null == activity)) activity.hideFAB();

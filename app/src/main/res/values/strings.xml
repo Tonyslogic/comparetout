@@ -221,7 +221,7 @@
     <string name="hour">HOUR</string>
     <string name="sum">Sum</string>
     <string name="DataTabName">Data</string>
-    <string name="esbn_hdf_file">ESBN HDF, File</string>
+    <string name="esbn_hdf_file">ESBN HDF</string>
     <string name="dataMgmtOnScreenHelp">Manage your data sources</string>
     <string name="alphaess_export_notification_title">AlphaESS Export</string>
     <string name="export_alpha_channel_id">AlphaESS Export</string>
