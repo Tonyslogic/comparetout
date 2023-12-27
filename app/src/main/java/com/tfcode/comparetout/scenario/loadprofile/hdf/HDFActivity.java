@@ -418,17 +418,17 @@ public class HDFActivity extends AppCompatActivity {
 
             materialDatePicker.addOnPositiveButtonClickListener(selection -> {
                 mHDFViewModel.setSelectedStart(LocalDateTime.ofInstant(Instant.ofEpochMilli(selection.first), ZoneId.ofOffset("UTC", ZoneOffset.UTC)));
-                mHDFViewModel.setSelectedEnd(LocalDateTime.ofInstant(Instant.ofEpochMilli(selection.second), ZoneId.ofOffset("UTC", ZoneOffset.UTC)));
+                mHDFViewModel.setSelectedEnd(LocalDateTime.ofInstant(Instant.ofEpochMilli(selection.second), ZoneId.ofOffset("UTC", ZoneOffset.UTC)).plusDays(1));
 
                 long days = DAYS.between(mHDFViewModel.getSelectedStart(), mHDFViewModel.getSelectedEnd());
                 mHDFViewModel.setHasSelectedDates(false);
-                if(days > 366) mHDFViewModel.setSelectedDates("Too many days");
-                if (days < 7) mHDFViewModel.setSelectedDates("Too few days");
+//                if(days > 366) mHDFViewModel.setSelectedDates("Too many days");
+                if (days < 1) mHDFViewModel.setSelectedDates("Too few days");
                 if (mHDFViewModel.getSelectedStart().isBefore(mHDFViewModel.getFileStart())) mHDFViewModel.setSelectedDates("Start not available");
-                if (mHDFViewModel.getSelectedEnd().isAfter(mHDFViewModel.getFileEnd())) mHDFViewModel.setSelectedDates("End not available");
-                if (days >= 7 && days <= 366 && !(mHDFViewModel.getSelectedStart().isBefore(mHDFViewModel.getFileStart()))
-                        && !(mHDFViewModel.getSelectedEnd().isAfter(mHDFViewModel.getFileEnd()))) {
-                    mHDFViewModel.setSelectedDates(mHDFViewModel.getSelectedStart().format(DISPLAY_FORMAT) + " <-> " + mHDFViewModel.getSelectedEnd().format(DISPLAY_FORMAT));
+                if (mHDFViewModel.getSelectedEnd().isAfter(mHDFViewModel.getFileEnd().plusDays(1))) mHDFViewModel.setSelectedDates("End not available");
+                if (days >= 1 && !(mHDFViewModel.getSelectedStart().isBefore(mHDFViewModel.getFileStart()))
+                        && !(mHDFViewModel.getSelectedEnd().plusDays(-1).isAfter(mHDFViewModel.getFileEnd()))) {
+                    mHDFViewModel.setSelectedDates(mHDFViewModel.getSelectedStart().format(DISPLAY_FORMAT) + " <-> " + mHDFViewModel.getSelectedEnd().plusDays(-1).format(DISPLAY_FORMAT));
                     mHDFViewModel.setTotalDaysSelected(DAYS.between(mHDFViewModel.getSelectedStart(), mHDFViewModel.getSelectedEnd()));
                     mHDFViewModel.setHasSelectedDates(true);
                 }

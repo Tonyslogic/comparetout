@@ -427,16 +427,15 @@ public class ImportAlphaOverview extends Fragment {
 
             materialDatePicker.addOnPositiveButtonClickListener(selection -> {
                 mCostViewModel.setSelectedStart(LocalDateTime.ofInstant(Instant.ofEpochMilli(selection.first), ZoneId.ofOffset("UTC", ZoneOffset.UTC)));
-                mCostViewModel.setSelectedEnd(LocalDateTime.ofInstant(Instant.ofEpochMilli(selection.second), ZoneId.ofOffset("UTC", ZoneOffset.UTC)));
+                mCostViewModel.setSelectedEnd(LocalDateTime.ofInstant(Instant.ofEpochMilli(selection.second), ZoneId.ofOffset("UTC", ZoneOffset.UTC)).plusDays(1));
 
                 long days = DAYS.between(mCostViewModel.getSelectedStart(), mCostViewModel.getSelectedEnd());
-//                if(days > 366) mCostViewModel.setSelectedDates("Too many days");
-//                if (days < 7) mCostViewModel.setSelectedDates("Too few days");
+                if (days < 1) mCostViewModel.setSelectedDates("Too few days");
                 if (mCostViewModel.getSelectedStart().isBefore(mCostViewModel.getDBStart())) mCostViewModel.setSelectedDates("Start not available");
-                if (mCostViewModel.getSelectedEnd().isAfter(mCostViewModel.getDBEnd())) mCostViewModel.setSelectedDates("End not available");
-                if (days >= 7 && days <= 366 && !(mCostViewModel.getSelectedStart().isBefore(mCostViewModel.getDBStart()))
-                        && !(mCostViewModel.getSelectedEnd().isAfter(mCostViewModel.getDBEnd()))) {
-                    mCostViewModel.setSelectedDates(mCostViewModel.getSelectedStart().format(DISPLAY_FORMAT) + " <-> " + mCostViewModel.getSelectedEnd().format(DISPLAY_FORMAT));
+                if (mCostViewModel.getSelectedEnd().isAfter(mCostViewModel.getDBEnd().plusDays(1))) mCostViewModel.setSelectedDates("End not available");
+                if (days >= 1 && !(mCostViewModel.getSelectedStart().isBefore(mCostViewModel.getDBStart()))
+                        && !(mCostViewModel.getSelectedEnd().plusDays(-1).isAfter(mCostViewModel.getDBEnd()))) {
+                    mCostViewModel.setSelectedDates(mCostViewModel.getSelectedStart().format(DISPLAY_FORMAT) + " <-> " + mCostViewModel.getSelectedEnd().plusDays(-1).format(DISPLAY_FORMAT));
                     mCostViewModel.setTotalDaysSelected(DAYS.between(mCostViewModel.getSelectedStart(), mCostViewModel.getSelectedEnd()));
                     mCostViewModel.setCostings(null);
                 }
