@@ -586,21 +586,36 @@ public class ImportAlphaGraphs extends Fragment {
                     mLineChart.setVisibility(View.INVISIBLE);
                     mPieCharts.setVisibility(View.INVISIBLE);
                     mNoGraphDataTextView.setVisibility(View.INVISIBLE);
-                    buildBarChart();
+                    if (mFilterCount > 0) buildBarChart();
+                    else {
+                        mBarChart.setVisibility(View.INVISIBLE);
+                        mNoGraphDataTextView.setVisibility(View.VISIBLE);
+                        mNoGraphDataTextView.setText(R.string.empty_filter);
+                    }
                     break;
                 case LINE:
                     mBarChart.setVisibility(View.INVISIBLE);
                     mLineChart.setVisibility(View.VISIBLE);
                     mPieCharts.setVisibility(View.INVISIBLE);
                     mNoGraphDataTextView.setVisibility(View.INVISIBLE);
-                    buildLineChart();
+                    if (mFilterCount > 0) buildLineChart();
+                    else {
+                        mLineChart.setVisibility(View.INVISIBLE);
+                        mNoGraphDataTextView.setVisibility(View.VISIBLE);
+                        mNoGraphDataTextView.setText(R.string.empty_filter);
+                    }
                     break;
                 case PIE:
                     mBarChart.setVisibility(View.INVISIBLE);
                     mLineChart.setVisibility(View.INVISIBLE);
                     mPieCharts.setVisibility(View.VISIBLE);
                     mNoGraphDataTextView.setVisibility(View.INVISIBLE);
-                    buildPieCharts();
+                    if (mFilterCount > 0) buildPieCharts();
+                    else {
+                        mPieCharts.setVisibility(View.INVISIBLE);
+                        mNoGraphDataTextView.setVisibility(View.VISIBLE);
+                        mNoGraphDataTextView.setText(R.string.empty_filter);
+                    }
                     break;
             }
         }
