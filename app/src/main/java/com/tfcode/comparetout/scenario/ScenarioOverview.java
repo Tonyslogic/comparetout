@@ -19,6 +19,7 @@ package com.tfcode.comparetout.scenario;
 import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
@@ -219,7 +220,7 @@ public class ScenarioOverview extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        if (!(null == getActivity())) getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+//        if (!(null == getActivity())) getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
         updateKPIs();
     }
 
@@ -561,6 +562,7 @@ public class ScenarioOverview extends Fragment {
             }
 
             TableRow tableRow = new TableRow(getActivity());
+            TableRow.LayoutParams rowParams = new TableRow.LayoutParams(0, TableRow.LayoutParams.WRAP_CONTENT, 1f);
             MaterialTextView a = new MaterialTextView(getActivity());
             if (mEdit) {
                 // CREATE TABLE ROWS
@@ -607,10 +609,12 @@ public class ScenarioOverview extends Fragment {
                 }
                 a.setLayoutParams(scenarioParams);
                 a.setPadding(0,20,0,20);
+                a.setGravity(Gravity.CENTER_HORIZONTAL);
                 b.setLayoutParams(scenarioParams);
                 b.setPadding(0,20,0,20);
-                tableRow.addView(a);
-                tableRow.addView(b);
+                b.setGravity(Gravity.CENTER_HORIZONTAL);
+                tableRow.addView(a, rowParams);
+                tableRow.addView(b, rowParams);
                 mTableLayout.addView(tableRow);
 
                 if (!(null == mSimKPIs)) {
@@ -620,12 +624,12 @@ public class ScenarioOverview extends Fragment {
                         pieMap.put("Self Consume", mSimKPIs.generated - mSimKPIs.sold);
                         pieMap.put("Sold", mSimKPIs.sold);
                         PieChart pc = getPieChart("", pieMap, true);
-                        tableRow.addView(pc);
+                        tableRow.addView(pc, rowParams);
                         pieMap = new HashMap<>();
                         pieMap.put("Self supplied", mSimKPIs.totalLoad - mSimKPIs.bought);
                         pieMap.put("Bought", mSimKPIs.bought);
                         PieChart pc2 = getPieChart("", pieMap, true);
-                        tableRow.addView(pc2);
+                        tableRow.addView(pc2, rowParams);
                     }
                     else {
                         MaterialTextView noGen = new MaterialTextView(getActivity());
@@ -639,21 +643,23 @@ public class ScenarioOverview extends Fragment {
                     }
                     mTableLayout.addView(tableRow);
 
-                    tableRow = new TableRow(getActivity());
+                    if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT)
+                        tableRow = new TableRow(getActivity());
+
                     if (mScenario.isHasPanels() && !mHasPanelData) {
                         MaterialTextView noSun = new MaterialTextView(getActivity());
                         noSun.setText(R.string.no_panel_data);
                         noSun.setPadding(0,20,0,20);
-                        tableRow.addView(noSun);
+                        tableRow.addView(noSun, rowParams);
                     }
                     else {
-                        Map<String, Double> pieMap = new HashMap<>();
-                        pieMap.put("\uD83C\uDFE0", mSimKPIs.house);
-                        pieMap.put("\uD83D\uDCA6", mSimKPIs.h20);
-                        pieMap.put("\uD83D\uDE97", mSimKPIs.ev);
-                        PieChart pc = getPieChart("Load", pieMap, false);
-                        tableRow.addView(pc);
                         if (mSimKPIs.generated > 0) {
+                            Map<String, Double> pieMap = new HashMap<>();
+                            pieMap.put("\uD83C\uDFE0", mSimKPIs.house);
+                            pieMap.put("\uD83D\uDCA6", mSimKPIs.h20);
+                            pieMap.put("\uD83D\uDE97", mSimKPIs.ev);
+                            PieChart pc = getPieChart("Load", pieMap, false);
+                            tableRow.addView(pc, rowParams);
                             pieMap = new HashMap<>();
                             pieMap.put("\uD83D\uDE97", mSimKPIs.evDiv);
                             pieMap.put("\uD83D\uDCA6", mSimKPIs.h2oDiv);
@@ -661,15 +667,16 @@ public class ScenarioOverview extends Fragment {
                             pieMap.put("\uD83C\uDFE0", mSimKPIs.pvToLoad);
                             pieMap.put("\uD83D\uDD0B", mSimKPIs.pvToCharge);
                             PieChart pc2 = getPieChart("PV", pieMap, false);
-                            tableRow.addView(pc2);
+                            tableRow.addView(pc2, rowParams);
                         } else {
                             MaterialTextView noGen = new MaterialTextView(getActivity());
                             noGen.setText("");
                             noGen.setPadding(0, 20, 0, 20);
-                            tableRow.addView(noGen);
+                            tableRow.addView(noGen, rowParams);
                         }
                     }
-                    mTableLayout.addView(tableRow);
+                    if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT)
+                        mTableLayout.addView(tableRow);
 
                 }
             }

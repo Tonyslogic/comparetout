@@ -34,28 +34,42 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            app:layout_constraintGuide_percent="0.333" />
+            app:layout_constraintGuide_percent="0.16" />
 
         <androidx.constraintlayout.widget.Guideline
             android:id="@+id/guideline2"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            app:layout_constraintGuide_percent="0.666" />
+            app:layout_constraintGuide_percent="0.33" />
 
         <androidx.constraintlayout.widget.Guideline
             android:id="@+id/guideline3"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            app:layout_constraintGuide_percent="0.27" />
+            android:orientation="vertical"
+            app:layout_constraintGuide_percent="0.5" />
 
         <androidx.constraintlayout.widget.Guideline
             android:id="@+id/guideline4"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:layout_constraintGuide_percent="0.66" />
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guideline5"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            app:layout_constraintGuide_percent="0.84" />
+
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/guideline6"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:orientation="horizontal"
-            app:layout_constraintGuide_percent="0.125" />
+            app:layout_constraintGuide_percent="0.18" />
 
         <ImageButton
             android:id="@+id/panelButton"
@@ -68,8 +82,9 @@
             android:src="@drawable/solarpanel"
             app:layout_constraintStart_toStartOf="@id/guideline2"
             app:layout_constraintLeft_toRightOf="@id/guideline2"
-            app:layout_constraintBottom_toBottomOf="@id/guideline4"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="@id/guideline6"
+            app:layout_constraintEnd_toEndOf="@id/guideline3"
+            app:layout_constraintTop_toTopOf="parent"
             android:contentDescription="@string/solar_panel_configuration" />
 
         <ImageView
@@ -152,7 +167,7 @@
             android:scaleType="fitCenter"
             android:src="@drawable/house"
             app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintBottom_toBottomOf="@id/guideline4"
+            app:layout_constraintBottom_toBottomOf="@id/guideline6"
             app:layout_constraintRight_toLeftOf="@id/guideline1"
             app:layout_constraintTop_toTopOf="@id/panelButton"
             android:contentDescription="@string/domestic_load_profile" />
@@ -187,14 +202,15 @@
             android:adjustViewBounds="true"
             android:background="@color/white"
             android:paddingTop="20dp"
+            android:paddingStart="10dp"
             android:paddingBottom="20dp"
             android:scaleType="fitCenter"
             android:src="@drawable/battery1"
-            app:layout_constraintEnd_toStartOf="@id/guideline1"
-            app:layout_constraintRight_toLeftOf="@id/guideline1"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/guideline4"
-            app:layout_constraintBottom_toTopOf="@id/guideline3"
+            app:layout_constraintEnd_toStartOf="@id/guideline4"
+            app:layout_constraintRight_toLeftOf="@id/guideline4"
+            app:layout_constraintStart_toStartOf="@id/guideline3"
+            app:layout_constraintTop_toBottomOf="@id/guideline6"
+            app:layout_constraintBottom_toTopOf="parent"
             android:contentDescription="@string/battery_configuration" />
 
         <ImageView
@@ -214,7 +230,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:src="@drawable/ic_baseline_settings_24"
-            app:layout_constraintBottom_toBottomOf="@id/guideline3"
+            app:layout_constraintBottom_toBottomOf="@id/guideline6"
             app:layout_constraintEnd_toStartOf="@id/batteryScheduled"
             android:paddingEnd="8sp"
             app:tint="@color/green_700"
@@ -226,7 +242,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:src="@drawable/ic_baseline_access_time_24"
-            app:layout_constraintBottom_toBottomOf="@id/guideline3"
+            app:layout_constraintBottom_toBottomOf="@id/guideline6"
             app:layout_constraintEnd_toEndOf="@id/batteryButton"
             app:tint="@color/green_700"
             android:contentDescription="@string/battery_scheduled_charge_set" />
@@ -241,10 +257,10 @@
             android:padding="2dp"
             android:scaleType="fitCenter"
             android:src="@drawable/watercold"
-            app:layout_constraintLeft_toRightOf="@id/guideline1"
-            app:layout_constraintRight_toLeftOf="@id/guideline2"
-            app:layout_constraintTop_toBottomOf="@id/guideline4"
-            app:layout_constraintBottom_toTopOf="@id/guideline3"
+            app:layout_constraintLeft_toRightOf="@id/guideline4"
+            app:layout_constraintRight_toLeftOf="@id/guideline5"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/guideline6"
             android:contentDescription="@string/hot_water_system_configuration" />
 
         <ImageView
@@ -264,7 +280,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:src="@drawable/ic_baseline_settings_24"
-            app:layout_constraintBottom_toBottomOf="@id/guideline3"
+            app:layout_constraintBottom_toBottomOf="@id/guideline6"
             app:layout_constraintEnd_toStartOf="@id/tankDivert"
             android:paddingEnd="8sp"
             app:tint="@color/green_700"
@@ -276,7 +292,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:src="@drawable/ic_baseline_call_split_24"
-            app:layout_constraintBottom_toBottomOf="@id/guideline3"
+            app:layout_constraintBottom_toBottomOf="@id/guideline6"
             app:layout_constraintEnd_toStartOf="@id/tankScheduled"
             android:paddingEnd="8sp"
             app:tint="@color/green_700"
@@ -288,7 +304,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:src="@drawable/ic_baseline_access_time_24"
-            app:layout_constraintBottom_toBottomOf="@id/guideline3"
+            app:layout_constraintBottom_toBottomOf="@id/guideline6"
             app:layout_constraintEnd_toEndOf="@id/tankButton"
             app:tint="@color/green_700"
             android:contentDescription="@string/water_heating_scheduled" />
@@ -303,10 +319,10 @@
             android:padding="2dp"
             android:scaleType="fitCenter"
             android:src="@drawable/ev_off"
-            app:layout_constraintLeft_toRightOf="@id/guideline2"
+            app:layout_constraintLeft_toRightOf="@id/guideline5"
             app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/guideline4"
-            app:layout_constraintBottom_toTopOf="@id/guideline3"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toTopOf="@id/guideline6"
             android:contentDescription="@string/ev_configuration" />
 
         <ImageView
@@ -326,7 +342,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:src="@drawable/ic_baseline_call_split_24"
-            app:layout_constraintBottom_toBottomOf="@id/guideline3"
+            app:layout_constraintBottom_toBottomOf="@id/guideline6"
             app:layout_constraintEnd_toStartOf="@id/carScheduled"
             android:paddingEnd="8sp"
             app:tint="@color/green_700"
@@ -338,7 +354,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:src="@drawable/ic_baseline_access_time_24"
-            app:layout_constraintBottom_toBottomOf="@id/guideline3"
+            app:layout_constraintBottom_toBottomOf="@id/guideline6"
             app:layout_constraintEnd_toEndOf="@id/carButton"
             app:tint="@color/green_700"
             android:contentDescription="@string/ev_charging_scheduled" />
@@ -347,7 +363,7 @@
             android:id="@+id/editScenarioTable"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="46sp"
+            android:layout_marginTop="10dp"
             android:padding="0dp"
             android:stretchColumns="*"
             app:layout_constraintEnd_toEndOf="parent"

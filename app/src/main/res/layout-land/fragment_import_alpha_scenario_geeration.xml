@@ -29,6 +29,7 @@
         <TableLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:paddingTop="5dp"
             android:stretchColumns="0">
 
             <TableRow tools:ignore="UselessParent">
@@ -120,7 +121,8 @@
 
                 </TableLayout>
 
-                <TableLayout>
+                <TableLayout
+                    android:background="@drawable/row_border">
                     <TableLayout
                         android:id="@+id/gen_inv_detail"
                         android:layout_width="match_parent"

@@ -50,6 +50,7 @@ import com.tfcode.comparetout.model.importers.alphaess.KeyStatsRow;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -202,7 +203,13 @@ public class ImportAlphaKeyStats extends Fragment {
                     // + 1 month
                     start = start.plusMonths(-1);
                     mFrom = start.format(DATE_FORMAT);
-                    end = end.plusMonths(-1);
+                    int daysInMonth = YearMonth.of(end.getYear(), end.getMonthValue()).lengthOfMonth();
+                    if (daysInMonth == end.getDayOfMonth()) {
+                        end = end.plusMonths(-1);
+                        int lastDay = YearMonth.of(end.getYear(), end.getMonth()).lengthOfMonth();
+                        end = LocalDateTime.of(end.getYear(), end.getMonthValue(), lastDay, 23, 59);
+                    }
+                    else end = end.plusMonths(-1);
                     mTo = end.format(DATE_FORMAT);
                     break;
                 case YEAR:
@@ -270,7 +277,13 @@ public class ImportAlphaKeyStats extends Fragment {
                     // + 1 month
                     start = start.plusMonths(1);
                     mFrom = start.format(DATE_FORMAT);
-                    end = end.plusMonths(1);
+                    int daysInMonth = YearMonth.of(end.getYear(), end.getMonthValue()).lengthOfMonth();
+                    if (daysInMonth == end.getDayOfMonth()) {
+                        end = end.plusMonths(1);
+                        int lastDay = YearMonth.of(end.getYear(), end.getMonth()).lengthOfMonth();
+                        end = LocalDateTime.of(end.getYear(), end.getMonthValue(), lastDay, 23, 59);
+                    }
+                    else end = end.plusMonths(1);
                     mTo = end.format(DATE_FORMAT);
                     break;
                 case YEAR:
