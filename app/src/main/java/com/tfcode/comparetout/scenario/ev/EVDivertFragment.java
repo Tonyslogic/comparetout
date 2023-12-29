@@ -17,7 +17,6 @@
 package com.tfcode.comparetout.scenario.ev;
 
 import android.annotation.SuppressLint;
-import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
@@ -118,14 +117,6 @@ public class EVDivertFragment extends Fragment {
         mEVDivertTimes.setShrinkAllColumns(true);
         mEVDivertTimes.setStretchAllColumns(true);
         updateView();
-    }
-
-    @SuppressLint("SourceLockedOrientationActivity")
-    @Override
-    public void onResume() {
-        super.onResume();
-//        if (!(null == getActivity()))
-//            getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 
     public void refreshFocus() {

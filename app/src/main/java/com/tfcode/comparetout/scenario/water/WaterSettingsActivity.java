@@ -19,7 +19,6 @@ package com.tfcode.comparetout.scenario.water;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.os.Bundle;
@@ -207,13 +206,6 @@ public class WaterSettingsActivity extends AppCompatActivity {
                 }
             }
         });
-    }
-
-    @SuppressLint("SourceLockedOrientationActivity")
-    @Override
-    protected void onResume() {
-        super.onResume();
-//        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 
     private void loadFromDB() {

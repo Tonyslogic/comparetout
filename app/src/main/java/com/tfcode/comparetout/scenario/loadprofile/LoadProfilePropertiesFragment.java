@@ -16,9 +16,7 @@
 
 package com.tfcode.comparetout.scenario.loadprofile;
 
-import android.annotation.SuppressLint;
 import android.content.Intent;
-import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.InputType;
@@ -167,14 +165,6 @@ public class LoadProfilePropertiesFragment extends Fragment {
         setupMenu();
         mTableLayout = requireView().findViewById(R.id.loadProfileDetails);
         if (!(null == mLoadProfile)) updateView();
-    }
-
-    @SuppressLint("SourceLockedOrientationActivity")
-    @Override
-    public void onResume() {
-        super.onResume();
-//        if (!(null == getActivity()))
-//            getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 
     private void setupMenu() {

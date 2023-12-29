@@ -17,15 +17,8 @@
 package com.tfcode.comparetout.scenario.loadprofile;
 
 import android.annotation.SuppressLint;
-import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.fragment.app.Fragment;
-import androidx.lifecycle.ViewModelProvider;
-
 import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
@@ -40,6 +33,11 @@ import android.widget.ImageView;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.components.XAxis;
@@ -119,14 +117,6 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
         mEditTable = requireView().findViewById(R.id.load_profile_edit_hourly);
 //        mFrameLayout = requireView().findViewById(R.id.fl_hourly_distribution);
         if (!(null == mBarChart) && !(null == mLoadProfile)) updateView();
-    }
-
-    @SuppressLint("SourceLockedOrientationActivity")
-    @Override
-    public void onResume() {
-        super.onResume();
-//        if (!(null == getActivity()))
-//            getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 
     @SuppressLint("DefaultLocale")
@@ -288,22 +278,16 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
                 from.setText(String.format("%d", begin));
                 from.setInputType(InputType.TYPE_CLASS_NUMBER);
                 from.setEnabled(mEdit);
-//                from.setMinimumWidth(80);
-//                from.setWidth(80);
                 from.setPadding(20,25, 20, 25);
 
                 to.setText(String.format("%d", end));
                 to.setInputType(InputType.TYPE_CLASS_NUMBER);
                 to.setEnabled(mEdit);
-//                to.setMinimumWidth(80);
-//                to.setWidth(80);
                 to.setPadding(20,25, 20, 25);
 
                 percent.setText(String.format("%d", percentDouble));
                 percent.setInputType(InputType.TYPE_CLASS_NUMBER);
                 percent.setEnabled(mEdit);
-//                percent.setMinimumWidth(80);
-//                percent.setWidth(80);
                 percent.setPadding(20,25, 20, 25);
 
                 minus.setImageResource(android.R.drawable.btn_minus);
