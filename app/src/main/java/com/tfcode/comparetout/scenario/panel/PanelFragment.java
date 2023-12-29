@@ -174,8 +174,8 @@ public class PanelFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        if (!(null == getActivity()))
-            getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+//        if (!(null == getActivity()))
+//            getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 
     public void refreshFocus() {

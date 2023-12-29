@@ -213,7 +213,7 @@ public class WaterSettingsActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
+//        setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 
     private void loadFromDB() {
