@@ -28,6 +28,7 @@ import android.icu.text.SimpleDateFormat;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -102,6 +103,8 @@ import java.util.concurrent.TimeUnit;
 import io.reactivex.Single;
 
 public class ImportAlphaOverview extends Fragment {
+
+    static final String TAG = "ImportAlphaOverview";
 
     private ComparisonUIViewModel mViewModel;
     private CostViewModel mCostViewModel;
@@ -212,7 +215,13 @@ public class ImportAlphaOverview extends Fragment {
                     mCredentialsAreGood = false;
                 }
                 else {
-                    // TODO Decrypt the stored keys
+                    // Decrypt the stored keys
+                    try {
+                        appId = TOUTCApplication.decryptString(appId);
+                        appSecret = TOUTCApplication.decryptString(appSecret);
+                    } catch (Exception e) {
+                        Log.e(TAG, Log.getStackTraceString(e));
+                    }
                     mOpenAlphaESSClient = new OpenAlphaESSClient(appId, appSecret);
                     try {
                         reLoadSystemList();
@@ -731,29 +740,34 @@ public class ImportAlphaOverview extends Fragment {
             CredentialDialog credentialDialog = new CredentialDialog(context, new CredentialDialogListener() {
                 @Override
                 public void credentialSpecified(String appId, String appSecret) {
-                    // TODO Encrypt the keys
-                    boolean x = application.putStringValueIntoDataStore(APP_ID_KEY, appId);
-                    boolean y = application.putStringValueIntoDataStore(APP_SECRET_KEY, appSecret);
+                    // Encrypt the keys
+                    if (!(null == appId) && !(null == appSecret)) try {
+                        String encryptedAppId = TOUTCApplication.encryptString(appId);
+                        String encryptedAppSecret = TOUTCApplication.encryptString(appSecret);
+                        boolean x = application.putStringValueIntoDataStore(APP_ID_KEY, encryptedAppId);
+                        boolean y = application.putStringValueIntoDataStore(APP_SECRET_KEY, encryptedAppSecret);
+                        if (x != y && !y) Log.e(TAG, "Something is wrong with the properties");
+                    }
+                    catch (Exception e) {
+                        Log.e(TAG, Log.getStackTraceString(e));
+                    }
                     mAppID = appId;
                     mAppSecret = appSecret;
                     mHasCredentials = true;
                     updateView();
-                    if (x != y && !y) System.out.println("Something is wrong with the properties");
-                    else {
-                        new Thread(() -> {
-                            try {
-                                mOpenAlphaESSClient = new OpenAlphaESSClient(appId, appSecret);
-                                reLoadSystemList();
-                                mCredentialsAreGood = true;
-                                application.putStringValueIntoDataStore(GOOD_CREDENTIAL_KEY, "True");
-                            } catch (AlphaESSException e) {
-                                mCredentialsAreGood = false;
-                                application.putStringValueIntoDataStore(GOOD_CREDENTIAL_KEY, "False");
-                                e.printStackTrace();
-                            }
-                            mMainHandler.post(() -> updateView());
-                        }).start();
-                    }
+                    new Thread(() -> {
+                        try {
+                            mOpenAlphaESSClient = new OpenAlphaESSClient(appId, appSecret);
+                            reLoadSystemList();
+                            mCredentialsAreGood = true;
+                            application.putStringValueIntoDataStore(GOOD_CREDENTIAL_KEY, "True");
+                        } catch (AlphaESSException e) {
+                            mCredentialsAreGood = false;
+                            application.putStringValueIntoDataStore(GOOD_CREDENTIAL_KEY, "False");
+                            Log.e(TAG, Log.getStackTraceString(e));
+                        }
+                        mMainHandler.post(() -> updateView());
+                    }).start();
                 }
 
                 @Override
