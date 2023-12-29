@@ -16,9 +16,6 @@
 
 package com.tfcode.comparetout.priceplan;
 
-import android.annotation.SuppressLint;
-import android.content.pm.ActivityInfo;
-import android.content.res.Configuration;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.InputType;
@@ -50,11 +47,11 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
-import com.tfcode.comparetout.model.priceplan.DayRate;
-import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.json.priceplan.DayRateJson;
 import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
+import com.tfcode.comparetout.model.priceplan.DayRate;
+import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.util.AbstractTextWatcher;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
@@ -84,7 +81,6 @@ public class PricePlanEditFragment extends Fragment {
     private WebViewAssetLoader mAssetLoader;
     private View mPopupView;
     private PopupWindow mHelpWindow;
-    private int mOrientation = Configuration.ORIENTATION_PORTRAIT;
 
     public PricePlanEditFragment() {
         // Required empty public constructor
@@ -171,17 +167,6 @@ public class PricePlanEditFragment extends Fragment {
         mViewModel.getAllPricePlans().observe(getViewLifecycleOwner(), plans -> mPricePlans = plans.keySet());
         updateView();
         setupMenu();
-    }
-
-    @SuppressLint("SourceLockedOrientationActivity")
-    @Override
-    public void onResume() {
-        super.onResume();
-        if (!(null == getActivity())) {
-            mOrientation = getActivity().getResources().getConfiguration().orientation;
-            getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-        }
-        else mOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
     }
 
     private void setupMenu() {
@@ -482,14 +467,8 @@ public class PricePlanEditFragment extends Fragment {
     }
 
     private void showHelp() {
-        if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
-            mHelpWindow.setHeight((int) (requireActivity().getWindow().getDecorView().getHeight()*0.6));
-            mHelpWindow.setWidth((int) (requireActivity().getWindow().getDecorView().getWidth()));
-        }
-        else {
-            mHelpWindow.setWidth((int) (requireActivity().getWindow().getDecorView().getWidth() * 0.6));
-            mHelpWindow.setHeight((int) (requireActivity().getWindow().getDecorView().getHeight()));
-        }
+        mHelpWindow.setHeight((int) (requireActivity().getWindow().getDecorView().getHeight()*0.6));
+        mHelpWindow.setWidth((int) (requireActivity().getWindow().getDecorView().getWidth()));
         mHelpWindow.showAtLocation(mTableLayout, Gravity.CENTER, 0, 0);
         WebView webView = mPopupView.findViewById(R.id.helpWebView);
 

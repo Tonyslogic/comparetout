@@ -17,8 +17,6 @@
 package com.tfcode.comparetout.priceplan;
 
 import android.annotation.SuppressLint;
-import android.content.pm.ActivityInfo;
-import android.content.res.Configuration;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.InputType;
@@ -88,7 +86,6 @@ public class PricePlanEditDayFragment extends Fragment {
     private WebViewAssetLoader mAssetLoader;
     private View mPopupView;
     private PopupWindow mHelpWindow;
-    private int mOrientation = Configuration.ORIENTATION_PORTRAIT;
 
     public PricePlanEditDayFragment() {
         // Required empty public constructor
@@ -193,16 +190,10 @@ public class PricePlanEditDayFragment extends Fragment {
         });
     }
 
-    @SuppressLint("SourceLockedOrientationActivity")
     @Override
     public void onResume() {
 
         super.onResume();
-        mOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
-        if (!(null == getActivity())) {
-            getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-            mOrientation = getActivity().getResources().getConfiguration().orientation;
-        }
         try {
             DayRate thisFragmentsDayRate = mDayRates.get(mRateIndex);
             mFocus = ((PricePlanActivity) requireActivity()).getFocusedPlan();
@@ -715,14 +706,8 @@ public class PricePlanEditDayFragment extends Fragment {
     }
 
     private void showHelp(String url) {
-        if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
-            mHelpWindow.setHeight((int) (requireActivity().getWindow().getDecorView().getHeight()*0.6));
-            mHelpWindow.setWidth((int) (requireActivity().getWindow().getDecorView().getWidth()));
-        }
-        else {
-            mHelpWindow.setWidth((int) (requireActivity().getWindow().getDecorView().getWidth() * 0.6));
-            mHelpWindow.setHeight((int) (requireActivity().getWindow().getDecorView().getHeight()));
-        }
+        mHelpWindow.setHeight((int) (requireActivity().getWindow().getDecorView().getHeight()*0.6));
+        mHelpWindow.setWidth((int) (requireActivity().getWindow().getDecorView().getWidth()));
         mHelpWindow.showAtLocation(mTableLayout, Gravity.CENTER, 0, 0);
         WebView webView = mPopupView.findViewById(R.id.helpWebView);
 
