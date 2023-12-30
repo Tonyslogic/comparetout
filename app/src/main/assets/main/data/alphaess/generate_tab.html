@@ -1,0 +1,95 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="/assets/stylesheet.css">
+    </head>
+    <body>
+        <img style="float: right;" src="/res/drawable/launcher.png" alt="launcher" width="100">
+        <p><b>Help: Usage generation</b></p>
+        <p><a href="https://www.youtube.com/watch?v=vUdPhGrInnM">TODO Generate</a></p>
+        <div style="clear: right">
+            <p>The AlphaESS historical data may be used to generate a usage what-if scenario.
+                There is a lot of information in the data and this tab provides options
+                on which data to include in the usage.</p>
+            <p>There are two actions:</p>
+            <img src="/res/drawable/generate_actions.png" alt="Generate actions" width="300">
+            <table>
+                <tr>
+                    <th>Action</th>
+                    <th>Purpose</th>
+                    <th>Details</th>
+                </tr>
+                <tr>
+                    <td>PICK DATE RANGE</td>
+                    <td>Pick a single date (the start of a year)</td>
+                    <td>The usage needs a full years data to work. The date must be at least one
+                        year before the last available date. Invalid selections are indicated
+                        below the action buttons. Valid ranges are also indicated below the action
+                        buttons</td>
+                </tr>
+                <tr>
+                    <td>GENERATE USAGE</td>
+                    <td>Generate a new Usage from the inverter data, using the selected date range
+                        and the options specified.</td>
+                    <td><p>This action is disabled until there is valid input for generation.</p>
+                        <p>Generation can take a long time. Generation runs in the background.
+                        Progress is visible via notificaitons, and status text below the action
+                            buttons.</p></td>
+                </tr>
+            </table>
+            <p>There are six options for inclusion in a generate action:</p>
+            <table>
+                <tr>
+                    <th>Option</th>
+                    <th>Purpose</th>
+                    <th>Details</th>
+                </tr>
+                <tr>
+                    <td>Generate load profile</td>
+                    <td>Create a load profile in the usage.</td>
+                    <td><p>This option is disabled until there is a valid date range.</p>
+                        <p>Use the 5 minute load data to create a load profile. This is mandatory for
+                            generation. Once selected, other options are enabled.</p></td>
+                </tr>
+                <tr>
+                    <td>Generate inverter</td>
+                    <td>Create an inverter in the usage.</td>
+                    <td><p>This option is disabled until there is a load profile.</p>
+                        <p>The raw data is queried to get the vital statistics for the inverter.</p>
+                        <p>When selected, you must provide the number of MPPT connections</p></td>
+                </tr>
+                <tr>
+                    <td>Generate panel</td>
+                    <td>Create panel string in the usage.</td>
+                    <td><p>This option is disabled until there is an inverter.</p>
+                        <p>AlphaESS data is used to calculate the kWp of each panel (assumed to
+                            be the same).</p>
+                        <p>When selected, you must provide the number of panels on each MPPT
+                            connection</p></td>
+                </tr>
+                <tr>
+                    <td>Generate panel data</td>
+                    <td>Create panel data for each string in the usage.</td>
+                    <td><p>This option is disabled until there are panel(s) defined.</p>
+                        <p>AlphaESS data is used to provide 5 minute PV generation data to the
+                            usage. The PV for each 5 minute interval is distributed across all
+                            strings in proportion to the number of panels they host.</p></td>
+                </tr>
+                <tr>
+                    <td>Generate battery</td>
+                    <td>Create battery settings in the usage.</td>
+                    <td><p>This option is disabled until there is an inverter.</p>
+                        <p>AlphaESS data is used to calculate the battery characteristics and
+                            charge model.</p></td>
+                </tr>
+                <tr>
+                    <td>Generate battery schedule</td>
+                    <td>Create battery schedules in the usage.</td>
+                    <td><p>This option is disabled until there is a battery.</p>
+                        <p>AlphaESS data is searched for charging patterns. This may result in
+                            a lot of schedules. Extra schedules may be deleted, and incomplete
+                            schedules fixed in the usage generated.</p></td>
+                </tr>
+            </table>
+        </div>
+    </body>
+</html>

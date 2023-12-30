@@ -45,7 +45,8 @@ public class LocalContentWebViewClient extends WebViewClient {
                 request.getUrl().getHost().startsWith("joint-research-centre.ec.europa.eu") ||
                 request.getUrl().getHost().startsWith("www.esbnetworks.ie") ||
                 request.getUrl().getHost().startsWith("www.youtube.com") ||
-                request.getUrl().getHost().startsWith("rmdservice.com"))) {
+                request.getUrl().getHost().startsWith("www.youtube.com") ||
+                request.getUrl().getHost().startsWith("open.alphaess.com"))) {
             view.getContext().startActivity(
                     new Intent(Intent.ACTION_VIEW, request.getUrl()));
             return true;

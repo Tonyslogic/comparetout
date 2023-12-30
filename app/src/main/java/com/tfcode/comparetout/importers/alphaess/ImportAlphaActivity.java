@@ -197,7 +197,7 @@ public class ImportAlphaActivity extends AppCompatActivity {
             return (true);
         }
         if (itemID == R.id.help) {
-            showHelp("https://appassets.androidplatform.net/assets/main/TODO.html");
+            showHelp("https://appassets.androidplatform.net/assets/main/data/alphaess/help.html");
         }
 
         return(super.onOptionsItemSelected(item));
@@ -218,16 +218,16 @@ public class ImportAlphaActivity extends AppCompatActivity {
 
         LinearLayout linearLayout = (LinearLayout)tabLayout.getChildAt(0);
         linearLayout.getChildAt(0).setOnLongClickListener(v -> {
-            showHelp("https://appassets.androidplatform.net/assets/scenario/help.html");
+            showHelp("https://appassets.androidplatform.net/assets/main/data/alphaess/overview_tab.html");
             return true;});
         linearLayout.getChildAt(1).setOnLongClickListener(v -> {
-            showHelp("https://appassets.androidplatform.net/assets/scenario/detail_tab.html");
+            showHelp("https://appassets.androidplatform.net/assets/main/data/alphaess/graphs_tab.html");
             return true;});
         linearLayout.getChildAt(2).setOnLongClickListener(v -> {
-            showHelp("https://appassets.androidplatform.net/assets/scenario/monthly_tab.html");
+            showHelp("https://appassets.androidplatform.net/assets/main/data/alphaess/keys_tab.html");
             return true;});
         linearLayout.getChildAt(3).setOnLongClickListener(v -> {
-            showHelp("https://appassets.androidplatform.net/assets/scenario/annual_tab.html");
+            showHelp("https://appassets.androidplatform.net/assets/main/data/alphaess/generate_tab.html");
             return true;});
 
         mViewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {

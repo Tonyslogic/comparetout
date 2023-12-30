@@ -1,0 +1,76 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="/assets/stylesheet.css">
+    </head>
+    <body>
+        <img style="float: right;" src="/res/drawable/launcher.png" alt="launcher" width="100">
+        <p><b>Help: AlphaESS overview</b></p>
+        <p><a href="https://www.youtube.com/watch?v=vUdPhGrInnM">TODO Managing AlphaESS</a></p>
+        <div style="clear: right">
+            <p>AlphaESS provides access to historical data produced by your inverter. Data needs
+                to be fetched before the other tabs are useful.</p>
+            <p>Using this tab, you can:</p>
+            <ul>
+                <li>Connect to AlphaESS by providing credentials (from
+                    <a href="https://open.alphaess.com/login"> AlphaESS OpenAPI</a>)</li>
+                <li>Select an inverter registered with the above credentials. All the tabs use
+                    the inverter selected here.</li>
+                <li>Fetch (once off and recurring) data from AlphaESS </li>
+                <li>Cost a date range from downloaded data (needs some 'costs' defined)  </li>
+                <li>Remove downloaded data from the database </li>
+                <li>Export downloaded data to a file (named for the selected inverter) </li>
+                <li>Import previously exported data from a file</li>
+            </ul>
+
+            <p></p>
+            <p><b>Setting credentials</b></p>
+            <p>When you set credentials, you will be presented with a dialog to collect an appID
+                and an app secret. Credentials are stored, encrypted, on your device.
+                To remove the credentials from the device, set empty values.</p>
+            <img src="/res/drawable/setcredentialsdialog.png" alt="Set Credentials" width="300">
+            <p>To get these two pieces of information you must
+                <a href="https://open.alphaess.com/emailRegistration">register </a> with AlphaESS
+                Open API. Registration requires a valid email address, and is a time sensitive
+                activity.</p>
+            <img src="/res/drawable/alphaessregister.png" alt="Register" width="300">
+            <p>Once registered, you need to log in and add your inverter(s). To do this you need
+                the serial number and check code from the inverter itself. These are found on the
+                side of the inverter, a sticker with barcodes.</p>
+            <img src="/res/drawable/alphaesslogin.png" alt="Login" width="300">
+            <p>Login</p>
+            <img src="/res/drawable/alphaessaddsystemi.png" alt="Add I/II" width="300">
+            <p>See the registered inverters, and add more.</p>
+            <img src="/res/drawable/alphaessaddsystemii.png" alt="Add II/II" width="300">
+            <p>Adding an inverter also requires a verification code that is sent to the email
+                address used to create the account. Only inverters that have been added are
+                available for selection (SELECT SYSTEM) in the app.</p>
+            <p>Finally you may copy the AppID and AppSecret, one at a time, and paste into the
+                appropriate area of the credentials dialog.</p>
+            <img src="/res/drawable/alphaesscredentials.png" alt="Credentials" width="300">
+
+            <p><b>Fetching</b></p>
+            <p>Once you have selected a system, you can fetch historical data.</p>
+            <p>Fetching starts from a date specified using a data picker. The app will start
+                a background process, 'Catchup', that will collect and process data one day at a time.
+                AlphaESS rate limit access to this data, so it can take some time. Progress is
+                reported using notifications, and also with status text.</p>
+            <p>When catchup is complete, the app schedules a daily collection that runs sometime
+                after 02:00 whenever the device is not busy.</p>
+            <p>Catchup and daily collection may be canceled by 'STOP FETCHING'.</p>
+
+            <p><b>Export/Import</b></p>
+            <p>Using the menu items (Open, Export), fetched data may be backed up for faster
+                retrieval later. This avoids loading the AlphaESS servers if using the app
+                on multiple devices. It also allows for safe removal of downloaded data if
+                storage is an issue.</p>
+
+            <p><b>Selection and costing</b></p>
+            <p>'COST DATES' will generate an estimated cost for the selected period.
+                This will be done for each supplier plan (cost) registered. Completed
+                cost calculations appear under the action buttons. Clicking on a costing
+                will display a pie chart of the price distribution for that supplier
+                plan.</p>
+
+        </div>
+    </body>
+</html>

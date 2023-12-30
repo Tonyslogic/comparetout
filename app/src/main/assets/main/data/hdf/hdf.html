@@ -1,0 +1,60 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="/assets/stylesheet.css">
+    </head>
+    <body>
+        <img style="float: right;" src="/res/drawable/launcher.png" alt="launcher" width="100">
+        <p><b>Help: ESBN HDF loader</b></p>
+        <p><a href="https://www.youtube.com/watch?v=LbiSufPIreY">Tutorial on YouTube</a></p>
+        <div style="clear: right">
+            <p>If you have a smart meter ESB Networks provide access to your smart meter data.
+                This data can be used to generate a load profile or estimate a bill for a
+                given period.</p>
+            <p>This screen will help you do these things once you have downloaded your HDF
+                file.</p>
+            <p>There are four actions:</p>
+            <table>
+                <tr><th>Action</th><th>Description</th></tr>
+                <tr><td>LOAD HDF FILE...</td><td>Find a downloaded HDF file from any storage
+                    that is normally accessible to your device. Once loaded, other actions will
+                    be enabled. The date range found in the HDF file will also be shown.</td></tr>
+                <tr><td>SELECT DATES</td><td>HDF files may contain up to two years data. A load
+                    profile needs only one. This action allows you to specify the dates to use
+                    in the generation of a load profile, or in bill estimation. You cannot
+                    select dates that are outside the range in the HDF file, and a status to
+                    the right of the button will indicate if you have done this.</td></tr>
+                <tr><td>SET LOAD PROFILE</td><td>This action will replace the load profile with
+                    data generated from the HDF file. Note that if you already have a solar
+                    installation, the data will not be a true reflection of your usage. The
+                    HDF file only contains a record of what you imported or exported, it cannot
+                    see the load that was satisfied by the solar installation. If there is not a
+                    full years data in the HDF file, the gaps will be filled by scaling the total
+                    usage linearly, and spreading the added load evenly across missing months. At
+                    least seven days are required (in the date range selection) so the hourly
+                    and weekly distributions will be OK. You may want to address gaps in the
+                    monthly distribution by hand in the load profile editor
+                    <p>This option will not be available when launched from the comparison tab.
+                    </p></td></tr>
+                <tr><td>COST HDF FILE</td><td>Generate an estimated bill for the selected period.
+                    This will be done for each supplier plan (cost) registered. Completed
+                    cost calculations appear under the action buttons. Clicking on a costing
+                    will display a pie chart of the price distribution for that supplier
+                    plan.</td></tr>
+            </table>
+            <p>HDF files can be downloaded from <a href="https://www.esbnetworks.ie/">ESB Networks</a>.</p>
+            <p>You need to login, using the person icon.</p>
+            <img src="/res/drawable/esbn_banner.png" alt="launcher" width="300">
+            <p>This will bring you to a login page.</p>
+            <img src="/res/drawable/esbn_sign_in.png" alt="launcher" width="300">
+            <p>If you have not already registered, you will need to find the instructions on the
+                ESBN page.</p>
+            <p>Once you have signed in, you need to scroll doww to locate the 'consumption'
+                link:</p>
+            <img src="/res/drawable/esbn_consumption.png" alt="launcher" width="300">
+            <p>Finally you can scroll down to the 'Download HDF' button on the page:</p>
+            <img src="/res/drawable/esbn_download.png" alt="launcher" width="300">
+            <p>Remember to save the file (the default Downloads is fine) somewhere that the
+                device can access.</p>
+        </div>
+    </body>
+</html>

@@ -136,6 +136,9 @@ public class PricePlanNavFragment extends Fragment {
         ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.COMPARE_FRAGMENT)).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/main/compare/tab.html");
             return true;});
+        ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.DATA_MANAGEMENT_FRAGMENT)).setOnLongClickListener(v -> {
+            showHelp("https://appassets.androidplatform.net/assets/main/datatab/tab.html");
+            return true;});
     }
 
     public void updateView() {
