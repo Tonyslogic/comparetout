@@ -16,9 +16,9 @@
 
 package com.tfcode.comparetout.scenario.panel;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -169,14 +169,6 @@ public class PanelFragment extends Fragment {
         updateView();
     }
 
-    @SuppressLint("SourceLockedOrientationActivity")
-    @Override
-    public void onResume() {
-        super.onResume();
-//        if (!(null == getActivity()))
-//            getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-    }
-
     public void refreshFocus() {
         if (isAdded()) {
             mPanelJsonString = ((PanelActivity) requireActivity()).getPanelJson();
@@ -187,6 +179,7 @@ public class PanelFragment extends Fragment {
 
     private void updateView() {
         System.out.println("Updating PanelFragment " + mPanelIndex + ", " + mEdit);
+        if (null == getActivity()) return;
         updateEditorView();
         updateChartView();
         updateDataControlView();
@@ -262,11 +255,11 @@ public class PanelFragment extends Fragment {
         }
         if (monthlyDist.size() !=12) return;
 
-        mBarChart.getAxisLeft().setTextColor(com.google.android.material.R.attr.colorPrimary); // left y-axis
-        mBarChart.getAxisRight().setTextColor(com.google.android.material.R.attr.colorPrimary); // right y-axis
-        mBarChart.getXAxis().setTextColor(com.google.android.material.R.attr.colorPrimary);
-        mBarChart.getLegend().setTextColor(com.google.android.material.R.attr.colorPrimary);
-        mBarChart.getDescription().setTextColor(com.google.android.material.R.attr.colorPrimary);
+        mBarChart.getAxisLeft().setTextColor(Color.DKGRAY); // left y-axis
+        mBarChart.getAxisRight().setTextColor(Color.DKGRAY); // right y-axis
+        mBarChart.getXAxis().setTextColor(Color.DKGRAY);
+        mBarChart.getLegend().setTextColor(Color.DKGRAY);
+        mBarChart.getDescription().setTextColor(Color.DKGRAY);
 
         ArrayList<BarEntry> entries = new ArrayList<>();
         for (int i = 0; i < 12; i++) entries.add(new BarEntry(i, monthlyDist.get(i).floatValue()));
@@ -414,7 +407,7 @@ public class PanelFragment extends Fragment {
 
             ArrayAdapter<String> mpptSpinnerAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, mpptSpinnerContent);
             mpptSpinner.setAdapter(mpptSpinnerAdapter);
-            mpptSpinner.setSelection(mPanel.getMppt() - 1);
+//            mpptSpinner.setSelection(mPanel.getMppt() - 1);
 
             ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, inverterSpinnerContent);
             inverterSpinner.setAdapter(spinnerAdapter);
