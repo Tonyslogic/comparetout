@@ -304,8 +304,23 @@ public class ImportAlphaKeyStats extends Fragment {
 
     @SuppressLint("SetTextI18n")
     private void setSelectionText() {
-        if (!(null == mFrom) && !(null == mTo) && !(null == mPicks))
+        if (!(null == mFrom) && !(null == mTo) && !(null == mPicks) && !(null == getView())) {
             mPicks.setText("Range: " + mFrom + "<->" + mTo);
+            getView().findViewById((R.id.interval)).setEnabled(true);
+            getView().findViewById((R.id.previous)).setEnabled(true);
+            getView().findViewById(R.id.date).setEnabled(true);
+            getView().findViewById(R.id.next).setEnabled(true);
+            getView().findViewById(R.id.filter).setEnabled(true);
+        }
+        else {
+            if (!(null == getView())) {
+                getView().findViewById((R.id.interval)).setEnabled(false);
+                getView().findViewById((R.id.previous)).setEnabled(false);
+                getView().findViewById(R.id.date).setEnabled(false);
+                getView().findViewById(R.id.next).setEnabled(false);
+                getView().findViewById(R.id.filter).setEnabled(false);
+            }
+        }
     }
 
     private void setupPopupGraphConfigurationMenu() {
