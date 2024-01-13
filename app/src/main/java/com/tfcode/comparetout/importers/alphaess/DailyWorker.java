@@ -106,8 +106,15 @@ public class DailyWorker extends Worker {
             System.out.println("DailyWorker got a rate limit for " + yesterday);
             if (!(null == e.getMessage()) && e.getMessage().startsWith("err.code=6053"))
                 return Result.retry();
-            System.out.println(systemSN + ", " + inputData.getString(KEY_APP_ID) + ", "
-                    + inputData.getString(KEY_APP_SECRET));
+            else {
+                String errorCode = "UNKNOWN";
+                if (!(null == e.getMessage())) errorCode = e.getMessage().substring(0, 12);
+                setProgressAsync(new Data.Builder().putString(PROGRESS, yesterday.toString()).build());
+                ForegroundInfo foregroundInfo = createForegroundInfo("Unable to fetch " + yesterday + ", " + errorCode);
+                mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
+                return Result.failure();
+            }
+
         }
         if (mStopped) mNotificationManager.cancel(mNotificationId);
         return Result.success();

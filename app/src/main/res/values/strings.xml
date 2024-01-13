@@ -27,7 +27,7 @@
     <string name="main_activity_costs">Costs</string>
     <string name="main_activity_compare">Compare</string>
     <string name="hello_blank_fragment">Hello blank fragment</string>
-    <string name="channel_name">toutc_channel</string>
+    <string name="channel_name">EPO Progress</string>
     <string name="channel_description">Shows the status of background tasks</string>
     <string name="scenario">Scenario</string>
     <string name="supplier_plan">Supplier:Plan</string>
