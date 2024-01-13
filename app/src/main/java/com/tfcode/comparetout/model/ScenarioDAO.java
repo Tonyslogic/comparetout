@@ -171,7 +171,8 @@ public abstract class ScenarioDAO {
             }
             if (!(null == components.panels)) {
                 for (Panel p : components.panels) {
-                    long panelsID = addNewPanels(p);
+                    long panelsID = p.getPanelIndex();
+                    if (panelsID == 0) panelsID = addNewPanels(p);
                     Scenario2Panel s2p = new Scenario2Panel();
                     s2p.setScenarioID(scenarioID);
                     s2p.setPanelID(panelsID);
@@ -186,7 +187,8 @@ public abstract class ScenarioDAO {
                 addNewScenario2HWSystem(s2hws);
             }
             if (!(null == components.loadProfile)) {
-                long loadProfileID = addNewLoadProfile(components.loadProfile);
+                long loadProfileID = components.loadProfile.getLoadProfileIndex();
+                if (loadProfileID == 0) loadProfileID = addNewLoadProfile(components.loadProfile);
                 Scenario2LoadProfile s2lp = new Scenario2LoadProfile();
                 s2lp.setScenarioID(scenarioID);
                 s2lp.setLoadProfileID(loadProfileID);
@@ -551,9 +553,21 @@ public abstract class ScenarioDAO {
         for (HWSchedule h : hwSchedules) h.setHwScheduleIndex(0);
         if (!(null == hwSystem)) hwSystem.setHwSystemIndex(0);
         for (Inverter i : inverters) i.setInverterIndex(0);
-        if (!(null == loadProfile)) loadProfile.setLoadProfileIndex(0);
+        if (!(null == loadProfile)) {
+            long oldLoadProfileID = loadProfile.getLoadProfileIndex();
+            loadProfile.setLoadProfileIndex(0);
+            long newLoadProfileID = addNewLoadProfile(loadProfile);
+            copyLoadProfileData(oldLoadProfileID, newLoadProfileID);
+            loadProfile.setLoadProfileIndex(newLoadProfileID);
+        }
         for (LoadShift l : loadShifts) l.setLoadShiftIndex(0);
-        for (Panel p : panels) p.setPanelIndex(0);
+        for (Panel p : panels) {
+            long oldPanelID = p.getPanelIndex();
+            p.setPanelIndex(0);
+            long newPanelID = addNewPanels(p);
+            copyPanelData(oldPanelID, newPanelID);
+            p.setPanelIndex(newPanelID);
+        }
 
         addNewScenarioWithComponents(scenario, new ScenarioComponents(
                 scenario, inverters, batteries, panels, hwSystem,
@@ -606,6 +620,7 @@ public abstract class ScenarioDAO {
     @Transaction
     public void copyLoadProfileFromScenario(long fromScenarioID, Long toScenarioID) {
         LoadProfile lp = getLoadProfileForScenarioID(fromScenarioID);
+        long oldLoadProfileID = lp.getLoadProfileIndex();
         lp.setLoadProfileIndex(0L);
         long newLoadProfileID = addNewLoadProfile(lp);
 
@@ -618,9 +633,15 @@ public abstract class ScenarioDAO {
         Scenario toScenario = getScenario(toScenarioID);
         toScenario.setHasLoadProfiles(true);
         updateScenario(toScenario);
+        copyLoadProfileData(oldLoadProfileID, newLoadProfileID);
 
         deleteOrphanLoadProfiles();
     }
+
+    @Query("INSERT INTO loadProfiledata (loadProfileID, date, minute, load, mod, dow, do2001) " +
+            "SELECT :newLoadProfileID, date, minute, load, mod, dow, do2001 FROM loadProfiledata " +
+            "WHERE loadProfileID = :oldLoadProfileID")
+    public abstract void copyLoadProfileData(long oldLoadProfileID, long newLoadProfileID);
 
     @Transaction
     public void linkLoadProfileFromScenario(long fromScenarioID, Long toScenarioID) {
@@ -739,9 +760,11 @@ public abstract class ScenarioDAO {
         return panelID;
     }
 
+    @Transaction
     public void copyPanelFromScenario(long fromScenarioID, Long toScenarioID) {
         List<Panel> panels = getPanelsForScenarioID(fromScenarioID);
         for (Panel panel: panels) {
+            long oldPanelID = panel.getPanelIndex();
             panel.setPanelIndex(0L);
             long newPanelID = addNewPanels(panel);
 
@@ -753,10 +776,16 @@ public abstract class ScenarioDAO {
             Scenario toScenario = getScenario(toScenarioID);
             toScenario.setHasPanels(true);
             updateScenario(toScenario);
+            copyPanelData(oldPanelID, newPanelID);
         }
 
         deleteOrphanPanels();
     }
+
+    @Query("INSERT INTO paneldata (PanelID, date, minute, pv, mod, dow, do2001) " +
+            "SELECT :toPanelID, date, minute, pv, mod, dow, do2001 FROM paneldata " +
+            "WHERE panelID = :fromPanelID")
+    public abstract void copyPanelData(long fromPanelID, long toPanelID);
 
     @Transaction
     public void linkPanelFromScenario(long fromScenarioID, Long toScenarioID) {
