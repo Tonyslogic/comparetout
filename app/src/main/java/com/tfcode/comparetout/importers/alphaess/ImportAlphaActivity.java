@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023. Tony Finnerty
+ * Copyright (c) 2023-2024. Tony Finnerty
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -45,6 +45,7 @@ import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.R;
@@ -175,10 +176,20 @@ public class ImportAlphaActivity extends AppCompatActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
         int itemID = item.getItemId();
         if (itemID == R.id.load) {
+            if ((null == mSerialNumber)) {
+                Snackbar.make(mViewPager.getRootView(), "No system selected", Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
+                return true;
+            }
             mLoadAlphaESSDataFromFile.launch("*/*");
             return (true);
         }
         if (itemID == R.id.export) {
+            if (null == mSerialNumber) {
+                Snackbar.make(mViewPager.getRootView(), "No system selected", Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
+                return true;
+            }
             System.out.println("Export attempt ");
             // start the  worker for the selected serial
             Data inputData = new Data.Builder()
