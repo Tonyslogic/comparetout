@@ -76,8 +76,9 @@ public class ComparisonUIViewModel extends AndroidViewModel {
         return allPricePlans;
     }
 
-    public void insertPricePlan(PricePlan pp, List<DayRate> drs) {
-        toutcRepository.insert(pp, drs);
+    public void insertPricePlan(PricePlan pp, List<DayRate> drs, boolean clobber) {
+        toutcRepository.insert(pp, drs, clobber);
+        toutcRepository.pruneCostings();
     }
 
     public void deletePricePlan(Integer id) {
@@ -94,12 +95,16 @@ public class ComparisonUIViewModel extends AndroidViewModel {
         toutcRepository.removeCostingsForPricePlan(p.getPricePlanIndex());
     }
 
-    public void insertScenario(ScenarioComponents sc) {
-        toutcRepository.insertScenario(sc);
+    public void removeCostingsForPricePlan(long pricePlanID){
+        toutcRepository.removeCostingsForPricePlan(pricePlanID);
     }
 
-    public long insertScenarioAndReturnID(ScenarioComponents sc) {
-        return toutcRepository.insertScenarioAndReturnID(sc);
+    public void insertScenario(ScenarioComponents sc, boolean clobber) {
+        toutcRepository.insertScenario(sc, clobber);
+    }
+
+    public long insertScenarioAndReturnID(ScenarioComponents sc, boolean clobber) {
+        return toutcRepository.insertScenarioAndReturnID(sc, clobber);
     }
 
 

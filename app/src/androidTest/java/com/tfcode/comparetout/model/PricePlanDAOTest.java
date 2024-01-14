@@ -127,7 +127,7 @@ public class PricePlanDAOTest {
                 DayRate dr = JsonTools.createDayRate(drj);
                 drs.add(dr);
             }
-            pricePlanDAO.addNewPricePlanWithDayRates(p, drs);
+            pricePlanDAO.addNewPricePlanWithDayRates(p, drs, false);
         }
     }
 
@@ -149,7 +149,7 @@ public class PricePlanDAOTest {
                 DayRate dr = JsonTools.createDayRate(drj);
                 drs.add(dr);
             }
-            pricePlanDAO.addNewPricePlanWithDayRates(p, drs);
+            pricePlanDAO.addNewPricePlanWithDayRates(p, drs, false);
             break;
         }
         Map<PricePlan, List<DayRate>> mpp = LiveDataTestUtil.getValue(pricePlanDAO.loadPricePlans());
@@ -186,7 +186,7 @@ public class PricePlanDAOTest {
                 DayRate dr = JsonTools.createDayRate(drj);
                 drs.add(dr);
             }
-            pricePlanDAO.addNewPricePlanWithDayRates(p, drs);
+            pricePlanDAO.addNewPricePlanWithDayRates(p, drs, false);
             break;
         }
 

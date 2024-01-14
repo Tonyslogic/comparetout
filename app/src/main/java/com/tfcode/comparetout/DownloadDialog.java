@@ -32,12 +32,14 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.checkbox.MaterialCheckBox;
 
 public class DownloadDialog extends Dialog  {
 
     private TableLayout mTableLayout;
     private final DownloadDialogListener mDownloadDialogListener;
     private String url;
+    private boolean clobber = false;
 
     public DownloadDialog(@NonNull Context context, String url, DownloadDialogListener listener) {
         super(context);
@@ -97,13 +99,25 @@ public class DownloadDialog extends Dialog  {
             mTableLayout.addView(inputRow);
         }
 
+        // Clobber checkbox
+        {
+            TableRow clobberRow = new TableRow(getContext());
+            MaterialCheckBox clobberBox = new MaterialCheckBox(getContext());
+            clobberBox.setEnabled(true);
+            clobberBox.setChecked(clobber);
+            clobberBox.setText(R.string.ReplaceExisting);
+            clobberBox.setOnClickListener(v -> clobber = clobberBox.isChecked());
+            clobberRow.addView(clobberBox);
+            mTableLayout.addView(clobberRow);
+        }
+
         // And the ok and cancel buttons
         {
             TableRow tableRowOK = new TableRow(getContext());
             MaterialButton okb = new MaterialButton(getContext());
             okb.setText(R.string.download);
             okb.setOnClickListener(v -> {
-                mDownloadDialogListener.urlSpecified(url);
+                mDownloadDialogListener.urlSpecified(url, clobber);
                 dismiss();
             });
             tableRowOK.addView(okb);

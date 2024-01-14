@@ -43,9 +43,14 @@ public abstract class PricePlanDAO {
     abstract void addNewDayRate(DayRate dr);
 
     @Transaction
-    void addNewPricePlanWithDayRates(PricePlan pp, List<DayRate> drs) {
+    long addNewPricePlanWithDayRates(PricePlan pp, List<DayRate> drs, boolean clobber) {
+        long pricePlanID = 0;
+        if (clobber) {
+            long oldPricePlanID = getPricePlanID(pp.getSupplier() + pp.getPlanName());
+            deletePricePlan(oldPricePlanID);
+        }
         try {
-            long pricePlanID = addNewPricePlan(pp);
+            pricePlanID = addNewPricePlan(pp);
             for (DayRate dr : drs) {
                 dr.setDayRateIndex(0);
                 dr.setPricePlanId(pricePlanID);
@@ -55,7 +60,11 @@ public abstract class PricePlanDAO {
         catch (SQLiteConstraintException e) {
             System.out.println("Silently ignoring a duplicate added as new");
         }
+        return pricePlanID;
     }
+
+    @Query("SELECT pricePlanIndex FROM PricePlans WHERE supplier || planName  = :planSupplierName")
+    public abstract long getPricePlanID(String planSupplierName);
 
     @Transaction
     void deleteAll() {
@@ -99,7 +108,7 @@ public abstract class PricePlanDAO {
     @Transaction
     public void updatePricePlanWithDayRates(PricePlan pp, ArrayList<DayRate> drs) {
         if (pp.getPricePlanIndex() == 0) {
-            addNewPricePlanWithDayRates(pp, drs);
+            addNewPricePlanWithDayRates(pp, drs, false);
         }
         else {
             List<DayRate> oldDayRates = getAllDayRatesForPricePlanID(pp.getPricePlanIndex());

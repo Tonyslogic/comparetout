@@ -274,4 +274,5 @@
     <string name="gen_load_profile">Generating load profile</string>
     <string name="creating_usage">Creating usage</string>
     <string name="empty_filter">Please select something in the filter</string>
+    <string name="ReplaceExisting">Replace existing</string>
 </resources>

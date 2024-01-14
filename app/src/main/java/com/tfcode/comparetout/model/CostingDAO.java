@@ -48,4 +48,7 @@ public abstract class CostingDAO {
     @Query("SELECT DISTINCT REPLACE(scenarioName, ',', ';') || ', ' || fullPlanName || ', ' || net || ', ' || buy || ', ' || sell || ', ' || " +
             "standingCharges || ', ' || signUpBonus AS line FROM costings, PricePlans WHERE pricePlanIndex = pricePlanID")
     public abstract List<String> getAllComparisonsNow();
+
+    @Query("DELETE FROM costings WHERE pricePlanId NOT IN (SELECT pricePlanIndex FROM PricePlans)")
+    public abstract void pruneCostings();
 }

@@ -127,16 +127,16 @@ public class PricePlanNavFragment extends Fragment {
                 (tab, position) -> tab.setText(tabTitles[position])
         ).attach();
 
-        ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.USAGE_FRAGMENT)).setOnLongClickListener(v -> {
+        ((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.USAGE_FRAGMENT).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/main/scenarionav/tab.html");
             return true;});
-        ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.COSTS_FRAGMENT)).setOnLongClickListener(v -> {
+        ((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.COSTS_FRAGMENT).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/main/plannav/tab.html");
             return true;});
-        ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.COMPARE_FRAGMENT)).setOnLongClickListener(v -> {
+        ((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.COMPARE_FRAGMENT).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/main/compare/tab.html");
             return true;});
-        ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.DATA_MANAGEMENT_FRAGMENT)).setOnLongClickListener(v -> {
+        ((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.DATA_MANAGEMENT_FRAGMENT).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/main/datatab/tab.html");
             return true;});
     }
@@ -253,7 +253,7 @@ public class PricePlanNavFragment extends Fragment {
                         for (PricePlan pp : pricePlanMap.keySet()) {
                             if (pp.getPricePlanIndex() == v.getId()) {
                                 PricePlan newPP = pp.copy();
-                                mViewModel.insertPricePlan(newPP, pricePlanMap.get(pp));
+                                mViewModel.insertPricePlan(newPP, pricePlanMap.get(pp), false);
                             }
                         }
                     }
@@ -320,11 +320,11 @@ public class PricePlanNavFragment extends Fragment {
     private void showHelp(String url) {
         if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
             mHelpWindow.setHeight((int) (requireActivity().getWindow().getDecorView().getHeight()*0.6));
-            mHelpWindow.setWidth((int) (requireActivity().getWindow().getDecorView().getWidth()));
+            mHelpWindow.setWidth(requireActivity().getWindow().getDecorView().getWidth());
         }
         else {
             mHelpWindow.setWidth((int) (requireActivity().getWindow().getDecorView().getWidth() * 0.6));
-            mHelpWindow.setHeight((int) (requireActivity().getWindow().getDecorView().getHeight()));
+            mHelpWindow.setHeight(requireActivity().getWindow().getDecorView().getHeight());
         }
         mHelpWindow.showAtLocation(mTableLayout, Gravity.CENTER, 0, 0);
         WebView webView = mPopupView.findViewById(R.id.helpWebView);

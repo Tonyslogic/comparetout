@@ -242,7 +242,7 @@ public class ScenarioOverview extends Fragment {
                             ScenarioComponents scenarioComponents = new ScenarioComponents(mScenario,
                                     null, null, null, null, null,
                                     null, null, null, null, null);
-                            mViewModel.insertScenario(scenarioComponents);
+                            mViewModel.insertScenario(scenarioComponents, false);
                         } else {
                             mViewModel.updateScenario(mScenario);
                         }

@@ -96,7 +96,7 @@ public class ScenarioDAOTest {
         loadProfile.setAnnualUsage(100.00);
         scenarioDAO.addNewScenarioWithComponents(scenario1, new ScenarioComponents(
                 scenario1, null, null, null, null, loadProfile,
-                null, null, null, null, null));
+                null, null, null, null, null), false);
 
         List<Scenario> scenarioOutList = LiveDataTestUtil.getValue(scenarioDAO.loadScenarios());
         Scenario scenario1o = scenarioOutList.get(0);
@@ -112,7 +112,7 @@ public class ScenarioDAOTest {
         scenario2.setScenarioName("Second");
         scenarioDAO.addNewScenarioWithComponents(scenario2, new ScenarioComponents(
                 scenario2, null, null, null, null, null,
-                null, null, null, null, null));
+                null, null, null, null, null), false);
 
         scenarioOutList = LiveDataTestUtil.getValue(scenarioDAO.loadScenarios());
         Scenario scenario2o = scenarioOutList.get(1);
@@ -141,7 +141,7 @@ public class ScenarioDAOTest {
         loadProfile.setAnnualUsage(100.00);
         scenarioDAO.addNewScenarioWithComponents(scenario1, new ScenarioComponents(
                 scenario1, null, null, null, null, loadProfile,
-                null, null, null, null, null));
+                null, null, null, null, null), false);
 
 
         List<Scenario> scenarioOutList = LiveDataTestUtil.getValue(scenarioDAO.loadScenarios());
@@ -168,7 +168,7 @@ public class ScenarioDAOTest {
         loadProfile.setAnnualUsage(100.00);
         scenarioDAO.addNewScenarioWithComponents(scenario1, new ScenarioComponents(
                 scenario1, null, null, null, null, loadProfile,
-                null, null, null, null, null));
+                null, null, null, null, null), false);
 
         List<Scenario> scenarioOutList = LiveDataTestUtil.getValue(scenarioDAO.loadScenarios());
         Scenario scenario1o = scenarioOutList.get(0);
@@ -184,7 +184,7 @@ public class ScenarioDAOTest {
         scenario2.setScenarioName("Second");
         scenarioDAO.addNewScenarioWithComponents(scenario2, new ScenarioComponents(
                 scenario2, null, null, null, null, null,
-                null, null, null, null, null));
+                null, null, null, null, null), false);
 
         scenarioOutList = LiveDataTestUtil.getValue(scenarioDAO.loadScenarios());
         Scenario scenario2o = scenarioOutList.get(1);
@@ -230,7 +230,7 @@ public class ScenarioDAOTest {
         List<ScenarioJsonFile> scenarioList = new Gson().fromJson(testData, type);
         List<ScenarioComponents> jsons = JsonTools.createScenarioComponentList(scenarioList);
         ScenarioComponents json = jsons.get(0);
-        scenarioDAO.addNewScenarioWithComponents(json.scenario, json);
+        scenarioDAO.addNewScenarioWithComponents(json.scenario, json, false);
         List<Scenario> scenarioOutList = LiveDataTestUtil.getValue(scenarioDAO.loadScenarios());
         Scenario scenario = scenarioOutList.get(0);
         long scenarioID = scenario.getScenarioIndex();
@@ -376,7 +376,7 @@ public class ScenarioDAOTest {
             ScenarioComponents scenarioComponents =
                     new ScenarioComponents(scenario, inverters, batteries, panels, hwSystem,
                             loadProfile, loadShifts, evCharges, hwSchedules, hwDivert, evDiverts);
-            scenarioDAO.addNewScenarioWithComponents(scenario, scenarioComponents);
+            scenarioDAO.addNewScenarioWithComponents(scenario, scenarioComponents, false);
         }
     }
 

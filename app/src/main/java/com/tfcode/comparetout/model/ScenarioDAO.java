@@ -127,8 +127,15 @@ public abstract class ScenarioDAO {
     @Insert
     abstract void addNewScenario2EVDivert(Scenario2EVDivert scenario2EVDivert);
 
+    @Query("SELECT scenarioIndex FROM scenarios WHERE scenarioName = :scenarioName")
+    public abstract long getScenarioID(String scenarioName);
+
     @Transaction
-    long addNewScenarioWithComponents(Scenario scenario, ScenarioComponents components) {
+    long addNewScenarioWithComponents(Scenario scenario, ScenarioComponents components, boolean clobber) {
+        if (clobber) {
+            long oldScenarioID = getScenarioID(scenario.getScenarioName());
+            deleteScenario((int) oldScenarioID);
+        }
         long scenarioID = 0;
         try {
             if (!(null == components.inverters) && components.inverters.size() > 0)
@@ -406,11 +413,8 @@ public abstract class ScenarioDAO {
     @Insert(entity = ScenarioSimulationData.class)
     public abstract void saveSimulationDataForScenario(ArrayList<ScenarioSimulationData> simulationData);
 
-    @Query("SELECT scenarioIndex FROM scenarios " +
-            "WHERE scenarioIndex NOT IN (SELECT DISTINCT scenarioID FROM costings) " +
-            "OR scenarioIndex IN (SELECT scenarioID FROM (SELECT scenarioID, COUNT(pricePlanId) AS costedPlans FROM costings GROUP BY scenarioID HAVING costedPlans < (SELECT COUNT() FROM PricePlans) )) " +
-            "AND (SELECT COUNT(scenarioID) FROM scenariosimulationdata, scenarios WHERE scenariosimulationdata.scenarioID = scenarioIndex) > 0")
-    public abstract List<Long> getAllScenariosThatNeedCosting();
+    @Query("SELECT scenarioIndex FROM scenarios")
+    public abstract List<Long> getAllScenariosThatMayNeedCosting();
 
     @Query("SELECT * FROM scenariosimulationdata WHERE scenarioID = :scenarioID " +
             "ORDER BY date, minuteOfDay")
@@ -572,7 +576,7 @@ public abstract class ScenarioDAO {
         addNewScenarioWithComponents(scenario, new ScenarioComponents(
                 scenario, inverters, batteries, panels, hwSystem,
                 loadProfile, loadShifts, evCharges, hwSchedules,
-                hwDivert, evDiverts));
+                hwDivert, evDiverts), false);
     }
 
     @Transaction

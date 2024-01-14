@@ -43,6 +43,7 @@ import android.widget.ProgressBar;
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
@@ -99,6 +100,7 @@ public class MainActivity extends AppCompatActivity {
     private Handler mMainHandler;
     private ProgressBar mSimulationInProgressBar;
     private boolean mSimulationInProgress = false;
+    private boolean clobberPlansAndScenarios = false;
 
     private WebViewAssetLoader mAssetLoader;
     private View mPopupView;
@@ -165,7 +167,8 @@ public class MainActivity extends AppCompatActivity {
                                 DayRate dr = JsonTools.createDayRate(drj);
                                 drs.add(dr);
                             }
-                            mViewModel.insertPricePlan(p, drs);
+                            mViewModel.insertPricePlan(p, drs, clobberPlansAndScenarios);
+                            mViewModel.removeCostingsForPricePlan(p.getPricePlanIndex());
                         }
                     } catch (FileNotFoundException e) {
                         e.printStackTrace();
@@ -198,7 +201,7 @@ public class MainActivity extends AppCompatActivity {
                         List<ScenarioJsonFile> scenarioJsonFiles = new Gson().fromJson(reader, type);
                         List<ScenarioComponents> scs = JsonTools.createScenarioComponentList(scenarioJsonFiles);
                         for (ScenarioComponents sc : scs) {
-                            mViewModel.insertScenario(sc);
+                            mViewModel.insertScenario(sc, clobberPlansAndScenarios);
                         }
                     } catch (FileNotFoundException e) {
                         e.printStackTrace();
@@ -400,19 +403,26 @@ public class MainActivity extends AppCompatActivity {
         if (itemID == R.id.load) {
             //add the function to perform here
             System.out.println("Import attempt");
-            if (pos == COSTS_FRAGMENT) {
-                mLoadPricePlansFromFile.launch("*/*");
-                return (true);
-            }
-            if (pos == USAGE_FRAGMENT) {
-                mLoadScenariosFromFile.launch("*/*");
-                return true;
-            }
             if (pos == COMPARE_FRAGMENT) {
                 Snackbar.make(viewPager.getRootView(), "This should never happen", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
                 return true;
             }
+            AlertDialog.Builder alert = new AlertDialog.Builder(this);
+            alert.setTitle("Load behaviour");
+            alert.setMessage("Do you want to replace existing entries?");
+            alert.setPositiveButton("Replace", (dialog, which) -> {
+                clobberPlansAndScenarios = true;
+                if (pos == COSTS_FRAGMENT) mLoadPricePlansFromFile.launch("*/*");
+                if (pos == USAGE_FRAGMENT) mLoadScenariosFromFile.launch("*/*");
+            });
+            alert.setNegativeButton("Keep", (dialog, which) -> {
+                clobberPlansAndScenarios = false;
+                if (pos == COSTS_FRAGMENT) mLoadPricePlansFromFile.launch("*/*");
+                if (pos == USAGE_FRAGMENT) mLoadScenariosFromFile.launch("*/*");
+            });
+            alert.show();
+            return true;
         }
 
         if (itemID == R.id.download) {
@@ -421,7 +431,7 @@ public class MainActivity extends AppCompatActivity {
             AtomicReference<String> urlString = new AtomicReference<>("https://raw.githubusercontent.com/Tonyslogic/comparetout-doc/main/price-plans/rates.json");
             if (pos == USAGE_FRAGMENT) urlString.set("https://raw.githubusercontent.com/Tonyslogic/comparetout-doc/main/usage-profiles/scenarios.json");
 
-            DownloadDialog downloadDialog = new DownloadDialog(this, urlString.get(), newURL -> {
+            DownloadDialog downloadDialog = new DownloadDialog(this, urlString.get(), (newURL, clobber) -> {
                 urlString.set(newURL);
                 mProgressBar.setVisibility(View.VISIBLE);
                 if (pos == COSTS_FRAGMENT) {
@@ -444,7 +454,7 @@ public class MainActivity extends AppCompatActivity {
                                     DayRate dr = JsonTools.createDayRate(drj);
                                     drs.add(dr);
                                 }
-                                mViewModel.insertPricePlan(p, drs);
+                                mViewModel.insertPricePlan(p, drs, clobber);
                             }
                             reader.close();
                         } catch (IOException e) {
@@ -467,7 +477,7 @@ public class MainActivity extends AppCompatActivity {
                             List<ScenarioJsonFile> scenarioJsonFiles = new Gson().fromJson(reader, type);
                             List<ScenarioComponents> scs = JsonTools.createScenarioComponentList(scenarioJsonFiles);
                             for (ScenarioComponents sc : scs) {
-                                mViewModel.insertScenario(sc);
+                                mViewModel.insertScenario(sc, clobber);
                             }
                             reader.close();
                         } catch (IOException e) {

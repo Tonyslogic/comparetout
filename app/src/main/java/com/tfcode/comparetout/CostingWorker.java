@@ -54,7 +54,8 @@ public class CostingWorker extends Worker {
     @Override
     public Result doWork() {
         // Find distinct scenarios
-        List<Long> scenarioIDs = mToutcRepository.getAllScenariosThatNeedCosting();
+        mToutcRepository.pruneCostings();
+        List<Long> scenarioIDs = mToutcRepository.getAllScenariosThatMayNeedCosting();
 
         try {
             if (scenarioIDs.size() > 0) {

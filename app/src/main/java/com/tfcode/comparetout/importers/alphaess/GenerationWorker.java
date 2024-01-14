@@ -174,7 +174,7 @@ public class GenerationWorker extends Worker {
         ScenarioComponents scenarioComponents = new ScenarioComponents(scenario,
                 null, null, null, null, null,
                 null, null, null, null, null);
-        long assignedScenarioID = mToutcRepository.insertScenarioAndReturnID(scenarioComponents);
+        long assignedScenarioID = mToutcRepository.insertScenarioAndReturnID(scenarioComponents, false);
         List<AlphaESSTransformedData> dbRows = null;
 
         // Create & store a load profile
@@ -460,7 +460,7 @@ public class GenerationWorker extends Worker {
                             && (current.hour-1 != previousInput.hour)
                             && (current.cbat < previousInput.cbat)) {
                         List<Pair<Integer, Integer>> scheduleInputs = schedules.computeIfAbsent(bes, k -> new ArrayList<>());
-                        scheduleInputs.add(new Pair<>((int) previousInput.month, (int) previousInput.dow));
+                        scheduleInputs.add(new Pair<>(previousInput.month, previousInput.dow));
                         // Reset
                         bes = new BES();
                     }

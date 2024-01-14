@@ -124,8 +124,11 @@ public class ToutcRepository {
 
     // You must call this on a non-UI thread or your app will throw an exception. Room ensures
     // that you're not doing any long running operations on the main thread, blocking the UI.
-    public void insert(PricePlan pp, List<DayRate> drs) {
-        ToutcDB.databaseWriteExecutor.execute(() -> pricePlanDAO.addNewPricePlanWithDayRates(pp, drs));
+    public void insert(PricePlan pp, List<DayRate> drs, boolean clobber) {
+        ToutcDB.databaseWriteExecutor.execute(() -> {
+            long id = pricePlanDAO.addNewPricePlanWithDayRates(pp, drs, clobber);
+            if (clobber) costingDAO.deleteRelatedCostings((int) id);
+        });
     }
 
     public void deletePricePlan(Integer id) {
@@ -145,13 +148,13 @@ public class ToutcRepository {
                 pricePlanDAO.updatePricePlanWithDayRates(pp, drs));
     }
 
-    public void insertScenario(ScenarioComponents sc) {
+    public void insertScenario(ScenarioComponents sc, boolean clobber) {
         ToutcDB.databaseWriteExecutor.execute(() ->
-                scenarioDAO.addNewScenarioWithComponents(sc.scenario, sc));
+                scenarioDAO.addNewScenarioWithComponents(sc.scenario, sc, clobber));
     }
 
-    public long insertScenarioAndReturnID(ScenarioComponents sc) {
-        return scenarioDAO.addNewScenarioWithComponents(sc.scenario, sc);
+    public long insertScenarioAndReturnID(ScenarioComponents sc, boolean clobber) {
+        return scenarioDAO.addNewScenarioWithComponents(sc.scenario, sc, clobber);
     }
 
 
@@ -226,8 +229,8 @@ public class ToutcRepository {
         scenarioDAO.saveSimulationDataForScenario(simulationData);
     }
 
-    public List<Long> getAllScenariosThatNeedCosting() {
-        return scenarioDAO.getAllScenariosThatNeedCosting();
+    public List<Long> getAllScenariosThatMayNeedCosting() {
+        return scenarioDAO.getAllScenariosThatMayNeedCosting();
     }
 
     public List<PricePlan> getAllPricePlansNow() {
@@ -381,6 +384,9 @@ public class ToutcRepository {
                 costingDAO.deleteRelatedCostings((int)pricePlanIndex));
     }
 
+    public void pruneCostings() {
+        ToutcDB.databaseWriteExecutor.execute(costingDAO::pruneCostings);
+    }
 
     public boolean costingExists(long scenarioID, long pricePlanIndex) {
         return costingDAO.costingExists(scenarioID, pricePlanIndex);

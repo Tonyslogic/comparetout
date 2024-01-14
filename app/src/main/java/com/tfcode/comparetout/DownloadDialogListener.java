@@ -17,5 +17,5 @@
 package com.tfcode.comparetout;
 
 public interface DownloadDialogListener {
-    void urlSpecified(String scenarioID);
+    void urlSpecified(String newURL, boolean clobber);
 }
