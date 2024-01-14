@@ -49,7 +49,6 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.datastore.preferences.core.Preferences;
 import androidx.datastore.preferences.core.PreferencesKeys;
-import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 import androidx.webkit.WebViewAssetLoader;
 import androidx.work.WorkInfo;
@@ -68,7 +67,6 @@ import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.priceplan.PricePlanActivity;
-import com.tfcode.comparetout.scenario.ScenarioActivity;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.io.FileNotFoundException;
@@ -254,11 +252,11 @@ public class MainActivity extends AppCompatActivity {
         viewPager = findViewById(R.id.view_pager);
         viewPager.setAdapter(createCardAdapter());
         viewPager.setCurrentItem(MainActivity.DATA_MANAGEMENT_FRAGMENT);
-        mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
 
         /*
           Add price plan or scenario depending on the visible fragment
          */
+
         FloatingActionButton fab = findViewById(R.id.addSomething);
         fab.setOnClickListener(view -> {
             int pos = viewPager.getCurrentItem();
@@ -271,10 +269,8 @@ public class MainActivity extends AppCompatActivity {
                 startActivity(intent);
             }
             if (pos == USAGE_FRAGMENT) {
-                Intent intent = new Intent(MainActivity.this, ScenarioActivity.class);
-                intent.putExtra("ScenarioID", 0L);
-                intent.putExtra("Edit", true);
-                startActivity(intent);
+                if (!(null == viewPager.getAdapter()))
+                    ((ViewPagerAdapter)viewPager.getAdapter()).addNewScenario();
             }
         });
         fab.setOnLongClickListener(v -> {

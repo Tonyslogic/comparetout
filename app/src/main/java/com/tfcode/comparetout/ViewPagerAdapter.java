@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023. Tony Finnerty
+ * Copyright (c) 2023-2024. Tony Finnerty
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -49,5 +49,9 @@ public class ViewPagerAdapter extends FragmentStateAdapter {
     }
     @Override public int getItemCount() {
         return CARD_ITEM_SIZE;
+    }
+
+    public void addNewScenario() {
+        scenarioNavFragment.addNewScenario();
     }
 }

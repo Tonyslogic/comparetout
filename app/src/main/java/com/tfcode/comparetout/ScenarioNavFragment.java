@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023. Tony Finnerty
+ * Copyright (c) 2023-2024. Tony Finnerty
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -48,9 +48,11 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.model.scenario.Scenario;
+import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.scenario.ScenarioActivity;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class ScenarioNavFragment extends Fragment {
@@ -58,6 +60,7 @@ public class ScenarioNavFragment extends Fragment {
     private ComparisonUIViewModel mViewModel;
     private TableLayout mTableLayout;
     private List<Scenario> mScenarios;
+    private List<String> mScenarioNames;
 
     private WebViewAssetLoader mAssetLoader;
     private View mPopupView;
@@ -95,6 +98,10 @@ public class ScenarioNavFragment extends Fragment {
             mScenarios = scenarios;
             updateView();
         });
+        mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);mViewModel.getAllScenarios().observe(this, scenarios -> {
+            mScenarioNames = new ArrayList<>();
+            for (Scenario s : scenarios) mScenarioNames.add(s.getScenarioName());
+        });
     }
 
     @Override
@@ -125,16 +132,16 @@ public class ScenarioNavFragment extends Fragment {
                 (tab, position) -> tab.setText(tabTitles[position])
         ).attach();
 
-        ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.USAGE_FRAGMENT)).setOnLongClickListener(v -> {
+        ((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.USAGE_FRAGMENT).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/main/scenarionav/tab.html");
             return true;});
-        ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.COSTS_FRAGMENT)).setOnLongClickListener(v -> {
+        ((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.COSTS_FRAGMENT).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/main/plannav/tab.html");
             return true;});
-        ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.COMPARE_FRAGMENT)).setOnLongClickListener(v -> {
+        ((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.COMPARE_FRAGMENT).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/main/compare/tab.html");
             return true;});
-        ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.DATA_MANAGEMENT_FRAGMENT)).setOnLongClickListener(v -> {
+        ((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.DATA_MANAGEMENT_FRAGMENT).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/main/datatab/tab.html");
             return true;});
     }
@@ -297,17 +304,40 @@ public class ScenarioNavFragment extends Fragment {
     private void showHelp(String url) {
         if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
             mHelpWindow.setHeight((int) (requireActivity().getWindow().getDecorView().getHeight()*0.6));
-            mHelpWindow.setWidth((int) (requireActivity().getWindow().getDecorView().getWidth()));
+            mHelpWindow.setWidth(requireActivity().getWindow().getDecorView().getWidth());
         }
         else {
             mHelpWindow.setWidth((int) (requireActivity().getWindow().getDecorView().getWidth() * 0.6));
-            mHelpWindow.setHeight((int) (requireActivity().getWindow().getDecorView().getHeight()));
+            mHelpWindow.setHeight(requireActivity().getWindow().getDecorView().getHeight());
         }
         mHelpWindow.showAtLocation(mTableLayout, Gravity.CENTER, 0, 0);
         WebView webView = mPopupView.findViewById(R.id.helpWebView);
 
         webView.setWebViewClient(new LocalContentWebViewClient(mAssetLoader));
         webView.loadUrl(url);
+    }
+
+    public void addNewScenario() {
+        if (!(null == getContext())) {
+            NewScenarioDialog newScenarioDialog = new NewScenarioDialog(getContext(),
+                    scenarioName -> {
+                        Scenario scenario = new Scenario();
+                        scenario.setScenarioName(scenarioName);
+                        ScenarioComponents scenarioComponents = new ScenarioComponents(scenario,
+                                null, null, null, null, null,
+                                null, null, null, null, null);
+
+                        new Thread(() -> {
+                            long id = mViewModel.insertScenarioAndReturnID(scenarioComponents, false);
+                            Intent intent = new Intent(getContext(), ScenarioActivity.class);
+                            intent.putExtra("ScenarioID", id);
+                            intent.putExtra("Edit", true);
+                            startActivity(intent);
+                        }).start();
+
+                    }, mScenarioNames);
+            newScenarioDialog.show();
+        }
     }
 
 }

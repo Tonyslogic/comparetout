@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023. Tony Finnerty
+ * Copyright (c) 2023-2024. Tony Finnerty
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -121,7 +121,7 @@ public class PanelFragment extends Fragment {
         mMainHandler = new Handler(Looper.getMainLooper());
 
         // The activity may not be created, so these calls wait for the activity creation to complete
-        ((PanelActivity) requireActivity()).getLifecycle().addObserver((LifecycleEventObserver) (source, event) -> {
+        requireActivity().getLifecycle().addObserver((LifecycleEventObserver) (source, event) -> {
             if ((event.getTargetState() ==  Lifecycle.State.CREATED ) && !(null == getActivity()) ) {
                 mScenarioID = ((PanelActivity) requireActivity()).getScenarioID();
                 mPanelJsonString = ((PanelActivity) requireActivity()).getPanelJson();
