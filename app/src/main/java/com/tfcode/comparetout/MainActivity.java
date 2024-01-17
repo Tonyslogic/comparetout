@@ -49,6 +49,7 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.datastore.preferences.core.Preferences;
 import androidx.datastore.preferences.core.PreferencesKeys;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 import androidx.webkit.WebViewAssetLoader;
 import androidx.work.WorkInfo;
@@ -252,6 +253,7 @@ public class MainActivity extends AppCompatActivity {
         viewPager = findViewById(R.id.view_pager);
         viewPager.setAdapter(createCardAdapter());
         viewPager.setCurrentItem(MainActivity.DATA_MANAGEMENT_FRAGMENT);
+        mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
 
         /*
           Add price plan or scenario depending on the visible fragment
