@@ -7,10 +7,14 @@ Beta test version V1.21
 
 > Sign up from your [browser](https://play.google.com/apps/testing/com.tfcode.comparetout)
 
-Internal test version V1.24 
+Internal test version V1.25 
 > [email me](mailto:tonysfreecode@gmail.com?subject=AlphaTest), with the email address of you use in your android play store account
 
 Read more on the [documentation site](https://github.com/Tonyslogic/comparetout-doc)
+
+V1.25
+
+* BUG: Crash in main activity when exporting
 
 V1.24
 
