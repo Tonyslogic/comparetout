@@ -12,6 +12,10 @@ Internal test version V1.24
 
 Read more on the [documentation site](https://github.com/Tonyslogic/comparetout-doc)
 
+V1.25
+
+* BUG: Crash in main activity when exporting
+
 V1.24
 
 * BUG: Not copying profile and panel data
