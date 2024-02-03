@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023. Tony Finnerty
+ * Copyright (c) 2023-2024. Tony Finnerty
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -25,4 +25,10 @@ public class TestSecrets {
 
     // The AppSecret or Developer Secret from open.alphaess.com (registration required
     public static final String SECRET = "********************************";
+
+    public static final String ESBN_USER = "somebody@somewhere.com";
+
+    public static final String ESBN_PASSWORD = "Password";
+
+    public static final String ESBN_MPRN = "12345678910";
 }
