@@ -18,6 +18,7 @@ package com.tfcode.comparetout.importers.esbn;
 
 import com.google.gson.Gson;
 import com.opencsv.CSVReader;
+import com.tfcode.comparetout.importers.esbn.responses.ESBNException;
 import com.tfcode.comparetout.importers.esbn.responses.FetchRangeResponse;
 import com.tfcode.comparetout.importers.esbn.responses.LoginResponse;
 import com.tfcode.comparetout.importers.esbn.responses.SettingsResponse;
@@ -34,8 +35,10 @@ import java.io.InputStreamReader;
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -98,11 +101,24 @@ public class ESBNHDFImport {
                 .build();
     }
 
+    public void readEntriesFromFile(InputStream inputStream, ESBNImportExportEntry processor)
+            throws ESBNException {
+        try (InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
+            CSVReader csvReader = new CSVReader(reader);
+            processHDF(processor, csvReader);
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new ESBNException("Unable to read file. Is the file valid?.");
+        }catch (DateTimeParseException | NumberFormatException e) {
+            throw new ESBNException("Unable to parse file data. Is the file valid?.");
+        }
+    }
+
     public void setSelectedMPRN(String mprn) {
         this.mprn = mprn;
     }
 
-    public List<String> fetchMPRNs() {
+    public List<String> fetchMPRNs() throws ESBNException {
 
         List<String> ret = new ArrayList<>();
         try {
@@ -142,16 +158,18 @@ public class ESBNHDFImport {
             }
         } catch (IOException e) {
             e.printStackTrace();
+            throw new ESBNException("IO issue. Consider using file or try again later.");
         }
         return ret;
     }
 
-    public void fetchSmartMeterDataHDF(ESBNImportExportEntry processor) {
+    public void fetchSmartMeterDataHDF(ESBNImportExportEntry processor) throws ESBNException {
         try {
             if (!mLoggedIn) logIn();
             if (!mLoggedIn) return;
         } catch (IOException e) {
             e.printStackTrace();
+            throw new ESBNException("IO issue. Consider using file or try again later.");
         }
 
         String url = MY_ACCOUNT_URL + FETCH_HDF_URL + "?mprn=" + mprn;
@@ -170,35 +188,42 @@ public class ESBNHDFImport {
                       BufferedReader bufferedReader = new BufferedReader(reader)) {
 
                 CSVReader csvReader = new CSVReader(bufferedReader);
-                // skip header row
-                csvReader.readNext();
-                String[] nextLine;
-                while ((nextLine = csvReader.readNext()) != null) {
-                    // nextLine[] is an array of values from the line
-                    String dt = nextLine[READ_DATETIME].split("\\+")[0];
-                    LocalDateTime readTime = LocalDateTime.parse(dt, HDF_FORMAT);
-                    Double reading = Double.parseDouble(nextLine[READ_VALUE]);
-                    boolean export = nextLine[READ_TYPE].contains(EXPORT_READ_TYPE);
-                    if (export) processor.processLine(ESBNImportExportEntry.HDFLineType.EXPORT, readTime, reading);
-                    else processor.processLine(ESBNImportExportEntry.HDFLineType.IMPORT, readTime, reading);
-                }
+                processHDF(processor, csvReader);
             } catch (IOException e) {
-                e.printStackTrace();
                 mLoggedIn = false;
+                e.printStackTrace();
+                throw new ESBNException("IO issue. Consider using file or try again later.");
+            } catch (DateTimeParseException | NumberFormatException e) {
+                throw new ESBNException("Unable to parse incoming data. Consider using file.");
             }
 
         } catch (IOException e) {
-            e.printStackTrace();
             mLoggedIn = false;
+            e.printStackTrace();
+            throw new ESBNException("IO issue. Consider using file or try again later.");
         }
     }
 
-    public void fetchSmartMeterDataFromDate(String fromDate, ESBNImportExportEntry processor) {
-        try {
+    private void processHDF(ESBNImportExportEntry processor, CSVReader csvReader)
+            throws IOException {
+        // skip header row
+        csvReader.readNext();
+        String[] nextLine;
+        while ((nextLine = csvReader.readNext()) != null) {
+            // nextLine[] is an array of values from the line
+            String dt = nextLine[READ_DATETIME].split("\\+")[0];
+            LocalDateTime readTime = LocalDateTime.parse(dt, HDF_FORMAT);
+            Double reading = Double.parseDouble(nextLine[READ_VALUE]);
+            boolean export = nextLine[READ_TYPE].contains(EXPORT_READ_TYPE);
+            if (export) processor.processLine(ESBNImportExportEntry.HDFLineType.EXPORT, readTime, reading);
+            else processor.processLine(ESBNImportExportEntry.HDFLineType.IMPORT, readTime, reading);
+        }
+    }
 
-            if (!mLoggedIn) {
-                logIn();
-            }
+    public void fetchSmartMeterDataFromDate(String fromDate, ESBNImportExportEntry processor)
+            throws ESBNException {
+        try {
+            if (!mLoggedIn) logIn();
             if (!mLoggedIn) return;
 
             // GET SOME DATA
@@ -232,21 +257,24 @@ public class ESBNHDFImport {
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
             mLoggedIn = false;
+            e.printStackTrace();
+            throw new ESBNException("IO issue. Consider using file or try again later.");
+        }catch (DateTimeParseException | NumberFormatException e) {
+            e.printStackTrace();
+            throw new ESBNException("Unable to parse incoming data. Consider using file.");
         }
     }
 
-    private void logIn() throws IOException {
-        if (getLoginPage())
-            if (postLoginRequest())
-                if (confirmLogin())
-                    mLoggedIn = postContinueWithoutJavaScript();
-        if (!mLoggedIn) System.out.println("Login failed");
+    private void logIn() throws IOException, ESBNException {
+        getLoginPage();
+        postLoginRequest();
+        confirmLogin();
+        postContinueWithoutJavaScript();
+        mLoggedIn = true;
     }
 
-    private boolean postContinueWithoutJavaScript() throws IOException {
-        boolean ret = true;
+    private void postContinueWithoutJavaScript() throws IOException, ESBNException {
         // POST CONFIRM NO JAVASCRIPT
         {
             RequestBody confirmNoJSRequestBody = new FormBody.Builder()
@@ -264,13 +292,12 @@ public class ESBNHDFImport {
             Response confirmNoJSResponse = mClient.newCall(confirmNoJSRequest).execute();
 
             System.out.println ("POST confirm no JS response code: " + confirmNoJSResponse.code());
-            if (confirmNoJSResponse.code() != 200) ret = false;
+            if (confirmNoJSResponse.code() != 200)
+                throw new ESBNException("Unable to continue without JavaScript. Consider using file.");
         }
-        return ret;
     }
 
-    private boolean confirmLogin() throws IOException {
-        boolean ret = true;
+    private void confirmLogin() throws IOException, ESBNException {
         // GET CONFIRM THE LOGIN
         {
             // Make the confirm login GET request
@@ -288,11 +315,11 @@ public class ESBNHDFImport {
 
             if (confirmLoginResponse.isSuccessful()) {
                 // Parse the HTML content using Jsoup
-                String htmlContent = "";
+                String htmlContent;
                 if (!(null == confirmLoginResponse.body())) {
                     htmlContent = Objects.requireNonNull(confirmLoginResponse.body()).string();
                 }
-                else ret = false;
+                else throw new ESBNException("Can't find needed data after login. Consider using file.");
                 Document document = Jsoup.parse(htmlContent);
 
                 // Find the form with id 'auto'
@@ -303,14 +330,12 @@ public class ESBNHDFImport {
 
             } else {
                 System.err.println("Error: " + confirmLoginResponse.code());
-                ret = false;
+                throw new ESBNException("Can't find needed data after login. Consider using file.");
             }
         }
-        return ret;
     }
 
-    private boolean postLoginRequest() throws IOException {
-        boolean ret = true;
+    private void postLoginRequest() throws IOException, ESBNException {
         // POST THE LOGIN CREDENTIALS
         RequestBody loginRequestBody = new FormBody.Builder()
                 .add("signInName", user)
@@ -333,23 +358,22 @@ public class ESBNHDFImport {
         Response loginResponse = mNoRedirectClient.newCall(loginRequest).execute();
 
         System.out.println ("POST login response code: " + loginResponse.code());
-        if (loginResponse.code() != 200) ret = false;
+        if (loginResponse.code() != 200) throw new ESBNException("Failed to login. Try again later");
 
-        String loginResponseHtml = "";
+        String loginResponseHtml;
         if (!(null == loginResponse.body())) {
             loginResponseHtml = Objects.requireNonNull(loginResponse.body()).string();
         }
-        else ret = false;
+        else throw new ESBNException("Unable to confirm the login. Consider using file");
         LoginResponse loginResponseJSON = new Gson().fromJson(loginResponseHtml, LoginResponse.class);
         if (!"200".equals(loginResponseJSON.status)) {
-            ret = false;
-            System.out.println((null == loginResponseJSON.message) ? "Login failed for an unreported reason" : loginResponseJSON.message);
+            String reason = (null == loginResponseJSON.message) ? "Login failed for an unreported reason" : loginResponseJSON.message;
+            System.out.println(reason);
+            throw new ESBNException(reason);
         }
-        return ret;
     }
 
-    private boolean getLoginPage() throws IOException {
-        boolean ret = true;
+    private void getLoginPage() throws IOException, ESBNException {
         // GET THE LOGIN PAGE
         {
             Request loginPageRequest = new Request.Builder()
@@ -358,11 +382,11 @@ public class ESBNHDFImport {
                     .build();
 
             Response loginPageResponse = mClient.newCall(loginPageRequest).execute();
-            String loginPageHtml = "";
+            String loginPageHtml;
             if (!(null == loginPageResponse.body())) {
                 loginPageHtml = Objects.requireNonNull(loginPageResponse.body()).string();
             }
-            else ret = false;
+            else throw new ESBNException("Failed to get the ESBN login page. Consider using file");
             Document document = Jsoup.parse(loginPageHtml);
 
             // Select the script element containing the variable
@@ -387,9 +411,8 @@ public class ESBNHDFImport {
             if (!(null == variableValue)) {
                 mSettings = new Gson().fromJson(variableValue, SettingsResponse.class);
             }
-            else ret = false;
+            else throw new ESBNException("Failed to get the ESBN login page settings. Consider using file");
         }
-        return ret;
     }
 
     private static String extractVariableValue(String scriptContent, String variableName) {

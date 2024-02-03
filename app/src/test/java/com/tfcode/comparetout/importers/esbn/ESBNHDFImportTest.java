@@ -20,6 +20,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import com.tfcode.comparetout.importers.TestSecrets;
+import com.tfcode.comparetout.importers.esbn.responses.ESBNException;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -42,15 +43,15 @@ public class ESBNHDFImportTest {
     }
 
     @Test
-    public void getMPRNs() {
+    public void getMPRNs() throws ESBNException {
         List<String> mprns = mImport.fetchMPRNs();
         assertFalse(mprns.isEmpty());
         assertTrue(mprns.contains(TestSecrets.ESBN_MPRN));
     }
 
 
-    @Test
-    public void badCredentials() {
+    @Test(expected = ESBNException.class)
+    public void badCredentials() throws ESBNException {
         ESBNHDFImport bad = new ESBNHDFImport(
             "nobody@gamil.com",
             "B@DP@55word");
@@ -59,7 +60,7 @@ public class ESBNHDFImportTest {
     }
 
     @Test
-    public void getRangeFrom() {
+    public void getRangeFrom() throws ESBNException {
 
         NavigableMap<LocalDateTime, Double> mImports = new TreeMap<>();
         NavigableMap<LocalDateTime, Double> mExports = new TreeMap<>();
@@ -75,7 +76,7 @@ public class ESBNHDFImportTest {
     }
 
     @Test
-    public void getHDF() {
+    public void getHDF() throws ESBNException {
 
         NavigableMap<LocalDateTime, Double> mImports = new TreeMap<>();
         NavigableMap<LocalDateTime, Double> mExports = new TreeMap<>();
