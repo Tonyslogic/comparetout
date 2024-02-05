@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023. Tony Finnerty
+ * Copyright (c) 2023-2024. Tony Finnerty
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -43,7 +43,8 @@ import com.google.android.material.datepicker.CalendarConstraints;
 import com.google.android.material.datepicker.MaterialDatePicker;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
-import com.tfcode.comparetout.model.importers.alphaess.InverterDateRange;
+import com.tfcode.comparetout.importers.ImportSystemSelection;
+import com.tfcode.comparetout.model.importers.InverterDateRange;
 import com.tfcode.comparetout.model.importers.alphaess.KPIRow;
 import com.tfcode.comparetout.model.importers.alphaess.KeyStatsRow;
 
@@ -122,10 +123,10 @@ public class ImportAlphaKeyStats extends Fragment {
             mMonthFilterSelection = savedInstanceState.getInt(MONTH_FILTER);
         }
         if (null == mSystemSN)
-            mSystemSN = ((ImportAlphaActivity) requireActivity()).getSelectedSystemSN();
+            mSystemSN = ((ImportSystemSelection) requireActivity()).getSelectedSystemSN();
 
         mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
-        mViewModel.getLiveDateRanges().observe(this, dateRanges -> {
+        mViewModel.getLiveDateRanges(ComparisonUIViewModel.Importer.ALPHAESS).observe(this, dateRanges -> {
             if (null == mInverterDateRangesBySN) mInverterDateRangesBySN = new HashMap<>();
             for (InverterDateRange inverterDateRange : dateRanges) {
                 mInverterDateRangesBySN.put(inverterDateRange.sysSn, new Pair<>(inverterDateRange.startDate, inverterDateRange.finishDate));
@@ -151,10 +152,10 @@ public class ImportAlphaKeyStats extends Fragment {
                     LocalDate now = LocalDate.now();
                     mTo = now.format(DATE_FORMAT);
                 }
-                if (null == mSystemSN) mSystemSN = ((ImportAlphaActivity) requireActivity()).getSelectedSystemSN();
+                if (null == mSystemSN) mSystemSN = ((ImportSystemSelection) requireActivity()).getSelectedSystemSN();
                 // TODO: DB Query
-                mKeyStats = mViewModel.getKeyStats(mFrom, mTo, mSystemSN);
-                mKPIs = mViewModel.getKPIs(mFrom, mTo, mSystemSN);
+                mKeyStats = mViewModel.getKeyStats(ComparisonUIViewModel.Importer.ALPHAESS, mFrom, mTo, mSystemSN);
+                mKPIs = mViewModel.getKPIs(ComparisonUIViewModel.Importer.ALPHAESS, mFrom, mTo, mSystemSN);
                 if (!(null == mMainHandler)) mMainHandler.post(this::updateView);
             }
         }).start();

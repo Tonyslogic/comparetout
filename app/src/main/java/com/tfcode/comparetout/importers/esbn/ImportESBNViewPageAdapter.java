@@ -14,7 +14,7 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.importers.alphaess;
+package com.tfcode.comparetout.importers.esbn;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
@@ -23,28 +23,26 @@ import androidx.viewpager2.adapter.FragmentStateAdapter;
 
 import com.tfcode.comparetout.importers.ImportSystemSelection;
 
-public class ImportAlphaViewPageAdapter  extends FragmentStateAdapter  implements ImportSystemSelection {
-    ImportAlphaOverview mAlphaOverview = ImportAlphaOverview.newInstance();
-    ImportAlphaGraphs mAlphaGraphs = ImportAlphaGraphs.newInstance();
-    ImportAlphaKeyStats mAlphaKeys = ImportAlphaKeyStats.newInstance();
-    ImportAlphaGenerateScenario mAlphaGenerate = ImportAlphaGenerateScenario.newInstance();
+public class ImportESBNViewPageAdapter extends FragmentStateAdapter  implements ImportSystemSelection {
+    ImportESBNOverview mESBNOverview = ImportESBNOverview.newInstance();
+    ImportESBNGraphs mESBNGraphs = ImportESBNGraphs.newInstance();
+    ImportESBNGenerateScenario mESBNGenerate = ImportESBNGenerateScenario.newInstance();
 
-    public ImportAlphaViewPageAdapter(@NonNull FragmentActivity fragmentActivity, int ignoredCount) {
+    public ImportESBNViewPageAdapter(@NonNull FragmentActivity fragmentActivity, int ignoredCount) {
         super(fragmentActivity);
     }
 
     @NonNull
     @Override
     public Fragment createFragment(int position) {
-        if (position == 0) return mAlphaOverview;
-        if (position == 1) return mAlphaGraphs;
-        if (position == 2) return mAlphaKeys;
-        else return mAlphaGenerate;
+        if (position == 0) return mESBNOverview;
+        if (position == 1) return mESBNGraphs;
+        else return mESBNGenerate;
     }
 
     @Override
     public int getItemCount() {
-        return 4;
+        return 3;
     }
 
     @Override
@@ -54,8 +52,7 @@ public class ImportAlphaViewPageAdapter  extends FragmentStateAdapter  implement
 
     @Override
     public void setSelectedSystemSN(String serialNumber) {
-        mAlphaGraphs.setSelectedSystemSN(serialNumber);
-        mAlphaKeys.setSelectedSystemSN(serialNumber);
-        mAlphaGenerate.setSelectedSystemSN(serialNumber);
+        mESBNGraphs.setSelectedSystemSN(serialNumber);
+        mESBNGenerate.setSelectedSystemSN(serialNumber);
     }
 }

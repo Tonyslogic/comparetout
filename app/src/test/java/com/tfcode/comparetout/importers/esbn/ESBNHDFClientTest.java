@@ -30,13 +30,13 @@ import java.util.List;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 
-public class ESBNHDFImportTest {
+public class ESBNHDFClientTest {
 
-    private static ESBNHDFImport mImport;
+    private static ESBNHDFClient mImport;
 
     @BeforeClass
     public static void setup() {
-        mImport = new ESBNHDFImport(
+        mImport = new ESBNHDFClient(
                 TestSecrets.ESBN_USER,
                 TestSecrets.ESBN_PASSWORD);
         mImport.setSelectedMPRN(TestSecrets.ESBN_MPRN);
@@ -52,7 +52,7 @@ public class ESBNHDFImportTest {
 
     @Test(expected = ESBNException.class)
     public void badCredentials() throws ESBNException {
-        ESBNHDFImport bad = new ESBNHDFImport(
+        ESBNHDFClient bad = new ESBNHDFClient(
             "nobody@gamil.com",
             "B@DP@55word");
         List<String> mprns = bad.fetchMPRNs();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023-2024. Tony Finnerty
+ * Copyright (c) 2024. Tony Finnerty
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -14,12 +14,9 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.importers.alphaess;
+package com.tfcode.comparetout.importers;
 
-import com.tfcode.comparetout.importers.ImportException;
-
-public class AlphaESSException extends ImportException{
-    public AlphaESSException(String s) {
-        super(s);
-    }
+public interface ImportSystemSelection {
+    String getSelectedSystemSN();
+    void setSelectedSystemSN(String serialNumber);
 }

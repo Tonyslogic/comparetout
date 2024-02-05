@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023. Tony Finnerty
+ * Copyright (c) 2023-2024. Tony Finnerty
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -14,9 +14,13 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.importers.alphaess;
+package com.tfcode.comparetout.model.importers;
 
-public interface CredentialDialogListener {
-    void credentialSpecified(String appId, String appSecret);
-    void canceled();
+import androidx.room.ColumnInfo;
+
+public class InverterDateRange {
+    // SELECT sysSN, MIN(theDate) AS start, MAX(theDate) AS end FROM alphaESSRawEnergy GROUP by sysSN
+    @ColumnInfo(name= "sysSn") public String sysSn;
+    @ColumnInfo(name= "start") public String startDate;
+    @ColumnInfo(name= "finish") public String finishDate;
 }

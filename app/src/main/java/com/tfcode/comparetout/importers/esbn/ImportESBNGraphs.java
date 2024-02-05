@@ -14,12 +14,20 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.importers.alphaess;
+package com.tfcode.comparetout.importers.esbn;
 
-import com.tfcode.comparetout.importers.ImportException;
+import com.tfcode.comparetout.ComparisonUIViewModel;
+import com.tfcode.comparetout.importers.ImportGraphsFragment;
 
-public class AlphaESSException extends ImportException{
-    public AlphaESSException(String s) {
-        super(s);
+public class ImportESBNGraphs extends ImportGraphsFragment {
+
+    public ImportESBNGraphs() {
+        // Required empty public constructor
+        mImporterType = ComparisonUIViewModel.Importer.ESBNHDF;
     }
+
+    public static ImportESBNGraphs newInstance() {
+        return new ImportESBNGraphs();
+    }
+
 }

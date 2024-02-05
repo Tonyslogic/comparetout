@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023. Tony Finnerty
+ * Copyright (c) 2023-2024. Tony Finnerty
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -14,13 +14,15 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.model.importers.alphaess;
+package com.tfcode.comparetout.model.importers;
 
 import androidx.room.ColumnInfo;
 
-public class InverterDateRange {
-    // SELECT sysSN, MIN(theDate) AS start, MAX(theDate) AS end FROM alphaESSRawEnergy GROUP by sysSN
-    @ColumnInfo(name= "sysSn") public String sysSn;
-    @ColumnInfo(name= "start") public String startDate;
-    @ColumnInfo(name= "finish") public String finishDate;
+public class IntervalRow {
+    // SELECT PV, LOAD, FEED, BUY, INTERVAL
+    @ColumnInfo(name= "PV") public double pv;
+    @ColumnInfo(name= "LOAD") public double load;
+    @ColumnInfo(name= "FEED") public double feed;
+    @ColumnInfo(name= "BUY") public double buy;
+    @ColumnInfo(name= "INTERVAL") public String interval;
 }

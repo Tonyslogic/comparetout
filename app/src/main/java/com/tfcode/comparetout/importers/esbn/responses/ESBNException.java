@@ -16,7 +16,9 @@
 
 package com.tfcode.comparetout.importers.esbn.responses;
 
-public class ESBNException extends Exception{
+import com.tfcode.comparetout.importers.ImportException;
+
+public class ESBNException extends ImportException{
     public ESBNException(String message) {
         super(message);
     }

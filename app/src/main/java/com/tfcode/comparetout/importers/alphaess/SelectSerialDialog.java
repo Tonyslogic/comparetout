@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023. Tony Finnerty
+ * Copyright (c) 2023-2024. Tony Finnerty
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package com.tfcode.comparetout.importers.alphaess;
 import android.app.Dialog;
 import android.content.Context;
 import android.os.Bundle;
-import android.util.TypedValue;
 import android.view.Window;
 import android.widget.EditText;
 import android.widget.TableLayout;
@@ -28,7 +27,6 @@ import android.widget.TableRow;
 import androidx.annotation.NonNull;
 
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.textview.MaterialTextView;
 import com.tfcode.comparetout.R;
 
 import java.util.List;
@@ -73,6 +71,26 @@ public class SelectSerialDialog extends Dialog  {
             });
             tableRow.addView(serialButton);
             mTableLayout.addView(tableRow);
+        }
+
+        // Add the freetext
+        {
+            TableRow tableRow2 = new TableRow(getContext());
+            MaterialButton serialButton2 = new MaterialButton(getContext());
+
+            TableRow tableRow = new TableRow(getContext());
+            EditText serialButton = new EditText(getContext());
+            serialButton.setText(R.string.not_listed);
+            tableRow.addView(serialButton);
+            mTableLayout.addView(tableRow);
+
+            serialButton2.setText(R.string.enter_manually);
+            serialButton2.setOnClickListener(v -> {
+                mSelectSerialDialogListener.serialSelected(serialButton.getText().toString());
+                dismiss();
+            });
+            tableRow2.addView(serialButton2);
+            mTableLayout.addView(tableRow2);
         }
 
         // And the cancel button

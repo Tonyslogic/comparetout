@@ -35,6 +35,8 @@ import java.io.InputStreamReader;
 import java.net.CookieHandler;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
+import java.net.HttpCookie;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -51,7 +53,7 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
-public class ESBNHDFImport {
+public class ESBNHDFClient {
 
     private static final String MY_ACCOUNT_URL = "https://myaccount.esbnetworks.ie/";
     private static final String LOGIN_URL = "https://login.esbnetworks.ie";
@@ -77,26 +79,40 @@ public class ESBNHDFImport {
 
     private final OkHttpClient mClient;
     private final OkHttpClient mNoRedirectClient;
+    CookieManager mCM = new CookieManager(null, CookiePolicy.ACCEPT_ALL);
+    CookieFixInterceptor mCFI = new CookieFixInterceptor();
+    List<String> getLoginPageResponseCookies;
+    List<String> postLoginResponseCookies;
+    List<String> getLoginConfirmResponseCookies;
+    List<String> postNoJSResponseCookies;
 
     private SettingsResponse mSettings = null;
     private NoJavaScript mNoJavaScript = null;
 
-    public ESBNHDFImport(String user, String password) {
+    public ESBNHDFClient(String user, String password) {
         this.user = user;
         this.password = password;
 
-        CookieHandler mCookieHandler = new CookieManager(null, CookiePolicy.ACCEPT_ALL);
+        CookieHandler mCookieHandler = mCM;
+
+//        HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
+//        loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.HEADERS);
+
         mClient = new OkHttpClient.Builder()
                 .cookieJar(new JavaNetCookieJar(mCookieHandler))
+                .addNetworkInterceptor(mCFI)
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .writeTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
+//                .addNetworkInterceptor(loggingInterceptor)
                 .build();
         mNoRedirectClient = new OkHttpClient.Builder()
                 .cookieJar(new JavaNetCookieJar(mCookieHandler))
+                .addNetworkInterceptor(mCFI)
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .writeTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
+//                .addNetworkInterceptor(loggingInterceptor)
                 .followRedirects(false)
                 .build();
     }
@@ -119,7 +135,7 @@ public class ESBNHDFImport {
     }
 
     public List<String> fetchMPRNs() throws ESBNException {
-
+        System.out.println("fetchMPRNs");
         List<String> ret = new ArrayList<>();
         try {
 
@@ -127,6 +143,7 @@ public class ESBNHDFImport {
                 logIn();
             }
             if (!mLoggedIn) return ret;
+            System.out.println("fetchMPRNs:: loggedIn");
 
             String url = MY_ACCOUNT_URL + FETCH_MPRN_URL;
 
@@ -135,16 +152,28 @@ public class ESBNHDFImport {
                     .header("User-Agent", USER_AGENT)
                     .build();
 
+            mCFI.clearCookies();
+
             Response mprnPageResponse = mClient.newCall(mprnPageRequest).execute();
+            printOutDebug("GET MPRNs code: ", mprnPageResponse, mprnPageRequest);
+
+            if (mprnPageResponse.code() != 200) {
+                throw new ESBNException("Failed to get a list of mprns");
+            }
             String mprnPageHtml = "";
             if (!(null == mprnPageResponse.body())) {
                 mprnPageHtml = Objects.requireNonNull(mprnPageResponse.body()).string();
             }
+            mprnPageResponse.close();
+//            System.out.println("fetchMPRNs:: gotResponse");
+//            System.out.println(mprnPageHtml);
 
             Document doc = Jsoup.parse(mprnPageHtml);
 
             // Select card-body elements that contain an h2 element with the text "MPRN: "
             Elements mprnCardBodies = doc.select("div.card-body:has(h2.card-title.h6-style:containsOwn(MPRN:))");
+
+//            System.out.println("fetchMPRNs:: card count=" + mprnCardBodies.size());
 
             // Loop through the selected card-body elements
             for (Element cardBody : mprnCardBodies) {
@@ -255,6 +284,7 @@ public class ESBNHDFImport {
                     System.out.println("Fetch range failed");
                     mLoggedIn = false;
                 }
+                fetchHDFDataResponse.close();
             }
         } catch (IOException e) {
             mLoggedIn = false;
@@ -289,11 +319,24 @@ public class ESBNHDFImport {
                     .post(confirmNoJSRequestBody)
                     .build();
 
+            mCFI.clearCookies();
             Response confirmNoJSResponse = mClient.newCall(confirmNoJSRequest).execute();
+            postNoJSResponseCookies = mCFI.getResponseCookies();
+            List<String> filteredList = new ArrayList<>();
+            getLoginPageResponseCookies.stream()
+                    .filter(s -> s.startsWith(".AspNetCore"))
+                    .forEach(filteredList::add);
+            for (String s: filteredList) {
+                List<HttpCookie> cookies = HttpCookie.parse(s);
+                for (HttpCookie cookie: cookies)
+                    mCM.getCookieStore().add(URI.create("http://myaccount.esbnetworks.ie"), cookie);
+            }
 
-            System.out.println ("POST confirm no JS response code: " + confirmNoJSResponse.code());
+            printOutDebug("POST confirm no JS response code: ", confirmNoJSResponse, confirmNoJSRequest);
+
             if (confirmNoJSResponse.code() != 200)
                 throw new ESBNException("Unable to continue without JavaScript. Consider using file.");
+            confirmNoJSResponse.close();
         }
     }
 
@@ -311,7 +354,11 @@ public class ESBNHDFImport {
                     .header("x-csrf-token", mSettings.csrf)
                     .header("User-Agent", USER_AGENT)
                     .build();
+
+            mCFI.clearCookies();
+
             Response confirmLoginResponse = mClient.newCall(confirmLoginRequest).execute();
+            getLoginConfirmResponseCookies = mCFI.getResponseCookies();
 
             if (confirmLoginResponse.isSuccessful()) {
                 // Parse the HTML content using Jsoup
@@ -332,6 +379,9 @@ public class ESBNHDFImport {
                 System.err.println("Error: " + confirmLoginResponse.code());
                 throw new ESBNException("Can't find needed data after login. Consider using file.");
             }
+            confirmLoginResponse.close();
+
+            printOutDebug("GET confirm login: ", confirmLoginResponse, confirmLoginRequest);
         }
     }
 
@@ -346,7 +396,8 @@ public class ESBNHDFImport {
         String url = LOGIN_URL + mSettings.hosts.tenant + LOGIN_URL_SUFFIX +
                 "?tx=" + mSettings.transId +
                 "&p=" + mSettings.hosts.policy;
-        System.out.println(url);
+
+        mCFI.clearCookies();
 
         Request loginRequest = new Request.Builder()
                 .url(url)
@@ -356,8 +407,9 @@ public class ESBNHDFImport {
                 .build();
 
         Response loginResponse = mNoRedirectClient.newCall(loginRequest).execute();
+        postLoginResponseCookies = mCFI.getResponseCookies();
 
-        System.out.println ("POST login response code: " + loginResponse.code());
+        printOutDebug("POST login response code: ", loginResponse, loginRequest);
         if (loginResponse.code() != 200) throw new ESBNException("Failed to login. Try again later");
 
         String loginResponseHtml;
@@ -365,6 +417,7 @@ public class ESBNHDFImport {
             loginResponseHtml = Objects.requireNonNull(loginResponse.body()).string();
         }
         else throw new ESBNException("Unable to confirm the login. Consider using file");
+        loginResponse.close();
         LoginResponse loginResponseJSON = new Gson().fromJson(loginResponseHtml, LoginResponse.class);
         if (!"200".equals(loginResponseJSON.status)) {
             String reason = (null == loginResponseJSON.message) ? "Login failed for an unreported reason" : loginResponseJSON.message;
@@ -382,11 +435,26 @@ public class ESBNHDFImport {
                     .build();
 
             Response loginPageResponse = mClient.newCall(loginPageRequest).execute();
+            getLoginPageResponseCookies = mCFI.getResponseCookies();
+            // Workaround for android not dealing with domains starting with a .
+            List<String> filteredList = new ArrayList<>();
+            getLoginPageResponseCookies.stream()
+                    .filter(s -> s.startsWith(".AspNetCore"))
+                    .forEach(filteredList::add);
+            for (String s: filteredList) {
+                List<HttpCookie> cookies = HttpCookie.parse(s);
+                for (HttpCookie cookie: cookies)
+                    mCM.getCookieStore().add(URI.create("http://myaccount.esbnetworks.ie"), cookie);
+            }
+
+            printOutDebug("GET login page code: ", loginPageResponse, loginPageRequest);
+
             String loginPageHtml;
             if (!(null == loginPageResponse.body())) {
                 loginPageHtml = Objects.requireNonNull(loginPageResponse.body()).string();
             }
             else throw new ESBNException("Failed to get the ESBN login page. Consider using file");
+            loginPageResponse.close();
             Document document = Jsoup.parse(loginPageHtml);
 
             // Select the script element containing the variable
@@ -415,6 +483,22 @@ public class ESBNHDFImport {
         }
     }
 
+    private void printOutDebug(String message, Response loginPageResponse, Request loginPageRequest) {
+//        System.out.println ("=========================================================================");
+//        System.out.println ("=========================================================================");
+        System.out.println (message + loginPageResponse.code());
+//        System.out.println(loginPageRequest.url());
+//        List<Cookie> cookies = mClient.cookieJar().loadForRequest(loginPageRequest.url());
+//        cookies.stream().forEach(System.out::println);
+//        System.out.println ("=========================================================================");
+//        for( URI uri : mCM.getCookieStore().getURIs()) {
+//            System.out.println(uri);
+//            mCM.getCookieStore().get(uri).stream().forEach(System.out::println);
+//        }
+//        System.out.println ("-------------------------------------------------------------------------");
+//        mCM.getCookieStore().getCookies().stream().forEach(System.out::println);
+    }
+
     private static String extractVariableValue(String scriptContent, String variableName) {
         String ret = null;
         // Trim the script content and remove any leading/trailing whitespace
@@ -433,6 +517,8 @@ public class ESBNHDFImport {
         }
         return ret;
     }
+
+
 
     private static class NoJavaScript {
         public String url;

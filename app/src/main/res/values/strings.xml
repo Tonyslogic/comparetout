@@ -275,4 +275,8 @@
     <string name="creating_usage">Creating usage</string>
     <string name="empty_filter">Please select something in the filter</string>
     <string name="ReplaceExisting">Replace existing</string>
+    <string name="userPrompt">User name</string>
+    <string name="passPrompt">Password</string>
+    <string name="enter_manually">Use text value</string>
+    <string name="not_listed">Not listed</string>
 </resources>

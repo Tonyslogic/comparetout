@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023. Tony Finnerty
+ * Copyright (c) 2023-2024. Tony Finnerty
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -14,15 +14,9 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.model.importers.alphaess;
+package com.tfcode.comparetout.importers;
 
-import androidx.room.ColumnInfo;
-
-public class IntervalRow {
-    // SELECT PV, LOAD, FEED, BUY, INTERVAL
-    @ColumnInfo(name= "PV") public double pv;
-    @ColumnInfo(name= "LOAD") public double load;
-    @ColumnInfo(name= "FEED") public double feed;
-    @ColumnInfo(name= "BUY") public double buy;
-    @ColumnInfo(name= "INTERVAL") public String interval;
+public interface CredentialDialogListener {
+    void credentialSpecified(String appId, String appSecret);
+    void canceled();
 }

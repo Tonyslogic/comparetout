@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023. Tony Finnerty
+ * Copyright (c) 2023-2024. Tony Finnerty
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -23,12 +23,12 @@ import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 import androidx.room.Transaction;
 
+import com.tfcode.comparetout.model.importers.CostInputRow;
+import com.tfcode.comparetout.model.importers.IntervalRow;
+import com.tfcode.comparetout.model.importers.InverterDateRange;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawEnergy;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawPower;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
-import com.tfcode.comparetout.model.importers.alphaess.CostInputRow;
-import com.tfcode.comparetout.model.importers.alphaess.IntervalRow;
-import com.tfcode.comparetout.model.importers.alphaess.InverterDateRange;
 import com.tfcode.comparetout.model.importers.alphaess.KPIRow;
 import com.tfcode.comparetout.model.importers.alphaess.KeyStatsRow;
 import com.tfcode.comparetout.model.importers.alphaess.MaxCalcRow;
@@ -67,6 +67,9 @@ public abstract class AlphaEssDAO {
 
     @Query("SELECT sysSn, MIN(theDate) AS start, MAX(theDate) AS finish FROM alphaESSRawEnergy GROUP by sysSn")
     public abstract LiveData<List<InverterDateRange>> loadDateRanges();
+
+    @Query("SELECT sysSn, MIN(date) AS start, MAX(date) AS finish FROM alphaESSTransformedData GROUP by sysSn")
+    public abstract LiveData<List<InverterDateRange>> loadESBNHDFDateRanges();
 
     @Query("SELECT CASE WHEN EXISTS (SELECT sysSn, theDate FROM alphaESSRawEnergy WHERE sysSn = :sysSn AND theDate = :date) THEN 1 ELSE 0 END AS date_exists")
     public abstract boolean checkSysSnForDataOnDate(String sysSn, String date);

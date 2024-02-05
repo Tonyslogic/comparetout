@@ -14,7 +14,7 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.importers.alphaess;
+package com.tfcode.comparetout.importers.esbn;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -39,10 +39,6 @@ import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager2.widget.ViewPager2;
 import androidx.webkit.WebViewAssetLoader;
-import androidx.work.Data;
-import androidx.work.ExistingWorkPolicy;
-import androidx.work.OneTimeWorkRequest;
-import androidx.work.WorkManager;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
@@ -55,7 +51,7 @@ import com.tfcode.comparetout.util.LocalContentWebViewClient;
 import java.util.ArrayList;
 import java.util.Objects;
 
-public class ImportAlphaActivity extends AppCompatActivity implements ImportSystemSelection {
+public class ImportESBNActivity extends AppCompatActivity implements ImportSystemSelection {
 
     ViewPager2 mViewPager;
 
@@ -67,7 +63,7 @@ public class ImportAlphaActivity extends AppCompatActivity implements ImportSyst
 
     private boolean mZoom = false;
 
-    final ActivityResultLauncher<String> mLoadAlphaESSDataFromFile = registerForActivityResult(new ActivityResultContracts.GetContent(),
+    final ActivityResultLauncher<String> mLoadESBNHDFDataFromFile = registerForActivityResult(new ActivityResultContracts.GetContent(),
             new ActivityResultCallback<Uri>() {
                 @Override
                 public void onActivityResult(Uri uri) {
@@ -75,20 +71,20 @@ public class ImportAlphaActivity extends AppCompatActivity implements ImportSyst
                     if (uri == null) return;
                     String uri_s = uri.toString();
 
-                    Data inputData = new Data.Builder()
-                            .putString(ImportWorker.KEY_SYSTEM_SN, mSerialNumber)
-                            .putString(ImportWorker.KEY_URI, uri_s)
-                            .build();
-                    OneTimeWorkRequest importWorkRequest =
-                            new OneTimeWorkRequest.Builder(ImportWorker.class)
-                                    .setInputData(inputData)
-                                    .addTag(mSerialNumber + "Import")
-                                    .build();
-                    WorkManager.getInstance(getApplicationContext()).pruneWork();
-                    WorkManager
-                            .getInstance(getApplicationContext())
-                            .beginUniqueWork(mSerialNumber, ExistingWorkPolicy.APPEND, importWorkRequest)
-                            .enqueue();
+//                    Data inputData = new Data.Builder()
+//                            .putString(ImportWorker.KEY_SYSTEM_SN, mSerialNumber)
+//                            .putString(ImportWorker.KEY_URI, uri_s)
+//                            .build();
+//                    OneTimeWorkRequest importWorkRequest =
+//                            new OneTimeWorkRequest.Builder(ImportWorker.class)
+//                                    .setInputData(inputData)
+//                                    .addTag(mSerialNumber + "Import")
+//                                    .build();
+//                    WorkManager.getInstance(getApplicationContext()).pruneWork();
+//                    WorkManager
+//                            .getInstance(getApplicationContext())
+//                            .beginUniqueWork(mSerialNumber, ExistingWorkPolicy.APPEND, importWorkRequest)
+//                            .enqueue();
                 }
             });
 
@@ -142,7 +138,7 @@ public class ImportAlphaActivity extends AppCompatActivity implements ImportSyst
         mHelpWindow = new PopupWindow(mPopupView, width, height, focusable);
 
         ActionBar mActionBar = Objects.requireNonNull(getSupportActionBar());
-        mActionBar.setTitle("AlphaESS Importer");
+        mActionBar.setTitle("ESBN Smart Meter Importer");
 
         FloatingActionButton fab = findViewById(R.id.zoom);
         fab.setOnClickListener(view -> {
@@ -182,7 +178,7 @@ public class ImportAlphaActivity extends AppCompatActivity implements ImportSyst
                         .setAction("Action", null).show();
                 return true;
             }
-            mLoadAlphaESSDataFromFile.launch("*/*");
+            mLoadESBNHDFDataFromFile.launch("*/*");
             return (true);
         }
         if (itemID == R.id.export) {
@@ -193,19 +189,19 @@ public class ImportAlphaActivity extends AppCompatActivity implements ImportSyst
             }
             System.out.println("Export attempt ");
             // start the  worker for the selected serial
-            Data inputData = new Data.Builder()
-                    .putString(ExportWorker.KEY_SYSTEM_SN, mSerialNumber)
-                    .build();
-            OneTimeWorkRequest exportWorkRequest =
-                    new OneTimeWorkRequest.Builder(ExportWorker.class)
-                            .setInputData(inputData)
-                            .addTag(mSerialNumber + "Export")
-                            .build();
-            WorkManager.getInstance(this).pruneWork();
-            WorkManager
-                    .getInstance(this)
-                    .beginUniqueWork(mSerialNumber, ExistingWorkPolicy.APPEND, exportWorkRequest)
-                    .enqueue();
+//            Data inputData = new Data.Builder()
+//                    .putString(ExportWorker.KEY_SYSTEM_SN, mSerialNumber)
+//                    .build();
+//            OneTimeWorkRequest exportWorkRequest =
+//                    new OneTimeWorkRequest.Builder(ExportWorker.class)
+//                            .setInputData(inputData)
+//                            .addTag(mSerialNumber + "Export")
+//                            .build();
+//            WorkManager.getInstance(this).pruneWork();
+//            WorkManager
+//                    .getInstance(this)
+//                    .beginUniqueWork(mSerialNumber, ExistingWorkPolicy.APPEND, exportWorkRequest)
+//                    .enqueue();
             return (true);
         }
         if (itemID == R.id.help) {
@@ -216,11 +212,10 @@ public class ImportAlphaActivity extends AppCompatActivity implements ImportSyst
     }
 
     private void setupViewPager() {
-        mViewPager.setAdapter(new ImportAlphaViewPageAdapter(this, 3));
+        mViewPager.setAdapter(new ImportESBNViewPageAdapter(this, 3));
         ArrayList<String> tabTitlesList = new ArrayList<>();
-        tabTitlesList.add("AlphaESS overview");
+        tabTitlesList.add("ESBN data overview");
         tabTitlesList.add("Data graphs");
-        tabTitlesList.add("Key stats");
         tabTitlesList.add("Generate usage");
         TabLayout tabLayout = findViewById(R.id.import_alpha_tab_layout);
         TabLayoutMediator mMediator = new TabLayoutMediator(tabLayout, mViewPager,
@@ -236,9 +231,6 @@ public class ImportAlphaActivity extends AppCompatActivity implements ImportSyst
             showHelp("https://appassets.androidplatform.net/assets/main/data/alphaess/graphs_tab.html");
             return true;});
         linearLayout.getChildAt(2).setOnLongClickListener(v -> {
-            showHelp("https://appassets.androidplatform.net/assets/main/data/alphaess/keys_tab.html");
-            return true;});
-        linearLayout.getChildAt(3).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/main/data/alphaess/generate_tab.html");
             return true;});
 
@@ -278,6 +270,6 @@ public class ImportAlphaActivity extends AppCompatActivity implements ImportSyst
     public void setSelectedSystemSN(String serialNumber) {
         mSerialNumber = serialNumber;
         if (!(null == mViewPager) && !(null == mViewPager.getAdapter()))
-            ((ImportAlphaViewPageAdapter)mViewPager.getAdapter()).setSelectedSystemSN(mSerialNumber);
+            ((ImportSystemSelection)mViewPager.getAdapter()).setSelectedSystemSN(mSerialNumber);
     }
 }

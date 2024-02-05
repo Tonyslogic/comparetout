@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023. Tony Finnerty
+ * Copyright (c) 2023-2024. Tony Finnerty
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -14,12 +14,12 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.importers;
+package com.tfcode.comparetout.importers.alphaess;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
-import com.tfcode.comparetout.importers.alphaess.AlphaESSException;
-import com.tfcode.comparetout.importers.alphaess.OpenAlphaESSClient;
+import com.tfcode.comparetout.importers.TestSecrets;
 import com.tfcode.comparetout.importers.alphaess.responses.GetOneDayEnergyResponse;
 import com.tfcode.comparetout.importers.alphaess.responses.GetOneDayPowerResponse;
 

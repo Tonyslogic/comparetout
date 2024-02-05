@@ -21,12 +21,12 @@ import android.app.Application;
 import androidx.lifecycle.LiveData;
 
 import com.tfcode.comparetout.model.costings.Costings;
+import com.tfcode.comparetout.model.importers.CostInputRow;
+import com.tfcode.comparetout.model.importers.IntervalRow;
+import com.tfcode.comparetout.model.importers.InverterDateRange;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawEnergy;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawPower;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
-import com.tfcode.comparetout.model.importers.alphaess.CostInputRow;
-import com.tfcode.comparetout.model.importers.alphaess.IntervalRow;
-import com.tfcode.comparetout.model.importers.alphaess.InverterDateRange;
 import com.tfcode.comparetout.model.importers.alphaess.KPIRow;
 import com.tfcode.comparetout.model.importers.alphaess.KeyStatsRow;
 import com.tfcode.comparetout.model.importers.alphaess.MaxCalcRow;
@@ -87,6 +87,7 @@ public class ToutcRepository {
 
     private final AlphaEssDAO alphaEssDAO;
     private final LiveData<List<InverterDateRange>> alphaESSDateRangesBySN;
+    private final LiveData<List<InverterDateRange>> esbnHDFDateRangesByMPRN;
 
     // Note that in order to unit test the WordRepository, you have to remove the Application
     // dependency. This adds complexity and much more code, and this sample is not about testing.
@@ -114,6 +115,7 @@ public class ToutcRepository {
 
         alphaEssDAO = db.alphaEssDAO();
         alphaESSDateRangesBySN = alphaEssDAO.loadDateRanges();
+        esbnHDFDateRangesByMPRN = alphaEssDAO.loadESBNHDFDateRanges();
     }
 
     // Room executes all queries on a separate thread.
@@ -634,6 +636,10 @@ public class ToutcRepository {
     // Methods for AlphaESS
     public LiveData<List<InverterDateRange>> getLiveDateRanges() {
         return alphaESSDateRangesBySN;
+    }
+
+    public LiveData<List<InverterDateRange>> getESBNLiveDateRanges() {
+        return esbnHDFDateRangesByMPRN;
     }
 
     public void addRawEnergy(AlphaESSRawEnergy energy) {

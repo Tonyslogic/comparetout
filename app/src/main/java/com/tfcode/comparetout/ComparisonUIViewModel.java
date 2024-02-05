@@ -21,17 +21,15 @@ import android.app.Application;
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
 
+import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.costings.Costings;
-import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawEnergy;
-import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawPower;
-import com.tfcode.comparetout.model.importers.alphaess.CostInputRow;
-import com.tfcode.comparetout.model.importers.alphaess.IntervalRow;
-import com.tfcode.comparetout.model.importers.alphaess.InverterDateRange;
+import com.tfcode.comparetout.model.importers.CostInputRow;
+import com.tfcode.comparetout.model.importers.IntervalRow;
+import com.tfcode.comparetout.model.importers.InverterDateRange;
 import com.tfcode.comparetout.model.importers.alphaess.KPIRow;
 import com.tfcode.comparetout.model.importers.alphaess.KeyStatsRow;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
-import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.EVCharge;
 import com.tfcode.comparetout.model.scenario.EVDivert;
@@ -460,76 +458,128 @@ public class ComparisonUIViewModel extends AndroidViewModel {
         return toutcRepository.getAllComparisonsNow();
     }
 
-    // AlphaESS methods
-    public LiveData<List<InverterDateRange>> getLiveDateRanges() {
-        return toutcRepository.getLiveDateRanges();
+    public enum Importer {
+        ALPHAESS,
+        ESBNHDF
     }
 
-    public void clearInverterBySN (String sysSN) {
-        toutcRepository.clearAlphaESSDataForSN(sysSN);
+    // Importer methods
+    public LiveData<List<InverterDateRange>> getLiveDateRanges(Importer importer) {
+        switch (importer){
+            case ALPHAESS: return toutcRepository.getLiveDateRanges();
+            case ESBNHDF: return toutcRepository.getESBNLiveDateRanges();
+        }
+        return null;
     }
 
-    public List<IntervalRow> getSumHour(String systemSN, String from, String to) {
-        return toutcRepository.getSumHour(systemSN, from, to);
+    public void clearInverterBySN (Importer importer, String sysSN) {
+        switch (importer){
+            case ALPHAESS: toutcRepository.clearAlphaESSDataForSN(sysSN); break;
+            case ESBNHDF: break;
+        }
     }
 
-    public List<IntervalRow> getSumDOY(String systemSN, String from, String to) {
-        return toutcRepository.getSumDOY(systemSN, from, to);
+    public List<IntervalRow> getSumHour(Importer importer, String systemSN, String from, String to) {
+        switch (importer){
+            case ALPHAESS: return toutcRepository.getSumHour(systemSN, from, to);
+            case ESBNHDF: return null;
+        }
+        return null;
     }
 
-    public List<IntervalRow> getSumDOW(String systemSN, String from, String to) {
-        return toutcRepository.getSumDOW(systemSN, from, to);
+    public List<IntervalRow> getSumDOY(Importer importer, String systemSN, String from, String to) {
+        switch (importer){
+            case ALPHAESS: return toutcRepository.getSumDOY(systemSN, from, to);
+            case ESBNHDF: return null;
+        }
+        return null;
     }
 
-    public List<IntervalRow> getSumMonth(String systemSN, String from, String to) {
-        return toutcRepository.getSumMonth(systemSN, from, to);
+    public List<IntervalRow> getSumDOW(Importer importer, String systemSN, String from, String to) {
+        switch (importer){
+            case ALPHAESS: return toutcRepository.getSumDOW(systemSN, from, to);
+            case ESBNHDF: return null;
+        }
+        return null;
     }
 
-    public List<IntervalRow> getSumYear(String systemSN, String from, String to) {
-        return toutcRepository.getSumYear(systemSN, from, to);
+    public List<IntervalRow> getSumMonth(Importer importer, String systemSN, String from, String to) {
+        switch (importer){
+            case ALPHAESS: return toutcRepository.getSumMonth(systemSN, from, to);
+            case ESBNHDF: return null;
+        }
+        return null;
     }
 
-    public List<IntervalRow> getAvgHour(String systemSN, String from, String to) {
-        return toutcRepository.getAvgHour(systemSN, from, to);
+    public List<IntervalRow> getSumYear(Importer importer, String systemSN, String from, String to) {
+        switch (importer){
+            case ALPHAESS: return toutcRepository.getSumYear(systemSN, from, to);
+            case ESBNHDF: return null;
+        }
+        return null;
     }
 
-    public List<IntervalRow> getAvgDOY(String systemSN, String from, String to) {
-        return toutcRepository.getAvgDOY(systemSN, from, to);
+    public List<IntervalRow> getAvgHour(Importer importer, String systemSN, String from, String to) {
+        switch (importer){
+            case ALPHAESS: return toutcRepository.getAvgHour(systemSN, from, to);
+            case ESBNHDF: return null;
+        }
+        return null;
     }
 
-    public List<IntervalRow> getAvgDOW(String systemSN, String from, String to) {
-        return toutcRepository.getAvgDOW(systemSN, from, to);
+    public List<IntervalRow> getAvgDOY(Importer importer, String systemSN, String from, String to) {
+        switch (importer){
+            case ALPHAESS: return toutcRepository.getAvgDOY(systemSN, from, to);
+            case ESBNHDF: return null;
+        }
+        return null;
     }
 
-    public List<IntervalRow> getAvgMonth(String systemSN, String from, String to) {
-        return toutcRepository.getAvgMonth(systemSN, from, to);
+    public List<IntervalRow> getAvgDOW(Importer importer, String systemSN, String from, String to) {
+        switch (importer){
+            case ALPHAESS: return toutcRepository.getAvgDOW(systemSN, from, to);
+            case ESBNHDF: return null;
+        }
+        return null;
     }
 
-    public List<IntervalRow> getAvgYear(String systemSN, String from, String to) {
-        return toutcRepository.getAvgYear(systemSN, from, to);
+    public List<IntervalRow> getAvgMonth(Importer importer, String systemSN, String from, String to) {
+        switch (importer){
+            case ALPHAESS: return toutcRepository.getAvgMonth(systemSN, from, to);
+            case ESBNHDF: return null;
+        }
+        return null;
     }
 
-    public List<CostInputRow> getSelectedAlphaESSData(String serialNumber, String from, String to) {
-        return toutcRepository.getSelectedAlphaESSData(serialNumber, from, to);
+    public List<IntervalRow> getAvgYear(Importer importer, String systemSN, String from, String to) {
+        switch (importer){
+            case ALPHAESS: return toutcRepository.getAvgYear(systemSN, from, to);
+            case ESBNHDF: return null;
+        }
+        return null;
     }
 
-    public List<AlphaESSRawPower> getAlphaESSPowerForSharing(String serialNumber, String from) {
-        return toutcRepository.getAlphaESSPowerForSharing(serialNumber, from);
+    public List<CostInputRow> getSelectedAlphaESSData(Importer importer, String serialNumber, String from, String to) {
+        switch (importer){
+            case ALPHAESS: return toutcRepository.getSelectedAlphaESSData(serialNumber, from, to);
+            case ESBNHDF: return null;
+        }
+        return null;
     }
 
-    public List<AlphaESSRawEnergy> getAlphaESSEnergyForSharing(String serialNumber) {
-        return toutcRepository.getAlphaESSEnergyForSharing(serialNumber);
+    public List<KeyStatsRow> getKeyStats(Importer importer, String from, String to, String systemSN) {
+        switch (importer){
+            case ALPHAESS: return toutcRepository.getKeyStats(from, to, systemSN);
+            case ESBNHDF: return null;
+        }
+        return null;
     }
 
-    public List<String> getExportDatesForSN(String serialNumber) {
-        return toutcRepository.getExportDatesForSN(serialNumber);
-    }
-
-    public List<KeyStatsRow> getKeyStats(String from, String to, String systemSN) {
-        return toutcRepository.getKeyStats(from, to, systemSN);
-    }
-
-    public KPIRow getKPIs(String from, String to, String systemSN) {
-        return toutcRepository.getKPIs(from, to, systemSN);
+    public KPIRow getKPIs(Importer importer, String from, String to, String systemSN) {
+        switch (importer){
+            case ALPHAESS: return toutcRepository.getKPIs(from, to, systemSN);
+            case ESBNHDF: return null;
+        }
+        return null;
     }
 }

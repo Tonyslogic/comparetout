@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023. Tony Finnerty
+ * Copyright (c) 2023-2024. Tony Finnerty
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -54,7 +54,8 @@ import com.google.android.material.datepicker.CalendarConstraints;
 import com.google.android.material.datepicker.MaterialDatePicker;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
-import com.tfcode.comparetout.model.importers.alphaess.InverterDateRange;
+import com.tfcode.comparetout.importers.ImportSystemSelection;
+import com.tfcode.comparetout.model.importers.InverterDateRange;
 import com.tfcode.comparetout.util.AbstractTextWatcher;
 
 import java.time.Instant;
@@ -169,10 +170,10 @@ public class ImportAlphaGenerateScenario extends Fragment {
                     .collect(Collectors.toList());
         }
         if (null == mSystemSN)
-            mSystemSN = ((ImportAlphaActivity) requireActivity()).getSelectedSystemSN();
+            mSystemSN = ((ImportSystemSelection) requireActivity()).getSelectedSystemSN();
         ComparisonUIViewModel mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
 
-        mViewModel.getLiveDateRanges().observe(this, dateRanges -> {
+        mViewModel.getLiveDateRanges(ComparisonUIViewModel.Importer.ALPHAESS).observe(this, dateRanges -> {
             if (null == mInverterDateRangesBySN) mInverterDateRangesBySN = new HashMap<>();
             for (InverterDateRange inverterDateRange : dateRanges) {
                 mInverterDateRangesBySN.put(inverterDateRange.sysSn, new Pair<>(inverterDateRange.startDate, inverterDateRange.finishDate));
