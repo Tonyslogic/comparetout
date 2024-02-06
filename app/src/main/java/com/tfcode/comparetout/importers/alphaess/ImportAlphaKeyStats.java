@@ -43,6 +43,7 @@ import com.google.android.material.datepicker.CalendarConstraints;
 import com.google.android.material.datepicker.MaterialDatePicker;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
+import com.tfcode.comparetout.importers.ImportActivity;
 import com.tfcode.comparetout.importers.ImportSystemSelection;
 import com.tfcode.comparetout.model.importers.InverterDateRange;
 import com.tfcode.comparetout.model.importers.alphaess.KPIRow;
@@ -446,7 +447,7 @@ public class ImportAlphaKeyStats extends Fragment {
     private void updateView() {
         if (null == getContext()) return;
         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
-            ImportAlphaActivity activity = (ImportAlphaActivity)getActivity();
+            ImportActivity activity = (ImportActivity)getActivity();
             if (!(null == activity)) activity.hideFAB();
         }
 

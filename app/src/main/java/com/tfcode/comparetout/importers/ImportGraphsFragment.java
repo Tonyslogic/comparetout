@@ -73,7 +73,6 @@ import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.importers.alphaess.CalculationType;
 import com.tfcode.comparetout.importers.alphaess.ChartView;
-import com.tfcode.comparetout.importers.alphaess.ImportAlphaActivity;
 import com.tfcode.comparetout.importers.alphaess.IntervalType;
 import com.tfcode.comparetout.importers.alphaess.StepIntervalType;
 import com.tfcode.comparetout.model.importers.IntervalRow;
@@ -575,7 +574,7 @@ public abstract class ImportGraphsFragment extends Fragment {
     private void updateView() {
         if (null == getContext()) return;
         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
-            ImportAlphaActivity activity = (ImportAlphaActivity) getActivity();
+            ImportActivity activity = (ImportActivity) getActivity();
             if (!(null == activity)) activity.hideFAB();
         }
 

@@ -39,19 +39,24 @@ import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager2.widget.ViewPager2;
 import androidx.webkit.WebViewAssetLoader;
+import androidx.work.Data;
+import androidx.work.ExistingWorkPolicy;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.R;
+import com.tfcode.comparetout.importers.ImportActivity;
 import com.tfcode.comparetout.importers.ImportSystemSelection;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.util.ArrayList;
 import java.util.Objects;
 
-public class ImportESBNActivity extends AppCompatActivity implements ImportSystemSelection {
+public class ImportESBNActivity extends AppCompatActivity implements ImportSystemSelection, ImportActivity {
 
     ViewPager2 mViewPager;
 
@@ -71,20 +76,20 @@ public class ImportESBNActivity extends AppCompatActivity implements ImportSyste
                     if (uri == null) return;
                     String uri_s = uri.toString();
 
-//                    Data inputData = new Data.Builder()
-//                            .putString(ImportWorker.KEY_SYSTEM_SN, mSerialNumber)
-//                            .putString(ImportWorker.KEY_URI, uri_s)
-//                            .build();
-//                    OneTimeWorkRequest importWorkRequest =
-//                            new OneTimeWorkRequest.Builder(ImportWorker.class)
-//                                    .setInputData(inputData)
-//                                    .addTag(mSerialNumber + "Import")
-//                                    .build();
-//                    WorkManager.getInstance(getApplicationContext()).pruneWork();
-//                    WorkManager
-//                            .getInstance(getApplicationContext())
-//                            .beginUniqueWork(mSerialNumber, ExistingWorkPolicy.APPEND, importWorkRequest)
-//                            .enqueue();
+                    Data inputData = new Data.Builder()
+                            .putString(ImportWorker.KEY_SYSTEM_SN, mSerialNumber)
+                            .putString(ImportWorker.KEY_URI, uri_s)
+                            .build();
+                    OneTimeWorkRequest importWorkRequest =
+                            new OneTimeWorkRequest.Builder(ImportWorker.class)
+                                    .setInputData(inputData)
+                                    .addTag(mSerialNumber + "Import")
+                                    .build();
+                    WorkManager.getInstance(getApplicationContext()).pruneWork();
+                    WorkManager
+                            .getInstance(getApplicationContext())
+                            .beginUniqueWork(mSerialNumber, ExistingWorkPolicy.APPEND, importWorkRequest)
+                            .enqueue();
                 }
             });
 

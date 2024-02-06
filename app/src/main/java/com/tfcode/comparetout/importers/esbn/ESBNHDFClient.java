@@ -117,7 +117,7 @@ public class ESBNHDFClient {
                 .build();
     }
 
-    public void readEntriesFromFile(InputStream inputStream, ESBNImportExportEntry processor)
+    public static void readEntriesFromFile(InputStream inputStream, ESBNImportExportEntry processor)
             throws ESBNException {
         try (InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
             CSVReader csvReader = new CSVReader(reader);
@@ -233,7 +233,7 @@ public class ESBNHDFClient {
         }
     }
 
-    private void processHDF(ESBNImportExportEntry processor, CSVReader csvReader)
+    private static void processHDF(ESBNImportExportEntry processor, CSVReader csvReader)
             throws IOException {
         // skip header row
         csvReader.readNext();

@@ -49,13 +49,14 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.R;
+import com.tfcode.comparetout.importers.ImportActivity;
 import com.tfcode.comparetout.importers.ImportSystemSelection;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.util.ArrayList;
 import java.util.Objects;
 
-public class ImportAlphaActivity extends AppCompatActivity implements ImportSystemSelection {
+public class ImportAlphaActivity extends AppCompatActivity implements ImportSystemSelection, ImportActivity {
 
     ViewPager2 mViewPager;
 
@@ -114,6 +115,7 @@ public class ImportAlphaActivity extends AppCompatActivity implements ImportSyst
         }
     }
 
+    @Override
     public void hideFAB() {
         FloatingActionButton fab = findViewById(R.id.zoom);
         if (!(null == fab)) fab.hide();
