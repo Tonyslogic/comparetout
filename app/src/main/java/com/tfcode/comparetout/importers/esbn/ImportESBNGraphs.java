@@ -17,6 +17,7 @@
 package com.tfcode.comparetout.importers.esbn;
 
 import com.tfcode.comparetout.ComparisonUIViewModel;
+import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.importers.ImportGraphsFragment;
 
 public class ImportESBNGraphs extends ImportGraphsFragment {
@@ -28,6 +29,18 @@ public class ImportESBNGraphs extends ImportGraphsFragment {
 
     public static ImportESBNGraphs newInstance() {
         return new ImportESBNGraphs();
+    }
+
+    @Override
+    protected void setupPopupFilterMenu() {
+        super.setupPopupFilterMenu();
+        if (!(null == mFilterPopup)) {
+            mFilterPopup.getMenu().findItem(R.id.load).setVisible(false);
+            mFilterPopup.getMenu().findItem(R.id.pv).setVisible(false);
+            mShowLoad = false;
+            mShowPV = false;
+            mFilterCount = 2;
+        }
     }
 
 }

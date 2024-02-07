@@ -143,7 +143,7 @@ public class ImportESBNActivity extends AppCompatActivity implements ImportSyste
         mHelpWindow = new PopupWindow(mPopupView, width, height, focusable);
 
         ActionBar mActionBar = Objects.requireNonNull(getSupportActionBar());
-        mActionBar.setTitle("ESBN Smart Meter Importer");
+        mActionBar.setTitle("ESBN Smart Meter Data");
 
         FloatingActionButton fab = findViewById(R.id.zoom);
         fab.setOnClickListener(view -> {
@@ -169,7 +169,7 @@ public class ImportESBNActivity extends AppCompatActivity implements ImportSyste
         getMenuInflater().inflate(R.menu.menu_importer, menu);
         int colour = Color.parseColor("White");
         menu.findItem(R.id.load).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        menu.findItem(R.id.export).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        menu.findItem(R.id.export).setVisible(false); //.getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         menu.findItem(R.id.help).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         return true;
     }
@@ -219,8 +219,8 @@ public class ImportESBNActivity extends AppCompatActivity implements ImportSyste
     private void setupViewPager() {
         mViewPager.setAdapter(new ImportESBNViewPageAdapter(this, 3));
         ArrayList<String> tabTitlesList = new ArrayList<>();
-        tabTitlesList.add("ESBN data overview");
-        tabTitlesList.add("Data graphs");
+        tabTitlesList.add("Overview");
+        tabTitlesList.add("Graphs");
         tabTitlesList.add("Generate usage");
         TabLayout tabLayout = findViewById(R.id.import_alpha_tab_layout);
         TabLayoutMediator mMediator = new TabLayoutMediator(tabLayout, mViewPager,

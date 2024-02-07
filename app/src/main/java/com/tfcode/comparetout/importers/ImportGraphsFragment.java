@@ -120,7 +120,7 @@ public abstract class ImportGraphsFragment extends Fragment {
     private ImageButton mIntervalButton;
     private ImageButton mModeButton;
     private ImageButton mFilterButton;
-    private PopupMenu mFilterPopup;
+    protected PopupMenu mFilterPopup;
     private PopupMenu mGraphConfigPopup;
     private BarChart mBarChart;
     private LineChart mLineChart;
@@ -128,11 +128,11 @@ public abstract class ImportGraphsFragment extends Fragment {
     private TextView mPicks;
     private TextView mNoGraphDataTextView;
     private List<IntervalRow> mGraphData;
-    private boolean mShowLoad = true;
-    private boolean mShowFeed = true;
-    private boolean mShowBuy = true;
-    private boolean mShowPV = true;
-    private int mFilterCount = 4;
+    protected boolean mShowLoad = true;
+    protected boolean mShowFeed = true;
+    protected boolean mShowBuy = true;
+    protected boolean mShowPV = true;
+    protected int mFilterCount = 4;
     protected ComparisonUIViewModel.Importer mImporterType;
 
     @Override
@@ -507,7 +507,7 @@ public abstract class ImportGraphsFragment extends Fragment {
         mIntervalButton.setOnClickListener(v -> mGraphConfigPopup.show());
     }
 
-    private void setupPopupFilterMenu() {
+    protected void setupPopupFilterMenu() {
         if (null == mFilterPopup) {
             //Creating the instance of PopupMenu
             mFilterPopup = new PopupMenu(requireActivity(), mFilterButton, Gravity.CENTER_HORIZONTAL);
