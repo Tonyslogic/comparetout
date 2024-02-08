@@ -213,5 +213,8 @@ public abstract class AlphaEssDAO {
             "GROUP BY month, day_of_week, hour " +
             "ORDER BY uploadTime, month, day_of_week, hour")
     public abstract List<ScheduleRIInput> getScheduleRIInput(String systemSN, String from , String to);
+
+    @Query("SELECT MAX(date) as latest FROM alphaESSTransformedData WHERE sysSn = :systemSN")
+    public abstract String getLatestDateForSn(String systemSN);
 }
 

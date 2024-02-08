@@ -757,4 +757,8 @@ public class ToutcRepository {
     public List<ScheduleRIInput> getScheduleRIInput(String systemSN, String from , String to) {
         return alphaEssDAO.getScheduleRIInput(systemSN, from, to);
     }
+
+    public String getLatestDateForSn(String systemSN) {
+        return alphaEssDAO.getLatestDateForSn(systemSN);
+    }
 }

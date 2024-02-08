@@ -270,12 +270,14 @@ public class ESBNHDFClient {
                     fetchRangeJSON = Objects.requireNonNull(fetchHDFDataResponse.body()).string();
                     FetchRangeResponse fetchRangeResponse = new Gson().fromJson(fetchRangeJSON, FetchRangeResponse.class);
                     for (FetchRangeResponse.ImportItem item : fetchRangeResponse.imports) {
-                        LocalDateTime readTime = LocalDateTime.parse(item.x, RANGE_FORMAT_X);
+                        LocalDateTime readTime =
+                                LocalDateTime.parse(item.x.split("\\+")[0], RANGE_FORMAT_X);
                         Double reading = item.y;
                         processor.processLine(ESBNImportExportEntry.HDFLineType.IMPORT, readTime, reading);
                     }
                     for (FetchRangeResponse.ExportItem item : fetchRangeResponse.exports) {
-                        LocalDateTime readTime = LocalDateTime.parse(item.x, RANGE_FORMAT_X);
+                        LocalDateTime
+                                readTime = LocalDateTime.parse(item.x.split("\\+")[0], RANGE_FORMAT_X);
                         Double reading = item.y;
                         processor.processLine(ESBNImportExportEntry.HDFLineType.EXPORT, readTime, reading);
                     }

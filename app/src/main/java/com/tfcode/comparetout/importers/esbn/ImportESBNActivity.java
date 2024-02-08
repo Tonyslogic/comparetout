@@ -77,11 +77,11 @@ public class ImportESBNActivity extends AppCompatActivity implements ImportSyste
                     String uri_s = uri.toString();
 
                     Data inputData = new Data.Builder()
-                            .putString(ImportWorker.KEY_SYSTEM_SN, mSerialNumber)
-                            .putString(ImportWorker.KEY_URI, uri_s)
+                            .putString(ESBNImportWorker.KEY_SYSTEM_SN, mSerialNumber)
+                            .putString(ESBNImportWorker.KEY_URI, uri_s)
                             .build();
                     OneTimeWorkRequest importWorkRequest =
-                            new OneTimeWorkRequest.Builder(ImportWorker.class)
+                            new OneTimeWorkRequest.Builder(ESBNImportWorker.class)
                                     .setInputData(inputData)
                                     .addTag(mSerialNumber + "Import")
                                     .build();

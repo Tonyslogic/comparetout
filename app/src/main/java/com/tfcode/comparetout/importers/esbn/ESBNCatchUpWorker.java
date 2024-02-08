@@ -24,7 +24,6 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
-import android.net.Uri;
 import android.util.Pair;
 
 import androidx.annotation.NonNull;
@@ -40,39 +39,37 @@ import com.tfcode.comparetout.importers.esbn.responses.ESBNException;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 
-public class ImportWorker extends Worker {
+public class ESBNCatchUpWorker extends Worker {
 
     private final ToutcRepository mToutcRepository;
     private final NotificationManager mNotificationManager;
     private static final int mNotificationId = 2;
     private boolean mStopped = false;
 
-
-    private final DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-    private final DateTimeFormatter minFormat = DateTimeFormatter.ofPattern("HH:mm");
-
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private final DateTimeFormatter MIN_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
 
     public static final String KEY_SYSTEM_SN = "KEY_SYSTEM_SN";
-    public static final String KEY_URI = "KEY_URI";
+    public static final String KEY_APP_ID = "KEY_APP_ID";
+    public static final String KEY_APP_SECRET = "KEY_APP_SECRET";
+    public static final String KEY_START_DATE = "KEY_START_DATE";
 
     public static final String PROGRESS = "PROGRESS";
 
-    public ImportWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
+    public ESBNCatchUpWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
         mToutcRepository = new ToutcRepository((Application) context);
         mNotificationManager = (NotificationManager)
                 context.getSystemService(NOTIFICATION_SERVICE);
-        setProgressAsync(new Data.Builder().putString(PROGRESS, "Starting import from file").build());
-        System.out.println("Import worker created");
     }
 
     @Override
@@ -84,42 +81,98 @@ public class ImportWorker extends Worker {
     @NonNull
     @Override
     public Result doWork() {
-        System.out.println("ImportWorker:doWork invoked ");
+        System.out.println("ESBNCatchUpWorker:doWork invoked ");
         Data inputData = getInputData();
+        ESBNHDFClient esbnHDFClient = new ESBNHDFClient(
+                inputData.getString(KEY_APP_ID),
+                inputData.getString(KEY_APP_SECRET));
         String systemSN = inputData.getString(KEY_SYSTEM_SN);
-        String uriString = inputData.getString(KEY_URI);
-        Uri fileUri = Uri.parse(uriString);
+        String startDate = inputData.getString(KEY_START_DATE);
+        if (null == startDate) startDate = mToutcRepository.getLatestDateForSn(systemSN);
+        esbnHDFClient.setSelectedMPRN(systemSN);
+
+        LocalDate current = LocalDate.parse(startDate, DATE_FORMAT);
+        LocalDate end = LocalDate.now();
 
         // Mark the Worker as important
-        String progress = "Importing energy";
-        setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
-        ForegroundInfo foregroundInfo = createForegroundInfo("Importing energy");
+        String progress = "Starting Fetch";
+        setForegroundAsync(createForegroundInfo(progress));
+        setProgressAsync(new Data.Builder().putString(PROGRESS, current.toString()).build());
+        ForegroundInfo foregroundInfo = createForegroundInfo("Importing smart meter data");
         mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
-        
+
         // Do some work
         Map<LocalDateTime, Pair<Double, Double>> timeAlignedEntries = new HashMap<>();
-        try (InputStream is = getApplicationContext().getContentResolver().openInputStream(fileUri)){
-            ESBNHDFClient.readEntriesFromFile(is, (type, ldt, value) -> {
-                Pair<Double, Double> importExport = timeAlignedEntries.get(ldt);
-                switch (type) {
-                    case IMPORT:
-                        if ((null == importExport))
-                            timeAlignedEntries.put(ldt, new Pair<>(value/2D, 0D));
-                        else
-                            timeAlignedEntries.put(ldt, new Pair<>(value/2D, importExport.second));
-                        break;
-                    case EXPORT:
-                        if ((null == importExport))
-                            timeAlignedEntries.put(ldt, new Pair<>(0D, value/2D));
-                        else
-                            timeAlignedEntries.put(ldt, new Pair<>(importExport.second, value/2D));
-                        break;
-                }
-            });
+        AtomicReference<LocalDateTime> last = new AtomicReference<>(LocalDateTime.of(1970,1, 1, 0, 0));
+        String latest = mToutcRepository.getLatestDateForSn(systemSN);
+        if (null == latest) latest = "1970-01-01";
+        LocalDate latestDate = LocalDate.parse(latest, DATE_FORMAT);
 
-        } catch (IOException | ESBNException e) {
-            e.printStackTrace();
+//        if (current.isBefore(latestDate)) current = latestDate;
+//        if (end.minusDays(30).isBefore(current)) {
+//            // we can use the from date method
+//            String currentString = current.format(DATE_FORMAT);
+//            try {
+//                esbnHDFClient.fetchSmartMeterDataFromDate(currentString, (type, ldt, value) -> {
+//                    Pair<Double, Double> importExport = timeAlignedEntries.get(ldt);
+//                    if (ldt.isAfter(last.get())) last.set(ldt);
+//                    switch (type) {
+//                        case IMPORT:
+//                            if ((null == importExport))
+//                                timeAlignedEntries.put(ldt, new Pair<>(value/2D, 0D));
+//                            else
+//                                timeAlignedEntries.put(ldt, new Pair<>(value/2D, importExport.second));
+//                            break;
+//                        case EXPORT:
+//                            if ((null == importExport))
+//                                timeAlignedEntries.put(ldt, new Pair<>(0D, value/2D));
+//                            else
+//                                timeAlignedEntries.put(ldt, new Pair<>(importExport.second, value/2D));
+//                            break;
+//                    }
+//                });
+//            } catch (ESBNException e) {
+//                e.printStackTrace();
+//            }
+//        }
+//        else
+        {
+            // we need to download the HDF
+            try {
+                esbnHDFClient.fetchSmartMeterDataHDF((type, ldt, value) -> {
+                    Pair<Double, Double> importExport = timeAlignedEntries.get(ldt);
+                    if (ldt.isAfter(last.get())) last.set(ldt);
+                    switch (type) {
+                        case IMPORT:
+                            if ((null == importExport))
+                                timeAlignedEntries.put(ldt, new Pair<>(value/2D, 0D));
+                            else
+                                timeAlignedEntries.put(ldt, new Pair<>(value/2D, importExport.second));
+                            break;
+                        case EXPORT:
+                            if ((null == importExport))
+                                timeAlignedEntries.put(ldt, new Pair<>(0D, value/2D));
+                            else
+                                timeAlignedEntries.put(ldt, new Pair<>(importExport.second, value/2D));
+                            break;
+                    }
+                });
+            } catch (ESBNException e) {
+                e.printStackTrace();
+            }
         }
+        // Check and Remove the last day if missing more than 18 entries
+        LocalDate lastDay = last.get().toLocalDate();
+        int count = 0;
+        for (LocalDateTime key : timeAlignedEntries.keySet()) {
+            if (key.toLocalDate().equals(lastDay)) {
+                count++;
+            }
+        }
+        if (count < 31) {
+            timeAlignedEntries.entrySet().removeIf(entry -> entry.getKey().toLocalDate().equals(lastDay));
+        }
+
         // Store transformed data
         List<AlphaESSTransformedData> normalizedEntityList = new ArrayList<>();
         for (Map.Entry<LocalDateTime, Pair<Double, Double>> entry: timeAlignedEntries.entrySet()) {
@@ -129,8 +182,8 @@ public class ImportWorker extends Worker {
             dbEntry.setPv(0D);
             dbEntry.setLoad(0D);
             dbEntry.setSysSn(systemSN != null ? systemSN : "Not set");
-            dbEntry.setDate(entry.getKey().format(dateFormat));
-            dbEntry.setMinute(entry.getKey().format(minFormat));
+            dbEntry.setDate(entry.getKey().format(DATE_FORMAT));
+            dbEntry.setMinute(entry.getKey().format(MIN_FORMAT));
             normalizedEntityList.add(dbEntry);
         }
         mToutcRepository.addTransformedData(normalizedEntityList);
@@ -139,6 +192,7 @@ public class ImportWorker extends Worker {
         setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
         foregroundInfo = createForegroundInfo(progress);
         mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
+
 
         if (mStopped) mNotificationManager.cancel(mNotificationId);
 
@@ -150,8 +204,8 @@ public class ImportWorker extends Worker {
         // Build a notification using bytesRead and contentLength
 
         Context context = getApplicationContext();
-        String id = context.getString(R.string.export_alpha_channel_id);
-        String title = context.getString(R.string.alphaess_import_notification_title);
+        String id = context.getString(R.string.fetch_alpha_channel_id);
+        String title = context.getString(R.string.fetch_alpha_notification_title);
         String cancel = context.getString(R.string.cancel_fetch_alpha);
         // This PendingIntent can be used to cancel the worker
         PendingIntent intent = WorkManager.getInstance(context)
@@ -181,7 +235,7 @@ public class ImportWorker extends Worker {
         String description = getApplicationContext().getString(R.string.channel_description);
         int importance = NotificationManager.IMPORTANCE_DEFAULT;
         NotificationChannel channel = new NotificationChannel(
-                getApplicationContext().getString(R.string.export_alpha_channel_id), name, importance);
+                getApplicationContext().getString(R.string.fetch_alpha_channel_id), name, importance);
         channel.setDescription(description);
         // Register the channel with the system. You can't change the importance
         // or other notification behaviors after this.

@@ -22,6 +22,12 @@ import android.icu.text.SimpleDateFormat;
 
 import androidx.datastore.preferences.core.Preferences;
 import androidx.datastore.preferences.core.PreferencesKeys;
+import androidx.work.Data;
+import androidx.work.ExistingPeriodicWorkPolicy;
+import androidx.work.ExistingWorkPolicy;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.PeriodicWorkRequest;
+import androidx.work.WorkManager;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -32,14 +38,14 @@ import com.tfcode.comparetout.importers.CredentialDialog;
 import com.tfcode.comparetout.importers.ImportException;
 import com.tfcode.comparetout.importers.ImportOverviewFragment;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import io.reactivex.Single;
 
 public class ImportESBNOverview extends ImportOverviewFragment {
-
-    private ESBNHDFClient mOpenAlphaESSClient;
 
     public static ImportESBNOverview newInstance() {
         return new ImportESBNOverview();
@@ -78,40 +84,40 @@ public class ImportESBNOverview extends ImportOverviewFragment {
         Context context = getContext();
         if (!(null == context) && !("".equals(serialNumber))) {
             // start the catchup worker for the selected serial
-//            Data inputData = new Data.Builder()
-//                    .putString(ESBNCatchUpWorker.KEY_APP_ID, mAppID)
-//                    .putString(ESBNCatchUpWorker.KEY_APP_SECRET, mAppSecret)
-//                    .putString(ESBNCatchUpWorker.KEY_SYSTEM_SN, serialNumber)
-//                    .putString(ESBNCatchUpWorker.KEY_START_DATE, format.format(startDate))
-//                    .build();
-//            OneTimeWorkRequest catchupWorkRequest =
-//                    new OneTimeWorkRequest.Builder(ESBNCatchUpWorker.class)
-//                            .setInputData(inputData)
-//                            .addTag(serialNumber)
-//                            .build();
-//
-//            WorkManager.getInstance(context).pruneWork();
-//            WorkManager
-//                    .getInstance(context)
-//                    .beginUniqueWork(serialNumber, ExistingWorkPolicy.APPEND, catchupWorkRequest)
-//                    .enqueue();
-//
-//            // start the daily worker for the selected serial
-//            Data dailyData = new Data.Builder()
-//                    .putString(ESBNDailyWorker.KEY_APP_ID, mAppID)
-//                    .putString(ESBNDailyWorker.KEY_APP_SECRET, mAppSecret)
-//                    .putString(ESBNDailyWorker.KEY_SYSTEM_SN, serialNumber)
-//                    .build();
-//            int delay = 25 - LocalDateTime.now().getHour(); // Going for 01:00 <-> 02:00
-//            PeriodicWorkRequest dailyWorkRequest =
-//                    new PeriodicWorkRequest.Builder(ESBNDailyWorker.class, 1, TimeUnit.DAYS)
-//                            .setInputData(dailyData)
-//                            .setInitialDelay(delay, TimeUnit.HOURS)
-//                            .addTag(serialNumber + "daily")
-//                            .build();
-//            WorkManager
-//                    .getInstance(context)
-//                    .enqueueUniquePeriodicWork(serialNumber + "daily", ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE, dailyWorkRequest);
+            Data inputData = new Data.Builder()
+                    .putString(ESBNCatchUpWorker.KEY_APP_ID, mAppID)
+                    .putString(ESBNCatchUpWorker.KEY_APP_SECRET, mAppSecret)
+                    .putString(ESBNCatchUpWorker.KEY_SYSTEM_SN, serialNumber)
+                    .putString(ESBNCatchUpWorker.KEY_START_DATE, format.format(startDate))
+                    .build();
+            OneTimeWorkRequest catchupWorkRequest =
+                    new OneTimeWorkRequest.Builder(ESBNCatchUpWorker.class)
+                            .setInputData(inputData)
+                            .addTag(serialNumber)
+                            .build();
+
+            WorkManager.getInstance(context).pruneWork();
+            WorkManager
+                    .getInstance(context)
+                    .beginUniqueWork(serialNumber, ExistingWorkPolicy.APPEND, catchupWorkRequest)
+                    .enqueue();
+
+            // start the daily worker for the selected serial
+            Data dailyData = new Data.Builder()
+                    .putString(ESBNCatchUpWorker.KEY_APP_ID, mAppID)
+                    .putString(ESBNCatchUpWorker.KEY_APP_SECRET, mAppSecret)
+                    .putString(ESBNCatchUpWorker.KEY_SYSTEM_SN, serialNumber)
+                    .build();
+            int delay = 25 - LocalDateTime.now().getHour(); // Going for 01:00 <-> 02:00
+            PeriodicWorkRequest dailyWorkRequest =
+                    new PeriodicWorkRequest.Builder(ESBNCatchUpWorker.class, 1, TimeUnit.DAYS)
+                            .setInputData(dailyData)
+                            .setInitialDelay(delay, TimeUnit.HOURS)
+                            .addTag(serialNumber + "daily")
+                            .build();
+            WorkManager
+                    .getInstance(context)
+                    .enqueueUniquePeriodicWork(serialNumber + "daily", ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE, dailyWorkRequest);
 
             mFetchOngoing = true;
         }
@@ -119,7 +125,7 @@ public class ImportESBNOverview extends ImportOverviewFragment {
 
     @Override
     protected void reloadClient(String appId, String appSecret) throws ImportException {
-        mOpenAlphaESSClient = new ESBNHDFClient(appId, appSecret);
+        ESBNHDFClient mOpenAlphaESSClient = new ESBNHDFClient(appId, appSecret);
         List<String> response = mOpenAlphaESSClient.fetchMPRNs();
         mSerialNumbers = new ArrayList<>();
         mSerialNumbers.addAll(response);
