@@ -580,43 +580,52 @@ public abstract class ImportGraphsFragment extends Fragment {
 
         boolean showText = false;
         if (!(null == mGraphData) && !mGraphData.isEmpty()) {
-            switch (mChartView) {
-                case BAR:
-                    mBarChart.setVisibility(View.VISIBLE);
-                    mLineChart.setVisibility(View.INVISIBLE);
-                    mPieCharts.setVisibility(View.INVISIBLE);
-                    mNoGraphDataTextView.setVisibility(View.INVISIBLE);
-                    if (mFilterCount > 0) buildBarChart();
-                    else {
-                        mBarChart.setVisibility(View.INVISIBLE);
-                        mNoGraphDataTextView.setVisibility(View.VISIBLE);
-                        mNoGraphDataTextView.setText(R.string.empty_filter);
-                    }
-                    break;
-                case LINE:
-                    mBarChart.setVisibility(View.INVISIBLE);
-                    mLineChart.setVisibility(View.VISIBLE);
-                    mPieCharts.setVisibility(View.INVISIBLE);
-                    mNoGraphDataTextView.setVisibility(View.INVISIBLE);
-                    if (mFilterCount > 0) buildLineChart();
-                    else {
+            try {
+                switch (mChartView) {
+                    case BAR:
+                        mBarChart.setVisibility(View.VISIBLE);
                         mLineChart.setVisibility(View.INVISIBLE);
-                        mNoGraphDataTextView.setVisibility(View.VISIBLE);
-                        mNoGraphDataTextView.setText(R.string.empty_filter);
-                    }
-                    break;
-                case PIE:
-                    mBarChart.setVisibility(View.INVISIBLE);
-                    mLineChart.setVisibility(View.INVISIBLE);
-                    mPieCharts.setVisibility(View.VISIBLE);
-                    mNoGraphDataTextView.setVisibility(View.INVISIBLE);
-                    if (mFilterCount > 0) buildPieCharts();
-                    else {
                         mPieCharts.setVisibility(View.INVISIBLE);
-                        mNoGraphDataTextView.setVisibility(View.VISIBLE);
-                        mNoGraphDataTextView.setText(R.string.empty_filter);
-                    }
-                    break;
+                        mNoGraphDataTextView.setVisibility(View.INVISIBLE);
+                        if (mFilterCount > 0) buildBarChart();
+                        else {
+                            mBarChart.setVisibility(View.INVISIBLE);
+                            mNoGraphDataTextView.setVisibility(View.VISIBLE);
+                            mNoGraphDataTextView.setText(R.string.empty_filter);
+                        }
+                        break;
+                    case LINE:
+                        mBarChart.setVisibility(View.INVISIBLE);
+                        mLineChart.setVisibility(View.VISIBLE);
+                        mPieCharts.setVisibility(View.INVISIBLE);
+                        mNoGraphDataTextView.setVisibility(View.INVISIBLE);
+                        if (mFilterCount > 0) buildLineChart();
+                        else {
+                            mLineChart.setVisibility(View.INVISIBLE);
+                            mNoGraphDataTextView.setVisibility(View.VISIBLE);
+                            mNoGraphDataTextView.setText(R.string.empty_filter);
+                        }
+                        break;
+                    case PIE:
+                        mBarChart.setVisibility(View.INVISIBLE);
+                        mLineChart.setVisibility(View.INVISIBLE);
+                        mPieCharts.setVisibility(View.VISIBLE);
+                        mNoGraphDataTextView.setVisibility(View.INVISIBLE);
+                        if (mFilterCount > 0) buildPieCharts();
+                        else {
+                            mPieCharts.setVisibility(View.INVISIBLE);
+                            mNoGraphDataTextView.setVisibility(View.VISIBLE);
+                            mNoGraphDataTextView.setText(R.string.empty_filter);
+                        }
+                        break;
+                }
+            } catch (NullPointerException npe) {
+                npe.printStackTrace();
+                mBarChart.setVisibility(View.INVISIBLE);
+                mLineChart.setVisibility(View.INVISIBLE);
+                mPieCharts.setVisibility(View.INVISIBLE);
+                mNoGraphDataTextView.setVisibility(View.VISIBLE);
+                mNoGraphDataTextView.setText(R.string.data_load_race_mesage);
             }
         } else showText = true;
 

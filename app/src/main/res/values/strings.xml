@@ -279,4 +279,6 @@
     <string name="passPrompt">Password</string>
     <string name="enter_manually">Use text value</string>
     <string name="not_listed">Not listed</string>
+    <string name="data_load_race_mesage">Data update in progress, try again in a moment</string>
+    <string name="esbn_import_notification_title">Smart meter file import</string>
 </resources>

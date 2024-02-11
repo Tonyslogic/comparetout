@@ -104,9 +104,9 @@ public class ESBNCatchUpWorker extends Worker {
         // Do some work
         Map<LocalDateTime, Pair<Double, Double>> timeAlignedEntries = new HashMap<>();
         AtomicReference<LocalDateTime> last = new AtomicReference<>(LocalDateTime.of(1970,1, 1, 0, 0));
-        String latest = mToutcRepository.getLatestDateForSn(systemSN);
-        if (null == latest) latest = "1970-01-01";
-        LocalDate latestDate = LocalDate.parse(latest, DATE_FORMAT);
+//        String latest = mToutcRepository.getLatestDateForSn(systemSN);
+//        if (null == latest) latest = "1970-01-01";
+//        LocalDate latestDate = LocalDate.parse(latest, DATE_FORMAT);
 
 //        if (current.isBefore(latestDate)) current = latestDate;
 //        if (end.minusDays(30).isBefore(current)) {
@@ -127,7 +127,7 @@ public class ESBNCatchUpWorker extends Worker {
 //                            if ((null == importExport))
 //                                timeAlignedEntries.put(ldt, new Pair<>(0D, value/2D));
 //                            else
-//                                timeAlignedEntries.put(ldt, new Pair<>(importExport.second, value/2D));
+//                                timeAlignedEntries.put(ldt, new Pair<>(importExport.first, value/2D));
 //                            break;
 //                    }
 //                });
@@ -153,7 +153,7 @@ public class ESBNCatchUpWorker extends Worker {
                             if ((null == importExport))
                                 timeAlignedEntries.put(ldt, new Pair<>(0D, value/2D));
                             else
-                                timeAlignedEntries.put(ldt, new Pair<>(importExport.second, value/2D));
+                                timeAlignedEntries.put(ldt, new Pair<>(importExport.first, value/2D));
                             break;
                     }
                 });

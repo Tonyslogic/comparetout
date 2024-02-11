@@ -166,7 +166,7 @@ public class ESBNImportWorker extends Worker {
 
         Context context = getApplicationContext();
         String id = context.getString(R.string.export_alpha_channel_id);
-        String title = context.getString(R.string.alphaess_import_notification_title);
+        String title = context.getString(R.string.esbn_import_notification_title);
         String cancel = context.getString(R.string.cancel_fetch_alpha);
         // This PendingIntent can be used to cancel the worker
         PendingIntent intent = WorkManager.getInstance(context)
