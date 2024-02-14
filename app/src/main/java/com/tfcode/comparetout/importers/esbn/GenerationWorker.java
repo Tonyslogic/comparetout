@@ -64,6 +64,8 @@ public class GenerationWorker extends Worker {
     public static final String LP = "LP";
     public static final String FROM = "FROM";
     public static final String TO = "TO";
+    public static final String SCENARIO_ID = "SCENARIO_ID";
+    public static final String LOAD_PROFILE_ID = "LOAD_PROFILE_ID";
 
     public static final String PROGRESS = "PROGRESS";
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -95,33 +97,48 @@ public class GenerationWorker extends Worker {
         boolean mLP = inputData.getBoolean(LP, false);
         String mFrom = inputData.getString(FROM);
         String mTo = inputData.getString(TO);
+        long mScenarioID = inputData.getLong(SCENARIO_ID, 0L);
+        long mLoadProfileID = inputData.getLong(LOAD_PROFILE_ID, 0L);
 
         // check for mandatory members
         if (null == mToutcRepository) return Result.failure();
         if (null == mSystemSN) return Result.failure();
 
         List<Scenario> scenarios = mToutcRepository.getScenarios();
-        List<String> mScenarioNames = new ArrayList<>();
-        for (Scenario scenario : scenarios) mScenarioNames.add(scenario.getScenarioName());
+        Map<Long, String> mScenarioNames = new HashMap<>();
+        for (Scenario scenario : scenarios) mScenarioNames.put(scenario.getScenarioIndex(), scenario.getScenarioName());
 
         long createdLoadProfileID = 0;
 
         // Create a scenario && get its id
-        report(getString(R.string.creating_usage));
-        Scenario scenario = new Scenario();
-        String scenarioName = mSystemSN;
-        int suffix = 1;
-        while (mScenarioNames.contains(scenarioName)) {
-            scenarioName = scenarioName + "_" + suffix;
-            suffix++;
+        long assignedScenarioID;
+        String finalScenarioName;
+
+        if (mScenarioID == 0) {
+            report(getString(R.string.creating_usage));
+            Scenario scenario = new Scenario();
+            String scenarioName = mSystemSN;
+            int suffix = 1;
+            while (mScenarioNames.containsValue(scenarioName)) {
+                scenarioName = scenarioName + "_" + suffix;
+                suffix++;
+            }
+            finalScenarioName = scenarioName;
+            scenario.setScenarioName(scenarioName);
+            ScenarioComponents scenarioComponents = new ScenarioComponents(scenario,
+                    null, null, null, null, null,
+                    null, null, null, null, null);
+            assignedScenarioID = mToutcRepository.insertScenarioAndReturnID(scenarioComponents, false);
         }
-        String finalScenarioName = scenarioName;
-        scenario.setScenarioName(scenarioName);
-        ScenarioComponents scenarioComponents = new ScenarioComponents(scenario,
-                null, null, null, null, null,
-                null, null, null, null, null);
-        long assignedScenarioID = mToutcRepository.insertScenarioAndReturnID(scenarioComponents, false);
+        else {
+            assignedScenarioID = mScenarioID;
+            finalScenarioName = mScenarioNames.get(mScenarioID);
+        }
         List<AlphaESSTransformedData> dbRows;
+
+        if (mLoadProfileID != 0) {
+            mToutcRepository.deleteLoadProfileData(mLoadProfileID);
+        }
 
         // Create & store a load profile
         if (mLP) {
@@ -136,6 +153,7 @@ public class GenerationWorker extends Worker {
             for (IntervalRow row : weekly) totalLoad += row.buy;
 
             LoadProfile loadProfile = new LoadProfile();
+            loadProfile.setLoadProfileIndex(mLoadProfileID);
             loadProfile.setAnnualUsage(totalLoad);
             loadProfile.setDistributionSource(mSystemSN);
             loadProfile.setHourlyBaseLoad(baseLoad);

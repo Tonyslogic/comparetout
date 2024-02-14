@@ -151,6 +151,10 @@ public class ImportESBNGenerateScenario extends Fragment {
         mGenerateUsage = view.findViewById(R.id.gen_scenario);
         mGenSelectedDates = view.findViewById(R.id.gen_selected_dates);
         mGenStatus = view.findViewById(R.id.gen_selected_status);
+        ImportESBNActivity esbnActivity = ((ImportESBNActivity)getActivity());
+        if (!(null == esbnActivity) && (esbnActivity.getScenarioID() != 0)) {
+            mGenerateUsage.setText(R.string.generate_profile);
+        }
 
         mDateSelection.setOnClickListener(v -> {
             CalendarConstraints.Builder calendarConstraintsBuilder = new CalendarConstraints.Builder();
@@ -190,13 +194,15 @@ public class ImportESBNGenerateScenario extends Fragment {
         mGenerateUsage.setOnClickListener(v -> {
 
             Context context = getContext();
-            if (null == context) return;
+            if ((null == context) || (esbnActivity == null)) return;
 
             Data inputData = new Data.Builder()
                     .putString(GenerationWorker.KEY_SYSTEM_SN, mSystemSN)
                     .putBoolean(GenerationWorker.LP, mLP)
                     .putString(GenerationWorker.FROM, mFrom)
                     .putString(GenerationWorker.TO, mTo)
+                    .putLong(GenerationWorker.SCENARIO_ID, esbnActivity.getScenarioID())
+                    .putLong(GenerationWorker.LOAD_PROFILE_ID, esbnActivity.getLoadProfileID())
                     .build();
             OneTimeWorkRequest generationWorkRequest =
                     new OneTimeWorkRequest.Builder(GenerationWorker.class)

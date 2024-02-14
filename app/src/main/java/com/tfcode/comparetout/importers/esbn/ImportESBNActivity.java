@@ -18,6 +18,7 @@ package com.tfcode.comparetout.importers.esbn;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
@@ -35,6 +36,7 @@ import android.widget.PopupWindow;
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager2.widget.ViewPager2;
@@ -67,6 +69,11 @@ public class ImportESBNActivity extends AppCompatActivity implements ImportSyste
     private PopupWindow mHelpWindow;
 
     private boolean mZoom = false;
+
+    private Long mLoadProfileID = 0L;
+    private Long mScenarioID = 0L;
+    private static final String SCENARIO_KEY = "ScenarioID";
+    private static final String PROFILE_KEY = "LoadProfileID";
 
     final ActivityResultLauncher<String> mLoadESBNHDFDataFromFile = registerForActivityResult(new ActivityResultContracts.GetContent(),
             new ActivityResultCallback<Uri>() {
@@ -120,10 +127,28 @@ public class ImportESBNActivity extends AppCompatActivity implements ImportSyste
         if (!(null == fab)) fab.hide();
     }
 
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putLong(SCENARIO_KEY, mScenarioID);
+        outState.putLong(PROFILE_KEY, mLoadProfileID);
+    }
+
     @SuppressLint({"MissingInflatedId", "InflateParams"})
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_hdf);
+
+        if (!(null == savedInstanceState)) {
+            mScenarioID = savedInstanceState.getLong(SCENARIO_KEY);
+            mLoadProfileID = savedInstanceState.getLong(PROFILE_KEY);
+        }
+        else {
+            Intent intent = getIntent();
+            mLoadProfileID = intent.getLongExtra("LoadProfileID", 0L);
+            mScenarioID = intent.getLongExtra("ScenarioID", 0L);
+        }
 
         mAssetLoader = new WebViewAssetLoader.Builder()
                 .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
@@ -221,7 +246,8 @@ public class ImportESBNActivity extends AppCompatActivity implements ImportSyste
         ArrayList<String> tabTitlesList = new ArrayList<>();
         tabTitlesList.add("Overview");
         tabTitlesList.add("Graphs");
-        tabTitlesList.add("Generate usage");
+        if (mScenarioID == 0) tabTitlesList.add("Generate usage");
+        else tabTitlesList.add("Generate profile");
         TabLayout tabLayout = findViewById(R.id.import_alpha_tab_layout);
         TabLayoutMediator mMediator = new TabLayoutMediator(tabLayout, mViewPager,
                 (tab, position) -> tab.setText(tabTitlesList.get(position))
@@ -276,5 +302,13 @@ public class ImportESBNActivity extends AppCompatActivity implements ImportSyste
         mSerialNumber = serialNumber;
         if (!(null == mViewPager) && !(null == mViewPager.getAdapter()))
             ((ImportSystemSelection)mViewPager.getAdapter()).setSelectedSystemSN(mSerialNumber);
+    }
+
+    public long getScenarioID() {
+        return mScenarioID;
+    }
+
+    public long getLoadProfileID() {
+        return mLoadProfileID;
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023. Tony Finnerty
+ * Copyright (c) 2023-2024. Tony Finnerty
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -49,10 +49,10 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
+import com.tfcode.comparetout.importers.esbn.ImportESBNActivity;
 import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.json.scenario.LoadProfileJson;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
-import com.tfcode.comparetout.scenario.loadprofile.hdf.HDFActivity;
 import com.tfcode.comparetout.util.AbstractTextWatcher;
 
 import java.io.FileNotFoundException;
@@ -267,7 +267,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
                             slpDialog.show();
                             break;
                         case SourceDialog.HDF:
-                            Intent intent = new Intent(getActivity(), HDFActivity.class);
+                            Intent intent = new Intent(getActivity(), ImportESBNActivity.class);
                             intent.putExtra("LoadProfileID", mLoadProfileID);
                             intent.putExtra("ScenarioID", mScenarioID);
                             startActivity(intent);
