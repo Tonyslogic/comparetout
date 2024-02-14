@@ -96,7 +96,7 @@ public class ImportESBNActivity extends AppCompatActivity implements ImportSyste
     private void showFAB() {
         FloatingActionButton fab = findViewById(R.id.zoom);
         if (!(null == fab))
-            if ((mViewPager.getCurrentItem() != 1) && (mViewPager.getCurrentItem() != 2)) {
+            if ((mViewPager.getCurrentItem() != 1) ) {
                 fab.hide();
                 if (mZoom) {
                     ActionBar actionBar = getSupportActionBar();

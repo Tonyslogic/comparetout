@@ -59,6 +59,7 @@ import com.tfcode.comparetout.model.scenario.PanelData;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -70,6 +71,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.stream.Collectors;
 
 import io.reactivex.Single;
@@ -96,6 +98,10 @@ public class GenerationWorker extends Worker {
     public static final String MPPT_COUNT = "MPPT_COUNT";
 
     public static final String PROGRESS = "PROGRESS";
+
+    public static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    public static final DateTimeFormatter MIN_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
+
 
     public GenerationWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
@@ -175,7 +181,8 @@ public class GenerationWorker extends Worker {
                 null, null, null, null, null,
                 null, null, null, null, null);
         long assignedScenarioID = mToutcRepository.insertScenarioAndReturnID(scenarioComponents, false);
-        List<AlphaESSTransformedData> dbRows = null;
+        List<AlphaESSTransformedData> dbRows;
+        Map<Integer, Map<String, AlphaESSTransformedData>> dbLookup = null;
 
         // Create & store a load profile
         if (mLP) {
@@ -223,32 +230,54 @@ public class GenerationWorker extends Worker {
         if (mLP) {
             report(getString(R.string.adding_data));
 
+            int offsetInHours = TimeZone.getDefault().getRawOffset() / (60 * 60 * 1000);
+            System.out.println("offsetInHours = " + offsetInHours);
+
             dbRows = mToutcRepository.getAlphaESSTransformedData(mSystemSN, mFrom, mTo);
-            int dbRowIndex = 0;
+            dbLookup = new HashMap<>();
+            for (AlphaESSTransformedData dbRow : dbRows) {
+                LocalDate dbDate = LocalDate.parse(dbRow.getDate(), DATE_FORMAT);
+                String dbTime = dbRow.getMinute();
+//                LocalTime dbTimeLT = LocalTime.parse(dbTime, MIN_FORMAT);
+//                LocalDateTime dstCheck = LocalDateTime.of(dbDate, dbTimeLT);
+//                ZonedDateTime dstCheckZ = dstCheck.atZone(ZoneId.of(TimeZone.getDefault().getID()));
+//                boolean dst = dstCheckZ.getZone().getRules().isDaylightSavings(dstCheckZ.toInstant());
+
+//                dbTimeLT = dbTimeLT.minusHours(dst ? offsetInHours + 1 : offsetInHours);
+                Map<String, AlphaESSTransformedData> entry = dbLookup.get(dbDate.getDayOfYear());
+                if (null == entry) {
+                    entry = new HashMap<>();
+                    entry.put(dbTime, dbRow);//(dbTimeLT.format(MIN_FORMAT), dbRow);
+                    dbLookup.put(dbDate.getDayOfYear(), entry);
+                }
+                else entry.put(dbTime, dbRow);
+            }
             report("Loaded data");
 
             ArrayList<LoadProfileData> rows = new ArrayList<>();
             LocalDateTime active = LocalDateTime.of(2001, 1, 1, 0, 0);
             LocalDateTime end = LocalDateTime.of(2002, 1, 1, 0, 0);
-            DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-            DateTimeFormatter minFormat = DateTimeFormatter.ofPattern("HH:mm");
             while (active.isBefore(end)) {
                 LoadProfileData row = new LoadProfileData();
                 row.setDo2001(active.getDayOfYear());
                 row.setLoadProfileID(createdLoadProfileID);
-                row.setDate(active.format(dateFormat));
-                row.setMinute(active.format(minFormat));
+                row.setDate(active.format(DATE_FORMAT));
+                row.setMinute(active.format(MIN_FORMAT));
                 row.setDow(active.getDayOfWeek().getValue());
                 row.setMod(active.getHour() * 60 + active.getMinute());
                 // Not every 5 minute interval has data uploaded to AlphaESS
-                if (row.getMinute().equals(dbRows.get(dbRowIndex).getMinute())) {
-                    row.setLoad(dbRows.get(dbRowIndex).getLoad());
-                    dbRowIndex++;
+                Integer doy = active.getDayOfYear();
+                String hhmm = row.getMinute();
+                double loadToSet = 0D;
+                Map<String, AlphaESSTransformedData> aDay = dbLookup.get(doy);
+                if (!(null == aDay)) {
+                    AlphaESSTransformedData a5MinutePeriod = aDay.get(hhmm);
+                    if (!(null == a5MinutePeriod)) {
+                        loadToSet = a5MinutePeriod.getLoad();
+                    }
                 }
-                else {
-                    // A value is needed to ensure the simulation algorithm works correctly
-                    row.setLoad(0D);
-                }
+                row.setLoad(loadToSet);
+
                 rows.add(row);
                 active = active.plusMinutes(5);
             }
@@ -292,7 +321,6 @@ public class GenerationWorker extends Worker {
                 // Panel data
                 if (mPNLD) {
 
-                    int dbRowIndex = 0;
                     report("Loaded raw data");
 
                     double proportionOfPV = (double)stringSize/(double)totalPanelCount;
@@ -301,26 +329,36 @@ public class GenerationWorker extends Worker {
                     LocalDateTime active = LocalDateTime.of(2001, 1, 1, 0, 1);
                     LocalDateTime dbActive = active.plusMinutes(-1);
                     LocalDateTime end = LocalDateTime.of(2002, 1, 1, 0, 0);
-                    DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-                    DateTimeFormatter minFormat = DateTimeFormatter.ofPattern("HH:mm");
                     while (active.isBefore(end)) {
                         PanelData row = new PanelData();
                         row.setDo2001(active.getDayOfYear());
                         row.setPanelID(panelID);
-                        row.setDate(active.format(dateFormat));
-                        row.setMinute(active.format(minFormat));
+                        row.setDate(active.format(DATE_FORMAT));
+                        row.setMinute(active.format(MIN_FORMAT));
                         row.setDow(active.getDayOfWeek().getValue());
                         row.setMod(active.getHour() * 60 + active.getMinute());
                         // Not every 5 minute interval has data uploaded to AlphaESS
                         // The solar data is one minute ahead of the load and normalized data
-                        if (dbActive.format(minFormat).equals(dbRows.get(dbRowIndex).getMinute())) {
-                            row.setPv(dbRows.get(dbRowIndex).getPv() * proportionOfPV);
-                            dbRowIndex++;
+                        Integer doy = dbActive.getDayOfYear();
+                        String hhmm = dbActive.format(MIN_FORMAT);
+                        double pvToSet = 0D;
+                        Map<String, AlphaESSTransformedData> aDay = dbLookup.get(doy);
+                        if (!(null == aDay)) {
+                            AlphaESSTransformedData a5MinutePeriod = aDay.get(hhmm);
+                            if (!(null == a5MinutePeriod)) {
+                                pvToSet = a5MinutePeriod.getPv() * proportionOfPV;
+                            }
                         }
-                        else {
-                            // A value is needed to ensure the simulation algorithm works correctly
-                            row.setPv(0D);
-                        }
+                        row.setPv(pvToSet);
+
+//                        if (dbActive.format(minFormat).equals(dbRows.get(dbRowIndex).getMinute())) {
+//                            row.setPv(dbRows.get(dbRowIndex).getPv() * proportionOfPV);
+//                            dbRowIndex++;
+//                        }
+//                        else {
+//                            // A value is needed to ensure the simulation algorithm works correctly
+//                            row.setPv(0D);
+//                        }
                         rows.add(row);
                         active = active.plusMinutes(5);
                         dbActive = dbActive.plusMinutes(5);

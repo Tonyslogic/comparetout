@@ -312,7 +312,7 @@ public class ImportAlphaGenerateScenario extends Fragment {
                             ((wi.getState() == WorkInfo.State.RUNNING) ||
                                     (wi.getState() == WorkInfo.State.SUCCEEDED)) ) {
                         Data progress = wi.getProgress();
-                        mFetchState = progress.getString(DailyWorker.PROGRESS);
+                        mFetchState = progress.getString(GenerationWorker.PROGRESS);
                         if (null == mFetchState) mFetchState = "Unknown state";
                         String finalMFetchState = mFetchState;
                         mMainHandler.post(() -> mGenStatus.setText(finalMFetchState));
