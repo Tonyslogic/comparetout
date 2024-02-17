@@ -58,13 +58,6 @@
                 android:value="" />
         </activity>
         <activity
-            android:name=".scenario.loadprofile.hdf.HDFActivity"
-            android:exported="false">
-            <meta-data
-                android:name="android.app.lib_name"
-                android:value="" />
-        </activity>
-        <activity
             android:name=".scenario.ev.EVDivertActivity"
             android:exported="false">
             <meta-data
