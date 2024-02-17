@@ -398,6 +398,7 @@ public abstract class ImportOverviewFragment extends Fragment {
             materialDatePicker.addOnPositiveButtonClickListener(selection -> {
                 mCostViewModel.setSelectedStart(LocalDateTime.ofInstant(Instant.ofEpochMilli(selection.first), ZoneId.ofOffset("UTC", ZoneOffset.UTC)));
                 mCostViewModel.setSelectedEnd(LocalDateTime.ofInstant(Instant.ofEpochMilli(selection.second), ZoneId.ofOffset("UTC", ZoneOffset.UTC)).plusDays(1));
+                mCostViewModel.setTotalDaysSelected(DAYS.between(mCostViewModel.getSelectedStart(), mCostViewModel.getSelectedEnd()));
 
                 long days = DAYS.between(mCostViewModel.getSelectedStart(), mCostViewModel.getSelectedEnd());
                 if (days < 1) mCostViewModel.setSelectedDates("Too few days");
@@ -408,7 +409,6 @@ public abstract class ImportOverviewFragment extends Fragment {
                 if (days >= 1 && !(mCostViewModel.getSelectedStart().isBefore(mCostViewModel.getDBStart()))
                         && !(mCostViewModel.getSelectedEnd().plusDays(-1).isAfter(mCostViewModel.getDBEnd()))) {
                     mCostViewModel.setSelectedDates(mCostViewModel.getSelectedStart().format(DISPLAY_FORMAT) + " <-> " + mCostViewModel.getSelectedEnd().plusDays(-1).format(DISPLAY_FORMAT));
-                    mCostViewModel.setTotalDaysSelected(DAYS.between(mCostViewModel.getSelectedStart(), mCostViewModel.getSelectedEnd()));
                     mCostViewModel.setCostings(null);
                 }
                 mCostViewModel.setLoaded(true);
