@@ -138,7 +138,7 @@ public class ImportESBNActivity extends AppCompatActivity implements ImportSyste
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_hdf);
+        setContentView(R.layout.activity_import_alpha);
 
         if (!(null == savedInstanceState)) {
             mScenarioID = savedInstanceState.getLong(SCENARIO_KEY);

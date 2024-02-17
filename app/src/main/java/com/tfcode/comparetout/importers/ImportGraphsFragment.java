@@ -89,6 +89,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
@@ -409,16 +410,16 @@ public abstract class ImportGraphsFragment extends Fragment {
         });
 
         ImageButton mChartTypeButton = view.findViewById(R.id.chartType);
-        if (mChartView == ChartView.BAR) mChartTypeButton.setImageResource(R.drawable.barchart);
-        if (mChartView == ChartView.LINE) mChartTypeButton.setImageResource(R.drawable.line_chart);
-        if (mChartView == ChartView.PIE) mChartTypeButton.setImageResource(R.drawable.piechart_25);
+        if (mChartView == ChartView.BAR) mChartTypeButton.setImageResource(R.drawable.line_chart);
+        if (mChartView == ChartView.LINE) mChartTypeButton.setImageResource(R.drawable.piechart_25);
+        if (mChartView == ChartView.PIE) mChartTypeButton.setImageResource(R.drawable.barchart);
         mChartTypeButton.setOnClickListener(v -> {
             mChartView = mChartView.next();
-            if (mChartView == ChartView.BAR) mChartTypeButton.setImageResource(R.drawable.barchart);
+            if (mChartView == ChartView.BAR) mChartTypeButton.setImageResource(R.drawable.line_chart);
             if (mChartView == ChartView.LINE)
-                mChartTypeButton.setImageResource(R.drawable.line_chart);
-            if (mChartView == ChartView.PIE)
                 mChartTypeButton.setImageResource(R.drawable.piechart_25);
+            if (mChartView == ChartView.PIE)
+                mChartTypeButton.setImageResource(R.drawable.barchart);
             setSelectionText();
             updateKPIs();
         });
@@ -849,6 +850,9 @@ public abstract class ImportGraphsFragment extends Fragment {
     private void buildLineChart() {
         mLineChart.clear();
 
+        mLineChart.getLegend().setTextSize(17f);
+        mLineChart.getLegend().setForm(Legend.LegendForm.CIRCLE);
+
         mLineChart.getAxisLeft().setTextColor(Color.DKGRAY); // left y-axis
         mLineChart.getAxisRight().setTextColor(Color.DKGRAY); // right y-axis
         mLineChart.getXAxis().setEnabled(false);//setTextColor(Color.DKGRAY);
@@ -856,7 +860,14 @@ public abstract class ImportGraphsFragment extends Fragment {
         mLineChart.getDescription().setTextColor(Color.DKGRAY);
 
         mLineChart.getAxisLeft().setAxisMinimum(0F);
+        mLineChart.getAxisLeft().setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getFormattedValue(float value) {
+                return (((value == (long)value) ? String.format(Locale.UK,"%d", (long)value) : String.format("%s", value)) + " kWh");
+            }
+        });
         mLineChart.getAxisRight().setAxisMinimum(0F);
+        mLineChart.getAxisRight().setDrawLabels(false);
         mLineChart.getAxisLeft().setSpaceTop(5F);
         mLineChart.getAxisRight().setSpaceTop(5F);
 
@@ -873,7 +884,7 @@ public abstract class ImportGraphsFragment extends Fragment {
 
         LineDataSet loadSet = configureLine(loadEntries, Color.BLUE, "Load");
         LineDataSet feedSet = configureLine(feedEntries, Color.YELLOW, "Feed");
-        LineDataSet buySet = configureLine(buyEntries, Color.DKGRAY, "Buy");
+        LineDataSet buySet = configureLine(buyEntries, Color.CYAN, "Buy");
         LineDataSet pvSet = configureLine(pvEntries, Color.RED, "PV");
 
         ArrayList<ILineDataSet> dataSets = new ArrayList<>();
@@ -924,6 +935,9 @@ public abstract class ImportGraphsFragment extends Fragment {
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
         xAxis.setDrawGridLines(false);
 
+        mBarChart.getLegend().setTextSize(17f);
+        mBarChart.getLegend().setForm(Legend.LegendForm.CIRCLE);
+
         switch (mDisplayInterval) {
             case WEEK:
                 final String[] xLabels = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat",};
@@ -954,7 +968,14 @@ public abstract class ImportGraphsFragment extends Fragment {
         }
 
         mBarChart.getAxisLeft().setTextColor(Color.DKGRAY); // left y-axis
-        mBarChart.getAxisRight().setTextColor(Color.DKGRAY); // right y-axis
+        mBarChart.getAxisRight().setDrawLabels(false); //.setTextColor(Color.DKGRAY); // right y-axis
+        mBarChart.getAxisLeft().setValueFormatter(new ValueFormatter() {
+            @Override
+            public String getFormattedValue(float value) {
+                return (((value == (long)value) ?
+                        String.format(Locale.UK, "%d", (long)value) : String.format("%s", value)) + " kWh");
+            }
+        });
         mBarChart.getXAxis().setTextColor(Color.DKGRAY);
         mBarChart.getLegend().setTextColor(Color.DKGRAY);
         mBarChart.getDescription().setTextColor(Color.DKGRAY);
@@ -978,9 +999,9 @@ public abstract class ImportGraphsFragment extends Fragment {
         loadSet = new BarDataSet(loadEntries, "Load");
         loadSet.setColor(Color.BLUE);
         feedSet = new BarDataSet(feedEntries, "Feed");
-        feedSet.setColor(Color.DKGRAY);
+        feedSet.setColor(Color.YELLOW);
         buySet = new BarDataSet(buyEntries, "Buy");
-        buySet.setColor(Color.GREEN);
+        buySet.setColor(Color.CYAN);
         pvSet = new BarDataSet(pvEntries, "PV");
         pvSet.setColor(Color.RED);
 

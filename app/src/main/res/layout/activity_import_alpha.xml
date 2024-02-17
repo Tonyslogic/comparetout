@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  ~ Copyright (c) 2023. Tony Finnerty
+  ~ Copyright (c) 2023-2024. Tony Finnerty
   ~
   ~   Licensed under the Apache License, Version 2.0 (the "License");
   ~    you may not use this file except in compliance with the License.
@@ -28,10 +28,10 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="40dp"
-        android:layout_marginEnd="80dp"
+        android:layout_marginStart="80dp"
         android:clickable="true"
         android:contentDescription="@string/zoom"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         android:visibility="invisible"
         app:srcCompat="@android:drawable/ic_menu_zoom" />
