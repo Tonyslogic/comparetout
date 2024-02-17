@@ -7,10 +7,17 @@ Beta test version V1.25 (Ireland only, so far)
 
 > Sign up from your [browser](https://play.google.com/apps/testing/com.tfcode.comparetout)
 
-Internal test version V1.25 
+Internal test version V1.26 
 > [email me](mailto:tonysfreecode@gmail.com?subject=AlphaTest), with the email address used in your android play store account
 
 Read more on the [documentation site](https://github.com/Tonyslogic/comparetout-doc)
+
+V1.26
+
+* Added importer and visualization of ESB Network Smart Meter Data
+* BUG: Alignment of AlphaESS import data with simulation
+* BUG: Importer costing missed fixed charges if to date was in the future
+* Improved: Minor user experience improvements
 
 V1.25
 
