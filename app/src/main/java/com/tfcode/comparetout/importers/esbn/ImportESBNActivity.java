@@ -235,7 +235,7 @@ public class ImportESBNActivity extends AppCompatActivity implements ImportSyste
             return (true);
         }
         if (itemID == R.id.help) {
-            showHelp("https://appassets.androidplatform.net/assets/main/data/alphaess/help.html");
+            showHelp("https://appassets.androidplatform.net/assets/main/data/esbn/help.html");
         }
 
         return(super.onOptionsItemSelected(item));
@@ -256,13 +256,13 @@ public class ImportESBNActivity extends AppCompatActivity implements ImportSyste
 
         LinearLayout linearLayout = (LinearLayout)tabLayout.getChildAt(0);
         linearLayout.getChildAt(0).setOnLongClickListener(v -> {
-            showHelp("https://appassets.androidplatform.net/assets/main/data/alphaess/overview_tab.html");
+            showHelp("https://appassets.androidplatform.net/assets/main/data/esbn/overview_tab.html");
             return true;});
         linearLayout.getChildAt(1).setOnLongClickListener(v -> {
-            showHelp("https://appassets.androidplatform.net/assets/main/data/alphaess/graphs_tab.html");
+            showHelp("https://appassets.androidplatform.net/assets/main/data/esbn/graphs_tab.html");
             return true;});
         linearLayout.getChildAt(2).setOnLongClickListener(v -> {
-            showHelp("https://appassets.androidplatform.net/assets/main/data/alphaess/generate_tab.html");
+            showHelp("https://appassets.androidplatform.net/assets/main/data/esbn/generate_tab.html");
             return true;});
 
         mViewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {

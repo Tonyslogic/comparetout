@@ -1,0 +1,68 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="/assets/stylesheet.css">
+    </head>
+    <body>
+        <img style="float: right;" src="/res/drawable/launcher.png" alt="launcher" width="100">
+        <p><b>Help: Data graphs</b></p>
+        <p><a href="https://www.youtube.com/watch?v=vUdPhGrInnM">TODO Graphs</a></p>
+        <div style="clear: right">
+            <p>The top of the tab indicates the data range rendered in the graph.</p>
+            <img src="/res/drawable/data_range.png" alt="Date range" width="300">
+            <p>There are seven controls:</p>
+            <table>
+                <tr>
+                    <th>Icon</th>
+                    <th>Purpose</th>
+                    <th>Details</th>
+                </tr>
+                <tr>
+                    <td><img src="/res/drawable/ic_menu_gallery.png" alt="Display" width="48"></td>
+                    <td>Configure the x-axis and step increment</td>
+                    <td><p>The data may be rendered in groups of hours, weeks, days, months
+                        or years. To make it easier to change the selected date range, the
+                        next and previous buttons are configurable so you can align the grouping
+                        with the step size. Step options are: day, week, month and year.</p>
+                    </td>
+                </tr>
+                <tr>
+                    <td><img src="/res/drawable/sum.png" alt="Sum" width="48">
+                        <img src="/res/drawable/average.png" alt="Average" width="48"></td>
+                    <td>Sum or average values for given range</td>
+                    <td><p>Summing provides the totals of each selected data type for each hour/day/
+                        month/year visible in the graph across the selected date range.</p>
+                        <p>Averaging is the sum divided by the total selected range.</p>
+                        <p>Months are summed separately based on year, but averaged across years.</p></td>
+                </tr>
+                <tr>
+                    <td><img src="/res/drawable/prev.png" alt="Previous" width="48">
+                        <img src="/res/drawable/next.png" alt="Next" width="48"></td>
+                    <td>Skip forward or backwards by the configured step interval.</td>
+                    <td>When the last day of a month is selected in the range, and the step is
+                        monthly, the last day of the month is preserved. Otherwise the to date
+                        will be preserved when stepping.</td>
+                </tr>
+                <tr>
+                    <td><img src="/res/drawable/range.png" alt="Range" width="48"></td>
+                    <td>Select the date range to be rendered in the graph</td>
+                    <td>A standard date picker dialog to select a from and to date for the range.
+                        Date selection is inclusive.</td>
+                </tr>
+                <tr>
+                    <td><img src="/res/drawable/bar.png" alt="Bar" width="48">
+                        <img src="/res/drawable/line.png" alt="Line" width="48">
+                        <img src="/res/drawable/pie.png" alt="Pie" width="48"></td>
+                    <td>Select the type of graph to display</td>
+                    <td>Toggles between one of three graph types: Bar; Line; Pie.</td>
+                </tr>
+                <tr>
+                    <td><img src="/res/drawable/filter.png" alt="Filter" width="48"></td>
+                    <td>Select the date types to be rendered in the graph</td>
+                    <td>Shows or hides: Feed; Buy</td>
+                </tr>
+            </table>
+            <p>In landscape mode, the zoom button to the top left may be used to show/hide the
+                tabs and menu bar.</p>
+        </div>
+    </body>
+</html>

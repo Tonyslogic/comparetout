@@ -1,0 +1,70 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="/assets/stylesheet.css">
+    </head>
+    <body>
+        <img style="float: right;" src="/res/drawable/launcher.png" alt="launcher" width="100">
+        <p><b>Help: ESBN Smart meter loader</b></p>
+        <p><a href="https://www.youtube.com/watch?v=vUdPhGrInnM">TODO Managing ESBN Smart Meter</a></p>
+        <div style="clear: right">
+            <p>If you have a smart meter ESB Networks provide access to your smart meter data.
+                This data can be used to generate a load profile or estimate a bill for a
+                given period.</p>
+            <p>Using this tab, you can:</p>
+            <ul>
+                <li>Connect to ESBN by providing credentials (from
+                    <a href="https://www.esbnetworks.ie/"> ESB Networks</a>)</li>
+                <li>Select a meter registered with the above credentials. All the tabs use
+                    the meter selected here.</li>
+                <li>Fetch (once off and recurring) data from ESB Networks </li>
+                <li>Cost a date range from downloaded data (needs some 'costs' defined)  </li>
+                <li>Remove downloaded data from the database </li>
+                <li>Import previously downloaded HDF file</li>
+            </ul>
+
+            <p></p>
+            <p><b>Setting credentials</b></p>
+            <p>When you set credentials, you will be presented with a dialog to collect a user name
+                and password. Credentials are stored, encrypted, on your device.
+                To remove the credentials from the device, set empty values.</p>
+            <img src="/res/drawable/setcredentialsdialog.png" alt="Set Credentials" width="300">
+            <p>To get these two pieces of information you must register with ESB Networks.</p>
+            <p>If you have not already registered, you will need to find the instructions on the
+                ESBN page.</p>
+
+            <p><b>Fetching</b></p>
+            <p>Once you have selected a smart meter, you can fetch historical data.</p>
+            <p>Fetching starts from a date specified using a data picker. The app will start
+                a background process, 'Catchup', that will collect and process data one day at a time.
+                Progress is reported using notifications, and also with status text.</p>
+            <p>When catchup is complete, the app schedules a daily collection that runs sometime
+                after 02:00 whenever the device is not busy.</p>
+            <p>Catchup and daily collection may be canceled by 'STOP FETCHING'.</p>
+
+            <p><b>Import</b></p>
+            <p>Using the menu item (Open), data may be fetched from ESB Networks in a 'HDF' format.</p>
+            <p>HDF files can be downloaded from <a href="https://www.esbnetworks.ie/">ESB Networks</a>.</p>
+            <p>You need to login, using the person icon.</p>
+            <img src="/res/drawable/esbn_banner.png" alt="launcher" width="300">
+            <p>This will bring you to a login page.</p>
+            <img src="/res/drawable/esbn_sign_in.png" alt="launcher" width="300">
+            <p>If you have not already registered, you will need to find the instructions on the
+                ESBN page.</p>
+            <p>Once you have signed in, you need to scroll doww to locate the 'consumption'
+                link:</p>
+            <img src="/res/drawable/esbn_consumption.png" alt="launcher" width="300">
+            <p>Finally you can scroll down to the 'Download HDF' button on the page:</p>
+            <img src="/res/drawable/esbn_download.png" alt="launcher" width="300">
+            <p>Remember to save the file (the default Downloads is fine) somewhere that the
+                device can access.</p>
+
+            <p><b>Selection and costing</b></p>
+            <p>'COST DATES' will generate an estimated cost for the selected period.
+                This will be done for each supplier plan (cost) registered. Completed
+                cost calculations appear under the action buttons. Clicking on a costing
+                will display a pie chart of the price distribution for that supplier
+                plan.</p>
+
+        </div>
+    </body>
+</html>
