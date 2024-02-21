@@ -18,7 +18,6 @@ package com.tfcode.comparetout.scenario;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
-import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -750,32 +749,28 @@ public class ScenarioOverview extends Fragment {
         boolean hasHWSchedules = false;
         boolean hasEVDivert = false;
         boolean hasEVCharges = false;
-        if (mScenario.isHasInverters())
-            if (!(null == mScenarioComponents) && mScenarioComponents.inverters.size() > 0)
+        if (!(null == mScenarioComponents)) {
+            if (mScenario.isHasInverters() && mScenarioComponents.inverters.size() > 0)
                 hasInverters = true;
-        if (mScenario.isHasLoadProfiles()) hasLoadProfile = true;
-        if (mScenario.isHasPanels())
-            if (!(null == mScenarioComponents) && mScenarioComponents.panels.size() > 0)
+            if (mScenario.isHasLoadProfiles())
+                hasLoadProfile = true;
+            if (mScenario.isHasPanels() && mScenarioComponents.panels.size() > 0)
                 hasPanels = true;
-        if (mScenario.isHasBatteries())
-            if (!(null == mScenarioComponents) && mScenarioComponents.batteries.size() > 0)
+            if (mScenario.isHasBatteries() && mScenarioComponents.batteries.size() > 0)
                 hasBatteries = true;
-        if (mScenario.isHasLoadShifts())
-            if (!(null == mScenarioComponents) && mScenarioComponents.loadShifts.size() > 0)
+            if (mScenario.isHasLoadShifts() && mScenarioComponents.loadShifts.size() > 0)
                 hasLoadShifts = true;
-        if (mScenario.isHasHWSystem()) hasHWSystem = true;
-        if (mScenario.isHasHWDivert())
-            if(!(null == mScenarioComponents) && !(null == mScenarioComponents.hwDivert))
+            if (mScenario.isHasHWSystem())
+                hasHWSystem = true;
+            if (mScenario.isHasHWDivert() && !(null == mScenarioComponents.hwDivert))
                 hasHWDivert = mScenarioComponents.hwDivert.isActive();
-        if (mScenario.isHasHWSchedules())
-            if (!(null == mScenarioComponents) && mScenarioComponents.hwSchedules.size() > 0)
+            if (mScenario.isHasHWSchedules() && mScenarioComponents.hwSchedules.size() > 0)
                 hasHWSchedules = true;
-        if (mScenario.isHasEVDivert())
-            if (!(null == mScenarioComponents) && mScenarioComponents.evDiverts.size() > 0)
+            if (mScenario.isHasEVDivert() && mScenarioComponents.evDiverts.size() > 0)
                 hasEVDivert = true;
-        if (mScenario.isHasEVCharges())
-            if (!(null == mScenarioComponents) && mScenarioComponents.evCharges.size() > 0)
+            if (mScenario.isHasEVCharges() && mScenarioComponents.evCharges.size() > 0)
                 hasEVCharges = true;
+        }
         ImageView panelSun = fragmentView.findViewById(R.id.panelSun);
         ImageView panelLock = fragmentView.findViewById(R.id.panelLock);
         ImageView panelTick = fragmentView.findViewById(R.id.panelTick);
