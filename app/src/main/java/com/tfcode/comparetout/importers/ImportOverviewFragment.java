@@ -240,6 +240,10 @@ public abstract class ImportOverviewFragment extends Fragment {
             if (null == mInverterDateRangesBySN) mInverterDateRangesBySN = new HashMap<>();
             for (InverterDateRange inverterDateRange : dateRanges) {
                 mInverterDateRangesBySN.put(inverterDateRange.sysSn, inverterDateRange.startDate + " <-> " + inverterDateRange.finishDate);
+                if (!(null == mSerialNumber) && inverterDateRange.sysSn.equals(mSerialNumber)) {
+                    mCostViewModel.setDBStart(LocalDateTime.parse(inverterDateRange.startDate + MIDNIGHT, PARSER_FORMATTER));
+                    mCostViewModel.setDBEnd(LocalDateTime.parse(inverterDateRange.finishDate + MIDNIGHT, PARSER_FORMATTER));
+                }
                 mMainHandler.post(ImportOverviewFragment.this::updateView);
             }
         });
@@ -385,10 +389,8 @@ public abstract class ImportOverviewFragment extends Fragment {
             selectDatesButton.setText(R.string.select_dates);
             selectDatesButton.setEnabled(!(null == mInverterDateRangesBySN) && !(null == mInverterDateRangesBySN.get(mSerialNumber)));
             CalendarConstraints.Builder calendarConstraintsBuilder = new CalendarConstraints.Builder();
-            if (mCostViewModel.isReadyToCost()) {
-                calendarConstraintsBuilder.setEnd(mCostViewModel.getDBEnd().atZone(ZoneId.ofOffset("UTC", ZoneOffset.UTC)).toInstant().toEpochMilli());
-                calendarConstraintsBuilder.setStart(mCostViewModel.getDBStart().atZone(ZoneId.ofOffset("UTC", ZoneOffset.UTC)).toInstant().toEpochMilli());
-            }
+            calendarConstraintsBuilder.setEnd(mCostViewModel.getDBEnd().atZone(ZoneId.ofOffset("UTC", ZoneOffset.UTC)).toInstant().toEpochMilli());
+            calendarConstraintsBuilder.setStart(mCostViewModel.getDBStart().atZone(ZoneId.ofOffset("UTC", ZoneOffset.UTC)).toInstant().toEpochMilli());
             MaterialDatePicker.Builder<Pair<Long, Long>> materialDateBuilder = MaterialDatePicker.Builder
                     .dateRangePicker()
                     .setCalendarConstraints(calendarConstraintsBuilder.build());
@@ -400,19 +402,26 @@ public abstract class ImportOverviewFragment extends Fragment {
                 mCostViewModel.setSelectedEnd(LocalDateTime.ofInstant(Instant.ofEpochMilli(selection.second), ZoneId.ofOffset("UTC", ZoneOffset.UTC)).plusDays(1));
                 mCostViewModel.setTotalDaysSelected(DAYS.between(mCostViewModel.getSelectedStart(), mCostViewModel.getSelectedEnd()));
 
-                long days = DAYS.between(mCostViewModel.getSelectedStart(), mCostViewModel.getSelectedEnd());
-                if (days < 1) mCostViewModel.setSelectedDates("Too few days");
-                if (mCostViewModel.getSelectedStart().isBefore(mCostViewModel.getDBStart()))
-                    mCostViewModel.setSelectedDates("Start not available");
-                if (mCostViewModel.getSelectedEnd().isAfter(mCostViewModel.getDBEnd().plusDays(1)))
-                    mCostViewModel.setSelectedDates("End not available");
-                if (days >= 1 && !(mCostViewModel.getSelectedStart().isBefore(mCostViewModel.getDBStart()))
-                        && !(mCostViewModel.getSelectedEnd().plusDays(-1).isAfter(mCostViewModel.getDBEnd()))) {
-                    mCostViewModel.setSelectedDates(mCostViewModel.getSelectedStart().format(DISPLAY_FORMAT) + " <-> " + mCostViewModel.getSelectedEnd().plusDays(-1).format(DISPLAY_FORMAT));
+                LocalDateTime selectedStart = mCostViewModel.getSelectedStart();
+                LocalDateTime selectedEnd = mCostViewModel.getSelectedEnd();
+                LocalDateTime dbStart = mCostViewModel.getDBStart();
+                LocalDateTime dbEnd = mCostViewModel.getDBEnd();
+
+                long days = DAYS.between(selectedStart, selectedEnd);
+                if (days < 1 || selectedStart.isBefore(dbStart) || selectedEnd.isAfter(dbEnd.plusDays(1))) {
+                    if (days < 1) {
+                        mCostViewModel.setSelectedDates("Too few days");
+                    } else if (selectedStart.isBefore(dbStart)) {
+                        mCostViewModel.setSelectedDates("Start not available");
+                    } else {
+                        mCostViewModel.setSelectedDates("End not available");
+                    }
+                    mCostViewModel.setReadyToCost(false);
+                } else {
+                    mCostViewModel.setSelectedDates(selectedStart.format(DISPLAY_FORMAT) + " <-> " + selectedEnd.plusDays(-1).format(DISPLAY_FORMAT));
                     mCostViewModel.setCostings(null);
+                    mCostViewModel.setReadyToCost(true);
                 }
-                mCostViewModel.setLoaded(true);
-//                loadSelectedDatesIntoCostViewModel();
                 updateView();
             });
 
