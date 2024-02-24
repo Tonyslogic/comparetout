@@ -153,6 +153,10 @@ public class ExportWorker extends Worker {
 
         } catch (IOException e) {
             e.printStackTrace();
+            progress = "Export abandoned: Missing permission or file exists";
+            setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
+            foregroundInfo = createForegroundInfo(progress);
+            mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
         } finally {
             if (!(null == jsonWriter)) {
                 try {

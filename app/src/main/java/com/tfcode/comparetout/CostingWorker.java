@@ -88,8 +88,9 @@ public class CostingWorker extends Worker {
 
                 // For each scenario -> load; For each price plan -> apply costs
                 for (long scenarioID : scenarioIDs) {
+                    Scenario scenario = mToutcRepository.getScenarioForID(scenarioID);
                     // Get the simulation output
-                    builder.setContentText("Loading data");
+                    builder.setContentText("Loading data: " + scenario.getScenarioName());
                     notificationManager.notify(notificationId, builder.build());
                     List<ScenarioSimulationData> scenarioData = mToutcRepository.getSimulationDataForScenario(scenarioID);
                     double gridExportMax = mToutcRepository.getGridExportMaxForScenario(scenarioID);
@@ -112,7 +113,6 @@ public class CostingWorker extends Worker {
                             }
                             Costings costing = new Costings();
                             costing.setScenarioID(scenarioID);
-                            Scenario scenario = mToutcRepository.getScenarioForID(scenarioID);
                             costing.setScenarioName(scenario.getScenarioName());
                             costing.setPricePlanID(pp.getPricePlanIndex());
                             costing.setFullPlanName(pp.getSupplier() + ":" + pp.getPlanName());
