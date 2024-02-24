@@ -389,6 +389,8 @@ public abstract class ImportOverviewFragment extends Fragment {
             selectDatesButton.setText(R.string.select_dates);
             selectDatesButton.setEnabled(!(null == mInverterDateRangesBySN) && !(null == mInverterDateRangesBySN.get(mSerialNumber)));
             CalendarConstraints.Builder calendarConstraintsBuilder = new CalendarConstraints.Builder();
+            if (null == mCostViewModel.getDBEnd()) mCostViewModel.setDBEnd(LocalDateTime.now());
+            if (null == mCostViewModel.getDBStart()) mCostViewModel.setDBStart(LocalDateTime.now());
             calendarConstraintsBuilder.setEnd(mCostViewModel.getDBEnd().atZone(ZoneId.ofOffset("UTC", ZoneOffset.UTC)).toInstant().toEpochMilli());
             calendarConstraintsBuilder.setStart(mCostViewModel.getDBStart().atZone(ZoneId.ofOffset("UTC", ZoneOffset.UTC)).toInstant().toEpochMilli());
             MaterialDatePicker.Builder<Pair<Long, Long>> materialDateBuilder = MaterialDatePicker.Builder

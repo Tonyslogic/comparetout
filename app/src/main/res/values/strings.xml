@@ -224,7 +224,7 @@
     <string name="esbn_hdf_file">ESBN Smart Meter Data</string>
     <string name="dataMgmtOnScreenHelp">Manage your data sources</string>
     <string name="alphaess_export_notification_title">AlphaESS Export</string>
-    <string name="export_alpha_channel_id">AlphaESS Export</string>
+    <string name="alphaess_channel_id">AlphaESS Importer</string>
     <string name="alphaess_import_notification_title">AlphaESS file import</string>
     <string name="zoom">Show or hide the menu bar and tabs</string>
     <string name="display_scale">Display scale</string>
@@ -282,4 +282,16 @@
     <string name="data_load_race_mesage">Data update in progress, try again in a moment</string>
     <string name="esbn_import_notification_title">Smart meter file import</string>
     <string name="generate_profile">Generate profile</string>
+    <string name="cost_notification_title">Calculating costs</string>
+    <string name="cost_notification_text">Calculation in progress</string>
+    <string name="simulate_notification_title">Simulating scenarios</string>
+    <string name="simulate_notification_text">Simulation in progress</string>
+    <string name="pvgis_notification_title">Loading panel data</string>
+    <string name="pvgis_notification_text">Reading raw data file</string>
+    <string name="load_gen_notification_title">Generating load data</string>
+    <string name="load_gen_notification_text">Generation in progress</string>
+    <string name="alphaess_channel_name">AlphaESS Progress</string>
+    <string name="esbn_channel_id">ESBN Importer</string>
+    <string name="esbn_channel_name">ESBN Progress</string>
+    <string name="fetch_esbn_notification_title">ESBN Catchup</string>
 </resources>

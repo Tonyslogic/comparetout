@@ -27,13 +27,13 @@ import androidx.core.app.NotificationManagerCompat;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
-import com.tfcode.comparetout.model.scenario.Scenario;
-import com.tfcode.comparetout.util.RateLookup;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.costings.Costings;
 import com.tfcode.comparetout.model.costings.SubTotals;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
+import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
+import com.tfcode.comparetout.util.RateLookup;
 
 import java.util.HashMap;
 import java.util.List;
@@ -57,14 +57,18 @@ public class CostingWorker extends Worker {
         mToutcRepository.pruneCostings();
         List<Long> scenarioIDs = mToutcRepository.getAllScenariosThatMayNeedCosting();
 
+        Context context = getApplicationContext();
+        String  title= context.getString(R.string.cost_notification_title); //"Calculating costs"
+        String text = context.getString(R.string.cost_notification_text); //"Calculation in progress"
+
         try {
             if (scenarioIDs.size() > 0) {
                 // NOTIFICATION SETUP
                 int notificationId = 1;
                 NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
                 NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
-                builder.setContentTitle("Calculating costs")
-                        .setContentText("Calculation in progress")
+                builder.setContentTitle(title)
+                        .setContentText(text)
                         .setSmallIcon(R.drawable.housetick)
                         .setPriority(NotificationCompat.PRIORITY_LOW)
                         .setTimeoutAfter(30000)

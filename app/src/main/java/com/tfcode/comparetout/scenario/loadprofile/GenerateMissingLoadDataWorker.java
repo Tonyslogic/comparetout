@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023. Tony Finnerty
+ * Copyright (c) 2023-2024. Tony Finnerty
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -57,13 +57,17 @@ public class GenerateMissingLoadDataWorker extends Worker {
     public ListenableWorker.Result doWork() {
         List<Long> missing = mToutcRepository.checkForMissingLoadProfileData();
 
+        Context context = getApplicationContext();
+        String  title= context.getString(R.string.load_gen_notification_title);
+        String text = context.getString(R.string.load_gen_notification_text);
+
         if (missing.size() > 0) {
             // NOTIFICATION SETUP
             int notificationId = 1;
             NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
             NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
-            builder.setContentTitle("Generating load data")
-                    .setContentText("Generation in progress")
+            builder.setContentTitle(title)
+                    .setContentText(text)
                     .setSmallIcon(R.drawable.house)
                     .setPriority(NotificationCompat.PRIORITY_LOW)
                     .setTimeoutAfter(30000)

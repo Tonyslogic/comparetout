@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023. Tony Finnerty
+ * Copyright (c) 2023-2024. Tony Finnerty
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -76,6 +76,10 @@ public class PVGISLoader extends Worker {
     public Result doWork() {
         Long panelID = getInputData().getLong("panelID", 0);
 
+        Context context = getApplicationContext();
+        String  title= context.getString(R.string.pvgis_notification_title);
+        String text = context.getString(R.string.pvgis_notification_text);
+
         Panel mPanel = mToutcRepository.getPanelForID(panelID);
         DecimalFormat df = new DecimalFormat("#.000");
         String latitude = df.format(mPanel.getLatitude());
@@ -89,8 +93,8 @@ public class PVGISLoader extends Worker {
             int notificationId = 1;
             NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
             NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
-            builder.setContentTitle("Loading panel data")
-                    .setContentText("Reading raw data file")
+            builder.setContentTitle(title)
+                    .setContentText(text)
                     .setSmallIcon(R.drawable.housetick)
                     .setPriority(NotificationCompat.PRIORITY_LOW)
                     .setTimeoutAfter(30000)

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023. Tony Finnerty
+ * Copyright (c) 2023-2024. Tony Finnerty
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -17,7 +17,6 @@
 package com.tfcode.comparetout.scenario;
 
 import static com.tfcode.comparetout.MainActivity.CHANNEL_ID;
-
 import static java.lang.Double.max;
 import static java.lang.Double.min;
 
@@ -86,14 +85,18 @@ public class SimulationWorker extends Worker {
     public Result doWork() {
         List<Long> scenarioIDs = mToutcRepository.getAllScenariosThatNeedSimulation();
 
+        Context context = getApplicationContext();
+        String  title= context.getString(R.string.simulate_notification_title);
+        String text = context.getString(R.string.simulate_notification_text);
+
         try {
             if (scenarioIDs.size() > 0) {
                 // NOTIFICATION SETUP
                 int notificationId = 1;
                 NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
                 NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
-                builder.setContentTitle("Simulating scenarios")
-                        .setContentText("Simulation in progress")
+                builder.setContentTitle(title)
+                        .setContentText(text)
                         .setSmallIcon(R.drawable.housetick)
                         .setPriority(NotificationCompat.PRIORITY_LOW)
                         .setTimeoutAfter(20000)

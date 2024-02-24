@@ -52,7 +52,7 @@ public class ESBNCatchUpWorker extends Worker {
 
     private final ToutcRepository mToutcRepository;
     private final NotificationManager mNotificationManager;
-    private static final int mNotificationId = 2;
+    private static final int mNotificationId = 3;
     private boolean mStopped = false;
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -204,8 +204,8 @@ public class ESBNCatchUpWorker extends Worker {
         // Build a notification using bytesRead and contentLength
 
         Context context = getApplicationContext();
-        String id = context.getString(R.string.fetch_alpha_channel_id);
-        String title = context.getString(R.string.fetch_alpha_notification_title);
+        String id = context.getString(R.string.esbn_channel_id);
+        String title = context.getString(R.string.fetch_esbn_notification_title);
         String cancel = context.getString(R.string.cancel_fetch_alpha);
         // This PendingIntent can be used to cancel the worker
         PendingIntent intent = WorkManager.getInstance(context)
@@ -231,11 +231,11 @@ public class ESBNCatchUpWorker extends Worker {
 
     private void createChannel() {
         // Create a Notification channel
-        CharSequence name = getApplicationContext().getString(R.string.channel_name);
+        CharSequence name = getApplicationContext().getString(R.string.esbn_channel_name);
         String description = getApplicationContext().getString(R.string.channel_description);
         int importance = NotificationManager.IMPORTANCE_DEFAULT;
         NotificationChannel channel = new NotificationChannel(
-                getApplicationContext().getString(R.string.fetch_alpha_channel_id), name, importance);
+                getApplicationContext().getString(R.string.esbn_channel_id), name, importance);
         channel.setDescription(description);
         // Register the channel with the system. You can't change the importance
         // or other notification behaviors after this.

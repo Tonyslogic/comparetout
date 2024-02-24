@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023. Tony Finnerty
+ * Copyright (c) 2023-2024. Tony Finnerty
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -47,7 +47,6 @@ import com.tfcode.comparetout.model.json.AlphaESSJsonTools;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.time.LocalDate;
 import java.util.List;
 
 public class ExportWorker extends Worker {
@@ -181,7 +180,7 @@ public class ExportWorker extends Worker {
         // Build a notification using bytesRead and contentLength
 
         Context context = getApplicationContext();
-        String id = context.getString(R.string.export_alpha_channel_id);
+        String id = context.getString(R.string.alphaess_channel_id);
         String title = context.getString(R.string.alphaess_export_notification_title);
         String cancel = context.getString(R.string.cancel_fetch_alpha);
         // This PendingIntent can be used to cancel the worker
@@ -208,11 +207,11 @@ public class ExportWorker extends Worker {
 
     private void createChannel() {
         // Create a Notification channel
-        CharSequence name = getApplicationContext().getString(R.string.channel_name);
+        CharSequence name = getApplicationContext().getString(R.string.alphaess_channel_name);
         String description = getApplicationContext().getString(R.string.channel_description);
         int importance = NotificationManager.IMPORTANCE_DEFAULT;
         NotificationChannel channel = new NotificationChannel(
-                getApplicationContext().getString(R.string.export_alpha_channel_id), name, importance);
+                getApplicationContext().getString(R.string.alphaess_channel_id), name, importance);
         channel.setDescription(description);
         // Register the channel with the system. You can't change the importance
         // or other notification behaviors after this.
