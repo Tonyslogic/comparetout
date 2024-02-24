@@ -23,7 +23,9 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.app.TaskStackBuilder;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Environment;
 
 import androidx.annotation.NonNull;
@@ -188,8 +190,14 @@ public class ExportWorker extends Worker {
         String title = context.getString(R.string.alphaess_export_notification_title);
         String cancel = context.getString(R.string.cancel_fetch_alpha);
         // This PendingIntent can be used to cancel the worker
-        PendingIntent intent = WorkManager.getInstance(context)
+        PendingIntent cancelPendingIntent = WorkManager.getInstance(context)
                 .createCancelPendingIntent(getId());
+
+        Intent importAlphaActivity = new Intent(context, ImportAlphaActivity.class);
+        TaskStackBuilder stackBuilder = TaskStackBuilder.create(context);
+        stackBuilder.addNextIntentWithParentStack(importAlphaActivity);
+        PendingIntent activityPendingIntent = stackBuilder.getPendingIntent(0,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
         createChannel();
 
@@ -201,9 +209,10 @@ public class ExportWorker extends Worker {
                 .setOngoing(true)
                 .setAutoCancel(true)
                 .setSilent(true)
+                .setContentIntent(activityPendingIntent)
                 // Add the cancel action to the notification which can
                 // be used to cancel the worker
-                .addAction(android.R.drawable.ic_delete, cancel, intent)
+                .addAction(android.R.drawable.ic_delete, cancel, cancelPendingIntent)
                 .build();
 
         return new ForegroundInfo(mNotificationId, notification);

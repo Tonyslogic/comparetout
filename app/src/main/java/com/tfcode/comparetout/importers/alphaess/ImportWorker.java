@@ -23,7 +23,9 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
+import android.app.TaskStackBuilder;
 import android.content.Context;
+import android.content.Intent;
 import android.net.Uri;
 
 import androidx.annotation.NonNull;
@@ -219,6 +221,12 @@ public class ImportWorker extends Worker {
         PendingIntent intent = WorkManager.getInstance(context)
                 .createCancelPendingIntent(getId());
 
+        Intent importAlphaActivity = new Intent(context, ImportAlphaActivity.class);
+        TaskStackBuilder stackBuilder = TaskStackBuilder.create(context);
+        stackBuilder.addNextIntentWithParentStack(importAlphaActivity);
+        PendingIntent activityPendingIntent = stackBuilder.getPendingIntent(0,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
         createChannel();
 
         Notification notification = new NotificationCompat.Builder(context, id)
@@ -229,6 +237,7 @@ public class ImportWorker extends Worker {
                 .setOngoing(true)
                 .setAutoCancel(true)
                 .setSilent(true)
+                .setContentIntent(activityPendingIntent)
                 // Add the cancel action to the notification which can
                 // be used to cancel the worker
                 .addAction(android.R.drawable.ic_delete, cancel, intent)
