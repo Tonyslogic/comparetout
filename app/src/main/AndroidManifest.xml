@@ -66,10 +66,10 @@
         </activity>
         <activity
             android:name=".importers.alphaess.ImportAlphaActivity"
+            android:parentActivityName=".MainActivity"
             android:exported="false">
             <meta-data
                 android:name="android.app.lib_name"
-                android:parentActivityName=".MainActivity"
                 android:value="" />
         </activity>
         <activity
