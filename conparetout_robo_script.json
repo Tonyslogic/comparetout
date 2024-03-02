@@ -679,42 +679,5 @@
         "text": ""
       }
     ]
-  },
-  {
-    "eventType": "VIEW_CLICKED",
-    "timestamp": 1709370083227,
-    "replacementText": "",
-    "actionCode": -1,
-    "delayTime": 0,
-    "canScrollTo": false,
-    "elementDescriptors": [
-      {
-        "className": "android.widget.TableRow",
-        "recyclerViewChildPosition": -1,
-        "adapterViewChildPosition": -1,
-        "groupViewChildPosition": 1,
-        "resourceId": "",
-        "contentDescription": "",
-        "text": ""
-      },
-      {
-        "className": "android.widget.TableLayout",
-        "recyclerViewChildPosition": -1,
-        "adapterViewChildPosition": -1,
-        "groupViewChildPosition": 0,
-        "resourceId": "com.tfcode.comparetout:id/comparisonTable",
-        "contentDescription": "",
-        "text": ""
-      },
-      {
-        "className": "androidx.core.widget.NestedScrollView",
-        "recyclerViewChildPosition": -1,
-        "adapterViewChildPosition": -1,
-        "groupViewChildPosition": 0,
-        "resourceId": "com.tfcode.comparetout:id/comparisonTableHolder",
-        "contentDescription": "",
-        "text": ""
-      }
-    ]
   }
 ]
