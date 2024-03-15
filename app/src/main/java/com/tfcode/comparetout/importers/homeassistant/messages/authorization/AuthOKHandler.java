@@ -14,29 +14,27 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.importers.homeassistant.messages;
+package com.tfcode.comparetout.importers.homeassistant.messages.authorization;
 
-import com.tfcode.comparetout.importers.homeassistant.messages.StatsForPeriodResult.StatsForPeriodResult;
+import com.tfcode.comparetout.importers.homeassistant.HADispatcher;
+import com.tfcode.comparetout.importers.homeassistant.messages.HAMessage;
+import com.tfcode.comparetout.importers.homeassistant.MessageHandler;
 
-import java.util.logging.Logger;
+public class AuthOKHandler implements MessageHandler<AuthRequired> {
 
-public class StatsForPeriodResultHandler implements MessageHandler<StatsForPeriodResult>{
+    private final HADispatcher dispatcher;
 
-    private static final Logger LOGGER = Logger.getLogger(StatsForPeriodResultHandler.class.getName());
-
+    public AuthOKHandler(HADispatcher dispatcher) {
+        this.dispatcher = dispatcher;
+    }
     @Override
     public void handleMessage(HAMessage message) {
-        StatsForPeriodResult result = (StatsForPeriodResult) message;
-        if (result.isSuccess()) {
-            LOGGER.info("StatsForPeriodResultHandler.handleMessage.success");
-        }
-        else {
-            LOGGER.info("StatsForPeriodResultHandler.handleMessage.failure");
-        }
+        AuthOK authRequired = (AuthOK) message;
+        dispatcher.setAuthorized(true);
     }
 
     @Override
     public Class<? extends HAMessage> getMessageClass() {
-        return StatsForPeriodResult.class;
+        return AuthOK.class;
     }
 }

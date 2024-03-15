@@ -14,20 +14,16 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.importers.homeassistant.messages.StatsForPeriodResult;
+package com.tfcode.comparetout.importers.homeassistant.messages.energyPrefsResult;
 
 import com.google.gson.annotations.SerializedName;
 import com.tfcode.comparetout.importers.homeassistant.messages.HAMessageWithID;
 
-import java.util.List;
-import java.util.Map;
-
-public class StatsForPeriodResult extends HAMessageWithID {
+public class EnergyPrefsResult extends HAMessageWithID {
     @SerializedName("success")
     private boolean success;
     @SerializedName("result")
-    private Map<String, List<SensorData>> result;
-
+    private Result result;
     public boolean isSuccess() {
         return success;
     }
@@ -36,11 +32,12 @@ public class StatsForPeriodResult extends HAMessageWithID {
         this.success = success;
     }
 
-    public Map<String, List<SensorData>> getResult() {
+    public Result getResult() {
         return result;
     }
 
-    public void setResult(Map<String, List<SensorData>> result) {
+    public void setResult(Result result) {
         this.result = result;
     }
 }
+

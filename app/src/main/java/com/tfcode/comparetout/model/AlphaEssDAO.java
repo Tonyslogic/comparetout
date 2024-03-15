@@ -71,6 +71,9 @@ public abstract class AlphaEssDAO {
     @Query("SELECT sysSn, MIN(date) AS start, MAX(date) AS finish FROM alphaESSTransformedData GROUP by sysSn")
     public abstract LiveData<List<InverterDateRange>> loadESBNHDFDateRanges();
 
+    @Query("SELECT sysSn, MIN(date) AS start, MAX(date) AS finish FROM alphaESSTransformedData GROUP by sysSn")
+    public abstract LiveData<List<InverterDateRange>> loadHomeAssistantDateRange();
+
     @Query("SELECT CASE WHEN EXISTS (SELECT sysSn, theDate FROM alphaESSRawEnergy WHERE sysSn = :sysSn AND theDate = :date) THEN 1 ELSE 0 END AS date_exists")
     public abstract boolean checkSysSnForDataOnDate(String sysSn, String date);
 

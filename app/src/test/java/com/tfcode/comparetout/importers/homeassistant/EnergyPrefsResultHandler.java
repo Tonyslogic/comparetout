@@ -14,11 +14,12 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.importers.homeassistant.messages;
+package com.tfcode.comparetout.importers.homeassistant;
 
-import com.tfcode.comparetout.importers.homeassistant.messages.EnergyPrefsResult.EnergyPrefsResult;
-import com.tfcode.comparetout.importers.homeassistant.messages.EnergyPrefsResult.EnergySource;
-import com.tfcode.comparetout.importers.homeassistant.messages.EnergyPrefsResult.Flow;
+import com.tfcode.comparetout.importers.homeassistant.messages.HAMessage;
+import com.tfcode.comparetout.importers.homeassistant.messages.energyPrefsResult.EnergyPrefsResult;
+import com.tfcode.comparetout.importers.homeassistant.messages.energyPrefsResult.EnergySource;
+import com.tfcode.comparetout.importers.homeassistant.messages.energyPrefsResult.Flow;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,7 +27,7 @@ import java.util.Optional;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-public class EnergyPrefsResultHandler implements MessageHandler<EnergyPrefsResult>{
+public class EnergyPrefsResultHandler implements MessageHandler<EnergyPrefsResult> {
 
     private static final Logger LOGGER = Logger.getLogger(EnergyPrefsResultHandler.class.getName());
 

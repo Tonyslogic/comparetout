@@ -14,25 +14,25 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.importers.homeassistant.messages;
+package com.tfcode.comparetout.importers.homeassistant;
 
-import com.tfcode.comparetout.importers.homeassistant.HADispatcher;
+import android.content.Context;
 
-public class AuthOKHandler implements MessageHandler<AuthRequired>{
+import androidx.annotation.NonNull;
+import androidx.work.Worker;
+import androidx.work.WorkerParameters;
 
-    private final HADispatcher dispatcher;
-
-    public AuthOKHandler(HADispatcher dispatcher) {
-        this.dispatcher = dispatcher;
+public class HACatchupWorker extends Worker {
+    public static final String KEY_APP_ID = "KEY_APP_ID";
+    public static final String KEY_APP_SECRET = "KEY_APP_SECRET";
+    public static final String KEY_START_DATE = "KEY_START_DATE";
+    public HACatchupWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
+        super(context, workerParams);
     }
-    @Override
-    public void handleMessage(HAMessage message) {
-        AuthOK authRequired = (AuthOK) message;
-        dispatcher.setAuthorized(true);
-    }
 
+    @NonNull
     @Override
-    public Class<? extends HAMessage> getMessageClass() {
-        return AuthOK.class;
+    public Result doWork() {
+        return Result.success();
     }
 }

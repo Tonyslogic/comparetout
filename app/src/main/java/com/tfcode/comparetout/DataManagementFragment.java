@@ -41,6 +41,7 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.importers.alphaess.ImportAlphaActivity;
 import com.tfcode.comparetout.importers.esbn.ImportESBNActivity;
+import com.tfcode.comparetout.importers.homeassistant.ImportHomeAssistantActivity;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 
@@ -156,9 +157,11 @@ public class DataManagementFragment extends Fragment {
         mHomeAssistant.setOnClickListener(v -> {
             Activity activity = getActivity();
             if (!(null == activity)) {
-                if (!(null == getView())) Snackbar.make(getView(),
-                                "TODO: Add Home Assistant integration", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                Intent intent = new Intent(activity, ImportHomeAssistantActivity.class);
+                startActivity(intent);
+//                if (!(null == getView())) Snackbar.make(getView(),
+//                                "TODO: Add Home Assistant integration", Snackbar.LENGTH_LONG)
+//                        .setAction("Action", null).show();
             }
         });
 

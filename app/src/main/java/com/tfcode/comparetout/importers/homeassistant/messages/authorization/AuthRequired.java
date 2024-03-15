@@ -14,31 +14,29 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.importers.homeassistant.messages.EnergyPrefsResult;
+package com.tfcode.comparetout.importers.homeassistant.messages.authorization;
 
 import com.google.gson.annotations.SerializedName;
 import com.tfcode.comparetout.importers.homeassistant.messages.HAMessage;
-import com.tfcode.comparetout.importers.homeassistant.messages.HAMessageWithID;
 
-public class EnergyPrefsResult extends HAMessageWithID {
-    @SerializedName("success")
-    private boolean success;
-    @SerializedName("result")
-    private Result result;
-    public boolean isSuccess() {
-        return success;
+public class AuthRequired extends HAMessage {
+
+    @SerializedName("ha_version")
+    private String haVersion;
+
+    public String getHaVersion() {
+        return haVersion;
     }
 
-    public void setSuccess(boolean success) {
-        this.success = success;
+    public void setHaVersion(String haVersion) {
+        this.haVersion = haVersion;
     }
 
-    public Result getResult() {
-        return result;
+    public int getId() {
+        return 0;
     }
 
-    public void setResult(Result result) {
-        this.result = result;
+    public void setId(int id) {
+
     }
 }
-

@@ -14,10 +14,34 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.importers.homeassistant.messages;
+package com.tfcode.comparetout.importers.homeassistant.messages.statsForPeriodResult;
 
-public interface MessageHandler<T> {
-    void handleMessage(HAMessage message);
+public class SensorData {
+    private long start;
+    private long end;
+    private double change;
 
-    Class<? extends HAMessage> getMessageClass();
+    public long getStart() {
+        return start;
+    }
+
+    public void setStart(long start) {
+        this.start = start;
+    }
+
+    public long getEnd() {
+        return end;
+    }
+
+    public void setEnd(long end) {
+        this.end = end;
+    }
+
+    public double getChange() {
+        return change;
+    }
+
+    public void setChange(double change) {
+        this.change = change;
+    }
 }

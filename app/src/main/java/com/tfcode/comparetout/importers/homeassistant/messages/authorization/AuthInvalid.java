@@ -14,25 +14,31 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.importers.homeassistant.messages;
+package com.tfcode.comparetout.importers.homeassistant.messages.authorization;
 
-import com.tfcode.comparetout.importers.homeassistant.HADispatcher;
+import com.google.gson.annotations.SerializedName;
+import com.tfcode.comparetout.importers.homeassistant.messages.HAMessage;
 
-public class AuthInvalidHandler implements MessageHandler<AuthRequired>{
+public class AuthInvalid extends HAMessage {
 
-    private final HADispatcher dispatcher;
-
-    public AuthInvalidHandler(HADispatcher dispatcher) {
-        this.dispatcher = dispatcher;
-    }
-    @Override
-    public void handleMessage(HAMessage message) {
-        AuthInvalid authInvalid = (AuthInvalid) message;
-        dispatcher.setAuthorized(false);
+    public AuthInvalid(String message) {
+        setType("auth_invalid");
+        setMessage(message);
     }
 
-    @Override
-    public Class<? extends HAMessage> getMessageClass() {
-        return AuthInvalid.class;
+    @SerializedName("message")
+    private String message;
+
+    public String getMessage() {
+        return message;
     }
+
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
+    public int getId() {
+        return 0;
+    }
+
 }

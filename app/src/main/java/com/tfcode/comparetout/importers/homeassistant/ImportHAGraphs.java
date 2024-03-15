@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024. Tony Finnerty
+ * Copyright (c) 2023-2024. Tony Finnerty
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -14,27 +14,20 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.importers.homeassistant.messages;
+package com.tfcode.comparetout.importers.homeassistant;
 
-import com.google.gson.annotations.SerializedName;
+import com.tfcode.comparetout.ComparisonUIViewModel;
+import com.tfcode.comparetout.importers.ImportGraphsFragment;
 
-public class AuthOK extends HAMessage{
-    @SerializedName("ha_version")
-    private String haVersion;
+public class ImportHAGraphs extends ImportGraphsFragment {
 
-    public String getHaVersion() {
-        return haVersion;
+    public ImportHAGraphs() {
+        // Required empty public constructor
+        mImporterType = ComparisonUIViewModel.Importer.HOME_ASSISTANT;
     }
 
-    public void setHaVersion(String haVersion) {
-        this.haVersion = haVersion;
+    public static ImportHAGraphs newInstance() {
+        return new ImportHAGraphs();
     }
 
-    public int getId() {
-        return 0;
-    }
-
-    public void setId(int id) {
-
-    }
 }

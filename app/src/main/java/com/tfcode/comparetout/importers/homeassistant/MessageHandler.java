@@ -14,28 +14,12 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.importers.homeassistant.messages;
+package com.tfcode.comparetout.importers.homeassistant;
 
-import com.google.gson.annotations.SerializedName;
+import com.tfcode.comparetout.importers.homeassistant.messages.HAMessage;
 
-public class AuthRequired extends HAMessage{
+public interface MessageHandler<T> {
+    void handleMessage(HAMessage message);
 
-    @SerializedName("ha_version")
-    private String haVersion;
-
-    public String getHaVersion() {
-        return haVersion;
-    }
-
-    public void setHaVersion(String haVersion) {
-        this.haVersion = haVersion;
-    }
-
-    public int getId() {
-        return 0;
-    }
-
-    public void setId(int id) {
-
-    }
+    Class<? extends HAMessage> getMessageClass();
 }

@@ -57,6 +57,14 @@
                 android:value="" />
         </activity>
         <activity
+            android:name=".importers.homeassistant.ImportHomeAssistantActivity"
+            android:parentActivityName=".MainActivity"
+            android:exported="false">
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
+        </activity>
+        <activity
             android:name=".importers.esbn.ImportESBNActivity"
             android:parentActivityName=".MainActivity"
             android:exported="false">

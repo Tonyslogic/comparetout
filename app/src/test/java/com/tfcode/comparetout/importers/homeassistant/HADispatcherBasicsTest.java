@@ -22,9 +22,7 @@ import static java.lang.Thread.sleep;
 
 import com.tfcode.comparetout.importers.TestSecrets;
 import com.tfcode.comparetout.importers.homeassistant.messages.EnergyPrefsRequest;
-import com.tfcode.comparetout.importers.homeassistant.messages.EnergyPrefsResultHandler;
 import com.tfcode.comparetout.importers.homeassistant.messages.StatsForPeriodRequest;
-import com.tfcode.comparetout.importers.homeassistant.messages.StatsForPeriodResultHandler;
 
 import org.junit.Test;
 
@@ -39,7 +37,7 @@ public class HADispatcherBasicsTest {
         HADispatcher dispatcher = new HADispatcher("http://192.168.2.181:8123/api/websocket", "token");
         assertNotNull(dispatcher);
         dispatcher.start();
-        sleep(2000);
+        sleep(1000);
         assertFalse(dispatcher.isAuthorized());
         dispatcher.stop();
     }
@@ -48,7 +46,7 @@ public class HADispatcherBasicsTest {
         HADispatcher dispatcher = new HADispatcher("http://192.168.2.181:8123/api/websocket", TestSecrets.HA_TOKEN);
         assertNotNull(dispatcher);
         dispatcher.start();
-        sleep(2000);
+        sleep(1000);
         assertTrue(dispatcher.isAuthorized());
         dispatcher.stop();
     }
@@ -57,13 +55,13 @@ public class HADispatcherBasicsTest {
         HADispatcher dispatcher = new HADispatcher("http://192.168.2.181:8123/api/websocket", TestSecrets.HA_TOKEN);
         assertNotNull(dispatcher);
         dispatcher.start();
-        sleep(2000);
+        sleep(1000);
         assertTrue(dispatcher.isAuthorized());
         EnergyPrefsRequest request = new EnergyPrefsRequest();
         request.setId(dispatcher.generateId());
         EnergyPrefsResultHandler result = new EnergyPrefsResultHandler();
         dispatcher.sendMessage(request, result);
-        sleep(2000);
+        sleep(1000);
         assertEquals(5, result.getSensors().size());
         dispatcher.stop();
     }
@@ -73,7 +71,7 @@ public class HADispatcherBasicsTest {
         HADispatcher dispatcher = new HADispatcher("http://192.168.2.181:8123/api/websocket", TestSecrets.HA_TOKEN);
         assertNotNull(dispatcher);
         dispatcher.start();
-        sleep(2000);
+        sleep(1000);
         assertTrue(dispatcher.isAuthorized());
         List<String> statsToFetch = new ArrayList<>();
         statsToFetch.add("sensor.al2002120080100_grid_to_load");
@@ -84,6 +82,6 @@ public class HADispatcherBasicsTest {
         StatsForPeriodRequest request = new StatsForPeriodRequest(statsToFetch);
         request.setStartAndEndTimes(LocalDateTime.now().minusDays(2), LocalDateTime.now().minusDays(1), dispatcher.generateId());
         dispatcher.sendMessage(request, new StatsForPeriodResultHandler());
-        sleep(20000);
+        sleep(1000);
     }
 }

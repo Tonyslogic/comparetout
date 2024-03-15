@@ -14,34 +14,28 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.importers.homeassistant.messages.StatsForPeriodResult;
+package com.tfcode.comparetout.importers.homeassistant.messages.authorization;
 
-public class SensorData {
-    private long start;
-    private long end;
-    private double change;
+import com.google.gson.annotations.SerializedName;
+import com.tfcode.comparetout.importers.homeassistant.messages.HAMessage;
 
-    public long getStart() {
-        return start;
+public class AuthOK extends HAMessage {
+    @SerializedName("ha_version")
+    private String haVersion;
+
+    public String getHaVersion() {
+        return haVersion;
     }
 
-    public void setStart(long start) {
-        this.start = start;
+    public void setHaVersion(String haVersion) {
+        this.haVersion = haVersion;
     }
 
-    public long getEnd() {
-        return end;
+    public int getId() {
+        return 0;
     }
 
-    public void setEnd(long end) {
-        this.end = end;
-    }
+    public void setId(int id) {
 
-    public double getChange() {
-        return change;
-    }
-
-    public void setChange(double change) {
-        this.change = change;
     }
 }

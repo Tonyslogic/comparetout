@@ -20,11 +20,10 @@ import androidx.annotation.NonNull;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
-import com.tfcode.comparetout.importers.homeassistant.messages.AuthInvalidHandler;
-import com.tfcode.comparetout.importers.homeassistant.messages.AuthOKHandler;
-import com.tfcode.comparetout.importers.homeassistant.messages.AuthRequiredHandler;
+import com.tfcode.comparetout.importers.homeassistant.messages.authorization.AuthInvalidHandler;
+import com.tfcode.comparetout.importers.homeassistant.messages.authorization.AuthOKHandler;
+import com.tfcode.comparetout.importers.homeassistant.messages.authorization.AuthRequiredHandler;
 import com.tfcode.comparetout.importers.homeassistant.messages.HAMessage;
-import com.tfcode.comparetout.importers.homeassistant.messages.MessageHandler;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -49,7 +48,17 @@ public class HADispatcher {
 
     private static final Logger LOGGER = Logger.getLogger(HADispatcher.class.getName());
 
-
+    /**
+     * Create a new Home Assistant WebSocket API
+     * <p>
+     *     This constructor creates a new Home Assistant WebSocket API with the given URL and authentication token.
+     *     Three handlers are registered for the "auth_required", "auth_invalid", and "auth_ok" message types.
+     *     On connection the server will send an "auth_required" message. These handlers will handle the authentication process.
+     * </p>
+     *
+     * @param url        The URL of the WebSocket API
+     * @param auth_token The authentication token for the WebSocket API
+     */
     public HADispatcher(String url, String auth_token) {
         this.client = new OkHttpClient();
         this.gson = new Gson();

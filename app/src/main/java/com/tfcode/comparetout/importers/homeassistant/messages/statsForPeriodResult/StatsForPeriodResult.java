@@ -14,32 +14,33 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.importers.homeassistant.messages.EnergyPrefsResult;
+package com.tfcode.comparetout.importers.homeassistant.messages.statsForPeriodResult;
 
 import com.google.gson.annotations.SerializedName;
+import com.tfcode.comparetout.importers.homeassistant.messages.HAMessageWithID;
 
 import java.util.List;
+import java.util.Map;
 
-public class Result {
-    @SerializedName("energy_sources")
-    private List<EnergySource> energySources;
+public class StatsForPeriodResult extends HAMessageWithID {
+    @SerializedName("success")
+    private boolean success;
+    @SerializedName("result")
+    private Map<String, List<SensorData>> result;
 
-    @SerializedName("device_consumption")
-    private List<DeviceConsumption> deviceConsumption;
-
-    public List<EnergySource> getEnergySources() {
-        return energySources;
+    public boolean isSuccess() {
+        return success;
     }
 
-    public void setEnergySources(List<EnergySource> energySources) {
-        this.energySources = energySources;
+    public void setSuccess(boolean success) {
+        this.success = success;
     }
 
-    public List<DeviceConsumption> getDeviceConsumption() {
-        return deviceConsumption;
+    public Map<String, List<SensorData>> getResult() {
+        return result;
     }
 
-    public void setDeviceConsumption(List<DeviceConsumption> deviceConsumption) {
-        this.deviceConsumption = deviceConsumption;
+    public void setResult(Map<String, List<SensorData>> result) {
+        this.result = result;
     }
 }

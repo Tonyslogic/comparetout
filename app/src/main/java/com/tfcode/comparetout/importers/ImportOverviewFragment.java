@@ -303,21 +303,27 @@ public abstract class ImportOverviewFragment extends Fragment {
             mInputTable.addView(credentialRow);
 
             // System selection
-            TableRow systemSelectionRow = new TableRow(activity);
+            if (mImporterType != ComparisonUIViewModel.Importer.HOME_ASSISTANT) {
+                TableRow systemSelectionRow = new TableRow(activity);
 
-            MaterialButton systemButton = new MaterialButton(activity);
-            systemButton.setText(R.string.SelectSystem);
-            systemButton.setEnabled(mCredentialsAreGood && !(null == mSerialNumbers));
-            TextView systemStatus = new TextView(activity);
-            systemStatus.setText(!(null == mSerialNumber) ? mSerialNumber : (null == mSerialNumbers) ? "None registered" : "Not set");
-            systemStatus.setGravity(Gravity.CENTER);
-            systemButton.setOnClickListener(v -> {
-                systemStatus.setText(R.string.loading);
-                getSerialNumber();
-            });
-            systemSelectionRow.addView(systemButton);
-            systemSelectionRow.addView(systemStatus);
-            mInputTable.addView(systemSelectionRow);
+                MaterialButton systemButton = new MaterialButton(activity);
+                systemButton.setText(R.string.SelectSystem);
+                systemButton.setEnabled(mCredentialsAreGood && !(null == mSerialNumbers));
+                TextView systemStatus = new TextView(activity);
+                systemStatus.setText(!(null == mSerialNumber) ? mSerialNumber : (null == mSerialNumbers) ? "None registered" : "Not set");
+                systemStatus.setGravity(Gravity.CENTER);
+                systemButton.setOnClickListener(v -> {
+                    systemStatus.setText(R.string.loading);
+                    getSerialNumber();
+                });
+                systemSelectionRow.addView(systemButton);
+                systemSelectionRow.addView(systemStatus);
+                mInputTable.addView(systemSelectionRow);
+            }
+            else {
+                mSerialNumber = "HomeAssistant";
+//                serialUpdated(context);
+            }
 
             // Fetch/update
             TableRow addFetchRow = new TableRow(activity);

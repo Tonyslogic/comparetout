@@ -14,11 +14,12 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.importers.homeassistant.messages;
+package com.tfcode.comparetout.importers.homeassistant.messages.authorization;
 
 import com.google.gson.annotations.SerializedName;
+import com.tfcode.comparetout.importers.homeassistant.messages.HAMessage;
 
-public class Auth extends HAMessage{
+public class Auth extends HAMessage {
 
     public Auth() {
         setType("auth");

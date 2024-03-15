@@ -14,7 +14,7 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.importers.homeassistant.messages.EnergyPrefsResult;
+package com.tfcode.comparetout.importers.homeassistant.messages.energyPrefsResult;
 
 import com.google.gson.annotations.SerializedName;
 

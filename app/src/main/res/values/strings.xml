@@ -277,6 +277,8 @@
     <string name="ReplaceExisting">Replace existing</string>
     <string name="userPrompt">User name</string>
     <string name="passPrompt">Password</string>
+    <string name="hostPrompt">HomeAssistant host and port</string>
+    <string name="tokenPrompt">HomeAssistant access token</string>
     <string name="enter_manually">Use text value</string>
     <string name="not_listed">Not listed</string>
     <string name="data_load_race_mesage">Data update in progress, try again in a moment</string>

@@ -14,30 +14,19 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.importers.homeassistant.messages;
+package com.tfcode.comparetout.importers.homeassistant.messages.energyPrefsResult;
 
 import com.google.gson.annotations.SerializedName;
 
-public class AuthInvalid extends HAMessage{
+public class DeviceConsumption {
+    @SerializedName("stat_consumption")
+    private String statConsumption;
 
-    public AuthInvalid(String message) {
-        setType("auth_invalid");
-        setMessage(message);
+    public String getStatConsumption() {
+        return statConsumption;
     }
 
-    @SerializedName("message")
-    private String message;
-
-    public String getMessage() {
-        return message;
+    public void setStatConsumption(String statConsumption) {
+        this.statConsumption = statConsumption;
     }
-
-    public void setMessage(String message) {
-        this.message = message;
-    }
-
-    public int getId() {
-        return 0;
-    }
-
 }

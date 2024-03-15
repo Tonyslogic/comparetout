@@ -460,7 +460,8 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public enum Importer {
         ALPHAESS,
-        ESBNHDF
+        ESBNHDF,
+        HOME_ASSISTANT
     }
 
     // Importer methods
@@ -468,6 +469,7 @@ public class ComparisonUIViewModel extends AndroidViewModel {
         switch (importer){
             case ALPHAESS: return toutcRepository.getLiveDateRanges();
             case ESBNHDF: return toutcRepository.getESBNLiveDateRanges();
+            case HOME_ASSISTANT: return toutcRepository.getHALiveDateRanges();
         }
         return null;
     }

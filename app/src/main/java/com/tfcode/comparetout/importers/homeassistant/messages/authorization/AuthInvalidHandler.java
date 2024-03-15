@@ -14,39 +14,27 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.importers.homeassistant.messages;
+package com.tfcode.comparetout.importers.homeassistant.messages.authorization;
 
 import com.tfcode.comparetout.importers.homeassistant.HADispatcher;
+import com.tfcode.comparetout.importers.homeassistant.messages.HAMessage;
+import com.tfcode.comparetout.importers.homeassistant.MessageHandler;
 
-import java.util.logging.Logger;
-
-public class AuthRequiredHandler implements MessageHandler<AuthRequired>{
+public class AuthInvalidHandler implements MessageHandler<AuthRequired> {
 
     private final HADispatcher dispatcher;
-    private final String token;
 
-    private static final Logger LOGGER = Logger.getLogger(AuthRequiredHandler.class.getName());
-
-
-    public AuthRequiredHandler(HADispatcher dispatcher, String token) {
+    public AuthInvalidHandler(HADispatcher dispatcher) {
         this.dispatcher = dispatcher;
-        this.token = token;
     }
-
     @Override
     public void handleMessage(HAMessage message) {
-        LOGGER.info("AuthRequiredHandler.handleMessage");
-        AuthRequired authRequired = (AuthRequired) message;
-        String version = authRequired.getHaVersion();
-        // TODO: check if the version is supported
-
-        Auth auth = new Auth();
-        auth.setAccessToken(token);
-        dispatcher.sendMessage(auth, null);
+        AuthInvalid authInvalid = (AuthInvalid) message;
+        dispatcher.setAuthorized(false);
     }
 
     @Override
     public Class<? extends HAMessage> getMessageClass() {
-        return AuthRequired.class;
+        return AuthInvalid.class;
     }
 }

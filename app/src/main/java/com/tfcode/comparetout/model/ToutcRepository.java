@@ -88,6 +88,7 @@ public class ToutcRepository {
     private final AlphaEssDAO alphaEssDAO;
     private final LiveData<List<InverterDateRange>> alphaESSDateRangesBySN;
     private final LiveData<List<InverterDateRange>> esbnHDFDateRangesByMPRN;
+    private final LiveData<List<InverterDateRange>> homeAssistantDateRange;
 
     // Note that in order to unit test the WordRepository, you have to remove the Application
     // dependency. This adds complexity and much more code, and this sample is not about testing.
@@ -116,6 +117,7 @@ public class ToutcRepository {
         alphaEssDAO = db.alphaEssDAO();
         alphaESSDateRangesBySN = alphaEssDAO.loadDateRanges();
         esbnHDFDateRangesByMPRN = alphaEssDAO.loadESBNHDFDateRanges();
+        homeAssistantDateRange = alphaEssDAO.loadHomeAssistantDateRange();
     }
 
     // Room executes all queries on a separate thread.
@@ -640,6 +642,10 @@ public class ToutcRepository {
 
     public LiveData<List<InverterDateRange>> getESBNLiveDateRanges() {
         return esbnHDFDateRangesByMPRN;
+    }
+
+    public LiveData<List<InverterDateRange>> getHALiveDateRanges() {
+        return homeAssistantDateRange;
     }
 
     public void addRawEnergy(AlphaESSRawEnergy energy) {
