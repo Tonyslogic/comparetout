@@ -94,6 +94,7 @@ public class HADispatcher {
      * @param <T>     The type of the message
      */
     public <T extends HAMessage> void registerHandler(String type, MessageHandler<T> handler) {
+        LOGGER.info("Registering handler for type: " + type);
         handlers.put(type, handler);
     }
 
@@ -115,6 +116,23 @@ public class HADispatcher {
         LOGGER.info("Starting HADispatcher");
         Request request = new Request.Builder().url(url).build();
         webSocket = client.newWebSocket(request, new WebSocketListener() {
+
+            @Override
+            public void onOpen(@NonNull WebSocket webSocket, @NonNull okhttp3.Response response) {
+                LOGGER.info("WebSocket opened");
+            }
+            @Override
+            public void onClosed(@NonNull WebSocket webSocket, int code, @NonNull String reason) {
+                LOGGER.info("WebSocket closed: " + code + " " + reason);
+            }
+            @Override
+            public void onFailure(@NonNull WebSocket webSocket, @NonNull Throwable t, okhttp3.Response response) {
+                LOGGER.info("WebSocket failure: " + t.getMessage());
+            }
+            @Override
+            public void onClosing(@NonNull WebSocket webSocket, int code, @NonNull String reason) {
+                LOGGER.info("WebSocket closing: " + code + " " + reason);
+            }
             @Override
             public void onMessage(@NonNull WebSocket webSocket, @NonNull String text) {
                 LOGGER.info("Received message: " + text);

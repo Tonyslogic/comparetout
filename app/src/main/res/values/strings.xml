@@ -296,4 +296,5 @@
     <string name="esbn_channel_id">ESBN Importer</string>
     <string name="esbn_channel_name">ESBN Progress</string>
     <string name="fetch_esbn_notification_title">ESBN Catchup</string>
+    <string name="view_ha_sensors">View Energy Sensors</string>
 </resources>

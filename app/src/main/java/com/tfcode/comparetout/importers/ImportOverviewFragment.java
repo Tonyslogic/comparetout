@@ -125,7 +125,7 @@ public abstract class ImportOverviewFragment extends Fragment {
     private Map<String, String> mInverterDateRangesBySN;
     private boolean mHasCredentials = true;
     private boolean mCredentialsAreGood = true;
-    private String mSerialNumber;
+    protected String mSerialNumber;
     private boolean mSystemSelected = false;
     protected boolean mFetchOngoing = false;
     private LiveData<List<WorkInfo>> mCatchupLiveDataForSN;
@@ -303,27 +303,8 @@ public abstract class ImportOverviewFragment extends Fragment {
             mInputTable.addView(credentialRow);
 
             // System selection
-            if (mImporterType != ComparisonUIViewModel.Importer.HOME_ASSISTANT) {
-                TableRow systemSelectionRow = new TableRow(activity);
-
-                MaterialButton systemButton = new MaterialButton(activity);
-                systemButton.setText(R.string.SelectSystem);
-                systemButton.setEnabled(mCredentialsAreGood && !(null == mSerialNumbers));
-                TextView systemStatus = new TextView(activity);
-                systemStatus.setText(!(null == mSerialNumber) ? mSerialNumber : (null == mSerialNumbers) ? "None registered" : "Not set");
-                systemStatus.setGravity(Gravity.CENTER);
-                systemButton.setOnClickListener(v -> {
-                    systemStatus.setText(R.string.loading);
-                    getSerialNumber();
-                });
-                systemSelectionRow.addView(systemButton);
-                systemSelectionRow.addView(systemStatus);
-                mInputTable.addView(systemSelectionRow);
-            }
-            else {
-                mSerialNumber = "HomeAssistant";
-//                serialUpdated(context);
-            }
+            TableRow systemSelectionRow = getSystemSelectionRow(activity, mCredentialsAreGood);
+            mInputTable.addView(systemSelectionRow);
 
             // Fetch/update
             TableRow addFetchRow = new TableRow(activity);
@@ -464,6 +445,24 @@ public abstract class ImportOverviewFragment extends Fragment {
             mInputTable.addView(actionRow);
         }
         updateCostView();
+    }
+
+    protected TableRow getSystemSelectionRow(Activity activity, boolean mCredentialsAreGood) {
+        TableRow systemSelectionRow = new TableRow(activity);
+
+        MaterialButton systemButton = new MaterialButton(activity);
+        systemButton.setText(R.string.SelectSystem);
+        systemButton.setEnabled(mCredentialsAreGood && !(null == mSerialNumbers));
+        TextView systemStatus = new TextView(activity);
+        systemStatus.setText(!(null == mSerialNumber) ? mSerialNumber : (null == mSerialNumbers) ? "None registered" : "Not set");
+        systemStatus.setGravity(Gravity.CENTER);
+        systemButton.setOnClickListener(v -> {
+            systemStatus.setText(R.string.loading);
+            getSerialNumber();
+        });
+        systemSelectionRow.addView(systemButton);
+        systemSelectionRow.addView(systemStatus);
+        return systemSelectionRow;
     }
 
     private void costSelection(MaterialButton costButton) {

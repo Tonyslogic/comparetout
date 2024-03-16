@@ -16,12 +16,15 @@
 
 package com.tfcode.comparetout.importers.homeassistant;
 
-import static java.lang.Thread.sleep;
-
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.Context;
 import android.icu.text.SimpleDateFormat;
+import android.view.Gravity;
+import android.widget.TableRow;
+import android.widget.TextView;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.datastore.preferences.core.Preferences;
 import androidx.datastore.preferences.core.PreferencesKeys;
 import androidx.work.Data;
@@ -31,7 +34,10 @@ import androidx.work.OneTimeWorkRequest;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
@@ -39,18 +45,29 @@ import com.tfcode.comparetout.TOUTCApplication;
 import com.tfcode.comparetout.importers.CredentialDialog;
 import com.tfcode.comparetout.importers.ImportException;
 import com.tfcode.comparetout.importers.ImportOverviewFragment;
+import com.tfcode.comparetout.importers.homeassistant.messages.EnergyPrefsRequest;
 import com.tfcode.comparetout.importers.homeassistant.messages.HAMessage;
 import com.tfcode.comparetout.importers.homeassistant.messages.authorization.AuthInvalid;
 import com.tfcode.comparetout.importers.homeassistant.messages.authorization.AuthOK;
+import com.tfcode.comparetout.importers.homeassistant.messages.energyPrefsResult.EnergyPrefsResult;
+import com.tfcode.comparetout.importers.homeassistant.messages.energyPrefsResult.EnergySource;
+import com.tfcode.comparetout.importers.homeassistant.messages.energyPrefsResult.Flow;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import io.reactivex.Single;
 
 public class ImportHAOverview extends ImportOverviewFragment {
+
+    private static final Logger LOGGER = Logger.getLogger(ImportHAOverview.class.getName());
+    private static final String HA_SENSORS_KEY = "ha_sensors";
+    private EnergySensors mEnergySensors;
 
     public static ImportHAOverview newInstance() {
         return new ImportHAOverview();
@@ -70,6 +87,15 @@ public class ImportHAOverview extends ImportOverviewFragment {
             mSerialNumbers = new ArrayList<>();
             mSerialNumbers.addAll(mprnListFromPreferences);
         }
+
+        Preferences.Key<String> sensorsKey = PreferencesKeys.stringKey(HA_SENSORS_KEY);
+        Single<String> value5 = application.getDataStore()
+                .data().firstOrError()
+                .map(prefs -> prefs.get(sensorsKey)).onErrorReturnItem("{}");
+        String sensorsJsonString =  value5.blockingGet();
+        EnergySensors energySensors =
+                new Gson().fromJson(sensorsJsonString, new TypeToken<EnergySensors>(){}.getType());
+        if (!(null == energySensors)) {mEnergySensors = energySensors;}
     }
 
     public ImportHAOverview() {
@@ -81,6 +107,38 @@ public class ImportHAOverview extends ImportOverviewFragment {
         GOOD_CREDENTIAL_KEY = "ha_cred_good";
         SYSTEM_LIST_KEY = "ha_system_list";
         SYSTEM_PREVIOUSLY_SELECTED = "ha_system_previously_selected";
+    }
+
+    @Override
+    protected void setCredentialPrompt(CredentialDialog credentialDialog) {
+        credentialDialog.setPrompts(R.string.hostPrompt, R.string.tokenPrompt);
+    }
+
+    @Override
+    protected TableRow getSystemSelectionRow(Activity activity, boolean mCredentialsAreGood) {
+        TableRow systemSelectionRow = new TableRow(activity);
+
+        MaterialButton systemButton = new MaterialButton(activity);
+        systemButton.setText(R.string.view_ha_sensors);
+        systemButton.setEnabled(mCredentialsAreGood && !(null == mSerialNumbers));
+        TextView systemStatus = new TextView(activity);
+        systemStatus.setText(!(null == mSerialNumber) ? mSerialNumber : (null == mSerialNumbers) ? "None registered" : "Not set");
+        systemStatus.setGravity(Gravity.CENTER);
+        systemButton.setOnClickListener(v -> showEnergySensors());
+        systemSelectionRow.addView(systemButton);
+        systemSelectionRow.addView(systemStatus);
+        return systemSelectionRow;
+    }
+
+    private void showEnergySensors() {
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        String prettyJsonString = gson.toJson(mEnergySensors);
+        Context context = getContext();
+        if (!(null == context)) new AlertDialog.Builder(context)
+                .setTitle("Energy Sensors")
+                .setMessage(prettyJsonString)
+                .setPositiveButton(android.R.string.ok, null)
+                .show();
     }
 
     @Override
@@ -129,39 +187,143 @@ public class ImportHAOverview extends ImportOverviewFragment {
     @Override
     protected void reloadClient(String host, String token) throws ImportException {
         HADispatcher mHAClient = new HADispatcher(host, token);
-        mHAClient.registerHandler("auth_ok", new MessageHandler<HAMessage>() {
-            @Override
-            public void handleMessage(HAMessage message) {
-                mHAClient.setAuthorized(true);
-                mAppID = host;
-                mAppSecret = token;
-                mFetchOngoing = false;
-                mHAClient.stop();
-            }
-
-            @Override
-            public Class<? extends HAMessage> getMessageClass() {
-                return AuthOK.class;
-            }
-        });
-        mHAClient.registerHandler("auth_invalid", new MessageHandler<HAMessage>() {
-            @Override
-            public void handleMessage(HAMessage message) {
-                mHAClient.setAuthorized(false);
-                mFetchOngoing = false;
-                mHAClient.stop();
-            }
-
-            @Override
-            public Class<? extends HAMessage> getMessageClass() {
-                return AuthInvalid.class;
-            }
-        });
+        mHAClient.registerHandler("auth_ok", new AuthOKHandler(mHAClient, host, token));
+        mHAClient.registerHandler("auth_invalid", new AuthNotOKHandler(mHAClient));
         mHAClient.start();
     }
+    class EnergyPrefsResultHandler implements MessageHandler<EnergyPrefsResult> {
 
-    @Override
-    protected void setCredentialPrompt(CredentialDialog credentialDialog) {
-        credentialDialog.setPrompts(R.string.hostPrompt, R.string.tokenPrompt);
+        private final Logger LOGGER = Logger.getLogger(ImportHAOverview.class.getName());
+
+        private String statSolarEnergyFrom;
+        private String statBatteryEnergyFrom;
+        private String statBatteryEnergyTo;
+        private List<String> statGridEnergyFrom;
+        private List<String> statGridEnergyTo;
+        private final HADispatcher mHAClient;
+        private final Activity mActivity;
+
+        public EnergySensors getSensors() {
+            EnergySensors ret = new EnergySensors();
+            ret.solarGeneration = statSolarEnergyFrom;
+            ret.batteryCharging = statBatteryEnergyTo;
+            ret.batteryDischarging = statBatteryEnergyFrom;
+            ret.gridExports = statGridEnergyTo;
+            ret.gridImports = statGridEnergyFrom;
+            return ret;
+        }
+
+        public EnergyPrefsResultHandler(HADispatcher mHAClient, Activity activity) {
+            this.mHAClient = mHAClient;
+            this.mActivity = activity;
+        }
+
+        @Override
+        public void handleMessage(HAMessage message) {
+            LOGGER.info("EnergyPrefsResultHandler.handleMessage");
+            EnergyPrefsResult result = (EnergyPrefsResult) message;
+            if (result.isSuccess()) {
+                Optional<EnergySource> solarEnergySource = result.getResult().getEnergySources().stream()
+                        .filter(energySource -> "solar".equals(energySource.getType()))
+                        .findFirst();
+
+                if (solarEnergySource.isPresent()) {
+                    statSolarEnergyFrom = solarEnergySource.get().getStatEnergyFrom();
+                    LOGGER.info("solar, flow_from = " + statSolarEnergyFrom);
+                } else {
+                    LOGGER.info("solar, flow_from = DOH! Think again" );
+                }
+
+                Optional<EnergySource> batteryEnergySource = result.getResult().getEnergySources().stream()
+                        .filter(energySource -> "battery".equals(energySource.getType()))
+                        .findFirst();
+
+                if (batteryEnergySource.isPresent()) {
+                    statBatteryEnergyFrom = batteryEnergySource.get().getStatEnergyFrom();
+                    LOGGER.info("battery, flow_from = " + statBatteryEnergyFrom);
+                    statBatteryEnergyTo = batteryEnergySource.get().getStatEnergyTo();
+                    LOGGER.info("battery, flow_to = " + statBatteryEnergyTo);
+                } else {
+                    LOGGER.info("solar, flow_from = DOH! Think again" );
+                }
+
+                Optional<EnergySource> gridEnergySource = result.getResult().getEnergySources().stream()
+                        .filter(energySource -> "grid".equals(energySource.getType()))
+                        .findFirst();
+
+                if (gridEnergySource.isPresent()) {
+                    statGridEnergyFrom = gridEnergySource.get().getFlowFrom().stream().map(Flow::getStatEnergyFrom).collect(Collectors.toList());
+                    statGridEnergyTo = gridEnergySource.get().getFlowTo().stream().map(Flow::getStatEnergyTo).collect(Collectors.toList());
+                    LOGGER.info("grid, flow_from = " + String.join(", ", statGridEnergyFrom));
+                    LOGGER.info("grid, flow_to = " + String.join(", ", statGridEnergyTo));
+                } else {
+                    LOGGER.info("grid, flow_from = DOH! Think again" );
+                }
+
+                mEnergySensors = getSensors();
+                String stringResponse = new Gson().toJson(mEnergySensors);
+                if (!(null == mActivity) && !(null == mActivity.getApplication()) ) {
+                    TOUTCApplication application = (TOUTCApplication) mActivity.getApplication();
+                    boolean x = application.putStringValueIntoDataStore(HA_SENSORS_KEY, stringResponse);
+                    if (!x) System.out.println("ImportHAOverview::reloadClient, failed to store sensors");
+                }
+            }
+            mHAClient.stop();
+        }
+
+        @Override
+        public Class<? extends HAMessage> getMessageClass() {
+            return EnergyPrefsResult.class;
+        }
+    }
+
+    private class AuthOKHandler implements MessageHandler<HAMessage> {
+        private final HADispatcher mHAClient;
+        private final String host;
+        private final String token;
+
+        public AuthOKHandler(HADispatcher mHAClient, String host, String token) {
+            this.mHAClient = mHAClient;
+            this.host = host;
+            this.token = token;
+        }
+
+        @Override
+        public void handleMessage(HAMessage message) {
+            LOGGER.info("AuthOKHandler.handleMessage");
+            mHAClient.setAuthorized(true);
+            mAppID = host;
+            mAppSecret = token;
+            mFetchOngoing = false;
+            EnergyPrefsResultHandler energyPrefsResultHandler =
+                    new EnergyPrefsResultHandler(mHAClient, getActivity());
+            EnergyPrefsRequest request = new EnergyPrefsRequest();
+            request.setId(mHAClient.generateId());
+            mHAClient.sendMessage(request, energyPrefsResultHandler);
+        }
+
+        @Override
+        public Class<? extends HAMessage> getMessageClass() {return AuthOK.class;}
+    }
+
+    private class AuthNotOKHandler implements MessageHandler<HAMessage> {
+        private final HADispatcher mHAClient;
+
+        public AuthNotOKHandler(HADispatcher mHAClient) {
+            this.mHAClient = mHAClient;
+        }
+
+        @Override
+        public void handleMessage(HAMessage message) {
+            LOGGER.info("AuthInvalidHandler.handleMessage");
+            mHAClient.setAuthorized(false);
+            mFetchOngoing = false;
+            mHAClient.stop();
+        }
+
+        @Override
+        public Class<? extends HAMessage> getMessageClass() {
+            return AuthInvalid.class;
+        }
     }
 }

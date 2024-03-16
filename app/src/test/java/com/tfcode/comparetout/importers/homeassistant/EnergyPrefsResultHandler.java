@@ -52,7 +52,6 @@ public class EnergyPrefsResultHandler implements MessageHandler<EnergyPrefsResul
         LOGGER.info("EnergyPrefsResultHandler.handleMessage");
         EnergyPrefsResult result = (EnergyPrefsResult) message;
         if (result.isSuccess()) {
-            // TODO: This is a result message, so we need to do something with it
 
             Optional<EnergySource> solarEnergySource = result.getResult().getEnergySources().stream()
                     .filter(energySource -> "solar".equals(energySource.getType()))
