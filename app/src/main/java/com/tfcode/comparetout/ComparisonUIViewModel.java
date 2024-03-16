@@ -478,6 +478,7 @@ public class ComparisonUIViewModel extends AndroidViewModel {
         switch (importer){
             case ALPHAESS:
             case ESBNHDF:
+            case HOME_ASSISTANT:
                 toutcRepository.clearAlphaESSDataForSN(sysSN); break;
         }
     }
@@ -486,6 +487,7 @@ public class ComparisonUIViewModel extends AndroidViewModel {
         switch (importer){
             case ALPHAESS:
             case ESBNHDF:
+            case HOME_ASSISTANT:
                 return toutcRepository.getSumHour(systemSN, from, to);
         }
         return null;
@@ -495,6 +497,7 @@ public class ComparisonUIViewModel extends AndroidViewModel {
         switch (importer){
             case ALPHAESS:
             case ESBNHDF:
+            case HOME_ASSISTANT:
                 return toutcRepository.getSumDOY(systemSN, from, to);
         }
         return null;
@@ -504,6 +507,7 @@ public class ComparisonUIViewModel extends AndroidViewModel {
         switch (importer){
             case ALPHAESS:
             case ESBNHDF:
+            case HOME_ASSISTANT:
                 return toutcRepository.getSumDOW(systemSN, from, to);
         }
         return null;
@@ -513,6 +517,7 @@ public class ComparisonUIViewModel extends AndroidViewModel {
         switch (importer){
             case ALPHAESS:
             case ESBNHDF:
+            case HOME_ASSISTANT:
                 return toutcRepository.getSumMonth(systemSN, from, to);
         }
         return null;
@@ -522,6 +527,7 @@ public class ComparisonUIViewModel extends AndroidViewModel {
         switch (importer){
             case ALPHAESS:
             case ESBNHDF:
+            case HOME_ASSISTANT:
                 return toutcRepository.getSumYear(systemSN, from, to);
         }
         return null;
@@ -531,6 +537,7 @@ public class ComparisonUIViewModel extends AndroidViewModel {
         switch (importer){
             case ALPHAESS:
             case ESBNHDF:
+            case HOME_ASSISTANT:
                 return toutcRepository.getAvgHour(systemSN, from, to);
         }
         return null;
@@ -540,6 +547,7 @@ public class ComparisonUIViewModel extends AndroidViewModel {
         switch (importer){
             case ALPHAESS:
             case ESBNHDF:
+            case HOME_ASSISTANT:
                 return toutcRepository.getAvgDOY(systemSN, from, to);
         }
         return null;
@@ -549,6 +557,7 @@ public class ComparisonUIViewModel extends AndroidViewModel {
         switch (importer){
             case ALPHAESS:
             case ESBNHDF:
+            case HOME_ASSISTANT:
                 return toutcRepository.getAvgDOW(systemSN, from, to);
         }
         return null;
@@ -558,6 +567,7 @@ public class ComparisonUIViewModel extends AndroidViewModel {
         switch (importer){
             case ALPHAESS:
             case ESBNHDF:
+            case HOME_ASSISTANT:
                 return toutcRepository.getAvgMonth(systemSN, from, to);
         }
         return null;
@@ -567,6 +577,7 @@ public class ComparisonUIViewModel extends AndroidViewModel {
         switch (importer){
             case ALPHAESS:
             case ESBNHDF:
+            case HOME_ASSISTANT:
                 return toutcRepository.getAvgYear(systemSN, from, to);
         }
         return null;
@@ -576,6 +587,7 @@ public class ComparisonUIViewModel extends AndroidViewModel {
         switch (importer){
             case ALPHAESS:
             case ESBNHDF:
+            case HOME_ASSISTANT:
                 return toutcRepository.getSelectedAlphaESSData(serialNumber, from, to);
         }
         return null;
@@ -583,7 +595,8 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public List<KeyStatsRow> getKeyStats(Importer importer, String from, String to, String systemSN) {
         switch (importer){
-            case ALPHAESS: return toutcRepository.getKeyStats(from, to, systemSN);
+            case ALPHAESS:
+            case HOME_ASSISTANT:  return toutcRepository.getKeyStats(from, to, systemSN);
             case ESBNHDF: return null;
         }
         return null;
@@ -591,7 +604,8 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public KPIRow getKPIs(Importer importer, String from, String to, String systemSN) {
         switch (importer){
-            case ALPHAESS: return toutcRepository.getKPIs(from, to, systemSN);
+            case ALPHAESS:
+            case HOME_ASSISTANT:  return toutcRepository.getKPIs(from, to, systemSN);
             case ESBNHDF: return null;
         }
         return null;

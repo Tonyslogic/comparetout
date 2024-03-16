@@ -297,4 +297,7 @@
     <string name="esbn_channel_name">ESBN Progress</string>
     <string name="fetch_esbn_notification_title">ESBN Catchup</string>
     <string name="view_ha_sensors">View Energy Sensors</string>
+    <string name="ha_channel_id">HA Importer</string>
+    <string name="fetch_ha_notification_title">HA Catchup</string>
+    <string name="ha_channel_name">HA Progress</string>
 </resources>

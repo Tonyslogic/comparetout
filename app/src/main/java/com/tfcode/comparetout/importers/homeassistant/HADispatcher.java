@@ -128,6 +128,7 @@ public class HADispatcher {
             @Override
             public void onFailure(@NonNull WebSocket webSocket, @NonNull Throwable t, okhttp3.Response response) {
                 LOGGER.info("WebSocket failure: " + t.getMessage());
+                t.printStackTrace();
             }
             @Override
             public void onClosing(@NonNull WebSocket webSocket, int code, @NonNull String reason) {

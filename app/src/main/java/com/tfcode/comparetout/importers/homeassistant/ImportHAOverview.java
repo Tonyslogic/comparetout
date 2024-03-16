@@ -35,7 +35,6 @@ import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -148,9 +147,10 @@ public class ImportHAOverview extends ImportOverviewFragment {
         if (!(null == context) && !("".equals(serialNumber))) {
             // start the catchup worker for the selected serial
             Data inputData = new Data.Builder()
-                    .putString(HACatchupWorker.KEY_APP_ID, mAppID)
-                    .putString(HACatchupWorker.KEY_APP_SECRET, mAppSecret)
+                    .putString(HACatchupWorker.KEY_HOST, mAppID)
+                    .putString(HACatchupWorker.KEY_TOKEN, mAppSecret)
                     .putString(HACatchupWorker.KEY_START_DATE, format.format(startDate))
+                    .putString(HACatchupWorker.KEY_SENSORS, new Gson().toJson(mEnergySensors))
                     .build();
             OneTimeWorkRequest catchupWorkRequest =
                     new OneTimeWorkRequest.Builder(HACatchupWorker.class)
@@ -166,8 +166,9 @@ public class ImportHAOverview extends ImportOverviewFragment {
 
             // start the daily worker for the selected serial
             Data dailyData = new Data.Builder()
-                    .putString(HACatchupWorker.KEY_APP_ID, mAppID)
-                    .putString(HACatchupWorker.KEY_APP_SECRET, mAppSecret)
+                    .putString(HACatchupWorker.KEY_HOST, mAppID)
+                    .putString(HACatchupWorker.KEY_TOKEN, mAppSecret)
+                    .putString(HACatchupWorker.KEY_SENSORS, new Gson().toJson(mEnergySensors))
                     .build();
             int delay = 25 - LocalDateTime.now().getHour(); // Going for 01:00 <-> 02:00
             PeriodicWorkRequest dailyWorkRequest =
