@@ -144,6 +144,7 @@ public class ImportHomeAssistantActivity  extends AppCompatActivity implements I
         ArrayList<String> tabTitlesList = new ArrayList<>();
         tabTitlesList.add("Overview");
         tabTitlesList.add("Graphs");
+        tabTitlesList.add("Key stats");
         tabTitlesList.add("Generate usage");
 
         TabLayout tabLayout = findViewById(R.id.import_alpha_tab_layout);
@@ -160,6 +161,9 @@ public class ImportHomeAssistantActivity  extends AppCompatActivity implements I
             showHelp("https://appassets.androidplatform.net/assets/main/data/ha/graphs_tab.html");
             return true;});
         linearLayout.getChildAt(2).setOnLongClickListener(v -> {
+            showHelp("https://appassets.androidplatform.net/assets/main/data/ha/keys_tab.html");
+            return true;});
+        linearLayout.getChildAt(3).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/main/data/ha/generate_tab.html");
             return true;});
 

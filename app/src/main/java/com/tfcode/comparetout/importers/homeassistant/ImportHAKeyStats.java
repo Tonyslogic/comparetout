@@ -14,17 +14,17 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.importers.alphaess;
+package com.tfcode.comparetout.importers.homeassistant;
 
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.importers.ImportKeyStatsFragment;
 
-public class ImportAlphaKeyStats extends ImportKeyStatsFragment {
+public class ImportHAKeyStats extends ImportKeyStatsFragment {
 
-    public ImportAlphaKeyStats() {
-        mImporterType = ComparisonUIViewModel.Importer.ALPHAESS;
+    public ImportHAKeyStats() {
+        mImporterType = ComparisonUIViewModel.Importer.HOME_ASSISTANT;
     }
 
-    public static ImportAlphaKeyStats newInstance() {return new ImportAlphaKeyStats();}
+    public static ImportHAKeyStats newInstance() {return new ImportHAKeyStats();}
 
 }

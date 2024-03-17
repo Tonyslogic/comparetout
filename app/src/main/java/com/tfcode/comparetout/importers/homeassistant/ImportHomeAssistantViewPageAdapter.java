@@ -26,6 +26,7 @@ import com.tfcode.comparetout.importers.ImportSystemSelection;
 public class ImportHomeAssistantViewPageAdapter extends FragmentStateAdapter {
     ImportHAOverview mHAOverview = ImportHAOverview.newInstance();
     ImportHAGraphs mHAGraphs = ImportHAGraphs.newInstance();
+    ImportHAKeyStats mHAKeyStats = ImportHAKeyStats.newInstance();
     ImportHAGenerateScenario mHAGenerate = ImportHAGenerateScenario.newInstance();
 
     public ImportHomeAssistantViewPageAdapter(@NonNull FragmentActivity fragmentActivity, int ignoredCount) {
@@ -37,11 +38,12 @@ public class ImportHomeAssistantViewPageAdapter extends FragmentStateAdapter {
     public Fragment createFragment(int position) {
         if (position == 0) return mHAOverview;
         if (position == 1) return mHAGraphs;
+        if (position == 2) return mHAKeyStats;
         else return mHAGenerate;
     }
 
     @Override
     public int getItemCount() {
-        return 3;
+        return 4;
     }
 }

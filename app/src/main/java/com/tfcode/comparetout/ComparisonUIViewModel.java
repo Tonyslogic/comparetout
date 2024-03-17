@@ -595,8 +595,8 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public List<KeyStatsRow> getKeyStats(Importer importer, String from, String to, String systemSN) {
         switch (importer){
-            case ALPHAESS:
-            case HOME_ASSISTANT:  return toutcRepository.getKeyStats(from, to, systemSN);
+            case ALPHAESS: return toutcRepository.getKeyStats(from, to, systemSN);
+            case HOME_ASSISTANT:  return toutcRepository.getHAKeyStats(from, to, systemSN);
             case ESBNHDF: return null;
         }
         return null;

@@ -170,6 +170,33 @@ public abstract class AlphaEssDAO {
             "GROUP BY Month ORDER BY Month ASC")
     public abstract List<KeyStatsRow> getKeyStats(String from, String to, String systemSN);
 
+    @Query(" SELECT main.Month, " +
+            "ROUND(tot, 2) AS 'PV tot (kWh)', " +
+            "ROUND(best, 2) || ' on ' || bestday AS 'Best', " +
+            "ROUND(worst.bad, 2) || ' on ' || badday AS 'Worst' " +
+            "FROM  " +
+            "(SELECT substr(date, 3, 5) AS Month, " +
+            "SUM(pv) AS tot, " +
+            "MAX(pv) AS best, " +
+            "substr(date,9,2) AS bestday " +
+            "FROM alphaESSTransformedData " +
+            "WHERE sysSn = :systemSN AND date >= :from AND date <= :to " +
+            "GROUP BY Month " +
+            ") AS main, " +
+            "( " +
+            "SELECT substr(cMonth, 1,5) AS bMonth, MIN(bad) AS bad, badday FROM ( " +
+            "SELECT substr(date, 3) AS cMonth, " +
+            "SUM(pv) AS bad, " +
+            "substr(date,9,2) AS badday " +
+            "FROM alphaESSTransformedData " +
+            "WHERE sysSn = :systemSN AND date >= :from AND date <= :to " +
+            "GROUP BY cMonth ORDER BY cMonth ) " +
+            "GROUP BY bMonth " +
+            ") AS worst " +
+            "WHERE worst.bMonth = main.Month " +
+            "GROUP BY Month ORDER BY Month ASC")
+    public abstract List<KeyStatsRow> getHAKeyStats(String from, String to, String systemSN);
+
     @Query("SELECT ((sum(pv) - sum(feed)) / sum(pv)) * 100 AS SC, ((sum(pv) - sum(feed)) / sum(load)) * 100 AS SS " +
             "FROM alphaESSTransformedData WHERE date >= :from AND date <= :to AND sysSn = :systemSN")
     public abstract KPIRow getKPIs(String from, String to, String systemSN);

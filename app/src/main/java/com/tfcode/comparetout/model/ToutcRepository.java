@@ -732,6 +732,10 @@ public class ToutcRepository {
         return alphaEssDAO.getKeyStats(from, to, systemSN);
     }
 
+    public List<KeyStatsRow> getHAKeyStats(String from, String to, String systemSN) {
+        return alphaEssDAO.getHAKeyStats(from, to, systemSN);
+    }
+
     public KPIRow getKPIs(String from, String to, String systemSN) {
         return alphaEssDAO.getKPIs(from, to, systemSN);
     }
