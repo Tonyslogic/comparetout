@@ -246,5 +246,14 @@ public abstract class AlphaEssDAO {
 
     @Query("SELECT MAX(date) as latest FROM alphaESSTransformedData WHERE sysSn = :systemSN")
     public abstract String getLatestDateForSn(String systemSN);
+
+    @Query("SELECT MAX(PV) AS kWp FROM (SELECT date, substr(minute,1,2) AS hr, SUM(pv) AS PV " +
+            "FROM alphaESSTransformedData WHERE sysSn = :systemSN GROUP BY date, hr)")
+    abstract public double getHAPopv(String systemSN);
+
+    @Query("SELECT  MAX(MAX(PV, OUTPUT)) AS inverterMaxPower FROM  ( " +
+            "SELECT date, substr(minute,1,2) AS hr, SUM(pv) AS PV, SUM(load + feed) AS OUTPUT, SUM(buy) AS BUY " +
+            "FROM alphaESSTransformedData WHERE sysSn = :systemSN AND BUY <= 0 GROUP BY date, hr ORDER BY PV DESC )")
+    abstract public double getHAPoinv(String systemSN);
 }
 

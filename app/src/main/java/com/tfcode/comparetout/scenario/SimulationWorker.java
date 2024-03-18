@@ -412,9 +412,9 @@ public class SimulationWorker extends Worker {
         double pv2charge = 0;
         double pv2load;
         double bat2Load = 0;
-        double totalSOC;
+        double totalSOC = 0;
 
-        if (inputLoad > locallyAvailable) {
+        if (inputLoad >= locallyAvailable) {
             buy += inputLoad - locallyAvailable;
             pv2load = effectivePV;
             double [] discharge = dischargeBatteries(inputDataMap, batteryAvailableForDischarge, row);
@@ -422,7 +422,7 @@ public class SimulationWorker extends Worker {
             bat2Load = discharge[1];
         }
         else { // we cover the load without the grid
-            if (inputLoad > effectivePV) {
+            if (inputLoad >= effectivePV) {
                 pv2load = effectivePV;
                 double [] discharge = dischargeBatteries(inputDataMap, (inputLoad - effectivePV), row);
                 totalSOC = discharge[0];
@@ -441,7 +441,8 @@ public class SimulationWorker extends Worker {
                     feed = max(0, feed );
                 }
                 else {
-                    totalSOC = outputRows.get(row -1).getSOC();
+                    ScenarioSimulationData scenarioSimulationData = outputRows.get(row - 1);
+                    if (!(null == scenarioSimulationData)) totalSOC = scenarioSimulationData.getSOC();
                 }
             }
         }

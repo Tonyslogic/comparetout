@@ -863,6 +863,7 @@ public abstract class ImportGraphsFragment extends Fragment {
         mLineChart.getAxisLeft().setValueFormatter(new ValueFormatter() {
             @Override
             public String getFormattedValue(float value) {
+                value = ((int) (value * 100.0)) / 100.0f;
                 return (((value == (long)value) ? String.format(Locale.UK,"%d", (long)value) : String.format("%s", value)) + " kWh");
             }
         });
@@ -972,6 +973,7 @@ public abstract class ImportGraphsFragment extends Fragment {
         mBarChart.getAxisLeft().setValueFormatter(new ValueFormatter() {
             @Override
             public String getFormattedValue(float value) {
+                value = ((int) (value * 100.0)) / 100.0f;
                 return (((value == (long)value) ?
                         String.format(Locale.UK, "%d", (long)value) : String.format("%s", value)) + " kWh");
             }

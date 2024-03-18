@@ -37,6 +37,8 @@ public class StatsForPeriodResult extends HAMessageWithID {
     @SerializedName("result")
     private Map<String, List<SensorData>> result;
 
+    private double estimatedBatteryCapacity = 0;
+
     public boolean isSuccess() {
         return success;
     }
@@ -97,6 +99,8 @@ public class StatsForPeriodResult extends HAMessageWithID {
             double solarGen = sensorChanges.getOrDefault(energySensors.solarGeneration, 0.0);
             double discharge = sensorChanges.getOrDefault(energySensors.batteryDischarging, 0.0);
             double charge = sensorChanges.getOrDefault(energySensors.batteryCharging, 0.0);
+            // Assume the battery charge rate is 0.5C
+            estimatedBatteryCapacity = Math.max(estimatedBatteryCapacity, charge * 2.0);
             double gridExport = 0D;
             for (String sensor : energySensors.gridExports) {
                 gridExport += sensorChanges.getOrDefault(sensor, 0.0);
@@ -121,5 +125,13 @@ public class StatsForPeriodResult extends HAMessageWithID {
             rows.add(row);
         }
         return rows;
+    }
+
+    /**
+     * Get the estimated battery capacity.
+     * @return the estimated battery capacity
+     */
+    public double getEstimatedBatteryCapacity() {
+        return ((int) (estimatedBatteryCapacity * 100)) / 100D;
     }
 }

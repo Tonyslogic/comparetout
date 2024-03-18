@@ -66,6 +66,7 @@ public class ImportHAOverview extends ImportOverviewFragment {
 
     private static final Logger LOGGER = Logger.getLogger(ImportHAOverview.class.getName());
     private static final String HA_SENSORS_KEY = "ha_sensors";
+    static final String HA_COBAT_KEY = "ha_cobat";
     private EnergySensors mEnergySensors;
 
     public static ImportHAOverview newInstance() {

@@ -18,6 +18,8 @@ package com.tfcode.comparetout.importers.homeassistant;
 
 import static android.content.Context.NOTIFICATION_SERVICE;
 
+import static com.tfcode.comparetout.importers.homeassistant.ImportHAOverview.HA_COBAT_KEY;
+
 import android.app.Application;
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -29,6 +31,8 @@ import android.content.Intent;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
+import androidx.datastore.preferences.core.Preferences;
+import androidx.datastore.preferences.core.PreferencesKeys;
 import androidx.work.Data;
 import androidx.work.ForegroundInfo;
 import androidx.work.WorkManager;
@@ -38,6 +42,7 @@ import androidx.work.WorkerParameters;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.R;
+import com.tfcode.comparetout.TOUTCApplication;
 import com.tfcode.comparetout.importers.esbn.ImportESBNActivity;
 import com.tfcode.comparetout.importers.homeassistant.messages.EnergyPrefsRequest;
 import com.tfcode.comparetout.importers.homeassistant.messages.HAMessage;
@@ -55,6 +60,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
+
+import io.reactivex.Single;
 
 public class HACatchupWorker extends Worker {
     private static final Logger LOGGER = Logger.getLogger(HACatchupWorker.class.getName());
@@ -99,6 +106,10 @@ public class HACatchupWorker extends Worker {
                 inputData.getString(KEY_HOST),
                 inputData.getString(KEY_TOKEN));
         String startDate = inputData.getString(KEY_START_DATE);
+        // No start date is provided for daily runs, default to yesterday
+        if (null == startDate) {
+            startDate = LocalDateTime.now().minusDays(1).format(DATE_FORMAT);
+        }
         String sensors = inputData.getString(KEY_SENSORS);
         mEnergySensors = new Gson().fromJson(sensors, new TypeToken<EnergySensors>(){}.getType());
         mHAClient.registerHandler("auth_ok", new HACatchupWorker.AuthOKHandler(mHAClient, startDate));
@@ -128,6 +139,20 @@ public class HACatchupWorker extends Worker {
                 List<AlphaESSTransformedData> dbRows = result.calculateAndAddLoad(
                         "HomeAssistant", mEnergySensors, pivotedResult);
                 mToutcRepository.addTransformedData(dbRows);
+                double estimatedBatteryCapacity = result.getEstimatedBatteryCapacity();
+                TOUTCApplication application = (TOUTCApplication) mContext;
+                if (!(null == application)) {
+                    Preferences.Key<String> systemList = PreferencesKeys.stringKey(HA_COBAT_KEY);
+                    Single<String> value4 = application.getDataStore()
+                            .data().firstOrError()
+                            .map(prefs -> prefs.get(systemList)).onErrorReturnItem("0.0");
+                    double previouslyEstimatedBatteryCapacity =  Double.parseDouble(value4.blockingGet());
+                    estimatedBatteryCapacity = Math.max(previouslyEstimatedBatteryCapacity, estimatedBatteryCapacity);
+
+                    boolean x = application.putStringValueIntoDataStore(HA_COBAT_KEY, String.valueOf(estimatedBatteryCapacity));
+                    if (!x)
+                        System.out.println("HACatchupWorker::StatsForPeriodResultHandler, failed to store estimatedBatteryCapacity");
+                }
             }
             else {
                 LOGGER.info("StatsForPeriodResultHandler.handleMessage.failure");

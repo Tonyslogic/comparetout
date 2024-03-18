@@ -771,4 +771,12 @@ public class ToutcRepository {
     public String getLatestDateForSn(String systemSN) {
         return alphaEssDAO.getLatestDateForSn(systemSN);
     }
+
+    public double getHAPopv(String systemSN) {
+        return alphaEssDAO.getHAPopv(systemSN);
+    }
+
+    public double getHAPoinv(String systemSN) {
+        return alphaEssDAO.getHAPoinv(systemSN);
+    }
 }
