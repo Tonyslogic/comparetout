@@ -19,12 +19,10 @@ package com.tfcode.comparetout.importers.homeassistant.messages.statsForPeriodRe
 import com.google.gson.annotations.SerializedName;
 import com.tfcode.comparetout.importers.homeassistant.BatterySensor;
 import com.tfcode.comparetout.importers.homeassistant.EnergySensors;
-import com.tfcode.comparetout.importers.homeassistant.HADispatcher;
 import com.tfcode.comparetout.importers.homeassistant.messages.HAMessageWithID;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
