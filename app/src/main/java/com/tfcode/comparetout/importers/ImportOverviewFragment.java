@@ -226,7 +226,7 @@ public abstract class ImportOverviewFragment extends Fragment {
             mSerialNumber = savedInstanceState.getString(SERIAL_NUMBER);
             mHasCredentials = savedInstanceState.getBoolean(HAS_CREDENTIALS);
             mCredentialsAreGood = savedInstanceState.getBoolean(GOOD_CREDENTIALS);
-            if (!(null == mSerialNumber) && !(mSerialNumber.length() == 0))
+            if (!(null == mSerialNumber) && !(mSerialNumber.isEmpty()))
                 serialUpdated(this.getContext());
         }
         mToutcRepository = new ToutcRepository(requireActivity().getApplication());
@@ -288,18 +288,7 @@ public abstract class ImportOverviewFragment extends Fragment {
             mStatusTable.removeAllViews();
 
             // Credentials
-            TableRow credentialRow = new TableRow(activity);
-            MaterialButton loadButton = new MaterialButton(activity);
-            loadButton.setText(R.string.SetCredentials);
-            TextView credentialStatus = new TextView(activity);
-            credentialStatus.setText(mHasCredentials ? mCredentialsAreGood ? "Set" : "Set, bad" : "Not set");
-            credentialStatus.setGravity(Gravity.CENTER);
-            loadButton.setOnClickListener(v -> {
-                credentialStatus.setText(R.string.loading);
-                getCredentials((TOUTCApplication) activity.getApplication());
-            });
-            credentialRow.addView(loadButton);
-            credentialRow.addView(credentialStatus);
+            TableRow credentialRow = getCredentialsRow(activity);
             mInputTable.addView(credentialRow);
 
             // System selection
@@ -344,7 +333,7 @@ public abstract class ImportOverviewFragment extends Fragment {
                     startPicker.addOnNegativeButtonClickListener(c -> {
                         if (!(null == getContext())) {
                             String idle = getContext().getString(R.string.Idle);
-                            addFetchStatus.setText((null == mFetchState && !(null == idle)) ? idle : mFetchState);
+                            addFetchStatus.setText(null == mFetchState ? idle : mFetchState);
                         }
                     });
                     startPicker.show(getParentFragmentManager(), "FETCH_START_DATE_PICKER");
@@ -422,29 +411,60 @@ public abstract class ImportOverviewFragment extends Fragment {
             mInputTable.addView(selectDatesRow);
 
             // Action row
-            TableRow actionRow = new TableRow(activity);
-            MaterialButton clearButton = new MaterialButton(activity);
-            clearButton.setText(R.string.RemoveData);
-            clearButton.setEnabled(!mFetchOngoing && !(null == mSerialNumber));
-            clearButton.setOnClickListener(v -> {
-                AlertDialog.Builder alert = new AlertDialog.Builder(activity);
-                alert.setTitle("Delete system data");
-                alert.setMessage("Are you sure you want to delete?");
-                alert.setPositiveButton(android.R.string.yes, (dialog, which) -> mViewModel.clearInverterBySN(mImporterType, mSerialNumber));
-                alert.setNegativeButton(android.R.string.no, (dialog, which) -> dialog.cancel());
-                alert.show();
-
-            });
-            MaterialButton costButton = new MaterialButton(activity);
-            costButton.setText(R.string.CostData);
-            assert availableDateValue != null;
-            costButton.setEnabled(mCostViewModel.isReadyToCost());
-            costButton.setOnClickListener(v -> new Thread(() -> costSelection(costButton)).start());
-            actionRow.addView(clearButton);
-            actionRow.addView(costButton);
+            TableRow actionRow = getActionRow(activity, availableDateValue);
             mInputTable.addView(actionRow);
         }
         updateCostView();
+    }
+
+    @NonNull
+    private TableRow getCredentialsRow(Activity activity) {
+        TableRow credentialRow = new TableRow(activity);
+        MaterialButton loadButton = new MaterialButton(activity);
+        loadButton.setText(R.string.SetCredentials);
+        TextView credentialStatus = new TextView(activity);
+        credentialStatus.setText(mHasCredentials ? mCredentialsAreGood ? "Set" : "Set, bad" : "Not set");
+        credentialStatus.setGravity(Gravity.CENTER);
+        loadButton.setOnClickListener(v -> {
+            credentialStatus.setText(R.string.loading);
+            getCredentials((TOUTCApplication) activity.getApplication());
+        });
+        credentialRow.addView(loadButton);
+        credentialRow.addView(credentialStatus);
+        return credentialRow;
+    }
+
+    @NonNull
+    private TableRow getActionRow(Activity activity, String availableDateValue) {
+        TableRow actionRow = new TableRow(activity);
+        MaterialButton clearButton = new MaterialButton(activity);
+        clearButton.setText(R.string.RemoveData);
+        clearButton.setEnabled(!mFetchOngoing && !(null == mSerialNumber));
+        clearButton.setOnClickListener(v -> {
+            AlertDialog.Builder alert = new AlertDialog.Builder(activity);
+            alert.setTitle("Delete system data");
+            alert.setMessage("Are you sure you want to delete?");
+            alert.setPositiveButton(android.R.string.yes, (dialog, which) -> {
+                    mViewModel.clearInverterBySN(mImporterType, mSerialNumber);
+                    removePreferencesForSN(mSerialNumber);
+            });
+            alert.setNegativeButton(android.R.string.no, (dialog, which) -> dialog.cancel());
+            alert.show();
+
+        });
+        MaterialButton costButton = new MaterialButton(activity);
+        costButton.setText(R.string.CostData);
+        assert availableDateValue != null;
+        costButton.setEnabled(mCostViewModel.isReadyToCost());
+        costButton.setOnClickListener(v -> new Thread(() -> costSelection(costButton)).start());
+        actionRow.addView(clearButton);
+        actionRow.addView(costButton);
+        return actionRow;
+    }
+
+    protected void removePreferencesForSN(String mSerialNumber) {
+        // Normally a do nothing method.
+        // Overridden when some state needs to be cleared from the preferences
     }
 
     protected TableRow getSystemSelectionRow(Activity activity, boolean mCredentialsAreGood) {

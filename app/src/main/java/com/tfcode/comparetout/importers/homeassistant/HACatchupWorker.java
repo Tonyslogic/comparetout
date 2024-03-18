@@ -57,9 +57,12 @@ import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 import io.reactivex.Single;
 
@@ -139,19 +142,34 @@ public class HACatchupWorker extends Worker {
                 List<AlphaESSTransformedData> dbRows = result.calculateAndAddLoad(
                         "HomeAssistant", mEnergySensors, pivotedResult);
                 mToutcRepository.addTransformedData(dbRows);
-                double estimatedBatteryCapacity = result.getEstimatedBatteryCapacity();
+                List<Double> estimatedBatteryCapacity = result.getEstimatedBatteryCapacity();
                 TOUTCApplication application = (TOUTCApplication) mContext;
                 if (!(null == application)) {
                     Preferences.Key<String> systemList = PreferencesKeys.stringKey(HA_COBAT_KEY);
                     Single<String> value4 = application.getDataStore()
                             .data().firstOrError()
                             .map(prefs -> prefs.get(systemList)).onErrorReturnItem("0.0");
-                    double previouslyEstimatedBatteryCapacity =  Double.parseDouble(value4.blockingGet());
-                    estimatedBatteryCapacity = Math.max(previouslyEstimatedBatteryCapacity, estimatedBatteryCapacity);
-
-                    boolean x = application.putStringValueIntoDataStore(HA_COBAT_KEY, String.valueOf(estimatedBatteryCapacity));
+                    List<Double> previouslyEstimatedBatteryCapacity =
+                            Arrays.stream(value4.blockingGet().split(","))
+                            .map(Double::valueOf)
+                            .collect(Collectors.toList());
+                    int index = 0;
+                    int prevSize = previouslyEstimatedBatteryCapacity.size();
+                    List<Double> updatedEstimatedBatteryCapacity = new ArrayList<>();
+                    for (double d : estimatedBatteryCapacity) {
+                        double prev = (prevSize > index) ? previouslyEstimatedBatteryCapacity.get(index) : 0.0;
+                        updatedEstimatedBatteryCapacity.add(index, Math.max(prev, d));
+                        index++;
+                    }
+                    if (updatedEstimatedBatteryCapacity.isEmpty())
+                        updatedEstimatedBatteryCapacity = previouslyEstimatedBatteryCapacity;
+                    boolean x = application.putStringValueIntoDataStore(HA_COBAT_KEY,
+                            updatedEstimatedBatteryCapacity.stream()
+                            .map(String::valueOf)
+                            .collect(Collectors.joining(",")));
                     if (!x)
-                        System.out.println("HACatchupWorker::StatsForPeriodResultHandler, failed to store estimatedBatteryCapacity");
+                        System.out.println("HACatchupWorker::StatsForPeriodResultHandler, " +
+                                "failed to store estimatedBatteryCapacity");
                 }
             }
             else {

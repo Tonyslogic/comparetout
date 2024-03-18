@@ -58,10 +58,12 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import io.reactivex.Single;
 
@@ -113,7 +115,14 @@ public class GenerationWorker extends AbstractGenerationWorker {
         Single<String> value4 = application.getDataStore()
                 .data().firstOrError()
                 .map(prefs -> prefs.get(systemList)).onErrorReturnItem("0.0");
-        double estimatedBatteryCapacity =  Double.parseDouble(value4.blockingGet());
+        List<Double> estimatedBatteryCapacities =
+                Arrays.stream(value4.blockingGet().split(","))
+                        .map(Double::valueOf)
+                        .collect(Collectors.toList());
+        // TODO: Generate an inverter for each battery For now, squash them all into one
+        double estimatedBatteryCapacity =  estimatedBatteryCapacities.stream()
+                .mapToDouble(Double::doubleValue)
+                .sum();
         return new SystemData(popv, poinv, estimatedBatteryCapacity);
     }
     @Override

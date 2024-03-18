@@ -17,7 +17,9 @@
 package com.tfcode.comparetout.importers.homeassistant.messages.statsForPeriodResult;
 
 import com.google.gson.annotations.SerializedName;
+import com.tfcode.comparetout.importers.homeassistant.BatterySensor;
 import com.tfcode.comparetout.importers.homeassistant.EnergySensors;
+import com.tfcode.comparetout.importers.homeassistant.HADispatcher;
 import com.tfcode.comparetout.importers.homeassistant.messages.HAMessageWithID;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
 
@@ -30,14 +32,17 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 
 public class StatsForPeriodResult extends HAMessageWithID {
+
+    private static final Logger LOGGER = Logger.getLogger(StatsForPeriodResult.class.getName());
     @SerializedName("success")
     private boolean success;
     @SerializedName("result")
     private Map<String, List<SensorData>> result;
 
-    private double estimatedBatteryCapacity = 0;
+    private List<Double> estimatedBatteryCapacity = new ArrayList<>();
 
     public boolean isSuccess() {
         return success;
@@ -82,6 +87,7 @@ public class StatsForPeriodResult extends HAMessageWithID {
     }
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private final DateTimeFormatter MIN_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
+
     /**
      * Calculate and add the load to the pivoted result.
      * @param sysSn the system serial number
@@ -89,18 +95,32 @@ public class StatsForPeriodResult extends HAMessageWithID {
      * @param pivotedResult the pivoted result
      * @return the transformed data as a list of AlphaESSTransformedData
      */
-
     public List<AlphaESSTransformedData> calculateAndAddLoad(String sysSn,
             EnergySensors energySensors, Map<LocalDateTime, Map<String, Double>> pivotedResult) {
         List<AlphaESSTransformedData> rows = new ArrayList<>();
         for (Map.Entry<LocalDateTime, Map<String, Double>> entry : pivotedResult.entrySet()) {
             LocalDateTime date = entry.getKey();
             Map<String, Double> sensorChanges = entry.getValue();
-            double solarGen = sensorChanges.getOrDefault(energySensors.solarGeneration, 0.0);
-            double discharge = sensorChanges.getOrDefault(energySensors.batteryDischarging, 0.0);
-            double charge = sensorChanges.getOrDefault(energySensors.batteryCharging, 0.0);
-            // Assume the battery charge rate is 0.5C
-            estimatedBatteryCapacity = Math.max(estimatedBatteryCapacity, charge * 2.0);
+            double solarGen = 0D;
+            for (String sensor: energySensors.solarGeneration) {
+                solarGen += sensorChanges.getOrDefault(sensor, 0.0);
+            }
+
+            double discharge = 0D;
+            double charge = 0D;
+            int batteryIndex = 0;
+            for (BatterySensor battery : energySensors.batteries) {
+                double l_discharge = sensorChanges.getOrDefault(battery.batteryDischarging, 0.0);
+                discharge += l_discharge;
+                double l_charge = sensorChanges.getOrDefault(battery.batteryCharging, 0.0);
+                charge += l_charge;
+                // Assume the battery charge rate is 0.5C
+                if ( batteryIndex >= estimatedBatteryCapacity.size() ) estimatedBatteryCapacity.add(0.0);
+                double oldCapacity = estimatedBatteryCapacity.get(batteryIndex);
+                double capacity = ((int) (charge * 100) ) / 100D;
+                estimatedBatteryCapacity.set(batteryIndex, Math.max(oldCapacity, capacity * 2.0));
+                batteryIndex++;
+            }
             double gridExport = 0D;
             for (String sensor : energySensors.gridExports) {
                 gridExport += sensorChanges.getOrDefault(sensor, 0.0);
@@ -131,7 +151,7 @@ public class StatsForPeriodResult extends HAMessageWithID {
      * Get the estimated battery capacity.
      * @return the estimated battery capacity
      */
-    public double getEstimatedBatteryCapacity() {
-        return ((int) (estimatedBatteryCapacity * 100)) / 100D;
+    public List<Double> getEstimatedBatteryCapacity() {
+        return estimatedBatteryCapacity;
     }
 }
