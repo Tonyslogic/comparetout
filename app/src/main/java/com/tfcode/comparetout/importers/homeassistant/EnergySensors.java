@@ -29,21 +29,20 @@ public class EnergySensors {
     public List<String> gridExports;
 
     @SerializedName("solarGeneration")
-    public String solarGeneration;
+    public List<String> solarGeneration;
 
-    @SerializedName("batteryCharging")
-    public String batteryCharging;
-
-    @SerializedName("batteryDischarging")
-    public String batteryDischarging;
+    @SerializedName("batteries")
+    public List<BatterySensor> batteries;
 
     public List<String> getSenorList() {
         List<String> sensorList = new ArrayList<>();
         sensorList.addAll(gridImports);
         sensorList.addAll(gridExports);
-        sensorList.add(solarGeneration);
-        sensorList.add(batteryCharging);
-        sensorList.add(batteryDischarging);
+        sensorList.addAll(solarGeneration);
+        for (BatterySensor battery : batteries) {
+            sensorList.add(battery.batteryCharging);
+            sensorList.add(battery.batteryDischarging);
+        }
         return sensorList;
     }
 }

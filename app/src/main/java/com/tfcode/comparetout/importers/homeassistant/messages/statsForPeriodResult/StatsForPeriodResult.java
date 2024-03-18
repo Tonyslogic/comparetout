@@ -17,6 +17,7 @@
 package com.tfcode.comparetout.importers.homeassistant.messages.statsForPeriodResult;
 
 import com.google.gson.annotations.SerializedName;
+import com.tfcode.comparetout.importers.homeassistant.BatterySensor;
 import com.tfcode.comparetout.importers.homeassistant.EnergySensors;
 import com.tfcode.comparetout.importers.homeassistant.messages.HAMessageWithID;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
@@ -37,7 +38,7 @@ public class StatsForPeriodResult extends HAMessageWithID {
     @SerializedName("result")
     private Map<String, List<SensorData>> result;
 
-    private double estimatedBatteryCapacity = 0;
+    private List<Double> estimatedBatteryCapacity = new ArrayList<>();
 
     public boolean isSuccess() {
         return success;
@@ -96,11 +97,25 @@ public class StatsForPeriodResult extends HAMessageWithID {
         for (Map.Entry<LocalDateTime, Map<String, Double>> entry : pivotedResult.entrySet()) {
             LocalDateTime date = entry.getKey();
             Map<String, Double> sensorChanges = entry.getValue();
-            double solarGen = sensorChanges.getOrDefault(energySensors.solarGeneration, 0.0);
-            double discharge = sensorChanges.getOrDefault(energySensors.batteryDischarging, 0.0);
-            double charge = sensorChanges.getOrDefault(energySensors.batteryCharging, 0.0);
-            // Assume the battery charge rate is 0.5C
-            estimatedBatteryCapacity = Math.max(estimatedBatteryCapacity, charge * 2.0);
+            double solarGen = 0D;
+            for (String sensor: energySensors.solarGeneration) {
+                solarGen += sensorChanges.getOrDefault(sensor, 0.0);
+            }
+
+            double discharge = 0D;
+            double charge = 0D;
+            int batteryIndex = 0;
+            for (BatterySensor battery : energySensors.batteries) {
+                double l_discharge = sensorChanges.getOrDefault(battery.batteryDischarging, 0.0);
+                discharge += l_discharge;
+                double l_charge = sensorChanges.getOrDefault(battery.batteryCharging, 0.0);
+                charge += l_charge;
+                // Assume the battery charge rate is 0.5C
+                double oldCapacity = estimatedBatteryCapacity.size() > batteryIndex ? estimatedBatteryCapacity.get(batteryIndex) : 0.0;
+                double capacity = ((int) (charge * 100) ) / 100D;
+                estimatedBatteryCapacity.add(batteryIndex, Math.max(oldCapacity, capacity * 2.0));
+                batteryIndex++;
+            }
             double gridExport = 0D;
             for (String sensor : energySensors.gridExports) {
                 gridExport += sensorChanges.getOrDefault(sensor, 0.0);
@@ -131,7 +146,7 @@ public class StatsForPeriodResult extends HAMessageWithID {
      * Get the estimated battery capacity.
      * @return the estimated battery capacity
      */
-    public double getEstimatedBatteryCapacity() {
-        return ((int) (estimatedBatteryCapacity * 100)) / 100D;
+    public List<Double> getEstimatedBatteryCapacity() {
+        return estimatedBatteryCapacity;
     }
 }

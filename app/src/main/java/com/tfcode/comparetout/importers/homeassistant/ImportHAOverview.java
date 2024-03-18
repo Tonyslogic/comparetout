@@ -73,6 +73,17 @@ public class ImportHAOverview extends ImportOverviewFragment {
         return new ImportHAOverview();
     }
 
+    @Override
+    protected void removePreferencesForSN(String mSerialNumber) {
+        Activity activity = getActivity();
+        if (!(null == activity)) {
+            TOUTCApplication application = (TOUTCApplication)activity.getApplication();
+            boolean x = application.putStringValueIntoDataStore(HA_COBAT_KEY, "0.0");
+            if (!x)
+                System.out.println("ImportHAOverview::removePreferencesForSN, " +
+                        "failed to store reset estimatedBatteryCapacity");
+        }
+    }
 
     @Override
     protected void loadSystemListFromPreferences(TOUTCApplication application) {
@@ -93,8 +104,14 @@ public class ImportHAOverview extends ImportOverviewFragment {
                 .data().firstOrError()
                 .map(prefs -> prefs.get(sensorsKey)).onErrorReturnItem("{}");
         String sensorsJsonString =  value5.blockingGet();
-        EnergySensors energySensors =
-                new Gson().fromJson(sensorsJsonString, new TypeToken<EnergySensors>(){}.getType());
+        EnergySensors energySensors = new EnergySensors();
+        try {
+            energySensors =
+                    new Gson().fromJson(sensorsJsonString, new TypeToken<EnergySensors>(){}.getType());
+        } catch (Exception e) {
+            System.out.println("ImportHAOverview::loadSystemListFromPreferences, " +
+                    "failed to load sensors from preferences");
+        }
         if (!(null == energySensors)) {mEnergySensors = energySensors;}
     }
 
@@ -197,9 +214,8 @@ public class ImportHAOverview extends ImportOverviewFragment {
 
         private final Logger LOGGER = Logger.getLogger(ImportHAOverview.class.getName());
 
-        private String statSolarEnergyFrom;
-        private String statBatteryEnergyFrom;
-        private String statBatteryEnergyTo;
+        private List<String> statSolarEnergyFrom;
+        private List<BatterySensor> statBatteries;
         private List<String> statGridEnergyFrom;
         private List<String> statGridEnergyTo;
         private final HADispatcher mHAClient;
@@ -208,8 +224,7 @@ public class ImportHAOverview extends ImportOverviewFragment {
         public EnergySensors getSensors() {
             EnergySensors ret = new EnergySensors();
             ret.solarGeneration = statSolarEnergyFrom;
-            ret.batteryCharging = statBatteryEnergyTo;
-            ret.batteryDischarging = statBatteryEnergyFrom;
+            ret.batteries = statBatteries;
             ret.gridExports = statGridEnergyTo;
             ret.gridImports = statGridEnergyFrom;
             return ret;
@@ -225,42 +240,64 @@ public class ImportHAOverview extends ImportOverviewFragment {
             LOGGER.info("EnergyPrefsResultHandler.handleMessage");
             EnergyPrefsResult result = (EnergyPrefsResult) message;
             if (result.isSuccess()) {
-                Optional<EnergySource> solarEnergySource = result.getResult().getEnergySources().stream()
-                        .filter(energySource -> "solar".equals(energySource.getType()))
-                        .findFirst();
+                statSolarEnergyFrom = new ArrayList<>();
+                statBatteries = new ArrayList<>();
+                List<EnergySource> energySources = result.getResult().getEnergySources();
+                for (EnergySource energySource : energySources) {
+                    switch (energySource.getType()) {
+                        case "solar":
+                            statSolarEnergyFrom.add(energySource.getStatEnergyFrom());
+                            break;
+                        case "battery":
+                            BatterySensor batterySensor = new BatterySensor();
+                            batterySensor.batteryCharging = energySource.getStatEnergyTo();
+                            batterySensor.batteryDischarging = energySource.getStatEnergyFrom();
+                            statBatteries.add(batterySensor);
+                            break;
+                        case "grid":
+                            statGridEnergyFrom = energySource.getFlowFrom().stream().map(Flow::getStatEnergyFrom).collect(Collectors.toList());
+                            statGridEnergyTo = energySource.getFlowTo().stream().map(Flow::getStatEnergyTo).collect(Collectors.toList());
+                            break;
+                    }
 
-                if (solarEnergySource.isPresent()) {
-                    statSolarEnergyFrom = solarEnergySource.get().getStatEnergyFrom();
-                    LOGGER.info("solar, flow_from = " + statSolarEnergyFrom);
-                } else {
-                    LOGGER.info("solar, flow_from = DOH! Think again" );
                 }
 
-                Optional<EnergySource> batteryEnergySource = result.getResult().getEnergySources().stream()
-                        .filter(energySource -> "battery".equals(energySource.getType()))
-                        .findFirst();
-
-                if (batteryEnergySource.isPresent()) {
-                    statBatteryEnergyFrom = batteryEnergySource.get().getStatEnergyFrom();
-                    LOGGER.info("battery, flow_from = " + statBatteryEnergyFrom);
-                    statBatteryEnergyTo = batteryEnergySource.get().getStatEnergyTo();
-                    LOGGER.info("battery, flow_to = " + statBatteryEnergyTo);
-                } else {
-                    LOGGER.info("solar, flow_from = DOH! Think again" );
-                }
-
-                Optional<EnergySource> gridEnergySource = result.getResult().getEnergySources().stream()
-                        .filter(energySource -> "grid".equals(energySource.getType()))
-                        .findFirst();
-
-                if (gridEnergySource.isPresent()) {
-                    statGridEnergyFrom = gridEnergySource.get().getFlowFrom().stream().map(Flow::getStatEnergyFrom).collect(Collectors.toList());
-                    statGridEnergyTo = gridEnergySource.get().getFlowTo().stream().map(Flow::getStatEnergyTo).collect(Collectors.toList());
-                    LOGGER.info("grid, flow_from = " + String.join(", ", statGridEnergyFrom));
-                    LOGGER.info("grid, flow_to = " + String.join(", ", statGridEnergyTo));
-                } else {
-                    LOGGER.info("grid, flow_from = DOH! Think again" );
-                }
+//                Optional<EnergySource> solarEnergySource = energySources.stream()
+//                        .filter(energySource -> "solar".equals(energySource.getType()))
+//                        .findFirst();
+//
+//                if (solarEnergySource.isPresent()) {
+//                    statSolarEnergyFrom = solarEnergySource.get().getStatEnergyFrom();
+//                    LOGGER.info("solar, flow_from = " + statSolarEnergyFrom);
+//                } else {
+//                    LOGGER.info("solar, flow_from = DOH! Think again" );
+//                }
+//
+//                Optional<EnergySource> batteryEnergySource = energySources.stream()
+//                        .filter(energySource -> "battery".equals(energySource.getType()))
+//                        .findFirst();
+//
+//                if (batteryEnergySource.isPresent()) {
+//                    statBatteryEnergyFrom = batteryEnergySource.get().getStatEnergyFrom();
+//                    LOGGER.info("battery, flow_from = " + statBatteryEnergyFrom);
+//                    statBatteryEnergyTo = batteryEnergySource.get().getStatEnergyTo();
+//                    LOGGER.info("battery, flow_to = " + statBatteryEnergyTo);
+//                } else {
+//                    LOGGER.info("solar, flow_from = DOH! Think again" );
+//                }
+//
+//                Optional<EnergySource> gridEnergySource = energySources.stream()
+//                        .filter(energySource -> "grid".equals(energySource.getType()))
+//                        .findFirst();
+//
+//                if (gridEnergySource.isPresent()) {
+//                    statGridEnergyFrom = gridEnergySource.get().getFlowFrom().stream().map(Flow::getStatEnergyFrom).collect(Collectors.toList());
+//                    statGridEnergyTo = gridEnergySource.get().getFlowTo().stream().map(Flow::getStatEnergyTo).collect(Collectors.toList());
+//                    LOGGER.info("grid, flow_from = " + String.join(", ", statGridEnergyFrom));
+//                    LOGGER.info("grid, flow_to = " + String.join(", ", statGridEnergyTo));
+//                } else {
+//                    LOGGER.info("grid, flow_from = DOH! Think again" );
+//                }
 
                 mEnergySensors = getSensors();
                 String stringResponse = new Gson().toJson(mEnergySensors);
