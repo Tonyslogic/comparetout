@@ -17,7 +17,6 @@
 package com.tfcode.comparetout.importers.homeassistant;
 
 import static android.content.Context.NOTIFICATION_SERVICE;
-
 import static com.tfcode.comparetout.importers.homeassistant.ImportHAOverview.HA_COBAT_KEY;
 
 import android.app.Application;
@@ -44,16 +43,15 @@ import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.TOUTCApplication;
 import com.tfcode.comparetout.importers.esbn.ImportESBNActivity;
-import com.tfcode.comparetout.importers.homeassistant.messages.EnergyPrefsRequest;
 import com.tfcode.comparetout.importers.homeassistant.messages.HAMessage;
 import com.tfcode.comparetout.importers.homeassistant.messages.StatsForPeriodRequest;
 import com.tfcode.comparetout.importers.homeassistant.messages.authorization.AuthInvalid;
 import com.tfcode.comparetout.importers.homeassistant.messages.authorization.AuthOK;
-import com.tfcode.comparetout.importers.homeassistant.messages.statsForPeriodResult.SensorData;
 import com.tfcode.comparetout.importers.homeassistant.messages.statsForPeriodResult.StatsForPeriodResult;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -72,10 +70,15 @@ public class HACatchupWorker extends Worker {
     public static final String KEY_TOKEN = "KEY_TOKEN";
     public static final String KEY_START_DATE = "KEY_START_DATE";
     public static final String KEY_SENSORS = "KEY_SENSORS";
+
+    public static final String PROGRESS = "PROGRESS";
     private boolean isWorkCompleted = false;
 
+    private String mProgress = "";
+
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-    private final DateTimeFormatter MIN_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
+    private static final DateTimeFormatter INPUT_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private final DateTimeFormatter NOTIFY_FORMAT = DateTimeFormatter.ofPattern("yy-MM");
 
     private final Object lock = new Object();
 
@@ -115,10 +118,27 @@ public class HACatchupWorker extends Worker {
         }
         String sensors = inputData.getString(KEY_SENSORS);
         mEnergySensors = new Gson().fromJson(sensors, new TypeToken<EnergySensors>(){}.getType());
+
+        // Mark the Worker as important
+        LocalDate current = LocalDate.parse(startDate, INPUT_DATE_FORMAT);
+        mProgress = current.format(NOTIFY_FORMAT);
+        String progress = "Starting Fetch";
+        setForegroundAsync(createForegroundInfo(progress));
+        setProgressAsync(new Data.Builder().putString(PROGRESS, mProgress).build());
+        ForegroundInfo foregroundInfo = createForegroundInfo("Importing HomeAssistant data");
+        mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
+
         mHAClient.registerHandler("auth_ok", new HACatchupWorker.AuthOKHandler(mHAClient, startDate));
         mHAClient.registerHandler("auth_invalid", new HACatchupWorker.AuthNotOKHandler(mHAClient));
         mHAClient.start();
         waitWorkCompletion();
+
+        LOGGER.info("HACatchupWorker:doWork finished");
+        progress = "All done importing HomeAssistant data";
+        setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
+        foregroundInfo = createForegroundInfo(progress);
+        mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
+
         return Result.success();
     }
 
@@ -142,34 +162,20 @@ public class HACatchupWorker extends Worker {
                 List<AlphaESSTransformedData> dbRows = result.calculateAndAddLoad(
                         "HomeAssistant", mEnergySensors, pivotedResult);
                 mToutcRepository.addTransformedData(dbRows);
-                List<Double> estimatedBatteryCapacity = result.getEstimatedBatteryCapacity();
-                TOUTCApplication application = (TOUTCApplication) mContext;
-                if (!(null == application)) {
-                    Preferences.Key<String> systemList = PreferencesKeys.stringKey(HA_COBAT_KEY);
-                    Single<String> value4 = application.getDataStore()
-                            .data().firstOrError()
-                            .map(prefs -> prefs.get(systemList)).onErrorReturnItem("0.0");
-                    List<Double> previouslyEstimatedBatteryCapacity =
-                            Arrays.stream(value4.blockingGet().split(","))
-                            .map(Double::valueOf)
-                            .collect(Collectors.toList());
-                    int index = 0;
-                    int prevSize = previouslyEstimatedBatteryCapacity.size();
-                    List<Double> updatedEstimatedBatteryCapacity = new ArrayList<>();
-                    for (double d : estimatedBatteryCapacity) {
-                        double prev = (prevSize > index) ? previouslyEstimatedBatteryCapacity.get(index) : 0.0;
-                        updatedEstimatedBatteryCapacity.add(index, Math.max(prev, d));
-                        index++;
+                updateBatteryCapacities(result);
+                LocalDateTime anyDate = null;
+                if (!pivotedResult.keySet().isEmpty()) {
+                    anyDate = pivotedResult.keySet().iterator().next();
+                }
+
+                if (anyDate != null) {
+                    String processedDate = anyDate.format(NOTIFY_FORMAT);
+                    if (!processedDate.equals(mProgress)) {
+                        mProgress = processedDate;
+                        setProgressAsync(new Data.Builder().putString(PROGRESS, "Working on " + mProgress).build());
+                        ForegroundInfo foregroundInfo = createForegroundInfo("Working on " + mProgress);
+                        mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
                     }
-                    if (updatedEstimatedBatteryCapacity.isEmpty())
-                        updatedEstimatedBatteryCapacity = previouslyEstimatedBatteryCapacity;
-                    boolean x = application.putStringValueIntoDataStore(HA_COBAT_KEY,
-                            updatedEstimatedBatteryCapacity.stream()
-                            .map(String::valueOf)
-                            .collect(Collectors.joining(",")));
-                    if (!x)
-                        System.out.println("HACatchupWorker::StatsForPeriodResultHandler, " +
-                                "failed to store estimatedBatteryCapacity");
                 }
             }
             else {
@@ -187,6 +193,38 @@ public class HACatchupWorker extends Worker {
                 StatsForPeriodRequest request = new StatsForPeriodRequest(mEnergySensors.getSenorList());
                 request.setStartAndEndTimes(startLDT, startLDT.plusDays(1), mHAClient.generateId());
                 mHAClient.sendMessage(request, new StatsForPeriodResultHandler(mHAClient, startLDT, finishLDT));
+            }
+        }
+
+        private void updateBatteryCapacities(StatsForPeriodResult result) {
+            List<Double> estimatedBatteryCapacity = result.getEstimatedBatteryCapacity();
+            TOUTCApplication application = (TOUTCApplication) mContext;
+            if (!(null == application)) {
+                Preferences.Key<String> systemList = PreferencesKeys.stringKey(HA_COBAT_KEY);
+                Single<String> value4 = application.getDataStore()
+                        .data().firstOrError()
+                        .map(prefs -> prefs.get(systemList)).onErrorReturnItem("0.0");
+                List<Double> previouslyEstimatedBatteryCapacity =
+                        Arrays.stream(value4.blockingGet().split(","))
+                        .map(Double::valueOf)
+                        .collect(Collectors.toList());
+                int index = 0;
+                int prevSize = previouslyEstimatedBatteryCapacity.size();
+                List<Double> updatedEstimatedBatteryCapacity = new ArrayList<>();
+                for (double d : estimatedBatteryCapacity) {
+                    double prev = (prevSize > index) ? previouslyEstimatedBatteryCapacity.get(index) : 0.0;
+                    updatedEstimatedBatteryCapacity.add(index, Math.max(prev, d));
+                    index++;
+                }
+                if (updatedEstimatedBatteryCapacity.isEmpty())
+                    updatedEstimatedBatteryCapacity = previouslyEstimatedBatteryCapacity;
+                boolean x = application.putStringValueIntoDataStore(HA_COBAT_KEY,
+                        updatedEstimatedBatteryCapacity.stream()
+                        .map(String::valueOf)
+                        .collect(Collectors.joining(",")));
+                if (!x)
+                    System.out.println("HACatchupWorker::StatsForPeriodResultHandler, " +
+                            "failed to store estimatedBatteryCapacity");
             }
         }
 
