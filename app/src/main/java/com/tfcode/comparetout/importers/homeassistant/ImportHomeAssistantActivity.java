@@ -59,7 +59,7 @@ public class ImportHomeAssistantActivity  extends AppCompatActivity implements I
     private void showFAB() {
         FloatingActionButton fab = findViewById(R.id.zoom);
         if (!(null == fab))
-            if ((mViewPager.getCurrentItem() != 1) ) {
+            if ((mViewPager.getCurrentItem() != 1) && (mViewPager.getCurrentItem() != 2)) {
                 fab.hide();
                 if (mZoom) {
                     ActionBar actionBar = getSupportActionBar();
