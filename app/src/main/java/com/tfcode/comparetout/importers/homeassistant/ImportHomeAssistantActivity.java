@@ -18,10 +18,10 @@ package com.tfcode.comparetout.importers.homeassistant;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
-import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -94,12 +94,6 @@ public class ImportHomeAssistantActivity  extends AppCompatActivity implements I
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_import_alpha);
-
-        if (!(null == savedInstanceState)) {
-        }
-        else {
-            Intent intent = getIntent();
-        }
 
         mAssetLoader = new WebViewAssetLoader.Builder()
                 .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
@@ -183,7 +177,8 @@ public class ImportHomeAssistantActivity  extends AppCompatActivity implements I
         int colour = Color.parseColor("White");
         menu.findItem(R.id.load).setVisible(false); //.getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         menu.findItem(R.id.export).setVisible(false); //.getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        menu.findItem(R.id.help).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        Drawable icon = menu.findItem(R.id.help).getIcon();
+        if (icon != null) icon.setColorFilter(colour, PorterDuff.Mode.DST);
         return true;
     }
 

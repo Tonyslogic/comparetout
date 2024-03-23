@@ -349,12 +349,12 @@ public class ImportKeyStatsFragment extends Fragment {
                 item.setActionView(new View(getActivity()));
                 item.setOnActionExpandListener(new MenuItem.OnActionExpandListener() {
                     @Override
-                    public boolean onMenuItemActionExpand(MenuItem item) {
+                    public boolean onMenuItemActionExpand(@NonNull MenuItem item) {
                         return false;
                     }
 
                     @Override
-                    public boolean onMenuItemActionCollapse(MenuItem item) {
+                    public boolean onMenuItemActionCollapse(@NonNull MenuItem item) {
                         return false;
                     }
                 });
@@ -435,12 +435,12 @@ public class ImportKeyStatsFragment extends Fragment {
             item.setActionView(new View(getActivity()));
             item.setOnActionExpandListener(new MenuItem.OnActionExpandListener() {
                 @Override
-                public boolean onMenuItemActionExpand(MenuItem item) {
+                public boolean onMenuItemActionExpand(@NonNull MenuItem item) {
                     return false;
                 }
 
                 @Override
-                public boolean onMenuItemActionCollapse(MenuItem item) {
+                public boolean onMenuItemActionCollapse(@NonNull MenuItem item) {
                     return false;
                 }
             });

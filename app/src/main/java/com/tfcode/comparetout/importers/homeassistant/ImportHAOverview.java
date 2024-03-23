@@ -55,7 +55,6 @@ import com.tfcode.comparetout.importers.homeassistant.messages.energyPrefsResult
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
