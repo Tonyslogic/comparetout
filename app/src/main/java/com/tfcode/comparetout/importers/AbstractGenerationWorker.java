@@ -22,7 +22,6 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
-import android.util.Pair;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
@@ -36,16 +35,11 @@ import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.importers.IntervalRow;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
-import com.tfcode.comparetout.model.importers.alphaess.MaxCalcRow;
-import com.tfcode.comparetout.model.importers.alphaess.ScheduleRIInput;
-import com.tfcode.comparetout.model.scenario.Battery;
-import com.tfcode.comparetout.model.scenario.ChargeModel;
 import com.tfcode.comparetout.model.scenario.DOWDist;
 import com.tfcode.comparetout.model.scenario.HourlyDist;
 import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
 import com.tfcode.comparetout.model.scenario.LoadProfileData;
-import com.tfcode.comparetout.model.scenario.LoadShift;
 import com.tfcode.comparetout.model.scenario.MonthlyDist;
 import com.tfcode.comparetout.model.scenario.Panel;
 import com.tfcode.comparetout.model.scenario.PanelData;
@@ -58,13 +52,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-import java.util.TimeZone;
 import java.util.stream.Collectors;
 
 public abstract class AbstractGenerationWorker extends Worker {
@@ -160,7 +150,7 @@ public abstract class AbstractGenerationWorker extends Worker {
 
                 // Panel data
                 if (mPNLD)
-                    generatePanelData((double) panelSet.stringSize, (double) totalPanelCount, panelSet.panelID, dbLookup);
+                    generatePanelData((double) panelSet.stringSize, totalPanelCount, panelSet.panelID, dbLookup);
             }
         }
 
@@ -194,8 +184,7 @@ public abstract class AbstractGenerationWorker extends Worker {
                 null, null, null, null, null,
                 null, null, null, null, null);
         long assignedScenarioID = mToutcRepository.insertScenarioAndReturnID(scenarioComponents, false);
-        ScenarionKeys scenarioKeys = new ScenarionKeys(finalScenarioName, assignedScenarioID);
-        return scenarioKeys;
+        return new ScenarionKeys(finalScenarioName, assignedScenarioID);
     }
 
     private long generateLoadProfile(String mSystemSN, String mFrom, String mTo, long assignedScenarioID) {

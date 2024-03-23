@@ -17,52 +17,28 @@
 package com.tfcode.comparetout.importers.homeassistant;
 
 import static android.content.Context.NOTIFICATION_SERVICE;
-
 import static com.tfcode.comparetout.importers.homeassistant.ImportHAOverview.HA_COBAT_KEY;
 
-import android.annotation.SuppressLint;
-import android.app.Application;
-import android.app.Notification;
-import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.content.Context;
 
 import androidx.annotation.NonNull;
-import androidx.core.app.NotificationCompat;
 import androidx.datastore.preferences.core.Preferences;
 import androidx.datastore.preferences.core.PreferencesKeys;
 import androidx.work.Data;
-import androidx.work.ForegroundInfo;
-import androidx.work.WorkManager;
-import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
-import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.TOUTCApplication;
 import com.tfcode.comparetout.importers.AbstractGenerationWorker;
-import com.tfcode.comparetout.model.ToutcRepository;
-import com.tfcode.comparetout.model.importers.IntervalRow;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
 import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.ChargeModel;
-import com.tfcode.comparetout.model.scenario.DOWDist;
-import com.tfcode.comparetout.model.scenario.HourlyDist;
-import com.tfcode.comparetout.model.scenario.LoadProfile;
-import com.tfcode.comparetout.model.scenario.LoadProfileData;
-import com.tfcode.comparetout.model.scenario.MonthlyDist;
-import com.tfcode.comparetout.model.scenario.Scenario;
-import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import io.reactivex.Single;

@@ -18,53 +18,27 @@ package com.tfcode.comparetout.importers.alphaess;
 
 import static android.content.Context.NOTIFICATION_SERVICE;
 
-import android.app.Application;
-import android.app.Notification;
-import android.app.NotificationChannel;
 import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.content.Context;
 import android.util.Pair;
 
 import androidx.annotation.NonNull;
-import androidx.core.app.NotificationCompat;
 import androidx.datastore.preferences.core.Preferences;
 import androidx.datastore.preferences.core.PreferencesKeys;
 import androidx.work.Data;
-import androidx.work.ForegroundInfo;
-import androidx.work.WorkManager;
-import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
 import com.google.gson.Gson;
-import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.TOUTCApplication;
 import com.tfcode.comparetout.importers.AbstractGenerationWorker;
 import com.tfcode.comparetout.importers.alphaess.responses.GetEssListResponse;
-import com.tfcode.comparetout.model.ToutcRepository;
-import com.tfcode.comparetout.model.importers.IntervalRow;
-import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
 import com.tfcode.comparetout.model.importers.alphaess.MaxCalcRow;
 import com.tfcode.comparetout.model.importers.alphaess.ScheduleRIInput;
 import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.ChargeModel;
-import com.tfcode.comparetout.model.scenario.DOWDist;
-import com.tfcode.comparetout.model.scenario.HourlyDist;
-import com.tfcode.comparetout.model.scenario.Inverter;
-import com.tfcode.comparetout.model.scenario.LoadProfile;
-import com.tfcode.comparetout.model.scenario.LoadProfileData;
 import com.tfcode.comparetout.model.scenario.LoadShift;
-import com.tfcode.comparetout.model.scenario.MonthlyDist;
-import com.tfcode.comparetout.model.scenario.Panel;
-import com.tfcode.comparetout.model.scenario.PanelData;
-import com.tfcode.comparetout.model.scenario.Scenario;
-import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -72,7 +46,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.TimeZone;
 import java.util.stream.Collectors;
 
 import io.reactivex.Single;
