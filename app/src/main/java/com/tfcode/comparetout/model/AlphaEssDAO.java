@@ -175,13 +175,15 @@ public abstract class AlphaEssDAO {
             "ROUND(best, 2) || ' on ' || bestday AS 'Best', " +
             "ROUND(worst.bad, 2) || ' on ' || badday AS 'Worst' " +
             "FROM  " +
-            "(SELECT substr(date, 3, 5) AS Month, " +
-            "SUM(pv) AS tot, " +
-            "MAX(pv) AS best, " +
-            "substr(date,9,2) AS bestday " +
-            "FROM alphaESSTransformedData " +
+            "(" +
+            "SELECT substr(cMonth, 1,5) AS Month, SUM(bad) AS tot, MAX(bad) AS best, badday AS bestday FROM ( \n" +
+            "SELECT substr(date, 3) AS cMonth, \n" +
+            "SUM(pv) AS bad, \n" +
+            "substr(date,9,2) AS badday \n" +
+            "FROM alphaESSTransformedData \n" +
             "WHERE sysSn = :systemSN AND date >= :from AND date <= :to " +
-            "GROUP BY Month " +
+            "GROUP BY cMonth ORDER BY cMonth ) \n" +
+            "GROUP BY Month" +
             ") AS main, " +
             "( " +
             "SELECT substr(cMonth, 1,5) AS bMonth, MIN(bad) AS bad, badday FROM ( " +
