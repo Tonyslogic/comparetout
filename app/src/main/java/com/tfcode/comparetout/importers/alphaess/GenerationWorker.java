@@ -111,13 +111,16 @@ public class GenerationWorker extends AbstractGenerationWorker {
                 }
             }
         }
-        return new SystemData(theSystemData.popv, theSystemData.poinv, theSystemData.surplusCobat);
+        List<Double> coBats = new ArrayList<>();
+        coBats.add(theSystemData.surplusCobat);
+        return new SystemData(theSystemData.popv, theSystemData.poinv, coBats);
     }
 
     @Override
     protected void generateBattery(SystemData theSystemData, String mSystemSN, long assignedScenarioID) {
         Battery battery = new Battery();
-        battery.setBatterySize(theSystemData.surplusCobat);
+        double coBat = theSystemData.surplusCobat.stream().mapToDouble(Double::doubleValue).sum();
+        battery.setBatterySize(coBat);
         battery.setStorageLoss(1);
         ChargeModel chargeModel = new ChargeModel();
         report("Creating battery settings");
@@ -185,7 +188,7 @@ public class GenerationWorker extends AbstractGenerationWorker {
         MaxCalcRow previous = rowIterator.next();
         // assuming max charge and discharge is 0.5 C, we need to see the max for a 5min period
         // as a percentage of full capacity
-        double maxCD = ((theSystemData.surplusCobat / 2d / 12d) / theSystemData.surplusCobat) * 100;
+        double maxCD = ((coBat / 2d / 12d) / coBat) * 100;
 
         while (rowIterator.hasNext()) {
             MaxCalcRow current = rowIterator.next();
@@ -207,8 +210,8 @@ public class GenerationWorker extends AbstractGenerationWorker {
             previous = current;
         }
         // load converted to percentage
-        maxDischarge = (theSystemData.surplusCobat / 100d) * maxBatDischarge;
-        maxCharge = (theSystemData.surplusCobat / 100d) * maxBatCharge;
+        maxDischarge = (coBat / 100d) * maxBatDischarge;
+        maxCharge = (coBat / 100d) * maxBatCharge;
 
         maxDischarge = ((int) (maxDischarge * 10000)) / 10000d;
         maxCharge = ((int) (maxCharge * 10000)) / 10000d;

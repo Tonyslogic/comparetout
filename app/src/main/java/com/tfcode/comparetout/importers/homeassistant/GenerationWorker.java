@@ -76,7 +76,6 @@ public class GenerationWorker extends AbstractGenerationWorker {
         setProgressAsync(new Data.Builder().putString(PROGRESS, "Starting GenerationWorker").build());
         System.out.println("GenerationWorker created");
     }
-    @SuppressLint("DefaultLocale")
     @Override
     protected List<AlphaESSTransformedData> expandHoursIfNeeded(List<AlphaESSTransformedData> dbRows) {
         final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -119,33 +118,31 @@ public class GenerationWorker extends AbstractGenerationWorker {
                 Arrays.stream(value4.blockingGet().split(","))
                         .map(Double::valueOf)
                         .collect(Collectors.toList());
-        // TODO: Generate an inverter for each battery For now, squash them all into one
-        double estimatedBatteryCapacity =  estimatedBatteryCapacities.stream()
-                .mapToDouble(Double::doubleValue)
-                .sum();
-        return new SystemData(popv, poinv, estimatedBatteryCapacity);
+        return new SystemData(popv, poinv, estimatedBatteryCapacities);
     }
     @Override
     protected void generateBattery(SystemData theSystemData, String mSystemSN, long assignedScenarioID) {
-        Battery battery = new Battery();
-        battery.setBatterySize((int)(theSystemData.surplusCobat * 100) / 100D);
-        battery.setStorageLoss(1);
-        ChargeModel chargeModel = new ChargeModel();
+        for (Double coBat : theSystemData.surplusCobat) {
+            Battery battery = new Battery();
+            battery.setBatterySize((int)(coBat * 100) / 100D);
+            battery.setStorageLoss(1);
+            ChargeModel chargeModel = new ChargeModel();
 
-        chargeModel.percent0 = 30;
-        chargeModel.percent12 = 100;
-        chargeModel.percent90 = 10;
-        chargeModel.percent100 = 0;
-        battery.setChargeModel(chargeModel);
+            chargeModel.percent0 = 30;
+            chargeModel.percent12 = 100;
+            chargeModel.percent90 = 10;
+            chargeModel.percent100 = 0;
+            battery.setChargeModel(chargeModel);
 
-        double maxDischarge = (int)(((theSystemData.surplusCobat * 0.5) / 12D) * 100) / 100D;
-        double maxCharge = (int)(((theSystemData.surplusCobat * 0.5) / 12D) * 100) / 100D;
+            double maxDischarge = (int)(((coBat * 0.5) / 12D) * 100) / 100D;
+            double maxCharge = (int)(((coBat * 0.5) / 12D) * 100) / 100D;
 
-        battery.setMaxDischarge(maxDischarge);
-        battery.setMaxCharge(maxCharge);
-        battery.setInverter(mSystemSN);
-        report("Storing battery");
-        mToutcRepository.saveBatteryForScenario(assignedScenarioID, battery);
+            battery.setMaxDischarge(maxDischarge);
+            battery.setMaxCharge(maxCharge);
+            battery.setInverter(mSystemSN);
+            report("Storing battery");
+            mToutcRepository.saveBatteryForScenario(assignedScenarioID, battery);
+        }
     }
 
     @Override

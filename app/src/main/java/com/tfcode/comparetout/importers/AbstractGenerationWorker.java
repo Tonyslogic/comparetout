@@ -459,9 +459,9 @@ public abstract class AbstractGenerationWorker extends Worker {
     public static class SystemData {
         public double popv;
         public double poinv;
-        public double surplusCobat;
+        public List<Double> surplusCobat;
 
-        public SystemData(double popv, double poinv, double surplusCobat) {
+        public SystemData(double popv, double poinv, List<Double> surplusCobat) {
             this.popv = popv;
             this.poinv = poinv;
             this.surplusCobat = surplusCobat;
