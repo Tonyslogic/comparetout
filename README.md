@@ -7,10 +7,14 @@ Beta test version V1.27 (Ireland only, so far)
 
 > Sign up from your [browser](https://play.google.com/apps/testing/com.tfcode.comparetout)
 
-Internal test version V1.29 
+Internal test version V1.30 
 > [email me](mailto:tonysfreecode@gmail.com?subject=AlphaTest), with the email address used in your android play store account
 
 Read more on the [documentation site](https://github.com/Tonyslogic/comparetout-doc)
+
+V1.30
+
+* Bugfix: Unable to select HA sensors
 
 V1.29
 
