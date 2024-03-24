@@ -42,7 +42,6 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.TOUTCApplication;
-import com.tfcode.comparetout.importers.esbn.ImportESBNActivity;
 import com.tfcode.comparetout.importers.homeassistant.messages.HAMessage;
 import com.tfcode.comparetout.importers.homeassistant.messages.StatsForPeriodRequest;
 import com.tfcode.comparetout.importers.homeassistant.messages.authorization.AuthInvalid;
@@ -309,7 +308,7 @@ public class HACatchupWorker extends Worker {
         PendingIntent intent = WorkManager.getInstance(context)
                 .createCancelPendingIntent(getId());
 
-        Intent importESBNActivity = new Intent(context, ImportESBNActivity.class);
+        Intent importESBNActivity = new Intent(context, ImportHomeAssistantActivity.class);
         TaskStackBuilder stackBuilder = TaskStackBuilder.create(context);
         stackBuilder.addNextIntentWithParentStack(importESBNActivity);
         PendingIntent activityPendingIntent = stackBuilder.getPendingIntent(0,

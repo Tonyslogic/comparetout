@@ -119,14 +119,14 @@ public abstract class ImportOverviewFragment extends Fragment {
     private ComparisonUIViewModel mViewModel;
     private CostViewModel mCostViewModel;
     private ToutcRepository mToutcRepository;
-    private Handler mMainHandler;
+    protected Handler mMainHandler;
     private TableLayout mInputTable;
     private TableLayout mStatusTable;
     private Map<String, String> mInverterDateRangesBySN;
     private boolean mHasCredentials = true;
-    private boolean mCredentialsAreGood = true;
+    protected boolean mCredentialsAreGood = true;
     protected String mSerialNumber;
-    private boolean mSystemSelected = false;
+    protected boolean mSystemSelected = false;
     protected boolean mFetchOngoing = false;
     private LiveData<List<WorkInfo>> mCatchupLiveDataForSN;
     private Observer<List<WorkInfo>> mCatchupWorkObserver;
@@ -168,6 +168,7 @@ public abstract class ImportOverviewFragment extends Fragment {
                         .data().firstOrError()
                         .map(prefs -> prefs.get(goodKey)).onErrorReturnItem("False");
                 String goodCreds = value3.blockingGet();
+                mCredentialsAreGood = !(goodCreds.equals("False"));
 
                 loadSystemListFromPreferences(application);
 
@@ -200,7 +201,6 @@ public abstract class ImportOverviewFragment extends Fragment {
                     } catch (ImportException e) {
                         e.printStackTrace();
                     }
-                    mCredentialsAreGood = !(goodCreds.equals("False"));
                     mAppID = appId;
                     mAppSecret = appSecret;
                 }
@@ -280,7 +280,7 @@ public abstract class ImportOverviewFragment extends Fragment {
         updateView();
     }
 
-    private void updateView() {
+    protected void updateView() {
         Activity activity = getActivity();
         Context context = getContext();
         if (!(null == mInputTable) && !(null == mStatusTable) && !(null == activity) && !(null == context)) {
@@ -555,7 +555,7 @@ public abstract class ImportOverviewFragment extends Fragment {
         }
     }
 
-    private void serialUpdated(Context context) {
+    protected void serialUpdated(Context context) {
         ((ImportSystemSelection) requireActivity()).setSelectedSystemSN(mSerialNumber);
         mSystemSelected = true;
 

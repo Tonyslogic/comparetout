@@ -67,9 +67,12 @@ public class ImportHAOverview extends ImportOverviewFragment {
     private static final String HA_SENSORS_KEY = "ha_sensors";
     static final String HA_COBAT_KEY = "ha_cobat";
     private EnergySensors mEnergySensors;
+    private ImportHAOverview mImportHAOverview;
 
     public static ImportHAOverview newInstance() {
-        return new ImportHAOverview();
+        ImportHAOverview fragment = new ImportHAOverview();
+        fragment.mImportHAOverview = fragment;
+        return fragment;
     }
 
     @Override
@@ -96,6 +99,10 @@ public class ImportHAOverview extends ImportOverviewFragment {
         if (!(null == mprnListFromPreferences) && !(mprnListFromPreferences.isEmpty())) {
             mSerialNumbers = new ArrayList<>();
             mSerialNumbers.addAll(mprnListFromPreferences);
+            if (mCredentialsAreGood) {
+                mSerialNumber = "HomeAssistant";
+                mSystemSelected = true;
+            }
         }
 
         Preferences.Key<String> sensorsKey = PreferencesKeys.stringKey(HA_SENSORS_KEY);
@@ -156,7 +163,12 @@ public class ImportHAOverview extends ImportOverviewFragment {
         if (!(null == context)) new AlertDialog.Builder(context)
                 .setTitle("Energy Sensors")
                 .setMessage(prettyJsonString)
-                .setPositiveButton(android.R.string.ok, null)
+                .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                    mSerialNumber = "HomeAssistant";
+                    mSystemSelected = true;
+                    serialUpdated(context);
+                    mMainHandler.post(this::updateView);
+                })
                 .show();
     }
 
@@ -207,10 +219,14 @@ public class ImportHAOverview extends ImportOverviewFragment {
 
     @Override
     protected void reloadClient(String host, String token) throws ImportException {
-        HADispatcher mHAClient = new HADispatcher(host, token);
-        mHAClient.registerHandler("auth_ok", new AuthOKHandler(mHAClient, host, token));
-        mHAClient.registerHandler("auth_invalid", new AuthNotOKHandler(mHAClient));
-        mHAClient.start();
+        try {
+            HADispatcher mHAClient = new HADispatcher(host, token);
+            mHAClient.registerHandler("auth_ok", new AuthOKHandler(mHAClient, host, token));
+            mHAClient.registerHandler("auth_invalid", new AuthNotOKHandler(mHAClient));
+            mHAClient.start();
+        } catch (Exception e) {
+            throw new ImportException("Failed to connect to Home Assistant");
+        }
     }
     class EnergyPrefsResultHandler implements MessageHandler<EnergyPrefsResult> {
 
@@ -264,43 +280,6 @@ public class ImportHAOverview extends ImportOverviewFragment {
 
                 }
 
-//                Optional<EnergySource> solarEnergySource = energySources.stream()
-//                        .filter(energySource -> "solar".equals(energySource.getType()))
-//                        .findFirst();
-//
-//                if (solarEnergySource.isPresent()) {
-//                    statSolarEnergyFrom = solarEnergySource.get().getStatEnergyFrom();
-//                    LOGGER.info("solar, flow_from = " + statSolarEnergyFrom);
-//                } else {
-//                    LOGGER.info("solar, flow_from = DOH! Think again" );
-//                }
-//
-//                Optional<EnergySource> batteryEnergySource = energySources.stream()
-//                        .filter(energySource -> "battery".equals(energySource.getType()))
-//                        .findFirst();
-//
-//                if (batteryEnergySource.isPresent()) {
-//                    statBatteryEnergyFrom = batteryEnergySource.get().getStatEnergyFrom();
-//                    LOGGER.info("battery, flow_from = " + statBatteryEnergyFrom);
-//                    statBatteryEnergyTo = batteryEnergySource.get().getStatEnergyTo();
-//                    LOGGER.info("battery, flow_to = " + statBatteryEnergyTo);
-//                } else {
-//                    LOGGER.info("solar, flow_from = DOH! Think again" );
-//                }
-//
-//                Optional<EnergySource> gridEnergySource = energySources.stream()
-//                        .filter(energySource -> "grid".equals(energySource.getType()))
-//                        .findFirst();
-//
-//                if (gridEnergySource.isPresent()) {
-//                    statGridEnergyFrom = gridEnergySource.get().getFlowFrom().stream().map(Flow::getStatEnergyFrom).collect(Collectors.toList());
-//                    statGridEnergyTo = gridEnergySource.get().getFlowTo().stream().map(Flow::getStatEnergyTo).collect(Collectors.toList());
-//                    LOGGER.info("grid, flow_from = " + String.join(", ", statGridEnergyFrom));
-//                    LOGGER.info("grid, flow_to = " + String.join(", ", statGridEnergyTo));
-//                } else {
-//                    LOGGER.info("grid, flow_from = DOH! Think again" );
-//                }
-
                 mEnergySensors = getSensors();
                 String stringResponse = new Gson().toJson(mEnergySensors);
                 if (!(null == mActivity) && !(null == mActivity.getApplication()) ) {
@@ -308,6 +287,10 @@ public class ImportHAOverview extends ImportOverviewFragment {
                     boolean x = application.putStringValueIntoDataStore(HA_SENSORS_KEY, stringResponse);
                     if (!x) System.out.println("ImportHAOverview::reloadClient, failed to store sensors");
                 }
+                mSerialNumber = "HomeAssistant";
+                mSystemSelected = true;
+                serialUpdated(mActivity);
+                mMainHandler.post(mImportHAOverview::updateView);
             }
             mHAClient.stop();
         }

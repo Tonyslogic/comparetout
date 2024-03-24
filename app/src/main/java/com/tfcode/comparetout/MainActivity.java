@@ -25,6 +25,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
@@ -349,13 +350,19 @@ public class MainActivity extends AppCompatActivity {
         getMenuInflater().inflate(R.menu.menu_prices, menu);
         mMainMenu = menu;
         int colour = Color.parseColor("White");
-        mMainMenu.findItem(R.id.load).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMainMenu.findItem(R.id.download).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMainMenu.findItem(R.id.export).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMainMenu.findItem(R.id.help).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        for (int i : new int[]{R.id.load, R.id.download, R.id.export, R.id.help}) {
+            Drawable icon = mMainMenu.findItem(i).getIcon();
+            if (!(null == icon)) icon.setColorFilter(colour, PorterDuff.Mode.DST);
+        }
         if (viewPager.getCurrentItem() == COMPARE_FRAGMENT) {
-            mMainMenu.findItem(R.id.load).setVisible(false);
-            mMainMenu.findItem(R.id.download).setVisible(false);
+            for (int i : new int[]{R.id.load, R.id.download}) {
+                mMainMenu.findItem(i).setVisible(false);
+            }
+        }
+        if (viewPager.getCurrentItem() == DATA_MANAGEMENT_FRAGMENT) {
+            for (int i : new int[]{R.id.load, R.id.download, R.id.export}) {
+                mMainMenu.findItem(i).setVisible(false);
+            }
         }
         setMenuLongClick();
         return true;

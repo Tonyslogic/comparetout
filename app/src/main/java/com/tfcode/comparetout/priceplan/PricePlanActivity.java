@@ -22,6 +22,7 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -196,13 +197,10 @@ public class PricePlanActivity extends AppCompatActivity {
         getMenuInflater().inflate(R.menu.menu_plans, menu);
         mMenu = menu;
         int colour = Color.parseColor("White");
-        mMenu.findItem(R.id.info).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMenu.findItem(R.id.edit_a_plan).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMenu.findItem(R.id.add_a_day_rate).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMenu.findItem(R.id.export_a_plan).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMenu.findItem(R.id.del_a_day_rate).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMenu.findItem(R.id.save_a_plan).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMenu.findItem(R.id.help).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        for (int i : new int[]{R.id.info, R.id.edit_a_plan, R.id.add_a_day_rate, R.id.export_a_plan, R.id.del_a_day_rate, R.id.save_a_plan, R.id.help}) {
+            Drawable icon = menu.findItem(i).getIcon();
+            if (!(null == icon)) icon.setColorFilter(colour, PorterDuff.Mode.DST);
+        }
         setMenuLongClick();
         return true;
     }
@@ -383,7 +381,6 @@ public class PricePlanActivity extends AppCompatActivity {
 
             focusedPlan = JsonTools.createSinglePricePlanJsonObject(pricePlan, dayRates);
 
-            ppj = new Gson().fromJson(focusedPlan, type);
             refreshMediator();
             //
             ((PricePlanViewPageAdapter) viewPager.getAdapter()).add(pos);
