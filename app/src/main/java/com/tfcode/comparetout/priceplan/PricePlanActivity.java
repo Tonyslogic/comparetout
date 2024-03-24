@@ -77,6 +77,7 @@ public class PricePlanActivity extends AppCompatActivity {
     private Long planID = 0L;
     private String focusedPlan = "{}";
     private TabLayoutMediator mMediator;
+    private boolean mRetryMediator = false;
     private ActionBar mActionBar;
     private boolean mDoubleBackToExitPressedOnce = false;
     private boolean mUnsavedChanges = false;
@@ -154,14 +155,23 @@ public class PricePlanActivity extends AppCompatActivity {
         viewPager.setAdapter(createPlanAdapter(count));
         viewPager.setOffscreenPageLimit(4);
 
-        ArrayList<String> tabTitlesList = new ArrayList<>();
-        tabTitlesList.add("Plan details");
-        for (DayRateJson ignored : ppj.rates) tabTitlesList.add("Rates");
         TabLayout tabLayout = findViewById(R.id.tab_layout);
-        mMediator = new TabLayoutMediator(tabLayout, viewPager,
-                (tab, position) -> tab.setText(tabTitlesList.get(position))
-        );
+        try {
+            mMediator = new TabLayoutMediator(tabLayout, viewPager,
+                    (tab, position) -> tab.setText((position == 0) ? "Plan details" : "Rates")
+            );
+            mRetryMediator = false;
+        }
+        catch (ArrayIndexOutOfBoundsException aie) {
+            aie.printStackTrace();
+            if (!mRetryMediator) {
+                mRetryMediator = true;
+                new Handler(Looper.getMainLooper()).postDelayed(this::refreshMediator,1000);
+            }
+            else return;
+        }
         mMediator.attach();
+
 
         LinearLayout linearLayout = (LinearLayout)tabLayout.getChildAt(0);
         ((View)linearLayout.getChildAt(0)).setOnLongClickListener(v -> {
@@ -347,10 +357,8 @@ public class PricePlanActivity extends AppCompatActivity {
                 if (!(null == viewPager.getAdapter()))
                     ((PricePlanViewPageAdapter)viewPager.getAdapter()).delete(pos);
 
-                ppj = new Gson().fromJson(focusedPlan, type);
-//                refreshMediator(ppj);
-                PricePlanJsonFile finalPpj = ppj;
-                new Handler(Looper.getMainLooper()).postDelayed(() -> refreshMediator(finalPpj), 200);
+//                ppj = new Gson().fromJson(focusedPlan, type);
+                new Handler(Looper.getMainLooper()).postDelayed(this::refreshMediator, 200);
             }
             else {
                 Snackbar.make(getWindow().getDecorView().getRootView(), "Try again from a RATES tab", Snackbar.LENGTH_LONG)
@@ -376,7 +384,7 @@ public class PricePlanActivity extends AppCompatActivity {
             focusedPlan = JsonTools.createSinglePricePlanJsonObject(pricePlan, dayRates);
 
             ppj = new Gson().fromJson(focusedPlan, type);
-            refreshMediator(ppj);
+            refreshMediator();
             //
             ((PricePlanViewPageAdapter) viewPager.getAdapter()).add(pos);
 
@@ -392,15 +400,23 @@ public class PricePlanActivity extends AppCompatActivity {
         return false;
     }
 
-    private void refreshMediator(PricePlanJsonFile ppj) {
-        ArrayList<String> tabTitlesList = new ArrayList<>();
-        tabTitlesList.add("Plan details");
-        for (DayRateJson ignored : ppj.rates) tabTitlesList.add("Rates");
+    private void refreshMediator() {
         TabLayout tabLayout = findViewById(R.id.tab_layout);
         mMediator.detach();
-        mMediator = new TabLayoutMediator(tabLayout, viewPager,
-                (tab, position) -> tab.setText(tabTitlesList.get(position))
-        );
+        try {
+            mMediator = new TabLayoutMediator(tabLayout, viewPager,
+                    (tab, position) -> tab.setText((position == 0) ? "Plan details" : "Rates")
+            );
+            mRetryMediator = false;
+        }
+        catch (ArrayIndexOutOfBoundsException aie) {
+            aie.printStackTrace();
+            if (!mRetryMediator) {
+                mRetryMediator = true;
+                new Handler(Looper.getMainLooper()).postDelayed(this::refreshMediator,1000);
+            }
+            else return;
+        }
         mMediator.attach();
 
         LinearLayout linearLayout = (LinearLayout)tabLayout.getChildAt(0);
