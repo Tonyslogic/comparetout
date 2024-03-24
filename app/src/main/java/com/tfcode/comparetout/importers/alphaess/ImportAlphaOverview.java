@@ -46,8 +46,6 @@ import io.reactivex.Single;
 
 public class ImportAlphaOverview extends ImportOverviewFragment {
 
-    private OpenAlphaESSClient mOpenAlphaESSClient;
-
     public static ImportAlphaOverview newInstance() {
         return new ImportAlphaOverview();
     }
@@ -126,12 +124,12 @@ public class ImportAlphaOverview extends ImportOverviewFragment {
 
     @Override
     protected void setCredentialPrompt(CredentialDialog credentialDialog) {
-        credentialDialog.setPrompts(R.string.appId, R.string.appSecret);
+        credentialDialog.setPrompts(R.string.appId, R.string.appSecret, null);
     }
 
     @Override
     protected void reloadClient(String appId, String appSecret) throws AlphaESSException {
-        mOpenAlphaESSClient = new OpenAlphaESSClient(appId, appSecret);
+        OpenAlphaESSClient mOpenAlphaESSClient = new OpenAlphaESSClient(appId, appSecret);
         GetEssListResponse response = mOpenAlphaESSClient.getEssList();
         if (null == response) throw new AlphaESSException("err.code=7001 err.msg=The network was not available" );
         List<GetEssListResponse.DataItem> systems = response.data;

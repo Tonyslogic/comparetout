@@ -127,7 +127,10 @@ public class ImportHAOverview extends ImportOverviewFragment {
 
     @Override
     protected void setCredentialPrompt(CredentialDialog credentialDialog) {
-        credentialDialog.setPrompts(R.string.hostPrompt, R.string.tokenPrompt);
+        credentialDialog.setPrompts(R.string.hostPrompt, R.string.tokenPrompt,
+                (!(null == mAppID) && !(mAppID.isEmpty()))
+                        ? mAppID
+                        : "http://<HOST>:8123/api/websocket");
     }
 
     @Override

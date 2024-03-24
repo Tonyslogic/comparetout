@@ -139,6 +139,7 @@ public class ImportESBNOverview extends ImportOverviewFragment {
 
     @Override
     protected void setCredentialPrompt(CredentialDialog credentialDialog) {
-        credentialDialog.setPrompts(R.string.userPrompt, R.string.passPrompt);
+        credentialDialog.setPrompts(R.string.userPrompt, R.string.passPrompt,
+                (!(null == mAppID) && !(mAppID.isEmpty())) ? mAppID : null);
     }
 }

@@ -40,6 +40,7 @@ public class CredentialDialog extends Dialog  {
     private EditText appSecretValue = null;
 
     private int userPrompt = R.string.appId;
+    private String userContent = "";
     private int passPrompt = R.string.appSecret;
 
     public CredentialDialog(@NonNull Context context, CredentialDialogListener listener) {
@@ -47,9 +48,12 @@ public class CredentialDialog extends Dialog  {
         mCredentialDialogListener = listener;
     }
 
-    public void setPrompts (int userPrompt, int passPrompt) {
+    public void setPrompts (int userPrompt, int passPrompt, String userContent) {
         this.userPrompt = userPrompt;
         this.passPrompt = passPrompt;
+        if (userContent != null) {
+            this.userContent = userContent;
+        }
     }
 
     @Override
@@ -76,8 +80,7 @@ public class CredentialDialog extends Dialog  {
 
             TableRow appIdValueRow = new TableRow(getContext());
             appIDValue = new EditText(getContext());
-            String mAppId = "";
-            appIDValue.setText(mAppId);
+            appIDValue.setText(userContent);
             appIDValue.setLines(5);
             appIDValue.setSingleLine(false);
             appIDValue.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18f);
