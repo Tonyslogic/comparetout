@@ -7,10 +7,14 @@ Beta test version V1.27 (Ireland only, so far)
 
 > Sign up from your [browser](https://play.google.com/apps/testing/com.tfcode.comparetout)
 
-Internal test version V1.27 
+Internal test version V1.28 
 > [email me](mailto:tonysfreecode@gmail.com?subject=AlphaTest), with the email address used in your android play store account
 
 Read more on the [documentation site](https://github.com/Tonyslogic/comparetout-doc)
+
+V1.28
+
+* Added importer support for Home Assistant Energy API
 
 V1.27
 
