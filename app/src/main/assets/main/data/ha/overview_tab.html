@@ -1,0 +1,68 @@
+<html>
+    <head>
+        <link rel="stylesheet" href="/assets/stylesheet.css">
+    </head>
+    <body>
+        <img style="float: right;" src="/res/drawable/launcher.png" alt="launcher" width="100">
+        <p><b>Help: HomeAssistant overview</b></p>
+        <p><a href="https://www.youtube.com/watch?v=vUdPhGrInnM">TODO Managing HomeAssistant</a></p>
+        <div style="clear: right">
+            <p>HomeAssistant provides access to historical energy data. Data needs
+                to be fetched before the other tabs are useful.</p>
+            <p>Using this tab, you can:</p>
+            <ul>
+                <li>Connect to HomeAssistant by providing a token (from your HomeAssistant profile)</li>
+                <li>View the energy configuration registered with the above credentials. All the tabs use
+                    the configuration visible here.</li>
+                <li>Fetch (once off and recurring) data from HomeAssistant </li>
+                <li>Cost a date range from downloaded data (needs some 'costs' defined)  </li>
+                <li>Remove downloaded data from the database </li>
+            </ul>
+
+            <p></p>
+            <p><b>Setting credentials</b></p>
+            <p>When you set credentials, you will be presented with a dialog to collect a Host
+                and an Access Token. Credentials are stored, encrypted, on your device.
+                To remove the credentials from the device, set empty values.</p>
+            <img src="/res/drawable/ha_gen_token.png" alt="Set Credentials" width="300">
+            <p>To get these two pieces of information:  </p>
+            <p>First you need the address of your HomeAssistant API. The sample provided works for
+                default configuration local access, you need to substitute 'HOST' for the hostname
+                or IP Address of you HomeAssistant.</p>
+            <p>You must also create a Long-Lived Access Token.</p>
+            <img src="/res/drawable/ha_gen_token_i.png" alt="Menu" width="300">
+            <p>Log into you HomeAssistant. Bring up the menu (top left). Click on the user
+                profile (picture) at the bottom of the menu.</p>
+            <p>Scroll down to the very end.</p>
+            <img src="/res/drawable/ha_gen_token_ii.png" alt="Profile" width="300">
+            <p>Click on 'CREATE TOKEN'</p>
+            <img src="/res/drawable/ha_gen_token_iii.png" alt="Add I/II" width="300">
+            <p>Provide a suitable name and click OK.</p>
+            <img src="/res/drawable/ha_gen_token_iv.png" alt="Add II/II" width="300">
+            <p>Copy the token, and paste into the appropriate area of the credentials dialog.</p>
+
+            <p><b>Energy Sensors</b></p>
+            <p>Once credentials are set, the app will fetch the energy sensors configuration
+                from HomeAssistant. These are used to identify the data to fetch. The sensors
+                are displayed in as a json snippet. The sensors are updated whenever the app
+                connects to HomeAssistant.</p>
+
+            <p><b>Fetching</b></p>
+            <p>Once Energy Sensors are available, you can fetch historical data.</p>
+            <p>Fetching starts from a date specified using a data picker. The app will start
+                a background process, 'Catchup', that will collect and process data one day at a time.
+                Progress is reported using notifications, and also with status text.</p>
+            <p>When catchup is complete, the app schedules a daily collection that runs sometime
+                after 02:00 whenever the device is not busy.</p>
+            <p>Catchup and daily collection may be canceled by 'STOP FETCHING'.</p>
+
+            <p><b>Selection and costing</b></p>
+            <p>'COST DATES' will generate an estimated cost for the selected period.
+                This will be done for each supplier plan (cost) registered. Completed
+                cost calculations appear under the action buttons. Clicking on a costing
+                will display a pie chart of the price distribution for that supplier
+                plan.</p>
+
+        </div>
+    </body>
+</html>
