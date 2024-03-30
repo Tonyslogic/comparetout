@@ -165,20 +165,16 @@ public class ESBNHDFClient {
                 mprnPageHtml = Objects.requireNonNull(mprnPageResponse.body()).string();
             }
             mprnPageResponse.close();
-//            System.out.println("fetchMPRNs:: gotResponse");
-//            System.out.println(mprnPageHtml);
 
             Document doc = Jsoup.parse(mprnPageHtml);
 
             // Select card-body elements that contain an h2 element with the text "MPRN: "
-            Elements mprnCardBodies = doc.select("div.card-body:has(h2.card-title.h6-style:containsOwn(MPRN:))");
-
-//            System.out.println("fetchMPRNs:: card count=" + mprnCardBodies.size());
+            Elements mprnCardBodies = doc.select("[class~=.*step.*]:containsOwn(MPRN:)");
 
             // Loop through the selected card-body elements
             for (Element cardBody : mprnCardBodies) {
                 // Extract and print the MPRN value
-                Element mprnElement = cardBody.select("h2.card-title.h6-style + p#display-data").first();
+                Element mprnElement = cardBody.parent().select("p#display-data").first();
                 if (mprnElement != null) {
                     String mprnValue = mprnElement.text();
                     ret.add(mprnValue);
