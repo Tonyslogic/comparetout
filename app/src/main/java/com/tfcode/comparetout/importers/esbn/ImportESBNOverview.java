@@ -17,8 +17,12 @@
 package com.tfcode.comparetout.importers.esbn;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.Context;
 import android.icu.text.SimpleDateFormat;
+import android.view.Gravity;
+import android.widget.TableRow;
+import android.widget.TextView;
 
 import androidx.datastore.preferences.core.Preferences;
 import androidx.datastore.preferences.core.PreferencesKeys;
@@ -29,6 +33,7 @@ import androidx.work.OneTimeWorkRequest;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
+import com.google.android.material.button.MaterialButton;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.ComparisonUIViewModel;
@@ -54,6 +59,7 @@ public class ImportESBNOverview extends ImportOverviewFragment {
 
     @Override
     protected void loadSystemListFromPreferences(TOUTCApplication application) {
+        mSerialNumbers = new ArrayList<>();
         Preferences.Key<String> systemList = PreferencesKeys.stringKey(SYSTEM_LIST_KEY);
         Single<String> value4 = application.getDataStore()
                .data().firstOrError()
@@ -62,7 +68,6 @@ public class ImportESBNOverview extends ImportOverviewFragment {
         List<String> mprnListFromPreferences =
                 new Gson().fromJson(systemListJsonString, new TypeToken<List<String>>(){}.getType());
         if (!(null == mprnListFromPreferences) && !(mprnListFromPreferences.isEmpty())) {
-            mSerialNumbers = new ArrayList<>();
             mSerialNumbers.addAll(mprnListFromPreferences);
         }
     }
@@ -141,5 +146,12 @@ public class ImportESBNOverview extends ImportOverviewFragment {
     protected void setCredentialPrompt(CredentialDialog credentialDialog) {
         credentialDialog.setPrompts(R.string.userPrompt, R.string.passPrompt,
                 (!(null == mAppID) && !(mAppID.isEmpty())) ? mAppID : null);
+    }
+
+    @Override
+    protected TableRow getSystemSelectionRow(Activity activity, boolean mCredentialsAreGood) {
+        // For ESBN importer, we do not want to disable the manual input of MPRN,
+        // so HDF loading will still work
+        return super.getSystemSelectionRow(activity, true);
     }
 }

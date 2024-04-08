@@ -203,7 +203,7 @@
     <string name="no_panel_data">No simulation, add panel data</string>
     <string name="alphaess">AlphaESS Open API</string>
     <string name="home_assistant">Home Assistant</string>
-    <string name="solis_cloud">Solis Cloud</string>
+    <string name="solis_cloud">Add source</string>
     <string name="ok">OK</string>
     <string name="appSecret">App Secret</string>
     <string name="appId">App ID</string>

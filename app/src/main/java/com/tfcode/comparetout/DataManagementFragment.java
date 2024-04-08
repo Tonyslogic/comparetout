@@ -31,6 +31,7 @@ import android.widget.PopupWindow;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.viewpager2.widget.ViewPager2;
 import androidx.webkit.WebViewAssetLoader;
@@ -159,18 +160,13 @@ public class DataManagementFragment extends Fragment {
             if (!(null == activity)) {
                 Intent intent = new Intent(activity, ImportHomeAssistantActivity.class);
                 startActivity(intent);
-//                if (!(null == getView())) Snackbar.make(getView(),
-//                                "TODO: Add Home Assistant integration", Snackbar.LENGTH_LONG)
-//                        .setAction("Action", null).show();
             }
         });
 
         mSolisCloud.setOnClickListener(v -> {
             Activity activity = getActivity();
             if (!(null == activity)) {
-                if (!(null == getView())) Snackbar.make(getView(),
-                                "TODO: Add Solis Cloud integration", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
+                showHelp("https://appassets.androidplatform.net/assets/main/datatab/new.html");
             }
         });
     }
