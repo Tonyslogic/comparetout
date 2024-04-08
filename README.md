@@ -7,10 +7,16 @@ Beta test version V1.27 (Ireland only, so far)
 
 > Sign up from your [browser](https://play.google.com/apps/testing/com.tfcode.comparetout)
 
-Internal test version V1.30 
+Internal test version V1.31 
 > [email me](mailto:tonysfreecode@gmail.com?subject=AlphaTest), with the email address used in your android play store account
 
 Read more on the [documentation site](https://github.com/Tonyslogic/comparetout-doc)
+
+V1.31
+
+* Bugfix: MPRN discovery fix
+* Bugfix: Add MPRN without credentials
+* Added link to community for more data sources
 
 V1.30
 
