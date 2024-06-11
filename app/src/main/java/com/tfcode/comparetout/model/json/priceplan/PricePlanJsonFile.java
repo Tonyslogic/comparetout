@@ -60,5 +60,8 @@ public class PricePlanJsonFile {
 
     @SerializedName("DeemedExport")
     public Boolean deemedExport = false;
+
+    @SerializedName("Restrictions")
+    public RestrictionJson restrictions = new RestrictionJson();
 }
 

@@ -31,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -51,6 +52,7 @@ public class PricePlan {
     private double signUpBonus = 0.0;
     @ColumnInfo(name = "deemedExport", defaultValue = "0")
     private boolean deemedExport = false;
+    private Restrictions restrictions = new Restrictions();
     @SuppressLint("SimpleDateFormat")
     @NonNull
     @ColumnInfo(defaultValue = "CURRENT_TIMESTAMP")
@@ -165,6 +167,14 @@ public class PricePlan {
         this.lastUpdate = lastUpdate;
     }
 
+    public Restrictions getRestrictions() {
+        return restrictions;
+    }
+
+    public void setRestrictions(Restrictions restrictions) {
+        this.restrictions = restrictions;
+    }
+
     public PricePlan copy() {
         PricePlan copy = new PricePlan();
         copy.supplier = supplier;
@@ -189,7 +199,7 @@ public class PricePlan {
     public static final int INVALID_PLAN_NO_DAY_RATES = 7;
     public static final int INVALID_PLAN_END_BEFORE_START = 8;
     public int validatePlan(List<DayRate> drs) {
-        if (drs.size() == 0) return INVALID_PLAN_NO_DAY_RATES;
+        if (drs.isEmpty()) return INVALID_PLAN_NO_DAY_RATES;
         Map<String, LocalDate[]> dtRanges = new HashMap<>();
         Map<String, List<Integer>> dtDays = new HashMap<>();
         for (DayRate dr : drs) {
@@ -218,7 +228,7 @@ public class PricePlan {
         // Check for missing days
         List<Integer> allDays = new ArrayList<>(Arrays.asList(0,1,2,3,4,5,6));
         for (List<Integer> daysInADateRange: dtDays.values()){
-            if (!(daysInADateRange.containsAll(allDays))) {
+            if (!(new HashSet<>(daysInADateRange).containsAll(allDays))) {
                 return INVALID_PLAN_MISSING_DAYS;
             }
         }
@@ -235,7 +245,7 @@ public class PricePlan {
         // Check for overlapping date ranges
         List<Integer> fullYear = new ArrayList<>();
         for (int i = 1; i <= 365; i++) fullYear.add(i);
-        if (!datesSoFar.containsAll(fullYear)) return INVALID_PLAN_MISSING_DATES;
+        if (!new HashSet<>(datesSoFar).containsAll(fullYear)) return INVALID_PLAN_MISSING_DATES;
         return VALID_PLAN;
     }
 

@@ -17,7 +17,8 @@
 package com.tfcode.comparetout.util;
 
 import com.tfcode.comparetout.model.priceplan.DayRate;
-import com.tfcode.comparetout.model.priceplan.HourlyRateRange;
+import com.tfcode.comparetout.model.priceplan.DoubleHolder;
+import com.tfcode.comparetout.model.priceplan.MinuteRateRange;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -27,7 +28,7 @@ import java.util.Objects;
 import java.util.TreeMap;
 
 public class RateLookup {
-    private final NavigableMap<Integer, NavigableMap<Integer, HourlyRateRange>> mLookup
+    private final NavigableMap<Integer, NavigableMap<Integer, MinuteRateRange>> mLookup
             = new TreeMap<>();
 
     public RateLookup(List<DayRate> drs) {
@@ -36,16 +37,23 @@ public class RateLookup {
             LocalDate start = LocalDate.of(2001, Integer.parseInt(startBits[0]), Integer.parseInt(startBits[1]));
             int startDOY = start.getDayOfYear();
 
-            NavigableMap<Integer, HourlyRateRange> dowRange;
-            Map.Entry<Integer, NavigableMap<Integer, HourlyRateRange>> entry = mLookup.floorEntry(startDOY);
+            NavigableMap<Integer, MinuteRateRange> dowRange;
+            Map.Entry<Integer, NavigableMap<Integer, MinuteRateRange>> entry = mLookup.floorEntry(startDOY);
             if (null == entry) dowRange = new TreeMap<>();
             else {
                 dowRange = Objects.requireNonNull(mLookup.floorEntry(startDOY)).getValue();
                 if (null == dowRange) dowRange = new TreeMap<>();
             }
 
-            HourlyRateRange rateRange = new HourlyRateRange(dr.getHours());
-            for (Integer day : dr.getDays().ints){
+            MinuteRateRange rateRange = dr.getMinuteRateRange();
+            if (null == rateRange) rateRange = new MinuteRateRange();
+
+            // Check that the rate range is empty. If so, fill it with the values from legacy hours
+            if (rateRange.getRates().isEmpty()) {
+                rateRange = MinuteRateRange.fromHours(dr.getHours());
+            }
+
+            for (Integer day : dr.getDays().ints) {
                 dowRange.put(day, rateRange);
             }
 
@@ -58,6 +66,6 @@ public class RateLookup {
                 .getValue()
                 .floorEntry(dayOfWeek))
                 .getValue()
-                .lookup(minuteOfDay/60);
+                .lookup(minuteOfDay);
     }
 }

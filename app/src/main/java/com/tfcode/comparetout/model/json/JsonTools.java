@@ -16,11 +16,20 @@
 
 package com.tfcode.comparetout.model.json;
 
+import android.util.Pair;
+
 import androidx.annotation.NonNull;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import com.tfcode.comparetout.model.json.priceplan.MinuteRangeCostJson;
+import com.tfcode.comparetout.model.json.priceplan.RestrictionEntryJson;
+import com.tfcode.comparetout.model.json.priceplan.RestrictionJson;
+import com.tfcode.comparetout.model.priceplan.MinuteRateRange;
+import com.tfcode.comparetout.model.priceplan.RangeRate;
+import com.tfcode.comparetout.model.priceplan.Restriction;
+import com.tfcode.comparetout.model.priceplan.Restrictions;
 import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.ChargeModel;
 import com.tfcode.comparetout.model.scenario.DOWDist;
@@ -79,6 +88,19 @@ public class JsonTools {
         p.setLastUpdate(pp.lastUpdate);
         p.setReference(pp.reference);
         p.setDeemedExport(pp.deemedExport);
+        Restrictions restrictions = new Restrictions();
+        RestrictionJson rj = pp.restrictions;
+        if (!(null == rj)) {
+            restrictions.setActive(rj.active);
+            ArrayList<Restriction> rjs = new ArrayList<>();
+            for (RestrictionEntryJson rje : rj.restrictionEntries) {
+                Restriction r = new Restriction();
+                r.addEntry(Restriction.RestrictionType.fromValue(rje.period), rje.scope, rje.limit, rje.excessCost);
+                rjs.add(r);
+            }
+            restrictions.setRestrictions(rjs);
+        }
+        p.setRestrictions(restrictions);
         return p;
     }
 
@@ -94,6 +116,16 @@ public class JsonTools {
         DoubleHolder dh = new DoubleHolder();
         dh.doubles = drj.hours;
         dr.setHours(dh);
+        MinuteRateRange mrr = new MinuteRateRange();
+        if (!(null == drj.minuteRange)) {
+            for (MinuteRangeCostJson mrcj : drj.minuteRange) {
+                mrr.add(mrcj.startMinute, mrcj.endMinute, mrcj.cost);
+            }
+        }
+        else {
+           mrr = MinuteRateRange.fromHours(dh);
+        }
+        dr.setMinuteRateRange(mrr);
         if (drj.dbID == null) dr.setDayRateIndex(0L);
         else dr.setDayRateIndex(drj.dbID);
         return dr;
@@ -109,6 +141,10 @@ public class JsonTools {
                     drj.endDate = dr.getEndDate();
                     drj.days = (ArrayList<Integer>) dr.getDays().ints;
                     drj.hours = (ArrayList<Double>) dr.getHours().doubles;
+                    drj.minuteRange = new ArrayList<>();
+                    for (RangeRate mrr : dr.getMinuteRateRange().getRates()) {
+                        drj.minuteRange.add(new MinuteRangeCostJson(mrr.getBegin(), mrr.getEnd(),mrr.getPrice()));
+                    }
                     drj.dbID = dr.getDayRateIndex();
                     dayRateJsons.add(drj);
                 }
@@ -123,6 +159,21 @@ public class JsonTools {
                 ppj.reference = entry.getKey().getReference();
                 ppj.supplier = entry.getKey().getSupplier();
                 ppj.deemedExport = entry.getKey().isDeemedExport();
+                RestrictionJson restrictions = new RestrictionJson();
+                restrictions.active = entry.getKey().getRestrictions().isActive();
+                restrictions.restrictionEntries = new ArrayList<>();
+                for (Restriction r : entry.getKey().getRestrictions().getRestrictions()) {
+                    RestrictionEntryJson rje = new RestrictionEntryJson();
+                    rje.period = r.getPeriodicity().getValue();
+                    Map<String, Pair<Integer, Double>> restrictionEntries = r.getRestrictionEntries();
+                    for (Map.Entry<String, Pair<Integer, Double>> restrictionEntry : restrictionEntries.entrySet()) {
+                        rje.scope = restrictionEntry.getKey();
+                        rje.limit = restrictionEntry.getValue().first;
+                        rje.excessCost = restrictionEntry.getValue().second;
+                    }
+                    restrictions.restrictionEntries.add(rje);
+                }
+                ppj.restrictions = restrictions;
                 ppList.add(ppj);
             }
         Type type = new TypeToken<List<PricePlanJsonFile>>(){}.getType();
@@ -138,6 +189,17 @@ public class JsonTools {
             drj.endDate = dr.getEndDate();
             drj.days = (ArrayList<Integer>) dr.getDays().ints;
             drj.hours = (ArrayList<Double>) dr.getHours().doubles;
+            drj.minuteRange = new ArrayList<>();
+            if (!(null == dr.getMinuteRateRange()) && !dr.getMinuteRateRange().getRates().isEmpty()) {
+                for (RangeRate mrr : dr.getMinuteRateRange().getRates()) {
+                    drj.minuteRange.add(new MinuteRangeCostJson(mrr.getBegin(), mrr.getEnd(), mrr.getPrice()));
+                }
+            }
+            else {
+                for (int i = 0; i < 25; i++) {
+                    drj.minuteRange.add(new MinuteRangeCostJson(i * 60, (i + 1) * 60, drj.hours.get(i)));
+                }
+            }
             drj.dbID = dr.getDayRateIndex();
             dayRateJsons.add(drj);
         }
@@ -152,6 +214,23 @@ public class JsonTools {
         ppj.reference = pp.getReference();
         ppj.supplier = pp.getSupplier();
         ppj.deemedExport = pp.isDeemedExport();
+        RestrictionJson restrictions = new RestrictionJson();
+        if (!(null == pp.getRestrictions())) {
+            restrictions.active = pp.getRestrictions().isActive();
+            restrictions.restrictionEntries = new ArrayList<>();
+            for (Restriction r : pp.getRestrictions().getRestrictions()) {
+                RestrictionEntryJson rje = new RestrictionEntryJson();
+                rje.period = r.getPeriodicity().getValue();
+                Map<String, Pair<Integer, Double>> restrictionEntries = r.getRestrictionEntries();
+                for (Map.Entry<String, Pair<Integer, Double>> restrictionEntry : restrictionEntries.entrySet()) {
+                    rje.scope = restrictionEntry.getKey();
+                    rje.limit = restrictionEntry.getValue().first;
+                    rje.excessCost = restrictionEntry.getValue().second;
+                }
+                restrictions.restrictionEntries.add(rje);
+            }
+        }
+        ppj.restrictions = restrictions;
 
         Type type = new TypeToken<PricePlanJsonFile>(){}.getType();
         Gson gson = new GsonBuilder().setPrettyPrinting().create();

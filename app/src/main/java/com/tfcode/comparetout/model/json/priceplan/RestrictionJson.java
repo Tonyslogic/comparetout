@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023. Tony Finnerty
+ * Copyright (c) 2024. Tony Finnerty
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -20,29 +20,11 @@ import com.google.gson.annotations.SerializedName;
 
 import java.util.ArrayList;
 
-public class DayRateJson {
-    @SerializedName("Days")
-    public
-    ArrayList<Integer> days;
+public class RestrictionJson {
 
-    @SerializedName("Hours")
-    public
-    ArrayList<Double> hours;
+    @SerializedName("active")
+    public boolean active = false;
 
-    @SerializedName("MinuteRange")
-    public
-    ArrayList<MinuteRangeCostJson> minuteRange;
-
-    @SerializedName("startDate")
-    public
-    String startDate;
-
-    @SerializedName("endDate")
-    public
-    String endDate;
-
-    @SerializedName("dbID")
-    public
-    Long dbID;
-
+    @SerializedName("restrictionEntries")
+    public ArrayList<RestrictionEntryJson> restrictionEntries = new ArrayList<>();
 }

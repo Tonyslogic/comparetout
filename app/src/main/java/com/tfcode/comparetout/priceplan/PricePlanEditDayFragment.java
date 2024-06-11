@@ -53,7 +53,7 @@ import com.tfcode.comparetout.model.json.priceplan.DayRateJson;
 import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.DoubleHolder;
-import com.tfcode.comparetout.model.priceplan.HourlyRate;
+import com.tfcode.comparetout.model.priceplan.RangeRate;
 import com.tfcode.comparetout.model.priceplan.HourlyRateRange;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.util.AbstractTextWatcher;
@@ -514,7 +514,7 @@ public class PricePlanEditDayFragment extends Fragment {
                 Collections.reverse(hourlyRateRange.getRates());
                 EditText nextFrom = null;
                 EditText nextPrice = null;
-                for (HourlyRate hourlyRate : hourlyRateRange.getRates()) {
+                for (RangeRate rangeRate : hourlyRateRange.getRates()) {
                     TableRow priceRow = new TableRow(getActivity());
                     EditText from = new EditText(getActivity());
                     EditText to = new EditText(getActivity());
@@ -530,10 +530,10 @@ public class PricePlanEditDayFragment extends Fragment {
                     price.setLayoutParams(textParams);
                     del.setLayoutParams(textParams);
 
-                    from.setText(String.format("%d", hourlyRate.getBegin()));
+                    from.setText(String.format("%d", rangeRate.getBegin()));
                     from.setEnabled(false);
                     priceRow.addView(from);
-                    to.setText(String.format("%d", hourlyRate.getEnd()));
+                    to.setText(String.format("%d", rangeRate.getEnd()));
                     to.setInputType(InputType.TYPE_CLASS_NUMBER);
                     to.setEnabled(mEdit);
                     mEditFields.add(to);
@@ -554,7 +554,7 @@ public class PricePlanEditDayFragment extends Fragment {
                     });
                     priceRow.addView(to);
                     price.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-                    price.setText(String.format("%s", hourlyRate.getPrice()));
+                    price.setText(String.format("%s", rangeRate.getPrice()));
                     price.setEnabled(mEdit);
                     mEditFields.add(price);
                     price.addTextChangedListener(new AbstractTextWatcher() {
@@ -585,8 +585,8 @@ public class PricePlanEditDayFragment extends Fragment {
                         updateView();
                     });
                     del.setBackgroundColor(0);
-                    del.setContentDescription(String.format("Delete price %s from %s to %s", String.format("%s", hourlyRate.getPrice()),
-                            String.format("%d", hourlyRate.getBegin()), String.format("%d", hourlyRate.getEnd())) );
+                    del.setContentDescription(String.format("Delete price %s from %s to %s", String.format("%s", rangeRate.getPrice()),
+                            String.format("%d", rangeRate.getBegin()), String.format("%d", rangeRate.getEnd())) );
                     priceRow.addView(del);
                     del.setEnabled(mEdit);
                     mEditFields.add(del);

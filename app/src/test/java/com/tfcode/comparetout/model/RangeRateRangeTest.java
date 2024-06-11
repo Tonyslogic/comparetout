@@ -24,7 +24,7 @@ import com.tfcode.comparetout.model.priceplan.HourlyRateRange;
 import org.junit.Before;
 import org.junit.Test;
 
-public class HourlyRateRangeTest {
+public class RangeRateRangeTest {
 
     HourlyRateRange testObject;
     DoubleHolder dh;

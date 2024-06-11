@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023. Tony Finnerty
+ * Copyright (c) 2024. Tony Finnerty
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -16,38 +16,26 @@
 
 package com.tfcode.comparetout.model.priceplan;
 
-public class HourlyRate {
-    private int mBegin;
-    private int mEnd;
-    private double mPrice;
+import java.util.ArrayList;
+import java.util.List;
 
-    public HourlyRate(int begin, int end, double d) {
-        mBegin = begin;
-        mEnd = end;
-        mPrice = d;
+public class Restrictions {
+    private boolean active = false;
+    private List<Restriction> restrictions = new ArrayList<>();
+
+    public boolean isActive() {
+        return active;
     }
 
-    public int getBegin() {
-        return mBegin;
+    public void setActive(boolean active) {
+        this.active = active;
     }
 
-    public void setBegin(int mBegin) {
-        this.mBegin = mBegin;
+    public List<Restriction> getRestrictions() {
+        return restrictions;
     }
 
-    public int getEnd() {
-        return mEnd;
-    }
-
-    public void setEnd(int mEnd) {
-        this.mEnd = mEnd;
-    }
-
-    public double getPrice() {
-        return mPrice;
-    }
-
-    public void setPrice(double mPrice) {
-        this.mPrice = mPrice;
+    public void setRestrictions(List<Restriction> restrictions) {
+        this.restrictions = restrictions;
     }
 }

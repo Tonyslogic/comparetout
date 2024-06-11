@@ -17,47 +17,51 @@
 package com.tfcode.comparetout.model.priceplan;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 
-public class HourlyRateRange {
+public class MinuteRateRange {
     private final ArrayList<RangeRate> mRates = new ArrayList<>();
     private final NavigableMap<Integer, Double> mLookup = new TreeMap<>();
 
-    public HourlyRateRange(DoubleHolder dh) {
+    public MinuteRateRange() {
+    }
+
+    public static MinuteRateRange fromHours(DoubleHolder dh) {
+        MinuteRateRange ret = new MinuteRateRange();
         double previousRate = dh.doubles.get(0);
-        int hour = 0;
+        int minute = 0;
         int begin = 0;
         int end = 0;
         for (double rate : dh.doubles) {
             if (rate != previousRate) {
-                mRates.add(new RangeRate(begin, end, previousRate));
+                ret.mRates.add(new RangeRate(begin, end, previousRate));
                 previousRate = rate;
-                begin = hour;
+                begin = minute;
             }
-            end = hour + 1;
-            hour++;
+            end = minute + 60;
+            minute = minute + 60;
         }
-        mRates.add(new RangeRate(begin, end -1, previousRate));
+        ret.mRates.add(new RangeRate(begin, end - 60, previousRate));
+
+        // Populate the lookup
+        for (RangeRate rate : ret.mRates) ret.mLookup.put(rate.getBegin(), rate.getPrice());
+
+        return ret;
+    }
+
+    public void add(int begin, int end, double cost) {
+        mRates.add(new RangeRate(begin, end - 1, cost));
 
         // Populate the lookup
         for (RangeRate rate : mRates) mLookup.put(rate.getBegin(), rate.getPrice());
     }
 
-    public double lookup(int hour) {
-        Map.Entry<Integer,Double> entry = mLookup.floorEntry(hour);
+    public double lookup(int minute) {
+        Map.Entry<Integer,Double> entry = mLookup.floorEntry(minute);
         if (!(null == entry)) return entry.getValue();
         else return 0D;
-    }
-
-    public DoubleHolder getDoubleHolder() {
-        DoubleHolder dh = new DoubleHolder();
-        List<Double> doubles = new ArrayList<>();
-        for (int i = 0; i < 25; i++) doubles.add(lookup(i));
-        dh.doubles = doubles;
-        return dh;
     }
 
     public ArrayList<RangeRate> getRates() {

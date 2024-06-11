@@ -21,6 +21,8 @@ import androidx.room.TypeConverter;
 import com.google.gson.Gson;
 import com.tfcode.comparetout.model.costings.SubTotals;
 import com.tfcode.comparetout.model.priceplan.DoubleHolder;
+import com.tfcode.comparetout.model.priceplan.MinuteRateRange;
+import com.tfcode.comparetout.model.priceplan.Restrictions;
 import com.tfcode.comparetout.model.scenario.ChargeModel;
 import com.tfcode.comparetout.model.scenario.DOWDist;
 import com.tfcode.comparetout.model.scenario.HWUse;
@@ -48,6 +50,28 @@ public class Converters {
     @TypeConverter
     public static IntHolder toIntHolder(String s) {
         return new Gson().fromJson(s, IntHolder.class);
+    }
+
+    @TypeConverter
+    public static String fromStringRestrictions(Restrictions h) {
+        Gson gson = new Gson();
+        return gson.toJson(h);
+    }
+
+    @TypeConverter
+    public static Restrictions toRestrictions(String s) {
+        return new Gson().fromJson(s, Restrictions.class);
+    }
+
+    @TypeConverter
+    public static String fromMinuteRateRange(MinuteRateRange h) {
+        Gson gson = new Gson();
+        return gson.toJson(h);
+    }
+
+    @TypeConverter
+    public static MinuteRateRange toMinuteRateRange(String s) {
+        return new Gson().fromJson(s, MinuteRateRange.class);
     }
 
     @TypeConverter

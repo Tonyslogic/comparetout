@@ -34,6 +34,7 @@ public class DayRate {
 
     @NonNull private IntHolder days = new IntHolder();
     @NonNull private DoubleHolder hours = new DoubleHolder();
+    private MinuteRateRange minuteRateRange = new MinuteRateRange();
     @NonNull private String startDate = "01/01";
     @NonNull private String endDate = "12/31";
 
@@ -68,6 +69,14 @@ public class DayRate {
 
     public void setHours(@NonNull DoubleHolder hours) {
         this.hours = hours;
+    }
+
+    public MinuteRateRange getMinuteRateRange() {
+        return minuteRateRange;
+    }
+
+    public void setMinuteRateRange(@NonNull MinuteRateRange minuteRateRange) {
+        this.minuteRateRange = minuteRateRange;
     }
 
     @NonNull

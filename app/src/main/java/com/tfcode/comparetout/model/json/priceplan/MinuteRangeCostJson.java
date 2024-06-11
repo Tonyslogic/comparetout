@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023. Tony Finnerty
+ * Copyright (c) 2024. Tony Finnerty
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -18,31 +18,26 @@ package com.tfcode.comparetout.model.json.priceplan;
 
 import com.google.gson.annotations.SerializedName;
 
-import java.util.ArrayList;
+public class MinuteRangeCostJson {
 
-public class DayRateJson {
-    @SerializedName("Days")
-    public
-    ArrayList<Integer> days;
+    @SerializedName("startMinute")
+    public int startMinute;
 
-    @SerializedName("Hours")
-    public
-    ArrayList<Double> hours;
+    @SerializedName("endMinute")
+    public int endMinute;
 
-    @SerializedName("MinuteRange")
-    public
-    ArrayList<MinuteRangeCostJson> minuteRange;
+    @SerializedName("cost")
+    public double cost;
 
-    @SerializedName("startDate")
-    public
-    String startDate;
+    /*
+     * Default constructor for Gson
+     */
+    public MinuteRangeCostJson() {
+    }
 
-    @SerializedName("endDate")
-    public
-    String endDate;
-
-    @SerializedName("dbID")
-    public
-    Long dbID;
-
+    public MinuteRangeCostJson(int startMinute, int endMinute, double cost) {
+        this.startMinute = startMinute;
+        this.endMinute = endMinute;
+        this.cost = cost;
+    }
 }
