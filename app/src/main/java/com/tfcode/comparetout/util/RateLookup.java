@@ -17,7 +17,6 @@
 package com.tfcode.comparetout.util;
 
 import com.tfcode.comparetout.model.priceplan.DayRate;
-import com.tfcode.comparetout.model.priceplan.DoubleHolder;
 import com.tfcode.comparetout.model.priceplan.MinuteRateRange;
 
 import java.time.LocalDate;

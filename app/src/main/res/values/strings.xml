@@ -104,8 +104,8 @@
     <string name="ToFormat">To (MM/DD)</string>
     <string name="FromFormat">From (MM/DD)</string>
     <string name="NewRateDouble">11.1</string>
-    <string name="Hour24">24</string>
-    <string name="Hour0">0</string>
+    <string name="Hour24">24:00</string>
+    <string name="Hour0">00:00</string>
     <string name="Spacer">.....................................................................................................................................................</string>
     <string name="Reference">Reference</string>
     <string name="LastUpdate">Last update</string>

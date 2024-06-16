@@ -44,7 +44,10 @@ import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
 import androidx.webkit.WebViewAssetLoader;
 
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.checkbox.MaterialCheckBox;
+import com.google.android.material.timepicker.MaterialTimePicker;
+import com.google.android.material.timepicker.TimeFormat;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.R;
@@ -52,16 +55,16 @@ import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.json.priceplan.DayRateJson;
 import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
 import com.tfcode.comparetout.model.priceplan.DayRate;
-import com.tfcode.comparetout.model.priceplan.DoubleHolder;
-import com.tfcode.comparetout.model.priceplan.RangeRate;
-import com.tfcode.comparetout.model.priceplan.HourlyRateRange;
+import com.tfcode.comparetout.model.priceplan.MinuteRateRange;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
+import com.tfcode.comparetout.model.priceplan.RangeRate;
 import com.tfcode.comparetout.util.AbstractTextWatcher;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -270,32 +273,12 @@ public class PricePlanEditDayFragment extends Fragment {
                     TextView a = new TextView(getActivity());
                     a.setText(R.string.FromFormat);
                     tableRow.addView(a);
-                    EditText b = new EditText(getActivity());
-                    b.setText(dRate.getStartDate());
-                    b.setOnFocusChangeListener((v, hasFocus) -> {
-                        if (!hasFocus) {
-                            DayRate dayRate = mDayRates.get(mRateIndex);
-                            if (!(null == dayRate))
-                                dayRate.setStartDate(((EditText) v).getText().toString());
-                            updateFocusAndValidate();
-                        }
-                    });
-                    b.setEnabled(mEdit);
+                    EditText b = getEditTextForMMDD(dRate.getStartDate());
                     tableRow.addView(b);
                     TextView c = new TextView(getActivity());
                     c.setText(R.string.ToFormat);
                     tableRow.addView(c);
-                    EditText d = new EditText(getActivity());
-                    d.setText(dRate.getEndDate());
-                    d.setOnFocusChangeListener((v, hasFocus) -> {
-                        if (!hasFocus) {
-                            DayRate dayRate = mDayRates.get(mRateIndex);
-                            if (!(null == dayRate))
-                                dayRate.setEndDate(((EditText) v).getText().toString());
-                            updateFocusAndValidate();
-                        }
-                    });
-                    d.setEnabled(mEdit);
+                    EditText d = getEditTextForMMDD(dRate.getEndDate());
                     tableRow.addView(d);
                     mEditFields.add(b);
                     mEditFields.add(d);
@@ -315,33 +298,8 @@ public class PricePlanEditDayFragment extends Fragment {
                 return true;
             });
             {
-                TableRow tableRow = new TableRow(getActivity());
-                tableRow.setOnLongClickListener(v -> {
-                    showHelp("https://appassets.androidplatform.net/assets/priceplan/days.html");
-                    return true;
-                });
-                TextView a = new TextView(getActivity());
-                a.setText(R.string.Mon);
-                tableRow.addView(a);
-                TextView b = new TextView(getActivity());
-                b.setText(R.string.Tue);
-                tableRow.addView(b);
-                TextView c = new TextView(getActivity());
-                c.setText(R.string.Wed);
-                tableRow.addView(c);
-                TextView d = new TextView(getActivity());
-                d.setText(R.string.Thu);
-                tableRow.addView(d);
-                TextView e = new TextView(getActivity());
-                e.setText(R.string.Fri);
-                tableRow.addView(e);
-                TextView f = new TextView(getActivity());
-                f.setText(R.string.Sat);
-                tableRow.addView(f);
-                TextView g = new TextView(getActivity());
-                g.setText(R.string.Sun);
-                tableRow.addView(g);
-                daysTable.addView(tableRow);
+                TableRow tableRowForDaySelectionTitles = getDaySelectionTitleRow();
+                daysTable.addView(tableRowForDaySelectionTitles);
             }
             // Days of week checkboxes
             {
@@ -457,7 +415,8 @@ public class PricePlanEditDayFragment extends Fragment {
             // PRICES Table
             DayRate dRate = mDayRates.get(mRateIndex);
             if (null == dRate) dRate = new DayRate();
-            DoubleHolder ratesList = dRate.getHours();
+//            DoubleHolder ratesList = dRate.getHours();
+            MinuteRateRange minuteRateRange = dRate.getMinuteRateRange();
             TableLayout pricesTable = new TableLayout(getActivity());
             pricesTable.setOnLongClickListener(v -> {
                 showHelp("https://appassets.androidplatform.net/assets/priceplan/prices.html");
@@ -509,15 +468,13 @@ public class PricePlanEditDayFragment extends Fragment {
                 }
 
                 // HOURLY RATES
-                HourlyRateRange hourlyRateRange =
-                        new HourlyRateRange(ratesList);
-                Collections.reverse(hourlyRateRange.getRates());
+                minuteRateRange.getRates().sort(Comparator.comparingInt(RangeRate::getBegin));
+                Collections.reverse(minuteRateRange.getRates());
                 EditText nextFrom = null;
-                EditText nextPrice = null;
-                for (RangeRate rangeRate : hourlyRateRange.getRates()) {
+                for (RangeRate rangeRate : minuteRateRange.getRates()) {
                     TableRow priceRow = new TableRow(getActivity());
                     EditText from = new EditText(getActivity());
-                    EditText to = new EditText(getActivity());
+                    MaterialButton to = new MaterialButton(getActivity());
                     EditText price = new EditText(getActivity());
                     ImageButton del = new ImageButton(getActivity());
                     del.setOnLongClickListener(v -> {
@@ -530,27 +487,40 @@ public class PricePlanEditDayFragment extends Fragment {
                     price.setLayoutParams(textParams);
                     del.setLayoutParams(textParams);
 
-                    from.setText(String.format("%d", rangeRate.getBegin()));
+                    from.setText(String.format("%02d:%02d", rangeRate.getBegin() / 60 , rangeRate.getBegin() % 60));
                     from.setEnabled(false);
                     priceRow.addView(from);
-                    to.setText(String.format("%d", rangeRate.getEnd()));
-                    to.setInputType(InputType.TYPE_CLASS_NUMBER);
+                    to.setText(String.format("%02d:%02d", rangeRate.getEnd() / 60 , rangeRate.getEnd() % 60));
+//                    to.setInputType(InputType.TYPE_CLASS_NUMBER);
                     to.setEnabled(mEdit);
                     mEditFields.add(to);
                     EditText finalNextFrom = nextFrom;
-                    to.addTextChangedListener(new AbstractTextWatcher() {
-                        @Override
-                        public void afterTextChanged(Editable s) {
-                            Integer newToValue = getIntegerOrZero(s);
-                            Integer fromValue = Integer.parseInt(from.getText().toString());
-                            Double rate = Double.parseDouble((price.getText().toString()));
-                            ratesList.update(fromValue, newToValue, rate);
+                    to.setOnClickListener( v -> {
+                        double rate = Double.parseDouble((price.getText().toString()));
+                        Integer fromValue = getMinuteOfDayFromHHmm(from.getText().toString());
+                        int toValue = getMinuteOfDayFromHHmm(to.getText().toString());
+                        int to_hr = toValue / 60;
+                        int to_min = toValue % 60;
+                        MaterialTimePicker timePicker = new MaterialTimePicker.Builder()
+                                .setTimeFormat(TimeFormat.CLOCK_24H)
+                                .setInputMode(MaterialTimePicker.INPUT_MODE_CLOCK)
+                                .setTitleText("Select end time")
+                                .setHour(to_hr)
+                                .setMinute(to_min)
+                                .build();
+                        timePicker.addOnPositiveButtonClickListener( tp -> {
+                            int hour = timePicker.getHour();
+                            int minute = timePicker.getMinute();
+                            int updatedToValue = hour * 60 + minute;
+                            minuteRateRange.update(fromValue, updatedToValue, rate);
                             DayRate dayRate = mDayRates.get(mRateIndex);
-                            if (!(null == dayRate)) dayRate.setHours(ratesList);
+                            if (!(null == dayRate)) dayRate.setMinuteRateRange(minuteRateRange);
                             if (!(null == finalNextFrom))
-                                finalNextFrom.setText(String.format("%d", newToValue));
+                                finalNextFrom.setText(String.format("%02d:%02d", hour, minute));
+                            to.setText(String.format("%02d:%02d", hour, minute));
                             updateFocusAndValidate();
-                        }
+                        });
+                        timePicker.show(getActivity().getSupportFragmentManager(), "TimePicker");
                     });
                     priceRow.addView(to);
                     price.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
@@ -561,26 +531,27 @@ public class PricePlanEditDayFragment extends Fragment {
                         @Override
                         public void afterTextChanged(Editable s) {
                             Double newValue = getDoubleOrZero(s);
-                            Integer toValue = Integer.parseInt(to.getText().toString());
-                            Integer fromValue = Integer.parseInt(from.getText().toString());
-                            ratesList.update(fromValue, toValue, newValue);
+                            Integer toValue = getMinuteOfDayFromHHmm(to.getText().toString());
+                            Integer fromValue = getMinuteOfDayFromHHmm(from.getText().toString());
+                            minuteRateRange.update(fromValue, toValue, newValue);
                             DayRate dayRate = mDayRates.get(mRateIndex);
-                            if (!(null == dayRate)) dayRate.setHours(ratesList);
+                            if (!(null == dayRate)) dayRate.setMinuteRateRange(minuteRateRange);
                             updateFocusAndValidate();
                         }
                     });
+                    price.setOnFocusChangeListener((v, focus) -> {
+                        if (!focus) updateView();
+                    });
                     priceRow.addView(price);
                     del.setImageResource(R.drawable.ic_baseline_delete_24);
-                    EditText finalNextPrice = nextPrice;
                     del.setOnClickListener(v -> {
-                        double newValue = 0;
-                        if (!(null == finalNextPrice))
-                            newValue = Double.parseDouble(finalNextPrice.getText().toString());
-                        Integer toValue = Integer.parseInt(to.getText().toString());
-                        Integer fromValue = Integer.parseInt(from.getText().toString());
-                        ratesList.update(fromValue, toValue, newValue);
+                        Integer toValue = getMinuteOfDayFromHHmm(to.getText().toString());
+                        Integer fromValue = getMinuteOfDayFromHHmm(from.getText().toString());
+
+                        minuteRateRange.remove(fromValue, toValue);
                         DayRate dayRate = mDayRates.get(mRateIndex);
-                        if (!(null == dayRate)) dayRate.setHours(ratesList);
+                        if (!(null == dayRate)) dayRate.setMinuteRateRange(minuteRateRange);
+
                         updateFocusAndValidate();
                         updateView();
                     });
@@ -593,7 +564,6 @@ public class PricePlanEditDayFragment extends Fragment {
 
                     pricesTableEntries.add(priceRow);
                     nextFrom = from;
-                    nextPrice = price;
                 }
                 Collections.reverse(pricesTableEntries);
                 for (TableRow tr : pricesTableEntries) {
@@ -633,13 +603,51 @@ public class PricePlanEditDayFragment extends Fragment {
                 addPriceTable.setColumnStretchable(3, false);
 
                 TableRow addPriceRow = new TableRow(getActivity());
-                EditText from = new EditText(getActivity());
-                EditText to = new EditText(getActivity());
+                MaterialButton from = new MaterialButton(getActivity());
+                MaterialButton to = new MaterialButton(getActivity());
                 EditText price = new EditText(getActivity());
                 ImageButton add = new ImageButton(getActivity());
                 add.setOnLongClickListener(v -> {
                     showHelp("https://appassets.androidplatform.net/assets/priceplan/prices.html");
                     return true;
+                });
+
+                from.setOnClickListener( v -> {
+                    int toValue = getMinuteOfDayFromHHmm(from.getText().toString());
+                    int to_hr = toValue / 60;
+                    int to_min = toValue % 60;
+                    MaterialTimePicker timePicker = new MaterialTimePicker.Builder()
+                            .setTimeFormat(TimeFormat.CLOCK_24H)
+                            .setInputMode(MaterialTimePicker.INPUT_MODE_CLOCK)
+                            .setTitleText("Select start time")
+                            .setHour(to_hr)
+                            .setMinute(to_min)
+                            .build();
+                    timePicker.addOnPositiveButtonClickListener( tp -> {
+                        int hour = timePicker.getHour();
+                        int minute = timePicker.getMinute();
+                        from.setText(String.format("%02d:%02d", hour, minute));
+                    });
+                    timePicker.show(getActivity().getSupportFragmentManager(), "TimePicker");
+                });
+
+                to.setOnClickListener( v -> {
+                    int toValue = getMinuteOfDayFromHHmm(to.getText().toString());
+                    int to_hr = toValue / 60;
+                    int to_min = toValue % 60;
+                    MaterialTimePicker timePicker = new MaterialTimePicker.Builder()
+                            .setTimeFormat(TimeFormat.CLOCK_24H)
+                            .setInputMode(MaterialTimePicker.INPUT_MODE_CLOCK)
+                            .setTitleText("Select end time")
+                            .setHour(to_hr)
+                            .setMinute(to_min)
+                            .build();
+                    timePicker.addOnPositiveButtonClickListener( tp -> {
+                        int hour = timePicker.getHour();
+                        int minute = timePicker.getMinute();
+                        to.setText(String.format("%02d:%02d", hour, minute));
+                    });
+                    timePicker.show(getActivity().getSupportFragmentManager(), "TimePicker");
                 });
 
                 from.setLayoutParams(textParams);
@@ -654,18 +662,18 @@ public class PricePlanEditDayFragment extends Fragment {
                 to.setEnabled(mEdit);
                 price.setEnabled(mEdit);
                 add.setEnabled(mEdit);
-                from.setInputType(InputType.TYPE_CLASS_NUMBER);
-                to.setInputType(InputType.TYPE_CLASS_NUMBER);
                 price.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
                 add.setImageResource(android.R.drawable.ic_menu_add);
                 add.setBackgroundColor(0);
                 add.setOnClickListener(v -> {
-                    Double buyPrice = Double.parseDouble(price.getText().toString());
-                    Integer toValue = Integer.parseInt(to.getText().toString());
-                    Integer fromValue = Integer.parseInt(from.getText().toString());
-                    ratesList.update(fromValue, toValue, buyPrice);
+                    double buyPrice = Double.parseDouble(price.getText().toString());
+                    Integer toValue = getMinuteOfDayFromHHmm(to.getText().toString());
+                    Integer fromValue = getMinuteOfDayFromHHmm(from.getText().toString());
+
+                    minuteRateRange.insert(fromValue, toValue, buyPrice);
                     DayRate dayRate = mDayRates.get(mRateIndex);
-                    if (!(null == dayRate)) dayRate.setHours(ratesList);
+                    if (!(null == dayRate)) dayRate.setMinuteRateRange(minuteRateRange);
+
                     updateFocusAndValidate();
                     updateView();
                 });
@@ -683,6 +691,67 @@ public class PricePlanEditDayFragment extends Fragment {
                 mTableLayout.addView(addPriceTableRow);
             }
         }
+    }
+
+    @NonNull
+    private EditText getEditTextForMMDD(String theDate) {
+        EditText b = new EditText(getActivity());
+        b.setText(theDate);
+        b.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                DayRate dayRate = mDayRates.get(mRateIndex);
+                if (!(null == dayRate))
+                    dayRate.setStartDate(((EditText) v).getText().toString());
+                updateFocusAndValidate();
+            }
+        });
+        b.setEnabled(mEdit);
+        return b;
+    }
+
+    @NonNull
+    private TableRow getDaySelectionTitleRow() {
+        TableRow tableRow = new TableRow(getActivity());
+        tableRow.setOnLongClickListener(v -> {
+            showHelp("https://appassets.androidplatform.net/assets/priceplan/days.html");
+            return true;
+        });
+        TextView a = new TextView(getActivity());
+        a.setText(R.string.Mon);
+        tableRow.addView(a);
+        TextView b = new TextView(getActivity());
+        b.setText(R.string.Tue);
+        tableRow.addView(b);
+        TextView c = new TextView(getActivity());
+        c.setText(R.string.Wed);
+        tableRow.addView(c);
+        TextView d = new TextView(getActivity());
+        d.setText(R.string.Thu);
+        tableRow.addView(d);
+        TextView e = new TextView(getActivity());
+        e.setText(R.string.Fri);
+        tableRow.addView(e);
+        TextView f = new TextView(getActivity());
+        f.setText(R.string.Sat);
+        tableRow.addView(f);
+        TextView g = new TextView(getActivity());
+        g.setText(R.string.Sun);
+        tableRow.addView(g);
+        return tableRow;
+    }
+
+    private Integer getMinuteOfDayFromHHmm(String time) {
+        int ret;
+        if (time == null || !time.matches("\\d{2}:\\d{2}")) {
+            throw new IllegalArgumentException("Time must be in the format HH:mm");
+        }
+
+        String[] parts = time.split(":");
+        int hours = Integer.parseInt(parts[0]);
+        int minutes = Integer.parseInt(parts[1]);
+
+        ret = hours * 60 + minutes;
+        return ret;
     }
 
     private void updateDays(boolean checked, Integer integer) {
@@ -707,7 +776,7 @@ public class PricePlanEditDayFragment extends Fragment {
 
     private void showHelp(String url) {
         mHelpWindow.setHeight((int) (requireActivity().getWindow().getDecorView().getHeight()*0.6));
-        mHelpWindow.setWidth((int) (requireActivity().getWindow().getDecorView().getWidth()));
+        mHelpWindow.setWidth(requireActivity().getWindow().getDecorView().getWidth());
         mHelpWindow.showAtLocation(mTableLayout, Gravity.CENTER, 0, 0);
         WebView webView = mPopupView.findViewById(R.id.helpWebView);
 

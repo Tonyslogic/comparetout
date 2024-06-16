@@ -16,6 +16,8 @@
 
 package com.tfcode.comparetout.model.priceplan;
 
+import java.util.Objects;
+
 public class RangeRate {
     private int mBegin;
     private int mEnd;
@@ -49,5 +51,18 @@ public class RangeRate {
 
     public void setPrice(double mPrice) {
         this.mPrice = mPrice;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        RangeRate rangeRate = (RangeRate) o;
+        return mBegin == rangeRate.mBegin && mEnd == rangeRate.mEnd;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(mBegin, mEnd);
     }
 }
