@@ -16,6 +16,8 @@
 
 package com.tfcode.comparetout.model.priceplan;
 
+import android.util.Pair;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -37,5 +39,17 @@ public class Restrictions {
 
     public void setRestrictions(List<Restriction> restrictions) {
         this.restrictions = restrictions;
+    }
+
+    public Restriction getRestrictionForCost(String rate) {
+        Restriction ret = null;
+        for (Restriction r : restrictions) {
+            Pair<Integer, Double> match = r.getRestrictionForCost(rate);
+            if (!(match == null)) {
+                ret = r;
+                break;
+            }
+        }
+        return ret;
     }
 }

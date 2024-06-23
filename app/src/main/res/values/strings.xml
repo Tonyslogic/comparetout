@@ -300,4 +300,11 @@
     <string name="ha_channel_id">HA Importer</string>
     <string name="fetch_ha_notification_title">HA Catchup</string>
     <string name="ha_channel_name">HA Progress</string>
+    <string name="restrictions_apply">Restrictions Apply</string>
+    <string name="cost">Rate</string>
+    <string name="annually">Year</string>
+    <string name="monthly">Month</string>
+    <string name="bimonthly">BiMonth</string>
+    <string name="limit">Limit(kWh)</string>
+    <string name="revised">Tier rate</string>
 </resources>

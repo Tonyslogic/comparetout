@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  ~ Copyright (c) 2023. Tony Finnerty
+  ~ Copyright (c) 2023-2024. Tony Finnerty
   ~
   ~   Licensed under the Apache License, Version 2.0 (the "License");
   ~    you may not use this file except in compliance with the License.
@@ -25,34 +25,54 @@
     tools:context=".priceplan.PricePlanEditFragment">
 
     <androidx.core.widget.NestedScrollView
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
+        android:id="@+id/planEditScroll"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:padding="3dp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/divider"
         app:layout_constraintTop_toTopOf="parent">
 
         <TableLayout
-            android:layout_height="match_parent"
+            android:id="@+id/planEditTable"
             android:layout_width="match_parent"
-            android:padding="0dp"
-            android:stretchColumns="*"
-            android:shrinkColumns="*">
-            <TableRow>
-                <TableLayout
-                    android:id="@+id/planEditTable"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:padding="0dp"
-                    android:stretchColumns="*" >
-                </TableLayout>
-            </TableRow>
+            android:layout_height="match_parent"
+            android:paddingEnd="0dp"
+            android:stretchColumns="*" >
+        </TableLayout>
+    </androidx.core.widget.NestedScrollView>
 
-            <TableRow>
+    <View
+        android:id="@+id/divider"
+        android:layout_width="10dp"
+        android:layout_height="match_parent"
+        app:layout_constraintEnd_toStartOf="@id/planRestrictionScroll"
+        app:layout_constraintStart_toEndOf="@id/planEditScroll"
+        android:background="@color/purple_200" />
+
+    <androidx.core.widget.NestedScrollView
+        android:id="@+id/planRestrictionScroll"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:padding="3dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/divider"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TableLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="0dp">
+            <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal">
                 <com.google.android.material.checkbox.MaterialCheckBox
                     android:id="@+id/restrictionsApply"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
                     android:padding="0dp"
                     android:text="@string/restrictions_apply">
                 </com.google.android.material.checkbox.MaterialCheckBox>
@@ -60,11 +80,10 @@
             <TableRow>
                 <TableLayout
                     android:id="@+id/planRestrictionTable"
-                    android:layout_width="match_parent"
+                    android:layout_width="wrap_content"
                     android:layout_height="match_parent"
                     android:padding="0dp"
-                    android:stretchColumns="*"
-                    android:shrinkColumns="*">
+                    android:stretchColumns="*" >
                 </TableLayout>
             </TableRow>
         </TableLayout>

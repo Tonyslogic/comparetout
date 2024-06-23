@@ -219,15 +219,15 @@ public class JsonTools {
             restrictions.active = pp.getRestrictions().isActive();
             restrictions.restrictionEntries = new ArrayList<>();
             for (Restriction r : pp.getRestrictions().getRestrictions()) {
-                RestrictionEntryJson rje = new RestrictionEntryJson();
-                rje.period = r.getPeriodicity().getValue();
                 Map<String, Pair<Integer, Double>> restrictionEntries = r.getRestrictionEntries();
                 for (Map.Entry<String, Pair<Integer, Double>> restrictionEntry : restrictionEntries.entrySet()) {
+                    RestrictionEntryJson rje = new RestrictionEntryJson();
+                    rje.period = r.getPeriodicity().getValue();
                     rje.scope = restrictionEntry.getKey();
                     rje.limit = restrictionEntry.getValue().first;
                     rje.excessCost = restrictionEntry.getValue().second;
+                    restrictions.restrictionEntries.add(rje);
                 }
-                restrictions.restrictionEntries.add(rje);
             }
         }
         ppj.restrictions = restrictions;
