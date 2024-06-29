@@ -14,8 +14,8 @@ Read more on the [documentation site](https://github.com/Tonyslogic/comparetout-
 
 V1.32
 
-* Updated costs editor to use minutes
-* Updated costs editor to allow tiered rates by cost
+* Updated costs (price plan) editor to use minutes
+* Updated costs (price plan) editor to allow tiered rates by cost
 * Updated the cost calculation to use minutes and respect tiers
 
 V1.31
