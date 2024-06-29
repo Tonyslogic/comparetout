@@ -20,8 +20,10 @@ import static com.tfcode.comparetout.MainActivity.CHANNEL_ID;
 
 import android.app.Application;
 import android.content.Context;
+import android.content.pm.PackageManager;
 
 import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.work.Worker;
@@ -43,11 +45,13 @@ public class CostingWorker extends Worker {
 
     private final ToutcRepository mToutcRepository;
     private final Map<Long, RateLookup> mLookups;
+    private final Context mContext;
 
     public CostingWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
         mToutcRepository = new ToutcRepository((Application) context);
         mLookups = new HashMap<>();
+        mContext = context;
     }
 
     @NonNull
@@ -58,11 +62,11 @@ public class CostingWorker extends Worker {
         List<Long> scenarioIDs = mToutcRepository.getAllScenariosThatMayNeedCosting();
 
         Context context = getApplicationContext();
-        String  title= context.getString(R.string.cost_notification_title); //"Calculating costs"
+        String title = context.getString(R.string.cost_notification_title); //"Calculating costs"
         String text = context.getString(R.string.cost_notification_text); //"Calculation in progress"
 
         try {
-            if (scenarioIDs.size() > 0) {
+            if (!scenarioIDs.isEmpty()) {
                 // NOTIFICATION SETUP
                 int notificationId = 1;
                 NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
@@ -79,11 +83,11 @@ public class CostingWorker extends Worker {
                 // Load PricePlans
                 List<PricePlan> plans = mToutcRepository.getAllPricePlansNow();
                 int PROGRESS_CHUNK = PROGRESS_MAX;
-                if ((scenarioIDs.size() > 0) && (plans.size() > 0)) {
+                if ((!scenarioIDs.isEmpty()) && (!plans.isEmpty())) {
                     PROGRESS_CHUNK = PROGRESS_MAX / (scenarioIDs.size() * plans.size());
                     // Issue the initial notification with zero progress
                     builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
-                    notificationManager.notify(notificationId, builder.build());
+                    sendNotification(notificationManager, notificationId, builder);
                 }
 
                 // For each scenario -> load; For each price plan -> apply costs
@@ -91,23 +95,23 @@ public class CostingWorker extends Worker {
                     Scenario scenario = mToutcRepository.getScenarioForID(scenarioID);
                     // Get the simulation output
                     builder.setContentText("Loading data: " + scenario.getScenarioName());
-                    notificationManager.notify(notificationId, builder.build());
+                    sendNotification(notificationManager, notificationId, builder);
                     List<ScenarioSimulationData> scenarioData = mToutcRepository.getSimulationDataForScenario(scenarioID);
                     double gridExportMax = mToutcRepository.getGridExportMaxForScenario(scenarioID);
-                    if (scenarioData.size() > 0) {
+                    if (!scenarioData.isEmpty()) {
                         long notifyTime = System.nanoTime();
                         for (PricePlan pp : plans) {
                             // Confirm the need for costing
                             if (mToutcRepository.costingExists(scenarioID, pp.getPricePlanIndex()))
                                 continue;
                             builder.setContentText(pp.getPlanName());
-                            if (System.nanoTime() - notifyTime > 1e+9){
+                            if (System.nanoTime() - notifyTime > 1e+9) {
                                 notifyTime = System.nanoTime();
-                                notificationManager.notify(notificationId, builder.build());
+                                sendNotification(notificationManager, notificationId, builder);
                             }
                             RateLookup lookup = mLookups.get(pp.getPricePlanIndex());
                             if (null == lookup) {
-                                lookup = new RateLookup(
+                                lookup = new RateLookup(pp,
                                         mToutcRepository.getAllDayRatesForPricePlanID(pp.getPricePlanIndex()));
                                 mLookups.put(pp.getPricePlanIndex(), lookup);
                             }
@@ -121,7 +125,7 @@ public class CostingWorker extends Worker {
                             double net;
                             SubTotals subTotals = new SubTotals();
                             for (ScenarioSimulationData row : scenarioData) {
-                                double price = lookup.getRate(row.getDayOf2001(), row.getMinuteOfDay(), row.getDayOfWeek());
+                                double price = lookup.getRate(row.getDayOf2001(), row.getMinuteOfDay(), row.getDayOfWeek(), row.getBuy());
                                 double rowBuy = price * row.getBuy();
                                 buy += rowBuy;
                                 sell += pp.getFeed() * row.getFeed();
@@ -141,7 +145,7 @@ public class CostingWorker extends Worker {
                             builder.setContentText("Saving data");
                             if (System.nanoTime() - notifyTime > 1e+9) {
                                 notifyTime = System.nanoTime();
-                                notificationManager.notify(notificationId, builder.build());
+                                sendNotification(notificationManager, notificationId, builder);
                             }
                             mToutcRepository.saveCosting(costing);
                             // NOTIFICATION PROGRESS
@@ -150,32 +154,37 @@ public class CostingWorker extends Worker {
                             builder.setContentText("Data saved");
                             if (System.nanoTime() - notifyTime > 1e+9) {
                                 notifyTime = System.nanoTime();
-                                notificationManager.notify(notificationId, builder.build());
+                                sendNotification(notificationManager, notificationId, builder);
                             }
                         }
-                        long endTime = System.nanoTime();
                     } else {
                         builder.setContentText("Missing panel data");
-                        notificationManager.notify(notificationId, builder.build());
+                        sendNotification(notificationManager, notificationId, builder);
                         PROGRESS_CURRENT += PROGRESS_CHUNK;
                         builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
-                        notificationManager.notify(notificationId, builder.build());
+                        sendNotification(notificationManager, notificationId, builder);
                     }
                 }
 
                 // NOTIFICATION COMPLETE
                 builder.setContentText("Calculation complete")
                         .setProgress(0, 0, false);
-                notificationManager.notify(notificationId, builder.build());
+                sendNotification(notificationManager, notificationId, builder);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             System.out.println("!!!!!!!!!!!!!!!!!!! CostingWorker has crashed, marking as failure !!!!!!!!!!!!!!!!!!!!!");
             e.printStackTrace();
             System.out.println("!!!!!!!!!!!!!!!!!!! CostingWorker has crashed, marking as failure !!!!!!!!!!!!!!!!!!!!!");
             return Result.failure();
         }
         return Result.success();
+    }
+
+    private void sendNotification(NotificationManagerCompat notificationManager, int notificationId, NotificationCompat.Builder builder) {
+        if (ActivityCompat.checkSelfPermission(
+                mContext, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return;
+        notificationManager.notify(notificationId, builder.build());
+
     }
 }
 

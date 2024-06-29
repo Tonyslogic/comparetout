@@ -495,8 +495,9 @@ public abstract class ImportOverviewFragment extends Fragment {
         List<PricePlan> plans = mToutcRepository.getAllPricePlansNow();
         mCostViewModel.setPlans(plans);
         for (PricePlan pp : plans) {
-            RateLookup lookup = new RateLookup(
+            RateLookup lookup = new RateLookup(pp,
                     mToutcRepository.getAllDayRatesForPricePlanID(pp.getPricePlanIndex()));
+            lookup.setStartDOY(mCostViewModel.getSelectedStart().getDayOfYear());
             Costings costing = new Costings();
             costing.setScenarioID(0L);
             costing.setPricePlanID(pp.getPricePlanIndex());
@@ -511,7 +512,7 @@ public abstract class ImportOverviewFragment extends Fragment {
                     int doy = ldt.getDayOfYear();
                     int mod = ldt.getHour() * 60 + ldt.getMinute();
                     int dow = ldt.getDayOfWeek().getValue();
-                    double price = lookup.getRate(doy, mod, dow);
+                    double price = lookup.getRate(doy, mod, dow, usage.getValue());
                     double rowBuy = price * usage.getValue();
                     buy += rowBuy;
                     subTotals.addToPrice(price, usage.getValue());

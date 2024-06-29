@@ -186,6 +186,7 @@ public class PricePlan {
         copy.reference = reference;
         copy.active = active;
         copy.pricePlanIndex = 0;
+        copy.restrictions = restrictions;
         return copy;
     }
 
