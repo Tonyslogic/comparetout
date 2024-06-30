@@ -49,7 +49,8 @@ public class RateLookup {
     public RateLookup(PricePlan pricePlan, List<DayRate> drs) {
         // Initialize the rates
         Restrictions restrictions = pricePlan.getRestrictions();
-        for (Restriction r : restrictions.getRestrictions()) {
+        // Need to check for null as the DB update omitted a default object with no entries
+        if (!(null == restrictions)) for (Restriction r : restrictions.getRestrictions()) {
             Restriction.RestrictionType type = r.getPeriodicity();
             Map<String, Pair<Integer, Double>> entries = r.getRestrictionEntries();
             for (Map.Entry<String, Pair<Integer, Double>> entry : entries.entrySet()) {
