@@ -12,6 +12,10 @@ Internal test version V1.33
 
 Read more on the [documentation site](https://github.com/Tonyslogic/comparetout-doc)
 
+V1.34
+
+* Adding table chart to data importers 'Data Graphs' tab
+
 V1.33
 
 * Bugfix: Missing a default for restrictions on DB upgrade
