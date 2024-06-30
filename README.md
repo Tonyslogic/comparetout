@@ -7,10 +7,14 @@ Beta test version V1.31 (Ireland only, so far)
 
 > Sign up from your [browser](https://play.google.com/apps/testing/com.tfcode.comparetout)
 
-Internal test version V1.32 
+Internal test version V1.33 
 > [email me](mailto:tonysfreecode@gmail.com?subject=AlphaTest), with the email address used in your android play store account
 
 Read more on the [documentation site](https://github.com/Tonyslogic/comparetout-doc)
+
+V1.33
+
+* Bugfix: Missing a default for restrictions on DB upgrade
 
 V1.32
 
