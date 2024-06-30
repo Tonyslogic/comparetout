@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023. Tony Finnerty
+ * Copyright (c) 2023-2024. Tony Finnerty
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -14,12 +14,13 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.importers.alphaess;
+package com.tfcode.comparetout.importers;
 
 public enum ChartView {
     BAR,
     LINE,
-    PIE;
+    PIE,
+    TABLE;
 
     public ChartView next() {
         return values()[(this.ordinal() + 1) % values().length];

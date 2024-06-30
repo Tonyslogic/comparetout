@@ -23,6 +23,7 @@ import static com.tfcode.comparetout.importers.alphaess.IntervalType.WEEK;
 import static com.tfcode.comparetout.importers.alphaess.IntervalType.YEAR;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.Color;
@@ -69,10 +70,10 @@ import com.github.mikephil.charting.interfaces.datasets.IBarDataSet;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 import com.google.android.material.datepicker.CalendarConstraints;
 import com.google.android.material.datepicker.MaterialDatePicker;
+import com.google.android.material.textview.MaterialTextView;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.importers.alphaess.CalculationType;
-import com.tfcode.comparetout.importers.alphaess.ChartView;
 import com.tfcode.comparetout.importers.alphaess.IntervalType;
 import com.tfcode.comparetout.importers.alphaess.StepIntervalType;
 import com.tfcode.comparetout.model.importers.IntervalRow;
@@ -126,6 +127,7 @@ public abstract class ImportGraphsFragment extends Fragment {
     private BarChart mBarChart;
     private LineChart mLineChart;
     private TableLayout mPieCharts;
+    private TableLayout mTableChart;
     private TextView mPicks;
     private TextView mNoGraphDataTextView;
     private List<IntervalRow> mGraphData;
@@ -280,6 +282,7 @@ public abstract class ImportGraphsFragment extends Fragment {
         mBarChart = view.findViewById((R.id.alphaess_bar_chart));
         mLineChart = view.findViewById((R.id.alphaess_line_chart));
         mPieCharts = view.findViewById((R.id.alphaess_pie_chart));
+        mTableChart = view.findViewById((R.id.alphaess_table_chart));
 
         mIntervalButton = view.findViewById((R.id.interval));
         setupPopupGraphConfigurationMenu();
@@ -413,12 +416,15 @@ public abstract class ImportGraphsFragment extends Fragment {
         if (mChartView == ChartView.BAR) mChartTypeButton.setImageResource(R.drawable.line_chart);
         if (mChartView == ChartView.LINE) mChartTypeButton.setImageResource(R.drawable.piechart_25);
         if (mChartView == ChartView.PIE) mChartTypeButton.setImageResource(R.drawable.barchart);
+        if (mChartView == ChartView.TABLE) mChartTypeButton.setImageResource(R.drawable.table);
         mChartTypeButton.setOnClickListener(v -> {
             mChartView = mChartView.next();
             if (mChartView == ChartView.BAR) mChartTypeButton.setImageResource(R.drawable.line_chart);
             if (mChartView == ChartView.LINE)
                 mChartTypeButton.setImageResource(R.drawable.piechart_25);
             if (mChartView == ChartView.PIE)
+                mChartTypeButton.setImageResource(R.drawable.table);
+            if (mChartView == ChartView.TABLE)
                 mChartTypeButton.setImageResource(R.drawable.barchart);
             setSelectionText();
             updateKPIs();
@@ -587,6 +593,7 @@ public abstract class ImportGraphsFragment extends Fragment {
                         mBarChart.setVisibility(View.VISIBLE);
                         mLineChart.setVisibility(View.INVISIBLE);
                         mPieCharts.setVisibility(View.INVISIBLE);
+                        mTableChart.setVisibility(View.INVISIBLE);
                         mNoGraphDataTextView.setVisibility(View.INVISIBLE);
                         if (mFilterCount > 0) buildBarChart();
                         else {
@@ -599,6 +606,7 @@ public abstract class ImportGraphsFragment extends Fragment {
                         mBarChart.setVisibility(View.INVISIBLE);
                         mLineChart.setVisibility(View.VISIBLE);
                         mPieCharts.setVisibility(View.INVISIBLE);
+                        mTableChart.setVisibility(View.INVISIBLE);
                         mNoGraphDataTextView.setVisibility(View.INVISIBLE);
                         if (mFilterCount > 0) buildLineChart();
                         else {
@@ -611,10 +619,24 @@ public abstract class ImportGraphsFragment extends Fragment {
                         mBarChart.setVisibility(View.INVISIBLE);
                         mLineChart.setVisibility(View.INVISIBLE);
                         mPieCharts.setVisibility(View.VISIBLE);
+                        mTableChart.setVisibility(View.INVISIBLE);
                         mNoGraphDataTextView.setVisibility(View.INVISIBLE);
                         if (mFilterCount > 0) buildPieCharts();
                         else {
                             mPieCharts.setVisibility(View.INVISIBLE);
+                            mNoGraphDataTextView.setVisibility(View.VISIBLE);
+                            mNoGraphDataTextView.setText(R.string.empty_filter);
+                        }
+                        break;
+                    case TABLE:
+                        mBarChart.setVisibility(View.INVISIBLE);
+                        mLineChart.setVisibility(View.INVISIBLE);
+                        mPieCharts.setVisibility(View.INVISIBLE);
+                        mTableChart.setVisibility(View.VISIBLE);
+                        mNoGraphDataTextView.setVisibility(View.INVISIBLE);
+                        if (mFilterCount > 0) buildTableChart();
+                        else {
+                            mTableChart.setVisibility(View.INVISIBLE);
                             mNoGraphDataTextView.setVisibility(View.VISIBLE);
                             mNoGraphDataTextView.setText(R.string.empty_filter);
                         }
@@ -640,9 +662,116 @@ public abstract class ImportGraphsFragment extends Fragment {
             if (mPieCharts != null) {
                 mPieCharts.setVisibility(View.INVISIBLE);
             }
+            if (mTableChart != null) {
+                mTableChart.setVisibility(View.INVISIBLE);
+            }
             mNoGraphDataTextView.setVisibility(View.VISIBLE);
             mNoGraphDataTextView.setText(R.string.no_data_available);
         }
+    }
+
+    private void buildTableChart() {
+        Activity activity = getActivity();
+        if (!(null == mTableChart) && (!(null == activity))) {
+            mTableChart.removeAllViews();
+            mTableChart.setStretchAllColumns(true);
+            TableRow titleRow = new TableRow(activity);
+            String displayInterval = getString(R.string.hour);
+            switch (mDisplayInterval) {
+                case HOUR:
+                    displayInterval = getString(R.string.hour);
+                    break;
+                case DOY:
+                    displayInterval = getString(R.string.DOY);
+                    break;
+                case WEEK:
+                    displayInterval = getString(R.string.Week);
+                    break;
+                case MNTH:
+                    displayInterval = getString(R.string.monthly);
+                    break;
+                case YEAR:
+                    displayInterval = getString(R.string.annually);
+                    break;
+            }
+            titleRow.addView(getTableChartTitleHeader(displayInterval, activity));
+            if (mShowLoad) titleRow.addView(getTableChartTitleHeader(getString(R.string.load) + "(kWh)", activity));
+            if (mShowPV) titleRow.addView(getTableChartTitleHeader(getString(R.string.pv) + "(kWh)", activity));
+            if (mShowBuy) titleRow.addView(getTableChartTitleHeader(getString(R.string.buy) + "(kWh)", activity));
+            if (mShowFeed) titleRow.addView(getTableChartTitleHeader(getString(R.string.feed) + "(kWh)", activity));
+            mTableChart.addView(titleRow);
+
+            for (IntervalRow intervalRow : mGraphData) {
+                TableRow row = new TableRow(activity);
+                row.addView(getTableChartIntervalContent(intervalRow.interval, activity));
+                if (mShowLoad) row.addView(getTableChartContent(intervalRow.load, activity));
+                if (mShowPV) row.addView(getTableChartContent(intervalRow.pv, activity));
+                if (mShowBuy) row.addView(getTableChartContent(intervalRow.buy, activity));
+                if (mShowFeed) row.addView(getTableChartContent(intervalRow.feed, activity));
+                mTableChart.addView(row);
+            }
+        }
+    }
+
+    private View getTableChartIntervalContent(String interval, Activity activity) {
+        String value = "";
+
+        switch (mDisplayInterval) {
+            case HOUR:
+            case DOY: value = interval; break;
+            case WEEK:
+                switch (interval) {
+                    case "0": value = getString(R.string.Sun); break;
+                    case "1": value = getString(R.string.Mon); break;
+                    case "2": value = getString(R.string.Tue); break;
+                    case "3": value = getString(R.string.Wed); break;
+                    case "4": value = getString(R.string.Thu); break;
+                    case "5": value = getString(R.string.Fri); break;
+                    case "6": value = getString(R.string.Sat); break;
+                }
+                break;
+            case MNTH:
+                switch (mCalculation) {
+                    case SUM: value = interval; break;
+                    case AVG:
+                        switch (interval) {
+                            case "01": value = getString(R.string.Jan); break;
+                            case "02": value = getString(R.string.Feb); break;
+                            case "03": value = getString(R.string.Mar); break;
+                            case "04": value = getString(R.string.Apr); break;
+                            case "05": value = getString(R.string.May); break;
+                            case "06": value = getString(R.string.Jun); break;
+                            case "07": value = getString(R.string.Jul); break;
+                            case "08": value = getString(R.string.Aug); break;
+                            case "09": value = getString(R.string.Sep); break;
+                            case "10": value = getString(R.string.Oct); break;
+                            case "11": value = getString(R.string.Nov); break;
+                            case "12": value = getString(R.string.Dec); break;
+                        }
+                }
+                break;
+            case YEAR:
+                switch (mCalculation) {
+                    case SUM: value = interval; break;
+                    case AVG: value = "All";
+                }
+                break;
+        }
+        MaterialTextView materialTextView = new MaterialTextView(activity);
+        materialTextView.setText(value);
+        return materialTextView;
+    }
+
+    private View getTableChartContent(double value, Activity activity) {
+        MaterialTextView materialTextView = new MaterialTextView(activity);
+        materialTextView.setText(String.valueOf(Math.round(value*100)/100D));
+        return materialTextView;
+    }
+
+    private View getTableChartTitleHeader(String title, @NonNull Activity activity) {
+        MaterialTextView materialTextView = new MaterialTextView(activity);
+        materialTextView.setText(title);
+        return materialTextView;
     }
 
     private void buildPieCharts() {

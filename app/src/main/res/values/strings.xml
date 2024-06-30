@@ -307,4 +307,18 @@
     <string name="bimonthly">BiMonth</string>
     <string name="limit">Limit(kWh)</string>
     <string name="revised">Tier rate</string>
+    <string name="DOY">Day of year</string>
+    <string name="Week">Weekday</string>
+    <string name="Jan">Jan</string>
+    <string name="Feb">Feb</string>
+    <string name="Mar">Mar</string>
+    <string name="Apr">Apr</string>
+    <string name="May">May</string>
+    <string name="Jun">Jun</string>
+    <string name="Jul">Jul</string>
+    <string name="Aug">Aug</string>
+    <string name="Sep">Sep</string>
+    <string name="Oct">Oct</string>
+    <string name="Nov">Nov</string>
+    <string name="Dec">Dec</string>
 </resources>

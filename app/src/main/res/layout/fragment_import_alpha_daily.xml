@@ -65,12 +65,15 @@
                     android:layout_height="match_parent"
                     android:visibility="invisible"/>
 
-<!--                <com.github.mikephil.charting.charts.PieChart-->
-<!--                    android:id="@+id/alphaess_pie_chart"-->
-<!--                    android:layout_width="match_parent"-->
-<!--                    android:layout_height="match_parent"-->
-<!--                    android:visibility="invisible"/>-->
-
+                <androidx.core.widget.NestedScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+                    <TableLayout
+                        android:id="@+id/alphaess_table_chart"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:visibility="invisible"/>
+                </androidx.core.widget.NestedScrollView>
 
                 <TableLayout
                     android:id="@+id/alphaess_pie_chart"
