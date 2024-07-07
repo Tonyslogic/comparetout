@@ -68,6 +68,7 @@ public class PricePlanViewPageAdapter extends FragmentStateAdapter {
         mPos2ID.put(index, mLastID);
         mDayRateCount++;
         notifyItemInserted(index);
+        refreshRestrictions();
     }
 
     public void delete(int pos) {
@@ -96,6 +97,7 @@ public class PricePlanViewPageAdapter extends FragmentStateAdapter {
         mPos2ID = newPos2ID;
         mDayRateCount--;
         notifyItemRemoved(pos);
+        refreshRestrictions();
     }
 
     public void setEdit(boolean ed) {
@@ -120,5 +122,9 @@ public class PricePlanViewPageAdapter extends FragmentStateAdapter {
         Long itemID =mPos2ID.get(position);
         if (!(null == itemID)) return itemID;
         else return 0L;
+    }
+
+    public void refreshRestrictions() {
+        pricePlanEditFragment.refreshRestrictions();
     }
 }

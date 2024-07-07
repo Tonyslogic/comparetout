@@ -18,6 +18,8 @@ package com.tfcode.comparetout.priceplan;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.Editable;
 import android.text.InputType;
 import android.util.Pair;
@@ -77,6 +79,8 @@ public class PricePlanEditFragment extends Fragment {
     private TableLayout mRestrictionsTable;
     private MaterialCheckBox mRestrictionsApply;
 
+    private Handler mMainHandler;
+
     private boolean mEdit;
     private Long mPlanID;
     private String mFocus;
@@ -126,6 +130,8 @@ public class PricePlanEditFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mMainHandler = new Handler(Looper.getMainLooper());
+
         if (!(null == savedInstanceState)) {
             mEdit = savedInstanceState.getBoolean(EDIT);
             mFocus = savedInstanceState.getString(FOCUS);
@@ -735,5 +741,11 @@ public class PricePlanEditFragment extends Fragment {
 
         webView.setWebViewClient(new LocalContentWebViewClient(mAssetLoader));
         webView.loadUrl("https://appassets.androidplatform.net/assets/priceplan/table.html");
+    }
+
+    public void refreshRestrictions() {
+        mFocus = ((PricePlanActivity) requireActivity()).getFocusedPlan();
+        setOrResetState();
+        mMainHandler.post((this::updateView));
     }
 }

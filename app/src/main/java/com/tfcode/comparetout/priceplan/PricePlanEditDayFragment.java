@@ -18,6 +18,8 @@ package com.tfcode.comparetout.priceplan;
 
 import android.annotation.SuppressLint;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextUtils;
@@ -42,6 +44,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.view.MenuProvider;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Lifecycle;
+import androidx.lifecycle.LifecycleEventObserver;
 import androidx.webkit.WebViewAssetLoader;
 
 import com.google.android.material.button.MaterialButton;
@@ -72,6 +76,8 @@ import java.util.Map;
 public class PricePlanEditDayFragment extends Fragment {
 
     private TableLayout mTableLayout;
+
+    private Handler mMainHandler;
 
     private String mFocus;
     private boolean mEdit;
@@ -123,23 +129,29 @@ public class PricePlanEditDayFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        if (!(null == savedInstanceState)) {
-            mEdit = savedInstanceState.getBoolean(EDIT);
-            mFocus = savedInstanceState.getString(FOCUS);
-        }
-        else {
-            mFocus = ((PricePlanActivity) requireActivity()).getFocusedPlan();
-            mEdit = ((PricePlanActivity) requireActivity()).getEdit();
-        }
-        mEditFields = new ArrayList<>();
-        unpackmFocus();
+        mMainHandler = new Handler(Looper.getMainLooper());
 
-        if (!(null == getContext())) {
-            mAssetLoader = new WebViewAssetLoader.Builder()
-                    .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(getContext()))
-                    .addPathHandler("/res/", new WebViewAssetLoader.ResourcesPathHandler(getContext()))
-                    .build();
-        }
+        requireActivity().getLifecycle().addObserver((LifecycleEventObserver) (source, event) -> {
+            if ((event.getTargetState() ==  Lifecycle.State.CREATED ) && !(null == getActivity()) ) {
+                if (!(null == savedInstanceState)) {
+                    mEdit = savedInstanceState.getBoolean(EDIT);
+                    mFocus = savedInstanceState.getString(FOCUS);
+                }
+                else {
+                    mFocus = ((PricePlanActivity) requireActivity()).getFocusedPlan();
+                    mEdit = ((PricePlanActivity) requireActivity()).getEdit();
+                }
+                mEditFields = new ArrayList<>();
+                unpackmFocus();
+
+                if (!(null == getContext())) {
+                    mAssetLoader = new WebViewAssetLoader.Builder()
+                            .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(getContext()))
+                            .addPathHandler("/res/", new WebViewAssetLoader.ResourcesPathHandler(getContext()))
+                            .build();
+                }
+            }
+        });
     }
 
     private void unpackmFocus() {
@@ -218,7 +230,7 @@ public class PricePlanEditDayFragment extends Fragment {
         try {
             mFocus = ((PricePlanActivity) requireActivity()).getFocusedPlan();
             unpackmFocus();
-            updateView();
+            mMainHandler.post(this::updateView);
         } catch (IllegalStateException ise) {
             System.out.println("Fragment " + (mRateIndex + 1) + " was detached from activity during refresh");
             ise.printStackTrace();
@@ -230,14 +242,14 @@ public class PricePlanEditDayFragment extends Fragment {
         try {
             mFocus = ((PricePlanActivity) requireActivity()).getFocusedPlan();
             unpackmFocus();
-            updateView();
+            mMainHandler.post(this::updateView);
         } catch (java.lang.IllegalStateException ise) {
             ise.printStackTrace();
         }
     }
 
     @SuppressLint("DefaultLocale")
-    public void updateView() {
+    public synchronized void updateView() {
         mTableLayout.removeAllViews();
         mTableLayout.setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/priceplan/prices.html");
@@ -540,7 +552,7 @@ public class PricePlanEditDayFragment extends Fragment {
                         }
                     });
                     price.setOnFocusChangeListener((v, focus) -> {
-                        if (!focus) updateView();
+                        if (!focus) mMainHandler.post(this::updateView);
                     });
                     priceRow.addView(price);
                     del.setImageResource(R.drawable.ic_baseline_delete_24);
@@ -553,7 +565,7 @@ public class PricePlanEditDayFragment extends Fragment {
                         if (!(null == dayRate)) dayRate.setMinuteRateRange(minuteRateRange);
 
                         updateFocusAndValidate();
-                        updateView();
+                        mMainHandler.post(this::updateView);
                     });
                     del.setBackgroundColor(0);
                     del.setContentDescription(String.format("Delete price %s from %s to %s", String.format("%s", rangeRate.getPrice()),
@@ -675,7 +687,7 @@ public class PricePlanEditDayFragment extends Fragment {
                     if (!(null == dayRate)) dayRate.setMinuteRateRange(minuteRateRange);
 
                     updateFocusAndValidate();
-                    updateView();
+                    mMainHandler.post(this::updateView);
                 });
                 mEditFields.add(from);
                 mEditFields.add(to);
@@ -770,6 +782,7 @@ public class PricePlanEditDayFragment extends Fragment {
     private void updateFocusAndValidate() {
         PricePlanActivity ppa = (PricePlanActivity)requireActivity();
         ppa.updateFocusedPlan(JsonTools.createSinglePricePlanJsonObject(mPricePlan, new ArrayList<>(mDayRates.values())));
+        ppa.refreshRestrictions();
         ppa.setPlanValidity(mPricePlan.validatePlan(new ArrayList<>(mDayRates.values())));
         ppa.setSaveNeeded(true);
     }

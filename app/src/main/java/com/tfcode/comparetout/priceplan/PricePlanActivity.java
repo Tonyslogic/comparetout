@@ -175,11 +175,11 @@ public class PricePlanActivity extends AppCompatActivity {
 
 
         LinearLayout linearLayout = (LinearLayout)tabLayout.getChildAt(0);
-        ((View)linearLayout.getChildAt(0)).setOnLongClickListener(v -> {
+        linearLayout.getChildAt(0).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/priceplan/detailtab.html");
             return true;});
         for (int i = 1; i < linearLayout.getChildCount(); i++) {
-            ((View) linearLayout.getChildAt(i)).setOnLongClickListener(v -> {
+            linearLayout.getChildAt(i).setOnLongClickListener(v -> {
                 showHelp("https://appassets.androidplatform.net/assets/priceplan/ratestab.html");
                 return true;
             });
@@ -417,11 +417,11 @@ public class PricePlanActivity extends AppCompatActivity {
         mMediator.attach();
 
         LinearLayout linearLayout = (LinearLayout)tabLayout.getChildAt(0);
-        ((View)linearLayout.getChildAt(0)).setOnLongClickListener(v -> {
+        linearLayout.getChildAt(0).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/priceplan/detailtab.html");
             return true;});
         for (int i = 1; i < linearLayout.getChildCount(); i++) {
-            ((View) linearLayout.getChildAt(i)).setOnLongClickListener(v -> {
+            linearLayout.getChildAt(i).setOnLongClickListener(v -> {
                 showHelp("https://appassets.androidplatform.net/assets/priceplan/ratestab.html");
                 return true;
             });
@@ -457,6 +457,11 @@ public class PricePlanActivity extends AppCompatActivity {
 
     public void updateFocusedPlan(String updatedPlan) {
         focusedPlan = updatedPlan;
+    }
+
+    public void refreshRestrictions() {
+        if (!(null == viewPager) && !(null == viewPager.getAdapter()))
+            ((PricePlanViewPageAdapter) viewPager.getAdapter()).refreshRestrictions();
     }
 
     public boolean getEdit() {
@@ -499,7 +504,7 @@ public class PricePlanActivity extends AppCompatActivity {
 
     private void showHelp(String url) {
         mHelpWindow.setHeight((int) (getWindow().getDecorView().getHeight()*0.6));
-        mHelpWindow.setWidth((int) (getWindow().getDecorView().getWidth()));
+        mHelpWindow.setWidth(getWindow().getDecorView().getWidth());
         mHelpWindow.showAtLocation(viewPager.getRootView(), Gravity.CENTER, 0, 0);
         WebView webView = mPopupView.findViewById(R.id.helpWebView);
 
