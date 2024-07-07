@@ -30,7 +30,6 @@ import java.util.NavigableMap;
 
 public class CostViewModel extends AndroidViewModel {
 
-    private boolean mLoaded = false;
     private boolean mReadyToCost = false;
     private boolean mGenerated = false;
     private String mSelectedDates = "No range selected";
@@ -62,14 +61,6 @@ public class CostViewModel extends AndroidViewModel {
 
     public void setPlans(List<PricePlan> mPlans) {
         this.mPlans = mPlans;
-    }
-
-    public boolean isLoadedFromDB() {
-        return mLoaded;
-    }
-
-    public void setLoaded(boolean mLoaded) {
-        this.mLoaded = mLoaded;
     }
 
     public boolean isGenerated() {

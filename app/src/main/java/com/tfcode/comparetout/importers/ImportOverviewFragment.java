@@ -115,6 +115,10 @@ public abstract class ImportOverviewFragment extends Fragment {
     protected String GOOD_CREDENTIAL_KEY;
     protected String SYSTEM_LIST_KEY;
     protected String SYSTEM_PREVIOUSLY_SELECTED;
+    private final String PREVIOUS_SELECTION_START = "ImportSelectionStart";
+    private final String PREVIOUS_SELECTION_END = "ImportSelectionEnd";
+    private LocalDateTime mStartLDT;
+    private LocalDateTime mEndLDT;
     protected List<String> mSerialNumbers;
     private ComparisonUIViewModel mViewModel;
     private CostViewModel mCostViewModel;
@@ -169,6 +173,23 @@ public abstract class ImportOverviewFragment extends Fragment {
                         .map(prefs -> prefs.get(goodKey)).onErrorReturnItem("False");
                 String goodCreds = value3.blockingGet();
                 mCredentialsAreGood = !(goodCreds.equals("False"));
+
+                Preferences.Key<String> startKey = PreferencesKeys.stringKey(PREVIOUS_SELECTION_START);
+                Single<String> value4 = application.getDataStore()
+                        .data().firstOrError()
+                        .map(prefs -> prefs.get(startKey)).onErrorReturnItem("");
+                String startDate = value4.blockingGet();
+
+                Preferences.Key<String> endKey = PreferencesKeys.stringKey(PREVIOUS_SELECTION_END);
+                Single<String> value6 = application.getDataStore()
+                        .data().firstOrError()
+                        .map(prefs -> prefs.get(endKey)).onErrorReturnItem("");
+                String endDate = value6.blockingGet();
+
+                try {
+                    mStartLDT = LocalDateTime.parse(startDate + MIDNIGHT, PARSER_FORMATTER);
+                    mEndLDT = LocalDateTime.parse(endDate + MIDNIGHT, PARSER_FORMATTER);
+                } catch (Exception ignored) {}
 
                 loadSystemListFromPreferences(application);
 
@@ -243,6 +264,16 @@ public abstract class ImportOverviewFragment extends Fragment {
                 if (!(null == mSerialNumber) && inverterDateRange.sysSn.equals(mSerialNumber)) {
                     mCostViewModel.setDBStart(LocalDateTime.parse(inverterDateRange.startDate + MIDNIGHT, PARSER_FORMATTER));
                     mCostViewModel.setDBEnd(LocalDateTime.parse(inverterDateRange.finishDate + MIDNIGHT, PARSER_FORMATTER));
+                    if (!(null == mStartLDT)) mCostViewModel.setSelectedStart(mStartLDT);
+                    if (!(null == mEndLDT)) mCostViewModel.setSelectedEnd(mEndLDT);
+                    if (!(null == mStartLDT) && !(null == mEndLDT)) {
+                        mCostViewModel.setTotalDaysSelected(DAYS.between(mCostViewModel.getSelectedStart(), mCostViewModel.getSelectedEnd()));
+                        String start = mStartLDT.format(DISPLAY_FORMAT);
+                        String end = mEndLDT.plusDays(-1).format(DISPLAY_FORMAT);
+                        mCostViewModel.setSelectedDates(start + " <-> " + end);
+                        mCostViewModel.setCostings(null);
+                        mCostViewModel.setReadyToCost(true);
+                    }
                 }
                 mMainHandler.post(ImportOverviewFragment.this::updateView);
             }
@@ -380,6 +411,9 @@ public abstract class ImportOverviewFragment extends Fragment {
                 mCostViewModel.setSelectedEnd(LocalDateTime.ofInstant(Instant.ofEpochMilli(selection.second), ZoneId.ofOffset("UTC", ZoneOffset.UTC)).plusDays(1));
                 mCostViewModel.setTotalDaysSelected(DAYS.between(mCostViewModel.getSelectedStart(), mCostViewModel.getSelectedEnd()));
 
+                mStartLDT = mCostViewModel.getSelectedStart();
+                mEndLDT = mCostViewModel.getSelectedEnd();
+
                 LocalDateTime selectedStart = mCostViewModel.getSelectedStart();
                 LocalDateTime selectedEnd = mCostViewModel.getSelectedEnd();
                 LocalDateTime dbStart = mCostViewModel.getDBStart();
@@ -396,9 +430,21 @@ public abstract class ImportOverviewFragment extends Fragment {
                     }
                     mCostViewModel.setReadyToCost(false);
                 } else {
-                    mCostViewModel.setSelectedDates(selectedStart.format(DISPLAY_FORMAT) + " <-> " + selectedEnd.plusDays(-1).format(DISPLAY_FORMAT));
+                    String start = selectedStart.format(DISPLAY_FORMAT);
+                    String end = selectedEnd.plusDays(-1).format(DISPLAY_FORMAT);
+                    mCostViewModel.setSelectedDates(start + " <-> " + end);
                     mCostViewModel.setCostings(null);
                     mCostViewModel.setReadyToCost(true);
+
+                    if (!(null == getActivity()) && !(null == getActivity().getApplication())) {
+                        TOUTCApplication application = (TOUTCApplication) getActivity().getApplication();
+                        boolean x = application.putStringValueIntoDataStore(PREVIOUS_SELECTION_START, start);
+                        if (!x)
+                            System.out.println("ImportAlphaOverview::materialDatePicker.addOnPositiveButtonClickListener, failed to store start");
+                        x = application.putStringValueIntoDataStore(PREVIOUS_SELECTION_END, end);
+                        if (!x)
+                            System.out.println("ImportAlphaOverview::materialDatePicker.addOnPositiveButtonClickListener, failed to store end");
+                    }
                 }
                 updateView();
             });
@@ -637,7 +683,6 @@ public abstract class ImportOverviewFragment extends Fragment {
 
     private void loadSelectedDatesIntoCostViewModel() {
 
-        mCostViewModel.setLoaded(false);
         if (!(null == mInverterDateRangesBySN) && !(null == mSerialNumber) && !(null == mInverterDateRangesBySN.get(mSerialNumber))) {
             String range = mInverterDateRangesBySN.get(mSerialNumber);
 
@@ -653,7 +698,6 @@ public abstract class ImportOverviewFragment extends Fragment {
                 mCostViewModel.getExports().put(readTime, costInputRow.feed);
                 mCostViewModel.getImports().put(readTime, costInputRow.buy);
             }
-            mCostViewModel.setLoaded(true);
             mMainHandler.post(this::updateView);
         }
     }
