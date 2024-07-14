@@ -17,10 +17,12 @@
 package com.tfcode.comparetout;
 
 import android.content.Context;
+import android.net.Uri;
 
 import androidx.work.Data;
 import androidx.work.ExistingWorkPolicy;
 import androidx.work.OneTimeWorkRequest;
+import androidx.work.OutOfQuotaPolicy;
 import androidx.work.WorkManager;
 
 import com.tfcode.comparetout.scenario.SimulationWorker;
@@ -50,19 +52,23 @@ public class SimulatorLauncher {
                 .enqueue();
     }
 
-    public static void storePVGISData(Context context, Long panelID) {
+    public static void storePVGISData(Context context, Long panelID, Uri folderUri) {
 
         Data.Builder data = new Data.Builder();
         data.putLong("panelID", panelID);
+        data.putString("folderUri", folderUri.toString());
 
         OneTimeWorkRequest storePVGIS =
                 new OneTimeWorkRequest.Builder(PVGISLoader.class)
+                        .addTag(panelID.toString())
                         .setInputData(data.build())
+                        .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
                         .build();
 
-        WorkManager.getInstance(context).pruneWork();
-        WorkManager
-                .getInstance(context)
+        WorkManager workManager = WorkManager.getInstance(context);
+        workManager.pruneWork();
+
+        workManager
                 .beginUniqueWork("PVGIS", ExistingWorkPolicy.APPEND,  storePVGIS)
                 .enqueue();
     }

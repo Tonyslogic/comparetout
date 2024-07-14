@@ -4,12 +4,12 @@ plugins {
 
 android {
     namespace 'com.tfcode.comparetout'
-    compileSdk 33
+    compileSdk 34
 
     defaultConfig {
-        applicationId "com.tfcode.comparetout"
+        applicationId "com.tfcode.comparetout.test"
         minSdk 28
-        targetSdk 33
+        targetSdk 34
         versionCode 36
         versionName "1.35"
 
@@ -38,7 +38,7 @@ android {
 }
 
 dependencies {
-    implementation 'androidx.webkit:webkit:1.7.0'
+    implementation 'androidx.webkit:webkit:1.11.0'
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.9.0'
@@ -48,14 +48,14 @@ dependencies {
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.5.1'
     implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.5.1'
-    implementation 'androidx.test:core:1.5.0'
+    implementation 'androidx.test:core:1.6.1'
     implementation 'androidx.navigation:navigation-fragment:2.5.3'
     implementation 'androidx.navigation:navigation-ui:2.5.3'
     testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.1'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
 
-    implementation 'com.google.code.gson:gson:2.9.0'
+    implementation 'com.google.code.gson:gson:2.10.1'
     implementation 'com.opencsv:opencsv:4.6'
 
     // Work components
@@ -74,8 +74,8 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-common-java8:$rootProject.lifecycleVersion"
 
     // Disclaimers
-    implementation "androidx.datastore:datastore-preferences-core:1.0.0"
-    implementation "androidx.datastore:datastore-preferences-rxjava2:1.0.0"
+    implementation "androidx.datastore:datastore-preferences-core:1.1.1"
+    implementation "androidx.datastore:datastore-preferences-rxjava2:1.1.1"
 
 //    // UI
 //    implementation "androidx.constraintlayout:constraintlayout:$rootProject.constraintLayoutVersion"
@@ -88,7 +88,7 @@ dependencies {
         exclude group: 'com.android.support', module: 'support-annotations'
     })
     androidTestImplementation "androidx.test.ext:junit:$rootProject.androidxJunitVersion"
-    androidTestImplementation "androidx.arch.core:core-testing:2.1.0"
+    androidTestImplementation "androidx.arch.core:core-testing:2.2.0"
 //    androidTestImplementation "com.google.truth.truth:1.0.1"
 //    testImplementation "androidx.test.monitor"
 

@@ -88,21 +88,21 @@ public class PanelFragment extends Fragment {
     private List<PanelPVSummary> mPanelPVSummaries;
     private List<Inverter> mInverters;
 
-    private final ActivityResultLauncher<Intent> mStartForResult = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
-            result -> {
-                if (result.getResultCode() == Activity.RESULT_OK) {
-                    Intent intent = result.getData();
-                    // Handle the Intent
-                    if (!(null == intent)) {
-                        if (intent.getBooleanExtra("RESULT", false)) {
-                            new Thread(() -> {
-                                mViewModel.deleteSimulationDataForPanelID(mPanel.getPanelIndex());
-                                mViewModel.deleteCostingDataForPanelID(mPanel.getPanelIndex());
-                            }).start();
-                        }
-                    }
-                }
-            });
+//    private final ActivityResultLauncher<Intent> mStartForResult = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+//            result -> {
+//                if (result.getResultCode() == Activity.RESULT_OK) {
+//                    Intent intent = result.getData();
+//                    // Handle the Intent
+//                    if (!(null == intent)) {
+//                        if (intent.getBooleanExtra("RESULT", false)) {
+//                            new Thread(() -> {
+//                                mViewModel.deleteSimulationDataForPanelID(mPanel.getPanelIndex());
+//                                mViewModel.deleteCostingDataForPanelID(mPanel.getPanelIndex());
+//                            }).start();
+//                        }
+//                    }
+//                }
+//            });
 
 
     public PanelFragment() {
@@ -196,8 +196,8 @@ public class PanelFragment extends Fragment {
                 Intent intent = new Intent(getActivity(), PVGISActivity.class);
                 intent.putExtra("PanelID", mPanel.getPanelIndex());
                 intent.putExtra("Edit", mEdit);
-//                startActivity(intent);
-                mStartForResult.launch(intent);
+                startActivity(intent);
+//                mStartForResult.launch(intent);
             }
             else{
                 if (!(null == getView())) Snackbar.make(getView(),

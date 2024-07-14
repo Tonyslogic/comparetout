@@ -20,11 +20,16 @@ import static com.tfcode.comparetout.MainActivity.CHANNEL_ID;
 
 import android.app.Application;
 import android.content.Context;
+import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Environment;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+import androidx.documentfile.provider.DocumentFile;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
@@ -41,6 +46,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
@@ -55,9 +61,11 @@ public class PVGISLoader extends Worker {
 
     private final ToutcRepository mToutcRepository;
     private final static Double MAGIC_NUMBER = 919821d;
+    private final Context mContext;
 
     public PVGISLoader(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
+        mContext = context;
         mToutcRepository = new ToutcRepository((Application) context);
     }
 
@@ -75,9 +83,11 @@ public class PVGISLoader extends Worker {
     @Override
     public Result doWork() {
         Long panelID = getInputData().getLong("panelID", 0);
+        String folderUriString = getInputData().getString("folderUri");
+//        File folder = new File(Uri.parse(folderUriString).getPath());
 
         Context context = getApplicationContext();
-        String  title= context.getString(R.string.pvgis_notification_title);
+        String title= context.getString(R.string.pvgis_notification_title);
         String text = context.getString(R.string.pvgis_notification_text);
 
         Panel mPanel = mToutcRepository.getPanelForID(panelID);
@@ -87,7 +97,30 @@ public class PVGISLoader extends Worker {
         String filename = "PVGIS(" + latitude + ")(" + longitude +
                 ")(" + mPanel.getSlope() + ")(" + mPanel.getAzimuth() + ")" ;
 
-        FileInputStream inputStream;
+        DocumentFile folder = DocumentFile.fromTreeUri(mContext, Uri.parse(folderUriString));
+        DocumentFile file = null;
+        if (folder != null && folder.isDirectory()) {
+            file = folder.findFile(filename);
+            if (null == file) {
+                filename = filename + ".json";
+                file = folder.findFile(filename);
+            }
+        }
+        if (null == file) {
+            Log.i(PVGISLoader.class.getName(), "File not found");
+            return Result.success();
+        }
+//        File file = new File(folder, filename);
+//        if (!file.exists()) {
+//            filename = filename + ".json";
+//            file = new File(folder, filename);
+//            if (!file.exists()) {
+//                Log.i(PVGISLoader.class.getName(), "File not found");
+//                return Result.success();
+//            }
+//        }
+
+        InputStream inputStream;
         try{
             // NOTIFICATION SETUP
             int notificationId = 1;
@@ -95,23 +128,23 @@ public class PVGISLoader extends Worker {
             NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
             builder.setContentTitle(title)
                     .setContentText(text)
-                    .setSmallIcon(R.drawable.housetick)
+                    .setSmallIcon(R.drawable.ic_baseline_save_24)
                     .setPriority(NotificationCompat.PRIORITY_LOW)
                     .setTimeoutAfter(30000)
                     .setSilent(true);
             int PROGRESS_MAX = 100;
             int PROGRESS_CURRENT = 0;// Issue the initial notification with zero progress
             builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
-            notificationManager.notify(notificationId, builder.build());
+            sendNotification(notificationManager, notificationId, builder);
 
             if (!fileExist(filename)) Thread.sleep(1000);
-            File file = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS + "/" +filename);
-            inputStream = new FileInputStream(file);
+//            File file = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS + "/" +filename);
+            inputStream = mContext.getContentResolver().openInputStream(file.getUri());
             InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
 
             builder.setProgress(PROGRESS_MAX, 30, false);
             builder.setContentText("Data read");
-            notificationManager.notify(notificationId, builder.build());
+            sendNotification(notificationManager, notificationId, builder);
 
             Type type = new TypeToken<PvGISData>(){}.getType();
             PvGISData pvGISData = new Gson().fromJson(reader, type);
@@ -153,14 +186,14 @@ public class PVGISLoader extends Worker {
 
             builder.setProgress(PROGRESS_MAX, 60, false);
             builder.setContentText("Data formatted, storing...");
-            notificationManager.notify(notificationId, builder.build());
+            sendNotification(notificationManager, notificationId, builder);
 
             mToutcRepository.savePanelData(panelDataList);
 
             // NOTIFICATION COMPLETE
             builder.setContentText("DB update complete")
                     .setProgress(0, 0, false);
-            notificationManager.notify(notificationId, builder.build());
+            sendNotification(notificationManager, notificationId, builder);
 
         } catch (FileNotFoundException e) {
             e.printStackTrace();
@@ -173,5 +206,16 @@ public class PVGISLoader extends Worker {
         }
 
         return Result.success();
+    }
+
+
+    private void sendNotification(NotificationManagerCompat notificationManager, int notificationId, NotificationCompat.Builder builder) {
+        if (ActivityCompat.checkSelfPermission(
+                mContext, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            Log.i(PVGISLoader.class.getName(), "Permission not granted to send notification");
+            return;
+        }
+        notificationManager.notify(notificationId, builder.build());
+
     }
 }
