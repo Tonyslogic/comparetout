@@ -27,12 +27,13 @@ import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Pair;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import androidx.work.Data;
-import androidx.work.ForegroundInfo;
 import androidx.work.WorkManager;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
@@ -75,6 +76,7 @@ public class ESBNImportWorker extends Worker {
         mToutcRepository = new ToutcRepository((Application) context);
         mNotificationManager = (NotificationManager)
                 context.getSystemService(NOTIFICATION_SERVICE);
+        createChannel();
         setProgressAsync(new Data.Builder().putString(PROGRESS, "Starting import from file").build());
         System.out.println("Import worker created");
     }
@@ -89,6 +91,7 @@ public class ESBNImportWorker extends Worker {
     @Override
     public Result doWork() {
         System.out.println("ESBNImportWorker:doWork invoked ");
+        Handler mHandler = new Handler(Looper.getMainLooper());
         Data inputData = getInputData();
         String systemSN = inputData.getString(KEY_SYSTEM_SN);
         String uriString = inputData.getString(KEY_URI);
@@ -97,8 +100,8 @@ public class ESBNImportWorker extends Worker {
         // Mark the Worker as important
         String progress = "Importing energy";
         setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
-        ForegroundInfo foregroundInfo = createForegroundInfo("Importing HDF file");
-        mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
+        String finalProgress = progress;
+        mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress)));
         
         // Do some work
         Map<LocalDateTime, Pair<Double, Double>> timeAlignedEntries = new HashMap<>();
@@ -154,8 +157,8 @@ public class ESBNImportWorker extends Worker {
 
         progress = "All done importing " + systemSN;
         setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
-        foregroundInfo = createForegroundInfo(progress);
-        mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
+        String finalProgress1 = progress;
+        mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress1)));
 
         if (mStopped) mNotificationManager.cancel(mNotificationId);
 
@@ -163,7 +166,7 @@ public class ESBNImportWorker extends Worker {
     }
 
     @NonNull
-    private ForegroundInfo createForegroundInfo(@NonNull String progress) {
+    private Notification getNotification(@NonNull String progress) {
         // Build a notification using bytesRead and contentLength
 
         Context context = getApplicationContext();
@@ -180,9 +183,7 @@ public class ESBNImportWorker extends Worker {
         PendingIntent activityPendingIntent = stackBuilder.getPendingIntent(0,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-        createChannel();
-
-        Notification notification = new NotificationCompat.Builder(context, id)
+        return new NotificationCompat.Builder(context, id)
                 .setContentTitle(title)
                 .setTicker(title)
                 .setContentText(progress)
@@ -195,8 +196,6 @@ public class ESBNImportWorker extends Worker {
                 // be used to cancel the worker
                 .addAction(android.R.drawable.ic_delete, cancel, intent)
                 .build();
-
-        return new ForegroundInfo(mNotificationId, notification);
     }
 
     private void createChannel() {

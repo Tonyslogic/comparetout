@@ -24,11 +24,12 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import androidx.work.Data;
-import androidx.work.ForegroundInfo;
 import androidx.work.WorkManager;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
@@ -76,6 +77,7 @@ public class GenerationWorker extends Worker {
         mToutcRepository = new ToutcRepository((Application) context);
         mNotificationManager = (NotificationManager)
                 context.getSystemService(NOTIFICATION_SERVICE);
+        createChannel();
         setProgressAsync(new Data.Builder().putString(PROGRESS, "Starting GenerationWorker").build());
         System.out.println("GenerationWorker created");
     }
@@ -90,6 +92,7 @@ public class GenerationWorker extends Worker {
     @Override
     public Result doWork() {
         System.out.println("GenerationWorker:doWork invoked ");
+        Handler mHandler = new Handler(Looper.getMainLooper());
 
         // Load the input data
         Data inputData = getInputData();
@@ -115,7 +118,7 @@ public class GenerationWorker extends Worker {
         String finalScenarioName;
 
         if (mScenarioID == 0) {
-            report(getString(R.string.creating_usage));
+            report(getString(R.string.creating_usage), mHandler);
             Scenario scenario = new Scenario();
             String scenarioName = mSystemSN;
             int suffix = 1;
@@ -142,7 +145,7 @@ public class GenerationWorker extends Worker {
 
         // Create & store a load profile
         if (mLP) {
-            report(getString(R.string.gen_load_profile));
+            report(getString(R.string.gen_load_profile), mHandler);
             List<IntervalRow> hourly = mToutcRepository.getSumHour(mSystemSN, mFrom, mTo);
             List<IntervalRow> weekly = mToutcRepository.getSumDOW(mSystemSN, mFrom, mTo);
             List<IntervalRow> monthly = mToutcRepository.getAvgMonth(mSystemSN, mFrom, mTo);
@@ -186,7 +189,7 @@ public class GenerationWorker extends Worker {
 
         // Create and store load profile data
         if (mLP) {
-            report(getString(R.string.adding_data));
+            report(getString(R.string.adding_data), mHandler);
 
             dbRows = mToutcRepository.getAlphaESSTransformedData(mSystemSN, mFrom, mTo);
             Map<Integer, Map<String, AlphaESSTransformedData>> dbLookup = new HashMap<>();
@@ -201,7 +204,7 @@ public class GenerationWorker extends Worker {
                 }
                 else entry.put(dbTime, dbRow);
             }
-            report("Loaded data");
+            report("Loaded data", mHandler);
 
             ArrayList<LoadProfileData> rows = new ArrayList<>();
             LocalDateTime active = LocalDateTime.of(2001, 1, 1, 0, 0);
@@ -234,14 +237,14 @@ public class GenerationWorker extends Worker {
                 rows.add(row);
                 active = active.plusMinutes(5);
             }
-            report("Storing data");
+            report("Storing data", mHandler);
 
             mToutcRepository.createLoadProfileDataEntries(rows);
-            report("Stored data");
+            report("Stored data", mHandler);
         }
 
         // Done :-)
-        report(getString(R.string.completed, finalScenarioName));
+        report(getString(R.string.completed, finalScenarioName), mHandler);
 
         
         if (mStopped) mNotificationManager.cancel(mNotificationId);
@@ -256,14 +259,13 @@ public class GenerationWorker extends Worker {
         return getApplicationContext().getString(resource_id, templateValue);
     }
 
-    private void report(String theReport) {
+    private void report(String theReport, Handler handler) {
         setProgressAsync(new Data.Builder().putString(PROGRESS, theReport).build());
-        ForegroundInfo foregroundInfo = createForegroundInfo(theReport);
-        mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
+        handler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(theReport)));
     }
 
     @NonNull
-    private ForegroundInfo createForegroundInfo(@NonNull String progress) {
+    private Notification getNotification(@NonNull String progress) {
         // Build a notification using bytesRead and contentLength
 
         Context context = getApplicationContext();
@@ -274,9 +276,7 @@ public class GenerationWorker extends Worker {
         PendingIntent intent = WorkManager.getInstance(context)
                 .createCancelPendingIntent(getId());
 
-        createChannel();
-
-        Notification notification = new NotificationCompat.Builder(context, id)
+        return new NotificationCompat.Builder(context, id)
                 .setContentTitle(title)
                 .setTicker(title)
                 .setContentText(progress)
@@ -288,8 +288,6 @@ public class GenerationWorker extends Worker {
                 // be used to cancel the worker
                 .addAction(android.R.drawable.ic_delete, cancel, intent)
                 .build();
-
-        return new ForegroundInfo(mNotificationId, notification);
     }
 
     private void createChannel() {

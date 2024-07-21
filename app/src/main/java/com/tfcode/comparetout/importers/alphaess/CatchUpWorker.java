@@ -32,7 +32,6 @@ import android.os.Looper;
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import androidx.work.Data;
-import androidx.work.ForegroundInfo;
 import androidx.work.WorkManager;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
@@ -98,7 +97,6 @@ public class CatchUpWorker extends Worker {
         LocalDate end = LocalDate.now();
 
         // Mark the Worker as important
-        String progress = "Starting Fetch";
         setProgressAsync(new Data.Builder().putString(PROGRESS, current.toString()).build());
         while (current.isBefore(end) && !mStopped) {
             if (mToutcRepository.checkSysSnForDataOnDate(systemSN, current.format(DATE_FORMAT))) {

@@ -32,7 +32,6 @@ import android.os.Looper;
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import androidx.work.Data;
-import androidx.work.ForegroundInfo;
 import androidx.work.WorkManager;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
@@ -129,7 +128,6 @@ public class DailyWorker extends Worker {
         boolean ret = false;
         System.out.println("DailyWorker fetching data for " + yesterday);
         // Mark the Worker as important
-        String progress = "Starting Fetch";
         setProgressAsync(new Data.Builder().putString(PROGRESS, yesterday.toString()).build());
 
         // Get the data from AlphaESS (a) power, (b) energy
