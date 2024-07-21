@@ -27,13 +27,14 @@ import android.app.PendingIntent;
 import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Handler;
+import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import androidx.datastore.preferences.core.Preferences;
 import androidx.datastore.preferences.core.PreferencesKeys;
 import androidx.work.Data;
-import androidx.work.ForegroundInfo;
 import androidx.work.WorkManager;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
@@ -82,6 +83,7 @@ public class HACatchupWorker extends Worker {
     private final Object lock = new Object();
 
     Context mContext;
+    Handler mHandler;
     private final ToutcRepository mToutcRepository;
 
     private EnergySensors mEnergySensors = null;
@@ -94,6 +96,7 @@ public class HACatchupWorker extends Worker {
         mToutcRepository = new ToutcRepository((Application) context);
         mNotificationManager = (NotificationManager)
                 context.getSystemService(NOTIFICATION_SERVICE);
+        createChannel();
     }
 
     @Override
@@ -106,6 +109,7 @@ public class HACatchupWorker extends Worker {
     @Override
     public Result doWork() {
         System.out.println("HACatchupWorker:doWork invoked ");
+        mHandler = new Handler(Looper.getMainLooper());
         Data inputData = getInputData();
         HADispatcher mHAClient = new HADispatcher(
                 inputData.getString(KEY_HOST),
@@ -121,11 +125,10 @@ public class HACatchupWorker extends Worker {
         // Mark the Worker as important
         LocalDate current = LocalDate.parse(startDate, INPUT_DATE_FORMAT);
         mProgress = current.format(NOTIFY_FORMAT);
-        String progress = "Starting Fetch";
-        setForegroundAsync(createForegroundInfo(progress));
+        String progress = "Importing HomeAssistant data";
         setProgressAsync(new Data.Builder().putString(PROGRESS, mProgress).build());
-        ForegroundInfo foregroundInfo = createForegroundInfo("Importing HomeAssistant data");
-        mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
+        String finalProgress = progress;
+        mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress)));
 
         mHAClient.registerHandler("auth_ok", new HACatchupWorker.AuthOKHandler(mHAClient, startDate));
         mHAClient.registerHandler("auth_invalid", new HACatchupWorker.AuthNotOKHandler(mHAClient));
@@ -135,8 +138,8 @@ public class HACatchupWorker extends Worker {
         LOGGER.info("HACatchupWorker:doWork finished");
         progress = "All done importing HomeAssistant data";
         setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
-        foregroundInfo = createForegroundInfo(progress);
-        mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
+        String finalProgress1 = progress;
+        mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress1)));
 
         return Result.success();
     }
@@ -172,8 +175,7 @@ public class HACatchupWorker extends Worker {
                     if (!processedDate.equals(mProgress)) {
                         mProgress = processedDate;
                         setProgressAsync(new Data.Builder().putString(PROGRESS, "Working on " + mProgress).build());
-                        ForegroundInfo foregroundInfo = createForegroundInfo("Working on " + mProgress);
-                        mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
+                        mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification("Working on " + mProgress)));
                     }
                 }
             }
@@ -297,7 +299,7 @@ public class HACatchupWorker extends Worker {
 
 
     @NonNull
-    private ForegroundInfo createForegroundInfo(@NonNull String progress) {
+    private Notification getNotification(@NonNull String progress) {
         // Build a notification using bytesRead and contentLength
 
         Context context = getApplicationContext();
@@ -314,9 +316,7 @@ public class HACatchupWorker extends Worker {
         PendingIntent activityPendingIntent = stackBuilder.getPendingIntent(0,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-        createChannel();
-
-        Notification notification = new NotificationCompat.Builder(context, id)
+        return new NotificationCompat.Builder(context, id)
                 .setContentTitle(title)
                 .setTicker(title)
                 .setContentText(progress)
@@ -329,8 +329,6 @@ public class HACatchupWorker extends Worker {
                 // be used to cancel the worker
                 .addAction(android.R.drawable.ic_delete, cancel, intent)
                 .build();
-
-        return new ForegroundInfo(mNotificationId, notification);
     }
 
     private void createChannel() {
