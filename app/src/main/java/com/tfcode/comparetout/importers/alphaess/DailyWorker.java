@@ -26,6 +26,8 @@ import android.app.PendingIntent;
 import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Handler;
+import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
@@ -68,7 +70,7 @@ public class DailyWorker extends Worker {
         mToutcRepository = new ToutcRepository((Application) context);
         mNotificationManager = (NotificationManager)
                 context.getSystemService(NOTIFICATION_SERVICE);
-        setProgressAsync(new Data.Builder().putString(PROGRESS, "Starting daily fetch").build());
+        createChannel();
         System.out.println("Daily worker created");
     }
 
@@ -82,6 +84,7 @@ public class DailyWorker extends Worker {
     @Override
     public Result doWork() {
         System.out.println("DailyWorker:doWork invoked ");
+        Handler mHandler = new Handler(Looper.getMainLooper());
         Data inputData = getInputData();
         OpenAlphaESSClient mOpenAlphaESSClient = new OpenAlphaESSClient(
                 inputData.getString(KEY_APP_ID), 
@@ -99,8 +102,8 @@ public class DailyWorker extends Worker {
             if (!fetchOK) fetchFromOpenAlphaESS(mOpenAlphaESSClient, systemSN, yesterday);
             System.out.println("DailyWorker finished with " + yesterday);
             setProgressAsync(new Data.Builder().putString(PROGRESS, yesterday.toString()).build());
-            ForegroundInfo foregroundInfo = createForegroundInfo("Done catching up with " + yesterday);
-            mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
+            final String progress = "Done catching up with " + yesterday;
+            mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(progress)));
 
         } catch (AlphaESSException e) {
             // check to see if we are exceeding limits and retry
@@ -112,8 +115,8 @@ public class DailyWorker extends Worker {
                 String errorCode = "UNKNOWN";
                 if (!(null == e.getMessage())) errorCode = e.getMessage().substring(0, 12);
                 setProgressAsync(new Data.Builder().putString(PROGRESS, yesterday.toString()).build());
-                ForegroundInfo foregroundInfo = createForegroundInfo("Unable to fetch " + yesterday + ", " + errorCode);
-                mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
+                final String errorMessage = "Unable to fetch " + yesterday + ", " + errorCode;
+                mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(errorMessage)));
                 return Result.failure();
             }
 
@@ -127,7 +130,6 @@ public class DailyWorker extends Worker {
         System.out.println("DailyWorker fetching data for " + yesterday);
         // Mark the Worker as important
         String progress = "Starting Fetch";
-        setForegroundAsync(createForegroundInfo(progress));
         setProgressAsync(new Data.Builder().putString(PROGRESS, yesterday.toString()).build());
 
         // Get the data from AlphaESS (a) power, (b) energy
@@ -165,7 +167,7 @@ public class DailyWorker extends Worker {
     }
 
     @NonNull
-    private ForegroundInfo createForegroundInfo(@NonNull String progress) {
+    private Notification getNotification(@NonNull String progress) {
         // Build a notification using bytesRead and contentLength
 
         Context context = getApplicationContext();
@@ -182,9 +184,7 @@ public class DailyWorker extends Worker {
         PendingIntent activityPendingIntent = stackBuilder.getPendingIntent(0,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-        createChannel();
-
-        Notification notification = new NotificationCompat.Builder(context, id)
+        return new NotificationCompat.Builder(context, id)
                 .setContentTitle(title)
                 .setTicker(title)
                 .setContentText(progress)
@@ -197,8 +197,6 @@ public class DailyWorker extends Worker {
                 // be used to cancel the worker
                 .addAction(android.R.drawable.ic_delete, cancel, intent)
                 .build();
-
-        return new ForegroundInfo(mNotificationId, notification);
     }
 
     private void createChannel() {

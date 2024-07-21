@@ -27,11 +27,12 @@ import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Environment;
+import android.os.Handler;
+import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import androidx.work.Data;
-import androidx.work.ForegroundInfo;
 import androidx.work.WorkManager;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
@@ -68,6 +69,7 @@ public class ExportWorker extends Worker {
         mToutcRepository = new ToutcRepository((Application) context);
         mNotificationManager = (NotificationManager)
                 context.getSystemService(NOTIFICATION_SERVICE);
+        createChannel();
         setProgressAsync(new Data.Builder().putString(PROGRESS, "Starting export").build());
         System.out.println("Export worker created");
     }
@@ -82,14 +84,14 @@ public class ExportWorker extends Worker {
     @Override
     public Result doWork() {
         System.out.println("ExportWorker:doWork invoked ");
+        Handler mHandler = new Handler(Looper.getMainLooper());
         Data inputData = getInputData();
         String systemSN = inputData.getString(KEY_SYSTEM_SN);
 
         // Mark the Worker as important
         String progress = "Exporting energy";
         setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
-        ForegroundInfo foregroundInfo = createForegroundInfo("Exporting energy");
-        mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
+        mNotificationManager.notify(mNotificationId, getNotification(progress));
         
         // Do some work
 
@@ -117,8 +119,8 @@ public class ExportWorker extends Worker {
 
             progress = "Exported energy";
             setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
-            foregroundInfo = createForegroundInfo("Exported energy");
-            mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
+            String finalProgress = progress;
+            mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress)));
 
             jsonWriter.name("power");
             jsonWriter.beginArray();
@@ -137,8 +139,8 @@ public class ExportWorker extends Worker {
                 if ((processed % 30) == 0) {
                     progress = "Exporting power: " + processed + "/" + dates.size();
                     setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
-                    foregroundInfo = createForegroundInfo(progress);
-                    mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
+                    String finalProgress1 = progress;
+                    mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress1)));
                 }
                 if (mStopped) break;
             }
@@ -150,15 +152,15 @@ public class ExportWorker extends Worker {
 
             progress = "Exported power: " + processed + "/" + dates.size();
             setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
-            foregroundInfo = createForegroundInfo(progress);
-            mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
+            String finalProgress2 = progress;
+            mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress2)));
 
         } catch (IOException e) {
             e.printStackTrace();
             progress = "Export abandoned: Missing permission or file exists";
             setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
-            foregroundInfo = createForegroundInfo(progress);
-            mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
+            String finalProgress3 = progress;
+            mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress3)));
         } finally {
             if (!(null == jsonWriter)) {
                 try {
@@ -182,7 +184,7 @@ public class ExportWorker extends Worker {
     }
 
     @NonNull
-    private ForegroundInfo createForegroundInfo(@NonNull String progress) {
+    private Notification getNotification(@NonNull String progress) {
         // Build a notification using bytesRead and contentLength
 
         Context context = getApplicationContext();
@@ -199,9 +201,7 @@ public class ExportWorker extends Worker {
         PendingIntent activityPendingIntent = stackBuilder.getPendingIntent(0,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-        createChannel();
-
-        Notification notification = new NotificationCompat.Builder(context, id)
+        return new NotificationCompat.Builder(context, id)
                 .setContentTitle(title)
                 .setTicker(title)
                 .setContentText(progress)
@@ -214,8 +214,6 @@ public class ExportWorker extends Worker {
                 // be used to cancel the worker
                 .addAction(android.R.drawable.ic_delete, cancel, cancelPendingIntent)
                 .build();
-
-        return new ForegroundInfo(mNotificationId, notification);
     }
 
     private void createChannel() {

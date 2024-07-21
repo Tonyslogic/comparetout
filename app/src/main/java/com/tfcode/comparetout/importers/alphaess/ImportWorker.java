@@ -27,11 +27,12 @@ import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import androidx.work.Data;
-import androidx.work.ForegroundInfo;
 import androidx.work.WorkManager;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
@@ -72,6 +73,7 @@ public class ImportWorker extends Worker {
         mToutcRepository = new ToutcRepository((Application) context);
         mNotificationManager = (NotificationManager)
                 context.getSystemService(NOTIFICATION_SERVICE);
+        createChannel();
         setProgressAsync(new Data.Builder().putString(PROGRESS, "Starting import from file").build());
         System.out.println("Import worker created");
     }
@@ -86,6 +88,7 @@ public class ImportWorker extends Worker {
     @Override
     public Result doWork() {
         System.out.println("ImportWorker:doWork invoked ");
+        Handler mHandler = new Handler(Looper.getMainLooper());
         Data inputData = getInputData();
         String systemSN = inputData.getString(KEY_SYSTEM_SN);
         String uriString = inputData.getString(KEY_URI);
@@ -94,8 +97,8 @@ public class ImportWorker extends Worker {
         // Mark the Worker as important
         String progress = "Importing energy";
         setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
-        ForegroundInfo foregroundInfo = createForegroundInfo("Importing energy");
-        mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
+        String finalProgress = progress;
+        mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress)));
         
         // Do some work
         InputStream is = null;
@@ -125,8 +128,8 @@ public class ImportWorker extends Worker {
                     }
                     progress = "Imported energy";
                     setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
-                    foregroundInfo = createForegroundInfo("Imported energy");
-                    mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
+                    String finalProgress1 = progress;
+                    mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress1)));
                 }
                 else if ("power".equals(name)){
                     int batchTrigger = 288;
@@ -143,8 +146,8 @@ public class ImportWorker extends Worker {
                             if ((batchSize % batchTrigger * 3) == 0) {
                                 progress = "Importing power: " + batchSize + "/" + energyList.size() * 288;
                                 setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
-                                foregroundInfo = createForegroundInfo(progress);
-                                mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
+                                String finalProgress2 = progress;
+                                mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress2)));
                             }
                         }
                     }
@@ -152,8 +155,8 @@ public class ImportWorker extends Worker {
                     mToutcRepository.addRawPower(powerList);
                     progress = "Imported power done: " + batchSize + " entries";
                     setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
-                    foregroundInfo = createForegroundInfo(progress);
-                    mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
+                    String finalProgress3 = progress;
+                    mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress3)));
                 }
             }
             jsonReader.endObject();
@@ -178,8 +181,8 @@ public class ImportWorker extends Worker {
                 notifyTime = System.nanoTime();
                 progress = "Unitizing and scaling: " + date + " of " + dates.get(dates.size() -1);
                 setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
-                foregroundInfo = createForegroundInfo(progress);
-                mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
+                String finalProgress4 = progress;
+                mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress4)));
             }
 
             // Fix the power-data (5 minute alignment and missing entries)
@@ -201,8 +204,8 @@ public class ImportWorker extends Worker {
 
         progress = "All done importing " + systemSN;
         setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
-        foregroundInfo = createForegroundInfo(progress);
-        mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
+        String finalProgress5 = progress;
+        mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress5)));
 
         if (mStopped) mNotificationManager.cancel(mNotificationId);
 
@@ -210,7 +213,7 @@ public class ImportWorker extends Worker {
     }
 
     @NonNull
-    private ForegroundInfo createForegroundInfo(@NonNull String progress) {
+    private Notification getNotification(@NonNull String progress) {
         // Build a notification using bytesRead and contentLength
 
         Context context = getApplicationContext();
@@ -227,9 +230,7 @@ public class ImportWorker extends Worker {
         PendingIntent activityPendingIntent = stackBuilder.getPendingIntent(0,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-        createChannel();
-
-        Notification notification = new NotificationCompat.Builder(context, id)
+        return new NotificationCompat.Builder(context, id)
                 .setContentTitle(title)
                 .setTicker(title)
                 .setContentText(progress)
@@ -242,8 +243,6 @@ public class ImportWorker extends Worker {
                 // be used to cancel the worker
                 .addAction(android.R.drawable.ic_delete, cancel, intent)
                 .build();
-
-        return new ForegroundInfo(mNotificationId, notification);
     }
 
     private void createChannel() {

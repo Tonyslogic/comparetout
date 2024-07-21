@@ -26,6 +26,8 @@ import android.app.PendingIntent;
 import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Handler;
+import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
@@ -70,6 +72,7 @@ public class CatchUpWorker extends Worker {
         mToutcRepository = new ToutcRepository((Application) context);
         mNotificationManager = (NotificationManager)
                 context.getSystemService(NOTIFICATION_SERVICE);
+        createChannel();
     }
 
     @Override
@@ -82,6 +85,7 @@ public class CatchUpWorker extends Worker {
     @Override
     public Result doWork() {
         System.out.println("CatchUpWorker:doWork invoked ");
+        Handler mHandler = new Handler(Looper.getMainLooper());
         Data inputData = getInputData();
         OpenAlphaESSClient mOpenAlphaESSClient = new OpenAlphaESSClient(
                 inputData.getString(KEY_APP_ID),
@@ -95,7 +99,6 @@ public class CatchUpWorker extends Worker {
 
         // Mark the Worker as important
         String progress = "Starting Fetch";
-        setForegroundAsync(createForegroundInfo(progress));
         setProgressAsync(new Data.Builder().putString(PROGRESS, current.toString()).build());
         while (current.isBefore(end) && !mStopped) {
             if (mToutcRepository.checkSysSnForDataOnDate(systemSN, current.format(DATE_FORMAT))) {
@@ -152,8 +155,9 @@ public class CatchUpWorker extends Worker {
 
             System.out.println("CatchUpWorker finished with " + current);
             setProgressAsync(new Data.Builder().putString(PROGRESS, current.toString()).build());
-            ForegroundInfo foregroundInfo = createForegroundInfo("Done catching up with " + current);
-            mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
+            LocalDate finalCurrent = current;
+            mHandler.post(() -> mNotificationManager
+                    .notify(mNotificationId, getNotification("Done catching up with " + finalCurrent)));
             current = current.plusDays(1);
         }
         if (mStopped) mNotificationManager.cancel(mNotificationId);
@@ -162,7 +166,7 @@ public class CatchUpWorker extends Worker {
     }
 
     @NonNull
-    private ForegroundInfo createForegroundInfo(@NonNull String progress) {
+    private Notification getNotification(@NonNull String progress) {
         // Build a notification using bytesRead and contentLength
 
         Context context = getApplicationContext();
@@ -179,9 +183,7 @@ public class CatchUpWorker extends Worker {
         PendingIntent activityPendingIntent = stackBuilder.getPendingIntent(0,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-        createChannel();
-
-        Notification notification = new NotificationCompat.Builder(context, id)
+        return new NotificationCompat.Builder(context, id)
                 .setContentTitle(title)
                 .setTicker(title)
                 .setContentText(progress)
@@ -194,8 +196,6 @@ public class CatchUpWorker extends Worker {
                 // be used to cancel the worker
                 .addAction(android.R.drawable.ic_delete, cancel, intent)
                 .build();
-
-        return new ForegroundInfo(mNotificationId, notification);
     }
 
     private void createChannel() {
