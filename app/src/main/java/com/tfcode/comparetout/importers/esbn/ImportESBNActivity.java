@@ -44,6 +44,7 @@ import androidx.webkit.WebViewAssetLoader;
 import androidx.work.Data;
 import androidx.work.ExistingWorkPolicy;
 import androidx.work.OneTimeWorkRequest;
+import androidx.work.OutOfQuotaPolicy;
 import androidx.work.WorkManager;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -91,6 +92,7 @@ public class ImportESBNActivity extends AppCompatActivity implements ImportSyste
                             new OneTimeWorkRequest.Builder(ESBNImportWorker.class)
                                     .setInputData(inputData)
                                     .addTag(mSerialNumber + "Import")
+                                    .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
                                     .build();
                     WorkManager.getInstance(getApplicationContext()).pruneWork();
                     WorkManager

@@ -19,21 +19,17 @@ package com.tfcode.comparetout.importers.esbn;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.icu.text.SimpleDateFormat;
-import android.view.Gravity;
 import android.widget.TableRow;
-import android.widget.TextView;
 
 import androidx.datastore.preferences.core.Preferences;
 import androidx.datastore.preferences.core.PreferencesKeys;
 import androidx.work.Data;
 import androidx.work.ExistingPeriodicWorkPolicy;
-import androidx.work.ExistingWorkPolicy;
-import androidx.work.OneTimeWorkRequest;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
-import com.google.android.material.button.MaterialButton;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.ComparisonUIViewModel;
@@ -89,23 +85,33 @@ public class ImportESBNOverview extends ImportOverviewFragment {
         Context context = getContext();
         if (!(null == context) && !("".equals(serialNumber))) {
             // start the catchup worker for the selected serial
-            Data inputData = new Data.Builder()
-                    .putString(ESBNCatchUpWorker.KEY_APP_ID, mAppID)
-                    .putString(ESBNCatchUpWorker.KEY_APP_SECRET, mAppSecret)
-                    .putString(ESBNCatchUpWorker.KEY_SYSTEM_SN, serialNumber)
-                    .putString(ESBNCatchUpWorker.KEY_START_DATE, format.format(startDate))
-                    .build();
-            OneTimeWorkRequest catchupWorkRequest =
-                    new OneTimeWorkRequest.Builder(ESBNCatchUpWorker.class)
-                            .setInputData(inputData)
-                            .addTag(serialNumber)
-                            .build();
-
-            WorkManager.getInstance(context).pruneWork();
-            WorkManager
-                    .getInstance(context)
-                    .beginUniqueWork(serialNumber, ExistingWorkPolicy.APPEND, catchupWorkRequest)
-                    .enqueue();
+//            Data inputData = new Data.Builder()
+//                    .putString(ESBNCatchUpWorker.KEY_APP_ID, mAppID)
+//                    .putString(ESBNCatchUpWorker.KEY_APP_SECRET, mAppSecret)
+//                    .putString(ESBNCatchUpWorker.KEY_SYSTEM_SN, serialNumber)
+//                    .putString(ESBNCatchUpWorker.KEY_START_DATE, format.format(startDate))
+//                    .build();
+//            OneTimeWorkRequest catchupWorkRequest =
+//                    new OneTimeWorkRequest.Builder(ESBNCatchUpWorker.class)
+//                            .setInputData(inputData)
+//                            .addTag(serialNumber)
+//                            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+//                            .build();
+//
+//            WorkManager.getInstance(context).pruneWork();
+//            WorkManager
+//                    .getInstance(context)
+//                    .beginUniqueWork(serialNumber, ExistingWorkPolicy.APPEND, catchupWorkRequest)
+//                    .enqueue();
+            Intent intent = new Intent(this.getContext(), ESBNFetchService.class);
+            intent.putExtra(ESBNFetchService.KEY_APP_ID, mAppID);
+            intent.putExtra(ESBNFetchService.KEY_APP_SECRET, mAppSecret);
+            intent.putExtra(ESBNFetchService.KEY_SYSTEM_SN, serialNumber);
+            intent.putExtra(ESBNFetchService.KEY_START_DATE, format.format(startDate));
+            Activity activity = this.getActivity();
+            if (!(null == activity)) {
+                activity.startForegroundService(intent);
+            }
 
             // start the daily worker for the selected serial
             Data dailyData = new Data.Builder()

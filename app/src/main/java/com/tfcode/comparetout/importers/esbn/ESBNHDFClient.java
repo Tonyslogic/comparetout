@@ -60,7 +60,7 @@ public class ESBNHDFClient {
     private static final String LOGIN_URL_SUFFIX = "/SelfAsserted";
     private static final String LOGIN_CONFIRM = "/api/CombinedSigninAndSignup/confirmed";
     private static final String FETCH_URL = "datahub/GetHdfContent";
-    private static final String FETCH_HDF_URL = "DataHub/DownloadHdf";
+    private static final String FETCH_HDF_URL = "DataHub/DownloadHdfPeriodic";
     private static final String FETCH_MPRN_URL = "Outages";
     private static final String USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36";
 
@@ -197,16 +197,49 @@ public class ESBNHDFClient {
             throw new ESBNException("IO issue. Consider using file or try again later.");
         }
 
-        String url = MY_ACCOUNT_URL + FETCH_HDF_URL + "?mprn=" + mprn;
-        Request fetchHDFRequest = new Request.Builder().url(url).build();
+//        String pageUrl = "https://myaccount.esbnetworks.ie/Api/HistoricConsumption";
+//        Request loadPage = new Request.Builder().url(pageUrl).build();
+//        try (Response loadPageResponse = mClient.newCall(loadPage).execute()) {
+//            if (!loadPageResponse.isSuccessful()) {
+//                System.out.println("HDF Download failed");
+//                return;
+//            }
+//            if (null == loadPageResponse.body()) {
+//                System.out.println("Failed to fetch HDF");
+//                mLoggedIn = false;
+//            }
+//            String x = loadPageResponse.body().string();
+//            int i = 0;
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+
+//        String url = MY_ACCOUNT_URL + FETCH_HDF_URL + "?mprn=" + mprn;
+//        Request fetchHDFRequest = new Request.Builder().url(url).build();
+        // TODO Fix the 400 error here
+        String url = MY_ACCOUNT_URL + FETCH_HDF_URL;
+        RequestBody fetchHDFFileBody = new FormBody.Builder()
+                .add("mprn", mprn)
+                .add("searchType", "intervalkw")
+                .build();
+
+        Request fetchHDFRequest = new Request.Builder()
+                .url(url)
+                .header("x-csrf-token", mSettings.csrf)
+                .post(fetchHDFFileBody)
+                .build();
+
+
+
         try (Response fetchHDFResponse = mClient.newCall(fetchHDFRequest).execute()) {
             if (!fetchHDFResponse.isSuccessful()) {
-                System.out.println("HDF Download failed");
-                return;
+                System.out.println("HDF Download failed, " + fetchHDFResponse.code());
+                throw new ESBNException("Consider using file or try again later, " + fetchHDFResponse.code());
             }
             if (null == fetchHDFResponse.body()) {
                 System.out.println("Failed to fetch HDF");
                 mLoggedIn = false;
+                throw new ESBNException("No body. Consider using file or try again later.");
             }
             else try (InputStream inputStream = Objects.requireNonNull(fetchHDFResponse.body()).byteStream();
                       InputStreamReader reader = new InputStreamReader(inputStream);
