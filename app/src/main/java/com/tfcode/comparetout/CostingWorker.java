@@ -65,18 +65,20 @@ public class CostingWorker extends Worker {
         String title = context.getString(R.string.cost_notification_title); //"Calculating costs"
         String text = context.getString(R.string.cost_notification_text); //"Calculation in progress"
 
+        // NOTIFICATION SETUP
+        int notificationId = 1;
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
+        builder.setContentTitle(title)
+                .setContentText(text)
+                .setSmallIcon(R.drawable.housetick)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setTimeoutAfter(30000)
+                .setSilent(true);
+
         try {
             if (!scenarioIDs.isEmpty()) {
-                // NOTIFICATION SETUP
-                int notificationId = 1;
-                NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
-                NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
-                builder.setContentTitle(title)
-                        .setContentText(text)
-                        .setSmallIcon(R.drawable.housetick)
-                        .setPriority(NotificationCompat.PRIORITY_LOW)
-                        .setTimeoutAfter(30000)
-                        .setSilent(true);
+
                 int PROGRESS_MAX = 100;
                 int PROGRESS_CURRENT = 0;
 
@@ -175,7 +177,10 @@ public class CostingWorker extends Worker {
             System.out.println("!!!!!!!!!!!!!!!!!!! CostingWorker has crashed, marking as failure !!!!!!!!!!!!!!!!!!!!!");
             e.printStackTrace();
             System.out.println("!!!!!!!!!!!!!!!!!!! CostingWorker has crashed, marking as failure !!!!!!!!!!!!!!!!!!!!!");
-            return Result.failure();
+            builder.setContentText("Calculation failed, " + e.getMessage())
+                    .setProgress(0, 0, false);
+            sendNotification(notificationManager, notificationId, builder);
+            return Result.success();
         }
         return Result.success();
     }
