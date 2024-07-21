@@ -16,6 +16,8 @@
 
 package com.tfcode.comparetout.importers;
 
+import static android.content.Context.NOTIFICATION_SERVICE;
+
 import android.app.Application;
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -26,7 +28,6 @@ import android.content.Context;
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import androidx.work.Data;
-import androidx.work.ForegroundInfo;
 import androidx.work.WorkManager;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
@@ -80,6 +81,9 @@ public abstract class AbstractGenerationWorker extends Worker {
     public AbstractGenerationWorker(@NonNull Context context, WorkerParameters workerParams) {
         super(context, workerParams);
         mToutcRepository = new ToutcRepository((Application) context);
+        mNotificationManager = (NotificationManager)
+                context.getSystemService(NOTIFICATION_SERVICE);
+        createChannel();
     }
 
     @Override
@@ -377,12 +381,11 @@ public abstract class AbstractGenerationWorker extends Worker {
 
     protected void report(String theReport) {
         setProgressAsync(new Data.Builder().putString(PROGRESS, theReport).build());
-        ForegroundInfo foregroundInfo = createForegroundInfo(theReport);
-        mNotificationManager.notify(mNotificationId, foregroundInfo.getNotification());
+        mNotificationManager.notify(mNotificationId, getNotification(theReport));
     }
 
     @NonNull
-    private ForegroundInfo createForegroundInfo(@NonNull String progress) {
+    private Notification getNotification(@NonNull String progress) {
         // Build a notification using bytesRead and contentLength
 
         Context context = getApplicationContext();
@@ -393,9 +396,7 @@ public abstract class AbstractGenerationWorker extends Worker {
         PendingIntent intent = WorkManager.getInstance(context)
                 .createCancelPendingIntent(getId());
 
-        createChannel();
-
-        Notification notification = new NotificationCompat.Builder(context, id)
+        return new NotificationCompat.Builder(context, id)
                 .setContentTitle(title)
                 .setTicker(title)
                 .setContentText(progress)
@@ -407,8 +408,6 @@ public abstract class AbstractGenerationWorker extends Worker {
                 // be used to cancel the worker
                 .addAction(android.R.drawable.ic_delete, cancel, intent)
                 .build();
-
-        return new ForegroundInfo(mNotificationId, notification);
     }
 
     private void createChannel() {
