@@ -22,8 +22,10 @@ import static java.lang.Double.min;
 
 import android.app.Application;
 import android.content.Context;
+import android.content.pm.PackageManager;
 
 import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 import androidx.work.Worker;
@@ -55,6 +57,7 @@ import java.util.Map;
 public class SimulationWorker extends Worker {
 
     private final ToutcRepository mToutcRepository;
+    private final Context mContext;
     private static final Battery M_NULL_BATTERY = new Battery();
     static {
         M_NULL_BATTERY.setBatterySize(0);
@@ -72,7 +75,7 @@ public class SimulationWorker extends Worker {
     public SimulationWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
         mToutcRepository = new ToutcRepository((Application) context);
-
+        mContext = context;
     }
 
     @Override
@@ -90,7 +93,7 @@ public class SimulationWorker extends Worker {
         String text = context.getString(R.string.simulate_notification_text);
 
         try {
-            if (scenarioIDs.size() > 0) {
+            if (!scenarioIDs.isEmpty()) {
                 // NOTIFICATION SETUP
                 int notificationId = 1;
                 NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
@@ -105,10 +108,10 @@ public class SimulationWorker extends Worker {
                 int PROGRESS_MAX = 100;
                 int PROGRESS_CURRENT = 0;
                 int PROGRESS_CHUNK = PROGRESS_MAX;
-                if (scenarioIDs.size() > 0) {
+                if (!scenarioIDs.isEmpty()) {
                     PROGRESS_CHUNK = PROGRESS_MAX / (scenarioIDs.size() + 1);
                     builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
-                    notificationManager.notify(notificationId, builder.build());
+                    sendNotification(notificationManager, notificationId, builder);
                 }
 
                 long notifyTime = System.nanoTime();
@@ -122,7 +125,7 @@ public class SimulationWorker extends Worker {
                         builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
                         if (System.nanoTime() - notifyTime > 1e+9) {
                             notifyTime = System.nanoTime();
-                            notificationManager.notify(notificationId, builder.build());
+                            sendNotification(notificationManager, notificationId, builder);
                         }
                         if (!hasData) {
                             builder.setContentText("Skipping " + scenario.getScenarioName());
@@ -131,7 +134,7 @@ public class SimulationWorker extends Worker {
                             builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
                             if (System.nanoTime() - notifyTime > 1e+9) {
                                 notifyTime = System.nanoTime();
-                                notificationManager.notify(notificationId, builder.build());
+                                sendNotification(notificationManager, notificationId, builder);
                             }
                             continue;
                         }
@@ -139,7 +142,7 @@ public class SimulationWorker extends Worker {
                     builder.setContentText("Getting data: " + scenario.getScenarioName());
                     if (System.nanoTime() - notifyTime > 1e+9) {
                         notifyTime = System.nanoTime();
-                        notificationManager.notify(notificationId, builder.build());
+                        sendNotification(notificationManager, notificationId, builder);
                     }
 
                     int rowsToProcess = 0;
@@ -175,13 +178,13 @@ public class SimulationWorker extends Worker {
                             if (scenario.isHasHWSystem()) {
                                 configuredHotWater = scenarioComponents.hwSystem;
                                 if (scenario.isHasHWDivert()) hotWaterDivert = scenarioComponents.hwDivert.isActive();
-                                if (scenario.isHasHWSchedules() && scenarioComponents.hwSchedules.size() > 0) hotWaterSchedules = scenarioComponents.hwSchedules;
+                                if (scenario.isHasHWSchedules() && !scenarioComponents.hwSchedules.isEmpty()) hotWaterSchedules = scenarioComponents.hwSchedules;
                             }
                             // Get the EV related components
                             List<EVCharge> evCharges = null;
                             List<EVDivert> evDiverts = null;
-                            if (scenario.isHasEVCharges() && scenarioComponents.evCharges.size() > 0) evCharges = scenarioComponents.evCharges;
-                            if (scenario.isHasEVDivert() && scenarioComponents.evDiverts.size() > 0) evDiverts = scenarioComponents.evDiverts;
+                            if (scenario.isHasEVCharges() && !scenarioComponents.evCharges.isEmpty()) evCharges = scenarioComponents.evCharges;
+                            if (scenario.isHasEVDivert() && !scenarioComponents.evDiverts.isEmpty()) evDiverts = scenarioComponents.evDiverts;
                             // Associate the inverter and the load for use in simulation
                             InputData iData = new InputData(inverter, simulationInputData,
                                     connectedBattery, chargeFromGrid,
@@ -202,10 +205,10 @@ public class SimulationWorker extends Worker {
                         List<HWSchedule> hotWaterSchedules = null;
                         if (scenario.isHasHWSystem()) {
                             configuredHotWater = scenarioComponents.hwSystem;
-                            if (scenario.isHasHWSchedules() && scenarioComponents.hwSchedules.size() > 0) hotWaterSchedules = scenarioComponents.hwSchedules;
+                            if (scenario.isHasHWSchedules() && !scenarioComponents.hwSchedules.isEmpty()) hotWaterSchedules = scenarioComponents.hwSchedules;
                         }
                         List<EVCharge> evCharges = null;
-                        if (scenario.isHasEVCharges() && scenarioComponents.evCharges.size() > 0) evCharges = scenarioComponents.evCharges;
+                        if (scenario.isHasEVCharges() && !scenarioComponents.evCharges.isEmpty()) evCharges = scenarioComponents.evCharges;
                         InputData idata = new InputData(inverter, mToutcRepository.getSimulationInputNoSolar(scenarioID),
                                 null, null,
                                 configuredHotWater, null, hotWaterSchedules,
@@ -217,7 +220,7 @@ public class SimulationWorker extends Worker {
                     builder.setContentText("Simulating: " + scenario.getScenarioName());
                     if (System.nanoTime() - notifyTime > 1e+9) {
                         notifyTime = System.nanoTime();
-                        notificationManager.notify(notificationId, builder.build());
+                        sendNotification(notificationManager, notificationId, builder);
                     }
 
                     // SIMULATE POWER DISTRIBUTION
@@ -233,7 +236,7 @@ public class SimulationWorker extends Worker {
                     builder.setContentText("Saving data");
                     if (System.nanoTime() - notifyTime > 1e+9) {
                         notifyTime = System.nanoTime();
-                        notificationManager.notify(notificationId, builder.build());
+                        sendNotification(notificationManager, notificationId, builder);
                     }
 
                     mToutcRepository.saveSimulationDataForScenario(outputRows);
@@ -243,16 +246,15 @@ public class SimulationWorker extends Worker {
                     builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
                     if (System.nanoTime() - notifyTime > 1e+9) {
                         notifyTime = System.nanoTime();
-                        notificationManager.notify(notificationId, builder.build());
+                        sendNotification(notificationManager, notificationId, builder);
                     }
                 }
-                long endTime = System.nanoTime();
 
-                if (scenarioIDs.size() > 0) {
+                if (!scenarioIDs.isEmpty()) {
                     // NOTIFICATION COMPLETE
                     builder.setContentText("Simulation complete")
                             .setProgress(0, 0, false);
-                    notificationManager.notify(notificationId, builder.build());
+                    sendNotification(notificationManager, notificationId, builder);
                 }
             }
         }
@@ -386,7 +388,7 @@ public class SimulationWorker extends Worker {
 
         double previousWaterTemp = 0;
         double scheduledWaterLoad = 0;
-        if (outputRows.size() > 0) previousWaterTemp = outputRows.get(row -1).getWaterTemp();
+        if (!outputRows.isEmpty()) previousWaterTemp = outputRows.get(row -1).getWaterTemp();
         double nowWaterTemp = previousWaterTemp;
         boolean immersionIsOn = firstInputData.isHotWaterHeatingScheduled(inputRow.getDow(), month, inputRow.mod);
         boolean hwDiversionIsOn = !(null == hwSystem) && !(null == hwDivert) && hwDivert;
@@ -505,6 +507,13 @@ public class SimulationWorker extends Worker {
 
         // RECORD THE OUTPUT
         outputRows.add(outputRow);
+    }
+
+    private void sendNotification(NotificationManagerCompat notificationManager, int notificationId, NotificationCompat.Builder builder) {
+        if (ActivityCompat.checkSelfPermission(
+                mContext, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return;
+        notificationManager.notify(notificationId, builder.build());
+
     }
 
     private static double chargeBatteries(Map<Inverter, InputData> inputDataMap, double charge) {

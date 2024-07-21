@@ -61,7 +61,7 @@ public class GenerateMissingLoadDataWorker extends Worker {
         String  title= context.getString(R.string.load_gen_notification_title);
         String text = context.getString(R.string.load_gen_notification_text);
 
-        if (missing.size() > 0) {
+        if (!missing.isEmpty()) {
             // NOTIFICATION SETUP
             int notificationId = 1;
             NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
@@ -76,7 +76,7 @@ public class GenerateMissingLoadDataWorker extends Worker {
             int PROGRESS_MAX = 100;
             int PROGRESS_CURRENT = 0;
             int PROGRESS_CHUNK = PROGRESS_MAX;
-            if (missing.size() > 0) {
+            if (!missing.isEmpty()) {
                 PROGRESS_CHUNK = PROGRESS_MAX / missing.size();
                 builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
                 notificationManager.notify(notificationId, builder.build());
@@ -117,7 +117,7 @@ public class GenerateMissingLoadDataWorker extends Worker {
                 notificationManager.notify(notificationId, builder.build());
             }
 
-            if (missing.size() > 0) {
+            if (!missing.isEmpty()) {
                 // NOTIFICATION COMPLETE
                 builder.setContentText("Generation complete")
                         .setProgress(0, 0, false);
