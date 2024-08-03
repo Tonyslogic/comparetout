@@ -435,14 +435,7 @@ public abstract class ImportOverviewFragment extends Fragment {
 
     protected void fetchOnClickImplementation(MaterialButton addFetchButton, TextView addFetchStatus, Context context) {
         if (mFetchOngoing) {
-            if (!(null == getContext())) {
-                WorkManager.getInstance(getContext()).cancelAllWorkByTag(mSerialNumber);
-                WorkManager.getInstance(getContext()).cancelAllWorkByTag(mSerialNumber + "daily");
-                mFetchOngoing = false;
-                addFetchButton.setText(R.string.FetchData);
-                mFetchState = getContext().getString(R.string.Idle);
-                updateView();
-            }
+            cancelOngoingFetch(addFetchButton);
         } else {
             addFetchStatus.setText((null == mFetchState) ? "Waiting for worker" : mFetchState);
             MaterialDatePicker<Long> startPicker = MaterialDatePicker.Builder.datePicker()
@@ -466,6 +459,17 @@ public abstract class ImportOverviewFragment extends Fragment {
                 }
             });
             startPicker.show(getParentFragmentManager(), "FETCH_START_DATE_PICKER");
+        }
+    }
+
+    protected void cancelOngoingFetch(MaterialButton addFetchButton) {
+        if (!(null == getContext())) {
+            WorkManager.getInstance(getContext()).cancelAllWorkByTag(mSerialNumber);
+            WorkManager.getInstance(getContext()).cancelAllWorkByTag(mSerialNumber + "daily");
+            mFetchOngoing = false;
+            addFetchButton.setText(R.string.FetchData);
+            mFetchState = getContext().getString(R.string.Idle);
+            updateView();
         }
     }
 

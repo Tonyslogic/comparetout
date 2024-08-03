@@ -16,11 +16,8 @@
 
 package com.tfcode.comparetout.importers.esbn;
 
-import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
-import android.icu.text.SimpleDateFormat;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.TableRow;
@@ -33,10 +30,6 @@ import androidx.datastore.preferences.core.PreferencesKeys;
 import androidx.datastore.rxjava3.RxDataStore;
 import androidx.lifecycle.ViewModel;
 import androidx.lifecycle.ViewModelProvider;
-import androidx.work.Data;
-import androidx.work.ExistingPeriodicWorkPolicy;
-import androidx.work.PeriodicWorkRequest;
-import androidx.work.WorkManager;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -50,10 +43,8 @@ import com.tfcode.comparetout.importers.ImportException;
 import com.tfcode.comparetout.importers.ImportOverviewFragment;
 import com.tfcode.comparetout.util.SettingsViewModel;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import io.reactivex.rxjava3.core.Single;
 
@@ -160,49 +151,48 @@ public class ImportESBNOverview extends ImportOverviewFragment {
         alert.setTitle("Unstable API");
         alert.setMessage("This function uses an unofficial ESBN API. It is currently broken. " +
                 "You may still download the file manually. See help for how to do this. " +
-                "Clicking ok will continue with fetching. This will allow you to cancel " +
-                "any recurring fetch workers.");
+                "Clicking ok will cancel any recurring fetch workers.");
         alert.setPositiveButton(android.R.string.yes, (dialog, which) ->
-                fetchOnClickImplementation(addFetchButton, addFetchStatus, context));
+                cancelOngoingFetch(addFetchButton));
         alert.setNegativeButton(android.R.string.no, (dialog, which) -> dialog.cancel());
         alert.show();
     }
 
     @Override
     protected void startWorkers(String serialNumber, Object startDate) {
-        @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
-        Context context = getContext();
-        if (!(null == context) && !("".equals(serialNumber))) {
+//        @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+//        Context context = getContext();
+//        if (!(null == context) && !("".equals(serialNumber))) {
             // start the catchup worker for the selected serial
-            Intent intent = new Intent(this.getContext(), ESBNFetchService.class);
-            intent.putExtra(ESBNFetchService.KEY_APP_ID, mAppID);
-            intent.putExtra(ESBNFetchService.KEY_APP_SECRET, mAppSecret);
-            intent.putExtra(ESBNFetchService.KEY_SYSTEM_SN, serialNumber);
-            intent.putExtra(ESBNFetchService.KEY_START_DATE, format.format(startDate));
-            Activity activity = this.getActivity();
-            if (!(null == activity)) {
-                activity.startForegroundService(intent);
-            }
+//            Intent intent = new Intent(this.getContext(), ESBNFetchService.class);
+//            intent.putExtra(ESBNFetchService.KEY_APP_ID, mAppID);
+//            intent.putExtra(ESBNFetchService.KEY_APP_SECRET, mAppSecret);
+//            intent.putExtra(ESBNFetchService.KEY_SYSTEM_SN, serialNumber);
+//            intent.putExtra(ESBNFetchService.KEY_START_DATE, format.format(startDate));
+//            Activity activity = this.getActivity();
+//            if (!(null == activity)) {
+//                activity.startForegroundService(intent);
+//            }
 
             // start the daily worker for the selected serial
-            Data dailyData = new Data.Builder()
-                    .putString(ESBNCatchUpWorker.KEY_APP_ID, mAppID)
-                    .putString(ESBNCatchUpWorker.KEY_APP_SECRET, mAppSecret)
-                    .putString(ESBNCatchUpWorker.KEY_SYSTEM_SN, serialNumber)
-                    .build();
-            int delay = 25 - LocalDateTime.now().getHour(); // Going for 01:00 <-> 02:00
-            PeriodicWorkRequest dailyWorkRequest =
-                    new PeriodicWorkRequest.Builder(ESBNCatchUpWorker.class, 1, TimeUnit.DAYS)
-                            .setInputData(dailyData)
-                            .setInitialDelay(delay, TimeUnit.HOURS)
-                            .addTag(serialNumber + "daily")
-                            .build();
-            WorkManager
-                    .getInstance(context)
-                    .enqueueUniquePeriodicWork(serialNumber + "daily", ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE, dailyWorkRequest);
-
-            mFetchOngoing = true;
-        }
+//            Data dailyData = new Data.Builder()
+//                    .putString(ESBNCatchUpWorker.KEY_APP_ID, mAppID)
+//                    .putString(ESBNCatchUpWorker.KEY_APP_SECRET, mAppSecret)
+//                    .putString(ESBNCatchUpWorker.KEY_SYSTEM_SN, serialNumber)
+//                    .build();
+//            int delay = 25 - LocalDateTime.now().getHour(); // Going for 01:00 <-> 02:00
+//            PeriodicWorkRequest dailyWorkRequest =
+//                    new PeriodicWorkRequest.Builder(ESBNCatchUpWorker.class, 1, TimeUnit.DAYS)
+//                            .setInputData(dailyData)
+//                            .setInitialDelay(delay, TimeUnit.HOURS)
+//                            .addTag(serialNumber + "daily")
+//                            .build();
+//            WorkManager
+//                    .getInstance(context)
+//                    .enqueueUniquePeriodicWork(serialNumber + "daily", ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE, dailyWorkRequest);
+//
+//            mFetchOngoing = true;
+//        }
     }
 
     @Override
