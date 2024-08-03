@@ -18,6 +18,9 @@ package com.tfcode.comparetout.importers.esbn;
 
 import static android.content.Context.NOTIFICATION_SERVICE;
 
+import static com.tfcode.comparetout.importers.esbn.ImportESBNOverview.ESBN_PREVIOUS_SELECTED_KEY;
+import static com.tfcode.comparetout.importers.esbn.ImportESBNOverview.ESBN_SYSTEM_LIST_KEY;
+
 import android.app.Application;
 import android.app.Notification;
 import android.app.NotificationChannel;
@@ -33,12 +36,17 @@ import android.util.Pair;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
+import androidx.datastore.preferences.core.Preferences;
+import androidx.datastore.preferences.core.PreferencesKeys;
 import androidx.work.Data;
 import androidx.work.WorkManager;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.R;
+import com.tfcode.comparetout.TOUTCApplication;
 import com.tfcode.comparetout.importers.esbn.responses.ESBNException;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
@@ -53,6 +61,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+
+import io.reactivex.Single;
 
 public class ESBNImportWorker extends Worker {
 
@@ -107,7 +117,7 @@ public class ESBNImportWorker extends Worker {
         Map<LocalDateTime, Pair<Double, Double>> timeAlignedEntries = new HashMap<>();
         AtomicReference<LocalDateTime> last = new AtomicReference<>(LocalDateTime.of(1970,1, 1, 0, 0));
         try (InputStream is = getApplicationContext().getContentResolver().openInputStream(fileUri)){
-            ESBNHDFClient.readEntriesFromFile(is, (type, ldt, value) -> {
+            String mprnFromFile = ESBNHDFClient.readEntriesFromFile(is, (type, ldt, value) -> {
                 Pair<Double, Double> importExport = timeAlignedEntries.get(ldt);
                 if (ldt.isAfter(last.get())) last.set(ldt);
                 switch (type) {
@@ -125,7 +135,31 @@ public class ESBNImportWorker extends Worker {
                         break;
                 }
             });
-
+            if (!(mprnFromFile.isEmpty())) {
+                // Update the stored list of mprns
+                List<String> mSerialNumbers = new ArrayList<>();
+                TOUTCApplication application = (TOUTCApplication) getApplicationContext();
+                Preferences.Key<String> systemList = PreferencesKeys.stringKey(ESBN_SYSTEM_LIST_KEY);
+                Single<String> value4 = application.getDataStore()
+                        .data().firstOrError()
+                        .map(prefs -> prefs.get(systemList)).onErrorReturnItem("[]");
+                String systemListJsonString =  value4.blockingGet();
+                List<String> mprnListFromPreferences =
+                        new Gson().fromJson(systemListJsonString, new TypeToken<List<String>>(){}.getType());
+                if (!(null == mprnListFromPreferences) && !(mprnListFromPreferences.isEmpty())) {
+                    mSerialNumbers.addAll(mprnListFromPreferences);
+                }
+                if (!(mSerialNumbers.contains(mprnFromFile))) {
+                    mSerialNumbers.add(mprnFromFile);
+                    String stringResponse = new Gson().toJson(mSerialNumbers);
+                    boolean x = application.putStringValueIntoDataStore(ESBN_SYSTEM_LIST_KEY, stringResponse);
+                    if (!x) System.out.println("ESBNImportWorker::doWork, failed to store list");
+                    x = application.putStringValueIntoDataStore(ESBN_PREVIOUS_SELECTED_KEY, mprnFromFile);
+                    if (!x) System.out.println("ESBNImportWorker::doWork, failed to update previously selected");
+                }
+                // update the mprn that is used in the DB inserts
+                systemSN = mprnFromFile;
+            }
         } catch (IOException | ESBNException e) {
             e.printStackTrace();
         }

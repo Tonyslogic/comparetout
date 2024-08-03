@@ -21,15 +21,23 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.icu.text.SimpleDateFormat;
+import android.os.Bundle;
+import android.view.View;
 import android.widget.TableRow;
+import android.widget.TextView;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.datastore.preferences.core.Preferences;
 import androidx.datastore.preferences.core.PreferencesKeys;
+import androidx.datastore.rxjava2.RxDataStore;
 import androidx.work.Data;
 import androidx.work.ExistingPeriodicWorkPolicy;
 import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.ComparisonUIViewModel;
@@ -47,6 +55,9 @@ import java.util.concurrent.TimeUnit;
 import io.reactivex.Single;
 
 public class ImportESBNOverview extends ImportOverviewFragment {
+
+    public static final String ESBN_SYSTEM_LIST_KEY = "esbn_system_list";
+    public static final String ESBN_PREVIOUS_SELECTED_KEY = "esbn_system_previously_selected";
 
     public static ImportESBNOverview newInstance() {
         return new ImportESBNOverview();
@@ -75,8 +86,76 @@ public class ImportESBNOverview extends ImportOverviewFragment {
         APP_ID_KEY = "esbn_user_id";
         APP_SECRET_KEY = "esbn_password";
         GOOD_CREDENTIAL_KEY = "esbn_cred_good";
-        SYSTEM_LIST_KEY = "esbn_system_list";
-        SYSTEM_PREVIOUSLY_SELECTED = "esbn_system_previously_selected";
+        SYSTEM_LIST_KEY = ESBN_SYSTEM_LIST_KEY;
+        SYSTEM_PREVIOUSLY_SELECTED = ESBN_PREVIOUS_SELECTED_KEY;
+    }
+
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        Activity activity = getActivity();
+        if (!(null == activity)) {
+            TOUTCApplication application = ((TOUTCApplication) activity.getApplication());
+            RxDataStore<Preferences> dataStore = application.getDataStore();
+            
+        }
+
+//        LiveData<String> previouslySelectedLiveData = SharedPreferencesLiveData.getInstance(requireActivity(), "settings", ESBN_PREVIOUS_SELECTED_KEY, "");
+//        previouslySelectedLiveData.observe(getViewLifecycleOwner(), newValue -> {
+//            System.out.println("Observed a change in the settings for the selected systems ==> " + newValue);
+//            if (!(null == newValue) && !(newValue.isEmpty())) {
+//                mSerialNumber = newValue;
+//                mMainHandler.post(() -> {
+//                    serialUpdated(getContext());
+//                    updateView();
+//                });
+//            }
+//        });
+//        LiveData<String> systemListLiveData = SharedPreferencesLiveData.getInstance(requireActivity(), "settings",  ESBN_SYSTEM_LIST_KEY, "");
+//        systemListLiveData.observe(getViewLifecycleOwner(), newValue -> {
+//            System.out.println("Observed a change in the settings for the list of systems");
+//            Activity activity = getActivity();
+//            if (!(null == activity)) {
+//                loadSystemListFromPreferences(((TOUTCApplication) activity.getApplication()));
+//                mMainHandler.post(this::updateView);
+//            }
+//        });
+    }
+
+    @Override
+    protected void getCredentialsWithWarning(TextView credentialStatus, TOUTCApplication application) {
+        // Must use the context of the subclass and not the super!
+        Context context = this.getContext();
+        if (null == context) return;
+        MaterialAlertDialogBuilder alert = new MaterialAlertDialogBuilder(context);
+        alert.setTitle("Unstable API");
+        alert.setMessage("This function uses an unofficial ESBN API. It may break at any time. " +
+                "If it does, you may still download the file manually and import using the menu " +
+                "above. See help for how to do this.");
+        alert.setPositiveButton(android.R.string.yes, (dialog, which) -> {
+            credentialStatus.setText(R.string.loading);
+            getCredentials(application);
+        });
+        alert.setNegativeButton(android.R.string.no, (dialog, which) -> dialog.cancel());
+        alert.show();
+    }
+
+    @Override
+    protected void fetchOnClickDelegate(MaterialButton addFetchButton, TextView addFetchStatus, Context context) {
+        // Must use the context of the subclass and not the super!
+        Context subClassContext = this.getContext();
+        if (null == subClassContext) return;
+        MaterialAlertDialogBuilder alert = new MaterialAlertDialogBuilder(subClassContext);
+        alert.setTitle("Unstable API");
+        alert.setMessage("This function uses an unofficial ESBN API. It is currently broken. " +
+                "You may still download the file manually. See help for how to do this. " +
+                "Clicking ok will continue with fetching. This will allow you to cancel " +
+                "any recurring fetch workers.");
+        alert.setPositiveButton(android.R.string.yes, (dialog, which) -> {
+            fetchOnClickImplementation(addFetchButton, addFetchStatus, context);
+        });
+        alert.setNegativeButton(android.R.string.no, (dialog, which) -> dialog.cancel());
+        alert.show();
     }
 
     @Override

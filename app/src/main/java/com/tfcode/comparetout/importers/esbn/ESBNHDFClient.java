@@ -64,6 +64,7 @@ public class ESBNHDFClient {
     private static final String FETCH_MPRN_URL = "Outages";
     private static final String USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/104.0.0.0 Safari/537.36";
 
+    private static final int MPRN_COL = 0;
     private static final int READ_VALUE = 2;
     private static final int READ_TYPE = 3;
     private static final int READ_DATETIME = 4;
@@ -117,17 +118,19 @@ public class ESBNHDFClient {
                 .build();
     }
 
-    public static void readEntriesFromFile(InputStream inputStream, ESBNImportExportEntry processor)
+    public static String readEntriesFromFile(InputStream inputStream, ESBNImportExportEntry processor)
             throws ESBNException {
+        String mprnFromFile = "";
         try (InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
             CSVReader csvReader = new CSVReader(reader);
-            processHDF(processor, csvReader);
+            mprnFromFile = processHDF(processor, csvReader);
         } catch (IOException e) {
             e.printStackTrace();
             throw new ESBNException("Unable to read file. Is the file valid?.");
         }catch (DateTimeParseException | NumberFormatException e) {
             throw new ESBNException("Unable to parse file data. Is the file valid?.");
         }
+        return mprnFromFile;
     }
 
     public void setSelectedMPRN(String mprn) {
@@ -262,13 +265,15 @@ public class ESBNHDFClient {
         }
     }
 
-    private static void processHDF(ESBNImportExportEntry processor, CSVReader csvReader)
+    private static String processHDF(ESBNImportExportEntry processor, CSVReader csvReader)
             throws IOException {
+        String mprnFromFile = "";
         // skip header row
         csvReader.readNext();
         String[] nextLine;
         while ((nextLine = csvReader.readNext()) != null) {
             // nextLine[] is an array of values from the line
+            mprnFromFile = nextLine[MPRN_COL];
             String dt = nextLine[READ_DATETIME].split("\\+")[0];
             LocalDateTime readTime = LocalDateTime.parse(dt, HDF_FORMAT);
             Double reading = Double.parseDouble(nextLine[READ_VALUE]);
@@ -276,6 +281,7 @@ public class ESBNHDFClient {
             if (export) processor.processLine(ESBNImportExportEntry.HDFLineType.EXPORT, readTime, reading);
             else processor.processLine(ESBNImportExportEntry.HDFLineType.IMPORT, readTime, reading);
         }
+        return mprnFromFile;
     }
 
     public void fetchSmartMeterDataFromDate(String fromDate, ESBNImportExportEntry processor)

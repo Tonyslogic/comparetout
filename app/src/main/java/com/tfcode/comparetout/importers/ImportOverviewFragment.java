@@ -336,39 +336,7 @@ public abstract class ImportOverviewFragment extends Fragment {
             addFetchStatus.setText((null == mFetchState) ? getContext().getString(R.string.Idle) : mFetchState);
             addFetchStatus.setGravity(Gravity.CENTER);
             addFetchButton.setOnClickListener(v -> {
-                if (mFetchOngoing) {
-                    if (!(null == getContext())) {
-                        WorkManager.getInstance(getContext()).cancelAllWorkByTag(mSerialNumber);
-                        WorkManager.getInstance(getContext()).cancelAllWorkByTag(mSerialNumber + "daily");
-                        mFetchOngoing = false;
-                        addFetchButton.setText(R.string.FetchData);
-                        mFetchState = getContext().getString(R.string.Idle);
-                        updateView();
-                    }
-                } else {
-                    addFetchStatus.setText((null == mFetchState) ? "Waiting for worker" : mFetchState);
-                    MaterialDatePicker<Long> startPicker = MaterialDatePicker.Builder.datePicker()
-                            .setTitleText("Select fetch start")
-                            .setSelection(MaterialDatePicker.todayInUtcMilliseconds())
-                            .build();
-                    startPicker.addOnPositiveButtonClickListener(startDateAsLong -> {
-                        if (!(null == startDateAsLong) && !("".equals(mSerialNumber))) {
-                            startWorkers(mSerialNumber, startDateAsLong);
-                        } else {
-                            addFetchStatus.setText((null == mFetchState) ? context.getString(R.string.Idle) : mFetchState);
-                            if (!(null == getView())) Snackbar.make(getView(),
-                                            "Positive selection with no date!", Snackbar.LENGTH_LONG)
-                                    .setAction("Action", null).show();
-                        }
-                    });
-                    startPicker.addOnNegativeButtonClickListener(c -> {
-                        if (!(null == getContext())) {
-                            String idle = getContext().getString(R.string.Idle);
-                            addFetchStatus.setText(null == mFetchState ? idle : mFetchState);
-                        }
-                    });
-                    startPicker.show(getParentFragmentManager(), "FETCH_START_DATE_PICKER");
-                }
+                fetchOnClickDelegate(addFetchButton, addFetchStatus, context);
             });
             addFetchRow.addView(addFetchButton);
             addFetchRow.addView(addFetchStatus);
@@ -463,6 +431,46 @@ public abstract class ImportOverviewFragment extends Fragment {
         updateCostView();
     }
 
+    protected void fetchOnClickDelegate(MaterialButton addFetchButton, TextView addFetchStatus, Context context) {
+        fetchOnClickImplementation(addFetchButton, addFetchStatus, context);
+    }
+
+    protected void fetchOnClickImplementation(MaterialButton addFetchButton, TextView addFetchStatus, Context context) {
+        if (mFetchOngoing) {
+            if (!(null == getContext())) {
+                WorkManager.getInstance(getContext()).cancelAllWorkByTag(mSerialNumber);
+                WorkManager.getInstance(getContext()).cancelAllWorkByTag(mSerialNumber + "daily");
+                mFetchOngoing = false;
+                addFetchButton.setText(R.string.FetchData);
+                mFetchState = getContext().getString(R.string.Idle);
+                updateView();
+            }
+        } else {
+            addFetchStatus.setText((null == mFetchState) ? "Waiting for worker" : mFetchState);
+            MaterialDatePicker<Long> startPicker = MaterialDatePicker.Builder.datePicker()
+                    .setTitleText("Select fetch start")
+                    .setSelection(MaterialDatePicker.todayInUtcMilliseconds())
+                    .build();
+            startPicker.addOnPositiveButtonClickListener(startDateAsLong -> {
+                if (!(null == startDateAsLong) && !("".equals(mSerialNumber))) {
+                    startWorkers(mSerialNumber, startDateAsLong);
+                } else {
+                    addFetchStatus.setText((null == mFetchState) ? context.getString(R.string.Idle) : mFetchState);
+                    if (!(null == getView())) Snackbar.make(getView(),
+                                    "Positive selection with no date!", Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
+                }
+            });
+            startPicker.addOnNegativeButtonClickListener(c -> {
+                if (!(null == getContext())) {
+                    String idle = getContext().getString(R.string.Idle);
+                    addFetchStatus.setText(null == mFetchState ? idle : mFetchState);
+                }
+            });
+            startPicker.show(getParentFragmentManager(), "FETCH_START_DATE_PICKER");
+        }
+    }
+
     @NonNull
     private TableRow getCredentialsRow(Activity activity) {
         TableRow credentialRow = new TableRow(activity);
@@ -472,12 +480,16 @@ public abstract class ImportOverviewFragment extends Fragment {
         credentialStatus.setText(mHasCredentials ? mCredentialsAreGood ? "Set" : "Set, bad" : "Not set");
         credentialStatus.setGravity(Gravity.CENTER);
         loadButton.setOnClickListener(v -> {
-            credentialStatus.setText(R.string.loading);
-            getCredentials((TOUTCApplication) activity.getApplication());
+            getCredentialsWithWarning (credentialStatus, (TOUTCApplication) activity.getApplication());
         });
         credentialRow.addView(loadButton);
         credentialRow.addView(credentialStatus);
         return credentialRow;
+    }
+
+    protected void getCredentialsWithWarning(TextView credentialStatus, TOUTCApplication application) {
+        credentialStatus.setText(R.string.loading);
+        getCredentials(application);
     }
 
     @NonNull
@@ -723,7 +735,7 @@ public abstract class ImportOverviewFragment extends Fragment {
         return false;
     }
 
-    private void getCredentials(TOUTCApplication application) {
+    protected void getCredentials(TOUTCApplication application) {
         Context context = getContext();
         if (!(null == context)) {
             CredentialDialog credentialDialog = new CredentialDialog(context, new CredentialDialogListener() {

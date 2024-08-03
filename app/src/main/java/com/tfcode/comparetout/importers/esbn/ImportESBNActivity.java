@@ -205,11 +205,11 @@ public class ImportESBNActivity extends AppCompatActivity implements ImportSyste
     public boolean onOptionsItemSelected(MenuItem item) {
         int itemID = item.getItemId();
         if (itemID == R.id.load) {
-            if ((null == mSerialNumber)) {
-                Snackbar.make(mViewPager.getRootView(), "No system selected", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-                return true;
-            }
+//            if ((null == mSerialNumber)) {
+//                Snackbar.make(mViewPager.getRootView(), "No system selected", Snackbar.LENGTH_LONG)
+//                        .setAction("Action", null).show();
+//                return true;
+//            }
             mLoadESBNHDFDataFromFile.launch("*/*");
             return (true);
         }
