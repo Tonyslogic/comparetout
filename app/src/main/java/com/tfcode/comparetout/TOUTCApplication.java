@@ -26,8 +26,8 @@ import androidx.annotation.Nullable;
 import androidx.datastore.preferences.core.MutablePreferences;
 import androidx.datastore.preferences.core.Preferences;
 import androidx.datastore.preferences.core.PreferencesKeys;
-import androidx.datastore.preferences.rxjava2.RxPreferenceDataStoreBuilder;
-import androidx.datastore.rxjava2.RxDataStore;
+import androidx.datastore.preferences.rxjava3.RxPreferenceDataStoreBuilder;
+import androidx.datastore.rxjava3.RxDataStore;
 
 import java.nio.charset.StandardCharsets;
 import java.security.KeyStore;
@@ -39,7 +39,7 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 
-import io.reactivex.Single;
+import io.reactivex.rxjava3.core.Single;
 
 public class TOUTCApplication extends Application {
 

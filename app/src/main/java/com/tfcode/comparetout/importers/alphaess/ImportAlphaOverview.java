@@ -42,7 +42,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import io.reactivex.Single;
+import io.reactivex.rxjava3.core.Single;
 
 public class ImportAlphaOverview extends ImportOverviewFragment {
 

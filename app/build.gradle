@@ -44,10 +44,10 @@ dependencies {
     implementation 'com.google.android.material:material:1.12.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'androidx.viewpager2:viewpager2:1.1.0'
-    implementation 'androidx.fragment:fragment-ktx:1.8.1'
+    implementation 'androidx.fragment:fragment-ktx:1.8.2'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
-    implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.8.3'
-    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.3'
+    implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.8.4'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.4'
     implementation 'androidx.test:core:1.6.1'
     implementation 'androidx.navigation:navigation-fragment:2.7.7'
     implementation 'androidx.navigation:navigation-ui:2.7.7'
@@ -75,7 +75,8 @@ dependencies {
 
     // Disclaimers
     implementation "androidx.datastore:datastore-preferences-core:1.1.1"
-    implementation "androidx.datastore:datastore-preferences-rxjava2:1.1.1"
+    implementation "androidx.datastore:datastore-preferences-rxjava3:1.1.1"
+    implementation "io.reactivex.rxjava3:rxjava:3.1.5"
 
 //    // UI
 //    implementation "androidx.constraintlayout:constraintlayout:$rootProject.constraintLayoutVersion"

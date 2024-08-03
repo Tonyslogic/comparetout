@@ -48,7 +48,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import io.reactivex.Single;
+import io.reactivex.rxjava3.core.Single;
 
 public class GenerationWorker extends AbstractGenerationWorker {
 

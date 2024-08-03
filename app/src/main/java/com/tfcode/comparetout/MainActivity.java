@@ -83,7 +83,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
-import io.reactivex.Single;
+import io.reactivex.rxjava3.core.Single;
 
 public class MainActivity extends AppCompatActivity {
 

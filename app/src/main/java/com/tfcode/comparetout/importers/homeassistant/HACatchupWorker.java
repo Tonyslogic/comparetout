@@ -62,7 +62,7 @@ import java.util.Map;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import io.reactivex.Single;
+import io.reactivex.rxjava3.core.Single;
 
 public class HACatchupWorker extends Worker {
     private static final Logger LOGGER = Logger.getLogger(HACatchupWorker.class.getName());

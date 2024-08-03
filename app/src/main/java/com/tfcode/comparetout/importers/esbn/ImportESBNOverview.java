@@ -30,7 +30,9 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.datastore.preferences.core.Preferences;
 import androidx.datastore.preferences.core.PreferencesKeys;
-import androidx.datastore.rxjava2.RxDataStore;
+import androidx.datastore.rxjava3.RxDataStore;
+import androidx.lifecycle.ViewModel;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.work.Data;
 import androidx.work.ExistingPeriodicWorkPolicy;
 import androidx.work.PeriodicWorkRequest;
@@ -46,13 +48,14 @@ import com.tfcode.comparetout.TOUTCApplication;
 import com.tfcode.comparetout.importers.CredentialDialog;
 import com.tfcode.comparetout.importers.ImportException;
 import com.tfcode.comparetout.importers.ImportOverviewFragment;
+import com.tfcode.comparetout.util.SettingsViewModel;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import io.reactivex.Single;
+import io.reactivex.rxjava3.core.Single;
 
 public class ImportESBNOverview extends ImportOverviewFragment {
 
@@ -97,29 +100,37 @@ public class ImportESBNOverview extends ImportOverviewFragment {
         if (!(null == activity)) {
             TOUTCApplication application = ((TOUTCApplication) activity.getApplication());
             RxDataStore<Preferences> dataStore = application.getDataStore();
+            SettingsViewModel settingsViewModel = new ViewModelProvider(this, new ViewModelProvider.Factory() {
+                @NonNull
+                @Override
+                public <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
+                    if (modelClass.isAssignableFrom(SettingsViewModel.class)) {
+                        return (T) new SettingsViewModel(dataStore);
+                    }
+                    throw new IllegalArgumentException("Unknown ViewModel class");
+                }
+            }).get(SettingsViewModel.class);
+
+            settingsViewModel.getPreferencesLiveData().observe(getViewLifecycleOwner(), preferences -> {
+                Preferences.Key<String> KEY = PreferencesKeys.stringKey(ESBN_PREVIOUS_SELECTED_KEY);
+                String newValue = preferences.get(KEY);
+                if (!(null == newValue)) {
+                    System.out.println("Observed a change in the settings for the selected systems ==> " + newValue);
+                    mSerialNumber = newValue;
+                    mMainHandler.post(() -> {
+                        serialUpdated(getContext());
+                        updateView();
+                    });
+                }
+                Preferences.Key<String> KEY2 = PreferencesKeys.stringKey(ESBN_SYSTEM_LIST_KEY);
+                String newValue2 = preferences.get(KEY2);
+                if (!(null == newValue2)) {
+                    System.out.println("Observed a change in the settings for the list of systems");
+                    loadSystemListFromPreferences(((TOUTCApplication) activity.getApplication()));
+                }
+            });
             
         }
-
-//        LiveData<String> previouslySelectedLiveData = SharedPreferencesLiveData.getInstance(requireActivity(), "settings", ESBN_PREVIOUS_SELECTED_KEY, "");
-//        previouslySelectedLiveData.observe(getViewLifecycleOwner(), newValue -> {
-//            System.out.println("Observed a change in the settings for the selected systems ==> " + newValue);
-//            if (!(null == newValue) && !(newValue.isEmpty())) {
-//                mSerialNumber = newValue;
-//                mMainHandler.post(() -> {
-//                    serialUpdated(getContext());
-//                    updateView();
-//                });
-//            }
-//        });
-//        LiveData<String> systemListLiveData = SharedPreferencesLiveData.getInstance(requireActivity(), "settings",  ESBN_SYSTEM_LIST_KEY, "");
-//        systemListLiveData.observe(getViewLifecycleOwner(), newValue -> {
-//            System.out.println("Observed a change in the settings for the list of systems");
-//            Activity activity = getActivity();
-//            if (!(null == activity)) {
-//                loadSystemListFromPreferences(((TOUTCApplication) activity.getApplication()));
-//                mMainHandler.post(this::updateView);
-//            }
-//        });
     }
 
     @Override
@@ -151,9 +162,8 @@ public class ImportESBNOverview extends ImportOverviewFragment {
                 "You may still download the file manually. See help for how to do this. " +
                 "Clicking ok will continue with fetching. This will allow you to cancel " +
                 "any recurring fetch workers.");
-        alert.setPositiveButton(android.R.string.yes, (dialog, which) -> {
-            fetchOnClickImplementation(addFetchButton, addFetchStatus, context);
-        });
+        alert.setPositiveButton(android.R.string.yes, (dialog, which) ->
+                fetchOnClickImplementation(addFetchButton, addFetchStatus, context));
         alert.setNegativeButton(android.R.string.no, (dialog, which) -> dialog.cancel());
         alert.show();
     }
@@ -164,24 +174,6 @@ public class ImportESBNOverview extends ImportOverviewFragment {
         Context context = getContext();
         if (!(null == context) && !("".equals(serialNumber))) {
             // start the catchup worker for the selected serial
-//            Data inputData = new Data.Builder()
-//                    .putString(ESBNCatchUpWorker.KEY_APP_ID, mAppID)
-//                    .putString(ESBNCatchUpWorker.KEY_APP_SECRET, mAppSecret)
-//                    .putString(ESBNCatchUpWorker.KEY_SYSTEM_SN, serialNumber)
-//                    .putString(ESBNCatchUpWorker.KEY_START_DATE, format.format(startDate))
-//                    .build();
-//            OneTimeWorkRequest catchupWorkRequest =
-//                    new OneTimeWorkRequest.Builder(ESBNCatchUpWorker.class)
-//                            .setInputData(inputData)
-//                            .addTag(serialNumber)
-//                            .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
-//                            .build();
-//
-//            WorkManager.getInstance(context).pruneWork();
-//            WorkManager
-//                    .getInstance(context)
-//                    .beginUniqueWork(serialNumber, ExistingWorkPolicy.APPEND, catchupWorkRequest)
-//                    .enqueue();
             Intent intent = new Intent(this.getContext(), ESBNFetchService.class);
             intent.putExtra(ESBNFetchService.KEY_APP_ID, mAppID);
             intent.putExtra(ESBNFetchService.KEY_APP_SECRET, mAppSecret);

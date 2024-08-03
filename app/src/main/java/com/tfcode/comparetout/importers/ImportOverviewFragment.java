@@ -96,7 +96,7 @@ import java.util.TreeMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutionException;
 
-import io.reactivex.Single;
+import io.reactivex.rxjava3.core.Single;
 
 public abstract class ImportOverviewFragment extends Fragment {
     // Saved state
@@ -335,9 +335,7 @@ public abstract class ImportOverviewFragment extends Fragment {
             TextView addFetchStatus = new TextView(activity);
             addFetchStatus.setText((null == mFetchState) ? getContext().getString(R.string.Idle) : mFetchState);
             addFetchStatus.setGravity(Gravity.CENTER);
-            addFetchButton.setOnClickListener(v -> {
-                fetchOnClickDelegate(addFetchButton, addFetchStatus, context);
-            });
+            addFetchButton.setOnClickListener(v -> fetchOnClickDelegate(addFetchButton, addFetchStatus, context));
             addFetchRow.addView(addFetchButton);
             addFetchRow.addView(addFetchStatus);
             mInputTable.addView(addFetchRow);
@@ -479,9 +477,7 @@ public abstract class ImportOverviewFragment extends Fragment {
         TextView credentialStatus = new TextView(activity);
         credentialStatus.setText(mHasCredentials ? mCredentialsAreGood ? "Set" : "Set, bad" : "Not set");
         credentialStatus.setGravity(Gravity.CENTER);
-        loadButton.setOnClickListener(v -> {
-            getCredentialsWithWarning (credentialStatus, (TOUTCApplication) activity.getApplication());
-        });
+        loadButton.setOnClickListener(v -> getCredentialsWithWarning (credentialStatus, (TOUTCApplication) activity.getApplication()));
         credentialRow.addView(loadButton);
         credentialRow.addView(credentialStatus);
         return credentialRow;

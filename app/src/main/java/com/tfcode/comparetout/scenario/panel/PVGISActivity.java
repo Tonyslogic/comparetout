@@ -85,7 +85,7 @@ import java.io.File;
 import java.text.DecimalFormat;
 import java.util.Objects;
 
-import io.reactivex.Single;
+import io.reactivex.rxjava3.core.Single;
 
 public class PVGISActivity extends AppCompatActivity {
 

@@ -59,7 +59,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import io.reactivex.Single;
+import io.reactivex.rxjava3.core.Single;
 
 public class ImportHAOverview extends ImportOverviewFragment {
 
