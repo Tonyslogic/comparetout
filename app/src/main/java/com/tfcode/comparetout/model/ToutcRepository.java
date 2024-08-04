@@ -89,6 +89,7 @@ public class ToutcRepository {
     private final LiveData<List<InverterDateRange>> alphaESSDateRangesBySN;
     private final LiveData<List<InverterDateRange>> esbnHDFDateRangesByMPRN;
     private final LiveData<List<InverterDateRange>> homeAssistantDateRange;
+    private final LiveData<List<InverterDateRange>> scenarioDateRange;
 
     // Note that in order to unit test the WordRepository, you have to remove the Application
     // dependency. This adds complexity and much more code, and this sample is not about testing.
@@ -118,6 +119,7 @@ public class ToutcRepository {
         alphaESSDateRangesBySN = alphaEssDAO.loadDateRanges();
         esbnHDFDateRangesByMPRN = alphaEssDAO.loadESBNHDFDateRanges();
         homeAssistantDateRange = alphaEssDAO.loadHomeAssistantDateRange();
+        scenarioDateRange = scenarioDAO.loadDateRanges();
     }
 
     // Room executes all queries on a separate thread.
@@ -778,5 +780,49 @@ public class ToutcRepository {
 
     public double getHAPoinv(String systemSN) {
         return alphaEssDAO.getHAPoinv(systemSN);
+    }
+
+    public List<IntervalRow> getSimSumHour(String scenarioID, String from, String to) {
+        return scenarioDAO.sumHour(scenarioID, from, to);
+    }
+
+    public List<IntervalRow> getSimSumDOY(String scenarioID, String from, String to) {
+        return scenarioDAO.sumDOY(scenarioID, from, to);
+    }
+
+    public List<IntervalRow> getSimSumDOW(String scenarioID, String from, String to) {
+        return scenarioDAO.sumDOW(scenarioID, from, to);
+    }
+
+    public List<IntervalRow> getSimSumMonth(String scenarioID, String from, String to) {
+        return scenarioDAO.sumMonth(scenarioID, from, to);
+    }
+
+    public List<IntervalRow> getSimSumYear(String scenarioID, String from, String to) {
+        return scenarioDAO.sumYear(scenarioID, from, to);
+    }
+
+    public List<IntervalRow> getSimAvgHour(String scenarioID, String from, String to) {
+        return scenarioDAO.avgHour(scenarioID, from, to);
+    }
+
+    public List<IntervalRow> getSimAvgDOY(String scenarioID, String from, String to) {
+        return scenarioDAO.avgDOY(scenarioID, from, to);
+    }
+
+    public List<IntervalRow> getSimAvgDOW(String scenarioID, String from, String to) {
+        return scenarioDAO.avgDOW(scenarioID, from, to);
+    }
+
+    public List<IntervalRow> getSimAvgMonth(String scenarioID, String from, String to) {
+        return scenarioDAO.avgMonth(scenarioID, from, to);
+    }
+
+    public List<IntervalRow> getSimAvgYear(String scenarioID, String from, String to) {
+        return scenarioDAO.avgYear(scenarioID, from, to);
+    }
+
+    public LiveData<List<InverterDateRange>> getScenarioLiveDateRanges() {
+        return scenarioDateRange;
     }
 }

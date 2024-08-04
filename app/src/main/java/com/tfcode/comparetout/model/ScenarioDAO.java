@@ -27,6 +27,8 @@ import androidx.room.RewriteQueriesToDropUnusedColumns;
 import androidx.room.Transaction;
 import androidx.room.Update;
 
+import com.tfcode.comparetout.model.importers.IntervalRow;
+import com.tfcode.comparetout.model.importers.InverterDateRange;
 import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.EVCharge;
 import com.tfcode.comparetout.model.scenario.EVDivert;
@@ -138,23 +140,23 @@ public abstract class ScenarioDAO {
         }
         long scenarioID = 0;
         try {
-            if (!(null == components.inverters) && components.inverters.size() > 0)
+            if (!(null == components.inverters) && !components.inverters.isEmpty())
                 scenario.setHasInverters(true);
-            if (!(null == components.batteries) && components.batteries.size() > 0)
+            if (!(null == components.batteries) && !components.batteries.isEmpty())
                 scenario.setHasBatteries(true);
-            if (!(null == components.panels) && components.panels.size() > 0)
+            if (!(null == components.panels) && !components.panels.isEmpty())
                 scenario.setHasPanels(true);
             if (!(null == components.hwSystem)) scenario.setHasHWSystem(true);
             if (!(null == components.loadProfile)) scenario.setHasLoadProfiles(true);
-            if (!(null == components.loadShifts) && components.loadShifts.size() > 0)
+            if (!(null == components.loadShifts) && !components.loadShifts.isEmpty())
                 scenario.setHasLoadShifts(true);
-            if (!(null == components.evCharges) && components.evCharges.size() > 0)
+            if (!(null == components.evCharges) && !components.evCharges.isEmpty())
                 scenario.setHasEVCharges(true);
-            if (!(null == components.hwSchedules) && components.hwSchedules.size() > 0)
+            if (!(null == components.hwSchedules) && !components.hwSchedules.isEmpty())
                 scenario.setHasHWSchedules(true);
             if (!(null == components.hwDivert) && (components.hwDivert.isActive()))
                 scenario.setHasHWDivert(true);
-            if (!(null == components.evDiverts) && (components.evDiverts.size() > 0))
+            if (!(null == components.evDiverts) && (!components.evDiverts.isEmpty()))
                 scenario.setHasEVDivert(true);
 
             scenarioID = addNewScenario(scenario);
@@ -678,7 +680,7 @@ public abstract class ScenarioDAO {
         removeScenario2Inverter(inverterID, scenarioID);
         deleteOrphanInverters();
         List<Inverter> inverters = getInvertersForScenarioID(scenarioID);
-        if (inverters.size() == 0) {
+        if (inverters.isEmpty()) {
             Scenario scenario = getScenario(scenarioID);
             scenario.setHasInverters(false);
             updateScenario(scenario);
@@ -737,7 +739,7 @@ public abstract class ScenarioDAO {
         deleteOrphanPanels();
         deleteOrphanPanelData();
         List<Panel> panels = getPanelsForScenarioID(scenarioID);
-        if (panels.size() == 0) {
+        if (panels.isEmpty()) {
             Scenario scenario = getScenario(scenarioID);
             scenario.setHasPanels(false);
             updateScenario(scenario);
@@ -1107,7 +1109,7 @@ public abstract class ScenarioDAO {
     public void deleteHWScheduleFromScenario(Long hwScheduleID, Long scenarioID) {
         deleteHWScheduleFromScenario1(hwScheduleID, scenarioID);
         List<HWSchedule> hwSchedules = getHWSchedulesForScenarioID(scenarioID);
-        if (hwSchedules.size() == 0) {
+        if (hwSchedules.isEmpty()) {
             Scenario scenario = getScenario(scenarioID);
             scenario.setHasHWSchedules(false);
             updateScenario(scenario);
@@ -1311,4 +1313,115 @@ public abstract class ScenarioDAO {
 
     @Query("SELECT DISTINCT gridExportMax FROM loadprofile, scenario2loadprofile WHERE loadProfileID = loadProfileIndex AND scenarioID = :scenarioID")
     public abstract double getGridExportMaxForScenario(long scenarioID);
+
+
+
+    @Query("SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
+            "sum(pvToCharge) AS PV2BAT, sum(pvToLoad) AS PV2LOAD, sum(batToLoad) AS BAT2LOAD, " +
+            "sum(gridToBattery) AS GRID2BAT, sum(directEVcharge) AS EVSCHEDULE, sum(kWHDivToEV) AS EVDIVERT, " +
+            "sum(immersionLoad) AS HWSCHEDULE, sum(kWHDivToWater) AS HWDIVERT, " +
+            "cast ((minuteOfDay / 60) as INTEGER) AS INTERVAL " +
+            "FROM scenariosimulationdata WHERE date >= :from AND date <= :to AND scenarioID = :sysSN GROUP BY  INTERVAL ORDER BY INTERVAL")
+    public abstract List<IntervalRow> sumHour(String sysSN, String from, String to);
+
+    @Query("SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
+            "sum(pvToCharge) AS PV2BAT, sum(pvToLoad) AS PV2LOAD, sum(batToLoad) AS BAT2LOAD, " +
+            "sum(gridToBattery) AS GRID2BAT, sum(directEVcharge) AS EVSCHEDULE, sum(kWHDivToEV) AS EVDIVERT, " +
+            "sum(immersionLoad) AS HWSCHEDULE, sum(kWHDivToWater) AS HWDIVERT, " +
+            "cast (strftime('%j', date) as INTEGER) AS INTERVAL " +
+            "FROM scenariosimulationdata WHERE date >= :from AND date <= :to AND scenarioID = :sysSN GROUP BY INTERVAL ORDER BY INTERVAL")
+    public abstract List<IntervalRow> sumDOY(String sysSN, String from, String to);
+
+    @Query("SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
+            "sum(pvToCharge) AS PV2BAT, sum(pvToLoad) AS PV2LOAD, sum(batToLoad) AS BAT2LOAD, " +
+            "sum(gridToBattery) AS GRID2BAT, sum(directEVcharge) AS EVSCHEDULE, sum(kWHDivToEV) AS EVDIVERT, " +
+            "sum(immersionLoad) AS HWSCHEDULE, sum(kWHDivToWater) AS HWDIVERT, " +
+            "cast (strftime('%w', date) as INTEGER) AS INTERVAL " +
+            "FROM scenariosimulationdata WHERE date >= :from AND date <= :to AND scenarioID = :sysSN GROUP BY INTERVAL ORDER BY INTERVAL")
+    public abstract List<IntervalRow> sumDOW(String sysSN, String from, String to);
+
+    @Query("SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
+            "sum(pvToCharge) AS PV2BAT, sum(pvToLoad) AS PV2LOAD, sum(batToLoad) AS BAT2LOAD, " +
+            "sum(gridToBattery) AS GRID2BAT, sum(directEVcharge) AS EVSCHEDULE, sum(kWHDivToEV) AS EVDIVERT, " +
+            "sum(immersionLoad) AS HWSCHEDULE, sum(kWHDivToWater) AS HWDIVERT, " +
+            "strftime('%Y', date) || strftime('%m', date) AS INTERVAL " +
+            "FROM scenariosimulationdata WHERE date >= :from AND date <= :to AND scenarioID = :sysSN GROUP BY INTERVAL ORDER BY INTERVAL")
+    public abstract List<IntervalRow> sumMonth(String sysSN, String from, String to);
+
+    @Query("SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
+            "sum(pvToCharge) AS PV2BAT, sum(pvToLoad) AS PV2LOAD, sum(batToLoad) AS BAT2LOAD, " +
+            "sum(gridToBattery) AS GRID2BAT, sum(directEVcharge) AS EVSCHEDULE, sum(kWHDivToEV) AS EVDIVERT, " +
+            "sum(immersionLoad) AS HWSCHEDULE, sum(kWHDivToWater) AS HWDIVERT, " +
+            "cast (strftime('%Y', date) as INTEGER) AS INTERVAL " +
+            "FROM scenariosimulationdata WHERE date >= :from AND date <= :to AND scenarioID = :sysSN GROUP BY INTERVAL ORDER BY INTERVAL")
+    public abstract List<IntervalRow> sumYear(String sysSN, String from, String to);
+
+    @Query("SELECT avg(PV) AS PV, AVG(LOAD) AS LOAD, AVG(FEED) AS FEED, AVG(BUY) AS BUY, " +
+            "avg(PV2BAT) AS PV2BAT, avg(PV2LOAD) AS PV2LOAD, avg(BAT2LOAD) AS BAT2LOAD, avg(GRID2BAT) AS GRID2BAT, " +
+            "avg(EVSCHEDULE) AS EVSCHEDULE, avg(EVDIVERT) AS EVDIVERT, avg(HWSCHEDULE) AS HWSCHEDULE, avg(HWDIVERT) AS HWDIVERT," +
+            "INTERVAL FROM (" +
+            " SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
+            "sum(pvToCharge) AS PV2BAT, sum(pvToLoad) AS PV2LOAD, sum(batToLoad) AS BAT2LOAD, " +
+            "sum(gridToBattery) AS GRID2BAT, sum(directEVcharge) AS EVSCHEDULE, sum(kWHDivToEV) AS EVDIVERT, " +
+            "sum(immersionLoad) AS HWSCHEDULE, sum(kWHDivToWater) AS HWDIVERT, " +
+            "cast ((minuteOfDay / 60) as INTEGER) AS INTERVAL " +
+            " FROM scenariosimulationdata WHERE date >= :from AND date <= :to AND scenarioID = :sysSN " +
+            " GROUP BY cast (strftime('%Y', date) as integer), cast (strftime('%j', date) as integer), INTERVAL ORDER BY INTERVAL " +
+            " ) GROUP BY INTERVAL")
+    public abstract List<IntervalRow> avgHour(String sysSN, String from, String to);
+
+    @Query("SELECT avg(PV) AS PV, AVG(LOAD) AS LOAD, AVG(FEED) AS FEED, AVG(BUY) AS BUY, " +
+            "avg(PV2BAT) AS PV2BAT, avg(PV2LOAD) AS PV2LOAD, avg(BAT2LOAD) AS BAT2LOAD, avg(GRID2BAT) AS GRID2BAT, " +
+            "avg(EVSCHEDULE) AS EVSCHEDULE, avg(EVDIVERT) AS EVDIVERT, avg(HWSCHEDULE) AS HWSCHEDULE, avg(HWDIVERT) AS HWDIVERT," +
+            "INTERVAL FROM ( " +
+            " SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
+            "sum(pvToCharge) AS PV2BAT, sum(pvToLoad) AS PV2LOAD, sum(batToLoad) AS BAT2LOAD, " +
+            "sum(gridToBattery) AS GRID2BAT, sum(directEVcharge) AS EVSCHEDULE, sum(kWHDivToEV) AS EVDIVERT, " +
+            "sum(immersionLoad) AS HWSCHEDULE, sum(kWHDivToWater) AS HWDIVERT, " +
+            "cast (strftime('%j', date) as INTEGER) AS INTERVAL " +
+            " FROM scenariosimulationdata WHERE date >= :from AND date <= :to AND scenarioID = :sysSN GROUP BY cast (strftime('%Y', date) as integer), INTERVAL ORDER BY INTERVAL " +
+            " ) GROUP BY INTERVAL")
+    public abstract List<IntervalRow> avgDOY(String sysSN, String from, String to);
+
+    @Query("SELECT avg(PV) AS PV, AVG(LOAD) AS LOAD, AVG(FEED) AS FEED, AVG(BUY) AS BUY, " +
+            "avg(PV2BAT) AS PV2BAT, avg(PV2LOAD) AS PV2LOAD, avg(BAT2LOAD) AS BAT2LOAD, avg(GRID2BAT) AS GRID2BAT, " +
+            "avg(EVSCHEDULE) AS EVSCHEDULE, avg(EVDIVERT) AS EVDIVERT, avg(HWSCHEDULE) AS HWSCHEDULE, avg(HWDIVERT) AS HWDIVERT," +
+            "INTERVAL FROM (" +
+            " SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
+            "sum(pvToCharge) AS PV2BAT, sum(pvToLoad) AS PV2LOAD, sum(batToLoad) AS BAT2LOAD, " +
+            "sum(gridToBattery) AS GRID2BAT, sum(directEVcharge) AS EVSCHEDULE, sum(kWHDivToEV) AS EVDIVERT, " +
+            "sum(immersionLoad) AS HWSCHEDULE, sum(kWHDivToWater) AS HWDIVERT, " +
+            "cast (strftime('%w', date) as INTEGER) AS INTERVAL " +
+            " FROM scenariosimulationdata WHERE date >= :from AND date <= :to AND scenarioID = :sysSN " +
+            " GROUP BY cast (strftime('%Y', date) as integer), cast (strftime('%W', date) as integer), INTERVAL ORDER BY INTERVAL" +
+            " ) GROUP BY INTERVAL")
+    public abstract List<IntervalRow> avgDOW(String sysSN, String from, String to);
+
+    @Query("SELECT avg(PV) AS PV, AVG(LOAD) AS LOAD, AVG(FEED) AS FEED, AVG(BUY) AS BUY, " +
+            "avg(PV2BAT) AS PV2BAT, avg(PV2LOAD) AS PV2LOAD, avg(BAT2LOAD) AS BAT2LOAD, avg(GRID2BAT) AS GRID2BAT, " +
+            "avg(EVSCHEDULE) AS EVSCHEDULE, avg(EVDIVERT) AS EVDIVERT, avg(HWSCHEDULE) AS HWSCHEDULE, avg(HWDIVERT) AS HWDIVERT," +
+            "INTERVAL FROM (" +
+            " SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
+            "sum(pvToCharge) AS PV2BAT, sum(pvToLoad) AS PV2LOAD, sum(batToLoad) AS BAT2LOAD, " +
+            "sum(gridToBattery) AS GRID2BAT, sum(directEVcharge) AS EVSCHEDULE, sum(kWHDivToEV) AS EVDIVERT, " +
+            "sum(immersionLoad) AS HWSCHEDULE, sum(kWHDivToWater) AS HWDIVERT, " +
+            "strftime('%m', date) as INTERVAL" +
+            " FROM scenariosimulationdata WHERE date >= :from AND date <= :to AND scenarioID = :sysSN " +
+            " GROUP BY INTERVAL ORDER BY INTERVAL, date) GROUP BY INTERVAL")
+    public abstract List<IntervalRow> avgMonth(String sysSN, String from, String to);
+
+    @Query("SELECT avg(PV) AS PV, AVG(LOAD) AS LOAD, AVG(FEED) AS FEED, AVG(BUY) AS BUY, " +
+            "avg(PV2BAT) AS PV2BAT, avg(PV2LOAD) AS PV2LOAD, avg(BAT2LOAD) AS BAT2LOAD, avg(GRID2BAT) AS GRID2BAT, " +
+            "avg(EVSCHEDULE) AS EVSCHEDULE, avg(EVDIVERT) AS EVDIVERT, avg(HWSCHEDULE) AS HWSCHEDULE, avg(HWDIVERT) AS HWDIVERT," +
+            "INTERVAL FROM (" +
+            " SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
+            "sum(pvToCharge) AS PV2BAT, sum(pvToLoad) AS PV2LOAD, sum(batToLoad) AS BAT2LOAD, " +
+            "sum(gridToBattery) AS GRID2BAT, sum(directEVcharge) AS EVSCHEDULE, sum(kWHDivToEV) AS EVDIVERT, " +
+            "sum(immersionLoad) AS HWSCHEDULE, sum(kWHDivToWater) AS HWDIVERT, " +
+            "cast (strftime('%Y', date) as INTEGER) AS INTERVAL" +
+            " FROM scenariosimulationdata WHERE date >= :from AND date <= :to AND scenarioID = :sysSN GROUP BY INTERVAL ORDER BY INTERVAL )")
+    public abstract List<IntervalRow> avgYear(String sysSN, String from, String to);
+
+    @Query("SELECT cast(scenarioID AS TEXT) AS sysSn, MIN(date) AS start, MAX(date) AS finish FROM scenariosimulationdata GROUP by scenarioID")
+    public abstract LiveData<List<InverterDateRange>> loadDateRanges();
 }

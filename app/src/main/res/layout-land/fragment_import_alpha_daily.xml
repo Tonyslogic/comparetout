@@ -79,11 +79,15 @@
                         android:visibility="invisible"/>
                 </androidx.core.widget.NestedScrollView>
 
-                <TableLayout
-                    android:id="@+id/alphaess_pie_chart"
+                <androidx.core.widget.NestedScrollView
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:visibility="invisible" />
+                    android:layout_height="match_parent">
+                    <TableLayout
+                        android:id="@+id/alphaess_pie_chart"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:visibility="invisible" />
+                </androidx.core.widget.NestedScrollView>
 
                 <TextView
                     android:id="@+id/alphaess_no_data"

@@ -89,6 +89,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -102,6 +103,17 @@ public abstract class ImportGraphsFragment extends Fragment {
     private static final String SHOW_FEED = "SHOW_FEED";
     private static final String SHOW_BUY = "SHOW_BUY";
     private static final String SHOW_PV = "SHOW_PV";
+
+
+    private static final String SHOW_PV2BAT = "SHOW_PV2BAT";
+    private static final String SHOW_PV2LOAD = "SHOW_PV2LOAD";
+    private static final String SHOW_BAT2LOAD = "SHOW_BAT2LOAD";
+    private static final String SHOW_GRID2BAT = "SHOW_GRID2BAT";
+    private static final String SHOW_EVSCHEDULE = "SHOW_EVSCHEDULE";
+    private static final String SHOW_EVDIVERT = "SHOW_EVDIVERT";
+    private static final String SHOW_HWSCHEDULE = "SHOW_HWSCHEDULE";
+    private static final String SHOW_HWDIVERT = "SHOW_HWDIVERT";
+
     private static final String SYSTEM = "SYSTEM";
     private static final String FROM = "FROM";
     private static final String TO = "TO";
@@ -131,12 +143,28 @@ public abstract class ImportGraphsFragment extends Fragment {
     private TextView mPicks;
     private TextView mNoGraphDataTextView;
     private List<IntervalRow> mGraphData;
+
     protected boolean mShowLoad = true;
     protected boolean mShowFeed = true;
     protected boolean mShowBuy = true;
     protected boolean mShowPV = true;
+
+
+    protected boolean mShowPv2bat = false;
+    protected boolean mShowPv2load = false;
+    protected boolean mShowBat2load = false;
+    protected boolean mShowGrid2Bat = false;
+    protected boolean mShowEVSchedule = false;
+    protected boolean mShowEVDivert = false;
+    protected boolean mShowHWSchedule = false;
+    protected boolean mShowHWDivert = false;
+
     protected int mFilterCount = 4;
     protected ComparisonUIViewModel.Importer mImporterType;
+
+    private static final int ORANGE = 0xFFFFA500;
+    private static final int PURPLE = 0xFF800080;
+    private static final int BROWN = 0xFFA52A2A;
 
     @Override
     public void onResume() {
@@ -152,6 +180,16 @@ public abstract class ImportGraphsFragment extends Fragment {
         outState.putBoolean(SHOW_FEED, mShowFeed);
         outState.putBoolean(SHOW_BUY, mShowBuy);
         outState.putBoolean(SHOW_PV, mShowPV);
+
+        outState.putBoolean(SHOW_PV2BAT, mShowPv2bat);
+        outState.putBoolean(SHOW_PV2LOAD, mShowPv2load);
+        outState.putBoolean(SHOW_BAT2LOAD, mShowBat2load);
+        outState.putBoolean(SHOW_GRID2BAT, mShowGrid2Bat);
+        outState.putBoolean(SHOW_EVSCHEDULE, mShowEVSchedule);
+        outState.putBoolean(SHOW_EVDIVERT, mShowEVDivert);
+        outState.putBoolean(SHOW_HWSCHEDULE, mShowHWSchedule);
+        outState.putBoolean(SHOW_HWDIVERT, mShowHWDivert);
+
         outState.putString(SYSTEM, mSystemSN);
         outState.putString(FROM, mFrom);
         outState.putString(TO, mTo);
@@ -170,11 +208,29 @@ public abstract class ImportGraphsFragment extends Fragment {
             mShowBuy = savedInstanceState.getBoolean(SHOW_BUY);
             mShowPV = savedInstanceState.getBoolean(SHOW_PV);
 
+            mShowPv2bat = savedInstanceState.getBoolean(SHOW_PV2BAT);
+            mShowPv2load = savedInstanceState.getBoolean(SHOW_PV2LOAD);
+            mShowBat2load = savedInstanceState.getBoolean(SHOW_BAT2LOAD);
+            mShowGrid2Bat = savedInstanceState.getBoolean(SHOW_GRID2BAT);
+            mShowEVSchedule = savedInstanceState.getBoolean(SHOW_EVSCHEDULE);
+            mShowEVDivert = savedInstanceState.getBoolean(SHOW_EVDIVERT);
+            mShowHWSchedule = savedInstanceState.getBoolean(SHOW_HWSCHEDULE);
+            mShowHWDivert = savedInstanceState.getBoolean(SHOW_HWDIVERT);
+
             mFilterCount = 0;
             if (mShowLoad) mFilterCount++;
             if (mShowFeed) mFilterCount++;
             if (mShowBuy) mFilterCount++;
             if (mShowPV) mFilterCount++;
+
+            if (mShowPv2bat) mFilterCount++;
+            if (mShowPv2load) mFilterCount++;
+            if (mShowBat2load) mFilterCount++;
+            if (mShowGrid2Bat) mFilterCount++;
+            if (mShowEVSchedule) mFilterCount++;
+            if (mShowEVDivert) mFilterCount++;
+            if (mShowHWSchedule) mFilterCount++;
+            if (mShowHWDivert) mFilterCount++;
 
             mSystemSN = savedInstanceState.getString(SYSTEM);
             mFrom = savedInstanceState.getString(FROM);
@@ -531,10 +587,10 @@ public abstract class ImportGraphsFragment extends Fragment {
             mFilterPopup.getMenu().findItem(R.id.evSchedule).setVisible(false);
             mFilterPopup.getMenu().findItem(R.id.hwSchedule).setVisible(false);
             mFilterPopup.getMenu().findItem(R.id.evDivert).setVisible(false);
-            mFilterPopup.getMenu().findItem(R.id.hwSchedule).setVisible(false);
+            mFilterPopup.getMenu().findItem(R.id.hwDivert).setVisible(false);
+
             mFilterPopup.getMenu().findItem(R.id.soc).setVisible(false);
             mFilterPopup.getMenu().findItem(R.id.hwTemp).setVisible(false);
-            mFilterPopup.getMenu().findItem(R.id.hwDivert).setVisible(false);
         }
 
         mFilterPopup.setOnMenuItemClickListener(item -> {
@@ -554,6 +610,39 @@ public abstract class ImportGraphsFragment extends Fragment {
             }
             if (itemID == R.id.pv) {
                 mShowPV = item.isChecked();
+                mFilterCount = item.isChecked() ? mFilterCount + 1 : mFilterCount - 1;
+            }
+
+            if (itemID == R.id.pv2bat) {
+                mShowPv2bat = item.isChecked();
+                mFilterCount = item.isChecked() ? mFilterCount + 1 : mFilterCount - 1;
+            }
+            if (itemID == R.id.pv2load) {
+                mShowPv2load = item.isChecked();
+                mFilterCount = item.isChecked() ? mFilterCount + 1 : mFilterCount - 1;
+            }
+            if (itemID == R.id.bat2load) {
+                mShowBat2load = item.isChecked();
+                mFilterCount = item.isChecked() ? mFilterCount + 1 : mFilterCount - 1;
+            }
+            if (itemID == R.id.gridToBattery) {
+                mShowGrid2Bat = item.isChecked();
+                mFilterCount = item.isChecked() ? mFilterCount + 1 : mFilterCount - 1;
+            }
+            if (itemID == R.id.evSchedule) {
+                mShowEVSchedule = item.isChecked();
+                mFilterCount = item.isChecked() ? mFilterCount + 1 : mFilterCount - 1;
+            }
+            if (itemID == R.id.hwSchedule) {
+                mShowHWSchedule = item.isChecked();
+                mFilterCount = item.isChecked() ? mFilterCount + 1 : mFilterCount - 1;
+            }
+            if (itemID == R.id.evDivert) {
+                mShowEVDivert = item.isChecked();
+                mFilterCount = item.isChecked() ? mFilterCount + 1 : mFilterCount - 1;
+            }
+            if (itemID == R.id.hwDivert) {
+                mShowHWDivert = item.isChecked();
                 mFilterCount = item.isChecked() ? mFilterCount + 1 : mFilterCount - 1;
             }
 
@@ -699,6 +788,15 @@ public abstract class ImportGraphsFragment extends Fragment {
             if (mShowPV) titleRow.addView(getTableChartTitleHeader(getString(R.string.pv) + "(kWh)", activity));
             if (mShowBuy) titleRow.addView(getTableChartTitleHeader(getString(R.string.buy) + "(kWh)", activity));
             if (mShowFeed) titleRow.addView(getTableChartTitleHeader(getString(R.string.feed) + "(kWh)", activity));
+
+            if (mShowPv2bat) titleRow.addView(getTableChartTitleHeader("PV2Bat" + "(kWh)", activity));
+            if (mShowPv2load) titleRow.addView(getTableChartTitleHeader("PV2Load" + "(kWh)", activity));
+            if (mShowBat2load) titleRow.addView(getTableChartTitleHeader("Bat2Load" + "(kWh)", activity));
+            if (mShowGrid2Bat) titleRow.addView(getTableChartTitleHeader("Grid2Bat" + "(kWh)", activity));
+            if (mShowEVSchedule) titleRow.addView(getTableChartTitleHeader("EVSchedule" + "(kWh)", activity));
+            if (mShowEVDivert) titleRow.addView(getTableChartTitleHeader("EVDivert" + "(kWh)", activity));
+            if (mShowHWSchedule) titleRow.addView(getTableChartTitleHeader("HWSchedule" + "(kWh)", activity));
+            if (mShowHWDivert) titleRow.addView(getTableChartTitleHeader("HWDivert" + "(kWh)", activity));
             mTableChart.addView(titleRow);
 
             for (IntervalRow intervalRow : mGraphData) {
@@ -708,6 +806,15 @@ public abstract class ImportGraphsFragment extends Fragment {
                 if (mShowPV) row.addView(getTableChartContent(intervalRow.pv, activity));
                 if (mShowBuy) row.addView(getTableChartContent(intervalRow.buy, activity));
                 if (mShowFeed) row.addView(getTableChartContent(intervalRow.feed, activity));
+
+                if (mShowPv2bat) row.addView(getTableChartContent(intervalRow.pv2bat, activity));
+                if (mShowPv2load) row.addView(getTableChartContent(intervalRow.pv2load, activity));
+                if (mShowBat2load) row.addView(getTableChartContent(intervalRow.bat2load, activity));
+                if (mShowGrid2Bat) row.addView(getTableChartContent(intervalRow.grid2bat, activity));
+                if (mShowEVSchedule) row.addView(getTableChartContent(intervalRow.evSchedule, activity));
+                if (mShowEVDivert) row.addView(getTableChartContent(intervalRow.evDivert, activity));
+                if (mShowHWSchedule) row.addView(getTableChartContent(intervalRow.hwSchedule, activity));
+                if (mShowHWDivert) row.addView(getTableChartContent(intervalRow.hwDivert, activity));
                 mTableChart.addView(row);
             }
         }
@@ -778,16 +885,33 @@ public abstract class ImportGraphsFragment extends Fragment {
         if (!(null == mPieCharts) && (!(null == getActivity()))) {
             mPieCharts.removeAllViews();
             mPieCharts.setStretchAllColumns(true);
-            TableRow topRow = new TableRow(getActivity());
-            TableRow bottomRow = new TableRow(getActivity());
             Map<String, Double> loadMap = new HashMap<>();
             Map<String, Double> pvMap = new HashMap<>();
             Map<String, Double> buyMap = new HashMap<>();
             Map<String, Double> feedMap = new HashMap<>();
+
+            Map<String, Double> pv2batMap = new HashMap<>();
+            Map<String, Double> pv2loadMap = new HashMap<>();
+            Map<String, Double> bat2loadMap = new HashMap<>();
+            Map<String, Double> grid2batMap = new HashMap<>();
+            Map<String, Double> evScheduleMap = new HashMap<>();
+            Map<String, Double> evDivertMap = new HashMap<>();
+            Map<String, Double> hwScheduleMap = new HashMap<>();
+            Map<String, Double> hwDivertMap = new HashMap<>();
+
             double load = 0D;
             double pv = 0D;
             double buy = 0D;
             double feed = 0D;
+
+            double pv2bat = 0D;
+            double pv2load = 0D;
+            double bat2load = 0D;
+            double grid2bat = 0D;
+            double evSchedule = 0D;
+            double evDivert = 0D;
+            double hwSchedule = 0D;
+            double hwDivert = 0D;
             switch (mDisplayInterval) {
                 case YEAR:
                     if (mCalculation == CalculationType.SUM) {
@@ -796,10 +920,29 @@ public abstract class ImportGraphsFragment extends Fragment {
                             pvMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.pv);
                             buyMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.buy);
                             feedMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.feed);
+
+                            pv2batMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.pv2bat);
+                            pv2loadMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.pv2load);
+                            bat2loadMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.bat2load);
+                            grid2batMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.grid2bat);
+                            evScheduleMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.evSchedule);
+                            evDivertMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.evDivert);
+                            hwScheduleMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.hwSchedule);
+                            hwDivertMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.hwDivert);
+
                             load += intervalRow.load;
                             pv += intervalRow.pv;
                             buy += intervalRow.buy;
                             feed += intervalRow.feed;
+
+                            pv2bat += intervalRow.pv2bat;
+                            pv2load += intervalRow.pv2load;
+                            bat2load += intervalRow.bat2load;
+                            grid2bat += intervalRow.grid2bat;
+                            evSchedule += intervalRow.evSchedule;
+                            evDivert += intervalRow.evDivert;
+                            hwSchedule += intervalRow.hwSchedule;
+                            hwDivert += intervalRow.hwDivert;
                         }
                     } else {
                         for (IntervalRow intervalRow : mGraphData) {
@@ -807,10 +950,29 @@ public abstract class ImportGraphsFragment extends Fragment {
                             pvMap.put("All", intervalRow.pv);
                             buyMap.put("All", intervalRow.buy);
                             feedMap.put("All", intervalRow.feed);
+
+                            pv2batMap.put("All", intervalRow.pv2bat);
+                            pv2loadMap.put("All", intervalRow.pv2load);
+                            bat2loadMap.put("All", intervalRow.bat2load);
+                            grid2batMap.put("All", intervalRow.grid2bat);
+                            evScheduleMap.put("All", intervalRow.evSchedule);
+                            evDivertMap.put("All", intervalRow.evDivert);
+                            hwScheduleMap.put("All", intervalRow.hwSchedule);
+                            hwDivertMap.put("All", intervalRow.hwDivert);
+
                             load += intervalRow.load;
                             pv += intervalRow.pv;
                             buy += intervalRow.buy;
                             feed += intervalRow.feed;
+
+                            pv2bat += intervalRow.pv2bat;
+                            pv2load += intervalRow.pv2load;
+                            bat2load += intervalRow.bat2load;
+                            grid2bat += intervalRow.grid2bat;
+                            evSchedule += intervalRow.evSchedule;
+                            evDivert += intervalRow.evDivert;
+                            hwSchedule += intervalRow.hwSchedule;
+                            hwDivert += intervalRow.hwDivert;
                         }
                     }
                     break;
@@ -825,10 +987,37 @@ public abstract class ImportGraphsFragment extends Fragment {
                                 buyMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.buy);
                             if (intervalRow.feed > 0)
                                 feedMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.feed);
+
+                            if (intervalRow.pv2bat > 0)
+                                pv2batMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.pv2bat);
+                            if (intervalRow.pv2load > 0)
+                                pv2loadMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.pv2load);
+                            if (intervalRow.bat2load > 0)
+                                bat2loadMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.bat2load);
+                            if (intervalRow.grid2bat > 0)
+                                grid2batMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.grid2bat);
+                            if (intervalRow.hwSchedule > 0)
+                                hwScheduleMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.hwSchedule);
+                            if (intervalRow.hwDivert > 0)
+                                hwDivertMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.hwDivert);
+                            if (intervalRow.evSchedule > 0)
+                                evScheduleMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.evSchedule);
+                            if (intervalRow.evDivert > 0)
+                                evDivertMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.evDivert);
+
                             load += intervalRow.load;
                             pv += intervalRow.pv;
                             buy += intervalRow.buy;
                             feed += intervalRow.feed;
+
+                            pv2bat += intervalRow.pv2bat;
+                            pv2load += intervalRow.pv2load;
+                            bat2load += intervalRow.bat2load;
+                            grid2bat += intervalRow.grid2bat;
+                            evSchedule += intervalRow.evSchedule;
+                            evDivert += intervalRow.evDivert;
+                            hwSchedule += intervalRow.hwSchedule;
+                            hwDivert += intervalRow.hwDivert;
                         }
                     } else {
                         final String[] xLabels = {"NaM", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -843,10 +1032,37 @@ public abstract class ImportGraphsFragment extends Fragment {
                                 buyMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.buy);
                             if (intervalRow.feed > 0)
                                 feedMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.feed);
+
+                            if (intervalRow.pv2bat > 0)
+                                pv2batMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.pv2bat);
+                            if (intervalRow.pv2load > 0)
+                                pv2loadMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.pv2load);
+                            if (intervalRow.bat2load > 0)
+                                bat2loadMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.bat2load);
+                            if (intervalRow.grid2bat > 0)
+                                grid2batMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.grid2bat);
+                            if (intervalRow.evSchedule > 0)
+                                evScheduleMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.evSchedule);
+                            if (intervalRow.evDivert > 0)
+                                evDivertMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.evDivert);
+                            if (intervalRow.hwSchedule > 0)
+                                hwScheduleMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.hwSchedule);
+                            if (intervalRow.hwDivert > 0)
+                                hwDivertMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.hwDivert);
+
                             load += intervalRow.load;
                             pv += intervalRow.pv;
                             buy += intervalRow.buy;
                             feed += intervalRow.feed;
+
+                            pv2bat += intervalRow.pv2bat;
+                            pv2load += intervalRow.pv2load;
+                            bat2load += intervalRow.bat2load;
+                            grid2bat += intervalRow.grid2bat;
+                            evSchedule += intervalRow.evSchedule;
+                            evDivert += intervalRow.evDivert;
+                            hwSchedule += intervalRow.hwSchedule;
+                            hwDivert += intervalRow.hwDivert;
                         }
                     }
                     break;
@@ -862,10 +1078,37 @@ public abstract class ImportGraphsFragment extends Fragment {
                             buyMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.buy);
                         if (intervalRow.feed > 0)
                             feedMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.feed);
+
+                        if (intervalRow.pv2bat > 0)
+                            pv2batMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.pv2bat);
+                        if (intervalRow.pv2load > 0)
+                            pv2loadMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.pv2load);
+                        if (intervalRow.bat2load > 0)
+                            bat2loadMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.bat2load);
+                        if (intervalRow.grid2bat > 0)
+                            grid2batMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.grid2bat);
+                        if (intervalRow.evSchedule > 0)
+                            evScheduleMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.evSchedule);
+                        if (intervalRow.evDivert > 0)
+                            evDivertMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.evDivert);
+                        if (intervalRow.hwSchedule > 0)
+                            hwScheduleMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.hwSchedule);
+                        if (intervalRow.hwDivert > 0)
+                            hwDivertMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.hwDivert);
+
                         load += intervalRow.load;
                         pv += intervalRow.pv;
                         buy += intervalRow.buy;
                         feed += intervalRow.feed;
+
+                        pv2bat += intervalRow.pv2bat;
+                        pv2load += intervalRow.pv2load;
+                        bat2load += intervalRow.bat2load;
+                        grid2bat += intervalRow.grid2bat;
+                        evSchedule += intervalRow.evSchedule;
+                        evDivert += intervalRow.evDivert;
+                        hwSchedule += intervalRow.hwSchedule;
+                        hwDivert += intervalRow.hwDivert;
                     }
                     break;
                 case DOY:
@@ -879,10 +1122,37 @@ public abstract class ImportGraphsFragment extends Fragment {
                             buyMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.buy);
                         if (intervalRow.feed > 0)
                             feedMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.feed);
+
+                        if (intervalRow.pv2bat > 0)
+                            pv2batMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.pv2bat);
+                        if (intervalRow.pv2load > 0)
+                            pv2loadMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.pv2load);
+                        if (intervalRow.bat2load > 0)
+                            bat2loadMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.bat2load);
+                        if (intervalRow.grid2bat > 0)
+                            grid2batMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.grid2bat);
+                        if (intervalRow.evSchedule > 0)
+                            evScheduleMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.evSchedule);
+                        if (intervalRow.evDivert > 0)
+                            evDivertMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.evDivert);
+                        if (intervalRow.hwSchedule > 0)
+                            hwScheduleMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.hwSchedule);
+                        if (intervalRow.hwDivert > 0)
+                            hwDivertMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.hwDivert);
+
                         load += intervalRow.load;
                         pv += intervalRow.pv;
                         buy += intervalRow.buy;
                         feed += intervalRow.feed;
+
+                        pv2bat += intervalRow.pv2bat;
+                        pv2load += intervalRow.pv2load;
+                        bat2load += intervalRow.bat2load;
+                        grid2bat += intervalRow.grid2bat;
+                        evSchedule += intervalRow.evSchedule;
+                        evDivert += intervalRow.evDivert;
+                        hwSchedule += intervalRow.hwSchedule;
+                        hwDivert += intervalRow.hwDivert;
                     }
                     break;
 
@@ -893,34 +1163,46 @@ public abstract class ImportGraphsFragment extends Fragment {
             PieChart buyPie = getPieChart("Buy (" + new DecimalFormat("0.00").format(buy) + " kWh)", buyMap);
             PieChart feedPie = getPieChart("Feed (" + new DecimalFormat("0.00").format(feed) + " kWh)", feedMap);
 
-            int visible = 0;
-            int shown = 0;
-            if (mShowLoad) visible++;
-            if (mShowPV) visible++;
-            if (mShowBuy) visible++;
-            if (mShowFeed) visible++;
-            if (mShowLoad) {
-                topRow.addView(loadPie);
-                shown++;
-            }
-            if (mShowPV) {
-                topRow.addView(pvPie);
-                shown++;
-            }
-            if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
-                if (mShowBuy) topRow.addView(buyPie);
-                if (mShowFeed) topRow.addView(feedPie);
-                mPieCharts.addView(topRow);
-            } else {
-                if (mShowBuy) {
-                    if (shown < 2) topRow.addView(buyPie);
-                    else bottomRow.addView(buyPie);
-                    shown++;
+            PieChart pv2batPie = getPieChart("PV2Bat (" + new DecimalFormat("0.00").format(pv2bat) + " kWh)", pv2batMap);
+            PieChart pv2LoadPie = getPieChart("PV2Load (" + new DecimalFormat("0.00").format(pv2load) + " kWh)", pv2loadMap);
+            PieChart bat2LoadPie = getPieChart("Bat2Load (" + new DecimalFormat("0.00").format(bat2load) + " kWh)", bat2loadMap);
+            PieChart grid2BatPie = getPieChart("Grid2Bat (" + new DecimalFormat("0.00").format(grid2bat) + " kWh)", grid2batMap);
+            PieChart evSchedulePie = getPieChart("EVSchedule (" + new DecimalFormat("0.00").format(evSchedule) + " kWh)", evScheduleMap);
+            PieChart evDivertPie = getPieChart("EVDivert (" + new DecimalFormat("0.00").format(evDivert) + " kWh)", evDivertMap);
+            PieChart hwSchedulePie = getPieChart("HWSchedule (" + new DecimalFormat("0.00").format(hwSchedule) + " kWh)", hwScheduleMap);
+            PieChart hwDivertPie = getPieChart("HWDivert (" + new DecimalFormat("0.00").format(hwDivert) + " kWh)", hwDivertMap);
+
+//            int visible = 0;
+//            int shown = 0;
+            List<PieChart> piesToShow = new ArrayList<>();
+            if (mShowLoad) piesToShow.add(loadPie);
+            if (mShowPV) piesToShow.add(pvPie);
+            if (mShowBuy) piesToShow.add(buyPie);
+            if (mShowFeed) piesToShow.add(feedPie);
+
+            if (mShowPv2bat) piesToShow.add(pv2batPie);
+            if (mShowPv2load) piesToShow.add(pv2LoadPie);
+            if (mShowBat2load) piesToShow.add(bat2LoadPie);
+            if (mShowGrid2Bat) piesToShow.add(grid2BatPie);
+            if (mShowEVSchedule) piesToShow.add(evSchedulePie);
+            if (mShowEVDivert) piesToShow.add(evDivertPie);
+            if (mShowHWSchedule) piesToShow.add(hwSchedulePie);
+            if (mShowHWDivert) piesToShow.add(hwDivertPie);
+
+            int toShowInRow = getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE ? 4 : 2;
+            TableRow aRow = new TableRow(getActivity());
+            int shownInRow = 0;
+            for (PieChart pie : piesToShow) {
+                aRow.addView(pie);
+                shownInRow++;
+                if (shownInRow == toShowInRow) {
+                    mPieCharts.addView(aRow);
+                    aRow = new TableRow(getActivity());
+                    shownInRow = 0;
                 }
-                if (mShowFeed && (shown < 2)) topRow.addView(feedPie);
-                else bottomRow.addView(feedPie);
-                mPieCharts.addView(topRow);
-                if (visible >= 3) mPieCharts.addView(bottomRow);
+            }
+            if (shownInRow > 0) {
+                mPieCharts.addView(aRow);
             }
         }
     }
@@ -1005,11 +1287,29 @@ public abstract class ImportGraphsFragment extends Fragment {
         ArrayList<Entry> feedEntries = new ArrayList<>();
         ArrayList<Entry> buyEntries = new ArrayList<>();
         ArrayList<Entry> pvEntries = new ArrayList<>();
+
+        ArrayList<Entry> pv2batEntries = new ArrayList<>();
+        ArrayList<Entry> pv2loadEntries = new ArrayList<>();
+        ArrayList<Entry> bat2loadEntries = new ArrayList<>();
+        ArrayList<Entry> grid2batEntries = new ArrayList<>();
+        ArrayList<Entry> evScheduleEntries = new ArrayList<>();
+        ArrayList<Entry> evDivertEntries = new ArrayList<>();
+        ArrayList<Entry> hwScheduleEntries = new ArrayList<>();
+        ArrayList<Entry> hwDivertEntries = new ArrayList<>();
         for (IntervalRow intervalRow : mGraphData) {
             loadEntries.add(new Entry(Float.parseFloat(intervalRow.interval), (float) intervalRow.load));
             feedEntries.add(new Entry(Float.parseFloat(intervalRow.interval), (float) intervalRow.feed));
             buyEntries.add(new Entry(Float.parseFloat(intervalRow.interval), (float) intervalRow.buy));
             pvEntries.add(new Entry(Float.parseFloat(intervalRow.interval), (float) intervalRow.pv));
+
+            pv2batEntries.add(new Entry(Float.parseFloat(intervalRow.interval), (float) intervalRow.pv2bat));
+            pv2loadEntries.add(new Entry(Float.parseFloat(intervalRow.interval), (float) intervalRow.pv2load));
+            bat2loadEntries.add(new Entry(Float.parseFloat(intervalRow.interval), (float) intervalRow.bat2load));
+            grid2batEntries.add(new Entry(Float.parseFloat(intervalRow.interval), (float) intervalRow.grid2bat));
+            evScheduleEntries.add(new Entry(Float.parseFloat(intervalRow.interval), (float) intervalRow.evSchedule));
+            evDivertEntries.add(new Entry(Float.parseFloat(intervalRow.interval), (float) intervalRow.evDivert));
+            hwScheduleEntries.add(new Entry(Float.parseFloat(intervalRow.interval), (float) intervalRow.hwSchedule));
+            hwDivertEntries.add(new Entry(Float.parseFloat(intervalRow.interval), (float) intervalRow.hwDivert));
         }
 
         LineDataSet loadSet = configureLine(loadEntries, Color.BLUE, "Load");
@@ -1017,11 +1317,29 @@ public abstract class ImportGraphsFragment extends Fragment {
         LineDataSet buySet = configureLine(buyEntries, Color.CYAN, "Buy");
         LineDataSet pvSet = configureLine(pvEntries, Color.RED, "PV");
 
+        LineDataSet pv2batSet = configureLine(pv2batEntries, Color.GREEN, "PV2Bat");
+        LineDataSet pv2loadSet = configureLine(pv2loadEntries, Color.GRAY, "PV2Load");
+        LineDataSet bat2loadSet = configureLine(bat2loadEntries, Color.DKGRAY, "Bat2Load");
+        LineDataSet grid2batSet = configureLine(grid2batEntries, Color.MAGENTA, "Grid2Bat");
+        LineDataSet evScheduleSet = configureLine(evScheduleEntries, ORANGE, "EVSchedule");
+        LineDataSet evDivertSet = configureLine(evDivertEntries, Color.LTGRAY, "EVDivert");
+        LineDataSet hwScheduleSet = configureLine(hwScheduleEntries, PURPLE, "HWSchedule");
+        LineDataSet hwDivertSet = configureLine(hwDivertEntries, BROWN, "HWDivert");
+
         ArrayList<ILineDataSet> dataSets = new ArrayList<>();
         if (mShowLoad) dataSets.add(loadSet);
         if (mShowFeed) dataSets.add(feedSet);
         if (mShowBuy) dataSets.add(buySet);
         if (mShowPV) dataSets.add(pvSet);
+
+        if (mShowPv2bat) dataSets.add(pv2batSet);
+        if (mShowPv2load) dataSets.add(pv2loadSet);
+        if (mShowBat2load) dataSets.add(bat2loadSet);
+        if (mShowGrid2Bat) dataSets.add(grid2batSet);
+        if (mShowEVSchedule) dataSets.add(evScheduleSet);
+        if (mShowEVDivert) dataSets.add(evDivertSet);
+        if (mShowHWSchedule) dataSets.add(hwScheduleSet);
+        if (mShowHWDivert) dataSets.add(hwDivertSet);
 
         LineData data = new LineData(dataSets);
         mLineChart.setData(data);
@@ -1115,32 +1433,72 @@ public abstract class ImportGraphsFragment extends Fragment {
         ArrayList<BarEntry> feedEntries = new ArrayList<>();
         ArrayList<BarEntry> buyEntries = new ArrayList<>();
         ArrayList<BarEntry> pvEntries = new ArrayList<>();
+
+        ArrayList<BarEntry> pv2batEntries = new ArrayList<>();
+        ArrayList<BarEntry> pv2loadEntries = new ArrayList<>();
+        ArrayList<BarEntry> bat2loadEntries = new ArrayList<>();
+        ArrayList<BarEntry> grid2batEntries = new ArrayList<>();
+        ArrayList<BarEntry> evScheduleEntries = new ArrayList<>();
+        ArrayList<BarEntry> evDivertEntries = new ArrayList<>();
+        ArrayList<BarEntry> hwScheduleEntries = new ArrayList<>();
+        ArrayList<BarEntry> hwDivertEntries = new ArrayList<>();
+
         for (int i = 0; i < mGraphData.size(); i++) {
             loadEntries.add(new BarEntry(i, (float) mGraphData.get(i).load));
             feedEntries.add(new BarEntry(i, (float) mGraphData.get(i).feed));
             buyEntries.add(new BarEntry(i, (float) mGraphData.get(i).buy));
             pvEntries.add(new BarEntry(i, (float) mGraphData.get(i).pv));
+
+            pv2batEntries.add(new BarEntry(i, (float) mGraphData.get(i).pv2bat));
+            pv2loadEntries.add(new BarEntry(i, (float) mGraphData.get(i).pv2load));
+            bat2loadEntries.add(new BarEntry(i, (float) mGraphData.get(i).bat2load));
+            grid2batEntries.add(new BarEntry(i, (float) mGraphData.get(i).grid2bat));
+            evScheduleEntries.add(new BarEntry(i, (float) mGraphData.get(i).evSchedule));
+            evDivertEntries.add(new BarEntry(i, (float) mGraphData.get(i).evDivert));
+            hwScheduleEntries.add(new BarEntry(i, (float) mGraphData.get(i).hwSchedule));
+            hwDivertEntries.add(new BarEntry(i, (float) mGraphData.get(i).hwDivert));
         }
 
-        BarDataSet loadSet;
-        BarDataSet feedSet;
-        BarDataSet buySet;
-        BarDataSet pvSet;
-
-        loadSet = new BarDataSet(loadEntries, "Load");
+        BarDataSet loadSet = new BarDataSet(loadEntries, "Load");
         loadSet.setColor(Color.BLUE);
-        feedSet = new BarDataSet(feedEntries, "Feed");
+        BarDataSet feedSet = new BarDataSet(feedEntries, "Feed");
         feedSet.setColor(Color.YELLOW);
-        buySet = new BarDataSet(buyEntries, "Buy");
+        BarDataSet buySet = new BarDataSet(buyEntries, "Buy");
         buySet.setColor(Color.CYAN);
-        pvSet = new BarDataSet(pvEntries, "PV");
+        BarDataSet pvSet = new BarDataSet(pvEntries, "PV");
         pvSet.setColor(Color.RED);
+
+        BarDataSet pv2batSet = new BarDataSet(pv2batEntries, "PV2Bat");
+        pvSet.setColor(Color.GREEN);
+        BarDataSet pv2loadSet = new BarDataSet(pv2loadEntries, "PV2Load");
+        pvSet.setColor(Color.GRAY);
+        BarDataSet bat2loadSet = new BarDataSet(bat2loadEntries, "Bat2Load");
+        pvSet.setColor(Color.DKGRAY);
+        BarDataSet grid2batSet = new BarDataSet(grid2batEntries, "Grid2Bat");
+        pvSet.setColor(Color.MAGENTA);
+        BarDataSet evScheduleSet = new BarDataSet(evScheduleEntries, "EVSchedule");
+        pvSet.setColor(ORANGE);
+        BarDataSet evDivertSet = new BarDataSet(evDivertEntries, "EVDivert");
+        pvSet.setColor(Color.LTGRAY);
+        BarDataSet hwScheduleSet = new BarDataSet(hwScheduleEntries, "HWSchedule");
+        pvSet.setColor(PURPLE);
+        BarDataSet hwDivertSet = new BarDataSet(hwDivertEntries, "HWDivert");
+        pvSet.setColor(BROWN);
 
         ArrayList<IBarDataSet> dataSets = new ArrayList<>();
         if (mShowLoad) dataSets.add(loadSet);
         if (mShowFeed) dataSets.add(feedSet);
         if (mShowBuy) dataSets.add(buySet);
         if (mShowPV) dataSets.add(pvSet);
+
+        if (mShowPv2bat) dataSets.add(pv2batSet);
+        if (mShowPv2load) dataSets.add(pv2loadSet);
+        if (mShowBat2load) dataSets.add(bat2loadSet);
+        if (mShowGrid2Bat) dataSets.add(grid2batSet);
+        if (mShowEVSchedule) dataSets.add(evScheduleSet);
+        if (mShowEVDivert) dataSets.add(evDivertSet);
+        if (mShowHWSchedule) dataSets.add(hwScheduleSet);
+        if (mShowHWDivert) dataSets.add(hwDivertSet);
 
         BarData data = new BarData(dataSets);
         data.setValueTextSize(10f);

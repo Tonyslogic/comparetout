@@ -20,9 +20,19 @@ import androidx.room.ColumnInfo;
 
 public class IntervalRow {
     // SELECT PV, LOAD, FEED, BUY, INTERVAL
-    @ColumnInfo(name= "PV") public double pv;
-    @ColumnInfo(name= "LOAD") public double load;
-    @ColumnInfo(name= "FEED") public double feed;
-    @ColumnInfo(name= "BUY") public double buy;
-    @ColumnInfo(name= "INTERVAL") public String interval;
+    @ColumnInfo(name= "PV") public double pv = 0.0;
+    @ColumnInfo(name= "LOAD") public double load = 0.0;
+    @ColumnInfo(name= "FEED") public double feed = 0.0;
+    @ColumnInfo(name= "BUY") public double buy = 0.0;
+
+    @ColumnInfo(name= "PV2BAT") public double pv2bat = 0.0;
+    @ColumnInfo(name= "PV2LOAD") public double pv2load = 0.0;
+    @ColumnInfo(name= "BAT2LOAD") public double bat2load = 0.0;
+    @ColumnInfo(name= "GRID2BAT") public double grid2bat = 0.0;
+    @ColumnInfo(name= "EVSCHEDULE") public double evSchedule = 0.0;
+    @ColumnInfo(name= "EVDIVERT") public double evDivert = 0.0;
+    @ColumnInfo(name= "HWSCHEDULE") public double hwSchedule = 0.0;
+    @ColumnInfo(name= "HWDIVERT") public double hwDivert = 0.0;
+
+    @ColumnInfo(name= "INTERVAL") public String interval = "";
 }

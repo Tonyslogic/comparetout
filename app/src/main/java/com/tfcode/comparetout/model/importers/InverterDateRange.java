@@ -20,7 +20,7 @@ import androidx.room.ColumnInfo;
 
 public class InverterDateRange {
     // SELECT sysSN, MIN(theDate) AS start, MAX(theDate) AS end FROM alphaESSRawEnergy GROUP by sysSN
-    @ColumnInfo(name= "sysSn") public String sysSn;
-    @ColumnInfo(name= "start") public String startDate;
-    @ColumnInfo(name= "finish") public String finishDate;
+    @ColumnInfo(name= "sysSn") public String sysSn = "1";
+    @ColumnInfo(name= "start") public String startDate = "2001-01-01";
+    @ColumnInfo(name= "finish") public String finishDate = "2001-12-01";
 }

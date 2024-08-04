@@ -50,6 +50,9 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
+import com.tfcode.comparetout.importers.ImportActivity;
+import com.tfcode.comparetout.importers.ImportException;
+import com.tfcode.comparetout.importers.ImportSystemSelection;
 import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
@@ -58,7 +61,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class ScenarioActivity extends AppCompatActivity {
+public class ScenarioActivity extends AppCompatActivity implements ImportSystemSelection, ImportActivity {
 
     private ProgressBar mSimulationInProgressBar;
     private boolean mSimulationInProgress = false;
@@ -119,7 +122,7 @@ public class ScenarioActivity extends AppCompatActivity {
         mHelpWindow = new PopupWindow(mPopupView, width, height, focusable);
 
         ActionBar mActionBar = Objects.requireNonNull(getSupportActionBar());
-        mActionBar.setTitle("Scenario");
+        mActionBar.setTitle("Usage");
     }
 
     // MENU
@@ -235,9 +238,10 @@ public class ScenarioActivity extends AppCompatActivity {
         viewPager.setAdapter(new ScenarioViewPageAdapter(this, 3));
         ArrayList<String> tabTitlesList = new ArrayList<>();
         tabTitlesList.add("Scenario overview");
-        tabTitlesList.add("Daily details");
-        tabTitlesList.add("Monthly rollup");
-        tabTitlesList.add("Year summary");
+        tabTitlesList.add("Graphs");
+        tabTitlesList.add("Days");
+        tabTitlesList.add("Months");
+        tabTitlesList.add("Years");
         TabLayout tabLayout = findViewById(R.id.scenario_tab_layout);
         TabLayoutMediator mMediator = new TabLayoutMediator(tabLayout, viewPager,
                 (tab, position) -> tab.setText(tabTitlesList.get(position))
@@ -249,12 +253,15 @@ public class ScenarioActivity extends AppCompatActivity {
             showHelp("https://appassets.androidplatform.net/assets/scenario/help.html");
             return true;});
         ((View)linearLayout.getChildAt(1)).setOnLongClickListener(v -> {
-            showHelp("https://appassets.androidplatform.net/assets/scenario/detail_tab.html");
+            showHelp("https://appassets.androidplatform.net/assets/scenario/help.html");
             return true;});
         ((View)linearLayout.getChildAt(2)).setOnLongClickListener(v -> {
-            showHelp("https://appassets.androidplatform.net/assets/scenario/monthly_tab.html");
+            showHelp("https://appassets.androidplatform.net/assets/scenario/detail_tab.html");
             return true;});
         ((View)linearLayout.getChildAt(3)).setOnLongClickListener(v -> {
+            showHelp("https://appassets.androidplatform.net/assets/scenario/monthly_tab.html");
+            return true;});
+        ((View)linearLayout.getChildAt(4)).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/scenario/annual_tab.html");
             return true;});
     }
@@ -352,5 +359,20 @@ public class ScenarioActivity extends AppCompatActivity {
 
         webView.setWebViewClient(new LocalContentWebViewClient(mAssetLoader));
         webView.loadUrl(url);
+    }
+
+    @Override
+    public String getSelectedSystemSN() {
+        return String.valueOf(scenarioID);
+    }
+
+    @Override
+    public void setSelectedSystemSN(String serialNumber) {
+
+    }
+
+    @Override
+    public void hideFAB() {
+
     }
 }

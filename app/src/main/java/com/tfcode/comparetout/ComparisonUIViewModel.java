@@ -20,6 +20,7 @@ import android.app.Application;
 
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MutableLiveData;
 
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.costings.Costings;
@@ -56,6 +57,8 @@ import com.tfcode.comparetout.model.scenario.ScenarioLineGraphData;
 import com.tfcode.comparetout.model.scenario.SimKPIs;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -461,7 +464,8 @@ public class ComparisonUIViewModel extends AndroidViewModel {
     public enum Importer {
         ALPHAESS,
         ESBNHDF,
-        HOME_ASSISTANT
+        HOME_ASSISTANT,
+        SIMULATION
     }
 
     // Importer methods
@@ -470,8 +474,10 @@ public class ComparisonUIViewModel extends AndroidViewModel {
             case ALPHAESS: return toutcRepository.getLiveDateRanges();
             case ESBNHDF: return toutcRepository.getESBNLiveDateRanges();
             case HOME_ASSISTANT: return toutcRepository.getHALiveDateRanges();
+            case SIMULATION: return toutcRepository.getScenarioLiveDateRanges();
+            default:
+                return null;
         }
-        return null;
     }
 
     public void clearInverterBySN (Importer importer, String sysSN) {
@@ -489,8 +495,10 @@ public class ComparisonUIViewModel extends AndroidViewModel {
             case ESBNHDF:
             case HOME_ASSISTANT:
                 return toutcRepository.getSumHour(systemSN, from, to);
+            case SIMULATION:
+                return toutcRepository.getSimSumHour(systemSN, from, to);
+            default: return null;
         }
-        return null;
     }
 
     public List<IntervalRow> getSumDOY(Importer importer, String systemSN, String from, String to) {
@@ -499,8 +507,10 @@ public class ComparisonUIViewModel extends AndroidViewModel {
             case ESBNHDF:
             case HOME_ASSISTANT:
                 return toutcRepository.getSumDOY(systemSN, from, to);
+            case SIMULATION:
+                return toutcRepository.getSimSumDOY(systemSN, from, to);
+            default: return null;
         }
-        return null;
     }
 
     public List<IntervalRow> getSumDOW(Importer importer, String systemSN, String from, String to) {
@@ -509,8 +519,10 @@ public class ComparisonUIViewModel extends AndroidViewModel {
             case ESBNHDF:
             case HOME_ASSISTANT:
                 return toutcRepository.getSumDOW(systemSN, from, to);
+            case SIMULATION:
+                return toutcRepository.getSimSumDOW(systemSN, from, to);
+            default: return null;
         }
-        return null;
     }
 
     public List<IntervalRow> getSumMonth(Importer importer, String systemSN, String from, String to) {
@@ -519,8 +531,10 @@ public class ComparisonUIViewModel extends AndroidViewModel {
             case ESBNHDF:
             case HOME_ASSISTANT:
                 return toutcRepository.getSumMonth(systemSN, from, to);
+            case SIMULATION:
+                return toutcRepository.getSimSumMonth(systemSN, from, to);
+            default: return null;
         }
-        return null;
     }
 
     public List<IntervalRow> getSumYear(Importer importer, String systemSN, String from, String to) {
@@ -529,8 +543,10 @@ public class ComparisonUIViewModel extends AndroidViewModel {
             case ESBNHDF:
             case HOME_ASSISTANT:
                 return toutcRepository.getSumYear(systemSN, from, to);
+            case SIMULATION:
+                return toutcRepository.getSimSumYear(systemSN, from, to);
+            default: return null;
         }
-        return null;
     }
 
     public List<IntervalRow> getAvgHour(Importer importer, String systemSN, String from, String to) {
@@ -539,8 +555,10 @@ public class ComparisonUIViewModel extends AndroidViewModel {
             case ESBNHDF:
             case HOME_ASSISTANT:
                 return toutcRepository.getAvgHour(systemSN, from, to);
+            case SIMULATION:
+                return toutcRepository.getSimAvgHour(systemSN, from, to);
+            default: return null;
         }
-        return null;
     }
 
     public List<IntervalRow> getAvgDOY(Importer importer, String systemSN, String from, String to) {
@@ -549,8 +567,10 @@ public class ComparisonUIViewModel extends AndroidViewModel {
             case ESBNHDF:
             case HOME_ASSISTANT:
                 return toutcRepository.getAvgDOY(systemSN, from, to);
+            case SIMULATION:
+                return toutcRepository.getSimAvgDOY(systemSN, from, to);
+            default: return null;
         }
-        return null;
     }
 
     public List<IntervalRow> getAvgDOW(Importer importer, String systemSN, String from, String to) {
@@ -559,8 +579,10 @@ public class ComparisonUIViewModel extends AndroidViewModel {
             case ESBNHDF:
             case HOME_ASSISTANT:
                 return toutcRepository.getAvgDOW(systemSN, from, to);
+            case SIMULATION:
+                return toutcRepository.getSimAvgDOW(systemSN, from, to);
+            default: return null;
         }
-        return null;
     }
 
     public List<IntervalRow> getAvgMonth(Importer importer, String systemSN, String from, String to) {
@@ -569,8 +591,10 @@ public class ComparisonUIViewModel extends AndroidViewModel {
             case ESBNHDF:
             case HOME_ASSISTANT:
                 return toutcRepository.getAvgMonth(systemSN, from, to);
+            case SIMULATION:
+                return toutcRepository.getSimAvgMonth(systemSN, from, to);
+            default: return null;
         }
-        return null;
     }
 
     public List<IntervalRow> getAvgYear(Importer importer, String systemSN, String from, String to) {
@@ -579,8 +603,10 @@ public class ComparisonUIViewModel extends AndroidViewModel {
             case ESBNHDF:
             case HOME_ASSISTANT:
                 return toutcRepository.getAvgYear(systemSN, from, to);
+            case SIMULATION:
+                return toutcRepository.getSimAvgYear(systemSN, from, to);
+            default: return null;
         }
-        return null;
     }
 
     public List<CostInputRow> getSelectedAlphaESSData(Importer importer, String serialNumber, String from, String to) {
