@@ -7,10 +7,14 @@ Beta test version V1.35 (Ireland only, so far)
 
 > Sign up from your [browser](https://play.google.com/apps/testing/com.tfcode.comparetout)
 
-Internal test version V1.39 
+Internal test version V1.40 
 > [email me](mailto:tonysfreecode@gmail.com?subject=AlphaTest), with the email address used in your android play store account
 
 Read more on the [documentation site](https://github.com/Tonyslogic/comparetout-doc)
+
+V1.40
+
+* BUGFIX: Some older androids need workers to have foreground methods when expedited
 
 V1.39
 
