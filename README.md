@@ -7,10 +7,14 @@ Beta test version V1.35 (Ireland only, so far)
 
 > Sign up from your [browser](https://play.google.com/apps/testing/com.tfcode.comparetout)
 
-Internal test version V1.40 
+Internal test version V1.41 
 > [email me](mailto:tonysfreecode@gmail.com?subject=AlphaTest), with the email address used in your android play store account
 
 Read more on the [documentation site](https://github.com/Tonyslogic/comparetout-doc)
+
+V1.41
+
+* BUGFIX: Remove redundant foreground permission 
 
 V1.40
 
