@@ -19,6 +19,7 @@ package com.tfcode.comparetout.scenario;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.os.Bundle;
@@ -45,13 +46,13 @@ import androidx.webkit.WebViewAssetLoader;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.importers.ImportActivity;
-import com.tfcode.comparetout.importers.ImportException;
 import com.tfcode.comparetout.importers.ImportSystemSelection;
 import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
@@ -65,6 +66,8 @@ public class ScenarioActivity extends AppCompatActivity implements ImportSystemS
 
     private ProgressBar mSimulationInProgressBar;
     private boolean mSimulationInProgress = false;
+
+    private boolean mZoom = false;
 
     private static final String EDIT_KEY = "Edit";
     private static final String SCENARIO_KEY = "ScenarioID";
@@ -123,6 +126,23 @@ public class ScenarioActivity extends AppCompatActivity implements ImportSystemS
 
         ActionBar mActionBar = Objects.requireNonNull(getSupportActionBar());
         mActionBar.setTitle("Usage");
+
+        FloatingActionButton fab = findViewById(R.id.zoom_scenario);
+        fab.setOnClickListener(view -> {
+            ActionBar actionBar = getSupportActionBar();
+            TabLayout tabLayout = findViewById(R.id.scenario_tab_layout);
+            if (!(null == actionBar) && !(null == tabLayout)) {
+                if (!(mZoom)) {
+                    actionBar.hide();
+                    tabLayout.setVisibility(View.GONE);
+                    mZoom = true;
+                }
+                else {
+                    actionBar.show();
+                    tabLayout.setVisibility(View.VISIBLE);
+                    mZoom = false;
+                }}
+        });
     }
 
     // MENU
@@ -249,21 +269,29 @@ public class ScenarioActivity extends AppCompatActivity implements ImportSystemS
         mMediator.attach();
 
         LinearLayout linearLayout = (LinearLayout)tabLayout.getChildAt(0);
-        ((View)linearLayout.getChildAt(0)).setOnLongClickListener(v -> {
+        linearLayout.getChildAt(0).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/scenario/help.html");
             return true;});
-        ((View)linearLayout.getChildAt(1)).setOnLongClickListener(v -> {
-            showHelp("https://appassets.androidplatform.net/assets/scenario/help.html");
+        linearLayout.getChildAt(1).setOnLongClickListener(v -> {
+            showHelp("https://appassets.androidplatform.net/assets/scenario/graphs_tab.html");
             return true;});
-        ((View)linearLayout.getChildAt(2)).setOnLongClickListener(v -> {
+        linearLayout.getChildAt(2).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/scenario/detail_tab.html");
             return true;});
-        ((View)linearLayout.getChildAt(3)).setOnLongClickListener(v -> {
+        linearLayout.getChildAt(3).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/scenario/monthly_tab.html");
             return true;});
-        ((View)linearLayout.getChildAt(4)).setOnLongClickListener(v -> {
+        linearLayout.getChildAt(4).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/scenario/annual_tab.html");
             return true;});
+
+        viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+                super.onPageScrolled(position, positionOffset, positionOffsetPixels);
+                showFAB();
+            }
+        });
     }
 
     @Override
@@ -353,7 +381,7 @@ public class ScenarioActivity extends AppCompatActivity implements ImportSystemS
 
     private void showHelp(String url) {
         mHelpWindow.setHeight((int) (getWindow().getDecorView().getHeight()*0.6));
-        mHelpWindow.setWidth((int) (getWindow().getDecorView().getWidth()));
+        mHelpWindow.setWidth(getWindow().getDecorView().getWidth());
         mHelpWindow.showAtLocation(viewPager.getRootView(), Gravity.CENTER, 0, 0);
         WebView webView = mPopupView.findViewById(R.id.helpWebView);
 
@@ -373,6 +401,29 @@ public class ScenarioActivity extends AppCompatActivity implements ImportSystemS
 
     @Override
     public void hideFAB() {
+        FloatingActionButton fab = findViewById(R.id.zoom_scenario);
+        if (!(null == fab)) fab.hide();
+    }
 
+    private void showFAB() {
+        FloatingActionButton fab = findViewById(R.id.zoom_scenario);
+        if (!(null == fab))
+            if ((viewPager.getCurrentItem() != 1) ) {
+                fab.hide();
+                if (mZoom) {
+                    ActionBar actionBar = getSupportActionBar();
+                    TabLayout tabLayout = findViewById(R.id.import_alpha_tab_layout);
+                    if (!(null == actionBar) && !(null == tabLayout)) {
+                        actionBar.show();
+                        tabLayout.setVisibility(View.VISIBLE);
+                        mZoom = false;
+                    }
+                }
+            } else {
+                fab.show();
+            }
+        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
+            hideFAB();
+        }
     }
 }

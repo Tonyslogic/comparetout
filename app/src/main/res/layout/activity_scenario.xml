@@ -23,6 +23,19 @@
     tools:context=".scenario.ScenarioActivity"
     android:id="@+id/activity_scenario">
 
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/zoom_scenario"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:layout_marginStart="80dp"
+        android:clickable="true"
+        android:contentDescription="@string/zoom"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:visibility="invisible"
+        app:srcCompat="@android:drawable/ic_menu_zoom" />
+
     <com.google.android.material.tabs.TabLayout
         android:id="@+id/scenario_tab_layout"
         android:layout_width="match_parent"

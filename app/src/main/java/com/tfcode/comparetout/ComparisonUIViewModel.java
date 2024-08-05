@@ -20,7 +20,6 @@ import android.app.Application;
 
 import androidx.lifecycle.AndroidViewModel;
 import androidx.lifecycle.LiveData;
-import androidx.lifecycle.MutableLiveData;
 
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.costings.Costings;
@@ -57,8 +56,6 @@ import com.tfcode.comparetout.model.scenario.ScenarioLineGraphData;
 import com.tfcode.comparetout.model.scenario.SimKPIs;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 

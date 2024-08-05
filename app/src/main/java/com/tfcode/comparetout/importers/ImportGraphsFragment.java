@@ -89,7 +89,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -165,6 +164,8 @@ public abstract class ImportGraphsFragment extends Fragment {
     private static final int ORANGE = 0xFFFFA500;
     private static final int PURPLE = 0xFF800080;
     private static final int BROWN = 0xFFA52A2A;
+    private static final int PALE_YELLOW_GREEN = 0xFFE0F2D2;
+    private static final int DEEP_TEAL = 0xFF005666;
 
     @Override
     public void onResume() {
@@ -1264,11 +1265,11 @@ public abstract class ImportGraphsFragment extends Fragment {
         mLineChart.getLegend().setTextSize(17f);
         mLineChart.getLegend().setForm(Legend.LegendForm.CIRCLE);
 
-        mLineChart.getAxisLeft().setTextColor(Color.DKGRAY); // left y-axis
-        mLineChart.getAxisRight().setTextColor(Color.DKGRAY); // right y-axis
-        mLineChart.getXAxis().setEnabled(false);//setTextColor(Color.DKGRAY);
-        mLineChart.getLegend().setTextColor(Color.DKGRAY);
-        mLineChart.getDescription().setTextColor(Color.DKGRAY);
+        mLineChart.getAxisLeft().setTextColor(DEEP_TEAL); // left y-axis
+        mLineChart.getAxisRight().setTextColor(DEEP_TEAL); // right y-axis
+        mLineChart.getXAxis().setEnabled(false);//setTextColor(DEEP_TEAL);
+        mLineChart.getLegend().setTextColor(DEEP_TEAL);
+        mLineChart.getDescription().setTextColor(DEEP_TEAL);
 
         mLineChart.getAxisLeft().setAxisMinimum(0F);
         mLineChart.getAxisLeft().setValueFormatter(new ValueFormatter() {
@@ -1319,10 +1320,10 @@ public abstract class ImportGraphsFragment extends Fragment {
 
         LineDataSet pv2batSet = configureLine(pv2batEntries, Color.GREEN, "PV2Bat");
         LineDataSet pv2loadSet = configureLine(pv2loadEntries, Color.GRAY, "PV2Load");
-        LineDataSet bat2loadSet = configureLine(bat2loadEntries, Color.DKGRAY, "Bat2Load");
+        LineDataSet bat2loadSet = configureLine(bat2loadEntries, DEEP_TEAL, "Bat2Load");
         LineDataSet grid2batSet = configureLine(grid2batEntries, Color.MAGENTA, "Grid2Bat");
         LineDataSet evScheduleSet = configureLine(evScheduleEntries, ORANGE, "EVSchedule");
-        LineDataSet evDivertSet = configureLine(evDivertEntries, Color.LTGRAY, "EVDivert");
+        LineDataSet evDivertSet = configureLine(evDivertEntries, PALE_YELLOW_GREEN, "EVDivert");
         LineDataSet hwScheduleSet = configureLine(hwScheduleEntries, PURPLE, "HWSchedule");
         LineDataSet hwDivertSet = configureLine(hwDivertEntries, BROWN, "HWDivert");
 
@@ -1415,8 +1416,8 @@ public abstract class ImportGraphsFragment extends Fragment {
                 xAxis.setValueFormatter(null);
         }
 
-        mBarChart.getAxisLeft().setTextColor(Color.DKGRAY); // left y-axis
-        mBarChart.getAxisRight().setDrawLabels(false); //.setTextColor(Color.DKGRAY); // right y-axis
+        mBarChart.getAxisLeft().setTextColor(DEEP_TEAL); // left y-axis
+        mBarChart.getAxisRight().setDrawLabels(false); //.setTextColor(DEEP_TEAL); // right y-axis
         mBarChart.getAxisLeft().setValueFormatter(new ValueFormatter() {
             @Override
             public String getFormattedValue(float value) {
@@ -1425,9 +1426,9 @@ public abstract class ImportGraphsFragment extends Fragment {
                         String.format(Locale.UK, "%d", (long)value) : String.format("%s", value)) + " kWh");
             }
         });
-        mBarChart.getXAxis().setTextColor(Color.DKGRAY);
-        mBarChart.getLegend().setTextColor(Color.DKGRAY);
-        mBarChart.getDescription().setTextColor(Color.DKGRAY);
+        mBarChart.getXAxis().setTextColor(DEEP_TEAL);
+        mBarChart.getLegend().setTextColor(DEEP_TEAL);
+        mBarChart.getDescription().setTextColor(DEEP_TEAL);
 
         ArrayList<BarEntry> loadEntries = new ArrayList<>();
         ArrayList<BarEntry> feedEntries = new ArrayList<>();
@@ -1469,21 +1470,21 @@ public abstract class ImportGraphsFragment extends Fragment {
         pvSet.setColor(Color.RED);
 
         BarDataSet pv2batSet = new BarDataSet(pv2batEntries, "PV2Bat");
-        pvSet.setColor(Color.GREEN);
+        pv2batSet.setColor(Color.GREEN);
         BarDataSet pv2loadSet = new BarDataSet(pv2loadEntries, "PV2Load");
-        pvSet.setColor(Color.GRAY);
+        pv2loadSet.setColor(Color.GRAY);
         BarDataSet bat2loadSet = new BarDataSet(bat2loadEntries, "Bat2Load");
-        pvSet.setColor(Color.DKGRAY);
+        bat2loadSet.setColor(DEEP_TEAL);
         BarDataSet grid2batSet = new BarDataSet(grid2batEntries, "Grid2Bat");
-        pvSet.setColor(Color.MAGENTA);
+        grid2batSet.setColor(Color.MAGENTA);
         BarDataSet evScheduleSet = new BarDataSet(evScheduleEntries, "EVSchedule");
-        pvSet.setColor(ORANGE);
+        evScheduleSet.setColor(ORANGE);
         BarDataSet evDivertSet = new BarDataSet(evDivertEntries, "EVDivert");
-        pvSet.setColor(Color.LTGRAY);
+        evDivertSet.setColor(PALE_YELLOW_GREEN);
         BarDataSet hwScheduleSet = new BarDataSet(hwScheduleEntries, "HWSchedule");
-        pvSet.setColor(PURPLE);
+        hwScheduleSet.setColor(PURPLE);
         BarDataSet hwDivertSet = new BarDataSet(hwDivertEntries, "HWDivert");
-        pvSet.setColor(BROWN);
+        hwDivertSet.setColor(BROWN);
 
         ArrayList<IBarDataSet> dataSets = new ArrayList<>();
         if (mShowLoad) dataSets.add(loadSet);

@@ -19,7 +19,6 @@ package com.tfcode.comparetout.scenario;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.importers.ImportGraphsFragment;
-import com.tfcode.comparetout.importers.alphaess.ImportAlphaGraphs;
 
 public class ScenarioGraphs extends ImportGraphsFragment {
 
