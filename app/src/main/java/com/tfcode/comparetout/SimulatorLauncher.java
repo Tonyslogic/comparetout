@@ -62,7 +62,8 @@ public class SimulatorLauncher {
                 new OneTimeWorkRequest.Builder(PVGISLoader.class)
                         .addTag(panelID.toString())
                         .setInputData(data.build())
-                        .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+// Setting expedited breaks some older android version as they expect foreground interfaces to be implemented
+//                        .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
                         .build();
 
         WorkManager workManager = WorkManager.getInstance(context);

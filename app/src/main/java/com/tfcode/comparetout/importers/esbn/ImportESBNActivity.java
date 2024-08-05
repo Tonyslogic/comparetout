@@ -91,7 +91,8 @@ public class ImportESBNActivity extends AppCompatActivity implements GraphableAc
                             new OneTimeWorkRequest.Builder(ESBNImportWorker.class)
                                     .setInputData(inputData)
                                     .addTag(mSerialNumber + "Import")
-                                    .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+// Setting expedited breaks some older android version as they expect foreground interfaces to be implemented
+//                        .setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
                                     .build();
                     WorkManager.getInstance(getApplicationContext()).pruneWork();
                     WorkManager
