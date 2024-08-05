@@ -18,9 +18,9 @@ package com.tfcode.comparetout.scenario;
 
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
-import com.tfcode.comparetout.importers.ImportGraphsFragment;
+import com.tfcode.comparetout.util.BaseGraphsFragment;
 
-public class ScenarioGraphs extends ImportGraphsFragment {
+public class ScenarioGraphs extends BaseGraphsFragment {
 
     public ScenarioGraphs() {
         mImporterType = ComparisonUIViewModel.Importer.SIMULATION;

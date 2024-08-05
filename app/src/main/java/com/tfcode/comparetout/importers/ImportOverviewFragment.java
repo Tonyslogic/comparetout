@@ -78,6 +78,7 @@ import com.tfcode.comparetout.model.costings.SubTotals;
 import com.tfcode.comparetout.model.importers.CostInputRow;
 import com.tfcode.comparetout.model.importers.InverterDateRange;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
+import com.tfcode.comparetout.util.GraphableActivity;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 import com.tfcode.comparetout.util.RateLookup;
 
@@ -615,7 +616,7 @@ public abstract class ImportOverviewFragment extends Fragment {
     }
 
     protected void serialUpdated(Context context) {
-        ((ImportSystemSelection) requireActivity()).setSelectedSystemSN(mSerialNumber);
+        ((GraphableActivity) requireActivity()).setSelectedSystemSN(mSerialNumber);
         mSystemSelected = true;
 
         if (!(null == getActivity()) && !(null == getActivity().getApplication())) {

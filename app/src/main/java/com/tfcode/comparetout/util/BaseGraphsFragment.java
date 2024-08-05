@@ -14,7 +14,7 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.importers;
+package com.tfcode.comparetout.util;
 
 import static com.tfcode.comparetout.importers.alphaess.IntervalType.DOY;
 import static com.tfcode.comparetout.importers.alphaess.IntervalType.HOUR;
@@ -73,6 +73,7 @@ import com.google.android.material.datepicker.MaterialDatePicker;
 import com.google.android.material.textview.MaterialTextView;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
+import com.tfcode.comparetout.importers.ChartView;
 import com.tfcode.comparetout.importers.alphaess.CalculationType;
 import com.tfcode.comparetout.importers.alphaess.IntervalType;
 import com.tfcode.comparetout.importers.alphaess.StepIntervalType;
@@ -94,7 +95,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
-public abstract class ImportGraphsFragment extends Fragment {
+public abstract class BaseGraphsFragment extends Fragment {
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final DateTimeFormatter PARSER_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     private static final String MIDNIGHT = " 00:00:00";
@@ -243,7 +244,7 @@ public abstract class ImportGraphsFragment extends Fragment {
             mChartView = ChartView.values()[savedInstanceState.getInt(CHART)];
         }
         if (null == mSystemSN)
-            mSystemSN = ((ImportSystemSelection) requireActivity()).getSelectedSystemSN();
+            mSystemSN = ((GraphableActivity) requireActivity()).getSelectedSystemSN();
 
         mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
         mViewModel.getLiveDateRanges(mImporterType).observe(this, dateRanges -> {
@@ -273,7 +274,7 @@ public abstract class ImportGraphsFragment extends Fragment {
                     mTo = now.format(DATE_FORMAT);
                 }
                 if (null == mSystemSN)
-                    mSystemSN = ((ImportSystemSelection) requireActivity()).getSelectedSystemSN();
+                    mSystemSN = ((GraphableActivity) requireActivity()).getSelectedSystemSN();
                 switch (mCalculation) {
                     case SUM:
                         switch (mDisplayInterval) {
@@ -671,7 +672,7 @@ public abstract class ImportGraphsFragment extends Fragment {
     private void updateView() {
         if (null == getContext()) return;
         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
-            ImportActivity activity = (ImportActivity) getActivity();
+            GraphableActivity activity = (GraphableActivity) getActivity();
             if (!(null == activity)) activity.hideFAB();
         }
 
@@ -1173,8 +1174,6 @@ public abstract class ImportGraphsFragment extends Fragment {
             PieChart hwSchedulePie = getPieChart("HWSchedule (" + new DecimalFormat("0.00").format(hwSchedule) + " kWh)", hwScheduleMap);
             PieChart hwDivertPie = getPieChart("HWDivert (" + new DecimalFormat("0.00").format(hwDivert) + " kWh)", hwDivertMap);
 
-//            int visible = 0;
-//            int shown = 0;
             List<PieChart> piesToShow = new ArrayList<>();
             if (mShowLoad) piesToShow.add(loadPie);
             if (mShowPV) piesToShow.add(pvPie);

@@ -17,9 +17,9 @@
 package com.tfcode.comparetout.importers.alphaess;
 
 import com.tfcode.comparetout.ComparisonUIViewModel;
-import com.tfcode.comparetout.importers.ImportGraphsFragment;
+import com.tfcode.comparetout.util.BaseGraphsFragment;
 
-public class ImportAlphaGraphs extends ImportGraphsFragment {
+public class ImportAlphaGraphs extends BaseGraphsFragment {
 
     public ImportAlphaGraphs() {
         // Required empty public constructor

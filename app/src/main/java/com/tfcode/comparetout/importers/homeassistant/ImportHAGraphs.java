@@ -17,9 +17,9 @@
 package com.tfcode.comparetout.importers.homeassistant;
 
 import com.tfcode.comparetout.ComparisonUIViewModel;
-import com.tfcode.comparetout.importers.ImportGraphsFragment;
+import com.tfcode.comparetout.util.BaseGraphsFragment;
 
-public class ImportHAGraphs extends ImportGraphsFragment {
+public class ImportHAGraphs extends BaseGraphsFragment {
 
     public ImportHAGraphs() {
         // Required empty public constructor

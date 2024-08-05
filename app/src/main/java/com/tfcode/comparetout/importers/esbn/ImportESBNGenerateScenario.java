@@ -45,7 +45,7 @@ import com.google.android.material.datepicker.CalendarConstraints;
 import com.google.android.material.datepicker.MaterialDatePicker;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
-import com.tfcode.comparetout.importers.ImportSystemSelection;
+import com.tfcode.comparetout.util.GraphableActivity;
 import com.tfcode.comparetout.model.importers.InverterDateRange;
 
 import java.time.Instant;
@@ -115,7 +115,7 @@ public class ImportESBNGenerateScenario extends Fragment {
             mDatesOK = savedInstanceState.getBoolean(OK_DATES);
         }
         if (null == mSystemSN)
-            mSystemSN = ((ImportSystemSelection) requireActivity()).getSelectedSystemSN();
+            mSystemSN = ((GraphableActivity) requireActivity()).getSelectedSystemSN();
         ComparisonUIViewModel mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
 
         mViewModel.getLiveDateRanges(ComparisonUIViewModel.Importer.ESBNHDF).observe(this, dateRanges -> {

@@ -18,9 +18,9 @@ package com.tfcode.comparetout.importers.esbn;
 
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
-import com.tfcode.comparetout.importers.ImportGraphsFragment;
+import com.tfcode.comparetout.util.BaseGraphsFragment;
 
-public class ImportESBNGraphs extends ImportGraphsFragment {
+public class ImportESBNGraphs extends BaseGraphsFragment {
 
     public ImportESBNGraphs() {
         // Required empty public constructor

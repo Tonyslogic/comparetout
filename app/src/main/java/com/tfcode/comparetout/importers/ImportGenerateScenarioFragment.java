@@ -48,6 +48,7 @@ import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.importers.InverterDateRange;
 import com.tfcode.comparetout.util.AbstractTextWatcher;
+import com.tfcode.comparetout.util.GraphableActivity;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -151,7 +152,7 @@ public abstract class ImportGenerateScenarioFragment extends Fragment {
                     .collect(Collectors.toList());
         }
         if (null == mSystemSN)
-            mSystemSN = ((ImportSystemSelection) requireActivity()).getSelectedSystemSN();
+            mSystemSN = ((GraphableActivity) requireActivity()).getSelectedSystemSN();
         ComparisonUIViewModel mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
 
         mViewModel.getLiveDateRanges(mImporterType).observe(this, dateRanges -> {

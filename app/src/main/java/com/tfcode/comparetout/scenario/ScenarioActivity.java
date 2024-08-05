@@ -52,8 +52,7 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
-import com.tfcode.comparetout.importers.ImportActivity;
-import com.tfcode.comparetout.importers.ImportSystemSelection;
+import com.tfcode.comparetout.util.GraphableActivity;
 import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
@@ -62,7 +61,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class ScenarioActivity extends AppCompatActivity implements ImportSystemSelection, ImportActivity {
+public class ScenarioActivity extends AppCompatActivity implements GraphableActivity {
 
     private ProgressBar mSimulationInProgressBar;
     private boolean mSimulationInProgress = false;

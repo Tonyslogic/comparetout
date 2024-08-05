@@ -52,14 +52,13 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.R;
-import com.tfcode.comparetout.importers.ImportActivity;
-import com.tfcode.comparetout.importers.ImportSystemSelection;
+import com.tfcode.comparetout.util.GraphableActivity;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.util.ArrayList;
 import java.util.Objects;
 
-public class ImportESBNActivity extends AppCompatActivity implements ImportSystemSelection, ImportActivity {
+public class ImportESBNActivity extends AppCompatActivity implements GraphableActivity {
 
     ViewPager2 mViewPager;
 
@@ -303,7 +302,7 @@ public class ImportESBNActivity extends AppCompatActivity implements ImportSyste
     public void setSelectedSystemSN(String serialNumber) {
         mSerialNumber = serialNumber;
         if (!(null == mViewPager) && !(null == mViewPager.getAdapter()))
-            ((ImportSystemSelection)mViewPager.getAdapter()).setSelectedSystemSN(mSerialNumber);
+            ((GraphableActivity)mViewPager.getAdapter()).setSelectedSystemSN(mSerialNumber);
     }
 
     public long getScenarioID() {

@@ -14,8 +14,10 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout.importers;
+package com.tfcode.comparetout.util;
 
-public interface ImportActivity {
+public interface GraphableActivity {
     void hideFAB();
+    String getSelectedSystemSN();
+    void setSelectedSystemSN(String serialNumber);
 }

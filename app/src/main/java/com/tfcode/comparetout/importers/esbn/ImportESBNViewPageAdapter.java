@@ -21,9 +21,9 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 
-import com.tfcode.comparetout.importers.ImportSystemSelection;
+import com.tfcode.comparetout.util.GraphableActivity;
 
-public class ImportESBNViewPageAdapter extends FragmentStateAdapter  implements ImportSystemSelection {
+public class ImportESBNViewPageAdapter extends FragmentStateAdapter  implements GraphableActivity {
     ImportESBNOverview mESBNOverview = ImportESBNOverview.newInstance();
     ImportESBNGraphs mESBNGraphs = ImportESBNGraphs.newInstance();
     ImportESBNGenerateScenario mESBNGenerate = ImportESBNGenerateScenario.newInstance();
@@ -43,6 +43,11 @@ public class ImportESBNViewPageAdapter extends FragmentStateAdapter  implements 
     @Override
     public int getItemCount() {
         return 3;
+    }
+
+    @Override
+    public void hideFAB() {
+        // Do nothing
     }
 
     @Override

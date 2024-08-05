@@ -47,6 +47,7 @@ import com.tfcode.comparetout.importers.alphaess.StepIntervalType;
 import com.tfcode.comparetout.model.importers.InverterDateRange;
 import com.tfcode.comparetout.model.importers.alphaess.KPIRow;
 import com.tfcode.comparetout.model.importers.alphaess.KeyStatsRow;
+import com.tfcode.comparetout.util.GraphableActivity;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -110,7 +111,7 @@ public class ImportKeyStatsFragment extends Fragment {
             mMonthFilterSelection = savedInstanceState.getInt(MONTH_FILTER);
         }
         if (null == mSystemSN)
-            mSystemSN = ((ImportSystemSelection) requireActivity()).getSelectedSystemSN();
+            mSystemSN = ((GraphableActivity) requireActivity()).getSelectedSystemSN();
 
         mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
         mViewModel.getLiveDateRanges(mImporterType).observe(this, dateRanges -> {
@@ -140,7 +141,7 @@ public class ImportKeyStatsFragment extends Fragment {
                     mTo = now.format(DATE_FORMAT);
                 }
                 if (null == mSystemSN)
-                    mSystemSN = ((ImportSystemSelection) requireActivity()).getSelectedSystemSN();
+                    mSystemSN = ((GraphableActivity) requireActivity()).getSelectedSystemSN();
                 mKeyStats = mViewModel.getKeyStats(mImporterType, mFrom, mTo, mSystemSN);
                 mKPIs = mViewModel.getKPIs(mImporterType, mFrom, mTo, mSystemSN);
                 if (!(null == mMainHandler)) mMainHandler.post(this::updateView);
@@ -455,7 +456,7 @@ public class ImportKeyStatsFragment extends Fragment {
     private void updateView() {
         if (null == getContext()) return;
         if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
-            ImportActivity activity = (ImportActivity) getActivity();
+            GraphableActivity activity = (GraphableActivity) getActivity();
             if (!(null == activity)) activity.hideFAB();
         }
 

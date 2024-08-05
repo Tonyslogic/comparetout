@@ -21,9 +21,9 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentActivity;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 
-import com.tfcode.comparetout.importers.ImportSystemSelection;
+import com.tfcode.comparetout.util.GraphableActivity;
 
-public class ImportAlphaViewPageAdapter  extends FragmentStateAdapter  implements ImportSystemSelection {
+public class ImportAlphaViewPageAdapter  extends FragmentStateAdapter  implements GraphableActivity {
     ImportAlphaOverview mAlphaOverview = ImportAlphaOverview.newInstance();
     ImportAlphaGraphs mAlphaGraphs = ImportAlphaGraphs.newInstance();
     ImportAlphaKeyStats mAlphaKeys = ImportAlphaKeyStats.newInstance();
@@ -45,6 +45,11 @@ public class ImportAlphaViewPageAdapter  extends FragmentStateAdapter  implement
     @Override
     public int getItemCount() {
         return 4;
+    }
+
+    @Override
+    public void hideFAB() {
+        // Do nothing
     }
 
     @Override
