@@ -171,12 +171,14 @@ public abstract class AlphaEssDAO {
     @Query("SELECT main.Month, " +
             "tot AS 'PV tot (kWh)', " +
             "best || ' on ' || bestday AS 'Best', " +
-            "worst.bad || ' on ' || badday AS 'Worst' " +
+            "worst.bad || ' on ' || badday AS 'Worst', " +
+            "Average " +
             "FROM  " +
             "(SELECT substr(theDate, 3, 5) AS Month, " +
             "SUM(energypv) AS tot, " +
             "MAX(energypv) AS best, " +
-            "substr(theDate,9,2) AS bestday " +
+            "substr(theDate,9,2) AS bestday, " +
+            "ROUND(AVG(energypv) * 100) / 100 AS Average " +
             "FROM alphaESSRawEnergy " +
             "WHERE theDate >= :from AND theDate <= :to AND sysSn = :systemSN " +
             "GROUP BY Month " +
@@ -196,16 +198,17 @@ public abstract class AlphaEssDAO {
     @Query(" SELECT main.Month, " +
             "ROUND(tot, 2) AS 'PV tot (kWh)', " +
             "ROUND(best, 2) || ' on ' || bestday AS 'Best', " +
-            "ROUND(worst.bad, 2) || ' on ' || badday AS 'Worst' " +
+            "ROUND(worst.bad, 2) || ' on ' || badday AS 'Worst', " +
+            "Average " +
             "FROM  " +
             "(" +
-            "SELECT substr(cMonth, 1,5) AS Month, SUM(bad) AS tot, MAX(bad) AS best, badday AS bestday FROM ( \n" +
-            "SELECT substr(date, 3) AS cMonth, \n" +
-            "SUM(pv) AS bad, \n" +
-            "substr(date,9,2) AS badday \n" +
-            "FROM alphaESSTransformedData \n" +
+            "SELECT substr(cMonth, 1,5) AS Month, SUM(bad) AS tot, MAX(bad) AS best, badday AS bestday, ROUND(AVG(bad) * 100) / 100 AS Average  FROM ( " +
+            "SELECT substr(date, 3) AS cMonth, " +
+            "SUM(pv) AS bad, " +
+            "substr(date,9,2) AS badday " +
+            "FROM alphaESSTransformedData " +
             "WHERE sysSn = :systemSN AND date >= :from AND date <= :to " +
-            "GROUP BY cMonth ORDER BY cMonth ) \n" +
+            "GROUP BY cMonth ORDER BY cMonth ) " +
             "GROUP BY Month" +
             ") AS main, " +
             "( " +
@@ -222,7 +225,11 @@ public abstract class AlphaEssDAO {
             "GROUP BY Month ORDER BY Month ASC")
     public abstract List<KeyStatsRow> getHAKeyStats(String from, String to, String systemSN);
 
-    @Query("SELECT ((sum(pv) - sum(feed)) / sum(pv)) * 100 AS SC, ((sum(pv) - sum(feed)) / sum(load)) * 100 AS SS " +
+    @Query("SELECT ((sum(pv) - sum(feed)) / sum(pv)) * 100 AS SC, " +
+            "((sum(pv) - sum(feed)) / sum(load)) * 100 AS SS, " +
+            "((sum(pv) / sum(load)) * 100) AS MSS, " +
+            "(ROUND(sum(pv) * 100) / 100) AS PV, " +
+            "(ROUND(sum(feed) * 100) / 100) FEED " +
             "FROM alphaESSTransformedData WHERE date >= :from AND date <= :to AND sysSn = :systemSN")
     public abstract KPIRow getKPIs(String from, String to, String systemSN);
 

@@ -12,9 +12,13 @@ Internal test version V1.41
 
 Read more on the [documentation site](https://github.com/Tonyslogic/comparetout-doc)
 
+V1.42
+
+* Better key stats for importers
+
 V1.41
 
-* BUGFIX: Remove redundant foreground permission 
+* BUGFIX: Remove redundant foreground permission
 
 V1.40
 

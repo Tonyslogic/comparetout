@@ -23,5 +23,6 @@ public class KeyStatsRow {
     @ColumnInfo(name= "PV tot (kWh)") public String total;
     @ColumnInfo(name= "Best") public String best;
     @ColumnInfo(name= "Worst") public String worst;
+    @ColumnInfo(name= "Average") public String average;
 
 }

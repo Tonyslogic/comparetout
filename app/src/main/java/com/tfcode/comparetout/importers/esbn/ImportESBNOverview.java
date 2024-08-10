@@ -82,6 +82,7 @@ public class ImportESBNOverview extends ImportOverviewFragment {
         GOOD_CREDENTIAL_KEY = "esbn_cred_good";
         SYSTEM_LIST_KEY = ESBN_SYSTEM_LIST_KEY;
         SYSTEM_PREVIOUSLY_SELECTED = ESBN_PREVIOUS_SELECTED_KEY;
+        mSelectSystemText = R.string.SelectMPRN;
     }
 
     @Override

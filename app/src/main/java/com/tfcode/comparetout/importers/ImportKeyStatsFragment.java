@@ -84,6 +84,7 @@ public class ImportKeyStatsFragment extends Fragment {
     private PopupMenu mFilterPopup;
     private int mMonthFilterSelection = 0;
     private TableLayout mKeyStatsTable;
+    private TableLayout mKPIsTable;
     private TextView mPicks;
     private TextView mNoGraphDataTextView;
     private List<KeyStatsRow> mKeyStats;
@@ -142,7 +143,13 @@ public class ImportKeyStatsFragment extends Fragment {
                 }
                 if (null == mSystemSN)
                     mSystemSN = ((GraphableActivity) requireActivity()).getSelectedSystemSN();
-                mKeyStats = mViewModel.getKeyStats(mImporterType, mFrom, mTo, mSystemSN);
+                String first = mFrom;
+                String second = mTo;
+                if (!(null == mInverterDateRangesBySN) && !(null == mInverterDateRangesBySN.get(mSystemSN))) {
+                    first = Objects.requireNonNull(mInverterDateRangesBySN.get(mSystemSN)).first;
+                    second = Objects.requireNonNull(mInverterDateRangesBySN.get(mSystemSN)).second;
+                }
+                mKeyStats = mViewModel.getKeyStats(mImporterType, first, second, mSystemSN);
                 mKPIs = mViewModel.getKPIs(mImporterType, mFrom, mTo, mSystemSN);
                 if (!(null == mMainHandler)) mMainHandler.post(this::updateView);
             }
@@ -164,8 +171,9 @@ public class ImportKeyStatsFragment extends Fragment {
         mPicks = view.findViewById((R.id.picks));
         setSelectionText();
 
-        mNoGraphDataTextView = view.findViewById((R.id.alphaess_no_data));
-        mKeyStatsTable = view.findViewById((R.id.alphaess_key_stats));
+        mNoGraphDataTextView = view.findViewById(R.id.alphaess_no_data);
+        mKeyStatsTable = view.findViewById(R.id.alphaess_key_stats);
+        mKPIsTable = view.findViewById(R.id.alphaess_kpis);
 
         mIntervalButton = view.findViewById((R.id.interval));
         setupPopupGraphConfigurationMenu();
@@ -463,20 +471,21 @@ public class ImportKeyStatsFragment extends Fragment {
         boolean showText = false;
         if (!(null == mKPIs) && !(null == mKeyStats)) {
             mKeyStatsTable.setVisibility(View.VISIBLE);
+            mKPIsTable.setVisibility(View.VISIBLE);
             mNoGraphDataTextView.setVisibility(View.INVISIBLE);
-            mKeyStatsTable.removeAllViews();
-            mKeyStatsTable.setShrinkAllColumns(false);
-            mKeyStatsTable.setStretchAllColumns(true);
-            mKeyStatsTable.setColumnShrinkable(0, true);
-            mKeyStatsTable.setColumnStretchable(0, false);
+            resetTable(mKeyStatsTable);
+            resetTable(mKPIsTable);
             // Add the KPIS row
-            createRow("Self consumption:", String.format("%.2f", mKPIs.selfConsumption) + "%",
-                    "Self sufficiency:", String.format("%.2f", mKPIs.selfSufficiency) + "%", false);
+            createRow(mKPIsTable, "Self consumption:", "(PV - Feed) / PV", String.format("%.2f", mKPIs.selfConsumption) + "%",  null, null, false);
+            createRow(mKPIsTable, "Self sufficiency:", "(PV - Feed) / Load", String.format("%.2f", mKPIs.selfSufficiency) + "%",  null, null, false);
+            createRow(mKPIsTable, "Max self sufficiency:", "PV / Load", String.format("%.2f", mKPIs.maxSelfSufficiency) + "%",  null, null, false);
+            createRow(mKPIsTable, "Generation (kWh):", "PV", String.format("%.2f", mKPIs.pv),  null, null, false);
+            createRow(mKPIsTable, "Feed (kWh):", "Feed", String.format("%.2f", mKPIs.feed),  null, null, false);
             // Add the Key stats rows
-            createRow("YY-MM", "PV Tot (kWh)", "Best (kWh)", "Worst (kWh)", true);
+            createRow(mKeyStatsTable, "YY-MM", "PV Tot", "Best", "Worst", "Average", true);
             for (KeyStatsRow keyStat : mKeyStats) {
                 if ((keyStat.month.endsWith(String.format("%02d", mMonthFilterSelection))) || mMonthFilterSelection == 0)
-                    createRow(keyStat.month, keyStat.total, keyStat.best, keyStat.worst, false);
+                    createRow(mKeyStatsTable, keyStat.month, keyStat.total, keyStat.best, keyStat.worst, keyStat.average, false);
             }
         } else showText = true;
 
@@ -484,16 +493,29 @@ public class ImportKeyStatsFragment extends Fragment {
             if (mKeyStatsTable != null) {
                 mKeyStatsTable.setVisibility(View.INVISIBLE);
             }
+            if (mKPIsTable != null) {
+                mKPIsTable.setVisibility(View.INVISIBLE);
+            }
             mNoGraphDataTextView.setVisibility(View.VISIBLE);
             mNoGraphDataTextView.setText(R.string.no_data_available);
         }
     }
 
-    private void createRow(String col1, String col2, String col3, String col4, boolean title) {
+    private void resetTable(TableLayout table) {
+        table.removeAllViews();
+        table.setShrinkAllColumns(false);
+        table.setStretchAllColumns(true);
+        table.setColumnShrinkable(0, true);
+        table.setColumnStretchable(0, false);
+    }
+
+    private void createRow(TableLayout table, String col1, String col2, String col3, String col4, String col5, boolean title) {
 
         if (!(null == getActivity())) {
             TableRow tableRow;
             tableRow = new TableRow(getActivity());
+            boolean showCol4 = !(null == col4);
+            boolean showCol5 = !(null == col5);
 
             // CREATE PARAM FOR MARGINING
             TableRow.LayoutParams planParams = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
@@ -504,12 +526,14 @@ public class ImportKeyStatsFragment extends Fragment {
             TextView c = new TextView(getActivity());
             TextView d = new TextView(getActivity());
             TextView e = new TextView(getActivity());
+            TextView f = new TextView(getActivity());
 
             if (title) {
                 b.setTypeface(b.getTypeface(), Typeface.BOLD);
                 c.setTypeface(c.getTypeface(), Typeface.BOLD);
                 d.setTypeface(d.getTypeface(), Typeface.BOLD);
                 e.setTypeface(e.getTypeface(), Typeface.BOLD);
+                f.setTypeface(e.getTypeface(), Typeface.BOLD);
             }
 
             // SET PARAMS
@@ -517,25 +541,29 @@ public class ImportKeyStatsFragment extends Fragment {
             c.setLayoutParams(planParams);
             d.setLayoutParams(planParams);
             e.setLayoutParams(planParams);
+            f.setLayoutParams(planParams);
 
             // SET PADDING
             b.setPadding(10, 25, 10, 25);
             c.setPadding(10, 25, 10, 25);
             d.setPadding(10, 25, 10, 25);
             e.setPadding(10, 25, 10, 25);
+            f.setPadding(10, 25, 10, 25);
 
             b.setText(col1);
             c.setText(col2);
             d.setText(col3);
             e.setText(col4);
+            if (showCol5) f.setText(col5);
 
             tableRow.addView(b);
             tableRow.addView(c);
             tableRow.addView(d);
-            tableRow.addView(e);
+            if (showCol4) tableRow.addView(e);
+            if (showCol5) tableRow.addView(f);
 
             // ADD TABLEROW TO TABLELAYOUT
-            mKeyStatsTable.addView(tableRow);
+            table.addView(tableRow);
         }
     }
 

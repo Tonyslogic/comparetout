@@ -144,6 +144,7 @@ public abstract class ImportOverviewFragment extends Fragment {
     private View mPopupPieView;
     private PopupWindow mPieChartWindow;
     private int mOrientation = Configuration.ORIENTATION_PORTRAIT;
+    protected int mSelectSystemText = R.string.SelectSystem;
 
     @Override
     public void onResume() {
@@ -530,7 +531,7 @@ public abstract class ImportOverviewFragment extends Fragment {
         TableRow systemSelectionRow = new TableRow(activity);
 
         MaterialButton systemButton = new MaterialButton(activity);
-        systemButton.setText(R.string.SelectSystem);
+        systemButton.setText(mSelectSystemText);
         systemButton.setEnabled(mCredentialsAreGood && !(null == mSerialNumbers));
         TextView systemStatus = new TextView(activity);
         systemStatus.setText(!(null == mSerialNumber) ? mSerialNumber : (null == mSerialNumbers) ? "None registered" : "Not set");

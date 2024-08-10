@@ -21,5 +21,8 @@ import androidx.room.ColumnInfo;
 public class KPIRow {
     @ColumnInfo(name= "SC") public Double selfConsumption;
     @ColumnInfo(name= "SS") public Double selfSufficiency;
+    @ColumnInfo(name= "MSS") public Double maxSelfSufficiency;
+    @ColumnInfo(name= "PV") public Double pv;
+    @ColumnInfo(name= "FEED") public Double feed;
 
 }
