@@ -12,7 +12,7 @@ Internal test version V1.44
 
 Read more on the [documentation site](https://github.com/Tonyslogic/comparetout-doc)
 
-V1.43
+V1.44
 
 * Support both ESBN HDF files
 
