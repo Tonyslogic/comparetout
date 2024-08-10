@@ -190,7 +190,7 @@ public abstract class ImportOverviewFragment extends Fragment {
 
                 try {
                     mStartLDT = LocalDateTime.parse(startDate + MIDNIGHT, PARSER_FORMATTER);
-                    mEndLDT = LocalDateTime.parse(endDate + MIDNIGHT, PARSER_FORMATTER);
+                    mEndLDT = LocalDateTime.parse(endDate + MIDNIGHT, PARSER_FORMATTER).plusDays(1);
                 } catch (Exception ignored) {}
 
                 loadSystemListFromPreferences(application);

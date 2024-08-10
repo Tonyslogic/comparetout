@@ -65,7 +65,7 @@ public class ESBNHDFClientTest {
         NavigableMap<LocalDateTime, Double> mImports = new TreeMap<>();
         NavigableMap<LocalDateTime, Double> mExports = new TreeMap<>();
 
-        mImport.fetchSmartMeterDataFromDate("2024-01-18", (type, ldt, value) -> {
+        mImport.fetchSmartMeterDataFromDate("2024-01-18", (calc, type, ldt, value) -> {
             switch (type) {
                 case IMPORT: mImports.put(ldt, value); break;
                 case EXPORT: mExports.put(ldt, value); break;
@@ -81,7 +81,7 @@ public class ESBNHDFClientTest {
         NavigableMap<LocalDateTime, Double> mImports = new TreeMap<>();
         NavigableMap<LocalDateTime, Double> mExports = new TreeMap<>();
 
-        mImport.fetchSmartMeterDataHDF((type, ldt, value) -> {
+        mImport.fetchSmartMeterDataHDF((calc, type, ldt, value) -> {
             switch (type) {
                 case IMPORT: mImports.put(ldt, value); break;
                 case EXPORT: mExports.put(ldt, value); break;

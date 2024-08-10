@@ -45,6 +45,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import okhttp3.FormBody;
 import okhttp3.JavaNetCookieJar;
@@ -69,6 +70,8 @@ public class ESBNHDFClient {
     private static final int READ_TYPE = 3;
     private static final int READ_DATETIME = 4;
     private static final String EXPORT_READ_TYPE = "Export";
+    private static final String EXPORT_READ_PATTERN = ".*Export.*";
+    private static final String READ_KWH_PATTERN = ".*\\(kWh\\)";
     private static final DateTimeFormatter HDF_FORMAT = DateTimeFormatter.ofPattern("dd-MM-yyyy HH:mm");
     private static final DateTimeFormatter RANGE_FORMAT_X = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
@@ -277,9 +280,13 @@ public class ESBNHDFClient {
             String dt = nextLine[READ_DATETIME].split("\\+")[0];
             LocalDateTime readTime = LocalDateTime.parse(dt, HDF_FORMAT);
             Double reading = Double.parseDouble(nextLine[READ_VALUE]);
-            boolean export = nextLine[READ_TYPE].contains(EXPORT_READ_TYPE);
-            if (export) processor.processLine(ESBNImportExportEntry.HDFLineType.EXPORT, readTime, reading);
-            else processor.processLine(ESBNImportExportEntry.HDFLineType.IMPORT, readTime, reading);
+            boolean export;
+            boolean calculated;
+            String text = nextLine[READ_TYPE];
+            calculated = Pattern.matches(READ_KWH_PATTERN, text);
+            export = Pattern.matches(EXPORT_READ_PATTERN, text);
+            if (export) processor.processLine(calculated, ESBNImportExportEntry.HDFLineType.EXPORT, readTime, reading);
+            else processor.processLine(calculated, ESBNImportExportEntry.HDFLineType.IMPORT, readTime, reading);
         }
         return mprnFromFile;
     }
@@ -308,13 +315,13 @@ public class ESBNHDFClient {
                         LocalDateTime readTime =
                                 LocalDateTime.parse(item.x.split("\\+")[0], RANGE_FORMAT_X);
                         Double reading = item.y;
-                        processor.processLine(ESBNImportExportEntry.HDFLineType.IMPORT, readTime, reading);
+                        processor.processLine(false, ESBNImportExportEntry.HDFLineType.IMPORT, readTime, reading);
                     }
                     for (FetchRangeResponse.ExportItem item : fetchRangeResponse.exports) {
                         LocalDateTime
                                 readTime = LocalDateTime.parse(item.x.split("\\+")[0], RANGE_FORMAT_X);
                         Double reading = item.y;
-                        processor.processLine(ESBNImportExportEntry.HDFLineType.EXPORT, readTime, reading);
+                        processor.processLine(false, ESBNImportExportEntry.HDFLineType.EXPORT, readTime, reading);
                     }
                 }
                 else {

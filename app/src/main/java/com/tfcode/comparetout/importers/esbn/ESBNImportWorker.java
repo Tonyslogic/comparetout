@@ -117,21 +117,21 @@ public class ESBNImportWorker extends Worker {
         Map<LocalDateTime, Pair<Double, Double>> timeAlignedEntries = new HashMap<>();
         AtomicReference<LocalDateTime> last = new AtomicReference<>(LocalDateTime.of(1970,1, 1, 0, 0));
         try (InputStream is = getApplicationContext().getContentResolver().openInputStream(fileUri)){
-            String mprnFromFile = ESBNHDFClient.readEntriesFromFile(is, (type, ldt, value) -> {
+            String mprnFromFile = ESBNHDFClient.readEntriesFromFile(is, (calc, type, ldt, value) -> {
                 Pair<Double, Double> importExport = timeAlignedEntries.get(ldt);
                 if (ldt.isAfter(last.get())) last.set(ldt);
                 switch (type) {
                     case IMPORT:
                         if ((null == importExport))
-                            timeAlignedEntries.put(ldt, new Pair<>(value/2D, 0D));
+                            timeAlignedEntries.put(ldt, new Pair<>(value/(calc ? 1D : 2D), 0D));
                         else
-                            timeAlignedEntries.put(ldt, new Pair<>(value/2D, importExport.second));
+                            timeAlignedEntries.put(ldt, new Pair<>(value/(calc ? 1D : 2D), importExport.second));
                         break;
                     case EXPORT:
                         if ((null == importExport))
-                            timeAlignedEntries.put(ldt, new Pair<>(0D, value/2D));
+                            timeAlignedEntries.put(ldt, new Pair<>(0D, value/(calc ? 1D : 2D)));
                         else
-                            timeAlignedEntries.put(ldt, new Pair<>(importExport.second, value/2D));
+                            timeAlignedEntries.put(ldt, new Pair<>(importExport.second, value/(calc ? 1D : 2D)));
                         break;
                 }
             });

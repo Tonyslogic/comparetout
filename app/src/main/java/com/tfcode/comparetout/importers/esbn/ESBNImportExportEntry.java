@@ -19,7 +19,7 @@ package com.tfcode.comparetout.importers.esbn;
 import java.time.LocalDateTime;
 
 public interface ESBNImportExportEntry {
-    void processLine(HDFLineType type, LocalDateTime ldt, Double value);
+    void processLine(boolean calculated, HDFLineType type, LocalDateTime ldt, Double value);
 
     enum HDFLineType {
         IMPORT,

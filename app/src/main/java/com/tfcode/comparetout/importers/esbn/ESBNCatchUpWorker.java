@@ -141,21 +141,21 @@ public class ESBNCatchUpWorker extends Worker {
         {
             // we need to download the HDF
             try {
-                esbnHDFClient.fetchSmartMeterDataHDF((type, ldt, value) -> {
+                esbnHDFClient.fetchSmartMeterDataHDF((calc, type, ldt, value) -> {
                     Pair<Double, Double> importExport = timeAlignedEntries.get(ldt);
                     if (ldt.isAfter(last.get())) last.set(ldt);
                     switch (type) {
                         case IMPORT:
                             if ((null == importExport))
-                                timeAlignedEntries.put(ldt, new Pair<>(value/2D, 0D));
+                                timeAlignedEntries.put(ldt, new Pair<>(value/(calc ? 1D : 2D), 0D));
                             else
-                                timeAlignedEntries.put(ldt, new Pair<>(value/2D, importExport.second));
+                                timeAlignedEntries.put(ldt, new Pair<>(value/(calc ? 1D : 2D), importExport.second));
                             break;
                         case EXPORT:
                             if ((null == importExport))
-                                timeAlignedEntries.put(ldt, new Pair<>(0D, value/2D));
+                                timeAlignedEntries.put(ldt, new Pair<>(0D, value/(calc ? 1D : 2D)));
                             else
-                                timeAlignedEntries.put(ldt, new Pair<>(importExport.first, value/2D));
+                                timeAlignedEntries.put(ldt, new Pair<>(importExport.first, value/(calc ? 1D : 2D)));
                             break;
                     }
                 });
