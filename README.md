@@ -1,4 +1,4 @@
-Public version V1.31
+Public version V1.41
 
 [![GetIt](./images/getItOnGooglePlay.png)](https://play.google.com/store/apps/details?id=com.tfcode.comparetout) (Ireland only, so far)
 
