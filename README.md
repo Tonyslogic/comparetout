@@ -1,8 +1,8 @@
-Public version V1.41
+Public version V1.44
 
 [![GetIt](./images/getItOnGooglePlay.png)](https://play.google.com/store/apps/details?id=com.tfcode.comparetout) (Ireland only, so far)
 
-Beta test version V1.41 (Ireland only, so far)
+Beta test version V1.44 (Ireland only, so far)
 > Sign up with [Android](https://play.google.com/store/apps/details?id=com.tfcode.comparetout) 
 
 > Sign up from your [browser](https://play.google.com/apps/testing/com.tfcode.comparetout)
