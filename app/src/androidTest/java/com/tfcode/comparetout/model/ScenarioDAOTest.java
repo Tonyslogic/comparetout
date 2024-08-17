@@ -33,6 +33,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.json.scenario.BatteryJson;
+import com.tfcode.comparetout.model.json.scenario.DischargeToGridJson;
 import com.tfcode.comparetout.model.json.scenario.EVChargeJson;
 import com.tfcode.comparetout.model.json.scenario.EVDivertJson;
 import com.tfcode.comparetout.model.json.scenario.HWScheduleJson;
@@ -41,6 +42,7 @@ import com.tfcode.comparetout.model.json.scenario.LoadShiftJson;
 import com.tfcode.comparetout.model.json.scenario.PanelJson;
 import com.tfcode.comparetout.model.json.scenario.ScenarioJsonFile;
 import com.tfcode.comparetout.model.scenario.Battery;
+import com.tfcode.comparetout.model.scenario.DischargeToGrid;
 import com.tfcode.comparetout.model.scenario.EVCharge;
 import com.tfcode.comparetout.model.scenario.EVDivert;
 import com.tfcode.comparetout.model.scenario.HWDivert;
@@ -61,7 +63,6 @@ import org.junit.runner.RunWith;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -96,7 +97,7 @@ public class ScenarioDAOTest {
         loadProfile.setAnnualUsage(100.00);
         scenarioDAO.addNewScenarioWithComponents(scenario1, new ScenarioComponents(
                 scenario1, null, null, null, null, loadProfile,
-                null, null, null, null, null), false);
+                null, null, null, null, null, null), false);
 
         List<Scenario> scenarioOutList = LiveDataTestUtil.getValue(scenarioDAO.loadScenarios());
         Scenario scenario1o = scenarioOutList.get(0);
@@ -112,7 +113,7 @@ public class ScenarioDAOTest {
         scenario2.setScenarioName("Second");
         scenarioDAO.addNewScenarioWithComponents(scenario2, new ScenarioComponents(
                 scenario2, null, null, null, null, null,
-                null, null, null, null, null), false);
+                null, null, null, null, null, null), false);
 
         scenarioOutList = LiveDataTestUtil.getValue(scenarioDAO.loadScenarios());
         Scenario scenario2o = scenarioOutList.get(1);
@@ -141,7 +142,7 @@ public class ScenarioDAOTest {
         loadProfile.setAnnualUsage(100.00);
         scenarioDAO.addNewScenarioWithComponents(scenario1, new ScenarioComponents(
                 scenario1, null, null, null, null, loadProfile,
-                null, null, null, null, null), false);
+                null, null, null, null, null, null), false);
 
 
         List<Scenario> scenarioOutList = LiveDataTestUtil.getValue(scenarioDAO.loadScenarios());
@@ -168,7 +169,7 @@ public class ScenarioDAOTest {
         loadProfile.setAnnualUsage(100.00);
         scenarioDAO.addNewScenarioWithComponents(scenario1, new ScenarioComponents(
                 scenario1, null, null, null, null, loadProfile,
-                null, null, null, null, null), false);
+                null, null, null, null, null, null), false);
 
         List<Scenario> scenarioOutList = LiveDataTestUtil.getValue(scenarioDAO.loadScenarios());
         Scenario scenario1o = scenarioOutList.get(0);
@@ -184,7 +185,7 @@ public class ScenarioDAOTest {
         scenario2.setScenarioName("Second");
         scenarioDAO.addNewScenarioWithComponents(scenario2, new ScenarioComponents(
                 scenario2, null, null, null, null, null,
-                null, null, null, null, null), false);
+                null, null, null, null, null, null), false);
 
         scenarioOutList = LiveDataTestUtil.getValue(scenarioDAO.loadScenarios());
         Scenario scenario2o = scenarioOutList.get(1);
@@ -240,13 +241,14 @@ public class ScenarioDAOTest {
         HWSystem hwSystem = scenarioDAO.getHWSystemForScenarioID(scenarioID);
         LoadProfile loadProfile = scenarioDAO.getLoadProfileForScenarioID(scenarioID);
         List<LoadShift> loadShifts = scenarioDAO.getLoadShiftsForScenarioID(scenarioID);
+        List<DischargeToGrid> discharges = scenarioDAO.getDischargesForScenarioID(scenarioID);
         List<EVCharge> evCharges = scenarioDAO.getEVChargesForScenarioID(scenarioID);
         List<HWSchedule> hwSchedules = scenarioDAO.getHWSchedulesForScenarioID(scenarioID);
         HWDivert hwDivert = scenarioDAO.getHWDivertForScenarioID(scenarioID);
         List<EVDivert> evDiverts = scenarioDAO.getEVDivertForScenarioID(scenarioID);
 
         ScenarioComponents fromDB = new ScenarioComponents(scenario, inverters, batteries,
-                panels, hwSystem, loadProfile, loadShifts, evCharges, hwSchedules, hwDivert,
+                panels, hwSystem, loadProfile, loadShifts, discharges, evCharges, hwSchedules, hwDivert,
                 evDiverts);
         ArrayList<ScenarioComponents> fromDBList = new ArrayList<>();
         fromDBList.add(fromDB);
@@ -306,6 +308,7 @@ public class ScenarioDAOTest {
         HWSystem hwSystem = null;
         LoadProfile loadProfile = null;
         ArrayList<LoadShift> loadShifts = null;
+        ArrayList<DischargeToGrid> discharges = null;
         ArrayList<EVCharge> evCharges = null;
         ArrayList<HWSchedule> hwSchedules = null;
         HWDivert hwDivert = null;
@@ -348,6 +351,13 @@ public class ScenarioDAOTest {
                     loadShifts.add(loadShift);
                 }
             }
+            if (!(null == sjf.dischargeToGrids)) {
+                discharges = new ArrayList<>();
+                for (DischargeToGridJson dischargeToGridJson : sjf.dischargeToGrids) {
+                    DischargeToGrid discharge = JsonTools.createDischarge(dischargeToGridJson);
+                    discharges.add(discharge);
+                }
+            }
             if (!(null == sjf.evCharges)) {
                 evCharges = new ArrayList<>();
                 for (EVChargeJson evChargeJson : sjf.evCharges) {
@@ -375,7 +385,7 @@ public class ScenarioDAOTest {
 
             ScenarioComponents scenarioComponents =
                     new ScenarioComponents(scenario, inverters, batteries, panels, hwSystem,
-                            loadProfile, loadShifts, evCharges, hwSchedules, hwDivert, evDiverts);
+                            loadProfile, loadShifts, discharges, evCharges, hwSchedules, hwDivert, evDiverts);
             scenarioDAO.addNewScenarioWithComponents(scenario, scenarioComponents, false);
         }
     }
@@ -520,6 +530,37 @@ public class ScenarioDAOTest {
             "        \"begin\": 2,\n" +
             "        \"end\": 4,\n" +
             "        \"stop at\": 80.0,\n" +
+            "        \"months\": [\n" +
+            "          1,\n" +
+            "          2,\n" +
+            "          3,\n" +
+            "          4,\n" +
+            "          5,\n" +
+            "          6,\n" +
+            "          7,\n" +
+            "          8,\n" +
+            "          9,\n" +
+            "          10,\n" +
+            "          11,\n" +
+            "          12\n" +
+            "        ],\n" +
+            "        \"days\": [\n" +
+            "          0,\n" +
+            "          1,\n" +
+            "          2,\n" +
+            "          3,\n" +
+            "          4,\n" +
+            "          5\n" +
+            "        ]\n" +
+            "      }\n" +
+            "    ],\n" +
+            "    \"DischargeToGrid\": [\n" +
+            "      {\n" +
+            "        \"Name\": \"Night Dump\",\n" +
+            "        \"begin\": 22,\n" +
+            "        \"end\": 1,\n" +
+            "        \"stop at\": 10.0,\n" +
+            "        \"rate\": 0.3,\n" +
             "        \"months\": [\n" +
             "          1,\n" +
             "          2,\n" +

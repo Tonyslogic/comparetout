@@ -229,8 +229,6 @@ public class SimulationWorker extends Worker {
                         processOneRow(scenarioID, outputRows, row, inputDataMap);
                     }
 
-                    // TODO: APPLY DIVERSION FOR EV
-
                     // STORE THE SIMULATION RESULT
 
                     builder.setContentText("Saving data");
@@ -268,7 +266,6 @@ public class SimulationWorker extends Worker {
     }
 
     private void mergePVWithSimulationInputData(int rowsToProcess, List<SimulationInputData> simulationInputData, List<Double> inverterPV) {
-//        double totalPV = 0d;
         for (int row = 0; row < rowsToProcess; row++) {
             if (row < DST_BEGIN)
                 simulationInputData.get(row).setTpv(inverterPV.get(row));
@@ -277,9 +274,7 @@ public class SimulationWorker extends Worker {
             if (row > DST_END) {
                 simulationInputData.get(row).setTpv(inverterPV.get(row - 12));
             }
-//            totalPV += simulationInputData.get(row).getTpv();
         }
-//        System.out.println("Calculated " + totalPV + " for inverter: " + inverter.getInverterName());
     }
 
     private void getPVForInverter(ScenarioComponents scenarioComponents, int rowsToProcess, Inverter inverter, List<Double> inverterPV) {

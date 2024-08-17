@@ -130,7 +130,7 @@ public class GenerationWorker extends Worker {
             scenario.setScenarioName(scenarioName);
             ScenarioComponents scenarioComponents = new ScenarioComponents(scenario,
                     null, null, null, null, null,
-                    null, null, null, null, null);
+                    null, null, null, null, null, null);
             assignedScenarioID = mToutcRepository.insertScenarioAndReturnID(scenarioComponents, false);
         }
         else {

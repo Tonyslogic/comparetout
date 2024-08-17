@@ -26,6 +26,7 @@ import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.model.json.priceplan.MinuteRangeCostJson;
 import com.tfcode.comparetout.model.json.priceplan.RestrictionEntryJson;
 import com.tfcode.comparetout.model.json.priceplan.RestrictionJson;
+import com.tfcode.comparetout.model.json.scenario.DischargeToGridJson;
 import com.tfcode.comparetout.model.priceplan.MinuteRateRange;
 import com.tfcode.comparetout.model.priceplan.RangeRate;
 import com.tfcode.comparetout.model.priceplan.Restriction;
@@ -35,6 +36,7 @@ import com.tfcode.comparetout.model.scenario.ChargeModel;
 import com.tfcode.comparetout.model.scenario.DOWDist;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.DoubleHolder;
+import com.tfcode.comparetout.model.scenario.DischargeToGrid;
 import com.tfcode.comparetout.model.scenario.EVCharge;
 import com.tfcode.comparetout.model.scenario.EVDivert;
 import com.tfcode.comparetout.model.scenario.HWDivert;
@@ -406,6 +408,34 @@ public class JsonTools {
         return loadShift;
     }
 
+    public static List<DischargeToGrid> createDischargeList(List<DischargeToGridJson> jsons) {
+        ArrayList<DischargeToGrid> entityList = new ArrayList<>();
+        if (!(null == jsons)){
+            for (DischargeToGridJson json : jsons) {
+                DischargeToGrid entity = createDischarge(json);
+                entityList.add(entity);
+            }
+        }
+        return entityList;
+    }
+
+    public static DischargeToGrid createDischarge(DischargeToGridJson dischargeJson) {
+        DischargeToGrid dischargeToGrid = new DischargeToGrid();
+        dischargeToGrid.setName(dischargeJson.name);
+        dischargeToGrid.setBegin(dischargeJson.begin);
+        dischargeToGrid.setEnd(dischargeJson.end);
+        dischargeToGrid.setStopAt(dischargeJson.stopAt);
+        dischargeToGrid.setRate(dischargeJson.rate);
+        MonthHolder monthHolder = new MonthHolder();
+        monthHolder.months = dischargeJson.months;
+        dischargeToGrid.setMonths(monthHolder);
+        IntHolder intHolder = new IntHolder();
+        intHolder.ints = dischargeJson.days;
+        dischargeToGrid.setDays(intHolder);
+        dischargeToGrid.setInverter(dischargeJson.inverter);
+        return dischargeToGrid;
+    }
+
     public static List<EVCharge> createEVChargeList(List<EVChargeJson> jsons) {
         ArrayList<EVCharge> entityList = new ArrayList<>();
         if (!(null == jsons)){
@@ -516,6 +546,7 @@ public class JsonTools {
             HWSystem hwSystem,
             LoadProfile loadProfile,
             List<LoadShift> loadShifts,
+            List<DischargeToGrid> discharges,
             List<EVCharge> evCharges,
             List<HWSchedule> hwSchedules,
             HWDivert hwDivert,
@@ -529,6 +560,7 @@ public class JsonTools {
         sjf.hwSystem = createHWSystemJson(hwSystem);
         sjf.loadProfile = createLoadProfileJson(loadProfile);
         sjf.loadShifts = createLoadShiftJson(loadShifts);
+        sjf.dischargeToGrids = createDischargeJson(discharges);
         sjf.evCharges = createEVChargeJson(evCharges);
         sjf.hwSchedules = createHWScheduleJson(hwSchedules);
         sjf.hwDivert = createHWDivertJson(hwDivert);
@@ -618,6 +650,25 @@ public class JsonTools {
             }
         }
         return loadShiftJsons;
+    }
+
+    public static ArrayList<DischargeToGridJson> createDischargeJson(List<DischargeToGrid> dischargeToGrids) {
+        ArrayList<DischargeToGridJson> dischargeJsons = new ArrayList<>();
+        if (!(null == dischargeToGrids)) {
+            for (DischargeToGrid discharge : dischargeToGrids) {
+                DischargeToGridJson dischargeJson = new DischargeToGridJson();
+                dischargeJson.name = discharge.getName();
+                dischargeJson.begin = discharge.getBegin();
+                dischargeJson.end = discharge.getEnd();
+                dischargeJson.stopAt = discharge.getStopAt();
+                dischargeJson.rate = discharge.getRate();
+                dischargeJson.months = (ArrayList<Integer>) discharge.getMonths().months;
+                dischargeJson.days = (ArrayList<Integer>) discharge.getDays().ints;
+                dischargeJson.inverter = discharge.getInverter();
+                dischargeJsons.add(dischargeJson);
+            }
+        }
+        return dischargeJsons;
     }
 
     public static LoadProfileJson createLoadProfileJson(LoadProfile loadProfile) {
@@ -741,7 +792,7 @@ public class JsonTools {
         ArrayList<ScenarioJsonFile> scenarioJsonFiles = new ArrayList<>();
         for (ScenarioComponents scenarioComponents : scenarios){
             scenarioJsonFiles.add(createSingleScenarioJson(scenarioComponents.scenario, scenarioComponents.inverters, scenarioComponents.batteries, scenarioComponents.panels,
-                    scenarioComponents.hwSystem, scenarioComponents.loadProfile, scenarioComponents.loadShifts, scenarioComponents.evCharges, scenarioComponents.hwSchedules,
+                    scenarioComponents.hwSystem, scenarioComponents.loadProfile, scenarioComponents.loadShifts, scenarioComponents.discharges, scenarioComponents.evCharges, scenarioComponents.hwSchedules,
                     scenarioComponents.hwDivert, scenarioComponents.evDiverts));
         }
 
@@ -761,6 +812,7 @@ public class JsonTools {
                     createHWSystem(scenarioJsonFile.hwSystem),
                     createLoadProfile(scenarioJsonFile.loadProfile),
                     createLoadShiftList(scenarioJsonFile.loadShifts),
+                    createDischargeList(scenarioJsonFile.dischargeToGrids),
                     createEVChargeList(scenarioJsonFile.evCharges),
                     createHWScheduleList(scenarioJsonFile.hwSchedules),
                     createHWDivert(scenarioJsonFile.hwDivert),

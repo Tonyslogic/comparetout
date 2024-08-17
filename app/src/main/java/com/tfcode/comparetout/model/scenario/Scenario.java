@@ -18,6 +18,7 @@ package com.tfcode.comparetout.model.scenario;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
@@ -39,6 +40,8 @@ public class Scenario {
     private boolean hasHWSystem = false;
     private boolean hasLoadProfiles = false;
     private boolean hasLoadShifts = false;
+    @ColumnInfo(defaultValue = "0")
+    private boolean hasDischarges = false;
     private boolean hasEVCharges = false;
     private boolean hasHWSchedules = false;
     private boolean hasHWDivert = false;
@@ -99,6 +102,14 @@ public class Scenario {
 
     public void setHasLoadShifts(boolean hasLoadShifts) {
         this.hasLoadShifts = hasLoadShifts;
+    }
+
+    public boolean isHasDischarges() {
+        return hasDischarges;
+    }
+
+    public void setHasDischarges(boolean hasDischarges) {
+        this.hasDischarges = hasDischarges;
     }
 
     public boolean isHasEVCharges() {

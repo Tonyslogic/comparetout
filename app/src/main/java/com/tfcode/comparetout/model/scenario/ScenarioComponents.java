@@ -26,6 +26,7 @@ public class ScenarioComponents {
     public HWSystem hwSystem;
     public LoadProfile loadProfile;
     public List<LoadShift> loadShifts;
+    public List<DischargeToGrid> discharges;
     public List<EVCharge> evCharges;
     public List<HWSchedule> hwSchedules;
     public HWDivert hwDivert;
@@ -39,6 +40,7 @@ public class ScenarioComponents {
             HWSystem hwSystem,
             LoadProfile loadProfile,
             List<LoadShift> loadShifts,
+            List<DischargeToGrid> discharges,
             List<EVCharge> evCharges,
             List<HWSchedule> hwSchedules,
             HWDivert hwDivert,
@@ -50,6 +52,7 @@ public class ScenarioComponents {
         this.hwSystem = hwSystem;
         this.loadProfile = loadProfile;
         this.loadShifts = loadShifts;
+        this.discharges = discharges;
         this.evCharges = evCharges;
         this.hwSchedules = hwSchedules;
         this.hwDivert = hwDivert;

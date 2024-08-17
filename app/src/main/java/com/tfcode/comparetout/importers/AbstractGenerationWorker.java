@@ -186,7 +186,7 @@ public abstract class AbstractGenerationWorker extends Worker {
         scenario.setScenarioName(scenarioName);
         ScenarioComponents scenarioComponents = new ScenarioComponents(scenario,
                 null, null, null, null, null,
-                null, null, null, null, null);
+                null, null, null, null, null, null);
         long assignedScenarioID = mToutcRepository.insertScenarioAndReturnID(scenarioComponents, false);
         return new ScenarionKeys(finalScenarioName, assignedScenarioID);
     }

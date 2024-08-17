@@ -30,6 +30,7 @@ import androidx.room.Update;
 import com.tfcode.comparetout.model.importers.IntervalRow;
 import com.tfcode.comparetout.model.importers.InverterDateRange;
 import com.tfcode.comparetout.model.scenario.Battery;
+import com.tfcode.comparetout.model.scenario.DischargeToGrid;
 import com.tfcode.comparetout.model.scenario.EVCharge;
 import com.tfcode.comparetout.model.scenario.EVDivert;
 import com.tfcode.comparetout.model.scenario.HWDivert;
@@ -44,6 +45,7 @@ import com.tfcode.comparetout.model.scenario.PanelData;
 import com.tfcode.comparetout.model.scenario.PanelPVSummary;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.Scenario2Battery;
+import com.tfcode.comparetout.model.scenario.Scenario2DischargeToGrid;
 import com.tfcode.comparetout.model.scenario.Scenario2EVCharge;
 import com.tfcode.comparetout.model.scenario.Scenario2EVDivert;
 import com.tfcode.comparetout.model.scenario.Scenario2HWDivert;
@@ -88,6 +90,9 @@ public abstract class ScenarioDAO {
     abstract long addNewLoadShift(LoadShift loadShift);
 
     @Insert
+    abstract long addNewDischarge(DischargeToGrid discharge);
+
+    @Insert
     abstract long addNewEVCharge(EVCharge evCharge);
 
     @Insert
@@ -116,6 +121,9 @@ public abstract class ScenarioDAO {
 
     @Insert
     abstract void addNewScenario2LoadShift(Scenario2LoadShift scenario2LoadShift);
+
+    @Insert
+    abstract void addNewScenario2Discharge(Scenario2DischargeToGrid scenario2Discharge);
 
     @Insert
     abstract void addNewScenario2EVCharge(Scenario2EVCharge scenario2EVCharge);
@@ -150,6 +158,8 @@ public abstract class ScenarioDAO {
             if (!(null == components.loadProfile)) scenario.setHasLoadProfiles(true);
             if (!(null == components.loadShifts) && !components.loadShifts.isEmpty())
                 scenario.setHasLoadShifts(true);
+            if (!(null == components.discharges) && !components.discharges.isEmpty())
+                scenario.setHasDischarges(true);
             if (!(null == components.evCharges) && !components.evCharges.isEmpty())
                 scenario.setHasEVCharges(true);
             if (!(null == components.hwSchedules) && !components.hwSchedules.isEmpty())
@@ -210,6 +220,15 @@ public abstract class ScenarioDAO {
                     s2ls.setScenarioID(scenarioID);
                     s2ls.setLoadShiftID(loadShiftID);
                     addNewScenario2LoadShift(s2ls);
+                }
+            }
+            if (!(null == components.discharges)) {
+                for (DischargeToGrid discharge : components.discharges) {
+                    long dischargeID = addNewDischarge(discharge);
+                    Scenario2DischargeToGrid s2d = new Scenario2DischargeToGrid();
+                    s2d.setScenarioID(scenarioID);
+                    s2d.setDischargeID(dischargeID);
+                    addNewScenario2Discharge(s2d);
                 }
             }
             if (!(null == components.evCharges)) {
@@ -279,6 +298,11 @@ public abstract class ScenarioDAO {
             "WHERE scenarioID = :id AND loadprofile.loadProfileIndex = loadProfileID")
     @RewriteQueriesToDropUnusedColumns
     public abstract LoadProfile getLoadProfileForScenarioID(long id);
+
+    @Query("SELECT * FROM discharge2grid, scenario2discharge " +
+            "WHERE scenarioID = :id AND discharge2grid.d2gIndex = dischargeID")
+    @RewriteQueriesToDropUnusedColumns
+    public abstract List<DischargeToGrid> getDischargesForScenarioID(long id);
 
     @Query("SELECT * FROM loadshift, scenario2loadshift " +
             "WHERE scenarioID = :id AND loadshift.loadShiftIndex = loadShiftID")
@@ -441,6 +465,7 @@ public abstract class ScenarioDAO {
         deleteInverterRelationsForScenario(id);
         deleteLoadProfileRelationsForScenario(id);
         deleteLoadShiftRelationsForScenario(id);
+        deleteDischargeRelationsForScenario(id);
         deletePanelRelationsForScenario(id);
 
         // Delete orphans e.g. any battery id not in s2b
@@ -453,6 +478,7 @@ public abstract class ScenarioDAO {
         deleteOrphanInverters();
         deleteOrphanLoadProfiles();
         deleteOrphanLoadShifts();
+        deleteOrphanDischarges();
         deleteOrphanPanels();
 
         deleteOrphanLoadProfileData();
@@ -487,6 +513,9 @@ public abstract class ScenarioDAO {
 
     @Query("DELETE FROM loadshift WHERE loadShiftIndex NOT IN (SELECT loadShiftID FROM scenario2loadshift)")
     public abstract void deleteOrphanLoadShifts();
+
+    @Query("DELETE FROM discharge2grid WHERE d2gIndex NOT IN (SELECT dischargeID FROM scenario2discharge)")
+    public abstract void deleteOrphanDischarges();
 
     @Query("DELETE FROM panels WHERE panelIndex NOT IN (SELECT panelID FROM scenario2panel)")
     public abstract void deleteOrphanPanels();
@@ -527,6 +556,9 @@ public abstract class ScenarioDAO {
     @Query("DELETE FROM scenario2loadshift WHERE scenarioID = :id")
     public abstract void deleteLoadShiftRelationsForScenario(int id);
 
+    @Query("DELETE FROM scenario2discharge WHERE scenarioID = :id")
+    public abstract void deleteDischargeRelationsForScenario(int id);
+
     @Query("DELETE FROM scenario2panel WHERE scenarioID = :id")
     public abstract void deletePanelRelationsForScenario(int id);
 
@@ -548,6 +580,7 @@ public abstract class ScenarioDAO {
         List<Inverter> inverters = getInvertersForScenarioID(id);
         LoadProfile loadProfile = getLoadProfileForScenarioID(id);
         List<LoadShift> loadShifts = getLoadShiftsForScenarioID(id);
+        List<DischargeToGrid> discharges = getDischargesForScenarioID(id);
         List<Panel> panels = getPanelsForScenarioID(id);
 
         scenario.setScenarioName(scenario.getScenarioName() + "_copy");
@@ -567,6 +600,7 @@ public abstract class ScenarioDAO {
             loadProfile.setLoadProfileIndex(newLoadProfileID);
         }
         for (LoadShift l : loadShifts) l.setLoadShiftIndex(0);
+        for (DischargeToGrid d : discharges) d.setD2gIndex(0);
         for (Panel p : panels) {
             long oldPanelID = p.getPanelIndex();
             p.setPanelIndex(0);
@@ -577,7 +611,7 @@ public abstract class ScenarioDAO {
 
         addNewScenarioWithComponents(scenario, new ScenarioComponents(
                 scenario, inverters, batteries, panels, hwSystem,
-                loadProfile, loadShifts, evCharges, hwSchedules,
+                loadProfile, loadShifts, discharges, evCharges, hwSchedules,
                 hwDivert, evDiverts), false);
     }
 
@@ -593,6 +627,7 @@ public abstract class ScenarioDAO {
                     getHWSystemForScenarioID(scenario.getScenarioIndex()),
                     getLoadProfileForScenarioID(scenario.getScenarioIndex()),
                     getLoadShiftsForScenarioID(scenario.getScenarioIndex()),
+                    getDischargesForScenarioID(scenario.getScenarioIndex()),
                     getEVChargesForScenarioID(scenario.getScenarioIndex()),
                     getHWSchedulesForScenarioID(scenario.getScenarioIndex()),
                     getHWDivertForScenarioID(scenario.getScenarioIndex()),
@@ -613,6 +648,7 @@ public abstract class ScenarioDAO {
                 getHWSystemForScenarioID(scenarioID),
                 getLoadProfileForScenarioID(scenarioID),
                 getLoadShiftsForScenarioID(scenarioID),
+                getDischargesForScenarioID(scenarioID),
                 getEVChargesForScenarioID(scenarioID),
                 getHWSchedulesForScenarioID(scenarioID),
                 getHWDivertForScenarioID(scenarioID),
@@ -980,6 +1016,76 @@ public abstract class ScenarioDAO {
         }
 
         deleteOrphanLoadShifts();
+    }
+    //##############################################
+
+    @Query("SELECT * FROM scenario2discharge")
+    public abstract LiveData<List<Scenario2DischargeToGrid>> loadDischargeRelations();
+
+    @Query("DELETE FROM scenario2discharge WHERE scenarioID = :scenarioID AND dischargeID = :dischargeID")
+    public abstract void deleteDischargeFromScenario(Long dischargeID, Long scenarioID);
+
+    @Transaction
+    public void saveDischargeForScenario(Long scenarioID, DischargeToGrid dischargeToGrid) {
+        long dischargeIndex = dischargeToGrid.getD2gIndex();
+        if (dischargeIndex == 0) {
+            dischargeIndex = addNewDischarge(dischargeToGrid);
+            Scenario2DischargeToGrid s2d = new Scenario2DischargeToGrid();
+            s2d.setScenarioID(scenarioID);
+            s2d.setDischargeID(dischargeIndex);
+            addNewScenario2Discharge(s2d);
+
+            Scenario scenario = getScenario(scenarioID);
+            scenario.setHasDischarges(true);
+            updateScenario(scenario);
+        }
+        else {
+            updateDischarge(dischargeToGrid);
+        }
+    }
+
+    @Update (entity = DischargeToGrid.class)
+    public abstract void updateDischarge(DischargeToGrid discharge);
+
+    @Query("SELECT scenarioName FROM scenarios WHERE scenarioIndex IN (" +
+            "SELECT scenarioID FROM scenario2discharge WHERE dischargeID = :dischargeIndex) AND scenarioIndex != :scenarioID")
+    public abstract List<String> getLinkedDischarges(long dischargeIndex, Long scenarioID);
+
+    @Transaction
+    public void copyDischargeFromScenario(long fromScenarioID, Long toScenarioID) {
+        List<DischargeToGrid> discharges = getDischargesForScenarioID(fromScenarioID);
+        for (DischargeToGrid discharge: discharges) {
+            discharge.setD2gIndex(0L);
+            long newD2GID = addNewDischarge(discharge);
+
+            Scenario2DischargeToGrid s2d = new Scenario2DischargeToGrid();
+            s2d.setScenarioID(toScenarioID);
+            s2d.setDischargeID(newD2GID);
+            addNewScenario2Discharge(s2d);
+
+            Scenario toScenario = getScenario(toScenarioID);
+            toScenario.setHasDischarges(true);
+            updateScenario(toScenario);
+        }
+
+        deleteOrphanDischarges();
+    }
+
+    @Transaction
+    public void linkDischargeFromScenario(long fromScenarioID, Long toScenarioID) {
+        List<DischargeToGrid> discharges = getDischargesForScenarioID(fromScenarioID);
+        for (DischargeToGrid discharge: discharges) {
+            Scenario2DischargeToGrid scenario2Discharge = new Scenario2DischargeToGrid();
+            scenario2Discharge.setScenarioID(toScenarioID);
+            scenario2Discharge.setDischargeID(discharge.getD2gIndex());
+            addNewScenario2Discharge(scenario2Discharge);
+
+            Scenario toScenario = getScenario(toScenarioID);
+            toScenario.setHasDischarges(true);
+            updateScenario(toScenario);
+        }
+
+        deleteOrphanDischarges();
     }
     //##############################################
 

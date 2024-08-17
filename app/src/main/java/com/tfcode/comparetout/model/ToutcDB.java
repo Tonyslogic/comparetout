@@ -31,6 +31,7 @@ import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.Battery;
+import com.tfcode.comparetout.model.scenario.DischargeToGrid;
 import com.tfcode.comparetout.model.scenario.EVCharge;
 import com.tfcode.comparetout.model.scenario.EVDivert;
 import com.tfcode.comparetout.model.scenario.HWDivert;
@@ -44,6 +45,7 @@ import com.tfcode.comparetout.model.scenario.Panel;
 import com.tfcode.comparetout.model.scenario.PanelData;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.Scenario2Battery;
+import com.tfcode.comparetout.model.scenario.Scenario2DischargeToGrid;
 import com.tfcode.comparetout.model.scenario.Scenario2EVCharge;
 import com.tfcode.comparetout.model.scenario.Scenario2EVDivert;
 import com.tfcode.comparetout.model.scenario.Scenario2HWDivert;
@@ -67,6 +69,7 @@ import java.util.concurrent.Executors;
         HWSystem.class, Scenario2HWSystem.class,
         LoadProfile.class, Scenario2LoadProfile.class,
         LoadShift.class, Scenario2LoadShift.class,
+        DischargeToGrid.class, Scenario2DischargeToGrid.class,
         EVCharge.class, Scenario2EVCharge.class,
         HWSchedule.class, Scenario2HWSchedule.class,
         HWDivert.class, Scenario2HWDivert.class,
@@ -75,11 +78,12 @@ import java.util.concurrent.Executors;
         Costings.class, PanelData.class,
         AlphaESSRawPower.class, AlphaESSRawEnergy.class,
         AlphaESSTransformedData.class
-        }, version = 4,
+        }, version = 5,
         autoMigrations = {
             @AutoMigration(from = 1, to = 2),
             @AutoMigration(from = 2, to = 3),
-            @AutoMigration(from = 3, to = 4)})
+            @AutoMigration(from = 3, to = 4),
+            @AutoMigration(from = 4, to = 5)})
 
 @TypeConverters({Converters.class})
 

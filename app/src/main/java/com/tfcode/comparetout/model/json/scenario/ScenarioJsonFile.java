@@ -50,6 +50,10 @@ public class ScenarioJsonFile {
     public
     ArrayList<LoadShiftJson> loadShifts;
 
+    @SerializedName("DischargeToGrid")
+    public
+    ArrayList<DischargeToGridJson> dischargeToGrids;
+
     @SerializedName("EVCharge")
     public
     ArrayList<EVChargeJson> evCharges;

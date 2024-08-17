@@ -240,7 +240,7 @@ public class ScenarioOverview extends Fragment {
                         if (mScenarioID == 0) {
                             ScenarioComponents scenarioComponents = new ScenarioComponents(mScenario,
                                     null, null, null, null, null,
-                                    null, null, null, null, null);
+                                    null, null, null, null, null, null);
                             mViewModel.insertScenario(scenarioComponents, false);
                         } else {
                             mViewModel.updateScenario(mScenario);
@@ -750,25 +750,25 @@ public class ScenarioOverview extends Fragment {
         boolean hasEVDivert = false;
         boolean hasEVCharges = false;
         if (!(null == mScenarioComponents)) {
-            if (mScenario.isHasInverters() && mScenarioComponents.inverters.size() > 0)
+            if (mScenario.isHasInverters() && !mScenarioComponents.inverters.isEmpty())
                 hasInverters = true;
             if (mScenario.isHasLoadProfiles())
                 hasLoadProfile = true;
-            if (mScenario.isHasPanels() && mScenarioComponents.panels.size() > 0)
+            if (mScenario.isHasPanels() && !mScenarioComponents.panels.isEmpty())
                 hasPanels = true;
-            if (mScenario.isHasBatteries() && mScenarioComponents.batteries.size() > 0)
+            if (mScenario.isHasBatteries() && !mScenarioComponents.batteries.isEmpty())
                 hasBatteries = true;
-            if (mScenario.isHasLoadShifts() && mScenarioComponents.loadShifts.size() > 0)
+            if (mScenario.isHasLoadShifts() && !mScenarioComponents.loadShifts.isEmpty())
                 hasLoadShifts = true;
             if (mScenario.isHasHWSystem())
                 hasHWSystem = true;
             if (mScenario.isHasHWDivert() && !(null == mScenarioComponents.hwDivert))
                 hasHWDivert = mScenarioComponents.hwDivert.isActive();
-            if (mScenario.isHasHWSchedules() && mScenarioComponents.hwSchedules.size() > 0)
+            if (mScenario.isHasHWSchedules() && !mScenarioComponents.hwSchedules.isEmpty())
                 hasHWSchedules = true;
-            if (mScenario.isHasEVDivert() && mScenarioComponents.evDiverts.size() > 0)
+            if (mScenario.isHasEVDivert() && !mScenarioComponents.evDiverts.isEmpty())
                 hasEVDivert = true;
-            if (mScenario.isHasEVCharges() && mScenarioComponents.evCharges.size() > 0)
+            if (mScenario.isHasEVCharges() && !mScenarioComponents.evCharges.isEmpty())
                 hasEVCharges = true;
         }
         ImageView panelSun = fragmentView.findViewById(R.id.panelSun);

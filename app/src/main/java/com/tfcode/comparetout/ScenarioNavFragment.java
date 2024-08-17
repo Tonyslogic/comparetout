@@ -149,7 +149,7 @@ public class ScenarioNavFragment extends Fragment {
     private void updateView() {
         mTableLayout.removeAllViews();
 
-        if (mScenarios != null && mScenarios.size() > 0 && getActivity() != null) {
+        if (mScenarios != null && !mScenarios.isEmpty() && getActivity() != null) {
             mTableLayout.setShrinkAllColumns(false);
             mTableLayout.setStretchAllColumns(true);
             mTableLayout.setColumnShrinkable(1, true);
@@ -325,7 +325,7 @@ public class ScenarioNavFragment extends Fragment {
                         scenario.setScenarioName(scenarioName);
                         ScenarioComponents scenarioComponents = new ScenarioComponents(scenario,
                                 null, null, null, null, null,
-                                null, null, null, null, null);
+                                null, null, null, null, null, null);
 
                         new Thread(() -> {
                             long id = mViewModel.insertScenarioAndReturnID(scenarioComponents, false);
