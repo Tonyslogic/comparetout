@@ -107,4 +107,10 @@ public class DischargeToGrid {
     public void setInverter(String inverter) {
         this.inverter = inverter;
     }
+
+    public boolean equalDate(DischargeToGrid other) {
+        if (this == other) return true;
+        return this.months.equals(other.getMonths()) &&
+                this.days.equals(other.getDays());
+    }
 }

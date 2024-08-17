@@ -60,6 +60,7 @@ public class ScenarioSelectDialog extends Dialog  {
     public static final int TANK_DIVERT = 7;
     public static final int CAR_SHIFT = 8;
     public static final int CAR_DIVERT = 9;
+    public static final int DISCHARGE = 10;
 
     public ScenarioSelectDialog(@NonNull Context context, int aspect, ScenarioSelectDialogListener listener) {
         super(context);
@@ -177,6 +178,12 @@ public class ScenarioSelectDialog extends Dialog  {
                     break;
                 case CAR_DIVERT:
                     if(scenario.isHasEVDivert()) {
+                        tableRow.addView(button);
+                        mTableLayout.addView(tableRow);
+                    }
+                    break;
+                case DISCHARGE:
+                    if(scenario.isHasDischarges()) {
                         tableRow.addView(button);
                         mTableLayout.addView(tableRow);
                     }

@@ -222,6 +222,18 @@
             tools:ignore="RtlSymmetry" />
 
         <ImageView
+            android:id="@+id/batteryD2G"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/baseline_file_upload_24"
+            app:layout_constraintBottom_toBottomOf="@id/guideline3"
+            app:layout_constraintEnd_toStartOf="@id/batterySet"
+            android:paddingEnd="8sp"
+            app:tint="@color/green_700"
+            android:contentDescription="@string/battery_discharge"
+            tools:ignore="RtlSymmetry" />
+
+        <ImageView
             android:id="@+id/batteryScheduled"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

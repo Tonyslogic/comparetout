@@ -66,6 +66,7 @@ import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.model.scenario.SimKPIs;
 import com.tfcode.comparetout.scenario.battery.BatteryChargingActivity;
+import com.tfcode.comparetout.scenario.battery.BatteryDischargeActivity;
 import com.tfcode.comparetout.scenario.battery.BatterySettingsActivity;
 import com.tfcode.comparetout.scenario.ev.EVDivertActivity;
 import com.tfcode.comparetout.scenario.ev.EVScheduleActivity;
@@ -318,7 +319,9 @@ public class ScenarioOverview extends Fragment {
             popup.getMenuInflater()
                     .inflate(R.menu.popup_menu_scenario, popup.getMenu());
             MenuItem divertMenuItem = popup.getMenu().findItem(R.id.divert);
-            divertMenuItem.setVisible(false);
+//            divertMenuItem.setVisible(false);
+            divertMenuItem.setIcon(R.drawable.ic_baseline_download_24);
+            divertMenuItem.setTitle(R.string.discharge);
 
             //registering popup with OnMenuItemClickListener
             popup.setOnMenuItemClickListener(item -> {
@@ -330,6 +333,20 @@ public class ScenarioOverview extends Fragment {
                     }
                     else {
                         Intent intent = new Intent(getActivity(), BatterySettingsActivity.class);
+                        intent.putExtra("ScenarioID", mScenarioID);
+                        intent.putExtra("ScenarioName", mScenario.getScenarioName());
+                        intent.putExtra("Edit", mEdit | !mScenario.isHasBatteries());
+                        startActivity(intent);
+                    }
+                }
+                if (item.getItemId() == R.id.divert) {
+                    if (!mScenario.isHasBatteries()) {
+                        Snackbar.make(requireActivity().getWindow().getDecorView().getRootView(),
+                                "Add at least one battery before discharging",
+                                Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                    }
+                    else {
+                        Intent intent = new Intent(getActivity(), BatteryDischargeActivity.class);
                         intent.putExtra("ScenarioID", mScenarioID);
                         intent.putExtra("ScenarioName", mScenario.getScenarioName());
                         intent.putExtra("Edit", mEdit | !mScenario.isHasBatteries());
@@ -744,6 +761,7 @@ public class ScenarioOverview extends Fragment {
         boolean hasPanels = false;
         boolean hasBatteries = false;
         boolean hasLoadShifts = false;
+        boolean hasDischarges = false;
         boolean hasHWSystem = false;
         boolean hasHWDivert = false;
         boolean hasHWSchedules = false;
@@ -760,6 +778,8 @@ public class ScenarioOverview extends Fragment {
                 hasBatteries = true;
             if (mScenario.isHasLoadShifts() && !mScenarioComponents.loadShifts.isEmpty())
                 hasLoadShifts = true;
+            if (mScenario.isHasDischarges() && !mScenarioComponents.discharges.isEmpty())
+                hasDischarges = true;
             if (mScenario.isHasHWSystem())
                 hasHWSystem = true;
             if (mScenario.isHasHWDivert() && !(null == mScenarioComponents.hwDivert))
@@ -796,9 +816,11 @@ public class ScenarioOverview extends Fragment {
 
         ImageView batteryLock = fragmentView.findViewById(R.id.batteryLock);
         ImageView batterySettings = fragmentView.findViewById(R.id.batterySet);
+        ImageView batteryDischarge = fragmentView.findViewById(R.id.batteryD2G);
         ImageView batterySchedule = fragmentView.findViewById(R.id.batteryScheduled);
         batteryLock.setVisibility(hasInverters ? View.GONE : View.VISIBLE);
         batterySettings.setVisibility(hasBatteries ? View.VISIBLE : View.GONE);
+        batteryDischarge.setVisibility(hasDischarges ? View.VISIBLE : View.GONE);
         batterySchedule.setVisibility(hasLoadShifts ? View.VISIBLE : View.GONE);
         mBatteryButton.setBackgroundColor(0);
 

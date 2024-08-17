@@ -34,6 +34,7 @@ import com.tfcode.comparetout.model.importers.alphaess.ScheduleRIInput;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.Battery;
+import com.tfcode.comparetout.model.scenario.DischargeToGrid;
 import com.tfcode.comparetout.model.scenario.EVCharge;
 import com.tfcode.comparetout.model.scenario.EVDivert;
 import com.tfcode.comparetout.model.scenario.HWDivert;
@@ -48,6 +49,7 @@ import com.tfcode.comparetout.model.scenario.PanelData;
 import com.tfcode.comparetout.model.scenario.PanelPVSummary;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.Scenario2Battery;
+import com.tfcode.comparetout.model.scenario.Scenario2DischargeToGrid;
 import com.tfcode.comparetout.model.scenario.Scenario2EVCharge;
 import com.tfcode.comparetout.model.scenario.Scenario2EVDivert;
 import com.tfcode.comparetout.model.scenario.Scenario2HWSchedule;
@@ -76,6 +78,7 @@ public class ToutcRepository {
     private final LiveData<List<Scenario2Panel>> panelRelations;
     private final LiveData<List<Scenario2Battery>> batteryRelations;
     private final LiveData<List<Scenario2LoadShift>> loadShiftRelations;
+    private final LiveData<List<Scenario2DischargeToGrid>> dischargeRelations;
     private final LiveData<List<Scenario2HWSystem>> hwSystemRelations;
     private final LiveData<List<Scenario2HWSchedule>> hwScheduleRelations;
     private final LiveData<List<Scenario2EVCharge>> evChargeRelations;
@@ -106,6 +109,7 @@ public class ToutcRepository {
         panelRelations = scenarioDAO.loadPanelRelations();
         batteryRelations = scenarioDAO.loadBatteryRelations();
         loadShiftRelations = scenarioDAO.loadLoadShiftRelations();
+        dischargeRelations = scenarioDAO.loadDischargeRelations();
         hwSystemRelations = scenarioDAO.loadHWSystemRelations();
         hwScheduleRelations = scenarioDAO.loadHWScheduleRelations();
         evChargeRelations = scenarioDAO.loadEVChargeRelations();
@@ -824,5 +828,25 @@ public class ToutcRepository {
 
     public LiveData<List<InverterDateRange>> getScenarioLiveDateRanges() {
         return scenarioDateRange;
+    }
+
+    public void linkDischargeFromScenario(long fromScenarioID, Long toScenarioID) {
+        scenarioDAO.linkDischargeFromScenario(fromScenarioID, toScenarioID);
+    }
+
+    public void copyDischargeFromScenario(long fromScenarioID, Long toScenarioID) {
+        scenarioDAO.copyDischargeFromScenario(fromScenarioID, toScenarioID);
+    }
+
+    public void saveDischargeForScenario(Long scenarioID, DischargeToGrid discharge) {
+        scenarioDAO.saveDischargeForScenario(scenarioID, discharge);
+    }
+
+    public LiveData<List<Scenario2DischargeToGrid>> getAllDischargeRelations() {
+        return dischargeRelations;
+    }
+
+    public List<DischargeToGrid> getDischargesForScenario(Long scenarioID) {
+        return scenarioDAO.getDischargesForScenarioID(scenarioID);
     }
 }

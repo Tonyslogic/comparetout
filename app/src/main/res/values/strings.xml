@@ -322,4 +322,6 @@
     <string name="Nov">Nov</string>
     <string name="Dec">Dec</string>
     <string name="SelectMPRN">Select MPRN</string>
+    <string name="battery_discharge">Discharge to grid set</string>
+    <string name="discharge">Discharge</string>
 </resources>

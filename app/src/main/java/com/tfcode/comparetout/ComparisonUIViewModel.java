@@ -31,6 +31,7 @@ import com.tfcode.comparetout.model.importers.alphaess.KeyStatsRow;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.Battery;
+import com.tfcode.comparetout.model.scenario.DischargeToGrid;
 import com.tfcode.comparetout.model.scenario.EVCharge;
 import com.tfcode.comparetout.model.scenario.EVDivert;
 import com.tfcode.comparetout.model.scenario.HWDivert;
@@ -43,6 +44,7 @@ import com.tfcode.comparetout.model.scenario.Panel;
 import com.tfcode.comparetout.model.scenario.PanelPVSummary;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.Scenario2Battery;
+import com.tfcode.comparetout.model.scenario.Scenario2DischargeToGrid;
 import com.tfcode.comparetout.model.scenario.Scenario2EVCharge;
 import com.tfcode.comparetout.model.scenario.Scenario2EVDivert;
 import com.tfcode.comparetout.model.scenario.Scenario2HWSchedule;
@@ -456,6 +458,26 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public List<String> getAllComparisonsNow() {
         return toutcRepository.getAllComparisonsNow();
+    }
+
+    public void linkDischargeFromScenario(long fromScenarioID, Long toScenarioID) {
+        toutcRepository.linkDischargeFromScenario(fromScenarioID, toScenarioID);
+    }
+
+    public void copyDischargeFromScenario(long fromScenarioID, Long toScenarioID) {
+        toutcRepository.copyDischargeFromScenario(fromScenarioID, toScenarioID);
+    }
+
+    public void saveDischargeForScenario(Long scenarioID, DischargeToGrid discharge) {
+        toutcRepository.saveDischargeForScenario(scenarioID, discharge);
+    }
+
+    public LiveData<List<Scenario2DischargeToGrid>> getAllDischargeRelations() {
+        return toutcRepository.getAllDischargeRelations();
+    }
+
+    public List<DischargeToGrid> getDischargesForScenario(Long scenarioID) {
+        return toutcRepository.getDischargesForScenario(scenarioID);
     }
 
     public enum Importer {
