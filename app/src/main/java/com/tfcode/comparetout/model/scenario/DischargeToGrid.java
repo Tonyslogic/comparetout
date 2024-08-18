@@ -113,4 +113,19 @@ public class DischargeToGrid {
         return this.months.equals(other.getMonths()) &&
                 this.days.equals(other.getDays());
     }
+
+    public boolean equalDateAndInverter(DischargeToGrid other) {
+        if (this == other) return true;
+        return this.inverter.equals(other.getInverter()) &&
+                this.months.equals(other.getMonths()) &&
+                this.days.equals(other.getDays());
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        DischargeToGrid dischargeToGrid = (DischargeToGrid) o;
+        return (d2gIndex == dischargeToGrid.d2gIndex && this.equalDateAndInverter((DischargeToGrid) o));
+    }
 }

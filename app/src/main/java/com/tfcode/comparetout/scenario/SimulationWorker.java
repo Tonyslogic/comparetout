@@ -35,6 +35,7 @@ import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.ChargeModel;
+import com.tfcode.comparetout.model.scenario.DischargeToGrid;
 import com.tfcode.comparetout.model.scenario.EVCharge;
 import com.tfcode.comparetout.model.scenario.EVDivert;
 import com.tfcode.comparetout.model.scenario.HWSchedule;
@@ -162,6 +163,7 @@ public class SimulationWorker extends Worker {
                             mergePVWithSimulationInputData(rowsToProcess, simulationInputData, inverterPV);
                             // Get connected battery (if any, and max 1)
                             Battery connectedBattery = null;
+                            ForceDischargeToGrid connectedDischarge = null;
                             ChargeFromGrid chargeFromGrid = null;
                             if (scenario.isHasBatteries()) {
                                 for (Battery battery : scenarioComponents.batteries)
@@ -169,6 +171,15 @@ public class SimulationWorker extends Worker {
                                         connectedBattery = battery;
                                 if (scenario.isHasLoadShifts()) {
                                     chargeFromGrid = new ChargeFromGrid(scenarioComponents.loadShifts, rowsToProcess);
+                                }
+                                if (scenario.isHasDischarges()) {
+                                    List<DischargeToGrid> connectedDischarges = new ArrayList<>();
+                                    for (DischargeToGrid dischargeToGrid : scenarioComponents.discharges) {
+                                        if (dischargeToGrid.getInverter().equals(inverter.getInverterName()))
+                                            connectedDischarges.add(dischargeToGrid);
+                                    }
+                                    if (!(connectedDischarges.isEmpty()))
+                                        connectedDischarge = new ForceDischargeToGrid(connectedDischarges, rowsToProcess);
                                 }
                             }
                             // Get the hot water related components
@@ -189,7 +200,7 @@ public class SimulationWorker extends Worker {
                             InputData iData = new InputData(inverter, simulationInputData,
                                     connectedBattery, chargeFromGrid,
                                     configuredHotWater, hotWaterDivert, hotWaterSchedules,
-                                    evCharges, evDiverts);
+                                    evCharges, evDiverts, connectedDischarge);
                             inputDataMap.put(inverter, iData);
                         }
                     } else { // No solar simulation, but we need a 'perfect' inverter
@@ -212,7 +223,7 @@ public class SimulationWorker extends Worker {
                         InputData idata = new InputData(inverter, mToutcRepository.getSimulationInputNoSolar(scenarioID),
                                 null, null,
                                 configuredHotWater, null, hotWaterSchedules,
-                                evCharges, null);
+                                evCharges, null, null);
                         inputDataMap.put(inverter, idata);
                         rowsToProcess = idata.inputData.size();
                     }
@@ -406,6 +417,7 @@ public class SimulationWorker extends Worker {
 
         double buy = purchaseShiftingLoad;
         double feed = 0;
+        double b2g = 0;
         double pv2charge = 0;
         double pv2load;
         double bat2Load = 0;
@@ -493,12 +505,26 @@ public class SimulationWorker extends Worker {
             nowWaterTemp = heat.temperature;
             divertedToWater = heat.kWhUsed;
         }
-        outputRow.setFeed(feed);
-
         outputRow.setWaterTemp(nowWaterTemp);
         outputRow.setKWHDivToWater(divertedToWater);
         outputRow.setImmersionLoad(scheduledWaterLoad);
         outputRow.setKWHDivToEV(divertedToEV);
+
+        // FORCED DISCHARGE TO GRID
+        // Minimum of
+        //      battery discharge capacity left,
+        //      inverter capacity,
+        //      requested discharge rate
+        // Then sum for all inverters, ,
+        //      and min(sum, exportMax)
+        //      if the (sum + feed) > exportMax
+        //      SOMEHOW reduce the discharge proportionally.
+        // Then
+        //      increase feed by forcedDischarge,
+        //      reduce the SoCs,
+
+        outputRow.setBattery2Grid(b2g);
+        outputRow.setFeed(feed);
 
         // RECORD THE OUTPUT
         outputRows.add(outputRow);
@@ -577,6 +603,7 @@ public class SimulationWorker extends Worker {
         List<SimulationInputData> inputData;
         Battery mBattery;
         ChargeFromGrid mChargeFromGrid;
+        ForceDischargeToGrid mForceDischargeToGrid;
 
         HWSystem mHWSystem;
         Boolean mHWDivert;
@@ -592,7 +619,7 @@ public class SimulationWorker extends Worker {
         InputData(Inverter inverter, List<SimulationInputData> iData,
                   Battery battery, ChargeFromGrid chargeFromGrid,
                   HWSystem hwSystem, Boolean hwDivert, List<HWSchedule> hotWaterSchedules,
-                  List<EVCharge> evCharges, List<EVDivert> evDiverts) {
+                  List<EVCharge> evCharges, List<EVDivert> evDiverts, ForceDischargeToGrid forceDischargeToGrid) {
             id = inverter.getInverterIndex();
             dc2acLoss = (100d - inverter.getDc2acLoss()) / 100d;
             ac2dcLoss = (100d - inverter.getAc2dcLoss()) / 100d;
@@ -601,6 +628,7 @@ public class SimulationWorker extends Worker {
             inputData = iData;
             mBattery = battery;
             mChargeFromGrid = chargeFromGrid;
+            mForceDischargeToGrid = forceDischargeToGrid;
             mHWSystem = hwSystem;
             mHWDivert = hwDivert;
             mHWSchedules = hotWaterSchedules;
@@ -673,6 +701,12 @@ public class SimulationWorker extends Worker {
             boolean cfg = false;
             if (!(null == mChargeFromGrid)) cfg = mChargeFromGrid.mCFG.get(row);
             return cfg;
+        }
+
+        public boolean isD2G(int row) {
+            boolean d2g = false;
+            if (!(null == mForceDischargeToGrid)) d2g = mForceDischargeToGrid.mD2G.get(row);
+            return d2g;
         }
 
         public static double getMaxChargeForSOC(double batterySOC, Battery battery) {
@@ -754,6 +788,77 @@ public class SimulationWorker extends Worker {
                 }
             }
             return groupedLoadShifts;
+        }
+    }
+
+    public static class ForceDischargeToGrid {
+
+        List<Boolean> mD2G;
+        List<Double> mStopAt;
+        List<Double> mRate;
+
+        public ForceDischargeToGrid(List<DischargeToGrid> dischargeToGrids, int rowsToProcess) {
+            mD2G = new ArrayList<>(Collections.nCopies(rowsToProcess, false));
+            mStopAt = new ArrayList<>(Collections.nCopies(rowsToProcess, 0D));
+            mRate = new ArrayList<>(Collections.nCopies(rowsToProcess, 0D));
+            Map<Integer, List<DischargeToGrid>> groupedLoadShifts = sortLoadShifts(dischargeToGrids);
+            populateCFG(groupedLoadShifts);
+        }
+
+        private void populateCFG(Map<Integer, List<DischargeToGrid>> groupedDischarges) {
+            LocalDateTime active = LocalDateTime.of(2001, 1, 1, 0, 0);
+            LocalDateTime end = LocalDateTime.of(2002, 1, 1, 0, 0);
+            int row = 0;
+            while (active.isBefore(end)) {
+                int month = active.getMonthValue();
+                int day = active.getDayOfWeek().getValue();
+                if (day == 7) day = 0;
+                for (Map.Entry<Integer, List<DischargeToGrid>> aGroup: groupedDischarges.entrySet()) {
+                    if (!(null == aGroup.getValue()) && !aGroup.getValue().isEmpty() ) {
+                        if (aGroup.getValue().get(0).getDays().ints.contains(day) &&
+                                aGroup.getValue().get(0).getMonths().months.contains(month)) {
+                            int hour = active.getHour();
+                            for (DischargeToGrid discharge : aGroup.getValue()) {
+                                if ((discharge.getBegin() <= hour) && (hour <= discharge.getEnd()) ) {
+                                    mD2G.set(row, true);
+                                    mStopAt.set(row, discharge.getStopAt());
+                                    mRate.set(row, discharge.getRate());
+                                    break; // One true is enough
+                                }
+                            }
+                        }
+                    }
+                }
+                active = active.plusMinutes(5);
+                row++;
+            }
+        }
+
+        private static Map<Integer, List<DischargeToGrid>> sortLoadShifts(List<DischargeToGrid> dischargeToGrids) {
+            Map<Integer, List<DischargeToGrid>> groupedDischarges = new HashMap<>();
+            Integer maxKey = null;
+            for (DischargeToGrid discharge : dischargeToGrids) {
+                boolean sorted = false;
+                for (Map.Entry<Integer, List<DischargeToGrid>> tabContent: groupedDischarges.entrySet()) {
+                    if (maxKey == null) maxKey = tabContent.getKey();
+                    else if (maxKey < tabContent.getKey()) maxKey = tabContent.getKey();
+                    if (tabContent.getValue().get(0) != null) {
+                        if (tabContent.getValue().get(0).equalDateAndInverter(discharge)) {
+                            tabContent.getValue().add(discharge);
+                            sorted = true;
+                            break; // stop looking in the map, exit inner loop
+                        }
+                    }
+                }
+                if (!sorted){
+                    if (null == maxKey) maxKey = 0;
+                    List<DischargeToGrid> newGroupDischarges = new ArrayList<>();
+                    newGroupDischarges.add(discharge);
+                    groupedDischarges.put(maxKey, newGroupDischarges);
+                    maxKey++;
+                }
+            }
+            return groupedDischarges;
         }
     }
 }

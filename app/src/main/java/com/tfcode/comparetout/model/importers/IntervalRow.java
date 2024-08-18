@@ -33,6 +33,7 @@ public class IntervalRow {
     @ColumnInfo(name= "EVDIVERT") public double evDivert = 0.0;
     @ColumnInfo(name= "HWSCHEDULE") public double hwSchedule = 0.0;
     @ColumnInfo(name= "HWDIVERT") public double hwDivert = 0.0;
+    @ColumnInfo(name= "BAT2GRID") public double bat2grid = 0.0;
 
     @ColumnInfo(name= "INTERVAL") public String interval = "";
 }

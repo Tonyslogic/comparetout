@@ -77,6 +77,11 @@
         android:title="@string/hot_water_diversion"
         android:checkable="true"/>
     <item
+        android:id="@+id/batteryToGrid"
+        android:checked="false"
+        android:title="@string/battery_to_grid"
+        android:checkable="true"/>
+    <item
         android:id="@+id/soc"
         android:checked="true"
         android:title="@string/state_of_charge"

@@ -44,6 +44,16 @@ public class ScenarioSimulationData {
     private double immersionLoad;
     @ColumnInfo(defaultValue = "0")
     private double gridToBattery = 0;
+    @ColumnInfo(defaultValue = "0")
+    private double battery2Grid = 0;
+
+    public double getBattery2Grid() {
+        return battery2Grid;
+    }
+
+    public void setBattery2Grid(double battery2Grid) {
+        this.battery2Grid = battery2Grid;
+    }
 
     public double getGridToBattery() {
         return gridToBattery;

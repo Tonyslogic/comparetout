@@ -330,4 +330,5 @@
     <string name="_17">17</string>
     <string name="discharge_schedule_name">Discharge schedule name</string>
     <string name="rate_kw">Rate (kW)</string>
+    <string name="battery_to_grid">Battery 2 Grid</string>
 </resources>

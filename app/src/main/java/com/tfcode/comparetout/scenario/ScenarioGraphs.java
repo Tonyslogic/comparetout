@@ -42,6 +42,7 @@ public class ScenarioGraphs extends BaseGraphsFragment {
             mFilterPopup.getMenu().findItem(R.id.hwSchedule).setVisible(true);
             mFilterPopup.getMenu().findItem(R.id.evDivert).setVisible(true);
             mFilterPopup.getMenu().findItem(R.id.hwDivert).setVisible(true);
+            mFilterPopup.getMenu().findItem(R.id.batteryToGrid).setVisible(true);
         }
     }
 }

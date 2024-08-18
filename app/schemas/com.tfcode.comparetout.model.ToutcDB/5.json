@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 5,
-    "identityHash": "6b9cb625b13d9099ff8991718f7d6937",
+    "identityHash": "b3aeed6020eb57571808aa5a6e0b2c30",
     "entities": [
       {
         "tableName": "PricePlans",
@@ -1351,7 +1351,7 @@
       },
       {
         "tableName": "scenariosimulationdata",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`scenarioID` INTEGER NOT NULL, `date` TEXT NOT NULL, `minuteOfDay` INTEGER NOT NULL, `dayOfWeek` INTEGER NOT NULL, `dayOf2001` INTEGER NOT NULL, `load` REAL NOT NULL, `Feed` REAL NOT NULL, `Buy` REAL NOT NULL, `SOC` REAL NOT NULL, `directEVcharge` REAL NOT NULL, `waterTemp` REAL NOT NULL, `kWHDivToWater` REAL NOT NULL, `kWHDivToEV` REAL NOT NULL, `pvToCharge` REAL NOT NULL, `pvToLoad` REAL NOT NULL, `batToLoad` REAL NOT NULL, `pv` REAL NOT NULL, `immersionLoad` REAL NOT NULL, `gridToBattery` REAL NOT NULL DEFAULT 0, PRIMARY KEY(`scenarioID`, `date`, `minuteOfDay`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`scenarioID` INTEGER NOT NULL, `date` TEXT NOT NULL, `minuteOfDay` INTEGER NOT NULL, `dayOfWeek` INTEGER NOT NULL, `dayOf2001` INTEGER NOT NULL, `load` REAL NOT NULL, `Feed` REAL NOT NULL, `Buy` REAL NOT NULL, `SOC` REAL NOT NULL, `directEVcharge` REAL NOT NULL, `waterTemp` REAL NOT NULL, `kWHDivToWater` REAL NOT NULL, `kWHDivToEV` REAL NOT NULL, `pvToCharge` REAL NOT NULL, `pvToLoad` REAL NOT NULL, `batToLoad` REAL NOT NULL, `pv` REAL NOT NULL, `immersionLoad` REAL NOT NULL, `gridToBattery` REAL NOT NULL DEFAULT 0, `battery2Grid` REAL NOT NULL DEFAULT 0, PRIMARY KEY(`scenarioID`, `date`, `minuteOfDay`))",
         "fields": [
           {
             "fieldPath": "scenarioID",
@@ -1464,6 +1464,13 @@
           {
             "fieldPath": "gridToBattery",
             "columnName": "gridToBattery",
+            "affinity": "REAL",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "battery2Grid",
+            "columnName": "battery2Grid",
             "affinity": "REAL",
             "notNull": true,
             "defaultValue": "0"
@@ -1806,7 +1813,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '6b9cb625b13d9099ff8991718f7d6937')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b3aeed6020eb57571808aa5a6e0b2c30')"
     ]
   }
 }
