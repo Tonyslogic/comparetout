@@ -831,11 +831,13 @@ public class ToutcRepository {
     }
 
     public void linkDischargeFromScenario(long fromScenarioID, Long toScenarioID) {
-        scenarioDAO.linkDischargeFromScenario(fromScenarioID, toScenarioID);
+        ToutcDB.databaseWriteExecutor.execute(() ->
+        scenarioDAO.linkDischargeFromScenario(fromScenarioID, toScenarioID));
     }
 
     public void copyDischargeFromScenario(long fromScenarioID, Long toScenarioID) {
-        scenarioDAO.copyDischargeFromScenario(fromScenarioID, toScenarioID);
+        ToutcDB.databaseWriteExecutor.execute(() ->
+        scenarioDAO.copyDischargeFromScenario(fromScenarioID, toScenarioID));
     }
 
     public void saveDischargeForScenario(Long scenarioID, DischargeToGrid discharge) {
@@ -848,5 +850,13 @@ public class ToutcRepository {
 
     public List<DischargeToGrid> getDischargesForScenario(Long scenarioID) {
         return scenarioDAO.getDischargesForScenarioID(scenarioID);
+    }
+
+    public void deleteDischargeFromScenario(Long dischargeID, Long scenarioID) {
+        scenarioDAO.deleteDischargeFromScenario(dischargeID, scenarioID);
+    }
+
+    public List<String> getLinkedDischarges(long d2gIndex, Long scenarioID) {
+        return scenarioDAO.getLinkedDischarges(d2gIndex, scenarioID);
     }
 }

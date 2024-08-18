@@ -324,4 +324,10 @@
     <string name="SelectMPRN">Select MPRN</string>
     <string name="battery_discharge">Discharge to grid set</string>
     <string name="discharge">Discharge</string>
+    <string name="TwentyPoint0">20.0</string>
+    <string name="_0_225">0.225</string>
+    <string name="_19">19</string>
+    <string name="_17">17</string>
+    <string name="discharge_schedule_name">Discharge schedule name</string>
+    <string name="rate_kw">Rate (kW)</string>
 </resources>

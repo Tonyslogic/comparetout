@@ -129,7 +129,7 @@ public class BatteryDischargeActivity extends AppCompatActivity {
         new Thread(() -> {
             if (mLinkedDischarges == null) mLinkedDischarges = new HashMap<>();
             for (DischargeToGrid discharge : mDischarges) {
-                mLinkedDischarges.put(discharge.getD2gIndex(), mViewModel.getLinkedEVCharges(discharge.getD2gIndex(), mScenarioID));
+                mLinkedDischarges.put(discharge.getD2gIndex(), mViewModel.getLinkedDischarges(discharge.getD2gIndex(), mScenarioID));
             }
         }).start();
     }
@@ -175,8 +175,8 @@ public class BatteryDischargeActivity extends AppCompatActivity {
         else mFab.hide();
 
         mViewModel.getAllDischargeRelations().observe(this, relations -> {
-            for (Scenario2DischargeToGrid evCharge: relations) {
-                if (evCharge.getScenarioID() == mScenarioID) {
+            for (Scenario2DischargeToGrid discharge: relations) {
+                if (discharge.getScenarioID() == mScenarioID) {
                     new Thread(() -> {
                         int iCountOld = 0;
                         if (!(null == mTabContents)) iCountOld = mTabContents.size();
@@ -224,8 +224,8 @@ public class BatteryDischargeActivity extends AppCompatActivity {
         sortDischargesIntoTabs();
         Type type = new TypeToken<List<DischargeToGridJson>>(){}.getType();
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        List<DischargeToGridJson> evChargeJson = JsonTools.createDischargeJson(mDischarges);
-        mDischargeJsonString =  gson.toJson(evChargeJson, type);
+        List<DischargeToGridJson> dischargeJson = JsonTools.createDischargeJson(mDischarges);
+        mDischargeJsonString =  gson.toJson(dischargeJson, type);
         if (!(null == mViewPager) && !(null == mViewPager.getAdapter()))
             ((BatteryDischargeViewPageAdapter) mViewPager.getAdapter()).updateDBIndex();
     }
@@ -233,14 +233,14 @@ public class BatteryDischargeActivity extends AppCompatActivity {
     private void sortDischargesIntoTabs() {
         mTabContents = new HashMap<>();
         Integer maxKey = null;
-        for (DischargeToGrid evCharge : mDischarges) {
+        for (DischargeToGrid discharge : mDischarges) {
             boolean sorted = false;
             for (Map.Entry<Integer, List<DischargeToGrid>> tabContent: mTabContents.entrySet()) {
                 if (maxKey == null) maxKey = tabContent.getKey();
                 else if (maxKey < tabContent.getKey()) maxKey = tabContent.getKey();
                 if (tabContent.getValue().get(0) != null) {
-                    if (tabContent.getValue().get(0).equalDate(evCharge)) {
-                        tabContent.getValue().add(evCharge);
+                    if (tabContent.getValue().get(0).equalDate(discharge)) {
+                        tabContent.getValue().add(discharge);
                         sorted = true;
                         break; // stop looking in the map, exit inner loop
                     }
@@ -248,9 +248,9 @@ public class BatteryDischargeActivity extends AppCompatActivity {
             }
             if (!sorted){
                 if (null == maxKey) maxKey = 0;
-                List<DischargeToGrid> evCharges = new ArrayList<>();
-                evCharges.add(evCharge);
-                mTabContents.put(maxKey, evCharges);
+                List<DischargeToGrid> dischargeToGrids = new ArrayList<>();
+                dischargeToGrids.add(discharge);
+                mTabContents.put(maxKey, dischargeToGrids);
                 maxKey++;
             }
         }
@@ -321,8 +321,8 @@ public class BatteryDischargeActivity extends AppCompatActivity {
     private void refreshMediator() {
         Type type = new TypeToken<List<DischargeToGridJson>>(){}.getType();
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        List<DischargeToGridJson> evChargeJson = JsonTools.createDischargeJson(mDischarges);
-        mDischargeJsonString =  gson.toJson(evChargeJson, type);
+        List<DischargeToGridJson> dischargeJson = JsonTools.createDischargeJson(mDischarges);
+        mDischargeJsonString =  gson.toJson(dischargeJson, type);
         TabLayout tabLayout = findViewById(R.id.discharge_tab_layout);
         mMediator.detach();
         try {
@@ -488,12 +488,12 @@ public class BatteryDischargeActivity extends AppCompatActivity {
             mProgressBar.setVisibility(View.VISIBLE);
             if (!mSimulationInProgress) {
                 new Thread(() -> {
-                    if (!(null == mRemovedDischarges))for (Long evChargeID: mRemovedDischarges) {
-                        mViewModel.deleteEVChargeFromScenario(evChargeID, mScenarioID);
+                    if (!(null == mRemovedDischarges))for (Long dischargeID : mRemovedDischarges) {
+                        mViewModel.deleteDischargeFromScenario(dischargeID, mScenarioID);
                     }
-                    for (DischargeToGrid evCharge: mDischarges) {
-                        if (evCharge.getD2gIndex() < 0) evCharge.setD2gIndex(0);
-                        mViewModel.saveDischargeForScenario(mScenarioID, evCharge);
+                    for (DischargeToGrid discharge: mDischarges) {
+                        if (discharge.getD2gIndex() < 0) discharge.setD2gIndex(0);
+                        mViewModel.saveDischargeForScenario(mScenarioID, discharge);
                     }
                     mViewModel.deleteSimulationDataForScenarioID(mScenarioID);
                     mViewModel.deleteCostingDataForScenarioID(mScenarioID);
@@ -751,5 +751,9 @@ public class BatteryDischargeActivity extends AppCompatActivity {
 
         webView.setWebViewClient(new LocalContentWebViewClient(mAssetLoader));
         webView.loadUrl(url);
+    }
+
+    public long getScenarioID() {
+        return mScenarioID;
     }
 }

@@ -10,6 +10,7 @@ import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.LifecycleEventObserver;
+import androidx.lifecycle.ViewModelProvider;
 
 import android.os.Handler;
 import android.os.Looper;
@@ -19,17 +20,22 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.Spinner;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
 import com.google.android.material.snackbar.Snackbar;
+import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.scenario.DischargeToGrid;
+import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.util.AbstractTextWatcher;
 
 import java.util.ArrayList;
@@ -44,6 +50,7 @@ import java.util.List;
 public class BatteryDischargeFragment extends Fragment {
 
     private int mDischargeIndex;
+    private long mScenarioID;
     private boolean mEdit;
     private List<View> mEditFields;
     private DischargeToGrid mDischarge;
@@ -54,6 +61,8 @@ public class BatteryDischargeFragment extends Fragment {
     private TableLayout DischargeTimes;
 
     private Handler mMainHandler;
+    private ComparisonUIViewModel mViewModel;
+    private List<Inverter> mInverters;
 
     public BatteryDischargeFragment() {
         // Required empty public constructor
@@ -73,10 +82,16 @@ public class BatteryDischargeFragment extends Fragment {
         // The activity may not be created, so these calls wait for the activity creation to complete
         requireActivity().getLifecycle().addObserver((LifecycleEventObserver) (source, event) -> {
             if ((event.getTargetState() ==  Lifecycle.State.CREATED ) && !(null == getActivity()) ) {
+                mScenarioID = ((BatteryDischargeActivity) requireActivity()).getScenarioID();
                 mDischargesFromActivity = ((BatteryDischargeActivity) requireActivity()).getDischarges(mDischargeIndex);
                 mEdit = ((BatteryDischargeActivity) requireActivity()).getEdit();
                 mEditFields = new ArrayList<>();
                 unpackDischarge();
+                mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
+                new Thread(() -> {
+                    mInverters = mViewModel.getInvertersForScenario(mScenarioID);
+                    mMainHandler.post(() -> {if (!(null == mDateTableLayout)) updateView();});
+                }).start();
                 if (!(null == mDateTableLayout)) updateView();
             }
         });
@@ -136,14 +151,14 @@ public class BatteryDischargeFragment extends Fragment {
             nameTableLayout.setStretchAllColumns(true);
             {
                 TableRow nameRow = new TableRow(getActivity());
-                TextView evChargePrompt = new TextView(getActivity());
-                evChargePrompt.setText("Discharge schedule name");
+                TextView dischargePrompt = new TextView(getActivity());
+                dischargePrompt.setText(R.string.discharge_schedule_name);
 
-                EditText evChargeName = new EditText(getActivity());
-                evChargeName.setText(mDischarge.getName());
-                evChargeName.setEnabled(mEdit);
+                EditText dischargeName = new EditText(getActivity());
+                dischargeName.setText(mDischarge.getName());
+                dischargeName.setEnabled(mEdit);
 
-                evChargeName.addTextChangedListener(new AbstractTextWatcher() {
+                dischargeName.addTextChangedListener(new AbstractTextWatcher() {
                     @Override
                     public void afterTextChanged(Editable s) {
                         if (!(s.toString().equals(mDischarge.getName()))) {
@@ -154,11 +169,62 @@ public class BatteryDischargeFragment extends Fragment {
                     }
                 });
 
-                nameRow.addView(evChargePrompt);
-                nameRow.addView(evChargeName);
+                nameRow.addView(dischargePrompt);
+                nameRow.addView(dischargeName);
                 nameTableLayout.addView(nameRow);
             }
             mDateTableLayout.addView(nameTableLayout);
+            TableLayout inverterTableLayout = new TableLayout(getActivity());
+            inverterTableLayout.setStretchAllColumns(true);
+            {
+                TableRow inverterRow = new TableRow(getActivity());
+                TextView inverterText = new TextView(getActivity());
+                inverterText.setText(R.string.ConnectedInverterName);
+                ArrayList<String> inverterSpinnerContent = new ArrayList<>();
+                int selectedInverterIndex = 0;
+                int itr = 0;
+                Inverter initialInverter = null;
+                if (!(null == mInverters)) for (Inverter inverter : mInverters) {
+                    String inv = inverter.getInverterName();
+                    inverterSpinnerContent.add(inv);
+                    if (mDischarge.getInverter().equals(inv)) {
+                        selectedInverterIndex = itr;
+                        initialInverter = inverter;
+                    }
+                    itr++;
+                }
+                else inverterSpinnerContent.add("Missing inverter");
+                Spinner inverterSpinner = new Spinner(getActivity());
+                ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(getActivity(), android.R.layout.simple_spinner_item, inverterSpinnerContent);
+                inverterSpinner.setAdapter(spinnerAdapter);
+                inverterSpinner.setSelection(selectedInverterIndex);
+                Inverter finalInitialInverter = initialInverter;
+                inverterSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                    @Override
+                    public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                        String inverter = inverterSpinnerContent.get(position);
+                        mDischarge.setInverter(inverter);
+                        ((BatteryDischargeActivity) requireActivity()).updateDischargeAtIndex(mDischarge, mDischargeIndex, 0);
+                        if (null == finalInitialInverter)
+                            ((BatteryDischargeActivity) requireActivity()).setSaveNeeded(true);
+                        else if (!finalInitialInverter.getInverterName().equals(mDischarge.getInverter()))
+                            ((BatteryDischargeActivity) requireActivity()).setSaveNeeded(true);
+                    }
+
+                    @Override
+                    public void onNothingSelected(AdapterView<?> parent) {
+                        // Auto-generated method stub
+                    }
+                });
+                inverterText.setLayoutParams(params);
+                inverterSpinner.setPadding(20, 20, 20, 20);
+                inverterSpinner.setEnabled(mEdit);
+                mEditFields.add(inverterSpinner);
+                inverterRow.addView(inverterText);
+                inverterRow.addView(inverterSpinner);
+                inverterTableLayout.addView(inverterRow);
+            }
+            mDateTableLayout.addView(inverterTableLayout);
 
             // Month & Day buttons
             TableLayout buttonTableLayout = new TableLayout(getActivity());
@@ -282,8 +348,11 @@ public class BatteryDischargeFragment extends Fragment {
                 toTitle.setText(R.string.ToHr);
                 titleRow.addView(toTitle);
                 TextView drawTitle = new TextView(getActivity());
-                drawTitle.setText(R.string.draw);
+                drawTitle.setText(R.string.rate_kw);
                 titleRow.addView(drawTitle);
+                TextView stopTitle = new TextView(getActivity());
+                stopTitle.setText(R.string.StopAt);
+                titleRow.addView(stopTitle);
                 TextView deleteTitle = new TextView(getActivity());
                 deleteTitle.setText(R.string.Delete);
                 deleteTitle.setGravity(Gravity.CENTER);
@@ -294,11 +363,12 @@ public class BatteryDischargeFragment extends Fragment {
                     TableRow chargeRow = new TableRow(getActivity());
                     ImageButton linked = new ImageButton(getActivity());
                     linked.setImageResource(R.drawable.ic_baseline_link_24);
-                    linked.setContentDescription("Load shift is linked");
+                    linked.setContentDescription("Discharge is linked");
                     linked.setBackgroundColor(0);
                     EditText from = new EditText(getActivity());
                     EditText to = new EditText(getActivity());
                     EditText draw = new EditText(getActivity());
+                    EditText stop = new EditText(getActivity());
                     ImageButton delete = new ImageButton(getActivity());
                     delete.setImageResource(R.drawable.ic_baseline_delete_24);
                     delete.setContentDescription("Delete this load shift");
@@ -309,6 +379,8 @@ public class BatteryDischargeFragment extends Fragment {
                     to.setHeight(80);
                     draw.setMinimumHeight(80);
                     draw.setHeight(80);
+                    stop.setMinimumHeight(80);
+                    stop.setHeight(80);
 
                     from.setText(String.valueOf(discharge.getBegin()));
                     from.setInputType(integerType);
@@ -316,6 +388,8 @@ public class BatteryDischargeFragment extends Fragment {
                     to.setInputType(integerType);
                     draw.setText(String.valueOf(discharge.getRate()));
                     draw.setInputType(doubleType);
+                    stop.setText(String.valueOf(discharge.getStopAt()));
+                    stop.setInputType(doubleType);
 
                     List<String> linkedScenarios = ((BatteryDischargeActivity) requireActivity()).getLinkedScenarios(discharge.getD2gIndex());
                     if ((null == linkedScenarios) || linkedScenarios.isEmpty()) {
@@ -325,6 +399,7 @@ public class BatteryDischargeFragment extends Fragment {
                     }
                     else {
                         linked.setEnabled(true);
+                        linked.setImageResource(R.drawable.ic_baseline_link_24);
                         linked.setOnClickListener(view -> Snackbar.make(view, "Linked to " + linkedScenarios, Snackbar.LENGTH_LONG)
                                 .setAction("Action", null).show());
                     }
@@ -357,6 +432,15 @@ public class BatteryDischargeFragment extends Fragment {
                                 ((BatteryDischargeActivity) requireActivity()).setSaveNeeded(true);
                             } } } );
 
+                    stop.addTextChangedListener( new AbstractTextWatcher() {
+                        @Override
+                        public void afterTextChanged(Editable s) {
+                            if (!(s.toString().equals(String.valueOf(discharge.getStopAt())))) {
+                                discharge.setStopAt(getDoubleOrZero(s));
+                                ((BatteryDischargeActivity) requireActivity()).updateDischargeAtIndex(discharge, mDischargeIndex, discharge.getD2gIndex());
+                                ((BatteryDischargeActivity) requireActivity()).setSaveNeeded(true);
+                            } } } );
+
                     delete.setOnClickListener(v -> {
                         from.setBackgroundColor(Color.RED);
                         to.setBackgroundColor(Color.RED);
@@ -372,6 +456,8 @@ public class BatteryDischargeFragment extends Fragment {
                     mEditFields.add(to);
                     draw.setEnabled(mEdit);
                     mEditFields.add(draw);
+                    stop.setEnabled(mEdit);
+                    mEditFields.add(stop);
                     delete.setEnabled(mEdit);
                     mEditFields.add(delete);
 
@@ -379,6 +465,7 @@ public class BatteryDischargeFragment extends Fragment {
                     chargeRow.addView(from);
                     chargeRow.addView(to);
                     chargeRow.addView(draw);
+                    chargeRow.addView(stop);
                     chargeRow.addView(delete);
 
                     DischargeTimes.addView(chargeRow);
@@ -391,12 +478,13 @@ public class BatteryDischargeFragment extends Fragment {
                 addRow.setBackgroundResource(R.drawable.row_border);
                 ImageButton linked = new ImageButton(getActivity());
                 linked.setImageResource(R.drawable.ic_baseline_link_off_24);
-                linked.setContentDescription("No linked EV charge schedules");
+                linked.setContentDescription("No linked discharge schedules");
                 linked.setEnabled(false);
                 linked.setBackgroundColor(0);
                 EditText from = new EditText(getActivity());
                 EditText to = new EditText(getActivity());
                 EditText draw = new EditText(getActivity());
+                EditText stop = new EditText(getActivity());
                 ImageButton add = new ImageButton(getActivity());
                 add.setImageResource(android.R.drawable.ic_menu_add);
                 add.setContentDescription("Add a new charge time");
@@ -407,6 +495,8 @@ public class BatteryDischargeFragment extends Fragment {
                 to.setHeight(80);
                 draw.setMinimumHeight(80);
                 draw.setHeight(80);
+                stop.setMinimumHeight(80);
+                stop.setHeight(80);
 
                 from.setEnabled(mEdit);
                 mEditFields.add(from);
@@ -414,23 +504,29 @@ public class BatteryDischargeFragment extends Fragment {
                 mEditFields.add(to);
                 draw.setEnabled(mEdit);
                 mEditFields.add(draw);
+                stop.setEnabled(mEdit);
+                mEditFields.add(stop);
                 add.setEnabled(mEdit);
                 mEditFields.add(add);
 
-                from.setText("2");
+                from.setText(R.string._17);
                 from.setInputType(integerType);
-                to.setText("6");
+                to.setText(R.string._19);
                 to.setInputType(integerType);
-                draw.setText("7.5");
+                draw.setText(R.string._0_225);
                 draw.setInputType(doubleType);
+                stop.setText(R.string.TwentyPoint0);
+                stop.setInputType(doubleType);
 
                 add.setOnClickListener(v -> {
                     DischargeToGrid discharge = new DischargeToGrid();
+                    discharge.setInverter(discharge.getInverter());
                     discharge.getDays().ints = new ArrayList<>(mDischarge.getDays().ints);
                     discharge.getMonths().months = new ArrayList<>(mDischarge.getMonths().months);
                     discharge.setBegin(Integer.parseInt(from.getText().toString()));
                     discharge.setEnd(Integer.parseInt(to.getText().toString()));
                     discharge.setRate(Double.parseDouble(draw.getText().toString()));
+                    discharge.setStopAt(Double.parseDouble(stop.getText().toString()));
                     ((BatteryDischargeActivity) requireActivity()).getNextAddedDischargeID(discharge);
                     mDischargesFromActivity.add(discharge);
                     ((BatteryDischargeActivity) requireActivity()).setSaveNeeded(true);
@@ -441,6 +537,7 @@ public class BatteryDischargeFragment extends Fragment {
                 addRow.addView(from);
                 addRow.addView(to);
                 addRow.addView(draw);
+                addRow.addView(stop);
                 addRow.addView(add);
 
                 DischargeTimes.addView(addRow);

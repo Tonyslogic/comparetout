@@ -30,7 +30,7 @@ public class DischargeToGrid {
     private String name = "Load-shift-name";
     private int begin = 23;
     private int end = 2;
-    private double stopAt = 0d;
+    private double stopAt = 20d;
     private double rate = 0.225d;
     private MonthHolder months = new MonthHolder();
     private IntHolder days = new IntHolder();

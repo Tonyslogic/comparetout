@@ -480,6 +480,14 @@ public class ComparisonUIViewModel extends AndroidViewModel {
         return toutcRepository.getDischargesForScenario(scenarioID);
     }
 
+    public void deleteDischargeFromScenario(Long dischargeID, Long scenarioID) {
+        toutcRepository.deleteDischargeFromScenario(dischargeID, scenarioID);
+    }
+
+    public List<String> getLinkedDischarges(long d2gIndex, Long scenarioID) {
+        return toutcRepository.getLinkedDischarges(d2gIndex, scenarioID);
+    }
+
     public enum Importer {
         ALPHAESS,
         ESBNHDF,
