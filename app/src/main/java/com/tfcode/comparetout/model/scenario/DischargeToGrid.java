@@ -27,11 +27,11 @@ public class DischargeToGrid {
     @PrimaryKey(autoGenerate = true)
     private long d2gIndex;
 
-    private String name = "Load-shift-name";
+    private String name = "Discharge-name";
     private int begin = 23;
     private int end = 2;
     private double stopAt = 20d;
-    private double rate = 0.225d;
+    private double rate = 2.5d;
     private MonthHolder months = new MonthHolder();
     private IntHolder days = new IntHolder();
     private String inverter = "AlphaESS";

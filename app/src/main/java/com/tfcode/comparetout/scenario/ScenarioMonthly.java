@@ -93,6 +93,7 @@ public class ScenarioMonthly extends Fragment {
     private static final String SHOW_HWSCHEDULE = "SHOW_HWSCHEDULE";
     private static final String SHOW_EVDIVERT = "SHOW_EVDIVERT";
     private static final String SHOW_HWDIVERT = "SHOW_HWDIVERT";
+    private static final String SHOW_BAT2GRID = "SHOW_BAT2GRID";
     private static final String SHOW_SOC = "SHOW_SOC";
     private static final String SHOW_HWTEMPERATURE = "SHOW_HWTEMPERATURE";
     private static final String SCENARIO_ID = "SCENARIO_ID";
@@ -110,6 +111,7 @@ public class ScenarioMonthly extends Fragment {
     private boolean mShowHWSchedule;
     private boolean mShowEVDivert;
     private boolean mShowHWDivert;
+    private boolean mShowBat2Grid = false;
     private boolean mShowSOC = true;
     private boolean mShowHWTemperature;
 
@@ -150,6 +152,7 @@ public class ScenarioMonthly extends Fragment {
         outState.putBoolean(SHOW_HWSCHEDULE, mShowHWSchedule);
         outState.putBoolean(SHOW_EVDIVERT, mShowEVDivert);
         outState.putBoolean(SHOW_HWDIVERT, mShowHWDivert);
+        outState.putBoolean(SHOW_BAT2GRID, mShowBat2Grid);
         outState.putBoolean(SHOW_SOC, mShowSOC);
         outState.putBoolean(SHOW_HWTEMPERATURE, mShowHWTemperature);
         outState.putLong(SCENARIO_ID, mScenarioID);
@@ -172,6 +175,7 @@ public class ScenarioMonthly extends Fragment {
             mShowHWSchedule = savedInstanceState.getBoolean(SHOW_HWSCHEDULE);
             mShowEVDivert = savedInstanceState.getBoolean(SHOW_EVDIVERT);
             mShowHWDivert = savedInstanceState.getBoolean(SHOW_HWDIVERT);
+            mShowBat2Grid = savedInstanceState.getBoolean(SHOW_BAT2GRID);
             mShowSOC = savedInstanceState.getBoolean(SHOW_SOC);
             mShowHWTemperature = savedInstanceState.getBoolean(SHOW_HWTEMPERATURE);
 
@@ -188,6 +192,7 @@ public class ScenarioMonthly extends Fragment {
             if (mShowHWSchedule) mBarFilterCount++;
             if (mShowEVDivert) mBarFilterCount++;
             if (mShowHWDivert) mBarFilterCount++;
+            if (mShowBat2Grid) mBarFilterCount++;
 
             mLineFilterCount = 0;
             if (mShowSOC) mLineFilterCount++;
@@ -266,6 +271,7 @@ public class ScenarioMonthly extends Fragment {
                     pickerTheme = android.R.style.Theme_Holo_Light_Dialog;
                     break;
             }
+            assert getActivity() != null;
             DatePickerDialog dpd = new DatePickerDialog(getActivity(), pickerTheme, date, 2001 ,localDate.getMonth().getValue() - 1, localDate.getDayOfMonth());
             View yearView = dpd.getDatePicker().findViewById(getResources().getIdentifier("year", "id", "android"));
             dpd.getDatePicker().setCalendarViewShown(false);
@@ -296,6 +302,7 @@ public class ScenarioMonthly extends Fragment {
             mPopup.getMenu().findItem(R.id.hwSchedule).setChecked(mShowHWSchedule);
             mPopup.getMenu().findItem(R.id.evDivert).setChecked(mShowEVDivert);
             mPopup.getMenu().findItem(R.id.hwSchedule).setChecked(mShowHWSchedule);
+            mPopup.getMenu().findItem(R.id.batteryToGrid).setChecked(mShowBat2Grid);
             mPopup.getMenu().findItem(R.id.soc).setEnabled(false);
             mPopup.getMenu().findItem(R.id.hwTemp).setEnabled(false);
         }
@@ -351,6 +358,10 @@ public class ScenarioMonthly extends Fragment {
                 mShowHWDivert = item.isChecked();
                 mBarFilterCount = item.isChecked() ? mBarFilterCount + 1 : mBarFilterCount - 1;
             }
+            if (itemID == R.id.batteryToGrid) {
+                mShowBat2Grid = item.isChecked();
+                mBarFilterCount = item.isChecked() ? mBarFilterCount + 1 : mBarFilterCount - 1;
+            }
             if (itemID == R.id.soc) {
                 mShowSOC = item.isChecked();
                 mLineFilterCount = item.isChecked() ? mLineFilterCount + 1 : mLineFilterCount - 1;
@@ -366,12 +377,12 @@ public class ScenarioMonthly extends Fragment {
             item.setActionView(new View(getActivity()));
             item.setOnActionExpandListener(new MenuItem.OnActionExpandListener() {
                 @Override
-                public boolean onMenuItemActionExpand(MenuItem item) {
+                public boolean onMenuItemActionExpand(@NonNull MenuItem item) {
                     return false;
                 }
 
                 @Override
-                public boolean onMenuItemActionCollapse(MenuItem item) {
+                public boolean onMenuItemActionCollapse(@NonNull MenuItem item) {
                     return false;
                 }
             });
@@ -429,6 +440,7 @@ public class ScenarioMonthly extends Fragment {
             ArrayList<BarEntry> hwScheduleEntries = new ArrayList<>();
             ArrayList<BarEntry> evDivertEntries = new ArrayList<>();
             ArrayList<BarEntry> hwDivertEntries = new ArrayList<>();
+            ArrayList<BarEntry> bat2gridEntries = new ArrayList<>();
             for (int i = 0; i < xLabel.size(); i++) {
                 loadEntries.add(new BarEntry(i, (float) mBarData.get(i).load));
                 feedEntries.add(new BarEntry(i, (float) mBarData.get(i).feed));
@@ -442,6 +454,7 @@ public class ScenarioMonthly extends Fragment {
                 hwScheduleEntries.add(new BarEntry(i, (float) mBarData.get(i).hwSchedule));
                 evDivertEntries.add(new BarEntry(i, (float) mBarData.get(i).evDivert));
                 hwDivertEntries.add(new BarEntry(i, (float) mBarData.get(i).hwDivert));
+                bat2gridEntries.add(new BarEntry(i, (float) mBarData.get(i).bat2grid));
             }
 
             BarDataSet loadSet;
@@ -456,6 +469,7 @@ public class ScenarioMonthly extends Fragment {
             BarDataSet hwScheduleSet;
             BarDataSet evDivertSet;
             BarDataSet hwDivertSet;
+            BarDataSet bat2gridSet;
 
             loadSet = new BarDataSet(loadEntries, "Daily load");
             loadSet.setColor(Color.BLUE);
@@ -481,6 +495,8 @@ public class ScenarioMonthly extends Fragment {
             evDivertSet.setColor(Color.parseColor("#a35567"));
             hwDivertSet = new BarDataSet(hwDivertEntries, "Daily hot water diversion");
             hwDivertSet.setColor(Color.parseColor("#ff5f67"));
+            bat2gridSet = new BarDataSet(bat2gridEntries, "Daily battery discharge");
+            bat2gridSet.setColor(0xFFFFD700);
 
             ArrayList<IBarDataSet> dataSets = new ArrayList<>();
             if (mShowLoad) dataSets.add(loadSet);
@@ -495,6 +511,7 @@ public class ScenarioMonthly extends Fragment {
             if (mShowHWSchedule) dataSets.add(hwScheduleSet);
             if (mShowEVDivert) dataSets.add(evDivertSet);
             if (mShowHWDivert) dataSets.add(hwDivertSet);
+            if (mShowBat2Grid) dataSets.add(bat2gridSet);
 
             BarData data = new BarData(dataSets);
             data.setValueTextSize(10f);

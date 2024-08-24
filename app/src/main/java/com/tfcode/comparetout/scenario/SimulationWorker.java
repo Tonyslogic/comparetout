@@ -118,6 +118,7 @@ public class SimulationWorker extends Worker {
                 long notifyTime = System.nanoTime();
                 for (long scenarioID : scenarioIDs) {
                     ScenarioComponents scenarioComponents = mToutcRepository.getScenarioComponentsForScenarioID(scenarioID);
+                    double exportMax = scenarioComponents.loadProfile.getGridExportMax();
                     Scenario scenario = scenarioComponents.scenario;
                     if (scenario.isHasPanels()) {
                         // Check for panel data
@@ -200,7 +201,7 @@ public class SimulationWorker extends Worker {
                             InputData iData = new InputData(inverter, simulationInputData,
                                     connectedBattery, chargeFromGrid,
                                     configuredHotWater, hotWaterDivert, hotWaterSchedules,
-                                    evCharges, evDiverts, connectedDischarge);
+                                    evCharges, evDiverts, connectedDischarge, exportMax);
                             inputDataMap.put(inverter, iData);
                         }
                     } else { // No solar simulation, but we need a 'perfect' inverter
@@ -223,9 +224,9 @@ public class SimulationWorker extends Worker {
                         InputData idata = new InputData(inverter, mToutcRepository.getSimulationInputNoSolar(scenarioID),
                                 null, null,
                                 configuredHotWater, null, hotWaterSchedules,
-                                evCharges, null, null);
+                                evCharges, null, null, exportMax);
                         inputDataMap.put(inverter, idata);
-                        rowsToProcess = idata.inputData.size();
+                        rowsToProcess = idata.simulationInputData.size();
                     }
 
                     builder.setContentText("Simulating: " + scenario.getScenarioName());
@@ -325,7 +326,7 @@ public class SimulationWorker extends Worker {
             for (Map.Entry<Inverter,InputData> entry: inputDataMap.entrySet()) {
                 InputData iData = entry.getValue();
                 if (null == firstInputData) firstInputData = iData;
-                if (null == inputRow) inputRow = iData.inputData.get(row);
+                if (null == inputRow) inputRow = iData.simulationInputData.get(row);
                 if (null == hwSystem) hwSystem = iData.mHWSystem;
                 if (null == hwDivert) hwDivert = iData.mHWDivert;
                 if (null == iData.mBattery) {
@@ -338,14 +339,14 @@ public class SimulationWorker extends Worker {
                 if (iMinExcess > 0 && absoluteMinExcess == 0) absoluteMinExcess = iMinExcess;
                 else absoluteMinExcess = min( absoluteMinExcess, iMinExcess);
                 totalMaxInverterLoad += entry.getKey().getMaxInverterLoad();
-                inputLoad += iData.inputData.get(row).getLoad();
+                inputLoad += iData.simulationInputData.get(row).getLoad();
             }
         }
         else { // Set initial SOC
             for (Map.Entry<Inverter,InputData> entry: inputDataMap.entrySet()) {
                 InputData iData = entry.getValue();
                 if (null == firstInputData) firstInputData = iData;
-                if (null == inputRow) inputRow = iData.inputData.get(row);
+                if (null == inputRow) inputRow = iData.simulationInputData.get(row);
                 if (null == hwSystem) hwSystem = iData.mHWSystem;
                 if (null == hwDivert) hwDivert = iData.mHWDivert;
                 if (null == iData.mBattery) {
@@ -359,7 +360,7 @@ public class SimulationWorker extends Worker {
                 if (iMinExcess > 0 && absoluteMinExcess == 0) absoluteMinExcess = iMinExcess;
                 else absoluteMinExcess = min( absoluteMinExcess, iMinExcess);
                 totalMaxInverterLoad += entry.getKey().getMaxInverterLoad();
-                inputLoad += iData.inputData.get(row).getLoad();
+                inputLoad += iData.simulationInputData.get(row).getLoad();
             }
         }
         if (null == inputRow) return;
@@ -368,7 +369,7 @@ public class SimulationWorker extends Worker {
         double tPV = 0;
         double effectivePV = 0;
         for (Map.Entry<Inverter,InputData> entry: inputDataMap.entrySet()) {
-            SimulationInputData sid = entry.getValue().inputData.get(row);
+            SimulationInputData sid = entry.getValue().simulationInputData.get(row);
             tPV += sid.tpv;
             effectivePV += sid.tpv * entry.getValue().dc2acLoss;
         }
@@ -457,7 +458,6 @@ public class SimulationWorker extends Worker {
         }
 
         outputRow.setBuy(buy);
-        outputRow.setSOC(totalSOC);
         outputRow.setPvToCharge(pv2charge);
         outputRow.setPvToLoad(pv2load);
         outputRow.setBatToLoad(bat2Load);
@@ -523,7 +523,35 @@ public class SimulationWorker extends Worker {
         //      increase feed by forcedDischarge,
         //      reduce the SoCs,
 
+        double maxExport = firstInputData.exportMax / 12D; // 5 minutes
+        double availableExport = Math.max(0d, maxExport - feed);
+        // Which inverters/batteries are set to discharge now
+        for (Map.Entry<Inverter,InputData> entry: inputDataMap.entrySet()) {
+            InputData inputData = entry.getValue();
+            ForceDischargeToGrid forceDischargeToGrid = inputData.mForceDischargeToGrid;
+            if (!(null == forceDischargeToGrid) && !(null == forceDischargeToGrid.mD2G) && forceDischargeToGrid.mD2G.get(row)){
+                double dischargeStopPercent = forceDischargeToGrid.mStopAt.get(row); // %
+                double dischargeStopKWh = (dischargeStopPercent / 100d) * inputData.mBattery.getBatterySize();
+                double currentSOC = inputData.soc; // kWh
+
+                // Discharge if there is capacity to export and the battery soc is above reserve
+                if (availableExport > 0 && currentSOC > dischargeStopKWh) {
+                    double wantedDischargeRate = forceDischargeToGrid.mRate.get(row) / 12D; // kW 5 minutes, max
+                    double batteryAvailable = Math.max(0d, currentSOC - dischargeStopKWh);
+                    double amountToDischarge = Math.min(Math.min(availableExport, batteryAvailable), wantedDischargeRate);
+                    double discharge = forceDischargeBatteries(inputData, amountToDischarge);
+
+                    totalSOC -= discharge;
+                    b2g += discharge;
+                    availableExport -= discharge;
+                    availableExport = Math.max(0d, availableExport);
+                    feed = feed + b2g;
+                }
+            }
+        }
+
         outputRow.setBattery2Grid(b2g);
+        outputRow.setSOC(totalSOC);
         outputRow.setFeed(feed);
 
         // RECORD THE OUTPUT
@@ -534,7 +562,6 @@ public class SimulationWorker extends Worker {
         if (ActivityCompat.checkSelfPermission(
                 mContext, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return;
         notificationManager.notify(notificationId, builder.build());
-
     }
 
     private static double chargeBatteries(Map<Inverter, InputData> inputDataMap, double charge) {
@@ -594,13 +621,27 @@ public class SimulationWorker extends Worker {
         return ret;
     }
 
+    /*
+     * For a single inverter/battery combo, force discharge the battery by the specified amount
+     * Return the change (discharge) in soc for this battery
+     */
+    private static double forceDischargeBatteries(InputData inputData, double amountToDischarge) {
+        double ret;
+        double effectiveDischarge = amountToDischarge * (1 + inputData.storageLoss/100d);
+        inputData.soc -= effectiveDischarge;
+        ret = effectiveDischarge;
+
+        return ret;
+    }
+
     static class InputData {
         long id;
         double dc2acLoss;
         double ac2dcLoss;
         double dc2dcLoss;
         double storageLoss;
-        List<SimulationInputData> inputData;
+        double exportMax;
+        List<SimulationInputData> simulationInputData;
         Battery mBattery;
         ChargeFromGrid mChargeFromGrid;
         ForceDischargeToGrid mForceDischargeToGrid;
@@ -619,13 +660,14 @@ public class SimulationWorker extends Worker {
         InputData(Inverter inverter, List<SimulationInputData> iData,
                   Battery battery, ChargeFromGrid chargeFromGrid,
                   HWSystem hwSystem, Boolean hwDivert, List<HWSchedule> hotWaterSchedules,
-                  List<EVCharge> evCharges, List<EVDivert> evDiverts, ForceDischargeToGrid forceDischargeToGrid) {
+                  List<EVCharge> evCharges, List<EVDivert> evDiverts, ForceDischargeToGrid forceDischargeToGrid, double exportMax) {
             id = inverter.getInverterIndex();
             dc2acLoss = (100d - inverter.getDc2acLoss()) / 100d;
             ac2dcLoss = (100d - inverter.getAc2dcLoss()) / 100d;
             dc2dcLoss = (100d - inverter.getDc2dcLoss()) / 100d;
+            this.exportMax = exportMax;
             storageLoss = (null == battery) ? 0 : battery.getStorageLoss();
-            inputData = iData;
+            simulationInputData = iData;
             mBattery = battery;
             mChargeFromGrid = chargeFromGrid;
             mForceDischargeToGrid = forceDischargeToGrid;
@@ -701,12 +743,6 @@ public class SimulationWorker extends Worker {
             boolean cfg = false;
             if (!(null == mChargeFromGrid)) cfg = mChargeFromGrid.mCFG.get(row);
             return cfg;
-        }
-
-        public boolean isD2G(int row) {
-            boolean d2g = false;
-            if (!(null == mForceDischargeToGrid)) d2g = mForceDischargeToGrid.mD2G.get(row);
-            return d2g;
         }
 
         public static double getMaxChargeForSOC(double batterySOC, Battery battery) {
@@ -801,11 +837,11 @@ public class SimulationWorker extends Worker {
             mD2G = new ArrayList<>(Collections.nCopies(rowsToProcess, false));
             mStopAt = new ArrayList<>(Collections.nCopies(rowsToProcess, 0D));
             mRate = new ArrayList<>(Collections.nCopies(rowsToProcess, 0D));
-            Map<Integer, List<DischargeToGrid>> groupedLoadShifts = sortLoadShifts(dischargeToGrids);
-            populateCFG(groupedLoadShifts);
+            Map<Integer, List<DischargeToGrid>> groupedDischarges = sortDischarges(dischargeToGrids);
+            populateFD2G(groupedDischarges);
         }
 
-        private void populateCFG(Map<Integer, List<DischargeToGrid>> groupedDischarges) {
+        private void populateFD2G(Map<Integer, List<DischargeToGrid>> groupedDischarges) {
             LocalDateTime active = LocalDateTime.of(2001, 1, 1, 0, 0);
             LocalDateTime end = LocalDateTime.of(2002, 1, 1, 0, 0);
             int row = 0;
@@ -821,9 +857,12 @@ public class SimulationWorker extends Worker {
                             for (DischargeToGrid discharge : aGroup.getValue()) {
                                 if ((discharge.getBegin() <= hour) && (hour <= discharge.getEnd()) ) {
                                     mD2G.set(row, true);
-                                    mStopAt.set(row, discharge.getStopAt());
-                                    mRate.set(row, discharge.getRate());
-                                    break; // One true is enough
+                                    // There could be multiple entries (connected batteries) for this inverter
+                                    // They may have different rates and stopAts, but we just pick the biggest
+                                    double oldStop = mStopAt.get(row);
+                                    double oldRate = mRate.get(row);
+                                    mStopAt.set(row, Math.max(discharge.getStopAt(), oldStop));
+                                    mRate.set(row, Math.max(discharge.getRate(), oldRate));
                                 }
                             }
                         }
@@ -834,7 +873,7 @@ public class SimulationWorker extends Worker {
             }
         }
 
-        private static Map<Integer, List<DischargeToGrid>> sortLoadShifts(List<DischargeToGrid> dischargeToGrids) {
+        private static Map<Integer, List<DischargeToGrid>> sortDischarges(List<DischargeToGrid> dischargeToGrids) {
             Map<Integer, List<DischargeToGrid>> groupedDischarges = new HashMap<>();
             Integer maxKey = null;
             for (DischargeToGrid discharge : dischargeToGrids) {

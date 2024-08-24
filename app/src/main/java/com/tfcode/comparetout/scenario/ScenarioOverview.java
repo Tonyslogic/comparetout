@@ -353,7 +353,7 @@ public class ScenarioOverview extends Fragment {
                         startActivity(intent);
                     }
                 }
-                else {
+                if (item.getItemId() == R.id.schedule) {
                     if (!mScenario.isHasBatteries()) {
                         Snackbar.make(requireActivity().getWindow().getDecorView().getRootView(),
                                 "Add at least one battery before load shifting",

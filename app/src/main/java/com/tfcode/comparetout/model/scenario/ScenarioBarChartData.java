@@ -33,4 +33,5 @@ public class ScenarioBarChartData {
     @ColumnInfo(name= "HWSchedule") public double hwSchedule = 0D;
     @ColumnInfo(name= "EVDivert") public double evDivert = 0D;
     @ColumnInfo(name= "HWDivert") public double hwDivert = 0D;
+    @ColumnInfo(name= "Bat2Grid") public double bat2grid = 0D;
 }
