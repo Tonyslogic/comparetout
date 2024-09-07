@@ -17,7 +17,6 @@
 package com.tfcode.comparetout.scenario.panel;
 
 import android.annotation.SuppressLint;
-import android.app.Activity;
 import android.app.DownloadManager;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -31,7 +30,6 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
-import android.provider.DocumentsContract;
 import android.text.Editable;
 import android.text.InputType;
 import android.util.Log;
@@ -55,13 +53,11 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.core.content.ContextCompat;
-import androidx.datastore.preferences.core.Preferences;
-import androidx.datastore.preferences.core.PreferencesKeys;
-import androidx.documentfile.provider.DocumentFile;
+import android.provider.DocumentsContract;
+
 import androidx.lifecycle.ViewModelProvider;
 import androidx.webkit.WebViewAssetLoader;
 import androidx.work.WorkInfo;
@@ -75,21 +71,20 @@ import com.google.android.material.snackbar.Snackbar;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.SimulatorLauncher;
-import com.tfcode.comparetout.TOUTCApplication;
 import com.tfcode.comparetout.model.scenario.Panel;
 import com.tfcode.comparetout.model.scenario.PanelPVSummary;
+import com.tfcode.comparetout.util.AbstractEPOFolderActivity;
 import com.tfcode.comparetout.util.AbstractTextWatcher;
+import com.tfcode.comparetout.util.ContractFileUtils;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.text.DecimalFormat;
 import java.util.Objects;
 
-import io.reactivex.rxjava3.core.Single;
+public class PVGISActivity extends AbstractEPOFolderActivity {
 
-public class PVGISActivity extends AppCompatActivity {
-
-    private static final String LOCATION_KEY = "files_uri";
     private Handler mMainHandler;
     private ProgressBar mProgressBar;
     private TableLayout mTableLayout;
@@ -123,159 +118,51 @@ public class PVGISActivity extends AppCompatActivity {
     private DownloadCompleteObserver mDownloadCompleteObserver;
 
     private static final String TAG = "PVGISActivity";
-    private static final String SUBFOLDER_NAME = "EPO";
-    private Uri mSubfolderUri; // Store the URI of the subfolder
 
     private boolean mGooglePlayServicesAvailable = false;
     private FusedLocationProviderClient mFusedLocationClient;
 
     private final ActivityResultLauncher<String[]> locationPermissionRequest =
-            registerForActivityResult(new ActivityResultContracts
-                            .RequestMultiplePermissions(), result -> {
-                        Boolean fineLocationGranted = result.getOrDefault(
-                                "android.permission.ACCESS_FINE_LOCATION", false);
-                        Boolean coarseLocationGranted = result.getOrDefault(
-                                "android.permission.ACCESS_COARSE_LOCATION",false);
-                        if (fineLocationGranted != null && fineLocationGranted) {
-                            // Precise location access granted.
-                            updateLocation();
-                        } else if (coarseLocationGranted != null && coarseLocationGranted) {
-                            // Only approximate location access granted.
-                            updateLocation();
-                        } else {
-                            Snackbar.make(getWindow().getDecorView().getRootView(),
-                                            "No access to location services", Snackbar.LENGTH_LONG)
-                                    .setAction("Action", null).show();
-                        }
-                    }
-            );
-
-    private void loadSettingsFromDataStore() {
-        new Thread(() -> {
-            Preferences.Key<String> location_uri_string = PreferencesKeys.stringKey(LOCATION_KEY);
-            TOUTCApplication application = ((TOUTCApplication)getApplication());
-            Single<String> value = application.getDataStore()
-                    .data().firstOrError()
-                    .map(prefs -> prefs.get(location_uri_string))
-                    .onErrorReturnItem("content://com.android.externalstorage.documents/tree/primary%3ADownload%2FEPO");
-            String ret =  value.blockingGet();
-            System.out.println("Got a value from the dataStore:" + ret);
-            mSubfolderUri = Uri.parse(ret);
-        }).start();
-    }
-
-    private final ActivityResultLauncher<Intent> pickFolderAndGetPermission = registerForActivityResult(
-            new ActivityResultContracts.StartActivityForResult(),
-            result -> {
-                if (result.getResultCode() == Activity.RESULT_OK) {
-                    Intent data = result.getData();
-                    if (data != null) {
-                        Uri treeUri = data.getData();
-                        grantPersistentAccess(treeUri);
-                        findOrCreateSubfolder(treeUri);
-                    }
-                }
-            }
-    );
-
-    private void grantPersistentAccess(Uri uri) {
-        ContentResolver resolver = getContentResolver();
-        resolver.takePersistableUriPermission(uri,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION
-                        | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-    }
-
-    private void findOrCreateSubfolder(Uri treeUri) {
-        String lastFolderName = getLastFolderName(treeUri);
-        if (lastFolderName.equals(SUBFOLDER_NAME)) {
-            mSubfolderUri = treeUri;
-            TOUTCApplication application = ((TOUTCApplication)getApplication());
-            application.putStringValueIntoDataStore(LOCATION_KEY, mSubfolderUri.toString());
-            new Thread(() -> {
-                mViewModel.updatePanel(mPanel);
-                mViewModel.removeOldPanelData(mPanel.getPanelIndex());
-                mMainHandler.post(this::fetch);
-            }).start();
-        }
-        else {
-            DocumentFile downloadsTree = DocumentFile.fromTreeUri(this, treeUri);
-            if (downloadsTree != null) {
-                DocumentFile subfolder = downloadsTree.findFile(SUBFOLDER_NAME);
-                if (subfolder != null && subfolder.isDirectory()) {
-                    mSubfolderUri = subfolder.getUri();
-                    TOUTCApplication application = ((TOUTCApplication)getApplication());
-                    application.putStringValueIntoDataStore(LOCATION_KEY, mSubfolderUri.toString());
-                    // Now we can fetch the file
-                    new Thread(() -> {
-                        mViewModel.updatePanel(mPanel);
-                        mViewModel.removeOldPanelData(mPanel.getPanelIndex());
-                        mMainHandler.post(this::fetch);
-                    }).start();
+        registerForActivityResult(new ActivityResultContracts
+                    .RequestMultiplePermissions(), result -> {
+                Boolean fineLocationGranted = result.getOrDefault(
+                        "android.permission.ACCESS_FINE_LOCATION", false);
+                Boolean coarseLocationGranted = result.getOrDefault(
+                        "android.permission.ACCESS_COARSE_LOCATION",false);
+                if (fineLocationGranted != null && fineLocationGranted) {
+                    // Precise location access granted.
+                    updateLocation();
+                } else if (coarseLocationGranted != null && coarseLocationGranted) {
+                    // Only approximate location access granted.
+                    updateLocation();
                 } else {
-                    // Subfolder doesn't exist, prompt the user to create it
-                    Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-                    intent.addCategory(Intent.CATEGORY_OPENABLE);
-                    intent.setType("vnd.android.document/directory");
-                    intent.putExtra(Intent.EXTRA_TITLE, SUBFOLDER_NAME);
-                    intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, treeUri); // Start in Downloads
-                    fetchLauncher.launch(intent);
+                    Snackbar.make(getWindow().getDecorView().getRootView(),
+                                    "No access to location services", Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
                 }
             }
-        }
-    }
-    public static String getLastFolderName(Uri treeUri) {
-        String path = treeUri.getPath(); // Get the entire path
-        if (path != null) {
-            int lastSlashIndex = path.lastIndexOf('/');
-            if (lastSlashIndex >= 0 && lastSlashIndex < path.length() - 1) {
-                return path.substring(lastSlashIndex + 1);
-            }
-        }
-        return "";
-    }
-
-
-    private final ActivityResultLauncher<Intent> fetchLauncher = registerForActivityResult(
-            new ActivityResultContracts.StartActivityForResult(),
-            result -> {
-                if (result.getResultCode() == Activity.RESULT_OK) {
-                    Intent data = result.getData();
-                    if (data != null) {
-                        mSubfolderUri = data.getData();
-                        grantPersistentAccess(mSubfolderUri);
-                        TOUTCApplication application = ((TOUTCApplication)getApplication());
-                        application.putStringValueIntoDataStore(LOCATION_KEY, mSubfolderUri.toString());
-                        // Now we can fetch the file
-                        new Thread(() -> {
-                            mViewModel.updatePanel(mPanel);
-                            mViewModel.removeOldPanelData(mPanel.getPanelIndex());
-                            mMainHandler.post(this::fetch);
-                        }).start();
-                    }
-                }
-            }
-    );
+        );
 
     @SuppressLint("MissingPermission")
     private void updateLocation() {
         mFusedLocationClient.getLastLocation()
-                .addOnSuccessListener(this, location -> {
-                    // Got last known location. In some rare situations this can be null.
-                    if (location != null) {
-                        // Logic to handle location object
-                        mPanel.setLatitude(location.getLatitude());
-                        mPanel.setLongitude(location.getLongitude());
-                        fileExist();
-                        mLocationChanged = true;
-                        updateView();
-                        mMainHandler.post(()->updateStatusView(STATE_LOCATION_CHANGED));
-                    }
-                });
+        .addOnSuccessListener(this, location -> {
+            // Got last known location. In some rare situations this can be null.
+            if (location != null) {
+                // Logic to handle location object
+                mPanel.setLatitude(location.getLatitude());
+                mPanel.setLongitude(location.getLongitude());
+                fileExist();
+                mLocationChanged = true;
+                updateView();
+                mMainHandler.post(()->updateStatusView(STATE_LOCATION_CHANGED));
+            }
+        });
 
     }
 
     void scheduleLoad(Context context) {
-        SimulatorLauncher.storePVGISData(context, mPanel.getPanelIndex(), mSubfolderUri);
+        SimulatorLauncher.storePVGISData(context, mPanel.getPanelIndex(), getEPOFolderUri());
         WorkManager.getInstance(this).getWorkInfosForUniqueWorkLiveData("PVGIS")
             .observe(this, workInfos -> {
                 for (WorkInfo workInfo: workInfos){
@@ -306,8 +193,6 @@ public class PVGISActivity extends AppCompatActivity {
         setContentView(R.layout.activity_pvgis);
         createProgressBar();
         mProgressBar.setVisibility(View.VISIBLE);
-
-        loadSettingsFromDataStore();
 
         mGooglePlayServicesAvailable =
                 (GoogleApiAvailability.getInstance().isGooglePlayServicesAvailable(this.getApplicationContext()) == ConnectionResult.SUCCESS );
@@ -392,7 +277,6 @@ public class PVGISActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-//        unregisterReceiver(onDownloadComplete);
         mDownloadCompleteObserver.unregister();
     }
     void updateStatusView(int state) {
@@ -527,18 +411,32 @@ public class PVGISActivity extends AppCompatActivity {
         else dbRefreshIndicator.setText(R.string.DBUpdateNecessary);
     }
 
+    private void noPermissions() {
+        Log.i(TAG, "No permission for file access");
+        Snackbar.make(getWindow().getDecorView().getRootView(),
+                        "PVGIS data grabber does not work without write permission", Snackbar.LENGTH_LONG)
+                .setAction("Action", null).show();
+    }
+
     private String fileExist(){
-        String filename = getFilename();
-        if (!(null == mSubfolderUri)) {
-            DocumentFile folder = DocumentFile.fromTreeUri(this, mSubfolderUri);
-            if (folder != null && folder.isDirectory()) {
-                mFileCached = folder.findFile(filename) != null;
-                if (!(mFileCached)) {
-                    filename = filename + ".json";
-                    mFileCached = folder.findFile(filename) != null;
-                }
-            }
+        final String[] filename = {getFilename()};
+        PVGISActivity _this = this;
+        if (!(null == getEPOFolderUri()) && isWriteAccessPresent()) {
+            filename[0] = getCachedFilename(filename[0]);
         }
+        else {
+            pickFolderWithPermission(created -> {
+                if (created) filename[0] = getCachedFilename(filename[0]);
+                else mMainHandler.post(_this::noPermissions);
+            });
+        }
+        return filename[0];
+    }
+
+    private String getCachedFilename(String filename) {
+        Uri fileUri = ContractFileUtils.findFileInFolderTree(this, getEPOFolderUri(), filename);
+        mFileCached = !(null == fileUri);
+        if (mFileCached) filename = ContractFileUtils.getFileNameFromUri(this, fileUri);
         return filename;
     }
 
@@ -571,39 +469,23 @@ public class PVGISActivity extends AppCompatActivity {
     }
 
     private void saveAndFetch() {
-
-        // Check if we have write access to the uri
-        boolean hasWriteAccess;
-        hasWriteAccess = isWriteAccessPresent();
-
-        if (!hasWriteAccess) {
-            // if no access, then pick one and request privilege
-            Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-            pickFolderAndGetPermission.launch(intent);
+        if (!isWriteAccessPresent()) {
+            pickFolderWithPermission(this::folderCreatedWithPermission);
         }
         else {
-            new Thread(() -> {
-                mViewModel.updatePanel(mPanel);
-                mViewModel.removeOldPanelData(mPanel.getPanelIndex());
-                mMainHandler.post(this::fetch);
-            }).start();
+            new Thread(() -> folderCreatedWithPermission(true)).start();
         }
     }
 
-    private boolean isWriteAccessPresent() {
-        boolean ret = false;
-
-        DocumentFile subfolder = DocumentFile.fromTreeUri(this, mSubfolderUri);
-        if (subfolder != null) {
-            DocumentFile newFile = subfolder.createFile("text/plain", "test.txt");
-            if (newFile != null) {
-                ret = true;
-                newFile.delete();
-            } else {
-                Log.i(TAG, "Cannot write, asking for permission");
-            }
+    private void folderCreatedWithPermission(boolean created){
+        if (created) {
+            mViewModel.updatePanel(mPanel);
+            mViewModel.removeOldPanelData(mPanel.getPanelIndex());
+            mMainHandler.post(this::fetch);
         }
-        return ret;
+        else {
+            mMainHandler.post(this::noPermissions);
+        }
     }
 
     private void fetch() {
@@ -622,31 +504,36 @@ public class PVGISActivity extends AppCompatActivity {
                     U4 + az +
                     U5 + mPanel.getSlope() +
                     U6 + az;
-            DocumentFile subfolder = DocumentFile.fromTreeUri(this, mSubfolderUri);
-            if (subfolder != null) {
-                DocumentFile newFile = subfolder.createFile("application/json", fileName);
-                if (newFile != null) {
-                    File tempFile = new File(this.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), fileName);
-                    DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url))
-                            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)// Visibility of the download Notification
-                            .setVisibleInDownloadsUi(true)
-                            .setDestinationInExternalFilesDir(this, Environment.DIRECTORY_DOWNLOADS, fileName)
-                            .setTitle(fileName)// Title of the Download Notification
-                            .setDescription("Downloading PVGIS data")// Description of the Download Notification
-                            .setRequiresCharging(false)// Set if charging is required to begin the download
-                            .setAllowedOverMetered(true)// Set if download is allowed on Mobile network
-                            .setAllowedOverRoaming(true);// Set if download is allowed on roaming network
-                    DownloadManager downloadManager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-                    long mDownloadID = downloadManager.enqueue(request);// enqueue puts the download request in the queue
-                    mDownloadCompleteObserver.register(mDownloadID, tempFile, newFile);
-                }
+
+            //Create the file
+            ContentResolver resolver = getContentResolver();
+            try {
+                Uri destinationFileUri = DocumentsContract.createDocument(resolver, getEPOFolderUri(), "application/json", fileName);
+                downloadAndCopy(fileName, url, destinationFileUri);
+            } catch (FileNotFoundException e) {
+                Log.i(TAG, "FileNotFoundException when creating a file for download");
             }
         }
         else {
             updateStatusView(STATE_LOADING_DB);
             scheduleLoad(this);
         }
+    }
 
+    private void downloadAndCopy(String fileName, String url, Uri fileUri) {
+        File tempFile = new File(this.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), fileName);
+        DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url))
+                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)// Visibility of the download Notification
+                .setVisibleInDownloadsUi(true)
+                .setDestinationInExternalFilesDir(this, Environment.DIRECTORY_DOWNLOADS, fileName)
+                .setTitle(fileName)// Title of the Download Notification
+                .setDescription("Downloading PVGIS data")// Description of the Download Notification
+                .setRequiresCharging(false)// Set if charging is required to begin the download
+                .setAllowedOverMetered(true)// Set if download is allowed on Mobile network
+                .setAllowedOverRoaming(true);// Set if download is allowed on roaming network
+        DownloadManager downloadManager = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+        long mDownloadID = downloadManager.enqueue(request);// enqueue puts the download request in the queue
+        mDownloadCompleteObserver.register(mDownloadID, tempFile, fileUri);
     }
 
     // PROGRESS BAR

@@ -22,14 +22,12 @@ import android.app.Application;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.os.Environment;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
-import androidx.documentfile.provider.DocumentFile;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
@@ -41,9 +39,8 @@ import com.tfcode.comparetout.model.json.scenario.pgvis.Hourly;
 import com.tfcode.comparetout.model.json.scenario.pgvis.PvGISData;
 import com.tfcode.comparetout.model.scenario.Panel;
 import com.tfcode.comparetout.model.scenario.PanelData;
+import com.tfcode.comparetout.util.ContractFileUtils;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -62,16 +59,12 @@ public class PVGISLoader extends Worker {
     private final ToutcRepository mToutcRepository;
     private final static Double MAGIC_NUMBER = 919821d;
     private final Context mContext;
+    private static final String TAG = "PVGISLoader";
 
     public PVGISLoader(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
         mContext = context;
         mToutcRepository = new ToutcRepository((Application) context);
-    }
-
-    private boolean fileExist(String filename){
-        File file = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS + "/" +filename);
-        return file.exists();
     }
 
     @Override
@@ -84,7 +77,6 @@ public class PVGISLoader extends Worker {
     public Result doWork() {
         Long panelID = getInputData().getLong("panelID", 0);
         String folderUriString = getInputData().getString("folderUri");
-//        File folder = new File(Uri.parse(folderUriString).getPath());
 
         Context context = getApplicationContext();
         String title= context.getString(R.string.pvgis_notification_title);
@@ -97,49 +89,36 @@ public class PVGISLoader extends Worker {
         String filename = "PVGIS(" + latitude + ")(" + longitude +
                 ")(" + mPanel.getSlope() + ")(" + mPanel.getAzimuth() + ")" ;
 
-        DocumentFile folder = DocumentFile.fromTreeUri(mContext, Uri.parse(folderUriString));
-        DocumentFile file = null;
-        if (folder != null && folder.isDirectory()) {
-            file = folder.findFile(filename);
-            if (null == file) {
-                filename = filename + ".json";
-                file = folder.findFile(filename);
-            }
-        }
-        if (null == file) {
-            Log.i(PVGISLoader.class.getName(), "File not found");
+        // NOTIFICATION SETUP
+        int notificationId = 1;
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
+        builder.setContentTitle(title)
+                .setContentText(text)
+                .setSmallIcon(R.drawable.ic_baseline_save_24)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setTimeoutAfter(30000)
+                .setSilent(true);
+
+        Uri folderUri = Uri.parse(folderUriString);
+        Uri fileUri = ContractFileUtils.findFileInFolderTree(mContext, folderUri, filename);
+        if (null == fileUri){
+            Log.i(TAG, "Unable to find the file");
+            builder.setContentText("Cannot find file to load")
+                    .setProgress(0, 0, false);
+            sendNotification(notificationManager, notificationId, builder);
             return Result.success();
         }
-//        File file = new File(folder, filename);
-//        if (!file.exists()) {
-//            filename = filename + ".json";
-//            file = new File(folder, filename);
-//            if (!file.exists()) {
-//                Log.i(PVGISLoader.class.getName(), "File not found");
-//                return Result.success();
-//            }
-//        }
 
         InputStream inputStream;
         try{
-            // NOTIFICATION SETUP
-            int notificationId = 1;
-            NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
-            NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
-            builder.setContentTitle(title)
-                    .setContentText(text)
-                    .setSmallIcon(R.drawable.ic_baseline_save_24)
-                    .setPriority(NotificationCompat.PRIORITY_LOW)
-                    .setTimeoutAfter(30000)
-                    .setSilent(true);
+
             int PROGRESS_MAX = 100;
             int PROGRESS_CURRENT = 0;// Issue the initial notification with zero progress
             builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
             sendNotification(notificationManager, notificationId, builder);
 
-            if (!fileExist(filename)) Thread.sleep(1000);
-//            File file = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS + "/" +filename);
-            inputStream = mContext.getContentResolver().openInputStream(file.getUri());
+            inputStream = mContext.getContentResolver().openInputStream(fileUri);
             InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8);
 
             builder.setProgress(PROGRESS_MAX, 30, false);
@@ -198,9 +177,6 @@ public class PVGISLoader extends Worker {
         } catch (FileNotFoundException e) {
             e.printStackTrace();
             return Result.retry();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-            return Result.failure();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -218,4 +194,5 @@ public class PVGISLoader extends Worker {
         notificationManager.notify(notificationId, builder.build());
 
     }
+
 }

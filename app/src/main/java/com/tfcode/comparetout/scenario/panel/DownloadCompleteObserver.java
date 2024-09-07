@@ -26,10 +26,7 @@ import android.net.Uri;
 import android.os.Handler;
 import android.util.Log;
 
-import androidx.documentfile.provider.DocumentFile;
-
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -44,7 +41,7 @@ public class DownloadCompleteObserver extends ContentObserver {
     private long downloadId;
     private static final String TAG = "DownloadCompleteObserver";
     private File tempFile;
-    private DocumentFile newFile;
+    private Uri newFile;
 
     public DownloadCompleteObserver(Context context, Handler handler, PVGISActivity pvgisActivity) {
         super(handler);
@@ -96,7 +93,7 @@ public class DownloadCompleteObserver extends ContentObserver {
         if (!(null == cursor) && !cursor.isClosed()) cursor.close();
     }
 
-    public void register(long downloadId, File tempFile, DocumentFile newFile) {
+    public void register(long downloadId, File tempFile, Uri newFile) {
         this.downloadId = downloadId;
         this.tempFile = tempFile;
         this.newFile = newFile;
@@ -109,9 +106,9 @@ public class DownloadCompleteObserver extends ContentObserver {
         context.getContentResolver().unregisterContentObserver(this);
     }
 
-    private static void copyFileToDocumentFile(Context context, File sourceFile, DocumentFile targetFile){
+    private static void copyFileToDocumentFile(Context context, File sourceFile, Uri targetFile){
         try (InputStream inputStream = Files.newInputStream(sourceFile.toPath());
-            OutputStream outputStream = context.getContentResolver().openOutputStream(targetFile.getUri())) {
+            OutputStream outputStream = context.getContentResolver().openOutputStream(targetFile)) {
             byte[] buffer = new byte[4096];
             int length;
             if (!(null == inputStream) && !(null == outputStream))
