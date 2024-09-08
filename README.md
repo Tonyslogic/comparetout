@@ -12,6 +12,10 @@ Internal test version V1.45
 
 Read more on the [documentation site](https://github.com/Tonyslogic/comparetout-doc)
 
+V1.46
+
+* Fix for storage permissions bug
+
 V1.45
 
 * Adding forced discharge to grid to what-if usage scenarios
