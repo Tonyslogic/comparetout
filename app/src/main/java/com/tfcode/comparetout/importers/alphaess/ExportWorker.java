@@ -24,11 +24,13 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.TaskStackBuilder;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Environment;
+import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
@@ -46,10 +48,13 @@ import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawEnergy;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawPower;
 import com.tfcode.comparetout.model.json.AlphaESSJsonTools;
+import com.tfcode.comparetout.util.ContractFileUtils;
 
-import java.io.File;
-import java.io.FileWriter;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 public class ExportWorker extends Worker {
@@ -58,14 +63,18 @@ public class ExportWorker extends Worker {
     private final NotificationManager mNotificationManager;
     private static final int mNotificationId = 2;
     private boolean mStopped = false;
+    private final Context mContext;
 
+    private static final String TAG = "ExportWorker";
 
     public static final String KEY_SYSTEM_SN = "KEY_SYSTEM_SN";
+    public static final String KEY_FOLDER = "KEY_FOLDER";
 
     public static final String PROGRESS = "PROGRESS";
 
     public ExportWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
+        mContext = context;
         mToutcRepository = new ToutcRepository((Application) context);
         mNotificationManager = (NotificationManager)
                 context.getSystemService(NOTIFICATION_SERVICE);
@@ -87,6 +96,8 @@ public class ExportWorker extends Worker {
         Handler mHandler = new Handler(Looper.getMainLooper());
         Data inputData = getInputData();
         String systemSN = inputData.getString(KEY_SYSTEM_SN);
+        String folder = inputData.getString(KEY_FOLDER);
+        Uri folderUri = Uri.parse(folder);
 
         // Mark the Worker as important
         String progress = "Exporting energy";
@@ -94,17 +105,22 @@ public class ExportWorker extends Worker {
         mNotificationManager.notify(mNotificationId, getNotification(progress));
         
         // Do some work
+        String fileName = systemSN + ".json";
+        ContentResolver resolver = mContext.getContentResolver();
 
-        File folder = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-        File file = new File(folder, systemSN + ".json");
         List<String> dates = mToutcRepository.getExportDatesForSN(systemSN);
         List<AlphaESSRawEnergy> energyList = mToutcRepository.getAlphaESSEnergyForSharing(systemSN);
         List<GetOneDayEnergyResponse.DataItem> energyListJson = AlphaESSJsonTools.getEnergyDataItems(energyList);
 
-        FileWriter fileWriter = null;
+        OutputStreamWriter fileWriter = null;
         JsonWriter jsonWriter = null;
+        Uri destinationFileUri;
+        OutputStream outputStream = null;
         try {
-            fileWriter = new FileWriter(file);
+            destinationFileUri = ContractFileUtils.createJSONFileInEPOFolder(resolver, folderUri, fileName);
+            if (null == destinationFileUri) return Result.success();
+            outputStream = mContext.getContentResolver().openOutputStream(destinationFileUri);
+            fileWriter = new OutputStreamWriter(outputStream, StandardCharsets.UTF_8);
             jsonWriter = new JsonWriter(fileWriter);
             jsonWriter.setIndent("  ");
             jsonWriter.beginObject();
@@ -150,12 +166,17 @@ public class ExportWorker extends Worker {
             jsonWriter.close();
             fileWriter.close();
 
-            progress = "Exported power: " + processed + "/" + dates.size();
+            String filename = ContractFileUtils.getFileNameFromUri(mContext, destinationFileUri);
+            progress = "Exported complete: " + filename;
             setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
             String finalProgress2 = progress;
             mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress2)));
 
-        } catch (IOException e) {
+        } catch (Exception e) {
+            if (e instanceof FileNotFoundException) Log.i(TAG, "FileNotFoundException when creating a file for download");
+            if (e instanceof IllegalArgumentException) Log.e(TAG, "IllegalArgumentException when creating a file for download");
+            if (e instanceof SecurityException) Log.e(TAG, "SecurityException when creating a file for download");
+            if (e instanceof IOException) Log.e(TAG, "IOException when creating a file for download");
             e.printStackTrace();
             progress = "Export abandoned: Missing permission or file exists";
             setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
@@ -172,6 +193,13 @@ public class ExportWorker extends Worker {
             if (!(null == fileWriter)) {
                 try {
                     fileWriter.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+            if (!(null == outputStream)) {
+                try {
+                    outputStream.close();
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

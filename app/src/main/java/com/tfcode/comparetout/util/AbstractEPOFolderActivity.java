@@ -22,12 +22,10 @@ import android.content.Intent;
 import android.content.UriPermission;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.DocumentsContract;
 import android.util.Log;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.datastore.preferences.core.Preferences;
 import androidx.datastore.preferences.core.PreferencesKeys;
@@ -44,9 +42,7 @@ public abstract class AbstractEPOFolderActivity extends AppCompatActivity {
     public static final String EPO_FILE_LOCATION_KEY = "files_uri";
 
     private static final String TAG = "AbstractEPOFolderActivity";
-    private static final String SUBFOLDER_NAME = "EPO";
     private Uri mEPOFolderUri; // Store the URI of the subfolder
-    private boolean mWriteCheckDone = false;
     private boolean mWritable = false;
     private EPOFolderCreatedCallback mCallback;
 
@@ -63,20 +59,28 @@ public abstract class AbstractEPOFolderActivity extends AppCompatActivity {
 
     protected boolean isWriteAccessPresent() {
         if (null == mEPOFolderUri) return false;
-        if (mWriteCheckDone) return mWritable;
+        mWritable = false; // we need to assume not in case the permission has been revoked
 
-        boolean isDir = DocumentsContract.Document.MIME_TYPE_DIR.equals(getContentResolver().getType(mEPOFolderUri));
+        // Use DocumentFile to check if the folder is a directory
+        DocumentFile documentFile = DocumentFile.fromTreeUri(this, mEPOFolderUri);
+        boolean isDir = documentFile != null && documentFile.isDirectory();
+
         if (isDir) {
             final List<UriPermission> persistedUriPermissions = getContentResolver().getPersistedUriPermissions();
             for (UriPermission persistedUriPermission : persistedUriPermissions) {
                 Uri permissionUri = persistedUriPermission.getUri();
+                if (mEPOFolderUri.equals(permissionUri) && persistedUriPermission.isWritePermission()) {
+                    mWritable = true;
+                    break;
+                }
                 if (isDescendantOf(mEPOFolderUri, permissionUri) && persistedUriPermission.isWritePermission()) {
                     mWritable = true;
                     break;
                 }
             }
         }
-        mWriteCheckDone = true;
+        Log.i(TAG, "Folder: " + mEPOFolderUri);
+        Log.i(TAG, "Writable: " + mWritable);
 
         return mWritable;
     }
@@ -89,7 +93,6 @@ public abstract class AbstractEPOFolderActivity extends AppCompatActivity {
 
     private void setEPOFolderUri(Uri uri) {
         mEPOFolderUri = uri;
-        mWriteCheckDone = false;
         mWritable = false;
     }
 
@@ -147,64 +150,9 @@ public abstract class AbstractEPOFolderActivity extends AppCompatActivity {
     }
 
     private void findOrCreateSubfolder(Uri treeUri) {
-        String lastFolderName = getLastFolderName(treeUri);
-        if (lastFolderName.equals(SUBFOLDER_NAME)) { // We insist on using 'EPO' as the folder
             setEPOFolderUri(treeUri);
             saveFolderToDataStore(mEPOFolderUri);
             boolean writeCheck = isWriteAccessPresent();
             new Thread(() -> mCallback.folderCreatedWithPermission(writeCheck)).start();
-        }
-        else {
-            DocumentFile downloadsTree = DocumentFile.fromTreeUri(this, treeUri);
-            if (downloadsTree != null) {
-                DocumentFile subfolder = downloadsTree.findFile(SUBFOLDER_NAME);
-                if (subfolder != null && subfolder.isDirectory()) {
-                    setEPOFolderUri(subfolder.getUri());
-                    saveFolderToDataStore(mEPOFolderUri);
-                    boolean writeCheck = isWriteAccessPresent();
-                    // Now we can fetch the file
-                    new Thread(() -> mCallback.folderCreatedWithPermission(writeCheck)).start();
-                } else {
-                    // Subfolder doesn't exist, prompt the user to create it
-                    Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
-                    intent.addCategory(Intent.CATEGORY_OPENABLE);
-                    intent.setType("vnd.android.document/directory");
-                    intent.putExtra(Intent.EXTRA_TITLE, SUBFOLDER_NAME);
-                    intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, treeUri); // Start in Downloads
-                    createdFolder.launch(intent);
-                }
-            }
-        }
     }
-
-    @NonNull
-    private static String getLastFolderName(Uri treeUri) {
-        String path = treeUri.getPath(); // Get the entire path
-        if (path != null) {
-            int lastSlashIndex = path.lastIndexOf('/');
-            if (lastSlashIndex >= 0 && lastSlashIndex < path.length() - 1) {
-                return path.substring(lastSlashIndex + 1);
-            }
-        }
-        return "";
-    }
-
-    private final ActivityResultLauncher<Intent> createdFolder = registerForActivityResult(
-        new ActivityResultContracts.StartActivityForResult(),
-        result -> {
-            if (result.getResultCode() == Activity.RESULT_OK) {
-                Intent data = result.getData();
-                if (data != null) {
-                    setEPOFolderUri(data.getData());
-                    grantPersistentAccess(mEPOFolderUri);
-                    boolean writeCheck = isWriteAccessPresent();
-                    if (writeCheck) {
-                        saveFolderToDataStore(mEPOFolderUri);
-                    }
-                    // Now we can fetch the file
-                    new Thread(() -> mCallback.folderCreatedWithPermission(writeCheck)).start();
-                }
-            }
-        }
-    );
 }

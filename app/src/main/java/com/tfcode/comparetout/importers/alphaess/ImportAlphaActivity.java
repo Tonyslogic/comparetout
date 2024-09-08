@@ -36,7 +36,6 @@ import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager2.widget.ViewPager2;
 import androidx.webkit.WebViewAssetLoader;
 import androidx.work.Data;
@@ -49,13 +48,14 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.R;
+import com.tfcode.comparetout.util.AbstractEPOFolderActivity;
 import com.tfcode.comparetout.util.GraphableActivity;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.util.ArrayList;
 import java.util.Objects;
 
-public class ImportAlphaActivity extends AppCompatActivity implements GraphableActivity {
+public class ImportAlphaActivity extends AbstractEPOFolderActivity implements GraphableActivity {
 
     ViewPager2 mViewPager;
 
@@ -168,9 +168,9 @@ public class ImportAlphaActivity extends AppCompatActivity implements GraphableA
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_importer, menu);
         int colour = Color.parseColor("White");
-        menu.findItem(R.id.load).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        menu.findItem(R.id.export).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        menu.findItem(R.id.help).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        Objects.requireNonNull(menu.findItem(R.id.load).getIcon()).setColorFilter(colour, PorterDuff.Mode.DST);
+        Objects.requireNonNull(menu.findItem(R.id.export).getIcon()).setColorFilter(colour, PorterDuff.Mode.DST);
+        Objects.requireNonNull(menu.findItem(R.id.help).getIcon()).setColorFilter(colour, PorterDuff.Mode.DST);
         return true;
     }
 
@@ -193,20 +193,13 @@ public class ImportAlphaActivity extends AppCompatActivity implements GraphableA
                 return true;
             }
             System.out.println("Export attempt ");
-            // start the  worker for the selected serial
-            Data inputData = new Data.Builder()
-                    .putString(ExportWorker.KEY_SYSTEM_SN, mSerialNumber)
-                    .build();
-            OneTimeWorkRequest exportWorkRequest =
-                    new OneTimeWorkRequest.Builder(ExportWorker.class)
-                            .setInputData(inputData)
-                            .addTag(mSerialNumber + "Export")
-                            .build();
-            WorkManager.getInstance(this).pruneWork();
-            WorkManager
-                    .getInstance(this)
-                    .beginUniqueWork(mSerialNumber, ExistingWorkPolicy.APPEND, exportWorkRequest)
-                    .enqueue();
+            // Ensure we have write access to the EPO storage folder
+            if (!isWriteAccessPresent()) {
+                pickFolderWithPermission(this::startTheExportWorker);
+            }
+            else {
+                startTheExportWorker(true);
+            }
             return (true);
         }
         if (itemID == R.id.help) {
@@ -214,6 +207,25 @@ public class ImportAlphaActivity extends AppCompatActivity implements GraphableA
         }
 
         return(super.onOptionsItemSelected(item));
+    }
+
+    private void startTheExportWorker(boolean permissionGranted) {
+        if (!permissionGranted) return;
+        // start the  worker for the selected serial
+        Data inputData = new Data.Builder()
+                .putString(ExportWorker.KEY_SYSTEM_SN, mSerialNumber)
+                .putString(ExportWorker.KEY_FOLDER, getEPOFolderUri().toString())
+                .build();
+        OneTimeWorkRequest exportWorkRequest =
+                new OneTimeWorkRequest.Builder(ExportWorker.class)
+                        .setInputData(inputData)
+                        .addTag(mSerialNumber + "Export")
+                        .build();
+        WorkManager.getInstance(this).pruneWork();
+        WorkManager
+                .getInstance(this)
+                .beginUniqueWork(mSerialNumber, ExistingWorkPolicy.APPEND, exportWorkRequest)
+                .enqueue();
     }
 
     private void setupViewPager() {

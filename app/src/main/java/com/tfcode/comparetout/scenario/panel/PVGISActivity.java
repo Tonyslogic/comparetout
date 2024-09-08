@@ -18,7 +18,6 @@ package com.tfcode.comparetout.scenario.panel;
 
 import android.annotation.SuppressLint;
 import android.app.DownloadManager;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -56,7 +55,6 @@ import androidx.appcompat.app.ActionBar;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.core.content.ContextCompat;
-import android.provider.DocumentsContract;
 
 import androidx.lifecycle.ViewModelProvider;
 import androidx.webkit.WebViewAssetLoader;
@@ -229,7 +227,7 @@ public class PVGISActivity extends AbstractEPOFolderActivity {
             else mMainHandler.post(() -> updateStatusView(STATE_UNKNOWN));
             mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
         }).start();
-        
+
         mViewModel.getPanelDataSummary().observe(this, summaries -> {
             mPanelDataInDB = false;
             for (PanelPVSummary summary: summaries) {
@@ -426,7 +424,10 @@ public class PVGISActivity extends AbstractEPOFolderActivity {
         }
         else {
             pickFolderWithPermission(created -> {
-                if (created) filename[0] = getCachedFilename(filename[0]);
+                if (created) {
+                    filename[0] = getCachedFilename(filename[0]);
+                    mMainHandler.post(_this::updateView);
+                }
                 else mMainHandler.post(_this::noPermissions);
             });
         }
@@ -505,13 +506,13 @@ public class PVGISActivity extends AbstractEPOFolderActivity {
                     U5 + mPanel.getSlope() +
                     U6 + az;
 
-            //Create the file
-            ContentResolver resolver = getContentResolver();
             try {
-                Uri destinationFileUri = DocumentsContract.createDocument(resolver, getEPOFolderUri(), "application/json", fileName);
+                Uri destinationFileUri = ContractFileUtils.createJSONFileInEPOFolder(getContentResolver(), getEPOFolderUri(), fileName);
                 downloadAndCopy(fileName, url, destinationFileUri);
             } catch (FileNotFoundException e) {
-                Log.i(TAG, "FileNotFoundException when creating a file for download");
+                Log.e(TAG, "FileNotFoundException when creating a file for download");
+            } catch (IllegalArgumentException e1) {
+                Log.e(TAG, "IllegalArgumentException when creating a file for download");
             }
         }
         else {

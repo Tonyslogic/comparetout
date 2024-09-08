@@ -40,7 +40,7 @@ import java.util.List;
 @Dao
 public abstract class AlphaEssDAO {
 
-    @Insert
+    @Insert (onConflict = OnConflictStrategy.REPLACE)
     public abstract void addRawEnergy(AlphaESSRawEnergy energy);
 
     @Insert (onConflict = OnConflictStrategy.IGNORE)

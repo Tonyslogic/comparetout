@@ -21,15 +21,22 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.DocumentsContract;
+import android.util.Log;
+
+import androidx.annotation.Nullable;
+
+import java.io.FileNotFoundException;
 
 public class ContractFileUtils {
+
+    private static final String TAG = "ContractFileUtils";
 
     public static Uri findFileInFolderTree(Context context, Uri folderUri, String baseFileName) {
         // Get content resolver
         ContentResolver contentResolver = context.getContentResolver();
 
         // Build URI for children of the folder
-        Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(folderUri, DocumentsContract.getDocumentId(folderUri));
+        Uri childrenUri = DocumentsContract.buildChildDocumentsUriUsingTree(folderUri, DocumentsContract.getTreeDocumentId(folderUri));
 
         // Define the columns we want from the query (e.g., document ID, display name, and MIME type)
         String[] projection = new String[] {
@@ -100,5 +107,19 @@ public class ContractFileUtils {
         }
 
         return displayName;
+    }
+
+    public static @Nullable Uri createJSONFileInEPOFolder(ContentResolver resolver, Uri folderUri, String fileName) throws FileNotFoundException {
+        //Create the file
+        // Convert the tree URI to a document URI
+        Uri parentDocumentUri = DocumentsContract.buildDocumentUriUsingTree(
+                folderUri, DocumentsContract.getTreeDocumentId(folderUri));
+        Uri destinationFileUri = DocumentsContract.createDocument(resolver, parentDocumentUri, "application/json", fileName);
+        if (destinationFileUri != null) {
+            Log.i(TAG, "File created successfully: " + destinationFileUri);
+        } else {
+            Log.e(TAG, "File creation failed.");
+        }
+        return destinationFileUri;
     }
 }
