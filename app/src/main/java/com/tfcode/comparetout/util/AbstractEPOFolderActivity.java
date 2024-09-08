@@ -44,13 +44,13 @@ public abstract class AbstractEPOFolderActivity extends AppCompatActivity {
     private static final String TAG = "AbstractEPOFolderActivity";
     private Uri mEPOFolderUri; // Store the URI of the subfolder
     private boolean mWritable = false;
-    private EPOFolderCreatedCallback mCallback;
+    private EPOFolderSelectedCallback mCallback;
 
     protected Uri getEPOFolderUri() {
         return mEPOFolderUri;
     }
 
-    protected void pickFolderWithPermission(EPOFolderCreatedCallback callback) {
+    protected void pickFolderWithPermission(EPOFolderSelectedCallback callback) {
         Log.i(TAG, "Picking folder and asking for permission");
         mCallback = callback;
         Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);

@@ -16,6 +16,6 @@
 
 package com.tfcode.comparetout.util;
 
-public interface EPOFolderCreatedCallback {
+public interface EPOFolderSelectedCallback {
     void folderCreatedWithPermission(boolean created);
 }
