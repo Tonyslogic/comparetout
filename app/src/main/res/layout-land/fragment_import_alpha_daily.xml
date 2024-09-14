@@ -72,21 +72,24 @@
                 <androidx.core.widget.NestedScrollView
                     android:layout_width="match_parent"
                     android:layout_height="match_parent">
-                    <TableLayout
-                        android:id="@+id/alphaess_table_chart"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:visibility="invisible"/>
-                </androidx.core.widget.NestedScrollView>
 
-                <androidx.core.widget.NestedScrollView
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent">
-                    <TableLayout
-                        android:id="@+id/alphaess_pie_chart"
+                    <FrameLayout
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:visibility="invisible" />
+                        app:layout_constraintTop_toBottomOf="@id/picks"
+                        app:layout_constraintBottom_toBottomOf="parent">
+                        <TableLayout
+                            android:id="@+id/alphaess_table_chart"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:visibility="invisible"/>
+                        <TableLayout
+                            android:id="@+id/alphaess_pie_chart"
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:visibility="invisible"/>
+                    </FrameLayout>
+
                 </androidx.core.widget.NestedScrollView>
 
                 <TextView
