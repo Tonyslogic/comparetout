@@ -150,9 +150,9 @@ public class GenerationWorker extends Worker {
             List<IntervalRow> weekly = mToutcRepository.getSumDOW(mSystemSN, mFrom, mTo);
             List<IntervalRow> monthly = mToutcRepository.getAvgMonth(mSystemSN, mFrom, mTo);
             // TODO get base load for esbn
-            double baseLoad = 300D; mToutcRepository.getBaseLoad(mSystemSN, mFrom, mTo);
+            double baseLoad = 300D; //mToutcRepository.getBaseLoad(mSystemSN, mFrom, mTo);
 
-            Double totalLoad = 0D;
+            double totalLoad = 0D;
             for (IntervalRow row : weekly) totalLoad += row.buy;
 
             LoadProfile loadProfile = new LoadProfile();
@@ -163,7 +163,7 @@ public class GenerationWorker extends Worker {
             HourlyDist hd = new HourlyDist();
             List<Double> hourOfDayDist = new ArrayList<>();
             for (int i = 0; i < 24; i++) {
-                Double hv = hourly.get(i).buy;
+                double hv = hourly.get(i).buy;
                 hourOfDayDist.add((hv / totalLoad) * 100);
             }
             hd.dist = hourOfDayDist;
@@ -171,16 +171,18 @@ public class GenerationWorker extends Worker {
             DOWDist dd = new DOWDist();
             List<Double> dowDist = new ArrayList<>();
             for (int i = 0; i < 7; i++) {
-                Double dv = weekly.get(i).buy;
+                double dv = weekly.get(i).buy;
                 dowDist.add((dv / totalLoad) * 100);
             }
             dd.dowDist = dowDist;
             loadProfile.setDowDist(dd);
             MonthlyDist md = new MonthlyDist();
             List<Double> moyDist = new ArrayList<>();
-            for (int i = 0; i < 12; i++) {
-                Double mv = monthly.get(i).buy;
-                moyDist.add((mv / totalLoad) * 100);
+            for (int i = 0; i < 12; i++) moyDist.add(((totalLoad / 12D) / totalLoad) * 100);
+            for (IntervalRow ir : monthly) {
+                int monthIndex = Integer.parseInt(ir.interval) - 1;
+                double mv = ir.buy;
+                moyDist.set(monthIndex, (mv / totalLoad) * 100);
             }
             md.monthlyDist = moyDist;
             loadProfile.setMonthlyDist(md);

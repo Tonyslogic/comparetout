@@ -43,6 +43,7 @@ import androidx.work.WorkManager;
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.datepicker.CalendarConstraints;
 import com.google.android.material.datepicker.MaterialDatePicker;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.util.GraphableActivity;
@@ -54,6 +55,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -177,12 +179,33 @@ public class ImportESBNGenerateScenario extends Fragment {
                     .setSelection(MaterialDatePicker.todayInUtcMilliseconds())
                     .build();
             startPicker.addOnPositiveButtonClickListener(startDateAsLong -> {
-                LocalDateTime ldt = LocalDateTime.ofInstant(Instant.ofEpochMilli(startDateAsLong), ZoneId.systemDefault());
-                mFrom = ldt.format(DATE_FORMAT);
-                mTo = ldt.plusYears(1).plusDays(-1).format(DATE_FORMAT);
-                LocalDate ldtTo = LocalDate.parse(mTo);
-                LocalDate ldtLast = LocalDate.parse((null == mDBLast) ? "1970-01-01" : mDBLast);
-                mDatesOK = (ldtTo.isBefore(ldtLast.plusDays(1)));
+                LocalDateTime ldt_start = LocalDateTime.ofInstant(Instant.ofEpochMilli(startDateAsLong), ZoneId.systemDefault());
+                LocalDate ldt_DBLast = LocalDate.parse((null == mDBLast) ? "1970-01-01" : mDBLast);
+                long days = ldt_start.until(ldt_DBLast.atTime(12, 0), ChronoUnit.DAYS);
+                if (days < 6) mDatesOK = false;
+                else {
+                    mDatesOK = true;
+                    if (days > 365) days = 365;
+                }
+                mFrom = ldt_start.format(DATE_FORMAT);
+                mTo = ldt_start.plusDays(days).format(DATE_FORMAT);
+                Context context = this.getContext();
+                if (mDatesOK && !(days == 365) && !(null == context)) {
+                    MaterialAlertDialogBuilder alert = new MaterialAlertDialogBuilder(context);
+                    alert.setTitle("Partial Load Profile");
+                    alert.setMessage("The start date selection leaves only " + (days + 1) + " days " +
+                            "for inclusion in the load profile. Please edit the generated load " +
+                            "profile to ensure a meaningful simulation. Both total and monthly " +
+                            "distribution will need modification.");
+                    alert.setPositiveButton(android.R.string.yes, (dialog, which) -> {});
+                    alert.show();
+                } else if (!mDatesOK && !(null == context)) {
+                    MaterialAlertDialogBuilder alert = new MaterialAlertDialogBuilder(context);
+                    alert.setTitle("Not enough days");
+                    alert.setMessage("The generation requires at least 7 days to work.");
+                    alert.setPositiveButton(android.R.string.yes, (dialog, which) -> {});
+                    alert.show();
+                }
                 setSelectionText();
                 {
                     mGenerateUsage.setEnabled(mLP && mDatesOK);
