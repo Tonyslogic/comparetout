@@ -131,7 +131,7 @@ public class ESBNImportWorker extends Worker {
                         if ((null == importExport))
                             timeAlignedEntries.put(ldt, new Pair<>(0D, value/(calc ? 1D : 2D)));
                         else
-                            timeAlignedEntries.put(ldt, new Pair<>(importExport.second, value/(calc ? 1D : 2D)));
+                            timeAlignedEntries.put(ldt, new Pair<>(importExport.first, value/(calc ? 1D : 2D)));
                         break;
                 }
             });
