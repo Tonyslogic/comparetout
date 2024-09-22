@@ -7,10 +7,19 @@ Beta test version V1.47 (Ireland only, so far)
 
 > Sign up from your [browser](https://play.google.com/apps/testing/com.tfcode.comparetout)
 
-Internal test version V1.48 
+Internal test version V1.49 
 > [email me](mailto:tonysfreecode@gmail.com?subject=AlphaTest), with the email address used in your android play store account
 
 Read more on the [documentation site](https://github.com/Tonyslogic/comparetout-doc)
+
+V1.49
+
+* Fix for Home Assistant fetch status
+
+V1.48
+
+* Fix for Home Assistant daily fetch
+* Fix for Home Assistant daylight saving
 
 V1.48
 
