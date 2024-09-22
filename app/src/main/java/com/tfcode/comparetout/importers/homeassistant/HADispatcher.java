@@ -136,7 +136,7 @@ public class HADispatcher {
             }
             @Override
             public void onMessage(@NonNull WebSocket webSocket, @NonNull String text) {
-                LOGGER.info("Received message: " + text);
+                LOGGER.fine("Received message: " + text);
 
                 JsonElement jsonElement = gson.fromJson(text, JsonElement.class);
                 String type = jsonElement.getAsJsonObject().get("type").getAsString();
@@ -205,7 +205,7 @@ public class HADispatcher {
             throw new IllegalStateException("Not authorized");
         }
         String messageJson = gson.toJson(message);
-        LOGGER.info("Sending message: " + messageJson);
+        LOGGER.fine("Sending message: " + messageJson);
         webSocket.send(messageJson);
         if (!(null == resultMessage)) pendingRequests.put(message.getId(), resultMessage);
     }

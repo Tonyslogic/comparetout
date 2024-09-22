@@ -19,6 +19,8 @@ package com.tfcode.comparetout.importers.homeassistant.messages;
 import com.google.gson.annotations.SerializedName;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,6 +30,7 @@ import java.util.Map;
 public class StatsForPeriodRequest extends HAMessageWithID {
 
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+    private static final ZoneId zoneId = ZoneId.systemDefault();
 
     @SerializedName("start_time")
     private String start_time;
@@ -53,8 +56,8 @@ public class StatsForPeriodRequest extends HAMessageWithID {
     }
 
     public void setStartAndEndTimes(LocalDateTime start_time, LocalDateTime end_time, int id) {
-        this.start_time = start_time.format(formatter);
-        this.end_time = end_time.format(formatter);
+        this.start_time = ZonedDateTime.of(start_time, zoneId).format(formatter);
+        this.end_time = ZonedDateTime.of(end_time, zoneId).format(formatter);
         setId(id);
     }
 }

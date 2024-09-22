@@ -117,7 +117,7 @@ public class HACatchupWorker extends Worker {
         String startDate = inputData.getString(KEY_START_DATE);
         // No start date is provided for daily runs, default to yesterday
         if (null == startDate) {
-            startDate = LocalDateTime.now().minusDays(1).format(DATE_FORMAT);
+            startDate = LocalDateTime.now().minusDays(1).format(INPUT_DATE_FORMAT);
         }
         String sensors = inputData.getString(KEY_SENSORS);
         mEnergySensors = new Gson().fromJson(sensors, new TypeToken<EnergySensors>(){}.getType());
@@ -152,7 +152,7 @@ public class HACatchupWorker extends Worker {
         public StatsForPeriodResultHandler(HADispatcher mHAClient, LocalDateTime startLDT, LocalDateTime finishLDT) {
             this.finishLDT = finishLDT;
             this.mHAClient = mHAClient;
-            this.startLDT = startLDT.plusDays(1);
+            this.startLDT = startLDT.with(LocalTime.MAX);
         }
 
         @Override
@@ -182,7 +182,7 @@ public class HACatchupWorker extends Worker {
             else {
                 LOGGER.info("StatsForPeriodResultHandler.handleMessage.failure");
             }
-            if (startLDT.isAfter(finishLDT.minusDays(1)) || mStopped) {
+            if (!startLDT.isBefore(finishLDT) || mStopped) {
                 mHAClient.stop();
                 synchronized (lock) {
                     isWorkCompleted = true;
@@ -192,8 +192,8 @@ public class HACatchupWorker extends Worker {
             else {
                 LOGGER.info("StatsForPeriodResultHandler.handleMessage.next: " + startLDT.format(DATE_FORMAT));
                 StatsForPeriodRequest request = new StatsForPeriodRequest(mEnergySensors.getSenorList());
-                request.setStartAndEndTimes(startLDT, startLDT.plusDays(1), mHAClient.generateId());
-                mHAClient.sendMessage(request, new StatsForPeriodResultHandler(mHAClient, startLDT, finishLDT));
+                request.setStartAndEndTimes(startLDT.with(LocalTime.MIN), startLDT.with(LocalTime.MAX), mHAClient.generateId());
+                mHAClient.sendMessage(request, new StatsForPeriodResultHandler(mHAClient, startLDT.plusDays(1), finishLDT));
             }
         }
 
@@ -251,7 +251,7 @@ public class HACatchupWorker extends Worker {
             // OK, authenticated, now fetch the energy stats
             StatsForPeriodRequest request = new StatsForPeriodRequest(mEnergySensors.getSenorList());
             LocalDateTime startLDT = LocalDateTime.parse(startDate + " 00:00", DATE_FORMAT);
-            request.setStartAndEndTimes(startLDT, startLDT.plusDays(1), mHAClient.generateId());
+            request.setStartAndEndTimes(startLDT, startLDT.with(LocalTime.MAX), mHAClient.generateId());
             LocalDateTime finishLDT = LocalDateTime.of(LocalDateTime.now().toLocalDate(), LocalTime.MIDNIGHT);
             mHAClient.sendMessage(request, new StatsForPeriodResultHandler(mHAClient, startLDT, finishLDT));
         }
