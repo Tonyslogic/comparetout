@@ -289,7 +289,7 @@ public class ImportHAOverview extends ImportOverviewFragment {
                 }
                 mSerialNumber = "HomeAssistant";
                 mSystemSelected = true;
-                serialUpdated(mActivity);
+                mMainHandler.post(() -> {serialUpdated(mActivity);});
                 mMainHandler.post(mImportHAOverview::updateView);
             }
             mHAClient.stop();
