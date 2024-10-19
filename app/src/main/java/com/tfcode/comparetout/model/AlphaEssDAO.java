@@ -34,6 +34,8 @@ import com.tfcode.comparetout.model.importers.alphaess.KeyStatsRow;
 import com.tfcode.comparetout.model.importers.alphaess.MaxCalcRow;
 import com.tfcode.comparetout.model.importers.alphaess.ScheduleRIInput;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 
@@ -64,6 +66,25 @@ public abstract class AlphaEssDAO {
 
     @Query("DELETE FROM alphaESSRawPower WHERE sysSn = :systemSN")
     public abstract void deleteAlphaESSPowerForSN(String systemSN);
+
+    @Transaction
+    public void deleteInverterDatesBySN(String sysSN, LocalDateTime selectedStart, LocalDateTime selectedEnd) {
+        DateTimeFormatter DISPLAY_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        deleteSomeAlphaESSPowerForSN(sysSN, selectedStart.format(DISPLAY_FORMAT), selectedEnd.format(DISPLAY_FORMAT));
+        deleteSomeAlphaESSEnergyForSN(sysSN, selectedStart.format(DISPLAY_FORMAT), selectedEnd.format(DISPLAY_FORMAT));
+        deleteSomeAlphaESSTransformedForSN(sysSN,
+                selectedStart.format(DISPLAY_FORMAT) + " 00:00:00",
+                selectedEnd.format(DISPLAY_FORMAT) + " 23:59:59");
+    }
+
+    @Query("DELETE FROM alphaESSTransformedData WHERE sysSn = :systemSN AND date BETWEEN :selectedStart AND :selectedEnd")
+    public abstract void deleteSomeAlphaESSTransformedForSN(String systemSN, String selectedStart, String selectedEnd);
+
+    @Query("DELETE FROM alphaESSRawEnergy WHERE sysSn = :systemSN AND theDate BETWEEN :selectedStart AND :selectedEnd")
+    public abstract void deleteSomeAlphaESSEnergyForSN(String systemSN, String selectedStart, String selectedEnd);
+
+    @Query("DELETE FROM alphaESSRawPower WHERE sysSn = :systemSN AND uploadTime BETWEEN :selectedStart AND :selectedEnd")
+    public abstract void deleteSomeAlphaESSPowerForSN(String systemSN, String selectedStart, String selectedEnd);
 
     @Query("SELECT sysSn, MIN(theDate) AS start, MAX(theDate) AS finish FROM alphaESSRawEnergy GROUP by sysSn")
     public abstract LiveData<List<InverterDateRange>> loadDateRanges();

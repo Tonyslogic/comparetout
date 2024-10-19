@@ -57,6 +57,7 @@ import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.model.scenario.ScenarioLineGraphData;
 import com.tfcode.comparetout.model.scenario.SimKPIs;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -513,6 +514,15 @@ public class ComparisonUIViewModel extends AndroidViewModel {
             case ESBNHDF:
             case HOME_ASSISTANT:
                 toutcRepository.clearAlphaESSDataForSN(sysSN); break;
+        }
+    }
+
+    public void deleteInverterDatesBySN(Importer importer, String sysSN, LocalDateTime selectedStart, LocalDateTime selectedEnd) {
+        switch (importer){
+            case ALPHAESS:
+            case ESBNHDF:
+            case HOME_ASSISTANT:
+                toutcRepository.deleteInverterDatesBySN(sysSN, selectedStart, selectedEnd); break;
         }
     }
 

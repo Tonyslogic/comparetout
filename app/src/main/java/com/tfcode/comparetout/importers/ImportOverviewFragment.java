@@ -504,10 +504,13 @@ public abstract class ImportOverviewFragment extends Fragment {
             AlertDialog.Builder alert = new AlertDialog.Builder(activity);
             alert.setTitle("Delete system data");
             alert.setMessage("Are you sure you want to delete?");
-            alert.setPositiveButton(android.R.string.yes, (dialog, which) -> {
+            alert.setPositiveButton("All data", (dialog, which) -> {
                     mViewModel.clearInverterBySN(mImporterType, mSerialNumber);
                     removePreferencesForSN(mSerialNumber);
             });
+            alert.setNeutralButton("Selected dates", (dialog, which) -> mViewModel.deleteInverterDatesBySN(mImporterType, mSerialNumber,
+                    mCostViewModel.getSelectedStart().minusDays(1),
+                    mCostViewModel.getSelectedEnd().minusDays(1)));
             alert.setNegativeButton(android.R.string.no, (dialog, which) -> dialog.cancel());
             alert.show();
 

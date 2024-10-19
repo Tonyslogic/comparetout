@@ -64,6 +64,7 @@ import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
 import com.tfcode.comparetout.model.scenario.SimKPIs;
 import com.tfcode.comparetout.model.scenario.SimulationInputData;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -669,6 +670,11 @@ public class ToutcRepository {
     public void clearAlphaESSDataForSN(String systemSN) {
         ToutcDB.databaseWriteExecutor.execute(() ->
                 alphaEssDAO.clearAlphaESSDataForSN(systemSN));
+    }
+
+    public void deleteInverterDatesBySN(String sysSN, LocalDateTime selectedStart, LocalDateTime selectedEnd) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                alphaEssDAO.deleteInverterDatesBySN(sysSN, selectedStart, selectedEnd));
     }
 
     public boolean checkSysSnForDataOnDate(String sysSn, String date) {
