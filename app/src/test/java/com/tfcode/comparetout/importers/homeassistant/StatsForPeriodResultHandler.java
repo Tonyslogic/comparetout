@@ -17,9 +17,9 @@
 package com.tfcode.comparetout.importers.homeassistant;
 
 import com.tfcode.comparetout.importers.homeassistant.messages.HAMessage;
-import com.tfcode.comparetout.importers.homeassistant.messages.statsForPeriodResult.StatsForPeriodResult;
 
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 public class StatsForPeriodResultHandler  implements MessageHandler<StatsForPeriodResult> {
 
@@ -30,6 +30,11 @@ private static final Logger LOGGER = Logger.getLogger(StatsForPeriodResultHandle
         StatsForPeriodResult result = (StatsForPeriodResult) message;
         if (result.isSuccess()) {
             LOGGER.info("StatsForPeriodResultHandler.handleMessage.success");
+            LOGGER.info(() -> result.getResult().entrySet().stream()
+                    .map(entry -> entry.getKey() + ": [" + entry.getValue().stream()
+                            .map(sensor -> "start=" + sensor.getStart() + ", end=" + sensor.getEnd() + ", change=" + sensor.getChange())
+                            .collect(Collectors.joining("; ")) + "]")
+                    .collect(Collectors.joining(", ", "StatsForPeriodResult{", "}")));
         }
         else {
             LOGGER.info("StatsForPeriodResultHandler.handleMessage.failure");

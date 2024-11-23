@@ -18,7 +18,7 @@ package com.tfcode.comparetout.importers;
 
 public class TestSecrets {
     // The serial number of the AlphaESS system to use for testing
-    public static final String SERIAL = "AL************";
+    public static final String SERIAL = "AL1234567891911";
 
     // The AppID or Developer ID from open.alphaess.com (registration required
     public static final String APPID = "alpha****************";
@@ -32,5 +32,7 @@ public class TestSecrets {
 
     public static final String ESBN_MPRN = "12345678910";
 
-    public static final String HA_TOKEN = ";ashgoaihg[opiahgoihapogihaps[oigha";
+    public static final String HA_TOKEN = "sjngasjhngasjngb;pajsng;kjdsanfb;p";
+
+    public static final String HA_IP = "192.168.1.1";
 }

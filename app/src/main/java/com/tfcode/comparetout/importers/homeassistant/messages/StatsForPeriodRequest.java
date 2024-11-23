@@ -60,4 +60,8 @@ public class StatsForPeriodRequest extends HAMessageWithID {
         this.end_time = ZonedDateTime.of(end_time, zoneId).format(formatter);
         setId(id);
     }
+
+    public void set5MinutePeriod() {
+        this.period = "5minute";
+    }
 }

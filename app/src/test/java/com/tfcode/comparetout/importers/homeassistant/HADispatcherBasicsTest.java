@@ -31,10 +31,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class HADispatcherBasicsTest {
+    private static final String HA_URL = "http://" + TestSecrets.HA_IP + ":8123/api/websocket";
 
     @Test
     public void testHADispatcherBadToken() throws InterruptedException {
-        HADispatcher dispatcher = new HADispatcher("http://192.168.2.181:8123/api/websocket", "token");
+        HADispatcher dispatcher = new HADispatcher(HA_URL, "token");
         assertNotNull(dispatcher);
         dispatcher.start();
         sleep(1000);
@@ -43,7 +44,7 @@ public class HADispatcherBasicsTest {
     }
     @Test
     public void testHADispatcherGoodToken() throws InterruptedException {
-        HADispatcher dispatcher = new HADispatcher("http://192.168.2.181:8123/api/websocket", TestSecrets.HA_TOKEN);
+        HADispatcher dispatcher = new HADispatcher(HA_URL, TestSecrets.HA_TOKEN);
         assertNotNull(dispatcher);
         dispatcher.start();
         sleep(1000);
@@ -52,7 +53,7 @@ public class HADispatcherBasicsTest {
     }
     @Test
     public void testHADispatcherEnergyPrefs() throws InterruptedException {
-        HADispatcher dispatcher = new HADispatcher("http://192.168.2.181:8123/api/websocket", TestSecrets.HA_TOKEN);
+        HADispatcher dispatcher = new HADispatcher(HA_URL, TestSecrets.HA_TOKEN);
         assertNotNull(dispatcher);
         dispatcher.start();
         sleep(1000);
@@ -68,20 +69,40 @@ public class HADispatcherBasicsTest {
 
     @Test
     public void testHADispatcherEnergyStats() throws InterruptedException {
-        HADispatcher dispatcher = new HADispatcher("http://192.168.2.181:8123/api/websocket", TestSecrets.HA_TOKEN);
+        HADispatcher dispatcher = new HADispatcher(HA_URL, TestSecrets.HA_TOKEN);
         assertNotNull(dispatcher);
         dispatcher.start();
         sleep(1000);
         assertTrue(dispatcher.isAuthorized());
-        List<String> statsToFetch = new ArrayList<>();
-        statsToFetch.add("sensor.al2002120080100_grid_to_load");
-        statsToFetch.add("sensor.al2002120080100_solar_to_grid");
-        statsToFetch.add("sensor.al2002120080100_solar_production");
-        statsToFetch.add("sensor.al2002120080100_discharge");
-        statsToFetch.add("sensor.al2002120080100_charge");
-        StatsForPeriodRequest request = new StatsForPeriodRequest(statsToFetch);
+        StatsForPeriodRequest request = getStatsForPeriodRequest();
         request.setStartAndEndTimes(LocalDateTime.now().minusDays(2), LocalDateTime.now().minusDays(1), dispatcher.generateId());
         dispatcher.sendMessage(request, new StatsForPeriodResultHandler());
         sleep(1000);
+    }
+
+
+
+    @Test
+    public void testHADispatcherEnergyStats5Minutes() throws InterruptedException {
+        HADispatcher dispatcher = new HADispatcher(HA_URL, TestSecrets.HA_TOKEN);
+        assertNotNull(dispatcher);
+        dispatcher.start();
+        sleep(1000);
+        assertTrue(dispatcher.isAuthorized());
+        StatsForPeriodRequest request = getStatsForPeriodRequest();
+        request.set5MinutePeriod();
+        request.setStartAndEndTimes(LocalDateTime.now().minusHours(2), LocalDateTime.now().minusHours(1), dispatcher.generateId());
+        dispatcher.sendMessage(request, new StatsForPeriodResultHandler());
+        sleep(1000);
+    }
+
+    private static StatsForPeriodRequest getStatsForPeriodRequest() {
+        List<String> statsToFetch = new ArrayList<>();
+        statsToFetch.add("sensor." + TestSecrets.SERIAL.toLowerCase() + "_grid_to_load");
+        statsToFetch.add("sensor." + TestSecrets.SERIAL.toLowerCase() + "_solar_to_grid");
+        statsToFetch.add("sensor." + TestSecrets.SERIAL.toLowerCase() + "_solar_production");
+        statsToFetch.add("sensor." + TestSecrets.SERIAL.toLowerCase() + "_discharge");
+        statsToFetch.add("sensor." + TestSecrets.SERIAL.toLowerCase() + "_charge");
+        return new StatsForPeriodRequest(statsToFetch);
     }
 }
