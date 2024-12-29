@@ -17,6 +17,8 @@
 package com.tfcode.comparetout.model.importers.alphaess;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 
 @Entity(tableName = "alphaESSTransformedData", primaryKeys = {"sysSn", "date", "minute"})
@@ -31,6 +33,26 @@ public class AlphaESSTransformedData {
     private double load;
     private double feed;
     private double buy;
+    @ColumnInfo(defaultValue = "0")
+    private double charge = 0;
+    @ColumnInfo(defaultValue = "NULL")
+    private Integer millisSinceEpoch;
+
+    public Integer getMillisSinceEpoch() {
+        return millisSinceEpoch;
+    }
+
+    public void setMillisSinceEpoch(int millisSinceEpoch) {
+        this.millisSinceEpoch = millisSinceEpoch;
+    }
+
+    public double getCharge() {
+        return charge;
+    }
+
+    public void setCharge(double charge) {
+        this.charge = charge;
+    }
 
     @NonNull
     public String getSysSn() {

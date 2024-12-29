@@ -17,6 +17,8 @@
 package com.tfcode.comparetout.model.scenario;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 
 @Entity(tableName = "loadprofiledata", primaryKeys = {"loadProfileID", "date", "minute"})
@@ -31,6 +33,16 @@ public class LoadProfileData {
     private int mod; // 1-1435
     private int dow; // the day-of-week, from 1 (Monday) to 7 (Sunday) https://docs.oracle.com/javase/8/docs/api/java/time/LocalDate.html
     private int do2001;
+    @ColumnInfo(defaultValue = "NULL")
+    private Integer millisSinceEpoch;
+
+    public Integer getMillisSinceEpoch() {
+        return millisSinceEpoch;
+    }
+
+    public void setMillisSinceEpoch(int millisSinceEpoch) {
+        this.millisSinceEpoch = millisSinceEpoch;
+    }
 
     public int getDo2001() { return do2001;}
 

@@ -17,6 +17,7 @@
 package com.tfcode.comparetout.model.scenario;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 
@@ -46,6 +47,16 @@ public class ScenarioSimulationData {
     private double gridToBattery = 0;
     @ColumnInfo(defaultValue = "0")
     private double battery2Grid = 0;
+    @ColumnInfo(defaultValue = "NULL")
+    private Integer millisSinceEpoch;
+
+    public Integer getMillisSinceEpoch() {
+        return millisSinceEpoch;
+    }
+
+    public void setMillisSinceEpoch(int millisSinceEpoch) {
+        this.millisSinceEpoch = millisSinceEpoch;
+    }
 
     public double getBattery2Grid() {
         return battery2Grid;
