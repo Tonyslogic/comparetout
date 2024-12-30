@@ -17,7 +17,6 @@
 package com.tfcode.comparetout.model.scenario;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 
@@ -36,13 +35,13 @@ public class PanelData {
     private int dow; // the day-of-week, from 1 (Monday) to 7 (Sunday) https://docs.oracle.com/javase/8/docs/api/java/time/LocalDate.html
     private int do2001;
     @ColumnInfo(defaultValue = "NULL")
-    private Integer millisSinceEpoch;
+    private Long millisSinceEpoch;
 
-    public Integer getMillisSinceEpoch() {
+    public Long getMillisSinceEpoch() {
         return millisSinceEpoch;
     }
 
-    public void setMillisSinceEpoch(int millisSinceEpoch) {
+    public void setMillisSinceEpoch(Long millisSinceEpoch) {
         this.millisSinceEpoch = millisSinceEpoch;
     }
 

@@ -108,10 +108,12 @@ public class AlphaESSEntityUtil {
             Date date = new Date(entry.getKey());
             entity.setDate(DATE_FORMAT.format(date));
             entity.setMinute(HH_MM_FORMAT.format(date));
-            entity.setPv(entry.getValue().pv);
-            entity.setLoad(entry.getValue().load);
-            entity.setFeed(entry.getValue().feed);
-            entity.setBuy(entry.getValue().buy);
+            entity.setPv(entry.getValue().pv.isNaN() ? 0D : entry.getValue().pv);
+            entity.setLoad(entry.getValue().load.isNaN() ? 0D : entry.getValue().load);
+            entity.setFeed(entry.getValue().feed.isNaN() ? 0D : entry.getValue().feed);
+            entity.setBuy(entry.getValue().buy.isNaN() ? 0D : entry.getValue().buy);
+            entity.setCharge(entry.getValue().charge.isNaN() ? 0D : entry.getValue().charge);
+            entity.setMillisSinceEpoch(date.getTime());
             entities.add(entity);
         }
         return entities;

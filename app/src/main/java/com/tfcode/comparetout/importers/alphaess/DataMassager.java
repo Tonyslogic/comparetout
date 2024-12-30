@@ -62,7 +62,8 @@ public class DataMassager {
             double mLoad = ((entry.getValue().load / 1000d) / 12d) / pLoadTotal * eLoad;
             double mFeed = ((entry.getValue().feed / 1000d) / 12d) / pFeedTotal * eFeed;
             double mBuy = ((entry.getValue().buy / 1000d) / 12d) / pBuyTotal * eBuy;
-            massaged.put(entry.getKey(), new FiveMinuteEnergies(mPV, mLoad, mFeed, mBuy));
+            double mCharge = (mPV + mBuy) - (mLoad + mFeed);
+            massaged.put(entry.getKey(), new FiveMinuteEnergies(mPV, mLoad, mFeed, mBuy, mCharge));
         }
         // Handle fallback DST
         if (massaged.size() == 289) {
@@ -84,15 +85,16 @@ public class DataMassager {
             }
             FiveMinuteEnergies pairToUpdate = massaged.get(keyToUpdate);
             FiveMinuteEnergies pairToRemove = massaged.get(keyToRemove);
-            Double updatedPV = (Double) (pairToUpdate != null ? pairToUpdate.pv : 0.0) +
+            double updatedPV = (Double) (pairToUpdate != null ? pairToUpdate.pv : 0.0) +
                     (Double) (pairToRemove != null ? pairToRemove.pv : 0.0);
-            Double updatedLoad = (Double) (pairToUpdate != null ? pairToUpdate.load : 0.0) +
+            double updatedLoad = (Double) (pairToUpdate != null ? pairToUpdate.load : 0.0) +
                     (Double) (pairToRemove != null ? pairToRemove.load : 0.0);
-            Double updatedFeed = (Double) (pairToUpdate != null ? pairToUpdate.feed : 0.0) +
+            double updatedFeed = (Double) (pairToUpdate != null ? pairToUpdate.feed : 0.0) +
                     (Double) (pairToRemove != null ? pairToRemove.feed : 0.0);
-            Double updatedBuy = (Double) (pairToUpdate != null ? pairToUpdate.buy : 0.0) +
+            double updatedBuy = (Double) (pairToUpdate != null ? pairToUpdate.buy : 0.0) +
                     (Double) (pairToRemove != null ? pairToRemove.buy : 0.0);
-            massaged.put(keyToUpdate, new FiveMinuteEnergies(updatedPV, updatedLoad, updatedFeed, updatedBuy));
+            double updatedCharge = (updatedPV + updatedBuy) - (updatedLoad + updatedFeed);
+            massaged.put(keyToUpdate, new FiveMinuteEnergies(updatedPV, updatedLoad, updatedFeed, updatedBuy, updatedCharge));
             massaged.remove(keyToRemove);
         }
         return massaged;

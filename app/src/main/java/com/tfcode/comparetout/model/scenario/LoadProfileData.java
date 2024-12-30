@@ -34,13 +34,13 @@ public class LoadProfileData {
     private int dow; // the day-of-week, from 1 (Monday) to 7 (Sunday) https://docs.oracle.com/javase/8/docs/api/java/time/LocalDate.html
     private int do2001;
     @ColumnInfo(defaultValue = "NULL")
-    private Integer millisSinceEpoch;
+    private Long millisSinceEpoch;
 
-    public Integer getMillisSinceEpoch() {
+    public Long getMillisSinceEpoch() {
         return millisSinceEpoch;
     }
 
-    public void setMillisSinceEpoch(int millisSinceEpoch) {
+    public void setMillisSinceEpoch(Long millisSinceEpoch) {
         this.millisSinceEpoch = millisSinceEpoch;
     }
 
