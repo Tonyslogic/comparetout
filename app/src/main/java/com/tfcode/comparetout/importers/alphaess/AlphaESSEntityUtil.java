@@ -112,7 +112,10 @@ public class AlphaESSEntityUtil {
             entity.setLoad(entry.getValue().load.isNaN() ? 0D : entry.getValue().load);
             entity.setFeed(entry.getValue().feed.isNaN() ? 0D : entry.getValue().feed);
             entity.setBuy(entry.getValue().buy.isNaN() ? 0D : entry.getValue().buy);
-            entity.setCharge(entry.getValue().charge.isNaN() ? 0D : entry.getValue().charge);
+            double charge = entry.getValue().charge.isNaN() ? 0D : entry.getValue().charge;
+            // Assume losses of 10% when discharging
+            // TODO make this configurable in the importer
+            entity.setCharge(charge > 0D ? charge : charge * 0.9);
             entity.setMillisSinceEpoch(date.getTime());
             entities.add(entity);
         }

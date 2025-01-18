@@ -40,7 +40,7 @@ public class StatsForPeriodResult extends HAMessageWithID {
     @SerializedName("result")
     private Map<String, List<SensorData>> result;
 
-    private List<Double> estimatedBatteryCapacity = new ArrayList<>();
+    private final List<Double> estimatedBatteryCapacity = new ArrayList<>();
 
     public boolean isSuccess() {
         return success;
@@ -62,17 +62,18 @@ public class StatsForPeriodResult extends HAMessageWithID {
      * Pivot the result to a map of dates to a map of sensor names to changes.
      * @return the pivoted result
      */
-    public Map<LocalDateTime, Map<String, Double>> pivotStatsForPeriodResult() {
-        Map<LocalDateTime, Map<String, Double>> pivotedResult = new HashMap<>();
+    public Map<Long, Map<String, Double>> pivotStatsForPeriodResult() {
+        Map<Long, Map<String, Double>> pivotedResult = new HashMap<>();
 
         for (Map.Entry<String, List<SensorData>> entry : getResult().entrySet()) {
             String sensorName = entry.getKey();
             List<SensorData> sensorDataList = entry.getValue();
 
             for (SensorData sensorData : sensorDataList) {
-                LocalDateTime date = Instant.ofEpochMilli((long) sensorData.getStart())
-                        .atZone(ZoneId.systemDefault())
-                        .toLocalDateTime();
+//                LocalDateTime date = Instant.ofEpochMilli(sensorData.getStart())
+//                        .atZone(ZoneId.systemDefault())
+//                        .toLocalDateTime();
+                Long date = sensorData.getStart();
                 double change = sensorData.getChange();
 
                 Map<String, Double> sensorChanges = pivotedResult.getOrDefault(date, new HashMap<>());
@@ -94,10 +95,13 @@ public class StatsForPeriodResult extends HAMessageWithID {
      * @return the transformed data as a list of AlphaESSTransformedData
      */
     public List<AlphaESSTransformedData> calculateAndAddLoad(String sysSn,
-            EnergySensors energySensors, Map<LocalDateTime, Map<String, Double>> pivotedResult) {
+            EnergySensors energySensors, Map<Long, Map<String, Double>> pivotedResult) {
         List<AlphaESSTransformedData> rows = new ArrayList<>();
-        for (Map.Entry<LocalDateTime, Map<String, Double>> entry : pivotedResult.entrySet()) {
-            LocalDateTime date = entry.getKey();
+        for (Map.Entry<Long, Map<String, Double>> entry : pivotedResult.entrySet()) {
+            Long date_long = entry.getKey();
+            LocalDateTime date = Instant.ofEpochMilli(date_long)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDateTime();
             Map<String, Double> sensorChanges = entry.getValue();
             double solarGen = 0D;
             for (String sensor: energySensors.solarGeneration) {
@@ -139,6 +143,8 @@ public class StatsForPeriodResult extends HAMessageWithID {
             row.setLoad(load);
             row.setFeed(gridExport);
             row.setBuy(gridImport);
+            row.setCharge(charge - discharge);
+            row.setMillisSinceEpoch(date_long);
 
             rows.add(row);
         }

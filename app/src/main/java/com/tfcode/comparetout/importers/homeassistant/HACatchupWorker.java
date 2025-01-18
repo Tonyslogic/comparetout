@@ -51,9 +51,11 @@ import com.tfcode.comparetout.importers.homeassistant.messages.statsForPeriodRes
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -160,18 +162,21 @@ public class HACatchupWorker extends Worker {
             StatsForPeriodResult result = (StatsForPeriodResult) message;
             if (result.isSuccess()) {
                 LOGGER.info("StatsForPeriodResultHandler.handleMessage.success");
-                Map<LocalDateTime, Map<String, Double>> pivotedResult = result.pivotStatsForPeriodResult();
+                Map<Long, Map<String, Double>> pivotedResult = result.pivotStatsForPeriodResult();
                 List<AlphaESSTransformedData> dbRows = result.calculateAndAddLoad(
                         "HomeAssistant", mEnergySensors, pivotedResult);
                 mToutcRepository.addTransformedData(dbRows);
                 updateBatteryCapacities(result);
-                LocalDateTime anyDate = null;
+                Long anyDate = null;
                 if (!pivotedResult.keySet().isEmpty()) {
                     anyDate = pivotedResult.keySet().iterator().next();
                 }
 
                 if (anyDate != null) {
-                    String processedDate = anyDate.format(NOTIFY_FORMAT);
+                    LocalDateTime date = Instant.ofEpochMilli(anyDate)
+                            .atZone(ZoneId.systemDefault())
+                            .toLocalDateTime();
+                    String processedDate = date.format(NOTIFY_FORMAT);
                     if (!processedDate.equals(mProgress)) {
                         mProgress = processedDate;
                         setProgressAsync(new Data.Builder().putString(PROGRESS, "Working on " + mProgress).build());
