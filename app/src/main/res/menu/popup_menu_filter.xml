@@ -82,6 +82,16 @@
         android:title="@string/battery_to_grid"
         android:checkable="true"/>
     <item
+        android:id="@+id/batteryCharging"
+        android:checked="false"
+        android:title="@string/Battery_charging"
+        android:checkable="true"/>
+    <item
+        android:id="@+id/batteryDischarging"
+        android:checked="false"
+        android:title="@string/Battery_discharging"
+        android:checkable="true"/>
+    <item
         android:id="@+id/soc"
         android:checked="true"
         android:title="@string/state_of_charge"

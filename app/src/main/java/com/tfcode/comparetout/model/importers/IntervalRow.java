@@ -34,6 +34,8 @@ public class IntervalRow {
     @ColumnInfo(name= "HWSCHEDULE") public double hwSchedule = 0.0;
     @ColumnInfo(name= "HWDIVERT") public double hwDivert = 0.0;
     @ColumnInfo(name= "BAT2GRID") public double bat2grid = 0.0;
+    @ColumnInfo(name= "BAT_CHARGE") public double batCharge = 0.0;
+    @ColumnInfo(name= "BAT_DISCHARGE") public double batDischarge = 0.0;
 
     @ColumnInfo(name= "INTERVAL") public String interval = "";
 }

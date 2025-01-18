@@ -114,6 +114,8 @@ public abstract class BaseGraphsFragment extends Fragment {
     private static final String SHOW_HWSCHEDULE = "SHOW_HWSCHEDULE";
     private static final String SHOW_HWDIVERT = "SHOW_HWDIVERT";
     private static final String SHOW_BAT2GRID = "SHOW_BAT2GRID";
+    private static final String SHOW_BAT_CHARGE = "SHOW_BAT_CHARGE";
+    private static final String SHOW_BAT_DISCHARGE = "SHOW_BAT_DISCHARGE";
 
     private static final String SYSTEM = "SYSTEM";
     private static final String FROM = "FROM";
@@ -160,9 +162,31 @@ public abstract class BaseGraphsFragment extends Fragment {
     protected boolean mShowHWSchedule = false;
     protected boolean mShowHWDivert = false;
     protected boolean mShowBat2Grid = false;
+    protected boolean mShowBatCharge = false;
+    protected boolean mShowBatDischarge = false;
 
     protected int mFilterCount = 4;
     protected ComparisonUIViewModel.Importer mImporterType;
+
+    /*
+    0xff0000ff, // BLUE
+    0xffffff00, // YELLOW
+    0xff00ffff, // CYAN
+    0xffff0000, // RED
+    0xff00ff00, // GREEN
+    0xff888888, // GRAY
+    0xFF005666, // DEEP_TEAL
+    0xffff00ff, // MAGENTA
+    0xFFFFA500, // ORANGE
+    0xFFE0F2D2, // PALE_YELLOW_GREEN
+    0xFF800080, // PURPLE
+    0xFFA52A2A, // BROWN
+    0xFFFFD700, // GOLD
+    0xFF00FF00, // Lime Green
+    0xFF4B0082  // Indigo
+    0xFFCC6600, // Dark Orange
+    0xFF40E0D0  // Turquoise
+     */
 
     private static final int ORANGE = 0xFFFFA500;
     private static final int PURPLE = 0xFF800080;
@@ -170,6 +194,8 @@ public abstract class BaseGraphsFragment extends Fragment {
     private static final int GOLD = 0xFFFFD700;
     private static final int PALE_YELLOW_GREEN = 0xFFE0F2D2;
     private static final int DEEP_TEAL = 0xFF005666;
+    private static final int LIME_GREEN =  0xFF00FF00; // Lime Green
+    private static final int DARK_ORANGE =  0xFFCC6600;  // Dark orange
 
     @Override
     public void onResume() {
@@ -195,6 +221,8 @@ public abstract class BaseGraphsFragment extends Fragment {
         outState.putBoolean(SHOW_HWSCHEDULE, mShowHWSchedule);
         outState.putBoolean(SHOW_HWDIVERT, mShowHWDivert);
         outState.putBoolean(SHOW_BAT2GRID, mShowBat2Grid);
+        outState.putBoolean(SHOW_BAT_CHARGE, mShowBatCharge);
+        outState.putBoolean(SHOW_BAT_DISCHARGE, mShowBatDischarge);
 
         outState.putString(SYSTEM, mSystemSN);
         outState.putString(FROM, mFrom);
@@ -223,6 +251,8 @@ public abstract class BaseGraphsFragment extends Fragment {
             mShowHWSchedule = savedInstanceState.getBoolean(SHOW_HWSCHEDULE);
             mShowHWDivert = savedInstanceState.getBoolean(SHOW_HWDIVERT);
             mShowBat2Grid = savedInstanceState.getBoolean(SHOW_BAT2GRID);
+            mShowBatCharge = savedInstanceState.getBoolean(SHOW_BAT_CHARGE);
+            mShowBatDischarge = savedInstanceState.getBoolean(SHOW_BAT_DISCHARGE);
 
             mFilterCount = 0;
             if (mShowLoad) mFilterCount++;
@@ -239,6 +269,8 @@ public abstract class BaseGraphsFragment extends Fragment {
             if (mShowHWSchedule) mFilterCount++;
             if (mShowHWDivert) mFilterCount++;
             if (mShowBat2Grid) mFilterCount++;
+            if (mShowBatCharge) mFilterCount++;
+            if (mShowBatDischarge) mFilterCount++;
 
             mSystemSN = savedInstanceState.getString(SYSTEM);
             mFrom = savedInstanceState.getString(FROM);
@@ -597,6 +629,8 @@ public abstract class BaseGraphsFragment extends Fragment {
             mFilterPopup.getMenu().findItem(R.id.evDivert).setVisible(false);
             mFilterPopup.getMenu().findItem(R.id.hwDivert).setVisible(false);
             mFilterPopup.getMenu().findItem(R.id.batteryToGrid).setVisible(false);
+            mFilterPopup.getMenu().findItem(R.id.batteryCharging).setVisible(false);
+            mFilterPopup.getMenu().findItem(R.id.batteryDischarging).setVisible(false);
 
             mFilterPopup.getMenu().findItem(R.id.soc).setVisible(false);
             mFilterPopup.getMenu().findItem(R.id.hwTemp).setVisible(false);
@@ -656,6 +690,14 @@ public abstract class BaseGraphsFragment extends Fragment {
             }
             if (itemID == R.id.batteryToGrid) {
                 mShowBat2Grid = item.isChecked();
+                mFilterCount = item.isChecked() ? mFilterCount + 1 : mFilterCount - 1;
+            }
+            if (itemID == R.id.batteryCharging) {
+                mShowBatCharge = item.isChecked();
+                mFilterCount = item.isChecked() ? mFilterCount + 1 : mFilterCount - 1;
+            }
+            if (itemID == R.id.batteryDischarging) {
+                mShowBatDischarge = item.isChecked();
                 mFilterCount = item.isChecked() ? mFilterCount + 1 : mFilterCount - 1;
             }
 
@@ -811,6 +853,8 @@ public abstract class BaseGraphsFragment extends Fragment {
             if (mShowHWSchedule) titleRow.addView(getTableChartTitleHeader("HWSchedule" + "(kWh)", activity));
             if (mShowHWDivert) titleRow.addView(getTableChartTitleHeader("HWDivert" + "(kWh)", activity));
             if (mShowBat2Grid) titleRow.addView(getTableChartTitleHeader("Bat2Grid" + "(kWh)", activity));
+            if (mShowBatCharge) titleRow.addView(getTableChartTitleHeader("BatCharge" + "(kWh)", activity));
+            if (mShowBatDischarge) titleRow.addView(getTableChartTitleHeader("BatDischarge" + "(kWh)", activity));
             mTableChart.addView(titleRow);
 
             for (IntervalRow intervalRow : mGraphData) {
@@ -830,6 +874,8 @@ public abstract class BaseGraphsFragment extends Fragment {
                 if (mShowHWSchedule) row.addView(getTableChartContent(intervalRow.hwSchedule, activity));
                 if (mShowHWDivert) row.addView(getTableChartContent(intervalRow.hwDivert, activity));
                 if (mShowBat2Grid) row.addView(getTableChartContent(intervalRow.bat2grid, activity));
+                if (mShowBatCharge) row.addView(getTableChartContent(intervalRow.batCharge, activity));
+                if (mShowBatDischarge) row.addView(getTableChartContent(intervalRow.batDischarge, activity));
                 mTableChart.addView(row);
             }
         }
@@ -914,6 +960,8 @@ public abstract class BaseGraphsFragment extends Fragment {
             Map<String, Double> hwScheduleMap = new HashMap<>();
             Map<String, Double> hwDivertMap = new HashMap<>();
             Map<String, Double> bat2gridMap = new HashMap<>();
+            Map<String, Double> batChargedMap = new HashMap<>();
+            Map<String, Double> batDischargedMap = new HashMap<>();
 
             double load = 0D;
             double pv = 0D;
@@ -929,6 +977,8 @@ public abstract class BaseGraphsFragment extends Fragment {
             double hwSchedule = 0D;
             double hwDivert = 0D;
             double bat2grid = 0D;
+            double batCharge = 0D;
+            double batDischarge = 0D;
             switch (mDisplayInterval) {
                 case YEAR:
                     if (mCalculation == CalculationType.SUM) {
@@ -947,6 +997,8 @@ public abstract class BaseGraphsFragment extends Fragment {
                             hwScheduleMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.hwSchedule);
                             hwDivertMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.hwDivert);
                             bat2gridMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.bat2grid);
+                            batChargedMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.batCharge);
+                            batDischargedMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.batDischarge);
 
                             load += intervalRow.load;
                             pv += intervalRow.pv;
@@ -962,6 +1014,8 @@ public abstract class BaseGraphsFragment extends Fragment {
                             hwSchedule += intervalRow.hwSchedule;
                             hwDivert += intervalRow.hwDivert;
                             bat2grid += intervalRow.bat2grid;
+                            batCharge += intervalRow.batCharge;
+                            batDischarge += intervalRow.batDischarge;
                         }
                     } else {
                         for (IntervalRow intervalRow : mGraphData) {
@@ -978,7 +1032,9 @@ public abstract class BaseGraphsFragment extends Fragment {
                             evDivertMap.put("All", intervalRow.evDivert);
                             hwScheduleMap.put("All", intervalRow.hwSchedule);
                             hwDivertMap.put("All", intervalRow.hwDivert);
-                            hwDivertMap.put("All", intervalRow.bat2grid);
+                            bat2gridMap.put("All", intervalRow.bat2grid);
+                            batChargedMap.put("All", intervalRow.batCharge);
+                            batDischargedMap.put("All", intervalRow.batDischarge);
 
                             load += intervalRow.load;
                             pv += intervalRow.pv;
@@ -994,6 +1050,8 @@ public abstract class BaseGraphsFragment extends Fragment {
                             hwSchedule += intervalRow.hwSchedule;
                             hwDivert += intervalRow.hwDivert;
                             bat2grid += intervalRow.bat2grid;
+                            batCharge += intervalRow.batCharge;
+                            batDischarge += intervalRow.batDischarge;
                         }
                     }
                     break;
@@ -1027,6 +1085,10 @@ public abstract class BaseGraphsFragment extends Fragment {
                                 evDivertMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.evDivert);
                             if (intervalRow.bat2grid > 0)
                                 bat2gridMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.bat2grid);
+                            if (intervalRow.batCharge > 0)
+                                batChargedMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.batCharge);
+                            if (intervalRow.batDischarge > 0)
+                                batDischargedMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.batDischarge);
 
                             load += intervalRow.load;
                             pv += intervalRow.pv;
@@ -1042,6 +1104,8 @@ public abstract class BaseGraphsFragment extends Fragment {
                             hwSchedule += intervalRow.hwSchedule;
                             hwDivert += intervalRow.hwDivert;
                             bat2grid += intervalRow.bat2grid;
+                            batCharge += intervalRow.batCharge;
+                            batDischarge += intervalRow.batDischarge;
                         }
                     } else {
                         final String[] xLabels = {"NaM", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -1075,6 +1139,10 @@ public abstract class BaseGraphsFragment extends Fragment {
                                 hwDivertMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.hwDivert);
                             if (intervalRow.bat2grid > 0)
                                 bat2gridMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.bat2grid);
+                            if (intervalRow.batCharge > 0)
+                                batChargedMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.batCharge);
+                            if (intervalRow.batDischarge > 0)
+                                batDischargedMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.batDischarge);
 
                             load += intervalRow.load;
                             pv += intervalRow.pv;
@@ -1090,6 +1158,8 @@ public abstract class BaseGraphsFragment extends Fragment {
                             hwSchedule += intervalRow.hwSchedule;
                             hwDivert += intervalRow.hwDivert;
                             bat2grid += intervalRow.bat2grid;
+                            batCharge += intervalRow.batCharge;
+                            batDischarge += intervalRow.batDischarge;
                         }
                     }
                     break;
@@ -1122,8 +1192,12 @@ public abstract class BaseGraphsFragment extends Fragment {
                             hwScheduleMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.hwSchedule);
                         if (intervalRow.hwDivert > 0)
                             hwDivertMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.hwDivert);
-                        if (intervalRow.hwDivert > 0)
+                        if (intervalRow.bat2grid > 0)
                             bat2gridMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.bat2grid);
+                        if (intervalRow.batCharge > 0)
+                            batChargedMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.batCharge);
+                        if (intervalRow.batDischarge > 0)
+                            batDischargedMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.batDischarge);
 
                         load += intervalRow.load;
                         pv += intervalRow.pv;
@@ -1139,6 +1213,8 @@ public abstract class BaseGraphsFragment extends Fragment {
                         hwSchedule += intervalRow.hwSchedule;
                         hwDivert += intervalRow.hwDivert;
                         bat2grid += intervalRow.bat2grid;
+                        batCharge += intervalRow.batCharge;
+                        batDischarge += intervalRow.batDischarge;
                     }
                     break;
                 case DOY:
@@ -1171,6 +1247,10 @@ public abstract class BaseGraphsFragment extends Fragment {
                             hwDivertMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.hwDivert);
                         if (intervalRow.bat2grid > 0)
                             bat2gridMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.bat2grid);
+                        if (intervalRow.batCharge > 0)
+                            batChargedMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.batCharge);
+                        if (intervalRow.batDischarge > 0)
+                            batDischargedMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.batDischarge);
 
                         load += intervalRow.load;
                         pv += intervalRow.pv;
@@ -1186,6 +1266,8 @@ public abstract class BaseGraphsFragment extends Fragment {
                         hwSchedule += intervalRow.hwSchedule;
                         hwDivert += intervalRow.hwDivert;
                         bat2grid += intervalRow.bat2grid;
+                        batCharge += intervalRow.batCharge;
+                        batDischarge += intervalRow.batDischarge;
                     }
                     break;
 
@@ -1205,6 +1287,8 @@ public abstract class BaseGraphsFragment extends Fragment {
             PieChart hwSchedulePie = getPieChart("HWSchedule (" + new DecimalFormat("0.00").format(hwSchedule) + " kWh)", hwScheduleMap);
             PieChart hwDivertPie = getPieChart("HWDivert (" + new DecimalFormat("0.00").format(hwDivert) + " kWh)", hwDivertMap);
             PieChart bat2GridPie = getPieChart("Bat2Grid (" + new DecimalFormat("0.00").format(bat2grid) + " kWh)", bat2gridMap);
+            PieChart batChargePie = getPieChart("BatCharge (" + new DecimalFormat("0.00").format(batCharge) + " kWh)", batChargedMap);
+            PieChart batDischargedPie = getPieChart("BatDischarge (" + new DecimalFormat("0.00").format(batDischarge) + " kWh)", batDischargedMap);
 
             List<PieChart> piesToShow = new ArrayList<>();
             if (mShowLoad) piesToShow.add(loadPie);
@@ -1221,6 +1305,8 @@ public abstract class BaseGraphsFragment extends Fragment {
             if (mShowHWSchedule) piesToShow.add(hwSchedulePie);
             if (mShowHWDivert) piesToShow.add(hwDivertPie);
             if (mShowBat2Grid) piesToShow.add(bat2GridPie);
+            if (mShowBatCharge) piesToShow.add(batChargePie);
+            if (mShowBatDischarge) piesToShow.add(batDischargedPie);
 
             int toShowInRow = getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE ? 4 : 2;
             TableRow aRow = new TableRow(getActivity());
@@ -1330,6 +1416,8 @@ public abstract class BaseGraphsFragment extends Fragment {
         ArrayList<Entry> hwScheduleEntries = new ArrayList<>();
         ArrayList<Entry> hwDivertEntries = new ArrayList<>();
         ArrayList<Entry> bat2gridEntries = new ArrayList<>();
+        ArrayList<Entry> batChargedEntries = new ArrayList<>();
+        ArrayList<Entry> batDischargeEntries = new ArrayList<>();
         for (IntervalRow intervalRow : mGraphData) {
             loadEntries.add(new Entry(Float.parseFloat(intervalRow.interval), (float) intervalRow.load));
             feedEntries.add(new Entry(Float.parseFloat(intervalRow.interval), (float) intervalRow.feed));
@@ -1345,6 +1433,8 @@ public abstract class BaseGraphsFragment extends Fragment {
             hwScheduleEntries.add(new Entry(Float.parseFloat(intervalRow.interval), (float) intervalRow.hwSchedule));
             hwDivertEntries.add(new Entry(Float.parseFloat(intervalRow.interval), (float) intervalRow.hwDivert));
             bat2gridEntries.add(new Entry(Float.parseFloat(intervalRow.interval), (float) intervalRow.bat2grid));
+            batChargedEntries.add(new Entry(Float.parseFloat(intervalRow.interval), (float) intervalRow.batCharge));
+            batDischargeEntries.add(new Entry(Float.parseFloat(intervalRow.interval), (float) intervalRow.batDischarge));
         }
 
         LineDataSet loadSet = configureLine(loadEntries, Color.BLUE, "Load");
@@ -1361,6 +1451,8 @@ public abstract class BaseGraphsFragment extends Fragment {
         LineDataSet hwScheduleSet = configureLine(hwScheduleEntries, PURPLE, "HWSchedule");
         LineDataSet hwDivertSet = configureLine(hwDivertEntries, BROWN, "HWDivert");
         LineDataSet bat2gridSet = configureLine(bat2gridEntries, GOLD, "Bat2Grid");
+        LineDataSet batChargeSet = configureLine(batChargedEntries, LIME_GREEN, "BatCharge");
+        LineDataSet batDischargeSet = configureLine(batDischargeEntries, DARK_ORANGE, "BatDischarge");
 
         ArrayList<ILineDataSet> dataSets = new ArrayList<>();
         if (mShowLoad) dataSets.add(loadSet);
@@ -1377,6 +1469,8 @@ public abstract class BaseGraphsFragment extends Fragment {
         if (mShowHWSchedule) dataSets.add(hwScheduleSet);
         if (mShowHWDivert) dataSets.add(hwDivertSet);
         if (mShowBat2Grid) dataSets.add(bat2gridSet);
+        if (mShowBatCharge) dataSets.add(batChargeSet);
+        if (mShowBatDischarge) dataSets.add(batDischargeSet);
 
         LineData data = new LineData(dataSets);
         mLineChart.setData(data);
@@ -1480,6 +1574,8 @@ public abstract class BaseGraphsFragment extends Fragment {
         ArrayList<BarEntry> hwScheduleEntries = new ArrayList<>();
         ArrayList<BarEntry> hwDivertEntries = new ArrayList<>();
         ArrayList<BarEntry> bat2gridEntries = new ArrayList<>();
+        ArrayList<BarEntry> batChargeEntries = new ArrayList<>();
+        ArrayList<BarEntry> batDischargeEntries = new ArrayList<>();
 
         for (int i = 0; i < mGraphData.size(); i++) {
             loadEntries.add(new BarEntry(i, (float) mGraphData.get(i).load));
@@ -1496,6 +1592,8 @@ public abstract class BaseGraphsFragment extends Fragment {
             hwScheduleEntries.add(new BarEntry(i, (float) mGraphData.get(i).hwSchedule));
             hwDivertEntries.add(new BarEntry(i, (float) mGraphData.get(i).hwDivert));
             bat2gridEntries.add(new BarEntry(i, (float) mGraphData.get(i).bat2grid));
+            batChargeEntries.add(new BarEntry(i, (float) mGraphData.get(i).batCharge));
+            batDischargeEntries.add(new BarEntry(i, (float) mGraphData.get(i).batDischarge));
         }
 
         BarDataSet loadSet = new BarDataSet(loadEntries, "Load");
@@ -1526,6 +1624,11 @@ public abstract class BaseGraphsFragment extends Fragment {
         BarDataSet bat2gridSet = new BarDataSet(bat2gridEntries, "Bat2Grid");
         bat2gridSet.setColor(GOLD);
 
+        BarDataSet batChargeSet = new BarDataSet(batChargeEntries, "BatCharge");
+        batChargeSet.setColor(LIME_GREEN);
+        BarDataSet batDischargeSet = new BarDataSet(batDischargeEntries, "BatDischarge");
+        batDischargeSet.setColor(DARK_ORANGE);
+
         ArrayList<IBarDataSet> dataSets = new ArrayList<>();
         if (mShowLoad) dataSets.add(loadSet);
         if (mShowFeed) dataSets.add(feedSet);
@@ -1541,6 +1644,8 @@ public abstract class BaseGraphsFragment extends Fragment {
         if (mShowHWSchedule) dataSets.add(hwScheduleSet);
         if (mShowHWDivert) dataSets.add(hwDivertSet);
         if (mShowBat2Grid) dataSets.add(bat2gridSet);
+        if (mShowBatCharge) dataSets.add(batChargeSet);
+        if (mShowBatDischarge) dataSets.add(batDischargeSet);
 
         BarData data = new BarData(dataSets);
         data.setValueTextSize(10f);

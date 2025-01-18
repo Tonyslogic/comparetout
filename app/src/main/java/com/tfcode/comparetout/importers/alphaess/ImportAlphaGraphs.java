@@ -17,6 +17,7 @@
 package com.tfcode.comparetout.importers.alphaess;
 
 import com.tfcode.comparetout.ComparisonUIViewModel;
+import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.util.BaseGraphsFragment;
 
 public class ImportAlphaGraphs extends BaseGraphsFragment {
@@ -28,6 +29,15 @@ public class ImportAlphaGraphs extends BaseGraphsFragment {
 
     public static ImportAlphaGraphs newInstance() {
         return new ImportAlphaGraphs();
+    }
+
+    @Override
+    protected void setupPopupFilterMenu() {
+        super.setupPopupFilterMenu();
+        if (!(null == mFilterPopup)) {
+            mFilterPopup.getMenu().findItem(R.id.batteryCharging).setVisible(true);
+            mFilterPopup.getMenu().findItem(R.id.batteryDischarging).setVisible(true);
+        }
     }
 
 }

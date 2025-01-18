@@ -331,4 +331,6 @@
     <string name="discharge_schedule_name">Discharge schedule name</string>
     <string name="rate_kw">Rate (kW)</string>
     <string name="battery_to_grid">Battery 2 Grid</string>
+    <string name="Battery_charging">Charging</string>
+    <string name="Battery_discharging">Discharging</string>
 </resources>

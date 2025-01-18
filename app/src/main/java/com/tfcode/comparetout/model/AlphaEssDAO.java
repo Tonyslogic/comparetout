@@ -100,38 +100,44 @@ public abstract class AlphaEssDAO {
 
     @Query("SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
             "0 AS PV2BAT, 0 AS PV2LOAD, 0 AS BAT2LOAD, 0 AS GRID2BAT, 0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT," +
-            "0 AS BAT2GRID, cast (strftime('%H', minute) as INTEGER) AS INTERVAL " +
+            "0 AS BAT2GRID, TOTAL(CASE WHEN charge > 0 THEN charge ELSE 0 END) AS BAT_CHARGE, ABS(TOTAL(CASE WHEN charge < 0 THEN charge ELSE 0 END)) AS BAT_DISCHARGE, " +
+            "cast (strftime('%H', minute) as INTEGER) AS INTERVAL " +
             "FROM alphaESSTransformedData WHERE date >= :from AND date <= :to AND sysSn = :sysSN GROUP BY  INTERVAL ORDER BY INTERVAL")
     public abstract List<IntervalRow> sumHour(String sysSN, String from, String to);
 
     @Query("SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
             "0 AS PV2BAT, 0 AS PV2LOAD, 0 AS BAT2LOAD, 0 AS GRID2BAT, 0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT," +
-            "0 AS BAT2GRID, cast (strftime('%j', date) as INTEGER) AS INTERVAL " +
+            "0 AS BAT2GRID, TOTAL(CASE WHEN charge > 0 THEN charge ELSE 0 END) AS BAT_CHARGE, ABS(TOTAL(CASE WHEN charge < 0 THEN charge ELSE 0 END)) AS BAT_DISCHARGE, " +
+            "cast (strftime('%j', date) as INTEGER) AS INTERVAL " +
     "FROM alphaESSTransformedData WHERE date >= :from AND date <= :to AND sysSn = :sysSN GROUP BY INTERVAL ORDER BY INTERVAL")
     public abstract List<IntervalRow> sumDOY(String sysSN, String from, String to);
 
     @Query("SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
             "0 AS PV2BAT, 0 AS PV2LOAD, 0 AS BAT2LOAD, 0 AS GRID2BAT, 0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT," +
-            "0 AS BAT2GRID, cast (strftime('%w', date) as INTEGER) AS INTERVAL " +
+            "0 AS BAT2GRID, TOTAL(CASE WHEN charge > 0 THEN charge ELSE 0 END) AS BAT_CHARGE, ABS(TOTAL(CASE WHEN charge < 0 THEN charge ELSE 0 END)) AS BAT_DISCHARGE, " +
+            "cast (strftime('%w', date) as INTEGER) AS INTERVAL " +
             "FROM alphaESSTransformedData WHERE date >= :from AND date <= :to AND sysSn = :sysSN GROUP BY INTERVAL ORDER BY INTERVAL")
     public abstract List<IntervalRow> sumDOW(String sysSN, String from, String to);
 
     @Query("SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
             "0 AS PV2BAT, 0 AS PV2LOAD, 0 AS BAT2LOAD, 0 AS GRID2BAT, 0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT," +
-            "0 AS BAT2GRID, strftime('%Y', date) || strftime('%m', date) AS INTERVAL " +
+            "0 AS BAT2GRID, TOTAL(CASE WHEN charge > 0 THEN charge ELSE 0 END) AS BAT_CHARGE, ABS(TOTAL(CASE WHEN charge < 0 THEN charge ELSE 0 END)) AS BAT_DISCHARGE, " +
+            "strftime('%Y', date) || strftime('%m', date) AS INTERVAL " +
             "FROM alphaESSTransformedData WHERE date >= :from AND date <= :to AND sysSn = :sysSN GROUP BY INTERVAL ORDER BY INTERVAL")
     public abstract List<IntervalRow> sumMonth(String sysSN, String from, String to);
 
     @Query("SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
             "0 AS PV2BAT, 0 AS PV2LOAD, 0 AS BAT2LOAD, 0 AS GRID2BAT, 0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT," +
-            "0 AS BAT2GRID, cast (strftime('%Y', date) as INTEGER) AS INTERVAL " +
+            "0 AS BAT2GRID, TOTAL(CASE WHEN charge > 0 THEN charge ELSE 0 END) AS BAT_CHARGE, ABS(TOTAL(CASE WHEN charge < 0 THEN charge ELSE 0 END)) AS BAT_DISCHARGE, " +
+            "cast (strftime('%Y', date) as INTEGER) AS INTERVAL " +
             "FROM alphaESSTransformedData WHERE date >= :from AND date <= :to AND sysSn = :sysSN GROUP BY INTERVAL ORDER BY INTERVAL")
     public abstract List<IntervalRow> sumYear(String sysSN, String from, String to);
 
     @Query("SELECT avg(PV) AS PV, AVG(LOAD) AS LOAD, AVG(FEED) AS FEED, AVG(BUY) AS BUY, " +
             "0 AS PV2BAT, 0 AS PV2LOAD, 0 AS BAT2LOAD, 0 AS GRID2BAT, 0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT," +
-            "0 AS BAT2GRID, INTERVAL FROM (" +
+            "0 AS BAT2GRID, avg(BAT_CHARGE) AS BAT_CHARGE, avg(BAT_DISCHARGE) AS BAT_DISCHARGE, INTERVAL FROM (" +
             " SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
+            "TOTAL(CASE WHEN charge > 0 THEN charge ELSE 0 END) AS BAT_CHARGE, ABS(TOTAL(CASE WHEN charge < 0 THEN charge ELSE 0 END)) AS BAT_DISCHARGE, " +
             "cast (strftime('%H', minute) as INTEGER) AS INTERVAL " +
             " FROM alphaESSTransformedData WHERE date >= :from AND date <= :to AND sysSn = :sysSN " +
             " GROUP BY cast (strftime('%Y', date) as integer), cast (strftime('%j', date) as integer), INTERVAL ORDER BY INTERVAL " +
@@ -140,8 +146,9 @@ public abstract class AlphaEssDAO {
 
     @Query("SELECT avg(PV) AS PV, AVG(LOAD) AS LOAD, AVG(FEED) AS FEED, AVG(BUY) AS BUY, " +
             "0 AS PV2BAT, 0 AS PV2LOAD, 0 AS BAT2LOAD, 0 AS GRID2BAT, 0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT," +
-            "0 AS BAT2GRID, INTERVAL FROM ( " +
+            "0 AS BAT2GRID, avg(BAT_CHARGE) AS BAT_CHARGE, avg(BAT_DISCHARGE) AS BAT_DISCHARGE, INTERVAL FROM ( " +
             " SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
+            "TOTAL(CASE WHEN charge > 0 THEN charge ELSE 0 END) AS BAT_CHARGE, ABS(TOTAL(CASE WHEN charge < 0 THEN charge ELSE 0 END)) AS BAT_DISCHARGE, " +
             "cast (strftime('%j', date) as INTEGER) AS INTERVAL " +
             " FROM alphaESSTransformedData WHERE date >= :from AND date <= :to AND sysSn = :sysSN GROUP BY cast (strftime('%Y', date) as integer), INTERVAL ORDER BY INTERVAL " +
             " ) GROUP BY INTERVAL")
@@ -149,8 +156,9 @@ public abstract class AlphaEssDAO {
 
     @Query("SELECT avg(PV) AS PV, AVG(LOAD) AS LOAD, AVG(FEED) AS FEED, AVG(BUY) AS BUY, " +
             "0 AS PV2BAT, 0 AS PV2LOAD, 0 AS BAT2LOAD, 0 AS GRID2BAT, 0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT," +
-            "0 AS BAT2GRID, INTERVAL FROM (" +
+            "0 AS BAT2GRID, avg(BAT_CHARGE) AS BAT_CHARGE, avg(BAT_DISCHARGE) AS BAT_DISCHARGE, INTERVAL FROM (" +
             " SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
+            "TOTAL(CASE WHEN charge > 0 THEN charge ELSE 0 END) AS BAT_CHARGE, ABS(TOTAL(CASE WHEN charge < 0 THEN charge ELSE 0 END)) AS BAT_DISCHARGE, " +
             "cast (strftime('%w', date) as INTEGER) AS INTERVAL " +
             " FROM alphaESSTransformedData WHERE date >= :from AND date <= :to AND sysSn = :sysSN " +
             " GROUP BY cast (strftime('%Y', date) as integer), cast (strftime('%W', date) as integer), INTERVAL ORDER BY INTERVAL" +
@@ -159,16 +167,20 @@ public abstract class AlphaEssDAO {
 
     @Query("SELECT avg(PV) AS PV, AVG(LOAD) AS LOAD, AVG(FEED) AS FEED, AVG(BUY) AS BUY, " +
             "0 AS PV2BAT, 0 AS PV2LOAD, 0 AS BAT2LOAD, 0 AS GRID2BAT, 0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT," +
-            "0 AS BAT2GRID, INTERVAL FROM (" +
-            " SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, strftime('%m', date) as INTERVAL" +
+            "0 AS BAT2GRID, avg(BAT_CHARGE) AS BAT_CHARGE, avg(BAT_DISCHARGE) AS BAT_DISCHARGE, INTERVAL FROM (" +
+            " SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
+            "TOTAL(CASE WHEN charge > 0 THEN charge ELSE 0 END) AS BAT_CHARGE, ABS(TOTAL(CASE WHEN charge < 0 THEN charge ELSE 0 END)) AS BAT_DISCHARGE, " +
+            "strftime('%m', date) as INTERVAL" +
             " FROM alphaESSTransformedData WHERE date >= :from AND date <= :to AND sysSn = :sysSN " +
             " GROUP BY INTERVAL ORDER BY INTERVAL, date) GROUP BY INTERVAL")
     public abstract List<IntervalRow> avgMonth(String sysSN, String from, String to);
 
     @Query("SELECT avg(PV) AS PV, AVG(LOAD) AS LOAD, AVG(FEED) AS FEED, AVG(BUY) AS BUY, " +
             "0 AS PV2BAT, 0 AS PV2LOAD, 0 AS BAT2LOAD, 0 AS GRID2BAT, 0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT," +
-            "0 AS BAT2GRID, INTERVAL FROM (" +
-            " SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, cast (strftime('%Y', date) as INTEGER) AS INTERVAL" +
+            "0 AS BAT2GRID, avg(BAT_CHARGE) AS BAT_CHARGE, avg(BAT_DISCHARGE) AS BAT_DISCHARGE, INTERVAL FROM (" +
+            " SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
+            "TOTAL(CASE WHEN charge > 0 THEN charge ELSE 0 END) AS BAT_CHARGE, ABS(TOTAL(CASE WHEN charge < 0 THEN charge ELSE 0 END)) AS BAT_DISCHARGE, " +
+            "cast (strftime('%Y', date) as INTEGER) AS INTERVAL" +
             " FROM alphaESSTransformedData WHERE date >= :from AND date <= :to AND sysSn = :sysSN GROUP BY INTERVAL ORDER BY INTERVAL )")
     public abstract List<IntervalRow> avgYear(String sysSN, String from, String to);
 
