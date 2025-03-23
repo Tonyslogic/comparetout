@@ -38,6 +38,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
@@ -140,9 +141,15 @@ public abstract class BaseGraphsFragment extends Fragment {
     protected PopupMenu mFilterPopup;
     private PopupMenu mGraphConfigPopup;
     private BarChart mBarChart;
+    private BarChart mDestinationBarChart;
     private LineChart mLineChart;
+    private LineChart mDestinationLineChart;
+    private LinearLayout mPieLayout;
     private TableLayout mPieCharts;
+    private TableLayout mDestinationPieCharts;
+    private LinearLayout mTableLayout;
     private TableLayout mTableChart;
+    private TableLayout mDestinationTableChart;
     private TextView mPicks;
     private TextView mNoGraphDataTextView;
     private List<IntervalRow> mGraphData;
@@ -376,9 +383,15 @@ public abstract class BaseGraphsFragment extends Fragment {
 
         mNoGraphDataTextView = view.findViewById((R.id.alphaess_no_data));
         mBarChart = view.findViewById((R.id.alphaess_bar_chart));
+        mDestinationBarChart = view.findViewById((R.id.destination_bar_chart));
         mLineChart = view.findViewById((R.id.alphaess_line_chart));
+        mDestinationLineChart = view.findViewById(R.id.destination_line_chart);
+        mPieLayout = view.findViewById(R.id.pie_layout);
         mPieCharts = view.findViewById((R.id.alphaess_pie_chart));
+        mDestinationPieCharts = view.findViewById(R.id.destination_pie_chart);
+        mTableLayout = view.findViewById(R.id.table_layout);
         mTableChart = view.findViewById((R.id.alphaess_table_chart));
+        mDestinationTableChart = view.findViewById((R.id.destination_table_chart));
 
         mIntervalButton = view.findViewById((R.id.interval));
         setupPopupGraphConfigurationMenu();
@@ -735,51 +748,92 @@ public abstract class BaseGraphsFragment extends Fragment {
                 switch (mChartView) {
                     case BAR:
                         mBarChart.setVisibility(View.VISIBLE);
+                        mDestinationBarChart.setVisibility(View.VISIBLE);
                         mLineChart.setVisibility(View.INVISIBLE);
+                        mDestinationLineChart.setVisibility(View.INVISIBLE);
+                        mPieLayout.setVisibility(View.INVISIBLE);
                         mPieCharts.setVisibility(View.INVISIBLE);
+                        mDestinationPieCharts.setVisibility(View.INVISIBLE);
+                        mTableLayout.setVisibility(View.INVISIBLE);
                         mTableChart.setVisibility(View.INVISIBLE);
+                        mDestinationTableChart.setVisibility(View.INVISIBLE);
                         mNoGraphDataTextView.setVisibility(View.INVISIBLE);
-                        if (mFilterCount > 0) buildBarChart();
+                        if (mFilterCount > 0) {
+                            buildBarChart(mBarChart, mGraphData);
+                            buildBarChart(mDestinationBarChart, mGraphData);
+                        }
                         else {
                             mBarChart.setVisibility(View.INVISIBLE);
+                            mDestinationBarChart.setVisibility(View.INVISIBLE);
                             mNoGraphDataTextView.setVisibility(View.VISIBLE);
                             mNoGraphDataTextView.setText(R.string.empty_filter);
                         }
                         break;
                     case LINE:
                         mBarChart.setVisibility(View.INVISIBLE);
+                        mDestinationBarChart.setVisibility(View.INVISIBLE);
                         mLineChart.setVisibility(View.VISIBLE);
+                        mDestinationLineChart.setVisibility(View.VISIBLE);
+                        mPieLayout.setVisibility(View.INVISIBLE);
                         mPieCharts.setVisibility(View.INVISIBLE);
+                        mDestinationPieCharts.setVisibility(View.INVISIBLE);
+                        mTableLayout.setVisibility(View.INVISIBLE);
                         mTableChart.setVisibility(View.INVISIBLE);
+                        mDestinationTableChart.setVisibility(View.INVISIBLE);
                         mNoGraphDataTextView.setVisibility(View.INVISIBLE);
-                        if (mFilterCount > 0) buildLineChart();
+                        if (mFilterCount > 0) {
+                            buildLineChart(mLineChart, mGraphData);
+                            buildLineChart(mDestinationLineChart, mGraphData);
+                        }
                         else {
                             mLineChart.setVisibility(View.INVISIBLE);
+                            mDestinationLineChart.setVisibility(View.INVISIBLE);
                             mNoGraphDataTextView.setVisibility(View.VISIBLE);
                             mNoGraphDataTextView.setText(R.string.empty_filter);
                         }
                         break;
                     case PIE:
                         mBarChart.setVisibility(View.INVISIBLE);
+                        mDestinationBarChart.setVisibility(View.INVISIBLE);
                         mLineChart.setVisibility(View.INVISIBLE);
+                        mDestinationLineChart.setVisibility(View.INVISIBLE);
+                        mPieLayout.setVisibility(View.VISIBLE);
                         mPieCharts.setVisibility(View.VISIBLE);
+                        mDestinationPieCharts.setVisibility(View.VISIBLE);
+                        mTableLayout.setVisibility(View.INVISIBLE);
                         mTableChart.setVisibility(View.INVISIBLE);
+                        mDestinationTableChart.setVisibility(View.INVISIBLE);
                         mNoGraphDataTextView.setVisibility(View.INVISIBLE);
-                        if (mFilterCount > 0) buildPieCharts();
+                        if (mFilterCount > 0) {
+                            buildPieCharts(mPieCharts, mGraphData);
+                            buildPieCharts(mDestinationPieCharts, mGraphData);
+                        }
                         else {
+                            mPieLayout.setVisibility(View.INVISIBLE);
                             mPieCharts.setVisibility(View.INVISIBLE);
+                            mDestinationPieCharts.setVisibility(View.INVISIBLE);
                             mNoGraphDataTextView.setVisibility(View.VISIBLE);
                             mNoGraphDataTextView.setText(R.string.empty_filter);
                         }
                         break;
                     case TABLE:
                         mBarChart.setVisibility(View.INVISIBLE);
+                        mDestinationBarChart.setVisibility(View.INVISIBLE);
                         mLineChart.setVisibility(View.INVISIBLE);
+                        mDestinationLineChart.setVisibility(View.INVISIBLE);
+                        mPieLayout.setVisibility(View.INVISIBLE);
                         mPieCharts.setVisibility(View.INVISIBLE);
+                        mDestinationPieCharts.setVisibility(View.INVISIBLE);
+                        mTableLayout.setVisibility(View.VISIBLE);
                         mTableChart.setVisibility(View.VISIBLE);
+                        mDestinationTableChart.setVisibility(View.VISIBLE);
                         mNoGraphDataTextView.setVisibility(View.INVISIBLE);
-                        if (mFilterCount > 0) buildTableChart();
+                        if (mFilterCount > 0) {
+                            buildTableChart(mTableChart, mGraphData);
+                            buildTableChart(mDestinationTableChart, mGraphData);
+                        }
                         else {
+                            mTableLayout.setVisibility(View.INVISIBLE);
                             mTableChart.setVisibility(View.INVISIBLE);
                             mNoGraphDataTextView.setVisibility(View.VISIBLE);
                             mNoGraphDataTextView.setText(R.string.empty_filter);
@@ -789,8 +843,15 @@ public abstract class BaseGraphsFragment extends Fragment {
             } catch (NullPointerException npe) {
                 npe.printStackTrace();
                 mBarChart.setVisibility(View.INVISIBLE);
+                mDestinationBarChart.setVisibility(View.INVISIBLE);
                 mLineChart.setVisibility(View.INVISIBLE);
+                mDestinationLineChart.setVisibility(View.INVISIBLE);
+                mPieLayout.setVisibility(View.INVISIBLE);
                 mPieCharts.setVisibility(View.INVISIBLE);
+                mDestinationPieCharts.setVisibility(View.INVISIBLE);
+                mTableLayout.setVisibility(View.INVISIBLE);
+                mTableChart.setVisibility(View.INVISIBLE);
+                mDestinationTableChart.setVisibility(View.INVISIBLE);
                 mNoGraphDataTextView.setVisibility(View.VISIBLE);
                 mNoGraphDataTextView.setText(R.string.data_load_race_mesage);
             }
@@ -799,22 +860,28 @@ public abstract class BaseGraphsFragment extends Fragment {
         if (showText || (null == mSystemSN)) {
             if (mBarChart != null) {
                 mBarChart.setVisibility(View.INVISIBLE);
+                mDestinationBarChart.setVisibility(View.INVISIBLE);
             }
             if (mLineChart != null) {
                 mLineChart.setVisibility(View.INVISIBLE);
+                mDestinationLineChart.setVisibility(View.INVISIBLE);
             }
             if (mPieCharts != null) {
+                mPieLayout.setVisibility(View.INVISIBLE);
                 mPieCharts.setVisibility(View.INVISIBLE);
+                mDestinationPieCharts.setVisibility(View.INVISIBLE);
             }
             if (mTableChart != null) {
+                mTableLayout.setVisibility(View.INVISIBLE);
                 mTableChart.setVisibility(View.INVISIBLE);
+                mDestinationTableChart.setVisibility(View.INVISIBLE);
             }
             mNoGraphDataTextView.setVisibility(View.VISIBLE);
             mNoGraphDataTextView.setText(R.string.no_data_available);
         }
     }
 
-    private void buildTableChart() {
+    private void buildTableChart(TableLayout mTableChart, List<IntervalRow> lGraphData) {
         Activity activity = getActivity();
         if (!(null == mTableChart) && (!(null == activity))) {
             mTableChart.removeAllViews();
@@ -857,7 +924,7 @@ public abstract class BaseGraphsFragment extends Fragment {
             if (mShowBatDischarge) titleRow.addView(getTableChartTitleHeader("BatDischarge" + "(kWh)", activity));
             mTableChart.addView(titleRow);
 
-            for (IntervalRow intervalRow : mGraphData) {
+            for (IntervalRow intervalRow : lGraphData) {
                 TableRow row = new TableRow(activity);
                 row.addView(getTableChartIntervalContent(intervalRow.interval, activity));
                 if (mShowLoad) row.addView(getTableChartContent(intervalRow.load, activity));
@@ -942,7 +1009,7 @@ public abstract class BaseGraphsFragment extends Fragment {
         return materialTextView;
     }
 
-    private void buildPieCharts() {
+    private void buildPieCharts(TableLayout mPieCharts, List<IntervalRow> lGraphData) {
         if (!(null == mPieCharts) && (!(null == getActivity()))) {
             mPieCharts.removeAllViews();
             mPieCharts.setStretchAllColumns(true);
@@ -982,7 +1049,7 @@ public abstract class BaseGraphsFragment extends Fragment {
             switch (mDisplayInterval) {
                 case YEAR:
                     if (mCalculation == CalculationType.SUM) {
-                        for (IntervalRow intervalRow : mGraphData) {
+                        for (IntervalRow intervalRow : lGraphData) {
                             loadMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.load);
                             pvMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.pv);
                             buyMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.buy);
@@ -1018,7 +1085,7 @@ public abstract class BaseGraphsFragment extends Fragment {
                             batDischarge += intervalRow.batDischarge;
                         }
                     } else {
-                        for (IntervalRow intervalRow : mGraphData) {
+                        for (IntervalRow intervalRow : lGraphData) {
                             loadMap.put("All", intervalRow.load);
                             pvMap.put("All", intervalRow.pv);
                             buyMap.put("All", intervalRow.buy);
@@ -1057,7 +1124,7 @@ public abstract class BaseGraphsFragment extends Fragment {
                     break;
                 case MNTH:
                     if (mCalculation == CalculationType.SUM) {
-                        for (IntervalRow intervalRow : mGraphData) {
+                        for (IntervalRow intervalRow : lGraphData) {
                             if (intervalRow.load > 0)
                                 loadMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.load);
                             if (intervalRow.pv > 0)
@@ -1111,7 +1178,7 @@ public abstract class BaseGraphsFragment extends Fragment {
                         final String[] xLabels = {"NaM", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
                                 "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",};
                         final ArrayList<String> xLabel = new ArrayList<>(Arrays.asList(xLabels));
-                        for (IntervalRow intervalRow : mGraphData) {
+                        for (IntervalRow intervalRow : lGraphData) {
                             if (intervalRow.load > 0)
                                 loadMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.load);
                             if (intervalRow.pv > 0)
@@ -1166,7 +1233,7 @@ public abstract class BaseGraphsFragment extends Fragment {
                 case WEEK:
                     final String[] xLabels = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat",};
                     final ArrayList<String> xLabel = new ArrayList<>(Arrays.asList(xLabels));
-                    for (IntervalRow intervalRow : mGraphData) {
+                    for (IntervalRow intervalRow : lGraphData) {
                         if (intervalRow.load > 0)
                             loadMap.put(xLabel.get(Integer.parseInt(intervalRow.interval)), intervalRow.load);
                         if (intervalRow.pv > 0)
@@ -1219,7 +1286,7 @@ public abstract class BaseGraphsFragment extends Fragment {
                     break;
                 case DOY:
                 case HOUR:
-                    for (IntervalRow intervalRow : mGraphData) {
+                    for (IntervalRow intervalRow : lGraphData) {
                         if (intervalRow.load > 0)
                             loadMap.put(Integer.valueOf(intervalRow.interval).toString(), intervalRow.load);
                         if (intervalRow.pv > 0)
@@ -1377,7 +1444,7 @@ public abstract class BaseGraphsFragment extends Fragment {
         return pieChart;
     }
 
-    private void buildLineChart() {
+    private void buildLineChart(LineChart mLineChart, List<IntervalRow> lGraphData) {
         mLineChart.clear();
 
         mLineChart.getLegend().setTextSize(17f);
@@ -1418,7 +1485,7 @@ public abstract class BaseGraphsFragment extends Fragment {
         ArrayList<Entry> bat2gridEntries = new ArrayList<>();
         ArrayList<Entry> batChargedEntries = new ArrayList<>();
         ArrayList<Entry> batDischargeEntries = new ArrayList<>();
-        for (IntervalRow intervalRow : mGraphData) {
+        for (IntervalRow intervalRow : lGraphData) {
             loadEntries.add(new Entry(Float.parseFloat(intervalRow.interval), (float) intervalRow.load));
             feedEntries.add(new Entry(Float.parseFloat(intervalRow.interval), (float) intervalRow.feed));
             buyEntries.add(new Entry(Float.parseFloat(intervalRow.interval), (float) intervalRow.buy));
@@ -1507,7 +1574,7 @@ public abstract class BaseGraphsFragment extends Fragment {
         return lineDataSet;
     }
 
-    private void buildBarChart() {
+    private void buildBarChart(BarChart mBarChart, List<IntervalRow> lGraphData) {
         mBarChart.clear();
 
         XAxis xAxis = mBarChart.getXAxis();
@@ -1534,9 +1601,9 @@ public abstract class BaseGraphsFragment extends Fragment {
                 xAxis.setValueFormatter(new ValueFormatter() {
                     @Override
                     public String getFormattedValue(float value) {
-                        if (!(null == mGraphData)) {
-                            if ((int) value >= mGraphData.size()) return "??";
-                            else return mGraphData.get((int) value).interval;
+                        if (!(null == lGraphData)) {
+                            if ((int) value >= lGraphData.size()) return "??";
+                            else return lGraphData.get((int) value).interval;
                         } else return "??";
                     }
                 });
@@ -1577,23 +1644,23 @@ public abstract class BaseGraphsFragment extends Fragment {
         ArrayList<BarEntry> batChargeEntries = new ArrayList<>();
         ArrayList<BarEntry> batDischargeEntries = new ArrayList<>();
 
-        for (int i = 0; i < mGraphData.size(); i++) {
-            loadEntries.add(new BarEntry(i, (float) mGraphData.get(i).load));
-            feedEntries.add(new BarEntry(i, (float) mGraphData.get(i).feed));
-            buyEntries.add(new BarEntry(i, (float) mGraphData.get(i).buy));
-            pvEntries.add(new BarEntry(i, (float) mGraphData.get(i).pv));
+        for (int i = 0; i < lGraphData.size(); i++) {
+            loadEntries.add(new BarEntry(i, (float) lGraphData.get(i).load));
+            feedEntries.add(new BarEntry(i, (float) lGraphData.get(i).feed));
+            buyEntries.add(new BarEntry(i, (float) lGraphData.get(i).buy));
+            pvEntries.add(new BarEntry(i, (float) lGraphData.get(i).pv));
 
-            pv2batEntries.add(new BarEntry(i, (float) mGraphData.get(i).pv2bat));
-            pv2loadEntries.add(new BarEntry(i, (float) mGraphData.get(i).pv2load));
-            bat2loadEntries.add(new BarEntry(i, (float) mGraphData.get(i).bat2load));
-            grid2batEntries.add(new BarEntry(i, (float) mGraphData.get(i).grid2bat));
-            evScheduleEntries.add(new BarEntry(i, (float) mGraphData.get(i).evSchedule));
-            evDivertEntries.add(new BarEntry(i, (float) mGraphData.get(i).evDivert));
-            hwScheduleEntries.add(new BarEntry(i, (float) mGraphData.get(i).hwSchedule));
-            hwDivertEntries.add(new BarEntry(i, (float) mGraphData.get(i).hwDivert));
-            bat2gridEntries.add(new BarEntry(i, (float) mGraphData.get(i).bat2grid));
-            batChargeEntries.add(new BarEntry(i, (float) mGraphData.get(i).batCharge));
-            batDischargeEntries.add(new BarEntry(i, (float) mGraphData.get(i).batDischarge));
+            pv2batEntries.add(new BarEntry(i, (float) lGraphData.get(i).pv2bat));
+            pv2loadEntries.add(new BarEntry(i, (float) lGraphData.get(i).pv2load));
+            bat2loadEntries.add(new BarEntry(i, (float) lGraphData.get(i).bat2load));
+            grid2batEntries.add(new BarEntry(i, (float) lGraphData.get(i).grid2bat));
+            evScheduleEntries.add(new BarEntry(i, (float) lGraphData.get(i).evSchedule));
+            evDivertEntries.add(new BarEntry(i, (float) lGraphData.get(i).evDivert));
+            hwScheduleEntries.add(new BarEntry(i, (float) lGraphData.get(i).hwSchedule));
+            hwDivertEntries.add(new BarEntry(i, (float) lGraphData.get(i).hwDivert));
+            bat2gridEntries.add(new BarEntry(i, (float) lGraphData.get(i).bat2grid));
+            batChargeEntries.add(new BarEntry(i, (float) lGraphData.get(i).batCharge));
+            batDischargeEntries.add(new BarEntry(i, (float) lGraphData.get(i).batDischarge));
         }
 
         BarDataSet loadSet = new BarDataSet(loadEntries, "Load");
