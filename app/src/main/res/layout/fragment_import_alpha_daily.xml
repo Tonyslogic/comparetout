@@ -142,18 +142,20 @@
                         android:padding="2dp"
                         android:scaleType="fitCenter"
                         android:text="@string/NoRange"
-                        android:visibility="invisible"
+                        android:visibility="gone"
                         app:layout_constraintTop_toTopOf="parent" />
 
                     <androidx.core.widget.NestedScrollView
+                        android:id="@+id/destination_pie_scroll"
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
-                        android:layout_weight="1">
+                        android:layout_weight="1"
+                        android:visibility="gone">
                         <TableLayout
                             android:id="@+id/destination_pie_chart"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
-                            android:visibility="invisible"/>
+                            android:visibility="gone"/>
                     </androidx.core.widget.NestedScrollView>
                 </LinearLayout>
 
@@ -182,18 +184,20 @@
                         android:padding="2dp"
                         android:scaleType="fitCenter"
                         android:text="@string/NoRange"
-                        android:visibility="invisible"
+                        android:visibility="gone"
                         app:layout_constraintTop_toTopOf="parent" />
 
                     <androidx.core.widget.NestedScrollView
+                        android:id="@+id/destination_table_scroll"
                         android:layout_width="match_parent"
                         android:layout_height="0dp"
-                        android:layout_weight="1">
+                        android:layout_weight="1"
+                        android:visibility="gone">
                         <TableLayout
                             android:id="@+id/destination_table_chart"
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
-                            android:visibility="invisible"/>
+                            android:visibility="gone"/>
                     </androidx.core.widget.NestedScrollView>
                 </LinearLayout>
 
