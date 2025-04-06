@@ -67,6 +67,7 @@ public class ImportESBNActivity extends AppCompatActivity implements GraphableAc
     private WebViewAssetLoader mAssetLoader;
     private View mPopupView;
     private PopupWindow mHelpWindow;
+    MenuItem mCompareButton;
 
     private boolean mZoom = false;
 
@@ -127,6 +128,12 @@ public class ImportESBNActivity extends AppCompatActivity implements GraphableAc
     public void hideFAB() {
         FloatingActionButton fab = findViewById(R.id.zoom);
         if (!(null == fab)) fab.hide();
+    }
+
+    private void showCompare() {
+        if (!(null == mCompareButton)) {
+            mCompareButton.setVisible(mViewPager.getCurrentItem() == 1);
+        }
     }
 
     @Override
@@ -197,6 +204,9 @@ public class ImportESBNActivity extends AppCompatActivity implements GraphableAc
         int colour = Color.parseColor("White");
         menu.findItem(R.id.load).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         menu.findItem(R.id.export).setVisible(false); //.getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        mCompareButton = menu.findItem(R.id.compare);
+        mCompareButton.setVisible(false);
+        Objects.requireNonNull(menu.findItem(R.id.compare).getIcon()).setColorFilter(colour, PorterDuff.Mode.DST);
         menu.findItem(R.id.help).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         return true;
     }
@@ -272,6 +282,7 @@ public class ImportESBNActivity extends AppCompatActivity implements GraphableAc
             public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
                 super.onPageScrolled(position, positionOffset, positionOffsetPixels);
                 showFAB();
+                showCompare();
             }
         });
     }

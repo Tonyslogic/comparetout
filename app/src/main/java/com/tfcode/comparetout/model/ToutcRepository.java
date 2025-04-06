@@ -865,4 +865,8 @@ public class ToutcRepository {
     public List<String> getLinkedDischarges(long d2gIndex, Long scenarioID) {
         return scenarioDAO.getLinkedDischarges(d2gIndex, scenarioID);
     }
+
+    public List<ComparisonSenarioRow> getCompareScenarios() {
+        return scenarioDAO.getCompareScenarios();
+    }
 }

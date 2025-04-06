@@ -52,6 +52,8 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
+import com.tfcode.comparetout.util.CompareScenarioSelectDialog;
+import com.tfcode.comparetout.util.CompareScenarioSelectDialogListener;
 import com.tfcode.comparetout.util.GraphableActivity;
 import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
@@ -77,10 +79,17 @@ public class ScenarioActivity extends AppCompatActivity implements GraphableActi
     private Menu mMenu;
     private boolean mDoubleBackToExitPressedOnce = false;
     private boolean mUnsavedChanges = false;
+    private MenuItem mCompareButton;
 
     private WebViewAssetLoader mAssetLoader;
     private View mPopupView;
     private PopupWindow mHelpWindow;
+
+    private void showCompare() {
+        if (!(null == mCompareButton)) {
+            mCompareButton.setVisible(viewPager.getCurrentItem() == 1);
+        }
+    }
 
     @Override
     public void onSaveInstanceState(@NonNull Bundle outState) {
@@ -155,6 +164,9 @@ public class ScenarioActivity extends AppCompatActivity implements GraphableActi
         mMenu.findItem(R.id.share_scenario).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         mMenu.findItem(R.id.info_scenario).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         mMenu.findItem(R.id.save_scenario).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        mCompareButton = menu.findItem(R.id.compare);
+        mCompareButton.setVisible(false);
+        Objects.requireNonNull(menu.findItem(R.id.compare).getIcon()).setColorFilter(colour, PorterDuff.Mode.DST);
         mMenu.findItem(R.id.help).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         setMenuLongClick();
         return true;
@@ -289,6 +301,7 @@ public class ScenarioActivity extends AppCompatActivity implements GraphableActi
             public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
                 super.onPageScrolled(position, positionOffset, positionOffsetPixels);
                 showFAB();
+                showCompare();
             }
         });
     }

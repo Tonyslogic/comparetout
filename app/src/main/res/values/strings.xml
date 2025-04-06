@@ -333,4 +333,5 @@
     <string name="battery_to_grid">Battery 2 Grid</string>
     <string name="Battery_charging">Charging</string>
     <string name="Battery_discharging">Discharging</string>
+    <string name="compare">Compare</string>
 </resources>

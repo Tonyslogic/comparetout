@@ -1540,4 +1540,9 @@ public abstract class ScenarioDAO {
 
     @Query("SELECT cast(scenarioID AS TEXT) AS sysSn, MIN(date) AS start, MAX(date) AS finish FROM scenariosimulationdata GROUP by scenarioID")
     public abstract LiveData<List<InverterDateRange>> loadDateRanges();
+
+    @Query("SELECT DISTINCT 'SIMULATION' AS CATEGORY, scenarioName AS sysSN, scenarioID FROM scenarios, scenariosimulationdata where scenarioID = scenarioIndex " +
+            "UNION " +
+            "SELECT DISTINCT 'ALPHAESS' AS CATEGORY, sysSn, '0' FROM alphaESSTransformedData")
+    public abstract List<ComparisonSenarioRow> getCompareScenarios();
 }

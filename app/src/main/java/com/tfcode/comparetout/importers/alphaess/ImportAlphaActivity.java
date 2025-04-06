@@ -64,6 +64,7 @@ public class ImportAlphaActivity extends AbstractEPOFolderActivity implements Gr
     private WebViewAssetLoader mAssetLoader;
     private View mPopupView;
     private PopupWindow mHelpWindow;
+    private MenuItem mCompareButton;
 
     private boolean mZoom = false;
 
@@ -120,6 +121,12 @@ public class ImportAlphaActivity extends AbstractEPOFolderActivity implements Gr
         if (!(null == fab)) fab.hide();
     }
 
+    private void showCompare() {
+        if (!(null == mCompareButton)) {
+            mCompareButton.setVisible(mViewPager.getCurrentItem() == 1);
+        }
+    }
+
     @SuppressLint({"MissingInflatedId", "InflateParams"})
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -170,6 +177,9 @@ public class ImportAlphaActivity extends AbstractEPOFolderActivity implements Gr
         int colour = Color.parseColor("White");
         Objects.requireNonNull(menu.findItem(R.id.load).getIcon()).setColorFilter(colour, PorterDuff.Mode.DST);
         Objects.requireNonNull(menu.findItem(R.id.export).getIcon()).setColorFilter(colour, PorterDuff.Mode.DST);
+        mCompareButton = menu.findItem(R.id.compare);
+        mCompareButton.setVisible(false);
+        Objects.requireNonNull(menu.findItem(R.id.compare).getIcon()).setColorFilter(colour, PorterDuff.Mode.DST);
         Objects.requireNonNull(menu.findItem(R.id.help).getIcon()).setColorFilter(colour, PorterDuff.Mode.DST);
         return true;
     }
@@ -260,6 +270,7 @@ public class ImportAlphaActivity extends AbstractEPOFolderActivity implements Gr
             public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
                 super.onPageScrolled(position, positionOffset, positionOffsetPixels);
                 showFAB();
+                showCompare();
             }
         });
     }

@@ -54,6 +54,7 @@ public class ImportHomeAssistantActivity  extends AppCompatActivity implements G
     private WebViewAssetLoader mAssetLoader;
     private View mPopupView;
     private PopupWindow mHelpWindow;
+    private MenuItem mCompareButton;
 
     private void showFAB() {
         FloatingActionButton fab = findViewById(R.id.zoom);
@@ -81,6 +82,12 @@ public class ImportHomeAssistantActivity  extends AppCompatActivity implements G
     public void hideFAB() {
         FloatingActionButton fab = findViewById(R.id.zoom);
         if (!(null == fab)) fab.hide();
+    }
+
+    private void showCompare() {
+        if (!(null == mCompareButton)) {
+            mCompareButton.setVisible(mViewPager.getCurrentItem() == 1);
+        }
     }
 
     @Override
@@ -165,6 +172,7 @@ public class ImportHomeAssistantActivity  extends AppCompatActivity implements G
             public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
                 super.onPageScrolled(position, positionOffset, positionOffsetPixels);
                 showFAB();
+                showCompare();
             }
         });
     }
@@ -176,6 +184,9 @@ public class ImportHomeAssistantActivity  extends AppCompatActivity implements G
         int colour = Color.parseColor("White");
         menu.findItem(R.id.load).setVisible(false); //.getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         menu.findItem(R.id.export).setVisible(false); //.getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        mCompareButton = menu.findItem(R.id.compare);
+        mCompareButton.setVisible(false);
+        Objects.requireNonNull(menu.findItem(R.id.compare).getIcon()).setColorFilter(colour, PorterDuff.Mode.DST);
         Drawable icon = menu.findItem(R.id.help).getIcon();
         if (icon != null) icon.setColorFilter(colour, PorterDuff.Mode.DST);
         return true;

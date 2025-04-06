@@ -30,6 +30,12 @@
         android:icon="@drawable/ic_baseline_save_24"
         android:title="@string/export">
     </item>
+    <item
+        android:id="@+id/compare"
+        app:showAsAction="ifRoom|withText"
+        android:icon="@drawable/baseline_splitscreen_24"
+        android:title="@string/compare">
+    </item>
 
     <item
         android:id="@+id/help"
