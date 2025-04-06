@@ -24,6 +24,7 @@ import static com.tfcode.comparetout.importers.alphaess.IntervalType.YEAR;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.Color;
@@ -51,6 +52,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.widget.PopupMenu;
 import androidx.core.content.ContextCompat;
 import androidx.core.util.Pair;
+import androidx.core.widget.NestedScrollView;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
@@ -128,18 +130,24 @@ public abstract class BaseGraphsFragment extends Fragment {
     private static final String SYSTEM = "SYSTEM";
     private static final String FROM = "FROM";
     private static final String TO = "TO";
+    private static final String D_ACTIVE = "D_ACTIVE";
     private static final String D_SYSTEM = "D_SYSTEM";
     private static final String D_SYS_DISPLAY = "D_SYS_DISPLAY";
     private static final String D_FROM = "D_FROM";
     private static final String D_TO = "D_TO";
     private static final String D_TYPE = "D_TYPE";
 
+    private static final int PICK_DATES_BASE = 0;
+    private static final int PICK_DATES_COMPARE = 1;
+    private static final int PICK_DATES_BOTH = 2;
+
     private static final String INTERVAL = "INTERVAL";
     private static final String STEP_INTERVAL = "STEP_INTERVAL";
     private static final String CALCULATION = "CALCULATION";
     private static final String CHART = "CHART";
     private String mSystemSN;
-    protected String mCompareSN;
+    private Boolean mCompareActive = false;
+    private String mCompareSN;
     private String mCompareDisplayName;
     private ComparisonUIViewModel mViewModel;
     private Handler mMainHandler;
@@ -162,9 +170,11 @@ public abstract class BaseGraphsFragment extends Fragment {
     private LinearLayout mPieLayout;
     private TableLayout mPieCharts;
     private TableLayout mDestinationPieCharts;
+    private NestedScrollView mDestinationPieScroll;
     private LinearLayout mTableLayout;
     private TableLayout mTableChart;
     private TableLayout mDestinationTableChart;
+    private NestedScrollView mDestinationTableScroll;
     private TextView mPicks;
     private TextView mDestinationPicksBar;
     private TextView mDestinationPicksLine;
@@ -194,7 +204,7 @@ public abstract class BaseGraphsFragment extends Fragment {
 
     protected int mFilterCount = 4;
     protected ComparisonUIViewModel.Importer mImporterType;
-    protected ComparisonUIViewModel.Importer mCompareType;
+    protected ComparisonUIViewModel.Importer mCompareType = ComparisonUIViewModel.Importer.ALPHAESS;
 
     /*
     0xff0000ff, // BLUE
@@ -257,6 +267,7 @@ public abstract class BaseGraphsFragment extends Fragment {
         outState.putString(SYSTEM, mSystemSN);
         outState.putString(FROM, mFrom);
         outState.putString(TO, mTo);
+        outState.putBoolean(D_ACTIVE, mCompareActive);
         outState.putString(D_SYSTEM, mCompareSN);
         outState.putString(D_FROM, mCompareFrom);
         outState.putString(D_SYS_DISPLAY, mCompareDisplayName);
@@ -312,6 +323,7 @@ public abstract class BaseGraphsFragment extends Fragment {
             mSystemSN = savedInstanceState.getString(SYSTEM);
             mFrom = savedInstanceState.getString(FROM);
             mTo = savedInstanceState.getString(TO);
+            mCompareActive = savedInstanceState.getBoolean(D_ACTIVE);
             mCompareSN = savedInstanceState.getString(D_SYSTEM);
             mCompareFrom = savedInstanceState.getString(D_FROM);
             mCompareDisplayName = savedInstanceState.getString(D_SYS_DISPLAY);
@@ -372,12 +384,14 @@ public abstract class BaseGraphsFragment extends Fragment {
                         new CompareScenarioSelectDialog(activity, (sysSN, type, id) -> {
                             if (null == type) {
                                 mCompareSN = null;
+                                mCompareActive = false;
                             }
                             else if ("ALPHAESS".equals(type)) {
                                 mCompareSN = mCompareDisplayName = sysSN;
                                 mCompareType = ComparisonUIViewModel.Importer.ALPHAESS;
                                 mCompareFrom = mFrom;
                                 mCompareTo = mTo;
+                                mCompareActive = true;
                             }
                             else {
                                 mCompareSN = String.valueOf(id);
@@ -385,6 +399,7 @@ public abstract class BaseGraphsFragment extends Fragment {
                                 mCompareType = ComparisonUIViewModel.Importer.SIMULATION;
                                 mCompareFrom = "2001" + mFrom.substring(4);
                                 mCompareTo = "2001" + mTo.substring(4);
+                                mCompareActive = true;
                             }
                             LOGGER.info("Selected " + sysSN + " to compare from " + mCompareFrom + ", to " + mCompareTo);
                             BaseGraphsFragment.this.updateKPIs();
@@ -408,7 +423,7 @@ public abstract class BaseGraphsFragment extends Fragment {
                 if (null == mSystemSN)
                     mSystemSN = ((GraphableActivity) requireActivity()).getSelectedSystemSN();
                 mGraphData = getGraphData(mSystemSN, mImporterType, mFrom, mTo);
-                if (!(null == mCompareSN) && !(null == mCompareType)) {
+                if (mCompareActive && !(null == mCompareSN) && !(null == mCompareType)) {
                     mCompareGraphData = getGraphData(mCompareSN, mCompareType, mCompareFrom, mCompareTo);
                     LOGGER.info("mCompareGraphData has " +  mCompareGraphData.size() + " entries");
                 }
@@ -486,14 +501,19 @@ public abstract class BaseGraphsFragment extends Fragment {
         mNoGraphDataTextView = view.findViewById((R.id.alphaess_no_data));
         mBarChart = view.findViewById((R.id.alphaess_bar_chart));
         mDestinationBarChart = view.findViewById((R.id.destination_bar_chart));
+
         mLineChart = view.findViewById((R.id.alphaess_line_chart));
         mDestinationLineChart = view.findViewById(R.id.destination_line_chart);
+
         mPieLayout = view.findViewById(R.id.pie_layout);
         mPieCharts = view.findViewById((R.id.alphaess_pie_chart));
         mDestinationPieCharts = view.findViewById(R.id.destination_pie_chart);
+        mDestinationPieScroll = view.findViewById(R.id.destination_pie_scroll);
+
         mTableLayout = view.findViewById(R.id.table_layout);
         mTableChart = view.findViewById((R.id.alphaess_table_chart));
         mDestinationTableChart = view.findViewById((R.id.destination_table_chart));
+        mDestinationTableScroll = view.findViewById(R.id.destination_table_scroll);
 
         mIntervalButton = view.findViewById((R.id.interval));
         setupPopupGraphConfigurationMenu();
@@ -553,32 +573,12 @@ public abstract class BaseGraphsFragment extends Fragment {
 
         ImageButton mSelectionButton = view.findViewById(R.id.date);
         mSelectionButton.setOnClickListener(v -> {
-
-            CalendarConstraints.Builder calendarConstraintsBuilder = new CalendarConstraints.Builder();
-            if (!(null == mSystemSN) && !(null == mInverterDateRangesBySN) && !(null == mInverterDateRangesBySN.get(mSystemSN))) {
-                String first = Objects.requireNonNull(mInverterDateRangesBySN.get(mSystemSN)).first;
-                String second = Objects.requireNonNull(mInverterDateRangesBySN.get(mSystemSN)).second;
-                System.out.println("Range available: " + first + ", " + second);
-                LocalDateTime last = LocalDateTime.parse(second + MIDNIGHT, PARSER_FORMATTER);
-                ZonedDateTime lastz = last.atZone(ZoneId.systemDefault());
-                calendarConstraintsBuilder.setEnd(lastz.toInstant().toEpochMilli());
-                LocalDateTime start = LocalDateTime.parse(first + MIDNIGHT, PARSER_FORMATTER);
-                ZonedDateTime startz = start.atZone(ZoneId.systemDefault());
-                calendarConstraintsBuilder.setStart(startz.toInstant().toEpochMilli());
-            } else System.out.println("No range available");
-
-            MaterialDatePicker.Builder<Pair<Long, Long>> materialDateBuilder = MaterialDatePicker.Builder
-                    .dateRangePicker()
-                    .setCalendarConstraints(calendarConstraintsBuilder.build());
-            final MaterialDatePicker<Pair<Long, Long>> materialDatePicker = materialDateBuilder.build();
-            materialDatePicker.show(getParentFragmentManager(), "MATERIAL_DATE_PICKER");
-
-            materialDatePicker.addOnPositiveButtonClickListener(selection -> {
-                mFrom = LocalDateTime.ofInstant(Instant.ofEpochMilli(selection.first), ZoneId.systemDefault()).format(DATE_FORMAT);
-                mTo = LocalDateTime.ofInstant(Instant.ofEpochMilli(selection.second), ZoneId.systemDefault()).format(DATE_FORMAT);
-                setSelectionText();
-                updateKPIs();
-            });
+            if (mCompareActive) {
+                showDateScopeDialog();
+            }
+            else {
+                pickDates(PICK_DATES_BASE);
+            }
         });
 
         ImageButton mNextButton = view.findViewById(R.id.next);
@@ -630,7 +630,8 @@ public abstract class BaseGraphsFragment extends Fragment {
         if (mChartView == ChartView.TABLE) mChartTypeButton.setImageResource(R.drawable.table);
         mChartTypeButton.setOnClickListener(v -> {
             mChartView = mChartView.next();
-            if (mChartView == ChartView.BAR) mChartTypeButton.setImageResource(R.drawable.line_chart);
+            if (mChartView == ChartView.BAR)
+                mChartTypeButton.setImageResource(R.drawable.line_chart);
             if (mChartView == ChartView.LINE)
                 mChartTypeButton.setImageResource(R.drawable.piechart_25);
             if (mChartView == ChartView.PIE)
@@ -638,6 +639,7 @@ public abstract class BaseGraphsFragment extends Fragment {
             if (mChartView == ChartView.TABLE)
                 mChartTypeButton.setImageResource(R.drawable.barchart);
             setSelectionText();
+            setDestinationText(getDestinationText());
             updateKPIs();
         });
 
@@ -645,15 +647,98 @@ public abstract class BaseGraphsFragment extends Fragment {
         setupPopupFilterMenu();
     }
 
+    private void showDateScopeDialog() {
+        final String[] options = {"Baseline", "Comparison", "Both"};
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+        builder.setTitle("Apply dates to:");
+        builder.setItems(options, (dialog, which) -> pickDates(which));
+        builder.show();
+    }
+
+    private void pickDates(int pickMode) {
+
+        CalendarConstraints.Builder calendarConstraintsBuilder = new CalendarConstraints.Builder();
+        if (!(null == mSystemSN) && !(null == mInverterDateRangesBySN) && !(null == mInverterDateRangesBySN.get(mSystemSN))) {
+            String first = Objects.requireNonNull(mInverterDateRangesBySN.get(mSystemSN)).first;
+            String second = Objects.requireNonNull(mInverterDateRangesBySN.get(mSystemSN)).second;
+            System.out.println("Range available: " + first + ", " + second);
+            LocalDateTime last = LocalDateTime.parse(second + MIDNIGHT, PARSER_FORMATTER);
+            ZonedDateTime lastz = last.atZone(ZoneId.systemDefault());
+            calendarConstraintsBuilder.setEnd(lastz.toInstant().toEpochMilli());
+            LocalDateTime start = LocalDateTime.parse(first + MIDNIGHT, PARSER_FORMATTER);
+            ZonedDateTime startz = start.atZone(ZoneId.systemDefault());
+            calendarConstraintsBuilder.setStart(startz.toInstant().toEpochMilli());
+        } else System.out.println("No range available");
+
+        MaterialDatePicker.Builder<Pair<Long, Long>> materialDateBuilder = MaterialDatePicker.Builder
+                .dateRangePicker()
+                .setCalendarConstraints(calendarConstraintsBuilder.build());
+        final MaterialDatePicker<Pair<Long, Long>> materialDatePicker = materialDateBuilder.build();
+        materialDatePicker.show(getParentFragmentManager(), "MATERIAL_DATE_PICKER");
+
+        materialDatePicker.addOnPositiveButtonClickListener(selection -> {
+
+            String from = LocalDateTime.ofInstant(Instant.ofEpochMilli(selection.first), ZoneId.systemDefault()).format(DATE_FORMAT);
+            String to = LocalDateTime.ofInstant(Instant.ofEpochMilli(selection.second), ZoneId.systemDefault()).format(DATE_FORMAT);
+            switch (pickMode) {
+                case PICK_DATES_BASE:
+                    mFrom = from;
+                    mTo = to;
+                    setSelectionText();
+                    break;
+                case PICK_DATES_COMPARE:
+                    if (mCompareType == ComparisonUIViewModel.Importer.SIMULATION) {
+                        mCompareFrom = "2001" + from.substring(4);
+                        mCompareTo = "2001" + to.substring(4);
+                    }
+                    else {
+                        mCompareFrom = from;
+                        mCompareTo = to;
+                    }
+                    setDestinationText(getDestinationText());
+                    break;
+                case PICK_DATES_BOTH:
+                    mFrom = from;
+                    mTo = to;
+                    if (mCompareType == ComparisonUIViewModel.Importer.SIMULATION) {
+                        mCompareFrom = "2001" + from.substring(4);
+                        mCompareTo = "2001" + to.substring(4);
+                    }
+                    else {
+                        mCompareFrom = from;
+                        mCompareTo = to;
+                    }
+                    setSelectionText();
+                    setDestinationText(getDestinationText());
+            }
+            updateKPIs();
+        });
+    }
+
+    private TextView getDestinationText() {
+        switch (mChartView) {
+            case BAR:
+                return mDestinationPicksBar;
+            case LINE:
+                return mDestinationPicksLine;
+            case PIE:
+                return mDestinationPicksPie;
+            case TABLE:
+                return mDestinationPicksTable;
+            default:
+                return null;
+        }
+    }
+
     @SuppressLint("SetTextI18n")
     private void setSelectionText() {
         if (!(null == mFrom) && !(null == mTo) && !(null == mPicks))
-            mPicks.setText(mSystemSN + ", Range: " + mFrom + "<->" + mTo);
+            mPicks.setText("Range: " + mFrom + "<->" + mTo);
     }
 
     @SuppressLint("SetTextI18n")
     private void setDestinationText(TextView destinationPick) {
-        if (!(null == mFrom) && !(null == mTo) && !(null == mPicks))  {
+        if (!(null == mCompareFrom) && !(null == mCompareTo) && !(null == destinationPick))  {
             destinationPick.setText(mCompareDisplayName + ", Range: " + mCompareFrom + "<->" + mCompareTo);
         }
     }
@@ -853,62 +938,65 @@ public abstract class BaseGraphsFragment extends Fragment {
 
         boolean showText = false;
         if (!(null == mGraphData) && !mGraphData.isEmpty()) {
-            boolean compareVisible = (null != mCompareSN);
             try {
                 switch (mChartView) {
                     case BAR:
-                        hideAllChartsExcept(mBarChart, compareVisible, mDestinationBarChart, mDestinationPicksBar);
+                        hideAllChartsExcept(mBarChart, mCompareActive, mDestinationBarChart, mDestinationPicksBar);
                         if (mFilterCount > 0) {
                             buildBarChart(mBarChart, mGraphData);
-                            if (compareVisible) buildBarChart(mDestinationBarChart, mCompareGraphData);
-                            if (compareVisible) setDestinationText(mDestinationPicksBar);
+                            if (mCompareActive) buildBarChart(mDestinationBarChart, mCompareGraphData);
+                            if (mCompareActive) setDestinationText(mDestinationPicksBar);
                         }
                         else {
-                            mBarChart.setVisibility(View.INVISIBLE);
-                            mDestinationBarChart.setVisibility(View.INVISIBLE);
+                            mBarChart.setVisibility(View.GONE);
+                            mDestinationBarChart.setVisibility(View.GONE);
                             mNoGraphDataTextView.setVisibility(View.VISIBLE);
                             mNoGraphDataTextView.setText(R.string.empty_filter);
                         }
                         break;
                     case LINE:
-                        hideAllChartsExcept(mLineChart, true, mDestinationLineChart, mDestinationPicksLine);
+                        hideAllChartsExcept(mLineChart, mCompareActive, mDestinationLineChart, mDestinationPicksLine);
                         if (mFilterCount > 0) {
                             buildLineChart(mLineChart, mGraphData);
-                            if (compareVisible) buildLineChart(mDestinationLineChart, mCompareGraphData);
-                            if (compareVisible) setDestinationText(mDestinationPicksLine);
+                            if (mCompareActive) buildLineChart(mDestinationLineChart, mCompareGraphData);
+                            if (mCompareActive) setDestinationText(mDestinationPicksLine);
                         }
                         else {
-                            mLineChart.setVisibility(View.INVISIBLE);
-                            mDestinationLineChart.setVisibility(View.INVISIBLE);
+                            mLineChart.setVisibility(View.GONE);
+                            mDestinationLineChart.setVisibility(View.GONE);
                             mNoGraphDataTextView.setVisibility(View.VISIBLE);
                             mNoGraphDataTextView.setText(R.string.empty_filter);
                         }
                         break;
                     case PIE:
-                        hideAllChartsExcept(mPieCharts, true, mDestinationPieCharts, mDestinationPicksPie);
+                        hideAllChartsExcept(mPieCharts, mCompareActive, mDestinationPieCharts, mDestinationPicksPie);
+                        mPieLayout.setVisibility(View.VISIBLE);
+                        if (mCompareActive) mDestinationPieScroll.setVisibility(View.VISIBLE);
                         if (mFilterCount > 0) {
                             buildPieCharts(mPieCharts, mGraphData);
-                            if (compareVisible) buildPieCharts(mDestinationPieCharts, mCompareGraphData);
-                            if (compareVisible) setDestinationText(mDestinationPicksPie);
+                            if (mCompareActive) buildPieCharts(mDestinationPieCharts, mCompareGraphData);
+                            if (mCompareActive) setDestinationText(mDestinationPicksPie);
                         }
                         else {
-                            mPieLayout.setVisibility(View.INVISIBLE);
-                            mPieCharts.setVisibility(View.INVISIBLE);
-                            mDestinationPieCharts.setVisibility(View.INVISIBLE);
+                            mPieLayout.setVisibility(View.GONE);
+                            mPieCharts.setVisibility(View.GONE);
+                            mDestinationPieCharts.setVisibility(View.GONE);
                             mNoGraphDataTextView.setVisibility(View.VISIBLE);
                             mNoGraphDataTextView.setText(R.string.empty_filter);
                         }
                         break;
                     case TABLE:
-                        hideAllChartsExcept(mTableChart, true, mDestinationTableChart, mDestinationPicksTable);
+                        hideAllChartsExcept(mTableChart, mCompareActive, mDestinationTableChart, mDestinationPicksTable);
+                        mTableLayout.setVisibility(View.VISIBLE);
+                        if (mCompareActive) mDestinationTableScroll.setVisibility(View.VISIBLE);
                         if (mFilterCount > 0) {
                             buildTableChart(mTableChart, mGraphData);
-                            if (compareVisible) buildTableChart(mDestinationTableChart, mCompareGraphData);
-                            if (compareVisible) setDestinationText(mDestinationPicksTable);
+                            if (mCompareActive) buildTableChart(mDestinationTableChart, mCompareGraphData);
+                            if (mCompareActive) setDestinationText(mDestinationPicksTable);
                         }
                         else {
-                            mTableLayout.setVisibility(View.INVISIBLE);
-                            mTableChart.setVisibility(View.INVISIBLE);
+                            mTableLayout.setVisibility(View.GONE);
+                            mTableChart.setVisibility(View.GONE);
                             mNoGraphDataTextView.setVisibility(View.VISIBLE);
                             mNoGraphDataTextView.setText(R.string.empty_filter);
                         }
@@ -924,22 +1012,22 @@ public abstract class BaseGraphsFragment extends Fragment {
 
         if (showText || (null == mSystemSN)) {
             if (mBarChart != null) {
-                mBarChart.setVisibility(View.INVISIBLE);
-                mDestinationBarChart.setVisibility(View.INVISIBLE);
+                mBarChart.setVisibility(View.GONE);
+                mDestinationBarChart.setVisibility(View.GONE);
             }
             if (mLineChart != null) {
-                mLineChart.setVisibility(View.INVISIBLE);
-                mDestinationLineChart.setVisibility(View.INVISIBLE);
+                mLineChart.setVisibility(View.GONE);
+                mDestinationLineChart.setVisibility(View.GONE);
             }
             if (mPieCharts != null) {
-                mPieLayout.setVisibility(View.INVISIBLE);
-                mPieCharts.setVisibility(View.INVISIBLE);
-                mDestinationPieCharts.setVisibility(View.INVISIBLE);
+                mPieLayout.setVisibility(View.GONE);
+                mPieCharts.setVisibility(View.GONE);
+                mDestinationPieCharts.setVisibility(View.GONE);
             }
             if (mTableChart != null) {
-                mTableLayout.setVisibility(View.INVISIBLE);
-                mTableChart.setVisibility(View.INVISIBLE);
-                mDestinationTableChart.setVisibility(View.INVISIBLE);
+                mTableLayout.setVisibility(View.GONE);
+                mTableChart.setVisibility(View.GONE);
+                mDestinationTableChart.setVisibility(View.GONE);
             }
             mNoGraphDataTextView.setVisibility(View.VISIBLE);
             mNoGraphDataTextView.setText(R.string.no_data_available);
@@ -950,17 +1038,23 @@ public abstract class BaseGraphsFragment extends Fragment {
         mBarChart.setVisibility(View.GONE);
         mDestinationBarChart.setVisibility(View.GONE);
         mDestinationPicksBar.setVisibility(View.GONE);
+
         mLineChart.setVisibility(View.GONE);
         mDestinationLineChart.setVisibility(View.GONE);
         mDestinationPicksLine.setVisibility(View.GONE);
+
         mPieLayout.setVisibility(View.GONE);
         mPieCharts.setVisibility(View.GONE);
         mDestinationPieCharts.setVisibility(View.GONE);
         mDestinationPicksPie.setVisibility(View.GONE);
+        mDestinationPieScroll.setVisibility(View.GONE);
+
         mTableLayout.setVisibility(View.GONE);
         mTableChart.setVisibility(View.GONE);
         mDestinationTableChart.setVisibility(View.GONE);
         mDestinationPicksTable.setVisibility(View.GONE);
+        mDestinationTableScroll.setVisibility(View.GONE);
+
         mNoGraphDataTextView.setVisibility(View.GONE);
         if (!(null == visibleChart)) visibleChart.setVisibility(View.VISIBLE);
         if (!(null == visibleDestinationChart) && compareVisible) visibleDestinationChart.setVisibility(View.VISIBLE);
