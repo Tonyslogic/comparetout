@@ -29,7 +29,6 @@ import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.DashPathEffect;
-import android.graphics.PorterDuff;
 import android.icu.text.DecimalFormat;
 import android.os.Bundle;
 import android.os.Handler;
@@ -52,8 +51,11 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.widget.PopupMenu;
 import androidx.core.content.ContextCompat;
 import androidx.core.util.Pair;
+import androidx.core.view.MenuHost;
+import androidx.core.view.MenuProvider;
 import androidx.core.widget.NestedScrollView;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.Lifecycle;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.github.mikephil.charting.charts.BarChart;
@@ -76,6 +78,7 @@ import com.github.mikephil.charting.interfaces.datasets.IBarDataSet;
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 import com.google.android.material.datepicker.CalendarConstraints;
 import com.google.android.material.datepicker.MaterialDatePicker;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textview.MaterialTextView;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
@@ -236,6 +239,7 @@ public abstract class BaseGraphsFragment extends Fragment {
     private static final int DARK_ORANGE =  0xFFCC6600;
     private String mCompareFrom;
     private String mCompareTo;
+    private InverterDateRange mCompareDateRange;
 
     @Override
     public void onResume() {
@@ -283,7 +287,6 @@ public abstract class BaseGraphsFragment extends Fragment {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setHasOptionsMenu(true);
         if (!(null == savedInstanceState)) {
             mShowLoad = savedInstanceState.getBoolean(SHOW_LOAD);
             mShowFeed = savedInstanceState.getBoolean(SHOW_FEED);
@@ -357,58 +360,6 @@ public abstract class BaseGraphsFragment extends Fragment {
         updateKPIs();
     }
 
-    // MENU
-    @Override
-    public void onCreateOptionsMenu(Menu menu, MenuInflater inflator) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        inflator.inflate(R.menu.menu_scenarios, menu);
-        Menu mMenu = menu;
-        int colour = Color.parseColor("White");
-        mMenu.findItem(R.id.edit_scenario).setVisible(false);
-        mMenu.findItem(R.id.share_scenario).setVisible(false);
-        mMenu.findItem(R.id.info_scenario).setVisible(false);
-        mMenu.findItem(R.id.save_scenario).setVisible(false);
-        mMenu.findItem(R.id.help).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMenu.findItem(R.id.compare ).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        menu.findItem(R.id.compare).setVisible(false);
-        mMenu.findItem(R.id.help).setVisible(false);
-        super.onCreateOptionsMenu(menu, inflator);
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        if (item.getItemId() == R.id.compare) {
-            Activity activity = getActivity();
-            if (!(null == activity)) {
-                CompareScenarioSelectDialog scenarioSelectDialog =
-                        new CompareScenarioSelectDialog(activity, (sysSN, type, id) -> {
-                            if (null == type) {
-                                mCompareSN = null;
-                                mCompareActive = false;
-                            }
-                            else if ("ALPHAESS".equals(type)) {
-                                mCompareSN = mCompareDisplayName = sysSN;
-                                mCompareType = ComparisonUIViewModel.Importer.ALPHAESS;
-                                mCompareFrom = mFrom;
-                                mCompareTo = mTo;
-                                mCompareActive = true;
-                            }
-                            else {
-                                mCompareSN = String.valueOf(id);
-                                mCompareDisplayName = sysSN;
-                                mCompareType = ComparisonUIViewModel.Importer.SIMULATION;
-                                mCompareFrom = "2001" + mFrom.substring(4);
-                                mCompareTo = "2001" + mTo.substring(4);
-                                mCompareActive = true;
-                            }
-                            LOGGER.info("Selected " + sysSN + " to compare from " + mCompareFrom + ", to " + mCompareTo);
-                            BaseGraphsFragment.this.updateKPIs();
-                        });
-                scenarioSelectDialog.show();
-            }
-        }
-        return false;
-    }
 
     private void updateKPIs() {
         new Thread(() -> {
@@ -424,6 +375,11 @@ public abstract class BaseGraphsFragment extends Fragment {
                     mSystemSN = ((GraphableActivity) requireActivity()).getSelectedSystemSN();
                 mGraphData = getGraphData(mSystemSN, mImporterType, mFrom, mTo);
                 if (mCompareActive && !(null == mCompareSN) && !(null == mCompareType)) {
+                    mCompareDateRange = mViewModel.getDateRangeForSystem(mCompareType, mCompareSN);
+//                    if (!(null == mCompareDateRange)) {
+//                        mCompareFrom = (mCompareFrom.compareTo(mCompareDateRange.startDate) > 0) ? mCompareFrom : mCompareDateRange.startDate;
+//                        mCompareTo = (mCompareTo.compareTo(mCompareDateRange.finishDate) < 0) ? mCompareTo : mCompareDateRange.finishDate;
+//                    }
                     mCompareGraphData = getGraphData(mCompareSN, mCompareType, mCompareFrom, mCompareTo);
                     LOGGER.info("mCompareGraphData has " +  mCompareGraphData.size() + " entries");
                 }
@@ -490,6 +446,55 @@ public abstract class BaseGraphsFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
+        MenuHost menuHost = (MenuHost) requireActivity();
+        menuHost.addMenuProvider(new MenuProvider() {
+            @Override
+            public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
+                menu.findItem(R.id.compare).setVisible(false);
+            }
+
+            @Override
+            public boolean onMenuItemSelected(@NonNull MenuItem menuItem) {
+                if (menuItem.getItemId() == R.id.compare) {
+                    Activity activity = getActivity();
+                    if (!(null == activity)) {
+                        CompareScenarioSelectDialog scenarioSelectDialog =
+                                new CompareScenarioSelectDialog(activity, (sysSN, type, id) -> {
+                                    if (null == type) {
+                                        mCompareSN = null;
+                                        mCompareActive = false;
+                                    }
+                                    else {
+                                        if ("ESBNHDF".equals(type)) {
+                                            mCompareSN = mCompareDisplayName = sysSN;
+                                            mCompareType = ComparisonUIViewModel.Importer.ESBNHDF;
+                                            mCompareFrom = mFrom;
+                                            mCompareTo = mTo;
+                                            mCompareActive = true;
+                                        } else {
+                                            mCompareSN = String.valueOf(id);
+                                            mCompareDisplayName = sysSN;
+                                            mCompareType = ComparisonUIViewModel.Importer.SIMULATION;
+                                            mCompareFrom = "2001" + mFrom.substring(4);
+                                            mCompareTo = "2001" + mTo.substring(4);
+                                            if (mCompareFrom.compareTo(mCompareTo) > 0) {
+                                                mCompareFrom = "2001-01-01";
+                                                mCompareTo = "2001-12-31";
+                                            }
+                                            mCompareActive = true;
+                                        }
+                                    }
+                                    LOGGER.info("Selected " + sysSN + ", " + type + " to compare from " + mCompareFrom + ", to " + mCompareTo);
+                                    BaseGraphsFragment.this.updateKPIs();
+                                });
+                        scenarioSelectDialog.show();
+                    }
+                    return true;
+                }
+                return false;
+            }
+        }, getViewLifecycleOwner(), Lifecycle.State.STARTED);
+
         mMainHandler = new Handler(Looper.getMainLooper());
         mPicks = view.findViewById((R.id.picks));
         mDestinationPicksBar = view.findViewById((R.id.destinationPicksBar));
@@ -533,6 +538,12 @@ public abstract class BaseGraphsFragment extends Fragment {
         mPreviousButton.setOnClickListener(v -> {
             LocalDateTime start = LocalDateTime.parse(mFrom + MIDNIGHT, PARSER_FORMATTER);
             LocalDateTime end = LocalDateTime.parse(mTo + MIDNIGHT, PARSER_FORMATTER);
+            LocalDateTime compareStart = LocalDateTime.MIN;
+            LocalDateTime compareEnd = LocalDateTime.MIN;
+            if (mCompareActive) {
+                compareStart = LocalDateTime.parse(mCompareFrom + MIDNIGHT, PARSER_FORMATTER);
+                compareEnd = LocalDateTime.parse(mCompareTo + MIDNIGHT, PARSER_FORMATTER);
+            }
             switch (mStepInterval) {
                 case DAY:
                     // + 1 day
@@ -540,12 +551,24 @@ public abstract class BaseGraphsFragment extends Fragment {
                     mFrom = start.format(DATE_FORMAT);
                     end = end.plusDays(-1);
                     mTo = end.format(DATE_FORMAT);
+                    if (mCompareActive) {
+                        compareStart = compareStart.plusDays(-1);
+                        mCompareFrom = compareStart.format(DATE_FORMAT);
+                        compareEnd = compareEnd.plusDays(-1);
+                        mCompareTo = compareEnd.format(DATE_FORMAT);
+                    }
                     break;
                 case WEEK:
                     start = start.plusDays(-7);
                     mFrom = start.format(DATE_FORMAT);
                     end = end.plusDays(-7);
                     mTo = end.format(DATE_FORMAT);
+                    if (mCompareActive) {
+                        compareStart = compareStart.plusDays(-7);
+                        mCompareFrom = compareStart.format(DATE_FORMAT);
+                        compareEnd = compareEnd.plusDays(-7);
+                        mCompareTo = compareEnd.format(DATE_FORMAT);
+                    }
                     break;
                 case MONTH:
                     // + 1 month
@@ -558,14 +581,46 @@ public abstract class BaseGraphsFragment extends Fragment {
                         end = LocalDateTime.of(end.getYear(), end.getMonthValue(), lastDay, 23, 59);
                     } else end = end.plusMonths(-1);
                     mTo = end.format(DATE_FORMAT);
+                    if (mCompareActive) {
+                        compareStart = compareStart.plusMonths(-1);
+                        mCompareFrom = compareStart.format(DATE_FORMAT);
+                        daysInMonth = YearMonth.of(compareEnd.getYear(), compareEnd.getMonthValue()).lengthOfMonth();
+                        if (daysInMonth == compareEnd.getDayOfMonth()) {
+                            compareEnd = compareEnd.plusMonths(-1);
+                            int lastDay = YearMonth.of(compareEnd.getYear(), compareEnd.getMonth()).lengthOfMonth();
+                            compareEnd = LocalDateTime.of(compareEnd.getYear(), compareEnd.getMonthValue(), lastDay, 23, 59);
+                        } else compareEnd = compareEnd.plusMonths(-1);
+                        mCompareTo = compareEnd.format(DATE_FORMAT);
+                    }
                     break;
                 case YEAR:
-                    // + 1 month
-                    start = start.plusYears(-1);
-                    mFrom = start.format(DATE_FORMAT);
-                    end = end.plusYears(-1);
-                    mTo = end.format(DATE_FORMAT);
+                    // + 1 year
+                    if (mImporterType != ComparisonUIViewModel.Importer.SIMULATION) {
+                        start = start.plusYears(-1);
+                        mFrom = start.format(DATE_FORMAT);
+                        end = end.plusYears(-1);
+                        mTo = end.format(DATE_FORMAT);
+                    }
+                    if (mCompareActive && mCompareType != ComparisonUIViewModel.Importer.SIMULATION) {
+                        compareStart = compareStart.plusYears(-1);
+                        mCompareFrom = compareStart.format(DATE_FORMAT);
+                        compareEnd = compareEnd.plusYears(-1);
+                        mCompareTo = compareEnd.format(DATE_FORMAT);
+                    }
                     break;
+            }
+            if (mImporterType == ComparisonUIViewModel.Importer.SIMULATION) {
+                // Ensure we are still in 2001
+                mFrom = "2001" + mFrom.substring(4);
+                mTo = "2001" + mTo.substring(4);
+                // Ignore start earlier than end
+
+            }
+            if (mCompareType == ComparisonUIViewModel.Importer.SIMULATION) {
+                // Ensure we are still in 2001
+                mCompareFrom = "2001" + mCompareFrom.substring(4);
+                mCompareTo = "2001" + mCompareTo.substring(4);
+                // Ignore start earlier than end
             }
             setSelectionText();
             updateKPIs();
@@ -585,6 +640,12 @@ public abstract class BaseGraphsFragment extends Fragment {
         mNextButton.setOnClickListener(v -> {
             LocalDateTime start = LocalDateTime.parse(mFrom + MIDNIGHT, PARSER_FORMATTER);
             LocalDateTime end = LocalDateTime.parse(mTo + MIDNIGHT, PARSER_FORMATTER);
+            LocalDateTime compareStart = LocalDateTime.MIN;
+            LocalDateTime compareEnd = LocalDateTime.MIN;
+            if (mCompareActive) {
+                compareStart = LocalDateTime.parse(mCompareFrom + MIDNIGHT, PARSER_FORMATTER);
+                compareEnd = LocalDateTime.parse(mCompareTo + MIDNIGHT, PARSER_FORMATTER);
+            }
             switch (mStepInterval) {
                 case DAY:
                     // + 1 day
@@ -592,12 +653,24 @@ public abstract class BaseGraphsFragment extends Fragment {
                     mFrom = start.format(DATE_FORMAT);
                     end = end.plusDays(1);
                     mTo = end.format(DATE_FORMAT);
+                    if (mCompareActive) {
+                        compareStart = compareStart.plusDays(1);
+                        mCompareFrom = compareStart.format(DATE_FORMAT);
+                        compareEnd = compareEnd.plusDays(1);
+                        mCompareTo = compareEnd.format(DATE_FORMAT);
+                    }
                     break;
                 case WEEK:
                     start = start.plusDays(7);
                     mFrom = start.format(DATE_FORMAT);
                     end = end.plusDays(7);
                     mTo = end.format(DATE_FORMAT);
+                    if (mCompareActive) {
+                        compareStart = compareStart.plusDays(7);
+                        mCompareFrom = compareStart.format(DATE_FORMAT);
+                        compareEnd = compareEnd.plusDays(7);
+                        mCompareTo = compareEnd.format(DATE_FORMAT);
+                    }
                     break;
                 case MONTH:
                     // + 1 month
@@ -610,14 +683,46 @@ public abstract class BaseGraphsFragment extends Fragment {
                         end = LocalDateTime.of(end.getYear(), end.getMonthValue(), lastDay, 23, 59);
                     } else end = end.plusMonths(1);
                     mTo = end.format(DATE_FORMAT);
+                    if (mCompareActive) {
+                        compareStart = compareStart.plusMonths(1);
+                        mCompareFrom = compareStart.format(DATE_FORMAT);
+                        daysInMonth = YearMonth.of(compareEnd.getYear(), compareEnd.getMonthValue()).lengthOfMonth();
+                        if (daysInMonth == compareEnd.getDayOfMonth()) {
+                            compareEnd = compareEnd.plusMonths(1);
+                            int lastDay = YearMonth.of(compareEnd.getYear(), compareEnd.getMonth()).lengthOfMonth();
+                            compareEnd = LocalDateTime.of(compareEnd.getYear(), compareEnd.getMonthValue(), lastDay, 23, 59);
+                        } else compareEnd = compareEnd.plusMonths(1);
+                        mCompareTo = compareEnd.format(DATE_FORMAT);
+                    }
                     break;
                 case YEAR:
-                    // + 1 month
-                    start = start.plusYears(1);
-                    mFrom = start.format(DATE_FORMAT);
-                    end = end.plusYears(1);
-                    mTo = end.format(DATE_FORMAT);
+                    // + 1 year
+                    if (mImporterType != ComparisonUIViewModel.Importer.SIMULATION) {
+                        start = start.plusYears(1);
+                        mFrom = start.format(DATE_FORMAT);
+                        end = end.plusYears(1);
+                        mTo = end.format(DATE_FORMAT);
+                    }
+                    if (mCompareActive && mCompareType != ComparisonUIViewModel.Importer.SIMULATION) {
+                        compareStart = compareStart.plusYears(1);
+                        mCompareFrom = compareStart.format(DATE_FORMAT);
+                        compareEnd = compareEnd.plusYears(1);
+                        mCompareTo = compareEnd.format(DATE_FORMAT);
+                    }
                     break;
+            }
+            if (mImporterType == ComparisonUIViewModel.Importer.SIMULATION) {
+                // Ensure we are still in 2001
+                mFrom = "2001" + mFrom.substring(4);
+                mTo = "2001" + mTo.substring(4);
+                // Ignore start earlier than end
+
+            }
+            if (mCompareType == ComparisonUIViewModel.Importer.SIMULATION) {
+                // Ensure we are still in 2001
+                mCompareFrom = "2001" + mCompareFrom.substring(4);
+                mCompareTo = "2001" + mCompareTo.substring(4);
+                // Ignore start earlier than end
             }
             setSelectionText();
             updateKPIs();
@@ -661,6 +766,46 @@ public abstract class BaseGraphsFragment extends Fragment {
         if (!(null == mSystemSN) && !(null == mInverterDateRangesBySN) && !(null == mInverterDateRangesBySN.get(mSystemSN))) {
             String first = Objects.requireNonNull(mInverterDateRangesBySN.get(mSystemSN)).first;
             String second = Objects.requireNonNull(mInverterDateRangesBySN.get(mSystemSN)).second;
+            System.out.println("Range available: " + first + ", " + second);
+            switch (pickMode) {
+                case PICK_DATES_BOTH:
+                    if (mCompareType == ComparisonUIViewModel.Importer.SIMULATION && mImporterType == ComparisonUIViewModel.Importer.SIMULATION) {
+                        first = (first.compareTo("2001-01-01") < 0) ? first : "2001-01-01";
+                        second = (second.compareTo("2001-12-31") > 0) ? second : "2001-12-31";
+                    }
+                    if (mCompareType == ComparisonUIViewModel.Importer.SIMULATION && mImporterType != ComparisonUIViewModel.Importer.SIMULATION) {
+                        if ("2001-12-31".compareTo(first) < 0) {
+                            // no overlap
+                            if (!(null == getView())) Snackbar.make(getView(),
+                                            "No overlap exists. Select ranges separately.", Snackbar.LENGTH_LONG)
+                                    .setAction("Action", null).show();
+                            return;
+                        }
+                        first = (first.compareTo("2001-01-01") < 0) ? first : "2001-01-01";
+                    }
+                    if (mCompareType != ComparisonUIViewModel.Importer.SIMULATION && mImporterType != ComparisonUIViewModel.Importer.SIMULATION) {
+                        if (mCompareDateRange.finishDate.compareTo(first) < 0 || mCompareDateRange.startDate.compareTo(second) > 0) {
+                            // no overlap
+                            if (!(null == getView())) Snackbar.make(getView(),
+                                            "No overlap exists. Select ranges separately.", Snackbar.LENGTH_LONG)
+                                    .setAction("Action", null).show();
+                            return;
+                        }
+                        first = (first.compareTo(mCompareDateRange.startDate) > 0) ? first : mCompareDateRange.startDate;
+                        second = (second.compareTo(mCompareDateRange.finishDate) < 0) ? second : mCompareDateRange.finishDate;
+                    }
+                    break;
+                case PICK_DATES_COMPARE:
+                    first = "2001-01-01";
+                    second = "2001-12-31";
+                    if (mCompareType != ComparisonUIViewModel.Importer.SIMULATION && !(null == mCompareDateRange)) {
+                        first = mCompareDateRange.startDate;
+                        second = mCompareDateRange.finishDate;
+                    }
+                    break;
+                case PICK_DATES_BASE:
+                    break;
+            }
             System.out.println("Range available: " + first + ", " + second);
             LocalDateTime last = LocalDateTime.parse(second + MIDNIGHT, PARSER_FORMATTER);
             ZonedDateTime lastz = last.atZone(ZoneId.systemDefault());
@@ -739,7 +884,7 @@ public abstract class BaseGraphsFragment extends Fragment {
     @SuppressLint("SetTextI18n")
     private void setDestinationText(TextView destinationPick) {
         if (!(null == mCompareFrom) && !(null == mCompareTo) && !(null == destinationPick))  {
-            destinationPick.setText(mCompareDisplayName + ", Range: " + mCompareFrom + "<->" + mCompareTo);
+            destinationPick.setText(mCompareDisplayName + ", " + ((mCompareGraphData.isEmpty()) ? "Out of " : "") + "Range: " + mCompareFrom + "<->" + mCompareTo);
         }
     }
 

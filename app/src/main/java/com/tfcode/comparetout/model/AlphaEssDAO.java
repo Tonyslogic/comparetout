@@ -320,5 +320,8 @@ public abstract class AlphaEssDAO {
             "SELECT date, substr(minute,1,2) AS hr, SUM(pv) AS PV, SUM(load + feed) AS OUTPUT, SUM(buy) AS BUY " +
             "FROM alphaESSTransformedData WHERE sysSn = :systemSN AND BUY <= 0 GROUP BY date, hr ORDER BY PV DESC )")
     abstract public double getHAPoinv(String systemSN);
+
+    @Query("SELECT sysSn, MIN(date) AS start, MAX(date) AS finish FROM alphaESSTransformedData WHERE sysSn = :sysSN")
+    public abstract InverterDateRange getDateRange(String sysSN);
 }
 

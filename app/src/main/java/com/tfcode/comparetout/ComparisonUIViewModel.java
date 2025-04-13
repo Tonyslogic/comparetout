@@ -57,6 +57,8 @@ import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.model.scenario.ScenarioLineGraphData;
 import com.tfcode.comparetout.model.scenario.SimKPIs;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -487,6 +489,13 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public List<String> getLinkedDischarges(long d2gIndex, Long scenarioID) {
         return toutcRepository.getLinkedDischarges(d2gIndex, scenarioID);
+    }
+
+    public InverterDateRange getDateRangeForSystem(@NotNull Importer importer, String sysSN) {
+        if (importer == Importer.SIMULATION) {
+            return toutcRepository.getSimDateRanges(sysSN);
+        }
+        return toutcRepository.getDateRange(sysSN);
     }
 
     public enum Importer {

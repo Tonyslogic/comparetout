@@ -257,7 +257,7 @@ public class ScenarioOverview extends Fragment {
                     }
                     return (false);
                 }
-                return true;
+                return false;
             }
         });
     }

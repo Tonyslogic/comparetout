@@ -194,7 +194,7 @@ public class LoadProfilePropertiesFragment extends Fragment {
 
                     return true;
                 }
-                return true;
+                return false;
             }
         });
     }

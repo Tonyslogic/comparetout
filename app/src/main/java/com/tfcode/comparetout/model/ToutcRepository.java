@@ -869,4 +869,12 @@ public class ToutcRepository {
     public List<ComparisonSenarioRow> getCompareScenarios() {
         return scenarioDAO.getCompareScenarios();
     }
+
+    public InverterDateRange getDateRange(String sysSN) {
+        return alphaEssDAO.getDateRange(sysSN);
+    }
+
+    public InverterDateRange getSimDateRanges(String sysSN) {
+        return scenarioDAO.getSimDateRanges(sysSN);
+    }
 }

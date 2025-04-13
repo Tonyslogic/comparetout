@@ -257,9 +257,11 @@ public class ScenarioActivity extends AppCompatActivity implements GraphableActi
                 Intent shareIntent = Intent.createChooser(sendIntent, null);
                 startActivity(shareIntent);
             }).start();
+            return true;
         }
         if (item.getItemId() == R.id.help) {
             showHelp("https://appassets.androidplatform.net/assets/scenario/help.html");
+            return true;
         }
         return false;
     }
