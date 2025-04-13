@@ -41,6 +41,7 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
@@ -203,6 +204,23 @@ public class WaterSettingsActivity extends AppCompatActivity {
                 if (scenario2hwSystem.getScenarioID() == mScenarioID) {
                     loadFromDB();
                     break;
+                }
+            }
+        });
+
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+               if (mUnsavedChanges && !mDoubleBackToExitPressedOnce) {
+                    mDoubleBackToExitPressedOnce = true;
+                    Snackbar.make(getWindow().getDecorView().getRootView(),
+                                    "Unsaved changes. Please click BACK again to discard and exit", Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
+                    new Handler(Looper.getMainLooper()).postDelayed(() -> mDoubleBackToExitPressedOnce =false, 2000);
+                } else {
+                    setEnabled(false);
+                    SimulatorLauncher.simulateIfNeeded(getApplicationContext());
+                    getOnBackPressedDispatcher().onBackPressed();
                 }
             }
         });
@@ -396,21 +414,6 @@ public class WaterSettingsActivity extends AppCompatActivity {
             return false;
         }
         return false;
-    }
-
-
-    @Override
-    public void onBackPressed() {
-        if (mDoubleBackToExitPressedOnce || !(mUnsavedChanges)) {
-            super.onBackPressed();
-            SimulatorLauncher.simulateIfNeeded(getApplicationContext());
-            return;
-        }
-        this.mDoubleBackToExitPressedOnce = true;
-        Snackbar.make(getWindow().getDecorView().getRootView(),
-                        "Unsaved changes. Please click BACK again to discard and exit", Snackbar.LENGTH_LONG)
-                .setAction("Action", null).show();
-        new Handler(Looper.getMainLooper()).postDelayed(() -> mDoubleBackToExitPressedOnce =false, 2000);
     }
 
     private void enableEdit() {

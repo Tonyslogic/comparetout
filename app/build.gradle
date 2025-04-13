@@ -4,7 +4,7 @@ plugins {
 
 android {
     namespace 'com.tfcode.comparetout'
-    compileSdk 34
+    compileSdk 35
 
     defaultConfig {
         applicationId "com.tfcode.comparetout"
@@ -38,20 +38,21 @@ android {
 }
 
 dependencies {
-    implementation 'androidx.webkit:webkit:1.12.1'
+    implementation 'androidx.webkit:webkit:1.13.0'
     implementation 'com.github.PhilJay:MPAndroidChart:v3.1.0'
     implementation 'androidx.appcompat:appcompat:1.7.0'
     implementation 'com.google.android.material:material:1.12.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.constraintlayout:constraintlayout:2.2.1'
     implementation 'androidx.viewpager2:viewpager2:1.1.0'
-    implementation 'androidx.fragment:fragment-ktx:1.8.4'
+    implementation 'androidx.fragment:fragment-ktx:1.8.6'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
-    implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.8.6'
-    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.6'
+    implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.8.7'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7'
     implementation 'androidx.test:core:1.6.1'
-    implementation 'androidx.navigation:navigation-fragment:2.8.3'
-    implementation 'androidx.navigation:navigation-ui:2.8.3'
-    implementation 'androidx.activity:activity:1.9.3'
+    implementation 'androidx.navigation:navigation-fragment:2.8.9'
+    implementation 'androidx.navigation:navigation-ui:2.8.9'
+    implementation 'androidx.activity:activity:1.10.1'
+    implementation 'androidx.activity:activity-ktx:1.10.1'
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'
@@ -75,8 +76,8 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-common-java8:$rootProject.lifecycleVersion"
 
     // Disclaimers
-    implementation "androidx.datastore:datastore-preferences-core:1.1.1"
-    implementation "androidx.datastore:datastore-preferences-rxjava3:1.1.1"
+    implementation "androidx.datastore:datastore-preferences-core:1.1.4"
+    implementation "androidx.datastore:datastore-preferences-rxjava3:1.1.4"
     implementation "io.reactivex.rxjava3:rxjava:3.1.5"
 
 //    // UI

@@ -34,6 +34,7 @@ import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.ProgressBar;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
@@ -223,6 +224,25 @@ public class BatteryChargingActivity extends AppCompatActivity {
             public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
                 super.onPageScrolled(position, positionOffset, positionOffsetPixels);
                 setupLinkedLoadShifts(position);
+            }
+        });
+
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (mViewPager.getCurrentItem() > 0) {
+                    mViewPager.setCurrentItem(mViewPager.getCurrentItem() - 1);
+                } else if (mUnsavedChanges && !mDoubleBackToExitPressedOnce) {
+                    mDoubleBackToExitPressedOnce = true;
+                    Snackbar.make(getWindow().getDecorView().getRootView(),
+                                    "Unsaved changes. Please click BACK again to discard and exit", Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
+                    new Handler(Looper.getMainLooper()).postDelayed(() -> mDoubleBackToExitPressedOnce =false, 2000);
+                } else {
+                    setEnabled(false);
+                    SimulatorLauncher.simulateIfNeeded(getApplicationContext());
+                    getOnBackPressedDispatcher().onBackPressed();
+                }
             }
         });
     }
@@ -593,23 +613,6 @@ public class BatteryChargingActivity extends AppCompatActivity {
 
     private BatteryChargingViewPageAdapter createPanelAdapter(int count) {
         return new BatteryChargingViewPageAdapter(this, count);
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (mViewPager.getCurrentItem() == 0) {
-            if (mDoubleBackToExitPressedOnce || !(mUnsavedChanges)) {
-                super.onBackPressed();
-                SimulatorLauncher.simulateIfNeeded(getApplicationContext());
-                return;
-            }
-            this.mDoubleBackToExitPressedOnce = true;
-            Snackbar.make(getWindow().getDecorView().getRootView(),
-                            "Unsaved changes. Please click BACK again to discard and exit", Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show();
-            new Handler(Looper.getMainLooper()).postDelayed(() -> mDoubleBackToExitPressedOnce =false, 2000);
-        }
-        else mViewPager.setCurrentItem(mViewPager.getCurrentItem() - 1);
     }
 
     // FRAGMENT ACCESS METHODS

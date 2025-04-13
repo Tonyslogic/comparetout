@@ -35,6 +35,7 @@ import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.ProgressBar;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
@@ -124,6 +125,24 @@ public class ScenarioActivity extends AppCompatActivity implements GraphableActi
         viewPager = findViewById(R.id.view_scenario_pager);
 
         setupViewPager();
+
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (viewPager.getCurrentItem() > 0) {
+                    viewPager.setCurrentItem(viewPager.getCurrentItem() - 1);
+                } else if (mUnsavedChanges && !mDoubleBackToExitPressedOnce) {
+                    mDoubleBackToExitPressedOnce = true;
+                    Snackbar.make(getWindow().getDecorView().getRootView(),
+                                    "Unsaved changes. Please click BACK again to discard and exit", Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
+                    new Handler(Looper.getMainLooper()).postDelayed(() -> mDoubleBackToExitPressedOnce =false, 2000);
+                } else {
+                    setEnabled(false);
+                    getOnBackPressedDispatcher().onBackPressed();
+                }
+            }
+        });
 
         LayoutInflater inflater = (LayoutInflater) this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         mPopupView = inflater.inflate(R.layout.popup_help, null);
@@ -306,22 +325,6 @@ public class ScenarioActivity extends AppCompatActivity implements GraphableActi
                 showCompare();
             }
         });
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (viewPager.getCurrentItem() == 0) {
-            if (mDoubleBackToExitPressedOnce || !(mUnsavedChanges)) {
-                super.onBackPressed();
-                return;
-            }
-            this.mDoubleBackToExitPressedOnce = true;
-            Snackbar.make(getWindow().getDecorView().getRootView(),
-                    "Unsaved changes. Please click BACK again to discard and exit",
-                    Snackbar.LENGTH_LONG).setAction("Action", null).show();
-            new Handler(Looper.getMainLooper()).postDelayed(() -> mDoubleBackToExitPressedOnce =false, 2000);
-        }
-        else viewPager.setCurrentItem(viewPager.getCurrentItem() - 1);
     }
 
     // FRAGMENT ACCESS METHODS

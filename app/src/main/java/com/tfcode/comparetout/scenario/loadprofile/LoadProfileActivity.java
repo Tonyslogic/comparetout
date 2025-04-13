@@ -33,6 +33,7 @@ import android.webkit.WebView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
@@ -122,6 +123,25 @@ public class LoadProfileActivity extends AppCompatActivity {
         mViewPager = findViewById(R.id.load_profile_view_pager);
 
         setupViewPager();
+
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (mViewPager.getCurrentItem() > 0) {
+                    mViewPager.setCurrentItem(mViewPager.getCurrentItem() - 1);
+                } else if (mUnsavedChanges && !mDoubleBackToExitPressedOnce) {
+                    mDoubleBackToExitPressedOnce = true;
+                    Snackbar.make(getWindow().getDecorView().getRootView(),
+                                    "Unsaved changes. Please click BACK again to discard and exit", Snackbar.LENGTH_LONG)
+                            .setAction("Action", null).show();
+                    new Handler(Looper.getMainLooper()).postDelayed(() -> mDoubleBackToExitPressedOnce =false, 2000);
+                } else {
+                    setEnabled(false);
+                    SimulatorLauncher.simulateIfNeeded(getApplicationContext());
+                    getOnBackPressedDispatcher().onBackPressed();
+                }
+            }
+        });
 
         LayoutInflater inflater = (LayoutInflater) this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         mPopupView = inflater.inflate(R.layout.popup_help, null);
@@ -325,24 +345,6 @@ public class LoadProfileActivity extends AppCompatActivity {
         ((View)linearLayout.getChildAt(3)).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/scenario/load_profile/hourly_tab.html");
             return true;});
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (mViewPager.getCurrentItem() == 0) {
-            if (mDoubleBackToExitPressedOnce || !(mUnsavedChanges)) {
-                super.onBackPressed();
-                SimulatorLauncher.simulateIfNeeded(getApplicationContext());
-                return;
-            }
-            this.mDoubleBackToExitPressedOnce = true;
-            Snackbar.make(getWindow().getDecorView().getRootView(),
-                            "Unsaved changes. Please click BACK again to discard and exit", Snackbar.LENGTH_LONG)
-                    .setAction("Action", null).show();
-
-            new Handler(Looper.getMainLooper()).postDelayed(() -> mDoubleBackToExitPressedOnce =false, 2000);
-        }
-        else mViewPager.setCurrentItem(mViewPager.getCurrentItem() - 1);
     }
 
     // FRAGMENT ACCESS METHODS

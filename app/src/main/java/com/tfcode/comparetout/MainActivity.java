@@ -41,6 +41,7 @@ import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.ProgressBar;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -328,6 +329,18 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (viewPager.getCurrentItem() > 0) {
+                    viewPager.setCurrentItem(viewPager.getCurrentItem() - 1);
+                } else {
+                    setEnabled(false);
+                    getOnBackPressedDispatcher().onBackPressed();
+                }
+            }
+        });
     }
 
     private ViewPagerAdapter createCardAdapter() {
@@ -558,12 +571,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
         return(super.onOptionsItemSelected(item));
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (viewPager.getCurrentItem() == 0) super.onBackPressed();
-        else viewPager.setCurrentItem(viewPager.getCurrentItem() - 1);
     }
 
     private void createProgressBar() {

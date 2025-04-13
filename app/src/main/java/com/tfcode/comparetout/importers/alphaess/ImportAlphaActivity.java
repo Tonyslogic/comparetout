@@ -32,6 +32,7 @@ import android.webkit.WebView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -141,6 +142,17 @@ public class ImportAlphaActivity extends AbstractEPOFolderActivity implements Gr
         mViewPager = findViewById(R.id.import_alpha_view_pager);
         setupViewPager();
 
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (mViewPager.getCurrentItem() > 0) {
+                    mViewPager.setCurrentItem(mViewPager.getCurrentItem() - 1);
+                } else {
+                    setEnabled(false);
+                    getOnBackPressedDispatcher().onBackPressed();
+                }
+            }
+        });
 
         LayoutInflater inflater = (LayoutInflater) this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         mPopupView = inflater.inflate(R.layout.popup_help, null);
@@ -273,14 +285,6 @@ public class ImportAlphaActivity extends AbstractEPOFolderActivity implements Gr
                 showCompare();
             }
         });
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (mViewPager.getCurrentItem() == 0) {
-            super.onBackPressed();
-        }
-        else mViewPager.setCurrentItem(mViewPager.getCurrentItem() - 1);
     }
 
     private void showHelp(String url) {

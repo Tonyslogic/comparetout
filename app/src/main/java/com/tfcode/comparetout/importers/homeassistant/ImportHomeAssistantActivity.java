@@ -32,6 +32,7 @@ import android.webkit.WebView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
 import androidx.appcompat.app.AppCompatActivity;
@@ -110,6 +111,17 @@ public class ImportHomeAssistantActivity  extends AppCompatActivity implements G
         mViewPager = findViewById(R.id.import_alpha_view_pager);
         setupViewPager();
 
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (mViewPager.getCurrentItem() > 0) {
+                    mViewPager.setCurrentItem(mViewPager.getCurrentItem() - 1);
+                } else {
+                    setEnabled(false);
+                    getOnBackPressedDispatcher().onBackPressed();
+                }
+            }
+        });
 
         LayoutInflater inflater = (LayoutInflater) this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         mPopupView = inflater.inflate(R.layout.popup_help, null);
@@ -211,14 +223,6 @@ public class ImportHomeAssistantActivity  extends AppCompatActivity implements G
 
         webView.setWebViewClient(new LocalContentWebViewClient(mAssetLoader));
         webView.loadUrl(url);
-    }
-
-    @Override
-    public void onBackPressed() {
-        if (mViewPager.getCurrentItem() == 0) {
-            super.onBackPressed();
-        }
-        else mViewPager.setCurrentItem(mViewPager.getCurrentItem() - 1);
     }
 
     @Override
