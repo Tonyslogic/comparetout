@@ -198,16 +198,18 @@ public class ImportESBNOverview extends ImportOverviewFragment {
 
     @Override
     protected void reloadClient(String appId, String appSecret) throws ImportException {
-        ESBNHDFClient mOpenAlphaESSClient = new ESBNHDFClient(appId, appSecret);
-        List<String> response = mOpenAlphaESSClient.fetchMPRNs();
-        mSerialNumbers = new ArrayList<>();
-        mSerialNumbers.addAll(response);
-        String stringResponse = new Gson().toJson(response);
-        if (!(null == getActivity()) && !(null == getActivity().getApplication()) ) {
-            TOUTCApplication application = (TOUTCApplication) getActivity().getApplication();
-            boolean x = application.putStringValueIntoDataStore(SYSTEM_LIST_KEY, stringResponse);
-            if (!x) System.out.println("ImportESBNOverview::reLoadSystemList, failed to store list");
-        }
+        // BUG: This is not working, the API is broken
+        // TODO: Fix this when the API is publicly available
+//        ESBNHDFClient mOpenAlphaESSClient = new ESBNHDFClient(appId, appSecret);
+//        List<String> response = mOpenAlphaESSClient.fetchMPRNs();
+//        mSerialNumbers = new ArrayList<>();
+//        mSerialNumbers.addAll(response);
+//        String stringResponse = new Gson().toJson(response);
+//        if (!(null == getActivity()) && !(null == getActivity().getApplication()) ) {
+//            TOUTCApplication application = (TOUTCApplication) getActivity().getApplication();
+//            boolean x = application.putStringValueIntoDataStore(SYSTEM_LIST_KEY, stringResponse);
+//            if (!x) System.out.println("ImportESBNOverview::reLoadSystemList, failed to store list");
+//        }
     }
 
     @Override
