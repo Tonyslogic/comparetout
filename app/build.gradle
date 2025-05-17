@@ -10,8 +10,8 @@ android {
         applicationId "com.tfcode.comparetout"
         minSdk 28
         targetSdk 34
-        versionCode 52
-        versionName "1.51"
+        versionCode 53
+        versionName "1.52"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -46,11 +46,11 @@ dependencies {
     implementation 'androidx.viewpager2:viewpager2:1.1.0'
     implementation 'androidx.fragment:fragment-ktx:1.8.6'
     implementation 'androidx.legacy:legacy-support-v4:1.0.0'
-    implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.8.7'
-    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.7'
+    implementation 'androidx.lifecycle:lifecycle-livedata-ktx:2.9.0'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.9.0'
     implementation 'androidx.test:core:1.6.1'
-    implementation 'androidx.navigation:navigation-fragment:2.8.9'
-    implementation 'androidx.navigation:navigation-ui:2.8.9'
+    implementation 'androidx.navigation:navigation-fragment:2.9.0'
+    implementation 'androidx.navigation:navigation-ui:2.9.0'
     implementation 'androidx.activity:activity:1.10.1'
     implementation 'androidx.activity:activity-ktx:1.10.1'
     testImplementation 'junit:junit:4.13.2'
@@ -76,8 +76,8 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-common-java8:$rootProject.lifecycleVersion"
 
     // Disclaimers
-    implementation "androidx.datastore:datastore-preferences-core:1.1.4"
-    implementation "androidx.datastore:datastore-preferences-rxjava3:1.1.4"
+    implementation "androidx.datastore:datastore-preferences-core:1.1.6"
+    implementation "androidx.datastore:datastore-preferences-rxjava3:1.1.6"
     implementation "io.reactivex.rxjava3:rxjava:3.1.5"
 
 //    // UI
