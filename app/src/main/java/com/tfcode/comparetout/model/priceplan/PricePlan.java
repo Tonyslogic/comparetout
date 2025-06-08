@@ -199,6 +199,7 @@ public class PricePlan {
     public static final int INVALID_PLAN_NAME_IN_USE = 6;
     public static final int INVALID_PLAN_NO_DAY_RATES = 7;
     public static final int INVALID_PLAN_END_BEFORE_START = 8;
+    public static final int INVALID_PLAN_MISSING_MINUTES = 9;
     public int validatePlan(List<DayRate> drs) {
         if (drs.isEmpty()) return INVALID_PLAN_NO_DAY_RATES;
         Map<String, LocalDate[]> dtRanges = new HashMap<>();
@@ -247,6 +248,15 @@ public class PricePlan {
         List<Integer> fullYear = new ArrayList<>();
         for (int i = 1; i <= 365; i++) fullYear.add(i);
         if (!new HashSet<>(datesSoFar).containsAll(fullYear)) return INVALID_PLAN_MISSING_DATES;
+        // Check that each DayRate covers all 1440 minutes
+        for (DayRate dr : drs) {
+            int maxRange = 0;
+            for (RangeRate rr : dr.getMinuteRateRange().getRates()) {
+                int range = rr.getEnd() - rr.getBegin();
+                if (range > maxRange) maxRange = range;
+            }
+            if (maxRange < 1440) return INVALID_PLAN_MISSING_MINUTES;
+        }
         return VALID_PLAN;
     }
 
@@ -277,6 +287,8 @@ public class PricePlan {
                 return "The plan must include at least one day rate";
             case INVALID_PLAN_END_BEFORE_START:
                 return "Day rates must end after start";
+            case INVALID_PLAN_MISSING_MINUTES:
+                return "Each day must have a price for every minute (0-1439)";
             default:
                 return "Unknown reason for invalidity";
         }

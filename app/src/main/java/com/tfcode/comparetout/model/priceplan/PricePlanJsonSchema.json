@@ -1,0 +1,151 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "array",
+  "description": "List of electricity-only smart meter plans available in the Irish electricity market.",
+  "items": {
+    "type": "object",
+    "properties": {
+      "Active": {
+        "type": "boolean",
+        "description": "Indicates whether the plan is currently available for sign-up."
+      },
+      "Bonus cash": {
+        "type": "number",
+        "description": "Cash reward provided by the supplier for signing up (typically €0 if not offered)."
+      },
+      "DeemedExport": {
+        "type": "boolean",
+        "description": "Whether the plan includes deemed export payments for surplus electricity (typically false for electricity-only plans)."
+      },
+      "Feed": {
+        "type": "number",
+        "description": "Supplier feed-in tariff rate in cents per kWh for exporting excess electricity to the grid."
+      },
+      "LastUpdate": {
+        "type": "string",
+        "description": "The last date when this plan was updated in the system.",
+        "examples": ["2025-06-07", "YYYY-MM-DD"]
+      },
+      "Plan": {
+        "type": "string",
+        "description": "The official name of the electricity plan as defined by the supplier."
+      },
+      "Rates": {
+        "type": "array",
+        "description": "A collection of rate structures defining different electricity costs based on days and times.",
+        "items": {
+          "type": "object",
+          "properties": {
+            "Days": {
+              "type": "array",
+              "items": { "type": "integer", "minimum": 0, "maximum": 6 },
+              "description": "Days of the week the rate applies. 0 = Sunday, 6 = Saturday."
+            },
+            "startDate": {
+              "type": "string",
+              "description": "The start date when this rate is applicable.",
+              "examples": ["01/01", "MM/DD"]
+            },
+            "endDate": {
+              "type": "string",
+              "description": "The end date after which this rate is no longer valid.",
+              "examples": ["12/31", "MM/DD"]
+            },
+            "MinuteRange": {
+              "type": "array",
+              "description": "A breakdown of energy pricing throughout a 24-hour period using minute-based intervals.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "cost": {
+                    "type": "number",
+                    "description": "Electricity unit rate in cents per kWh for the specified time range."
+                  },
+                  "startMinute": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1440,
+                    "description": "The minute of the day when the rate starts (0 = midnight, 1440 = end of day)."
+                  },
+                  "endMinute": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1440,
+                    "description": "The minute of the day when the rate ends (e.g., 480 = 08:00 AM)."
+                  }
+                },
+                "required": ["cost", "startMinute", "endMinute"]
+              }
+            }
+          },
+          "required": ["Days", "startDate", "endDate", "MinuteRange"]
+        }
+      },
+      "Reference": {
+        "type": "string",
+        "format": "uri",
+        "description": "A direct URL to the supplier’s official plan details or tariff page."
+      },
+      "Restrictions": {
+        "type": "object",
+        "description": "Limitations or conditions associated with the plan.",
+        "properties": {
+          "active": {
+            "type": "boolean",
+            "description": "Indicates whether any specific restrictions apply to this plan."
+          },
+          "restrictionEntries": {
+            "type": "array",
+            "description": "An array of restriction entries, such as usage limits or excess charges.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "excessCost": {
+                  "type": "number",
+                  "description": "The cost per kWh exceeding a defined usage limit."
+                },
+                "limit": {
+                  "type": "number",
+                  "description": "Maximum allowable usage before excess charges apply."
+                },
+                "period": {
+                  "type": "string",
+                  "enum": ["Monthly", "Bimonthly", "Annual"],
+                  "description": "Timeframe for restriction enforcement."
+                },
+                "scope": {
+                  "type": "string",
+                  "description": "The applicable rate affected by this restriction (e.g., must match a 'cost' value from MinuteRange in Rates).",
+                  "examples": ["24.92", "40.75", "7.45"]
+                }
+              },
+              "required": ["excessCost", "limit", "period", "scope"]
+            }
+          }
+        },
+        "required": ["active", "restrictionEntries"]
+      },
+      "Standing charges": {
+        "type": "number",
+        "description": "Fixed daily or monthly charge applied regardless of usage, typically covering grid maintenance."
+      },
+      "Supplier": {
+        "type": "string",
+        "description": "The electricity provider offering this plan (e.g., Bord Gáis Energy, SSE Airtricity)."
+      }
+    },
+    "required": [
+      "Active",
+      "Bonus cash",
+      "DeemedExport",
+      "Feed",
+      "LastUpdate",
+      "Plan",
+      "Rates",
+      "Reference",
+      "Restrictions",
+      "Standing charges",
+      "Supplier"
+    ]
+  }
+}

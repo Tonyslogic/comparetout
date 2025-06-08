@@ -127,7 +127,8 @@ public class CostingWorker extends Worker {
                             double net;
                             SubTotals subTotals = new SubTotals();
                             for (ScenarioSimulationData row : scenarioData) {
-                                double price = lookup.getRate(row.getDayOf2001(), row.getMinuteOfDay(), row.getDayOfWeek(), row.getBuy());
+                                double price = lookup.getRate(row.getDayOf2001(), row.getMinuteOfDay(),
+                                        (row.getDayOfWeek() == 7) ? 0 : row.getDayOfWeek(), row.getBuy());
                                 double rowBuy = price * row.getBuy();
                                 buy += rowBuy;
                                 sell += pp.getFeed() * row.getFeed();
