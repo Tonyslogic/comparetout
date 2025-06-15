@@ -55,6 +55,10 @@ public class SimulationWorkerIntegrationTest {
 
     // ====== Integration Tests ======
 
+    /**
+     * Tests complete 24-hour simulation workflow with varying load and PV.
+     * Verifies end-to-end energy flow simulation with realistic daily patterns.
+     */
     @Test
     public void testCompleteSimulationWorkflow_SingleDay() {
         // Test a complete 24-hour simulation with varying load and PV
@@ -123,6 +127,10 @@ public class SimulationWorkerIntegrationTest {
         assertTrue("SOC should increase during sunny period", middaySOC > initialSOC);
     }
 
+    /**
+     * Tests load shifting workflow with time-of-use pricing scenarios.
+     * Verifies CFG operation during off-peak periods and battery discharge at peak times.
+     */
     @Test
     public void testLoadShiftingWorkflow() {
         // Test complete load shifting scenario
@@ -190,6 +198,10 @@ public class SimulationWorkerIntegrationTest {
         assertTrue("Should discharge battery during peak", afterRow.getBatToLoad() > 0);
     }
 
+    /**
+     * Tests coordination between multiple inverters in complex scenarios.
+     * Verifies proper load distribution and battery sharing across multiple inverters.
+     */
     @Test
     public void testMultipleInvertersCoordination() {
         // Test coordination between multiple inverters
@@ -253,6 +265,10 @@ public class SimulationWorkerIntegrationTest {
         assertTrue("SOC should increase", row.getSOC() > 4.0);
     }
 
+    /**
+     * Tests battery charging curve behavior through full charge/discharge cycles.
+     * Verifies SOC progression and capacity calculations over extended periods.
+     */
     @Test
     public void testBatteryChargingCurveIntegration() {
         // Test how battery charging behaves at different SOC levels
@@ -308,6 +324,10 @@ public class SimulationWorkerIntegrationTest {
         }
     }
 
+    /**
+     * Tests export limit handling in grid-tie scenarios.
+     * Verifies proper curtailment of PV generation when export limits are reached.
+     */
     @Test
     public void testExportLimitHandling() {
         // Test how export limits are respected
@@ -341,6 +361,10 @@ public class SimulationWorkerIntegrationTest {
         // of how it's enforced in processOneRow would need to be verified
     }
 
+    /**
+     * Tests integration behavior with zero and negative energy values.
+     * Verifies system stability and proper handling of edge case energy flows.
+     */
     @Test
     public void testZeroAndNegativeValues() {
         // Test handling of edge case values

@@ -51,6 +51,10 @@ public class SimulationWorkerEdgeCaseTest {
 
     // ====== Tests for M_NULL_BATTERY constant ======
 
+    /**
+     * Tests processOneRow behavior with null battery configuration.
+     * Verifies system operates correctly without battery storage components.
+     */
     @Test
     public void testNullBatteryHandlingInProcessOneRow() {
         // Test that null battery is properly replaced with M_NULL_BATTERY
@@ -81,6 +85,10 @@ public class SimulationWorkerEdgeCaseTest {
         assertEquals("Should buy shortage from grid", 1.0, row.getBuy(), 0.001);
     }
 
+    /**
+     * Tests InputData initialization with null battery constants.
+     * Verifies proper default value handling when battery configuration is missing.
+     */
     @Test
     public void testNullBatteryConstants() {
         // Test the properties of M_NULL_BATTERY by using it indirectly
@@ -103,6 +111,10 @@ public class SimulationWorkerEdgeCaseTest {
 
     // ====== Tests for extreme values ======
 
+    /**
+     * Tests system behavior with extremely high PV generation values.
+     * Verifies numerical stability and proper handling of unrealistic PV inputs.
+     */
     @Test
     public void testExtremelyHighPVValues() {
         long scenarioID = 1;
@@ -142,6 +154,10 @@ public class SimulationWorkerEdgeCaseTest {
         assertEquals("Should not buy from grid", 0.0, row.getBuy(), 0.001);
     }
 
+    /**
+     * Tests system behavior with extremely high load demand values.
+     * Verifies numerical stability and proper handling of unrealistic load inputs.
+     */
     @Test
     public void testExtremelyHighLoadValues() {
         long scenarioID = 1;
@@ -176,6 +192,10 @@ public class SimulationWorkerEdgeCaseTest {
         assertEquals("Should not feed to grid", 0.0, row.getFeed(), 0.001);
     }
 
+    /**
+     * Tests system behavior with very small PV and load values.
+     * Verifies precision handling and proper calculation of minimal energy flows.
+     */
     @Test
     public void testVerySmallValues() {
         long scenarioID = 1;
@@ -218,6 +238,10 @@ public class SimulationWorkerEdgeCaseTest {
 
     // ====== Tests for battery SOC boundary conditions ======
 
+    /**
+     * Tests battery behavior when at exactly 100% state of charge.
+     * Verifies that fully charged battery cannot accept additional energy.
+     */
     @Test
     public void testBatteryAt100PercentSOC() {
         Inverter inverter = new Inverter();
@@ -245,6 +269,10 @@ public class SimulationWorkerEdgeCaseTest {
         assertEquals("Max charge should be 0 at 100% SOC", 0.0, maxCharge, 0.001);
     }
 
+    /**
+     * Tests battery behavior at exact boundary conditions.
+     * Verifies proper handling at discharge thresholds and capacity limits.
+     */
     @Test
     public void testBatteryAtExactBoundaries() {
         Battery battery = new Battery();
@@ -273,6 +301,10 @@ public class SimulationWorkerEdgeCaseTest {
 
     // ====== Tests for load shift and discharge scheduling edge cases ======
 
+    /**
+     * Tests ChargeFromGrid with zero rows to process.
+     * Verifies proper handling of empty simulation datasets.
+     */
     @Test
     public void testChargeFromGridWithZeroRowsToProcess() {
         List<LoadShift> loadShifts = new ArrayList<>();
@@ -287,6 +319,10 @@ public class SimulationWorkerEdgeCaseTest {
         assertEquals("Should handle zero rows", 0, cfg.mStopAt.size());
     }
 
+    /**
+     * Tests ForceDischargeToGrid with zero rows configuration.
+     * Verifies proper handling of empty forced discharge schedules.
+     */
     @Test
     public void testForceDischargeToGridWithZeroRows() {
         List<DischargeToGrid> discharges = new ArrayList<>();
@@ -305,6 +341,10 @@ public class SimulationWorkerEdgeCaseTest {
 
     // ====== Tests for inverter loss edge cases ======
 
+    /**
+     * Tests inverter behavior with 100% efficiency loss configuration.
+     * Verifies that complete loss results in zero energy conversion.
+     */
     @Test
     public void testInverterWith100PercentLoss() {
         Inverter inverter = new Inverter();
@@ -322,6 +362,10 @@ public class SimulationWorkerEdgeCaseTest {
         assertEquals("DC to DC loss should be 0", 0.0, iData.dc2dcLoss, 0.001);
     }
 
+    /**
+     * Tests inverter behavior with zero efficiency loss configuration.
+     * Verifies perfect energy conversion with no losses applied.
+     */
     @Test
     public void testInverterWithZeroLoss() {
         Inverter inverter = new Inverter();
@@ -341,6 +385,10 @@ public class SimulationWorkerEdgeCaseTest {
 
     // ====== Tests for discharge stop edge cases ======
 
+    /**
+     * Tests battery with zero discharge stop threshold.
+     * Verifies battery can discharge completely to 0% SOC when configured.
+     */
     @Test
     public void testBatteryWithZeroDischargeStop() {
         Inverter inverter = new Inverter();
@@ -362,6 +410,10 @@ public class SimulationWorkerEdgeCaseTest {
         assertEquals("Should be able to discharge full SOC", 1.0, dischargeCapacity, 0.001);
     }
 
+    /**
+     * Tests battery with 100% discharge stop threshold.
+     * Verifies battery cannot discharge when threshold is set to maximum.
+     */
     @Test
     public void testBatteryWith100PercentDischargeStop() {
         Inverter inverter = new Inverter();

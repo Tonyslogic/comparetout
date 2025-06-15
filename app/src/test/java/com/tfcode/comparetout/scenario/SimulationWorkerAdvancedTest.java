@@ -72,6 +72,10 @@ public class SimulationWorkerAdvancedTest {
         assertFalse(iData.isHotWaterHeatingScheduled(1, 1, 720)); // Monday, January, 12:00
     }
 
+    /**
+     * Tests hot water heating schedule with day-of-week conversion logic.
+     * Verifies proper calendar day conversion and schedule matching.
+     */
     @Test
     public void testIsHotWaterHeatingScheduledDayOfWeekConversion() {
         Inverter inverter = new Inverter();
@@ -92,6 +96,10 @@ public class SimulationWorkerAdvancedTest {
         assertFalse(iData.isHotWaterHeatingScheduled(0, 1, 720)); // Sunday
     }
 
+    /**
+     * Tests EV charging detection with null charge schedules.
+     * Verifies proper handling when no EV charging configurations exist.
+     */
     @Test
     public void testIsEVChargingNullCharges() {
         Inverter inverter = new Inverter();
@@ -104,6 +112,10 @@ public class SimulationWorkerAdvancedTest {
         assertNull(iData.isEVCharging(1, 1, 720));
     }
 
+    /**
+     * Tests EV divert retrieval with null divert configurations.
+     * Verifies proper null handling for EV divert scenarios.
+     */
     @Test
     public void testGetEVDivertOrNullNullDiverts() {
         Inverter inverter = new Inverter();
@@ -116,6 +128,10 @@ public class SimulationWorkerAdvancedTest {
         assertNull(iData.getEVDivertOrNull(1, 1, 720));
     }
 
+    /**
+     * Tests getMaxChargeForSOC method with boundary conditions.
+     * Verifies charge capacity calculation at extreme SOC values (0%, 100%).
+     */
     @Test
     public void testGetMaxChargeForSOCBoundaryConditions() {
         Battery battery = new Battery();
@@ -141,6 +157,10 @@ public class SimulationWorkerAdvancedTest {
         assertEquals(1.0, result, 0.001); // Should use percent90 (50% of 2.0)
     }
 
+    /**
+     * Tests InputData constructor with complex multi-component configuration.
+     * Verifies proper initialization with inverters, batteries, and all loss calculations.
+     */
     @Test
     public void testInputDataWithComplexConfiguration() {
         Inverter inverter = new Inverter();
@@ -176,6 +196,10 @@ public class SimulationWorkerAdvancedTest {
 
     // ====== Tests for edge cases in processOneRow ======
 
+    /**
+     * Tests processOneRow behavior with null input row data.
+     * Verifies proper error handling and graceful degradation with missing data.
+     */
     @Test
     public void testProcessOneRowWithNullInputRow() {
         long scenarioID = 1;
@@ -189,6 +213,10 @@ public class SimulationWorkerAdvancedTest {
         assertTrue("Output rows should remain empty", outputRows.isEmpty());
     }
 
+    /**
+     * Tests processOneRow with various inverter loss configurations.
+     * Verifies AC/DC conversion losses are properly applied to energy calculations.
+     */
     @Test
     public void testProcessOneRowWithInverterLosses() {
         long scenarioID = 1;
@@ -221,6 +249,10 @@ public class SimulationWorkerAdvancedTest {
         assertEquals(tpv, aRow.getPv(), 0.001); // Raw PV should be unchanged
     }
 
+    /**
+     * Tests processOneRow with maximum inverter load limitations.
+     * Verifies that inverter capacity constraints are properly enforced.
+     */
     @Test
     public void testProcessOneRowWithMaxInverterLoad() {
         long scenarioID = 1;
@@ -261,6 +293,10 @@ public class SimulationWorkerAdvancedTest {
         assertTrue("Feed + charge should not exceed inverter limit", actualFeedAndCharge <= maxFeedAndCharge + 0.001);
     }
 
+    /**
+     * Tests processOneRow for second row processing with previous simulation data.
+     * Verifies state continuity and proper handling of previous row results.
+     */
     @Test
     public void testProcessOneRowSecondRowWithPreviousData() {
         long scenarioID = 1;
@@ -298,6 +334,10 @@ public class SimulationWorkerAdvancedTest {
         assertEquals("Second row should have correct PV", 1.8, secondRow.getPv(), 0.001);
     }
 
+    /**
+     * Tests ChargeFromGrid sorting logic with multiple overlapping load shifts.
+     * Verifies proper chronological ordering of CFG periods.
+     */
     @Test
     public void testChargeFromGridSortLoadShiftsWithMultipleShifts() {
         // Test the sortLoadShifts method indirectly through constructor
@@ -328,6 +368,10 @@ public class SimulationWorkerAdvancedTest {
         // (Full testing would require setting up complete LoadShift objects with days/months)
     }
 
+    /**
+     * Tests ForceDischargeToGrid sorting logic with multiple discharge periods.
+     * Verifies proper chronological ordering of forced discharge periods.
+     */
     @Test
     public void testForceDischargeToGridSortDischargesWithMultipleDischarges() {
         // Test the sortDischarges method indirectly through constructor
@@ -352,6 +396,10 @@ public class SimulationWorkerAdvancedTest {
         assertEquals(rowsToProcess, fdtg.mRate.size());
     }
 
+    /**
+     * Tests processOneRow with minimum excess threshold and battery charging.
+     * Verifies that small PV excess below threshold doesn't trigger battery charging.
+     */
     @Test
     public void testProcessOneRowWithMinExcessAndCharging() {
         long scenarioID = 1;
@@ -391,6 +439,10 @@ public class SimulationWorkerAdvancedTest {
         assertEquals("SOC should remain at initial value", battery.getBatterySize(), aRow.getSOC(), 0.001);
     }
 
+    /**
+     * Tests edge case handling when battery SOC drops below zero.
+     * Verifies proper boundary enforcement and error handling for negative SOC values.
+     */
     @Test
     public void testBatterySOCBelowZero() {
         // Test edge case where SOC might go below zero due to calculation errors
