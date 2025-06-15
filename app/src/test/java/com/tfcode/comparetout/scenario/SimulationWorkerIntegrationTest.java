@@ -63,7 +63,7 @@ public class SimulationWorkerIntegrationTest {
         Map<Inverter, SimulationWorker.InputData> inputDataMap = new HashMap<>();
 
         Inverter inverter = new Inverter();
-        inverter.setDc2acLoss(5.0);
+        inverter.setDc2acLoss(5);
         
         Battery battery = new Battery();
         battery.setBatterySize(10.0);
@@ -200,7 +200,7 @@ public class SimulationWorkerIntegrationTest {
         // Setup first inverter with battery
         Inverter inverter1 = new Inverter();
         inverter1.setInverterIndex(1);
-        inverter1.setDc2acLoss(5.0);
+        inverter1.setDc2acLoss(5);
         
         Battery battery1 = new Battery();
         battery1.setBatterySize(8.0);
@@ -218,7 +218,7 @@ public class SimulationWorkerIntegrationTest {
         // Setup second inverter without battery
         Inverter inverter2 = new Inverter();
         inverter2.setInverterIndex(2);
-        inverter2.setDc2acLoss(8.0);
+        inverter2.setDc2acLoss(8);
 
         List<SimulationInputData> simulationInputData1 = new ArrayList<>();
         simulationInputData1.add(createSID(2.0, 3.0)); // 2kW load, 3kW PV

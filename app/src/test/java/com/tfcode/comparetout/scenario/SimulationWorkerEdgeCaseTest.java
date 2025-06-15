@@ -308,9 +308,9 @@ public class SimulationWorkerEdgeCaseTest {
     @Test
     public void testInverterWith100PercentLoss() {
         Inverter inverter = new Inverter();
-        inverter.setDc2acLoss(100.0); // 100% loss
-        inverter.setAc2dcLoss(100.0);
-        inverter.setDc2dcLoss(100.0);
+        inverter.setDc2acLoss(100); // 100% loss
+        inverter.setAc2dcLoss(100);
+        inverter.setDc2dcLoss(100);
 
         List<SimulationInputData> inputData = new ArrayList<>();
         SimulationWorker.InputData iData = new SimulationWorker.InputData(
@@ -325,9 +325,9 @@ public class SimulationWorkerEdgeCaseTest {
     @Test
     public void testInverterWithZeroLoss() {
         Inverter inverter = new Inverter();
-        inverter.setDc2acLoss(0.0); // No loss
-        inverter.setAc2dcLoss(0.0);
-        inverter.setDc2dcLoss(0.0);
+        inverter.setDc2acLoss(0); // No loss
+        inverter.setAc2dcLoss(0);
+        inverter.setDc2dcLoss(0);
 
         List<SimulationInputData> inputData = new ArrayList<>();
         SimulationWorker.InputData iData = new SimulationWorker.InputData(

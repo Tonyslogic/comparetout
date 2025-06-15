@@ -58,6 +58,10 @@ public class SimulationWorkerHelperTest {
 
     // ====== Tests for static helper methods ======
 
+    /**
+     * Tests battery charging logic with a single battery configuration.
+     * Verifies proper SOC increase and capacity handling during PV excess periods.
+     */
     @Test
     public void testChargeBatteriesWithSingleBattery() {
         // Test the private static method chargeBatteries via processOneRow
@@ -94,6 +98,10 @@ public class SimulationWorkerHelperTest {
         assertTrue("SOC should increase", outputRows.get(0).getSOC() > 5.0);
     }
 
+    /**
+     * Tests battery charging logic with multiple batteries in the system.
+     * Verifies proper charge distribution and individual battery SOC management.
+     */
     @Test
     public void testChargeBatteriesWithMultipleBatteries() {
         // Test charging distribution across multiple batteries
@@ -145,6 +153,10 @@ public class SimulationWorkerHelperTest {
         assertTrue("PV to charge should be > 0", outputRows.get(0).getPvToCharge() > 0);
     }
 
+    /**
+     * Tests battery discharge logic with a single battery configuration.
+     * Verifies proper SOC reduction and discharge threshold behavior during shortage periods.
+     */
     @Test
     public void testDischargeBatteriesWithSingleBattery() {
         // Test battery discharge when load exceeds PV
@@ -175,6 +187,10 @@ public class SimulationWorkerHelperTest {
         assertTrue("Should still need to buy some power", outputRows.get(0).getBuy() > 0);
     }
 
+    /**
+     * Tests battery discharge logic with multiple batteries in the system.
+     * Verifies proper discharge distribution and coordinated battery management.
+     */
     @Test
     public void testDischargeBatteriesMultipleBatteries() {
         // Test discharge distribution across multiple batteries
@@ -219,6 +235,10 @@ public class SimulationWorkerHelperTest {
         assertTrue("Total SOC should decrease", outputRows.get(0).getSOC() < 12.0); // 8.0 + 4.0
     }
 
+    /**
+     * Tests Charge From Grid (CFG) functionality when batteries need charging.
+     * Verifies grid-to-battery charging during load shifting periods.
+     */
     @Test
     public void testChargeBatteriesFromGridIfNeeded() {
         // Test grid charging when load shift is active
@@ -264,6 +284,10 @@ public class SimulationWorkerHelperTest {
         assertTrue("Buy should include grid charging", outputRows.get(0).getBuy() > 1.0);
     }
 
+    /**
+     * Tests behavior when battery reaches discharge stop threshold.
+     * Verifies that battery discharge ceases at configured minimum SOC level.
+     */
     @Test
     public void testBatteryAtDischargeStop() {
         // Test that battery doesn't discharge below discharge stop
@@ -294,6 +318,10 @@ public class SimulationWorkerHelperTest {
         assertEquals("Should buy all power from grid", 5.0, outputRows.get(0).getBuy(), 0.001);
     }
 
+    /**
+     * Tests behavior when battery is fully charged (100% SOC).
+     * Verifies that battery cannot accept additional charge when at maximum capacity.
+     */
     @Test
     public void testBatteryFullyCharged() {
         // Test behavior when battery is fully charged
@@ -330,6 +358,10 @@ public class SimulationWorkerHelperTest {
         assertTrue("Excess should feed to grid", outputRows.get(0).getFeed() > 0);
     }
 
+    /**
+     * Tests scenario with zero PV generation and high load demand.
+     * Verifies system behavior during periods with no solar generation.
+     */
     @Test
     public void testZeroPVHighLoad() {
         // Test scenario with no PV and high load
@@ -362,6 +394,10 @@ public class SimulationWorkerHelperTest {
         assertEquals("No PV to charge", 0.0, outputRows.get(0).getPvToCharge(), 0.001);
     }
 
+    /**
+     * Tests balanced scenario where PV generation exactly matches load demand.
+     * Verifies system behavior when there's no excess or shortage of energy.
+     */
     @Test
     public void testPVExactlyMatchesLoad() {
         // Test scenario where PV exactly matches load

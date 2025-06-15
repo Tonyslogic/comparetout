@@ -43,6 +43,11 @@ import java.util.Map;
 
 public class SimulationWorkerTest {
 
+    /**
+     * Tests basic simulation with one inverter, one battery, and always-active load shift.
+     * Verifies PV excess feeds to grid, battery stays full when CFG is enabled, and
+     * discharge behavior when discharge threshold is lowered.
+     */
     @Test
     public void processOneRow_OneInverter_OneBattery_AlwaysLoadShift() {
         long scenarioID = 1;
@@ -148,6 +153,10 @@ public class SimulationWorkerTest {
         assertEquals(tpv, aRow.getPv(), 0);
     }
 
+    /**
+     * Tests simulation with two inverters sharing one battery.
+     * Verifies proper load distribution and battery management across multiple inverters.
+     */
     @Test
     public void processOneRow_TwoInvertersOneBattery() {
         long scenarioID = 1;
@@ -191,6 +200,10 @@ public class SimulationWorkerTest {
         assertEquals(0, aRow.getBatToLoad(), 0);
     }
 
+    /**
+     * Tests simulation with two separate batteries in the system.
+     * Verifies independent battery operation and proper charge/discharge distribution.
+     */
     @Test
     public void processOneRow_TwoBatteries() {
         long scenarioID = 1;
@@ -284,6 +297,10 @@ public class SimulationWorkerTest {
 
     }
 
+    /**
+     * Tests basic single battery operation with various charge/discharge scenarios.
+     * Validates SOC management and energy flow calculations.
+     */
     @Test
     public void processOneRow_OneBattery() {
         long scenarioID = 1;
@@ -416,13 +433,17 @@ public class SimulationWorkerTest {
 
     // ====== Tests for InputData class methods ======
 
+    /**
+     * Tests InputData constructor with complete inverter and battery setup.
+     * Verifies correct initialization of loss factors and capacity calculations.
+     */
     @Test
     public void testInputDataConstructor() {
         Inverter inverter = new Inverter();
         inverter.setInverterIndex(1);
-        inverter.setDc2acLoss(5.0);
-        inverter.setAc2dcLoss(3.0);
-        inverter.setDc2dcLoss(2.0);
+        inverter.setDc2acLoss(5);
+        inverter.setAc2dcLoss(3);
+        inverter.setDc2dcLoss(2);
 
         Battery battery = new Battery();
         battery.setStorageLoss(1.5);
@@ -444,6 +465,10 @@ public class SimulationWorkerTest {
         assertNotNull(iData.mEVDivertDailyTotals);
     }
 
+    /**
+     * Tests InputData constructor behavior when battery is null.
+     * Verifies proper handling of missing battery configuration.
+     */
     @Test
     public void testInputDataConstructorWithNullBattery() {
         Inverter inverter = new Inverter();
@@ -455,6 +480,10 @@ public class SimulationWorkerTest {
         assertEquals(0.0, iData.storageLoss, 0.001);
     }
 
+    /**
+     * Tests getDischargeStop method with various SOC levels.
+     * Verifies discharge threshold calculation and SOC-based stopping behavior.
+     */
     @Test
     public void testGetDischargeStop() {
         Inverter inverter = new Inverter();
@@ -470,6 +499,10 @@ public class SimulationWorkerTest {
         assertEquals(expected, iData.getDischargeStop(), 0.001);
     }
 
+    /**
+     * Tests getChargeCapacity method for different SOC levels and PV availability.
+     * Verifies maximum charging capacity calculation based on battery state.
+     */
     @Test
     public void testGetChargeCapacity() {
         Inverter inverter = new Inverter();
@@ -499,6 +532,10 @@ public class SimulationWorkerTest {
         assertEquals(expected, iData.getChargeCapacity(), 0.001);
     }
 
+    /**
+     * Tests getDischargeCapacity method for various battery SOC states.
+     * Verifies discharge capacity calculation considering battery limits and thresholds.
+     */
     @Test
     public void testGetDischargeCapacity() {
         Inverter inverter = new Inverter();
@@ -528,6 +565,10 @@ public class SimulationWorkerTest {
         assertEquals(expected, iData.getDischargeCapacity(0), 0.001);
     }
 
+    /**
+     * Tests getDischargeCapacity method when Charge From Grid (CFG) is active.
+     * Verifies that CFG prevents battery discharge during load shifting periods.
+     */
     @Test
     public void testGetDischargeCapacityWithCFG() {
         Inverter inverter = new Inverter();
@@ -551,6 +592,10 @@ public class SimulationWorkerTest {
         assertEquals(0.0, iData.getDischargeCapacity(0), 0.001);
     }
 
+    /**
+     * Tests isCFG method to verify Charge From Grid scheduling logic.
+     * Validates time-based CFG activation during specified periods.
+     */
     @Test
     public void testIsCFG() {
         Inverter inverter = new Inverter();
@@ -574,6 +619,10 @@ public class SimulationWorkerTest {
         assertTrue(iData.isCFG(0)); // Should be true for 24/7 schedule
     }
 
+    /**
+     * Tests getMaxChargeForSOC static method for various SOC levels.
+     * Verifies maximum charge calculation based on battery state of charge.
+     */
     @Test
     public void testGetMaxChargeForSOC() {
         Battery battery = new Battery();
@@ -609,6 +658,10 @@ public class SimulationWorkerTest {
 
     // ====== Tests for ChargeFromGrid class ======
 
+    /**
+     * Tests ChargeFromGrid constructor with load shift schedules.
+     * Verifies proper initialization of CFG periods and row counts.
+     */
     @Test
     public void testChargeFromGridConstructor() {
         List<LoadShift> loadShifts = new ArrayList<>();
@@ -627,6 +680,10 @@ public class SimulationWorkerTest {
         assertEquals(rowsToProcess, cfg.mStopAt.size());
     }
 
+    /**
+     * Tests ChargeFromGrid constructor with empty load shift list.
+     * Verifies proper handling of configurations without CFG periods.
+     */
     @Test
     public void testChargeFromGridEmptyLoadShifts() {
         List<LoadShift> loadShifts = new ArrayList<>();
@@ -647,6 +704,10 @@ public class SimulationWorkerTest {
 
     // ====== Tests for ForceDischargeToGrid class ======
 
+    /**
+     * Tests ForceDischargeToGrid constructor with discharge schedules.
+     * Verifies proper initialization of forced discharge periods.
+     */
     @Test
     public void testForceDischargeToGridConstructor() {
         List<DischargeToGrid> discharges = new ArrayList<>();
@@ -666,6 +727,10 @@ public class SimulationWorkerTest {
         assertEquals(rowsToProcess, fdtg.mRate.size());
     }
 
+    /**
+     * Tests ForceDischargeToGrid constructor with empty discharge list.
+     * Verifies proper handling of configurations without forced discharge periods.
+     */
     @Test
     public void testForceDischargeToGridEmptyDischarges() {
         List<DischargeToGrid> discharges = new ArrayList<>();
@@ -689,6 +754,10 @@ public class SimulationWorkerTest {
 
     // ====== Tests for additional processOneRow scenarios ======
 
+    /**
+     * Tests simulation behavior when no battery is present in the system.
+     * Verifies direct PV-to-grid feed and load-from-grid scenarios without battery storage.
+     */
     @Test
     public void processOneRow_NoBattery() {
         long scenarioID = 1;
@@ -722,6 +791,10 @@ public class SimulationWorkerTest {
         assertEquals(tpv, aRow.getPv(), 0.001);
     }
 
+    /**
+     * Tests simulation scenario where load demand exceeds PV generation.
+     * Verifies proper grid purchase calculation and battery discharge behavior.
+     */
     @Test
     public void processOneRow_LoadExceedsPV() {
         long scenarioID = 1;
@@ -754,6 +827,10 @@ public class SimulationWorkerTest {
         assertEquals(tpv, aRow.getPv(), 0.001);
     }
 
+    /**
+     * Tests minimum excess threshold functionality in the inverter.
+     * Verifies that PV excess below minimum threshold doesn't trigger battery charging.
+     */
     @Test
     public void processOneRow_MinExcessTest() {
         long scenarioID = 1;
@@ -785,5 +862,4 @@ public class SimulationWorkerTest {
         assertEquals(load, aRow.getLoad(), 0.001);
         assertEquals(tpv, aRow.getPv(), 0.001);
     }
-}
 }

@@ -56,6 +56,10 @@ public class SimulationWorkerAdvancedTest {
 
     // ====== Tests for InputData advanced methods ======
 
+    /**
+     * Tests hot water heating schedule checking with null schedules.
+     * Verifies proper handling when no hot water schedules are configured.
+     */
     @Test
     public void testIsHotWaterHeatingScheduledNullSchedules() {
         Inverter inverter = new Inverter();
@@ -141,9 +145,9 @@ public class SimulationWorkerAdvancedTest {
     public void testInputDataWithComplexConfiguration() {
         Inverter inverter = new Inverter();
         inverter.setInverterIndex(5);
-        inverter.setDc2acLoss(8.0);
-        inverter.setAc2dcLoss(6.0);
-        inverter.setDc2dcLoss(4.0);
+        inverter.setDc2acLoss(8);
+        inverter.setAc2dcLoss(6);
+        inverter.setDc2dcLoss(4);
 
         Battery battery = new Battery();
         battery.setStorageLoss(2.5);
@@ -192,7 +196,7 @@ public class SimulationWorkerAdvancedTest {
         Map<Inverter, SimulationWorker.InputData> inputDataMap = new HashMap<>();
 
         Inverter inverter = new Inverter();
-        inverter.setDc2acLoss(10.0); // 10% loss
+        inverter.setDc2acLoss(10); // 10% loss
         
         Battery battery = new Battery();
         battery.setDischargeStop(100.0); // Prevent discharge
