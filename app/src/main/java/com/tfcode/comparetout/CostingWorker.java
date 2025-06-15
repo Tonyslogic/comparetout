@@ -41,12 +41,41 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Background worker for calculating energy costs across scenarios and price plans.
+ * 
+ * This WorkManager Worker performs intensive cost calculation operations in the background,
+ * computing the financial impact of different energy usage scenarios against various
+ * electricity pricing plans. The worker processes large datasets of simulation data
+ * to generate cost comparisons that help users optimize their energy configurations.
+ * 
+ * Key responsibilities:
+ * - Calculate costs for each scenario/price plan combination
+ * - Apply time-of-use rates, standing charges, and export tariffs
+ * - Handle special pricing rules like deemed export calculations
+ * - Provide progress notifications during long-running calculations
+ * - Manage efficient rate lookup caching to optimize performance
+ * 
+ * The worker uses a sophisticated rate lookup system that accounts for:
+ * - Day of year (seasonal variations)
+ * - Minute of day (time-of-use periods)
+ * - Day of week (weekend vs weekday rates)
+ * - Usage type (import vs export)
+ * 
+ * Results are stored in the Costings table for comparison visualization.
+ */
 public class CostingWorker extends Worker {
 
     private final ToutcRepository mToutcRepository;
     private final Map<Long, RateLookup> mLookups;
     private final Context mContext;
 
+    /**
+     * Initialize the costing worker with repository access and rate lookup caching.
+     * 
+     * @param context the application context for database and notification access
+     * @param workerParams WorkManager parameters for job configuration
+     */
     public CostingWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
         mToutcRepository = new ToutcRepository((Application) context);
@@ -54,10 +83,31 @@ public class CostingWorker extends Worker {
         mContext = context;
     }
 
+    /**
+     * Perform the cost calculation work in the background.
+     * 
+     * This method orchestrates the entire cost calculation process:
+     * 1. Clean up obsolete costing data to maintain database efficiency
+     * 2. Identify scenarios that need cost calculations
+     * 3. Load all available price plans for comparison
+     * 4. For each scenario/plan combination, calculate detailed costs
+     * 5. Store results and provide user feedback via notifications
+     * 
+     * The calculation process handles several cost components:
+     * - Energy import costs using time-of-use rates
+     * - Export payments (feed-in tariffs) with deemed export rules
+     * - Standing charges and connection fees
+     * - Sign-up bonuses and promotional credits
+     * 
+     * Progress notifications keep users informed during long calculations,
+     * with throttling to avoid notification spam while maintaining responsiveness.
+     * 
+     * @return Result.success() in all cases to avoid WorkManager retry loops
+     */
     @NonNull
     @Override
     public Result doWork() {
-        // Find distinct scenarios
+        // Clean up obsolete costings to maintain database performance
         mToutcRepository.pruneCostings();
         List<Long> scenarioIDs = mToutcRepository.getAllScenariosThatMayNeedCosting();
 
@@ -82,7 +132,7 @@ public class CostingWorker extends Worker {
                 int PROGRESS_MAX = 100;
                 int PROGRESS_CURRENT = 0;
 
-                // Load PricePlans
+                // Load all price plans for cost comparison
                 List<PricePlan> plans = mToutcRepository.getAllPricePlansNow();
                 int PROGRESS_CHUNK = PROGRESS_MAX;
                 if ((!scenarioIDs.isEmpty()) && (!plans.isEmpty())) {
@@ -103,7 +153,7 @@ public class CostingWorker extends Worker {
                     if (!scenarioData.isEmpty()) {
                         long notifyTime = System.nanoTime();
                         for (PricePlan pp : plans) {
-                            // Confirm the need for costing
+                            // Skip if costing already exists to avoid duplicate work
                             if (mToutcRepository.costingExists(scenarioID, pp.getPricePlanIndex()))
                                 continue;
                             builder.setContentText(pp.getPlanName());
@@ -111,6 +161,7 @@ public class CostingWorker extends Worker {
                                 notifyTime = System.nanoTime();
                                 sendNotification(notificationManager, notificationId, builder);
                             }
+                            // Use cached rate lookup for performance - building lookup tables is expensive
                             RateLookup lookup = mLookups.get(pp.getPricePlanIndex());
                             if (null == lookup) {
                                 lookup = new RateLookup(pp,
@@ -126,6 +177,8 @@ public class CostingWorker extends Worker {
                             double sell = 0D;
                             double net;
                             SubTotals subTotals = new SubTotals();
+                            
+                            // Calculate costs for each simulation data point
                             for (ScenarioSimulationData row : scenarioData) {
                                 double price = lookup.getRate(row.getDayOf2001(), row.getMinuteOfDay(),
                                         (row.getDayOfWeek() == 7) ? 0 : row.getDayOfWeek(), row.getBuy());
@@ -138,10 +191,14 @@ public class CostingWorker extends Worker {
                             costing.setSell(sell);
                             costing.setSubTotals(subTotals);
                             double days = 365; // TODO look at the biggest & smallest dates in the sim data
+                            
+                            // Apply deemed export calculation for solar systems if configured
                             if (pp.isDeemedExport() && scenario.isHasInverters()) {
                                 sell = gridExportMax * 0.8148 * days * pp.getFeed();
                                 costing.setSell(sell);
                             }
+                            
+                            // Calculate final net cost including standing charges and bonuses
                             net = ((buy - sell) + (pp.getStandingCharges() * 100 * (days / 365))) - (pp.getSignUpBonus() * 100);
                             costing.setNet(net);
                             // store in comparison table
@@ -186,6 +243,18 @@ public class CostingWorker extends Worker {
         return Result.success();
     }
 
+    /**
+     * Send a notification to the user with permission checking.
+     * 
+     * Safely sends progress notifications while respecting the user's
+     * notification permissions. If notifications are disabled, the
+     * method silently returns without error to avoid disrupting
+     * the background calculation process.
+     * 
+     * @param notificationManager the system notification manager
+     * @param notificationId unique identifier for this notification series
+     * @param builder the notification builder with updated content
+     */
     private void sendNotification(NotificationManagerCompat notificationManager, int notificationId, NotificationCompat.Builder builder) {
         if (ActivityCompat.checkSelfPermission(
                 mContext, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return;
