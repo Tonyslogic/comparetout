@@ -38,24 +38,71 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-
+/**
+ * Data Access Object for managing AlphaESS solar inverter system data.
+ * 
+ * This DAO handles three main types of AlphaESS data with complex time-based aggregations:
+ * 
+ * 1. **Raw Energy Data**: Daily energy totals from the AlphaESS API
+ *    - Daily PV generation, battery charge/discharge, grid import/export
+ *    - Used for high-level energy accounting and KPI calculations
+ * 
+ * 2. **Raw Power Data**: High-frequency power measurements (5-minute intervals)
+ *    - Real-time power flows for detailed analysis
+ *    - Used for battery modeling and charge pattern analysis
+ * 
+ * 3. **Transformed Data**: Processed 5-minute interval data 
+ *    - Normalized format for cost calculations and scenario modeling
+ *    - Derived from raw data with additional calculated fields
+ * 
+ * Key Aggregation Patterns:
+ * - Time-based grouping: hour, day-of-year, day-of-week, month, year
+ * - SUM aggregations for energy totals (kWh calculations)  
+ * - AVG aggregations for typical usage patterns
+ * - Complex date/time manipulation using SQLite strftime functions
+ * 
+ * The DAO supports:
+ * - Data import and synchronization with AlphaESS cloud
+ * - Time-series analysis for energy pattern identification
+ * - Battery performance modeling and optimization
+ * - Cost calculation input data preparation
+ * - Statistical analysis and KPI generation
+ */
 @Dao
 public abstract class AlphaEssDAO {
 
+    /**
+     * Insert or replace raw energy data from AlphaESS API.
+     * Uses REPLACE strategy for data synchronization.
+     * @param energy Daily energy totals record
+     */
     @Insert (onConflict = OnConflictStrategy.REPLACE)
     public abstract void addRawEnergy(AlphaESSRawEnergy energy);
 
+    /**
+     * Insert raw power data, ignoring duplicates to handle API retries.
+     * @param power List of 5-minute power measurement records
+     */
     @Insert (onConflict = OnConflictStrategy.IGNORE)
     public abstract void addRawPower(List<AlphaESSRawPower> power);
 
+    /**
+     * Insert or replace transformed data for analysis.
+     * @param data List of processed 5-minute interval records
+     */
     @Insert (onConflict = OnConflictStrategy.REPLACE)
     public abstract void addTransformedData(List<AlphaESSTransformedData> data);
 
+    /**
+     * Remove all AlphaESS data for a specific system serial number.
+     * Performs cascading deletion to maintain data consistency.
+     * @param systemSN The system serial number to clear
+     */
     @Transaction
     public void clearAlphaESSDataForSN(String systemSN) {
-        deleteAlphaESSPowerForSN(systemSN);
-        deleteAlphaESSEnergyForSN(systemSN);
-        deleteAlphaESSTransformedForSN(systemSN);
+        deleteAlphaESSPowerForSN(systemSN);      // 5-minute power data
+        deleteAlphaESSEnergyForSN(systemSN);     // Daily energy data  
+        deleteAlphaESSTransformedForSN(systemSN); // Processed data
     }
 
     @Query("DELETE FROM alphaESSTransformedData WHERE sysSn = :systemSN")
@@ -98,6 +145,24 @@ public abstract class AlphaEssDAO {
     @Query("SELECT CASE WHEN EXISTS (SELECT sysSn, theDate FROM alphaESSRawEnergy WHERE sysSn = :sysSn AND theDate = :date) THEN 1 ELSE 0 END AS date_exists")
     public abstract boolean checkSysSnForDataOnDate(String sysSn, String date);
 
+    /**
+     * Aggregate energy data by hour of day across a date range.
+     * 
+     * Query breakdown:
+     * - SUM(pv/load/feed/buy) AS PV/LOAD/FEED/BUY: Total energy by category
+     * - TOTAL(CASE WHEN charge > 0 THEN charge ELSE 0 END): Sum positive battery charging
+     * - ABS(TOTAL(CASE WHEN charge < 0 THEN charge ELSE 0 END)): Sum absolute discharge values
+     * - cast(strftime('%H', minute) as INTEGER): Extract hour (0-23) from time string
+     * - GROUP BY INTERVAL: Aggregate all data points for each hour
+     * 
+     * This creates 24 rows (one per hour) showing typical energy flows throughout the day.
+     * Used for identifying peak generation/consumption periods and optimizing battery schedules.
+     * 
+     * @param sysSN System serial number to filter
+     * @param from Start date (YYYY-MM-DD format)
+     * @param to End date (YYYY-MM-DD format)
+     * @return List of hourly energy totals (24 entries, 0-23 hours)
+     */
     @Query("SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
             "0 AS PV2BAT, 0 AS PV2LOAD, 0 AS BAT2LOAD, 0 AS GRID2BAT, 0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT," +
             "0 AS BAT2GRID, TOTAL(CASE WHEN charge > 0 THEN charge ELSE 0 END) AS BAT_CHARGE, ABS(TOTAL(CASE WHEN charge < 0 THEN charge ELSE 0 END)) AS BAT_DISCHARGE, " +
@@ -105,6 +170,20 @@ public abstract class AlphaEssDAO {
             "FROM alphaESSTransformedData WHERE date >= :from AND date <= :to AND sysSn = :sysSN GROUP BY  INTERVAL ORDER BY INTERVAL")
     public abstract List<IntervalRow> sumHour(String sysSN, String from, String to);
 
+    /**
+     * Aggregate energy data by day of year (1-365/366).
+     * 
+     * Query uses strftime('%j', date) to extract the day of year number.
+     * This creates daily totals across the specified date range, useful for:
+     * - Identifying seasonal patterns
+     * - Finding best/worst performing days
+     * - Calculating daily energy balance
+     * 
+     * @param sysSN System serial number to filter
+     * @param from Start date (YYYY-MM-DD format)  
+     * @param to End date (YYYY-MM-DD format)
+     * @return List of daily energy totals ordered by day of year
+     */
     @Query("SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
             "0 AS PV2BAT, 0 AS PV2LOAD, 0 AS BAT2LOAD, 0 AS GRID2BAT, 0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT," +
             "0 AS BAT2GRID, TOTAL(CASE WHEN charge > 0 THEN charge ELSE 0 END) AS BAT_CHARGE, ABS(TOTAL(CASE WHEN charge < 0 THEN charge ELSE 0 END)) AS BAT_DISCHARGE, " +
@@ -133,6 +212,26 @@ public abstract class AlphaEssDAO {
             "FROM alphaESSTransformedData WHERE date >= :from AND date <= :to AND sysSn = :sysSN GROUP BY INTERVAL ORDER BY INTERVAL")
     public abstract List<IntervalRow> sumYear(String sysSN, String from, String to);
 
+    /**
+     * Calculate average hourly energy patterns across multiple days.
+     * 
+     * This complex nested query:
+     * 1. Inner query: Groups data by year + day-of-year + hour to get daily hourly totals
+     * 2. Outer query: Averages these daily totals by hour to find typical hourly patterns
+     * 
+     * Query structure:
+     * - Inner: GROUP BY year, day-of-year, hour -> daily hourly totals
+     * - Outer: GROUP BY hour, AVG() -> average patterns by hour
+     * 
+     * This reveals typical energy flow patterns by hour of day, smoothing out
+     * day-to-day variations to show underlying consumption/generation patterns.
+     * Essential for battery scheduling optimization.
+     * 
+     * @param sysSN System serial number to analyze
+     * @param from Start date for analysis period
+     * @param to End date for analysis period  
+     * @return 24 rows showing average hourly energy flows
+     */
     @Query("SELECT avg(PV) AS PV, AVG(LOAD) AS LOAD, AVG(FEED) AS FEED, AVG(BUY) AS BUY, " +
             "0 AS PV2BAT, 0 AS PV2LOAD, 0 AS BAT2LOAD, 0 AS GRID2BAT, 0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT," +
             "0 AS BAT2GRID, avg(BAT_CHARGE) AS BAT_CHARGE, avg(BAT_DISCHARGE) AS BAT_DISCHARGE, INTERVAL FROM (" +
@@ -201,6 +300,36 @@ public abstract class AlphaEssDAO {
     @Query("SELECT DISTINCT theDate FROM alphaESSRawEnergy WHERE sysSn = :serialNumber ORDER BY theDate ASC")
     public abstract List<String> getExportDatesForSN(String serialNumber);
 
+    /**
+     * Generate comprehensive monthly statistics showing best/worst/average performance.
+     * 
+     * This highly complex multi-table query creates a monthly summary with:
+     * - Total PV generation per month
+     * - Best single day performance (with date)
+     * - Worst single day performance (with date)  
+     * - Monthly average performance
+     * 
+     * Query structure breakdown:
+     * 1. Main query (main): Groups by month, calculates totals, best day, average
+     *    - substr(theDate, 3, 5): Extract MM-DD from YYYY-MM-DD date
+     *    - SUM(energypv): Total monthly PV generation
+     *    - MAX(energypv): Best single day in month
+     *    - AVG(energypv): Monthly average daily generation
+     * 
+     * 2. Worst subquery (worst): Finds minimum daily generation per month
+     *    - MIN(energypv): Worst single day in month
+     *    - Uses same month grouping as main query
+     * 
+     * 3. JOIN condition: WHERE worst.bMonth = main.Month
+     *    - Combines best/worst data for each month
+     * 
+     * Result format: Month, Total_kWh, "Best_kWh on DD", "Worst_kWh on DD", Average_kWh
+     * 
+     * @param from Start date for analysis (YYYY-MM-DD)
+     * @param to End date for analysis (YYYY-MM-DD)
+     * @param systemSN System serial number to analyze
+     * @return Monthly statistics with best/worst day performance
+     */
     @Query("SELECT main.Month, " +
             "tot AS 'PV tot (kWh)', " +
             "best || ' on ' || bestday AS 'Best', " +
@@ -258,6 +387,35 @@ public abstract class AlphaEssDAO {
             "GROUP BY Month ORDER BY Month ASC")
     public abstract List<KeyStatsRow> getHAKeyStats(String from, String to, String systemSN);
 
+    /**
+     * Calculate key performance indicators for the solar system.
+     * 
+     * This query calculates essential solar system metrics:
+     * 
+     * KPI Calculations:
+     * - SC (Self Consumption): ((PV - Export) / PV) * 100
+     *   Percentage of generated solar power used directly vs exported
+     * 
+     * - SS (Self Sufficiency): ((PV - Export) / Load) * 100  
+     *   Percentage of electricity needs met by solar vs grid import
+     * 
+     * - MSS (Max Self Sufficiency): (PV / Load) * 100
+     *   Theoretical maximum self-sufficiency if all PV could be used
+     * 
+     * - PV: Total solar generation (rounded to 2 decimal places)
+     * - FEED: Total grid export (rounded to 2 decimal places)
+     * 
+     * These metrics are fundamental for:
+     * - System performance evaluation
+     * - Battery sizing decisions  
+     * - Economic analysis of solar installations
+     * - Comparison between different system configurations
+     * 
+     * @param from Start date for KPI calculation period
+     * @param to End date for KPI calculation period
+     * @param systemSN System serial number to analyze
+     * @return Single row with all calculated KPIs
+     */
     @Query("SELECT ((sum(pv) - sum(feed)) / sum(pv)) * 100 AS SC, " +
             "((sum(pv) - sum(feed)) / sum(load)) * 100 AS SS, " +
             "((sum(pv) / sum(load)) * 100) AS MSS, " +

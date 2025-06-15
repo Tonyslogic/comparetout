@@ -65,6 +65,44 @@ import com.tfcode.comparetout.model.scenario.SimulationInputData;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Data Access Object managing complex energy system scenario modeling.
+ * 
+ * This DAO orchestrates the most complex data relationships in the application,
+ * managing energy system scenarios and their many-to-many relationships with
+ * various energy system components. Each scenario can contain multiple:
+ * 
+ * **Core Components:**
+ * - Inverters: Power conversion equipment specifications
+ * - Batteries: Energy storage system configurations  
+ * - Panels: Solar panel arrays with generation profiles
+ * - Load Profiles: Electricity consumption patterns
+ * 
+ * **Advanced Components:**
+ * - Hot Water Systems: Thermal storage and heating schedules
+ * - EV Charging: Electric vehicle charging profiles and diversions
+ * - Load Shifting: Demand response and time-of-use optimization
+ * - Grid Discharge: Battery-to-grid energy sales
+ * 
+ * **Database Architecture:**
+ * The system uses junction tables (Scenario2Component pattern) to manage
+ * many-to-many relationships, allowing components to be shared between
+ * scenarios while maintaining independent configurations.
+ * 
+ * **Key Operations:**
+ * - Transactional scenario creation with complete component graphs
+ * - Cascading deletions with orphan cleanup to maintain referential integrity
+ * - Component sharing via linking/copying between scenarios
+ * - Simulation data aggregation for energy flow analysis
+ * - Complex time-based queries for visualization and reporting
+ * 
+ * **Simulation Pipeline:**
+ * 1. Scenario definition with components
+ * 2. Load profile and solar generation data preparation
+ * 3. Energy simulation calculations (external to DAO)
+ * 4. Simulation result storage and aggregation queries
+ * 5. Cost analysis integration with pricing data
+ */
 @Dao
 public abstract class ScenarioDAO {
 
@@ -140,6 +178,38 @@ public abstract class ScenarioDAO {
     @Query("SELECT scenarioIndex FROM scenarios WHERE scenarioName = :scenarioName")
     public abstract long getScenarioID(String scenarioName);
 
+    /**
+     * Create a complete scenario with all its component relationships atomically.
+     * 
+     * This highly complex transactional method manages the creation of a scenario
+     * along with all its associated components and their many-to-many relationships.
+     * 
+     * **Process Overview:**
+     * 1. Set scenario capability flags based on component presence
+     * 2. Insert the main scenario record
+     * 3. For each component type:
+     *    - Insert component records (if needed)
+     *    - Create junction table entries linking components to scenario
+     * 4. Handle existing components (panels, load profiles) that may be reused
+     * 
+     * **Component Handling:**
+     * - New components: Insert with ID=0, get generated ID, create junction record
+     * - Existing components: Use existing ID, create junction record only
+     * - Component sharing: Multiple scenarios can reference same component
+     * 
+     * **Capability Flags:**
+     * The scenario record maintains boolean flags (hasInverters, hasBatteries, etc.)
+     * for UI optimization - avoiding expensive JOIN queries to check component presence.
+     * 
+     * **Clobber Mode:**
+     * If clobber=true, any existing scenario with the same name is deleted first,
+     * allowing for scenario replacement during import operations.
+     * 
+     * @param scenario The main scenario record to create
+     * @param components Container object with all component lists
+     * @param clobber If true, replace any existing scenario with same name
+     * @return The generated scenarioIndex, or 0 if creation failed
+     */
     @Transaction
     long addNewScenarioWithComponents(Scenario scenario, ScenarioComponents components, boolean clobber) {
         if (clobber) {
@@ -271,14 +341,38 @@ public abstract class ScenarioDAO {
         return scenarioID;
     }
 
+    /**
+     * Load all scenarios for reactive UI display.
+     * @return LiveData list of scenarios ordered by name
+     */
     @Query("SELECT * FROM scenarios ORDER BY scenarios.scenarioName ASC")
     public abstract LiveData<List<Scenario>> loadScenarios();
 
+    /**
+     * Get all inverters associated with a specific scenario.
+     * 
+     * Query: SELECT * FROM inverters, scenario2inverter 
+     *        WHERE scenarioID = :id AND inverters.inverterIndex = scenario2inverter.inverterID
+     * 
+     * This query JOINs inverters with the junction table to find all inverters
+     * linked to the given scenario. The @RewriteQueriesToDropUnusedColumns
+     * annotation optimizes the query by only selecting needed columns.
+     * 
+     * @param id The scenarioIndex to find inverters for
+     * @return List of Inverter entities associated with the scenario
+     */
     @Query("SELECT * FROM inverters, scenario2inverter " +
             "WHERE scenarioID = :id AND inverters.inverterIndex = scenario2inverter.inverterID")
     @RewriteQueriesToDropUnusedColumns
     public abstract List<Inverter> getInvertersForScenarioID (long id);
 
+    /**
+     * Get all batteries associated with a specific scenario.
+     * Uses the same junction table pattern as inverters.
+     * 
+     * @param id The scenarioIndex to find batteries for
+     * @return List of Battery entities associated with the scenario
+     */
     @Query("SELECT * FROM batteries, scenario2battery " +
             "WHERE scenarioID = :id AND batteries.batteryIndex = scenario2battery.batteryID")
     @RewriteQueriesToDropUnusedColumns
@@ -453,9 +547,32 @@ public abstract class ScenarioDAO {
             "(SELECT DISTINCT loadProfileID FROM loadprofiledata)")
     public abstract List<Long> checkForMissingLoadProfileData();
 
+    /**
+     * Completely delete a scenario and all its relationships.
+     * 
+     * This complex cascading deletion ensures referential integrity by:
+     * 1. Deleting the main scenario record
+     * 2. Removing all junction table entries (Scenario2Component records)
+     * 3. Cleaning up orphaned components not referenced by other scenarios
+     * 4. Removing associated simulation and costing data
+     * 
+     * **Deletion Order (Critical for Foreign Key Constraints):**
+     * - Main scenario record first
+     * - All junction table relationships
+     * - Orphaned component cleanup
+     * - Related data cleanup (simulation results, cost calculations)
+     * 
+     * **Orphan Cleanup:**
+     * Components shared between scenarios are preserved if still referenced.
+     * Only components with no remaining scenario references are deleted.
+     * 
+     * @param id The scenarioIndex to delete
+     */
     @Transaction
     public void deleteScenario(int id) {
         deleteScenarioRow(id);
+        
+        // Remove all junction table relationships
         deleteBatteryRelationsForScenario(id);
         deleteEVChargeRelationsForScenario(id);
         deleteEVDivertRelationsForScenario(id);
@@ -468,7 +585,7 @@ public abstract class ScenarioDAO {
         deleteDischargeRelationsForScenario(id);
         deletePanelRelationsForScenario(id);
 
-        // Delete orphans e.g. any battery id not in s2b
+        // Clean up orphaned components (not referenced by any scenario)
         deleteOrphanBatteries();
         deleteOrphanEVCharges();
         deleteOrphanEVDiverts();
@@ -481,12 +598,21 @@ public abstract class ScenarioDAO {
         deleteOrphanDischarges();
         deleteOrphanPanels();
 
+        // Clean up dependent data
         deleteOrphanLoadProfileData();
         deleteSimulationDataForScenarioID(id);
         deleteCostingDataForScenarioID(id);
-
     }
 
+    /**
+     * Remove orphaned battery records not referenced by any scenario.
+     * 
+     * Query: DELETE FROM batteries WHERE batteryIndex NOT IN (SELECT batteryID FROM scenario2battery)
+     * 
+     * This maintenance query removes battery records that have no corresponding
+     * entries in the junction table, indicating they're not associated with any scenario.
+     * Essential for preventing database bloat from deleted scenarios.
+     */
     @Query("DELETE FROM batteries WHERE batteryIndex NOT IN (SELECT batteryID FROM scenario2battery)")
     public abstract void deleteOrphanBatteries();
 
@@ -1089,6 +1215,33 @@ public abstract class ScenarioDAO {
     }
     //##############################################
 
+    /**
+     * Generate hourly energy flow data for bar chart visualization.
+     * 
+     * Query breakdown:
+     * - minuteOfDay / 60 AS Hour: Convert minute of day to hour (0-23)
+     * - Multiple SUM() aggregations: Total energy flows by category
+     * - GROUP BY Hour: Aggregate all data points for each hour of the day
+     * - WHERE dayOf2001 = :dayOfYear: Filter to specific day of year
+     * 
+     * **Energy Flow Categories:**
+     * - Load: Total electricity consumption
+     * - Feed: Electricity exported to grid  
+     * - Buy: Electricity imported from grid
+     * - PV: Solar generation
+     * - PV2Battery, PV2Load: Solar energy routing
+     * - Battery2Load, Grid2Battery: Battery energy flows
+     * - EVSchedule, HWSchedule: Scheduled charging/heating
+     * - EVDivert, HWDivert: Excess solar diversion
+     * - Bat2Grid: Battery discharge to grid
+     * 
+     * Result: 24 rows (one per hour) showing energy flows for the selected day,
+     * used for detailed hourly energy balance visualization.
+     * 
+     * @param scenarioID The scenario to analyze
+     * @param dayOfYear The day of year (1-365/366) to visualize
+     * @return Hourly energy flow data for bar chart display
+     */
     @Query("SELECT minuteOfDay / 60 AS Hour, sum(load) AS Load, sum(feed) AS Feed, sum(Buy) AS Buy, " +
             "sum(pv) AS PV, sum(pvToCharge) AS PV2Battery, sum(pvToLoad) AS PV2Load, sum(batToLoad) AS Battery2Load, sum(gridToBattery) AS Grid2Battery, " +
             "sum(directEVcharge) AS EVSchedule, sum(immersionLoad) AS HWSchedule, sum(kWHDivToEV) AS EVDivert, sum(kWHDivToWater) AS HWDivert, " +
@@ -1096,6 +1249,24 @@ public abstract class ScenarioDAO {
             "GROUP BY Hour ORDER BY Hour")
     public abstract List<ScenarioBarChartData> getBarData(Long scenarioID, int dayOfYear);
 
+    /**
+     * Get scenario simulation data for line graph visualization.
+     * 
+     * Query: SELECT minuteOfDay, SOC, waterTemp FROM scenariosimulationdata 
+     *        WHERE dayOf2001 = :dayOfYear AND scenarioID = :scenarioID ORDER BY minuteOfDay
+     * 
+     * This query retrieves continuous time-series data for line graphs:
+     * - minuteOfDay: Time axis (0-1439 minutes)
+     * - SOC: Battery State of Charge percentage
+     * - waterTemp: Hot water system temperature
+     * 
+     * Used for detailed temporal analysis showing how battery and thermal
+     * storage systems respond to energy flows throughout the day.
+     * 
+     * @param scenarioID The scenario to analyze
+     * @param dayOfYear The day of year to visualize
+     * @return Time-series data for line graph display
+     */
     @Query("SELECT minuteOfDay, SOC, waterTemp FROM scenariosimulationdata WHERE dayOf2001 = :dayOfYear AND scenarioID = :scenarioID  ORDER BY minuteOfDay")
     public abstract List<ScenarioLineGraphData> getLineData(Long scenarioID, int dayOfYear);
 
