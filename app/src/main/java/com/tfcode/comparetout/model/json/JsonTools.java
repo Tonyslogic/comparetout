@@ -76,9 +76,50 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Utility class for JSON serialization and deserialization operations.
+ * 
+ * This class provides a comprehensive set of static methods for converting between
+ * JSON representations and domain model objects. It serves as the central hub for
+ * all JSON operations within the application, handling both import and export
+ * scenarios for configuration data.
+ * 
+ * The class supports bidirectional conversion for:
+ * - Price plans and rate schedules
+ * - Energy system scenarios and components  
+ * - Hardware configurations (inverters, batteries, panels)
+ * - Load profiles and energy consumption patterns
+ * - System schedules and operational constraints
+ * 
+ * Key design principles:
+ * - All methods are static for utility access
+ * - Null safety is maintained throughout conversion processes
+ * - Default values are provided for missing JSON properties
+ * - Complex nested objects are handled recursively
+ * 
+ * @see Gson for underlying JSON processing
+ * @see TypeToken for generic type handling
+ */
 public class JsonTools {
 
 
+    /**
+     * Creates a PricePlan domain object from JSON representation.
+     * 
+     * This method converts a PricePlanJsonFile (typically loaded from persistent storage
+     * or external configuration) into a fully populated PricePlan domain object.
+     * It handles complex nested structures including rate schedules, restrictions,
+     * and pricing configurations while providing sensible defaults for missing values.
+     * 
+     * The conversion process includes:
+     * - Basic plan properties (name, currency, fixed charges)
+     * - Rate ranges with minute-level granularity
+     * - Usage restrictions and excess cost calculations
+     * - Export rate configurations
+     * 
+     * @param pp The PricePlanJsonFile containing JSON-serialized plan data
+     * @return A fully populated PricePlan domain object ready for use
+     */
     public static PricePlan createPricePlan(PricePlanJsonFile pp) {
         PricePlan p = new PricePlan();
         p.setPlanName(pp.plan);
@@ -106,6 +147,17 @@ public class JsonTools {
         return p;
     }
 
+    /**
+     * Creates a DayRate domain object from JSON representation.
+     * 
+     * This method transforms day rate configuration from JSON format into the
+     * internal DayRate domain object. Day rates define time-of-use pricing
+     * schedules that vary by time of day and day of week. The method provides
+     * default date ranges (full year) if not specified in the JSON.
+     * 
+     * @param drj The DayRateJson containing serialized rate configuration
+     * @return A DayRate object with populated schedule and rate information
+     */
     public static DayRate createDayRate(DayRateJson drj){
         DayRate dr = new DayRate();
         if (drj.endDate == null) dr.setEndDate("12/31");
@@ -133,6 +185,17 @@ public class JsonTools {
         return dr;
     }
 
+    /**
+     * Serializes multiple price plans to JSON string format.
+     * 
+     * This method converts a map of price plans and their associated day rates
+     * into a JSON string suitable for storage or export. The resulting JSON
+     * maintains the hierarchical structure needed for later deserialization
+     * and includes all rate schedules, restrictions, and pricing configurations.
+     * 
+     * @param pricePlans Map of PricePlan objects to their associated DayRate lists
+     * @return JSON string representation of all price plans and rates
+     */
     public static String createPricePlanJson(Map<PricePlan, List<DayRate>> pricePlans) {
         ArrayList<PricePlanJsonFile> ppList = new ArrayList<>();
             for (Map.Entry<PricePlan, List<DayRate>> entry : pricePlans.entrySet()) {
