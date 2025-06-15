@@ -71,6 +71,8 @@ public class SimulationWorkerTest {
         simulationInputData.add(sid);
 
         SimulationWorker.InputData idata = new SimulationWorker.InputData(inverter, simulationInputData, battery, cfg, null, null, null, null, null, null, 0);
+        // Set battery to full SOC for this test
+        idata.soc = battery.getBatterySize();
 
         inputDataMap.put(inverter, idata);
 
@@ -80,8 +82,9 @@ public class SimulationWorkerTest {
         ScenarioSimulationData aRow = outputRows.get(row);
 
         assertEquals(0, aRow.getBuy(), 0);
-        double ac2dcLoss = 1 - inverter.getDc2acLoss()/ 100d;
-        double expected = (tpv * ac2dcLoss - load) - 0 ;
+        double dc2acLoss = (100d - inverter.getDc2acLoss()) / 100d;
+        double expected = (tpv * dc2acLoss - load) - 0 ;
+        assertEquals(expected, aRow.getFeed(), 0);
         assertEquals(expected, aRow.getFeed(), 0);
         expected = battery.getBatterySize();
         assertEquals(expected, aRow.getSOC(), 0);
@@ -168,6 +171,8 @@ public class SimulationWorkerTest {
         Battery battery1 = new Battery();
         battery1.setDischargeStop(100d);
         SimulationWorker.InputData iData1 = new SimulationWorker.InputData(inverter1, simulationInputData1, battery1, null, null, null, null, null, null, null, 0);
+        // Set battery to full SOC for this test  
+        iData1.soc = battery1.getBatterySize();
         inputDataMap.put(inverter1, iData1);
 
         List<SimulationInputData> simulationInputData2 = new ArrayList<>();
@@ -191,8 +196,8 @@ public class SimulationWorkerTest {
         assertEquals(load, aRow.getLoad(), 0);
         double expected = tpv1 + tpv2;
         assertEquals(expected, aRow.getPv(), 0);assertEquals(0, aRow.getBuy(), 0);
-        double ac2dcLoss = 1 - inverter1.getDc2acLoss()/ 100d;
-        expected = ((tpv1 + tpv2) * ac2dcLoss - load) - 0 ;
+        double dc2acLoss = (100d - inverter1.getDc2acLoss()) / 100d;
+        expected = ((tpv1 + tpv2) * dc2acLoss - load) - 0 ;
         assertEquals(expected, aRow.getFeed(), 0);
         expected = battery1.getBatterySize();
         assertEquals(expected, aRow.getSOC(), 0);
@@ -215,12 +220,17 @@ public class SimulationWorkerTest {
         Battery battery1 = new Battery();
         battery1.setDischargeStop(100d);
         SimulationWorker.InputData iData1 = new SimulationWorker.InputData(inverter1, simulationInputData1, battery1, null, null, null, null, null, null, null, 0);
+        // Set battery to full SOC for this test  
+        iData1.soc = battery1.getBatterySize();
         inputDataMap.put(inverter1, iData1);
 
         List<SimulationInputData> simulationInputData2 = new ArrayList<>();
         Inverter inverter2 = new Inverter();
         Battery battery2 = new Battery();
-        battery2.setDischargeStop(100d);SimulationWorker.InputData iData2 = new SimulationWorker.InputData(inverter2, simulationInputData2, battery2, null, null, null, null, null, null, null, 0);
+        battery2.setDischargeStop(100d);
+        SimulationWorker.InputData iData2 = new SimulationWorker.InputData(inverter2, simulationInputData2, battery2, null, null, null, null, null, null, null, 0);
+        // Set battery to full SOC for this test  
+        iData2.soc = battery2.getBatterySize();
         inputDataMap.put(inverter2, iData2);
 
         double load = 1.1;
@@ -237,8 +247,8 @@ public class SimulationWorkerTest {
         ScenarioSimulationData aRow = outputRows.get(row);
 
         assertEquals(0, aRow.getBuy(), 0);
-        double ac2dcLoss = 1 - inverter1.getDc2acLoss()/ 100d;
-        double expected = ((tpv1 + tpv2) * ac2dcLoss - load) - 0 ;
+        double dc2acLoss = (100d - inverter1.getDc2acLoss()) / 100d;
+        double expected = ((tpv1 + tpv2) * dc2acLoss - load) - 0 ;
         assertEquals(expected, aRow.getFeed(), 0);
         expected = battery1.getBatterySize() + battery2.getBatterySize();
         assertEquals(expected, aRow.getSOC(), 0);
@@ -318,6 +328,8 @@ public class SimulationWorkerTest {
         simulationInputData.add(sid);
 
         SimulationWorker.InputData idata = new SimulationWorker.InputData(inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0);
+        // Set battery to full SOC for this test  
+        idata.soc = battery.getBatterySize();
 
         inputDataMap.put(inverter, idata);
 
@@ -327,8 +339,8 @@ public class SimulationWorkerTest {
         ScenarioSimulationData aRow = outputRows.get(row);
 
         assertEquals(0, aRow.getBuy(), 0);
-        double ac2dcLoss = 1 - inverter.getDc2acLoss()/ 100d;
-        double expected = (tpv * ac2dcLoss - load) - 0 ;
+        double dc2acLoss = (100d - inverter.getDc2acLoss()) / 100d;
+        double expected = (tpv * dc2acLoss - load) - 0 ;
         assertEquals(expected, aRow.getFeed(), 0);
         expected = battery.getBatterySize();
         assertEquals(expected, aRow.getSOC(), 0);
