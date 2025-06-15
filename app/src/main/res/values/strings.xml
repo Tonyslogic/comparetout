@@ -214,6 +214,7 @@
     <string name="CostData">Cost data</string>
     <string name="RemoveData">Remove data</string>
     <string name="FetchData">Fetch data</string>
+    <string name="FixHAData">Fix HA data</string>
     <string name="SelectSystem">Select system</string>
     <string name="SetCredentials">Set credentials</string>
     <string name="NoRange">Range: ??-??</string>

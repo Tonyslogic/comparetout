@@ -35,6 +35,7 @@ import androidx.work.PeriodicWorkRequest;
 import androidx.work.WorkManager;
 
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.snackbar.Snackbar;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -228,6 +229,131 @@ public class ImportHAOverview extends ImportOverviewFragment {
             throw new ImportException("Failed to connect to Home Assistant");
         }
     }
+
+    @Override
+    protected android.widget.TableRow getActionRow(android.app.Activity activity, String availableDateValue) {
+        android.widget.TableRow actionRow = super.getActionRow(activity, availableDateValue);
+        
+        // Add Fix HA Data button
+        com.google.android.material.button.MaterialButton fixHADataButton = new com.google.android.material.button.MaterialButton(activity);
+        fixHADataButton.setText(R.string.FixHAData);
+        
+        // Enable the button only if HA data exists and another data source is available
+        boolean haDataExists = mSystemSelected && !(null == mSerialNumber);
+        boolean otherDataSourceExists = hasOtherDataSourceWithData();
+        fixHADataButton.setEnabled(haDataExists && otherDataSourceExists);
+        
+        fixHADataButton.setOnClickListener(v -> showFixHADataDialog());
+        actionRow.addView(fixHADataButton);
+        
+        return actionRow;
+    }
+    
+    private boolean hasOtherDataSourceWithData() {
+        // Check if there are any other data sources (ALPHAESS or ESBNHDF) with data available
+        android.app.Activity activity = getActivity();
+        if (activity != null && activity.getApplication() instanceof TOUTCApplication) {
+            TOUTCApplication application = (TOUTCApplication) activity.getApplication();
+            
+            // Check for AlphaESS data
+            try {
+                java.util.List<com.tfcode.comparetout.model.importers.InverterDateRange> alphaRanges = 
+                    mViewModel.getLiveDateRanges(ComparisonUIViewModel.Importer.ALPHAESS).getValue();
+                if (alphaRanges != null && !alphaRanges.isEmpty()) {
+                    return true;
+                }
+            } catch (Exception e) {
+                // Ignore exceptions when checking for data
+            }
+            
+            // Check for ESBN HDF data
+            try {
+                java.util.List<com.tfcode.comparetout.model.importers.InverterDateRange> esbnRanges = 
+                    mViewModel.getLiveDateRanges(ComparisonUIViewModel.Importer.ESBNHDF).getValue();
+                if (esbnRanges != null && !esbnRanges.isEmpty()) {
+                    return true;
+                }
+            } catch (Exception e) {
+                // Ignore exceptions when checking for data
+            }
+        }
+        return false;
+    }
+    
+    private void showFixHADataDialog() {
+        android.content.Context context = getContext();
+        if (context != null) {
+            androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(context);
+            builder.setTitle("Fix HomeAssistant Data");
+            builder.setMessage("This feature allows you to fix gaps or errors in HomeAssistant historical data using data from other sources like inverters.\n\nSelect a data source and date range to use for fixing HA data.");
+            
+            builder.setPositiveButton("Select Source & Dates", (dialog, which) -> {
+                // TODO: Launch the data source and date selection activity
+                showDataSourceSelectionDialog();
+            });
+            
+            builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
+            
+            builder.show();
+        }
+    }
+    
+    private void showDataSourceSelectionDialog() {
+        android.content.Context context = getContext();
+        if (context != null) {
+            // For now, show a simple selection dialog
+            // TODO: Replace with a more sophisticated activity for source and date selection
+            String[] dataSources = getAvailableDataSources();
+            
+            if (dataSources.length == 0) {
+                com.google.android.material.snackbar.Snackbar.make(requireView(), 
+                    "No other data sources available", 
+                    com.google.android.material.snackbar.Snackbar.LENGTH_LONG).show();
+                return;
+            }
+            
+            androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(context);
+            builder.setTitle("Select Data Source");
+            builder.setItems(dataSources, (dialog, which) -> {
+                String selectedSource = dataSources[which];
+                com.google.android.material.snackbar.Snackbar.make(requireView(), 
+                    "Selected: " + selectedSource + ". Date range selection coming soon!", 
+                    com.google.android.material.snackbar.Snackbar.LENGTH_LONG).show();
+                // TODO: Implement date range selection and actual data fixing logic
+            });
+            builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
+            builder.show();
+        }
+    }
+    
+    private String[] getAvailableDataSources() {
+        java.util.List<String> sources = new java.util.ArrayList<>();
+        
+        // Check for AlphaESS data
+        try {
+            java.util.List<com.tfcode.comparetout.model.importers.InverterDateRange> alphaRanges = 
+                mViewModel.getLiveDateRanges(ComparisonUIViewModel.Importer.ALPHAESS).getValue();
+            if (alphaRanges != null && !alphaRanges.isEmpty()) {
+                sources.add("AlphaESS");
+            }
+        } catch (Exception e) {
+            // Ignore exceptions when checking for data
+        }
+        
+        // Check for ESBN HDF data
+        try {
+            java.util.List<com.tfcode.comparetout.model.importers.InverterDateRange> esbnRanges = 
+                mViewModel.getLiveDateRanges(ComparisonUIViewModel.Importer.ESBNHDF).getValue();
+            if (esbnRanges != null && !esbnRanges.isEmpty()) {
+                sources.add("ESBN Smart Meter");
+            }
+        } catch (Exception e) {
+            // Ignore exceptions when checking for data
+        }
+        
+        return sources.toArray(new String[0]);
+    }
+
     class EnergyPrefsResultHandler implements MessageHandler<EnergyPrefsResult> {
 
         private final Logger LOGGER = Logger.getLogger(ImportHAOverview.class.getName());
