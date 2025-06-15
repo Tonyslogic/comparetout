@@ -283,22 +283,14 @@ public class ImportHAOverview extends ImportOverviewFragment {
     private void showFixHADataDialog() {
         android.content.Context context = getContext();
         if (context != null) {
-            androidx.appcompat.app.AlertDialog.Builder builder = new androidx.appcompat.app.AlertDialog.Builder(context);
-            builder.setTitle("Fix HomeAssistant Data");
-            builder.setMessage("This feature allows you to fix gaps or errors in HomeAssistant historical data using data from other sources like inverters.\n\nSelect a data source and date range to use for fixing HA data.");
-            
-            builder.setPositiveButton("Select Source & Dates", (dialog, which) -> {
-                // TODO: Launch the data source and date selection activity
-                showDataSourceSelectionDialog();
-            });
-            
-            builder.setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss());
-            
-            builder.show();
+            android.content.Intent intent = new android.content.Intent(context, FixHADataActivity.class);
+            startActivity(intent);
         }
     }
     
     private void showDataSourceSelectionDialog() {
+        // This method is no longer needed as we're using the dedicated activity
+        // Keeping it for now in case we need to fall back to dialog approach
         android.content.Context context = getContext();
         if (context != null) {
             // For now, show a simple selection dialog
