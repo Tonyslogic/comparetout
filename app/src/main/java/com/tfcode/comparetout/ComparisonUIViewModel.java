@@ -64,57 +64,160 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Primary ViewModel for managing UI state and data operations across the TOUTC application.
+ * 
+ * This AndroidViewModel serves as the central data management layer, coordinating between
+ * the user interface and the underlying repository/database systems. It provides reactive
+ * data streams using LiveData to ensure UI components stay synchronized with data changes,
+ * while encapsulating complex business logic and data transformation operations.
+ * 
+ * Key responsibilities:
+ * - Price plan management (creation, updates, deletion, activation status)
+ * - Energy system scenario management with component relationships
+ * - Cost calculation coordination and result caching
+ * - Data import/export operations for various energy system formats
+ * - UI state management for comparison and analysis views
+ * - Background work coordination for long-running calculations
+ * 
+ * The ViewModel follows Android Architecture Components best practices by:
+ * - Surviving configuration changes to maintain UI state
+ * - Providing reactive data streams through LiveData
+ * - Separating UI logic from data access logic
+ * - Managing the lifecycle of data operations
+ * 
+ * Data flow architecture:
+ * UI Components → ViewModel → Repository → Database/DAOs
+ * 
+ * The class handles complex energy system data relationships including many-to-many
+ * associations between scenarios and components (inverters, batteries, panels, etc.),
+ * ensuring data integrity while providing efficient access patterns for UI consumption.
+ */
 public class ComparisonUIViewModel extends AndroidViewModel {
 
     private final ToutcRepository toutcRepository;
     private final LiveData<Map<PricePlan, List<DayRate>>> allPricePlans;
 
+    /**
+     * Initialize the ViewModel with repository access and reactive data streams.
+     * 
+     * Sets up the core data connections and initializes LiveData streams that
+     * UI components will observe for automatic updates when underlying data changes.
+     * 
+     * @param application the application context for repository initialization
+     */
     public ComparisonUIViewModel(Application application) {
         super(application);
         toutcRepository = new ToutcRepository(application);
         allPricePlans = toutcRepository.getAllPricePlans();
     }
 
+    /**
+     * Get all price plans with their associated day rates as reactive data.
+     * 
+     * @return LiveData containing a map of price plans to their day rate definitions
+     */
     public LiveData<Map<PricePlan, List<DayRate>>> getAllPricePlans() {
         return allPricePlans;
     }
 
+    /**
+     * Insert a new price plan with its rate structure.
+     * 
+     * Creates a new electricity tariff definition in the database with the option
+     * to overwrite existing plans. Automatically triggers cost calculation cleanup
+     * to ensure calculation results remain consistent with available plans.
+     * 
+     * @param pp the price plan definition to insert
+     * @param drs list of day rates defining the time-based pricing structure
+     * @param clobber whether to overwrite existing plans with matching identifiers
+     */
     public void insertPricePlan(PricePlan pp, List<DayRate> drs, boolean clobber) {
         toutcRepository.insert(pp, drs, clobber);
         toutcRepository.pruneCostings();
     }
 
+    /**
+     * Delete a price plan and all associated data.
+     * 
+     * Removes the price plan definition and all dependent cost calculations
+     * to maintain database integrity and prevent orphaned calculation results.
+     * 
+     * @param id the price plan identifier to delete
+     */
     public void deletePricePlan(Integer id) {
         toutcRepository.deletePricePlan(id);
         toutcRepository.removeCostingsForPricePlan(id);
     }
 
+    /**
+     * Update the active status of a price plan for cost calculations.
+     * 
+     * @param id the price plan identifier
+     * @param checked whether the plan should be included in cost comparisons
+     */
     public void updatePricePlanActiveStatus(int id, boolean checked) {
         toutcRepository.updatePricePlanActiveStatus(id, checked);
     }
 
+    /**
+     * Update an existing price plan with new rate information.
+     * 
+     * Modifies the price plan definition and clears associated cost calculations
+     * since rate changes invalidate previous calculation results.
+     * 
+     * @param p the updated price plan definition
+     * @param drs the updated day rate structure
+     */
     public void updatePricePlan(PricePlan p, ArrayList<DayRate> drs) {
         toutcRepository.updatePricePlan(p, drs);
         toutcRepository.removeCostingsForPricePlan(p.getPricePlanIndex());
     }
 
+    /**
+     * Remove cost calculations for a specific price plan.
+     * 
+     * @param pricePlanID the price plan identifier to clear calculations for
+     */
     public void removeCostingsForPricePlan(long pricePlanID){
         toutcRepository.removeCostingsForPricePlan(pricePlanID);
     }
 
+    /**
+     * Insert a complete energy system scenario with all components.
+     * 
+     * @param sc the scenario components structure containing all system definitions
+     * @param clobber whether to overwrite existing scenarios with matching identifiers
+     */
     public void insertScenario(ScenarioComponents sc, boolean clobber) {
         toutcRepository.insertScenario(sc, clobber);
     }
 
+    /**
+     * Insert a scenario and return its database identifier for further operations.
+     * 
+     * @param sc the scenario components to insert
+     * @param clobber whether to overwrite existing scenarios
+     * @return the database-assigned scenario identifier
+     */
     public long insertScenarioAndReturnID(ScenarioComponents sc, boolean clobber) {
         return toutcRepository.insertScenarioAndReturnID(sc, clobber);
     }
 
-
+    /**
+     * Get all energy system scenarios as reactive data.
+     * 
+     * @return LiveData containing the list of all defined scenarios
+     */
     public LiveData<List<Scenario>> getAllScenarios() {
         return toutcRepository.getAllScenarios();
     }
 
+    /**
+     * Update an existing scenario definition.
+     * 
+     * @param scenario the updated scenario definition
+     */
     public void updateScenario(Scenario scenario) {
         toutcRepository.updateScenario(scenario);
     }

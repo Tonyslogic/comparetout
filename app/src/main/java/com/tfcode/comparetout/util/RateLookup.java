@@ -32,6 +32,31 @@ import java.util.NavigableMap;
 import java.util.Objects;
 import java.util.TreeMap;
 
+/**
+ * Efficient rate lookup utility for complex time-of-use electricity pricing calculations.
+ * 
+ * This class provides high-performance electricity rate lookups that account for multiple
+ * pricing variables including time of day, day of week, seasonal variations, and usage
+ * restrictions. It pre-processes price plan data into optimized lookup structures to
+ * minimize calculation overhead during cost analysis operations.
+ * 
+ * Key capabilities:
+ * - Time-based rate lookups with minute-level precision
+ * - Seasonal date range handling with day-of-year calculations
+ * - Day-of-week specific pricing (weekday vs weekend rates)
+ * - Usage tier restrictions (monthly/annual allowances)
+ * - Secondary rate application when limits are exceeded
+ * 
+ * The lookup system uses NavigableMap structures for efficient range queries,
+ * allowing O(log n) time complexity for rate retrievals. This is critical for
+ * performance when processing large simulation datasets containing thousands
+ * of energy usage data points.
+ * 
+ * Rate restrictions are tracked across calculation periods to properly apply
+ * tiered pricing schemes where rates change based on cumulative usage within
+ * monthly or annual periods. The class handles period rollovers and maintains
+ * accurate usage counters throughout the calculation process.
+ */
 public class RateLookup {
     private final NavigableMap<Integer, NavigableMap<Integer, MinuteRateRange>> mLookup
             = new TreeMap<>();
@@ -42,12 +67,34 @@ public class RateLookup {
     private final Map<Double, Pair<Integer, Double>> mLimits = new HashMap<>();
     private int mStartDOY = 0;
 
+    /**
+     * Set the starting day of year for usage period calculations.
+     * 
+     * @param mStartDOY the day of year (1-365) when the billing period begins
+     */
     public void setStartDOY(int mStartDOY) {
         this.mStartDOY = mStartDOY;
     }
 
+    /**
+     * Initialize the rate lookup system from price plan data.
+     * 
+     * Processes the price plan and day rate information to build optimized
+     * lookup structures. This includes parsing date ranges, organizing rates
+     * by day of week, handling legacy hour-based rates, and setting up
+     * usage restriction tracking for tiered pricing schemes.
+     * 
+     * The constructor performs several optimization steps:
+     * - Converts date strings to day-of-year integers for efficient comparison
+     * - Builds NavigableMap structures for O(log n) lookups
+     * - Handles backward compatibility with hour-based rate definitions
+     * - Sets up restriction tracking for usage-based tier calculations
+     * 
+     * @param pricePlan the price plan containing restriction definitions
+     * @param drs list of day rates defining time-based pricing structures
+     */
     public RateLookup(PricePlan pricePlan, List<DayRate> drs) {
-        // Initialize the rates
+        // Initialize usage restrictions for tiered pricing
         Restrictions restrictions = pricePlan.getRestrictions();
         // Need to check for null as the DB update omitted a default object with no entries
         if (!(null == restrictions)) for (Restriction r : restrictions.getRestrictions()) {
@@ -60,12 +107,13 @@ public class RateLookup {
             }
         }
 
-        // Initialize the rate lookup
+        // Build the optimized rate lookup structure
         for (DayRate dr : drs) {
             String[] startBits = dr.getStartDate().split("/");
             LocalDate start = LocalDate.of(2001, Integer.parseInt(startBits[0]), Integer.parseInt(startBits[1]));
             int startDOY = start.getDayOfYear();
 
+            // Find or create the day-of-week mapping for this date range
             NavigableMap<Integer, MinuteRateRange> dowRange;
             Map.Entry<Integer, NavigableMap<Integer, MinuteRateRange>> entry = mLookup.floorEntry(startDOY);
             if (null == entry) dowRange = new TreeMap<>();
@@ -77,11 +125,12 @@ public class RateLookup {
             MinuteRateRange rateRange = dr.getMinuteRateRange();
             if (null == rateRange) rateRange = new MinuteRateRange();
 
-            // Check that the rate range is empty. If so, fill it with the values from legacy hours
+            // Handle backward compatibility - convert legacy hour-based rates
             if (rateRange.getRates().isEmpty()) {
                 rateRange = MinuteRateRange.fromHours(dr.getHours());
             }
 
+            // Apply this rate range to all specified days of the week
             for (Integer day : dr.getDays().ints) {
                 dowRange.put(day, rateRange);
             }
@@ -90,6 +139,20 @@ public class RateLookup {
         }
     }
 
+    /**
+     * Get the electricity rate for a specific time and usage amount.
+     * 
+     * This is the main public interface for rate lookups. It combines base rate
+     * calculation with usage restriction logic to determine the final applicable
+     * rate. The method handles complex pricing schemes including tiered rates
+     * where the price changes based on cumulative monthly or annual usage.
+     * 
+     * @param do2001 day of year in 2001 (1-365) for seasonal rate determination
+     * @param minuteOfDay minute within the day (0-1439) for time-of-use rates
+     * @param dayOfWeek day of week (0=Sunday, 6=Saturday) for weekday/weekend rates
+     * @param usedKWH energy consumption amount in kWh for tier calculations
+     * @return the applicable electricity rate in the price plan's currency unit
+     */
     public double getRate(int do2001, int minuteOfDay, int dayOfWeek, double usedKWH) {
         if (mLookup.isEmpty()) return 0D;
 
@@ -99,6 +162,19 @@ public class RateLookup {
         return rate;
     }
 
+    /**
+     * Retrieve the base electricity rate before applying usage restrictions.
+     * 
+     * Uses the optimized lookup structure to find the appropriate rate based
+     * on temporal factors only. The method performs efficient range queries
+     * using NavigableMap.floorEntry() to find the most recent applicable
+     * rate definition for the given date and time parameters.
+     * 
+     * @param do2001 day of year for seasonal rate lookup
+     * @param dayOfWeek day of week for weekday/weekend rate differentiation
+     * @param minuteOfDay minute of day for time-of-use rate determination
+     * @return the base electricity rate before restriction adjustments
+     */
     private double getBaseRate(int do2001, int dayOfWeek, int minuteOfDay) {
         Map.Entry<Integer, NavigableMap<Integer, MinuteRateRange>> dateEntry = mLookup.floorEntry(do2001);
         if (dateEntry == null) return 0D;
@@ -111,6 +187,20 @@ public class RateLookup {
         return minuteRateRange != null ? minuteRateRange.lookup(minuteOfDay) : 0D;
     }
 
+    /**
+     * Apply usage-based restrictions and tier adjustments to the base rate.
+     * 
+     * Handles complex tiered pricing schemes where rates change based on
+     * cumulative usage within specific periods (monthly, annual, etc.).
+     * Updates usage tracking counters and applies secondary rates when
+     * usage limits are exceeded.
+     * 
+     * @param rate the base rate before restriction application
+     * @param do2001 day of year for period boundary calculations
+     * @param minuteOfDay minute of day for period reset timing
+     * @param usedKWH energy consumption to add to usage tracking
+     * @return the final rate after applying all applicable restrictions
+     */
     private double applyRestrictions(double rate, int do2001, int minuteOfDay, double usedKWH) {
         Restriction.RestrictionType type = mRestrictions.get(rate);
         if (type == null) return rate;
@@ -126,6 +216,12 @@ public class RateLookup {
         }
     }
 
+    /**
+     * Get the duration in days for a specific restriction type.
+     * 
+     * @param type the restriction periodicity type
+     * @return number of days in the restriction period
+     */
     private int getDurationForRestriction(Restriction.RestrictionType type) {
         switch (type) {
             case annual: return 365;
@@ -134,6 +230,18 @@ public class RateLookup {
             default: return 0;
         }
     }
+    
+    /**
+     * Update period tracking for usage-based restrictions.
+     * 
+     * Monitors billing period boundaries and resets usage counters when
+     * new periods begin. Handles year boundaries and custom start dates
+     * to ensure accurate tier calculations across different billing cycles.
+     * 
+     * @param rate the rate being tracked for usage restrictions
+     * @param do2001 current day of year for period boundary detection
+     * @param minuteOfDay current minute for precise period reset timing
+     */
     private void updatePeriod(double rate, int do2001, int minuteOfDay) {
         Restriction.RestrictionType restrictionType = mRestrictions.get(rate);
         if (restrictionType != null) { // Check if restriction exists for the rate
@@ -149,12 +257,24 @@ public class RateLookup {
             boolean newYear = do2001 < prevDO2001;
             if (isOffset) newYear = do2001 > 365 ? do2001 > mStartDOY : newYear;
 
+            // Reset usage counters at period boundaries
             if (newPeriod || newYear) {
                 mTiers.put(rate, 0D);
             }
         }
     }
 
+    /**
+     * Update cumulative usage tracking for tiered rate calculations.
+     * 
+     * Maintains running totals of energy consumption for each rate that has
+     * usage-based restrictions. These totals are used to determine when
+     * usage thresholds are exceeded and secondary rates should apply.
+     * 
+     * @param rate the rate to update usage tracking for
+     * @param usedKWH additional energy consumption to add to the total
+     * @return the updated cumulative usage amount for this rate
+     */
     private double updateTotalUsed(double rate, double usedKWH) {
         Restriction.RestrictionType restrictionType = mRestrictions.get(rate);
         if (restrictionType != null) {
