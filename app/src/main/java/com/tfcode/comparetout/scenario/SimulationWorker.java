@@ -55,6 +55,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * SimulationWorker is a background Worker that simulates all scenarios requiring simulation.
+ * It orchestrates the retrieval of scenario components, runs the simulation logic, manages notifications,
+ * and persists simulation results. The simulation models energy flows, battery usage, PV generation,
+ * and user-configured diversions for each scenario.
+ */
 public class SimulationWorker extends Worker {
 
     private final ToutcRepository mToutcRepository;
@@ -73,17 +79,34 @@ public class SimulationWorker extends Worker {
     private static final int DST_BEGIN = 25634;
     private static final int DST_END = 25645;
 
+    /**
+     * Constructs a SimulationWorker.
+     * @param context The application context.
+     * @param workerParams Worker parameters.
+     */
     public SimulationWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
         mToutcRepository = new ToutcRepository((Application) context);
         mContext = context;
     }
 
+    /**
+     * Called when the worker is stopped. Used for cleanup if needed.
+     */
     @Override
     public void onStopped(){
         super.onStopped();
     }
 
+    /**
+     * Main entry point for the simulation work.
+     * Retrieves all scenarios needing simulation, processes each scenario by:
+     * - Gathering scenario components and user inputs
+     * - Running the simulation for each time step
+     * - Managing progress notifications
+     * - Saving simulation results
+     * Returns success or failure based on execution.
+     */
     @NonNull
     @Override
     public Result doWork() {
@@ -95,7 +118,11 @@ public class SimulationWorker extends Worker {
 
         try {
             if (!scenarioIDs.isEmpty()) {
-                // NOTIFICATION SETUP
+                /*
+                 * NOTIFICATION SETUP
+                 * Set up notification infrastructure to provide user feedback on simulation progress.
+                 * Progress is updated as each scenario is processed.
+                 */
                 int notificationId = 1;
                 NotificationManagerCompat notificationManager = NotificationManagerCompat.from(getApplicationContext());
                 NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID);
@@ -117,12 +144,22 @@ public class SimulationWorker extends Worker {
 
                 long notifyTime = System.nanoTime();
                 for (long scenarioID : scenarioIDs) {
+                    /*
+                     * SCENARIO COMPONENT RETRIEVAL
+                     * Retrieve all relevant components for the scenario (inverters, batteries, panels, etc.).
+                     * This ensures the simulation is based on the latest user configuration.
+                     */
                     ScenarioComponents scenarioComponents = mToutcRepository.getScenarioComponentsForScenarioID(scenarioID);
                     double exportMax = scenarioComponents.loadProfile.getGridExportMax();
                     Scenario scenario = scenarioComponents.scenario;
                     if (scenario.isHasPanels()) {
-                        // Check for panel data
-                        boolean hasData = mToutcRepository.checkForMissingPanelData(scenarioID);// NOTIFICATION PROGRESS
+                        /*
+                         * PANEL DATA CHECK
+                         * Ensure all required panel data is present before simulation.
+                         * If data is missing, skip simulation for this scenario.
+                         */
+                        boolean hasData = mToutcRepository.checkForMissingPanelData(scenarioID);
+                        // NOTIFICATION PROGRESS
                         PROGRESS_CURRENT += PROGRESS_CHUNK;
                         builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
                         if (System.nanoTime() - notifyTime > 1e+9) {
@@ -150,7 +187,11 @@ public class SimulationWorker extends Worker {
                     int rowsToProcess = 0;
                     Map<Inverter, InputData> inputDataMap = new HashMap<>();
 
-                    // GET BASIC LOAD & PV FROM DB
+                    /*
+                     * INPUT DATA PREPARATION
+                     * For each inverter, gather simulation input data (load, PV, battery, schedules, etc.).
+                     * This block builds the InputData map, which centralizes all scenario factors for simulation.
+                     */
                     if (scenario.isHasInverters()) {
                         for (Inverter inverter : scenarioComponents.inverters) {
                             // Get some load simulation data to start with
@@ -235,14 +276,21 @@ public class SimulationWorker extends Worker {
                         sendNotification(notificationManager, notificationId, builder);
                     }
 
-                    // SIMULATE POWER DISTRIBUTION
+                    /*
+                     * SIMULATION EXECUTION
+                     * For each time step, run the simulation logic to model energy flows, battery usage,
+                     * and diversions. Results are collected for later storage.
+                     */
                     ArrayList<ScenarioSimulationData> outputRows = new ArrayList<>();
                     for (int row = 0; row < rowsToProcess; row++) {
                         processOneRow(scenarioID, outputRows, row, inputDataMap);
                     }
 
-                    // STORE THE SIMULATION RESULT
-
+                    /*
+                     * RESULT STORAGE
+                     * Save the simulation results for this scenario to the database.
+                     * This makes the results available for user review and further analysis.
+                     */
                     builder.setContentText("Saving data");
                     if (System.nanoTime() - notifyTime > 1e+9) {
                         notifyTime = System.nanoTime();
@@ -260,8 +308,11 @@ public class SimulationWorker extends Worker {
                     }
                 }
 
+                /*
+                 * NOTIFICATION COMPLETE
+                 * Notify the user that all simulations are complete.
+                 */
                 if (!scenarioIDs.isEmpty()) {
-                    // NOTIFICATION COMPLETE
                     builder.setContentText("Simulation complete")
                             .setProgress(0, 0, false);
                     sendNotification(notificationManager, notificationId, builder);
@@ -269,6 +320,10 @@ public class SimulationWorker extends Worker {
             }
         }
         catch (Exception e) {
+            /*
+             * ERROR HANDLING
+             * If any exception occurs during simulation, log the error and mark the work as failed.
+             */
             System.out.println("!!!!!!!!!!!!!!!!!!! SimulationWorker has crashed, marking as failure !!!!!!!!!!!!!!!!!!!!!");
             e.printStackTrace();
             System.out.println("!!!!!!!!!!!!!!!!!!! SimulationWorker has crashed, marking as failure !!!!!!!!!!!!!!!!!!!!!");
@@ -277,6 +332,13 @@ public class SimulationWorker extends Worker {
         return Result.success();
     }
 
+    /**
+     * Merges PV (photovoltaic) data into the simulation input data for each time step.
+     * Handles daylight saving time adjustments by shifting PV data as needed.
+     * @param rowsToProcess Number of time steps to process.
+     * @param simulationInputData List of simulation input data objects.
+     * @param inverterPV List of PV values for the inverter.
+     */
     private void mergePVWithSimulationInputData(int rowsToProcess, List<SimulationInputData> simulationInputData, List<Double> inverterPV) {
         for (int row = 0; row < rowsToProcess; row++) {
             if (row < DST_BEGIN)
@@ -289,6 +351,14 @@ public class SimulationWorker extends Worker {
         }
     }
 
+    /**
+     * Aggregates PV generation for a given inverter by summing or maximizing panel outputs
+     * depending on connection mode (parallel or optimized).
+     * @param scenarioComponents Scenario components containing panels.
+     * @param rowsToProcess Number of time steps.
+     * @param inverter The inverter to aggregate PV for.
+     * @param inverterPV Output list to store aggregated PV values.
+     */
     private void getPVForInverter(ScenarioComponents scenarioComponents, int rowsToProcess, Inverter inverter, List<Double> inverterPV) {
         for (int mppt = 1; mppt <= inverter.getMpptCount(); mppt++) {
             List<Double> mpptPV = new ArrayList<>(Collections.nCopies(rowsToProcess, 0d));
@@ -309,8 +379,22 @@ public class SimulationWorker extends Worker {
         }
     }
 
+    /**
+     * Processes a single simulation time step for all inverters in the scenario.
+     * Calculates energy flows (PV, battery, grid, diversions), updates state of charge,
+     * and records the results for later storage.
+     * @param scenarioID The scenario ID.
+     * @param outputRows List to append simulation output data.
+     * @param row The time step index.
+     * @param inputDataMap Map of inverters to their input data and state.
+     */
     public static void processOneRow(long scenarioID, ArrayList<ScenarioSimulationData> outputRows, int row, Map<Inverter, InputData> inputDataMap) {
 
+        /*
+         * INPUT AND STATE INITIALIZATION
+         * Set up references to input data, hot water and EV configuration, and initialize
+         * battery state of charge (SOC) and other per-row variables.
+         */
         SimulationInputData inputRow = null;
         HWSystem hwSystem = null;
         Boolean hwDivert = null;
@@ -343,7 +427,7 @@ public class SimulationWorker extends Worker {
             }
         }
         else { // Set initial SOC
-            for (Map.Entry<Inverter,InputData> entry: inputDataMap.entrySet()) {
+            for (Map.Entry<Inverter, InputData> entry: inputDataMap.entrySet()) {
                 InputData iData = entry.getValue();
                 if (null == firstInputData) firstInputData = iData;
                 if (null == inputRow) inputRow = iData.simulationInputData.get(row);
@@ -365,7 +449,11 @@ public class SimulationWorker extends Worker {
         }
         if (null == inputRow) return;
 
-        // SETUP TOTAL AND EFFECTIVE PV
+        /*
+          PV AGGREGATION
+          Calculate total and effective PV for all inverters, accounting for inverter losses.
+          This value is used to determine available local energy for the time step.
+         */
         double tPV = 0;
         double effectivePV = 0;
         for (Map.Entry<Inverter,InputData> entry: inputDataMap.entrySet()) {
@@ -374,10 +462,18 @@ public class SimulationWorker extends Worker {
             effectivePV += sid.tpv * entry.getValue().dc2acLoss;
         }
 
+        /*
+          GRID CHARGING (LOAD SHIFT)
+          If grid charging is scheduled, charge batteries from the grid and update the extra load.
+          This models user-configured load shifting behavior.
+         */
         double locallyAvailable = effectivePV + batteryAvailableForDischarge;
         double purchaseShiftingLoad = chargeBatteriesFromGridIfNeeded(inputDataMap, row);
 
-        // COPY THE BASICS TO THE OUTPUT
+        /*
+         * OUTPUT DATA INITIALIZATION
+         * Prepare the output data structure for this time step, copying over basic input values.
+         */
         ScenarioSimulationData outputRow = new ScenarioSimulationData();
         outputRow.setScenarioID(scenarioID);
         outputRow.setDate(inputRow.getDate());
@@ -386,6 +482,11 @@ public class SimulationWorker extends Worker {
         outputRow.setDayOf2001((inputRow.getDo2001()));
         outputRow.setGridToBattery(purchaseShiftingLoad);
 
+        /*
+         * SCHEDULED EV AND HOT WATER LOADS
+         * Determine if scheduled EV charging or hot water heating should be applied for this time step,
+         * and update the load accordingly.
+         */
         int month = Integer.parseInt(inputRow.getDate().split("-")[1]);
 
         EVCharge evCharge = firstInputData.isEVCharging(inputRow.getDow(), month, inputRow.mod);
@@ -414,8 +515,13 @@ public class SimulationWorker extends Worker {
         inputLoad += scheduledEVChargeLoad;
         outputRow.setPv(tPV);
 
-        // SIMULATE WHERE STUFF GOES
-
+        /*
+         * ENERGY FLOW SIMULATION
+         * Simulate the flow of energy for this time step:
+         * - If load exceeds local supply, buy from grid and discharge batteries as needed.
+         * - If local supply is sufficient, use PV and batteries to meet load, and charge batteries/feed excess.
+         * - Update battery SOC and record energy flows.
+         */
         double buy = purchaseShiftingLoad;
         double feed = 0;
         double b2g = 0;
@@ -462,7 +568,11 @@ public class SimulationWorker extends Worker {
         outputRow.setPvToLoad(pv2load);
         outputRow.setBatToLoad(bat2Load);
 
-        // DIVERSIONS
+        /*
+         * DIVERSIONS (EV AND HOT WATER)
+         * If excess PV is available, divert it to EV charging or hot water heating as per user schedules.
+         * This models user-configured diversion priorities and daily limits.
+         */
         double divertedToWater = 0;
         double divertedToEV = 0;
         // ELECTRIC VEHICLE
@@ -510,23 +620,15 @@ public class SimulationWorker extends Worker {
         outputRow.setImmersionLoad(scheduledWaterLoad);
         outputRow.setKWHDivToEV(divertedToEV);
 
-        // FORCED DISCHARGE TO GRID
-        // Minimum of
-        //      battery discharge capacity left,
-        //      inverter capacity,
-        //      requested discharge rate
-        // Then sum for all inverters, ,
-        //      and min(sum, exportMax)
-        //      if the (sum + feed) > exportMax
-        //      SOMEHOW reduce the discharge proportionally.
-        // Then
-        //      increase feed by forcedDischarge,
-        //      reduce the SoCs,
-
+        /*
+         * FORCED DISCHARGE TO GRID
+         * If forced discharge to grid is scheduled, discharge batteries to the grid up to the allowed export limit.
+         * This models user-configured forced export events.
+         */
         double maxExport = firstInputData.exportMax / 12D; // 5 minutes
         double availableExport = Math.max(0d, maxExport - feed);
         // Which inverters/batteries are set to discharge now
-        for (Map.Entry<Inverter,InputData> entry: inputDataMap.entrySet()) {
+        for (Map.Entry<Inverter, InputData> entry: inputDataMap.entrySet()) {
             InputData inputData = entry.getValue();
             ForceDischargeToGrid forceDischargeToGrid = inputData.mForceDischargeToGrid;
             if (!(null == forceDischargeToGrid) && !(null == forceDischargeToGrid.mD2G) && forceDischargeToGrid.mD2G.get(row)){
@@ -554,16 +656,33 @@ public class SimulationWorker extends Worker {
         outputRow.setSOC(totalSOC);
         outputRow.setFeed(feed);
 
-        // RECORD THE OUTPUT
+        /*
+         * FINALIZE OUTPUT
+         * Record the results for this time step, including all calculated flows and updated SOC.
+         */
         outputRows.add(outputRow);
     }
 
+    /**
+     * Sends a notification using the provided NotificationManager and builder.
+     * Used to update the user on simulation progress.
+     * @param notificationManager The NotificationManagerCompat instance.
+     * @param notificationId The notification ID.
+     * @param builder The notification builder.
+     */
     private void sendNotification(NotificationManagerCompat notificationManager, int notificationId, NotificationCompat.Builder builder) {
         if (ActivityCompat.checkSelfPermission(
                 mContext, android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return;
         notificationManager.notify(notificationId, builder.build());
     }
 
+    /**
+     * Charges batteries in the scenario by distributing the available charge proportionally
+     * based on each battery's capacity. Updates state of charge for each battery.
+     * @param inputDataMap Map of inverters to their input data.
+     * @param charge Total charge to distribute (kWh).
+     * @return The sum of all batteries' state of charge after charging.
+     */
     private static double chargeBatteries(Map<Inverter, InputData> inputDataMap, double charge) {
         double lastSOC = 0;
         double totalChargeCapacity = 0d;
@@ -581,6 +700,13 @@ public class SimulationWorker extends Worker {
         return lastSOC;
     }
 
+    /**
+     * Charges batteries from the grid if scheduled and needed, based on user load shift schedules.
+     * Only charges batteries that are below their stop threshold.
+     * @param inputDataMap Map of inverters to their input data.
+     * @param row The time step index.
+     * @return The total extra load added from grid charging.
+     */
     private static double chargeBatteriesFromGridIfNeeded(Map<Inverter, InputData> inputDataMap, int row) {
         double chargeCapacity;
         double totalExtraLoad = 0;
@@ -599,6 +725,15 @@ public class SimulationWorker extends Worker {
         return totalExtraLoad;
     }
 
+    /**
+     * Discharges batteries to meet load, distributing the discharge proportionally
+     * based on each battery's available discharge capacity.
+     * Updates state of charge for each battery.
+     * @param inputDataMap Map of inverters to their input data.
+     * @param discharge Total discharge required (kWh).
+     * @param row The time step index.
+     * @return Array: [total SOC after discharge, total discharge amount].
+     */
     private static double[] dischargeBatteries(Map<Inverter, InputData> inputDataMap, double discharge, int row) {
         double[] ret = {0,0};
         // Get the current charge landscape inverters with batteries & their current state
@@ -621,9 +756,12 @@ public class SimulationWorker extends Worker {
         return ret;
     }
 
-    /*
-     * For a single inverter/battery combo, force discharge the battery by the specified amount
-     * Return the change (discharge) in soc for this battery
+    /**
+     * Forces discharge of a single battery by a specified amount, used for forced export to grid.
+     * Applies storage loss to the discharge.
+     * @param inputData The input data for the inverter/battery.
+     * @param amountToDischarge The amount to discharge (kWh).
+     * @return The effective discharge applied.
      */
     private static double forceDischargeBatteries(InputData inputData, double amountToDischarge) {
         double ret;
@@ -634,6 +772,14 @@ public class SimulationWorker extends Worker {
         return ret;
     }
 
+    /**
+     * InputData encapsulates all relevant data and state for a single inverter during simulation.
+     * It aggregates user-configured scenario inputs (battery, hot water, EV, schedules, etc.)
+     * and maintains the current simulation state (e.g., state of charge).
+     * This class is essential for pulling together all factors that impact the simulation
+     * as input by the user for the given scenario, enabling the simulation engine to
+     * reason about each inverter's context and constraints at every time step.
+     */
     static class InputData {
         long id;
         double dc2acLoss;
@@ -657,6 +803,22 @@ public class SimulationWorker extends Worker {
         // Volatile state members
         double soc = 0d;
 
+        /**
+         * Constructs InputData for an inverter and its associated scenario components.
+         * Gathers all user-configured factors (battery, hot water, EV, schedules, etc.)
+         * that affect simulation outcomes for this inverter.
+         * @param inverter The inverter.
+         * @param iData Simulation input data (load, PV, etc.).
+         * @param battery Associated battery (nullable).
+         * @param chargeFromGrid Charge from grid schedule (nullable).
+         * @param hwSystem Hot water system (nullable).
+         * @param hwDivert Hot water divert flag (nullable).
+         * @param hotWaterSchedules Hot water schedules (nullable).
+         * @param evCharges EV charge schedules (nullable).
+         * @param evDiverts EV divert schedules (nullable).
+         * @param forceDischargeToGrid Forced discharge schedule (nullable).
+         * @param exportMax Maximum export value for this inverter.
+         */
         InputData(Inverter inverter, List<SimulationInputData> iData,
                   Battery battery, ChargeFromGrid chargeFromGrid,
                   HWSystem hwSystem, Boolean hwDivert, List<HWSchedule> hotWaterSchedules,
@@ -679,6 +841,14 @@ public class SimulationWorker extends Worker {
             mEVDivertDailyTotals = new HashMap<>();
         }
 
+        /**
+         * Determines if hot water heating is scheduled for the given time.
+         * Used to decide if immersion heating should be active in the simulation.
+         * @param dayOfWeek Day of week (0=Sunday).
+         * @param monthOfYear Month of year.
+         * @param minuteOfDay Minute of day.
+         * @return true if heating is scheduled, false otherwise.
+         */
         public boolean isHotWaterHeatingScheduled(int dayOfWeek, int monthOfYear, int minuteOfDay) {
             boolean ret = false;
             if (dayOfWeek == 7) dayOfWeek = 0;
@@ -694,6 +864,14 @@ public class SimulationWorker extends Worker {
             return ret;
         }
 
+        /**
+         * Checks if EV charging is scheduled for the given time.
+         * Used to determine if scheduled EV charging load should be applied.
+         * @param dayOfWeek Day of week (0=Sunday).
+         * @param monthOfYear Month of year.
+         * @param minuteOfDay Minute of day.
+         * @return The EVCharge if scheduled, null otherwise.
+         */
         public EVCharge isEVCharging(int dayOfWeek, int monthOfYear, int minuteOfDay) {
             EVCharge ret = null;
             if (dayOfWeek == 7) dayOfWeek = 0;
@@ -709,6 +887,14 @@ public class SimulationWorker extends Worker {
             return ret;
         }
 
+        /**
+         * Gets the EVDivert scheduled for the given time, if any.
+         * Used to determine if excess PV should be diverted to EV charging.
+         * @param dayOfWeek Day of week (0=Sunday).
+         * @param monthOfYear Month of year.
+         * @param minuteOfDay Minute of day.
+         * @return The EVDivert if scheduled, null otherwise.
+         */
         public EVDivert getEVDivertOrNull(int dayOfWeek, int monthOfYear, int minuteOfDay) {
             EVDivert ret = null;
             if (dayOfWeek == 7) dayOfWeek = 0;
@@ -724,27 +910,56 @@ public class SimulationWorker extends Worker {
             return ret;
         }
 
+        /**
+         * Gets the discharge stop threshold for the battery, in kWh.
+         * Used to prevent battery from discharging below user reserve.
+         * @return The discharge stop value in kWh.
+         */
         public double getDischargeStop() {
             return (mBattery.getDischargeStop() / 100d) * mBattery.getBatterySize();
         }
 
+        /**
+         * Gets the available charge capacity for the battery at the current SOC.
+         * Used to limit charging to battery's constraints.
+         * @return The charge capacity in kWh.
+         */
         public double getChargeCapacity() {
             return min((mBattery.getBatterySize() - soc),
                     InputData.getMaxChargeForSOC(soc, mBattery));
         }
 
+        /**
+         * Gets the available discharge capacity for the battery at the given time step.
+         * Used to limit discharging to battery's constraints and grid charging status.
+         * @param row The time step index.
+         * @return The discharge capacity in kWh.
+         */
         public double getDischargeCapacity(int row) {
             if (isCFG(row)) return 0D;
             else return min(mBattery.getMaxDischarge(),
                     max(0, (soc - getDischargeStop() )));
         }
 
+        /**
+         * Checks if charging from grid is scheduled at the given time step.
+         * Used to determine if battery should be charged from grid.
+         * @param row The time step index.
+         * @return true if charging from grid is scheduled, false otherwise.
+         */
         public boolean isCFG(int row) {
             boolean cfg = false;
             if (!(null == mChargeFromGrid)) cfg = mChargeFromGrid.mCFG.get(row);
             return cfg;
         }
 
+        /**
+         * Gets the maximum charge allowed for the battery at the given SOC.
+         * Used to model battery charge tapering as it fills.
+         * @param batterySOC The current state of charge.
+         * @param battery The battery.
+         * @return The maximum charge allowed in kWh.
+         */
         public static double getMaxChargeForSOC(double batterySOC, Battery battery) {
             double ret = 0;
             if (null == battery) return ret;
@@ -759,11 +974,21 @@ public class SimulationWorker extends Worker {
         }
     }
 
+    /**
+     * ChargeFromGrid manages the schedule for charging batteries from the grid,
+     * based on user-configured load shift schedules. It determines, for each time step,
+     * whether grid charging is active and the stop threshold.
+     */
     public static class ChargeFromGrid {
 
         List<Boolean> mCFG;
         List<Double> mStopAt;
 
+        /**
+         * Constructs a ChargeFromGrid schedule from load shifts.
+         * @param loadShifts List of load shift schedules.
+         * @param rowsToProcess Number of time steps.
+         */
         public ChargeFromGrid(List<LoadShift> loadShifts, int rowsToProcess) {
             mCFG = new ArrayList<>(Collections.nCopies(rowsToProcess, false));
             mStopAt = new ArrayList<>(Collections.nCopies(rowsToProcess, 0D));
@@ -771,6 +996,11 @@ public class SimulationWorker extends Worker {
             populateCFG(groupedLoadShifts);
         }
 
+        /**
+         * Populates the charge from grid schedule based on grouped load shifts.
+         * For each time step, sets whether grid charging is active and the stop threshold.
+         * @param groupedLoadShifts Map of grouped load shifts.
+         */
         private void populateCFG(Map<Integer, List<LoadShift>> groupedLoadShifts) {
             LocalDateTime active = LocalDateTime.of(2001, 1, 1, 0, 0);
             LocalDateTime end = LocalDateTime.of(2002, 1, 1, 0, 0);
@@ -799,6 +1029,11 @@ public class SimulationWorker extends Worker {
             }
         }
 
+        /**
+         * Groups load shifts by date and inverter for efficient schedule lookup.
+         * @param loadShifts List of load shifts.
+         * @return Map of grouped load shifts.
+         */
         private static Map<Integer, List<LoadShift>> sortLoadShifts(List<LoadShift> loadShifts) {
             Map<Integer, List<LoadShift>> groupedLoadShifts = new HashMap<>();
             Integer maxKey = null;
@@ -827,12 +1062,22 @@ public class SimulationWorker extends Worker {
         }
     }
 
+    /**
+     * ForceDischargeToGrid manages the schedule for forced battery discharge to the grid,
+     * based on user-configured discharge schedules. For each time step, it determines
+     * whether forced discharge is active, the stop threshold, and the discharge rate.
+     */
     public static class ForceDischargeToGrid {
 
         List<Boolean> mD2G;
         List<Double> mStopAt;
         List<Double> mRate;
 
+        /**
+         * Constructs a ForceDischargeToGrid schedule from discharge schedules.
+         * @param dischargeToGrids List of discharge to grid schedules.
+         * @param rowsToProcess Number of time steps.
+         */
         public ForceDischargeToGrid(List<DischargeToGrid> dischargeToGrids, int rowsToProcess) {
             mD2G = new ArrayList<>(Collections.nCopies(rowsToProcess, false));
             mStopAt = new ArrayList<>(Collections.nCopies(rowsToProcess, 0D));
@@ -841,6 +1086,11 @@ public class SimulationWorker extends Worker {
             populateFD2G(groupedDischarges);
         }
 
+        /**
+         * Populates the forced discharge schedule based on grouped discharges.
+         * For each time step, sets whether forced discharge is active, the stop threshold, and rate.
+         * @param groupedDischarges Map of grouped discharges.
+         */
         private void populateFD2G(Map<Integer, List<DischargeToGrid>> groupedDischarges) {
             LocalDateTime active = LocalDateTime.of(2001, 1, 1, 0, 0);
             LocalDateTime end = LocalDateTime.of(2002, 1, 1, 0, 0);
@@ -873,6 +1123,11 @@ public class SimulationWorker extends Worker {
             }
         }
 
+        /**
+         * Groups discharge schedules by date and inverter for efficient schedule lookup.
+         * @param dischargeToGrids List of discharge to grid schedules.
+         * @return Map of grouped discharges.
+         */
         private static Map<Integer, List<DischargeToGrid>> sortDischarges(List<DischargeToGrid> dischargeToGrids) {
             Map<Integer, List<DischargeToGrid>> groupedDischarges = new HashMap<>();
             Integer maxKey = null;
