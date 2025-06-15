@@ -86,6 +86,34 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import io.reactivex.rxjava3.core.Single;
 
+/**
+ * Main Activity serving as the primary entry point and navigation hub for the TOUTC application.
+ * 
+ * This activity coordinates the entire user interface, managing a ViewPager2 that hosts multiple
+ * fragments for different application sections (data management, usage, costs, and comparison).
+ * It handles critical application lifecycle events, user onboarding, data import/export, and
+ * provides centralized progress tracking for long-running operations.
+ * 
+ * Key responsibilities:
+ * - Application initialization and first-launch setup with disclaimers
+ * - Fragment navigation and state management through ViewPager2
+ * - Data import/export functionality for price plans and scenarios
+ * - Background work monitoring and progress indication
+ * - Help system integration with asset-based web content
+ * - Application menu management and user action handling
+ * - Notification channel setup for background operations
+ * 
+ * The activity uses a ViewModel pattern to coordinate data operations and maintains
+ * reactive subscriptions to provide real-time updates to the UI. It also implements
+ * sophisticated error handling and user feedback mechanisms to ensure a smooth
+ * user experience even when dealing with complex energy system data.
+ * 
+ * Fragment organization:
+ * - DATA_MANAGEMENT_FRAGMENT: Import/export and data management tools
+ * - USAGE_FRAGMENT: Energy usage scenarios and configuration
+ * - COSTS_FRAGMENT: Price plan definition and management
+ * - COMPARE_FRAGMENT: Cost comparison and analysis results
+ */
 public class MainActivity extends AppCompatActivity {
 
     public static final String CHANNEL_ID = "TOUTC-PROGRESS";
@@ -110,6 +138,13 @@ public class MainActivity extends AppCompatActivity {
     private boolean mFirstLaunch = true;
     private boolean mFirstLaunchDialogRendered = false;
 
+    /**
+     * Load user preferences from the encrypted DataStore.
+     * 
+     * Retrieves the first-launch flag from secure storage to determine
+     * whether to show the application disclaimers. Uses reactive programming
+     * to handle the asynchronous data retrieval gracefully.
+     */
     private void loadSettingsFromDataStore() {
         new Thread(() -> {
             Preferences.Key<String> FirstUse = PreferencesKeys.stringKey(FIRST_USE);
@@ -126,6 +161,19 @@ public class MainActivity extends AppCompatActivity {
         }).start();
     }
 
+    /**
+     * Display application disclaimers and warnings to first-time users.
+     * 
+     * Shows a comprehensive dialog explaining the limitations of the energy
+     * calculations, data accuracy considerations, and legal disclaimers.
+     * This ensures users understand that the app provides estimations for
+     * exploration purposes rather than professional financial advice.
+     * 
+     * Upon acceptance, marks the user as having seen the disclaimers and
+     * stores this preference securely for future launches.
+     * 
+     * @param application the application instance for DataStore access
+     */
     private void showDisclaimers(TOUTCApplication application) {
         new MaterialAlertDialogBuilder(this)
                 .setMessage("Solar data is variable. This app uses historical solar data in estimations.\n\n" +
@@ -147,6 +195,19 @@ public class MainActivity extends AppCompatActivity {
                 .show();
     }
 
+    /**
+     * Activity result launcher for importing price plan data from JSON files.
+     * 
+     * Handles the complete import process for price plans, including:
+     * - File selection and reading from external storage
+     * - JSON deserialization using Gson with proper type handling
+     * - Database insertion with optional overwrite capability
+     * - Progress indication during import operations
+     * - Cleanup of associated costing data when plans are updated
+     * 
+     * The import process supports bulk operations and provides robust error
+     * handling to prevent data corruption during the import process.
+     */
     final ActivityResultLauncher<String> mLoadPricePlansFromFile = registerForActivityResult(new ActivityResultContracts.GetContent(),
             new ActivityResultCallback<Uri>() {
                 @Override
@@ -161,6 +222,7 @@ public class MainActivity extends AppCompatActivity {
                         Type type = new TypeToken<List<PricePlanJsonFile>>(){}.getType();
                         List<PricePlanJsonFile> ppList = new Gson().fromJson(reader, type);
                         for(PricePlanJsonFile pp : ppList){
+                            // Process each price plan in the imported file
                             System.out.println(pp.plan);
                             PricePlan p = JsonTools.createPricePlan(pp);
                             ArrayList<DayRate> drs = new ArrayList<>();
@@ -168,7 +230,9 @@ public class MainActivity extends AppCompatActivity {
                                 DayRate dr = JsonTools.createDayRate(drj);
                                 drs.add(dr);
                             }
+                            // Insert with optional overwriting based on user preference
                             mViewModel.insertPricePlan(p, drs, clobberPlansAndScenarios);
+                            // Clear associated cost calculations as they're now invalid
                             mViewModel.removeCostingsForPricePlan(p.getPricePlanIndex());
                         }
                     } catch (FileNotFoundException e) {
@@ -187,6 +251,17 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
 
+    /**
+     * Activity result launcher for importing scenario data from JSON files.
+     * 
+     * Manages the import of complete energy system scenarios including all
+     * associated component data (inverters, batteries, panels, loads, etc.).
+     * The import process reconstructs complex scenario relationships and
+     * ensures data integrity across multiple database tables.
+     * 
+     * Provides the same robust error handling and progress indication as
+     * price plan imports, with cleanup of dependent calculation data.
+     */
     final ActivityResultLauncher<String> mLoadScenariosFromFile = registerForActivityResult(new ActivityResultContracts.GetContent(),
             new ActivityResultCallback<Uri>() {
                 @Override

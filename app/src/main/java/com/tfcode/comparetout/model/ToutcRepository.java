@@ -69,6 +69,37 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Central repository class for managing all database operations and data access.
+ * 
+ * This class serves as the single point of access for all data operations within
+ * the application, implementing the Repository pattern to abstract database access
+ * from the UI layer. It coordinates between multiple DAO (Data Access Object) classes
+ * to provide a unified interface for managing energy system data, price plans,
+ * scenarios, and cost calculations.
+ * 
+ * Key responsibilities:
+ * - Price plan management and time-of-use rate schedules
+ * - Energy scenario definition and component relationships
+ * - Energy system data import and transformation (AlphaESS, ESBN, Home Assistant)
+ * - Cost calculation and analysis results
+ * - LiveData observers for reactive UI updates
+ * 
+ * The repository manages relationships between:
+ * - Scenarios and their associated components (inverters, panels, batteries)
+ * - Price plans and their time-based rate structures
+ * - Raw energy data and transformed analysis results
+ * - Load profiles and consumption patterns
+ * 
+ * This class follows the Android Architecture Components pattern and provides
+ * LiveData objects for observing database changes in the UI layer.
+ * 
+ * @see ToutcDB for database configuration
+ * @see PricePlanDAO for price plan operations
+ * @see ScenarioDAO for scenario operations
+ * @see AlphaEssDAO for energy data operations
+ * @see CostingDAO for cost calculation operations
+ */
 public class ToutcRepository {
     private final PricePlanDAO pricePlanDAO;
     private final LiveData<Map<PricePlan, List<DayRate>>> allPricePlans;
@@ -99,6 +130,22 @@ public class ToutcRepository {
     // dependency. This adds complexity and much more code, and this sample is not about testing.
     // See the BasicSample in the android-architecture-components repository at
     // https://github.com/googlesamples
+    
+    /**
+     * Constructor for ToutcRepository.
+     * 
+     * Initializes all DAO instances and sets up LiveData observers for each data type.
+     * The repository follows the singleton pattern through the database instance to
+     * ensure consistent data access across the application.
+     * 
+     * The constructor establishes connections to all major data categories:
+     * - Price plans and rate schedules
+     * - Energy scenarios and component configurations
+     * - Cost calculations and analysis results
+     * - Energy data from various sources (AlphaESS, ESBN, Home Assistant)
+     * 
+     * @param application Application context for database initialization
+     */
     public ToutcRepository(Application application) {
         ToutcDB db = ToutcDB.getDatabase(application);
         pricePlanDAO = db.pricePlanDAO();

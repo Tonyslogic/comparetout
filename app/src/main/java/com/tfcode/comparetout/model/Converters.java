@@ -30,6 +30,40 @@ import com.tfcode.comparetout.model.scenario.HourlyDist;
 import com.tfcode.comparetout.model.scenario.MonthHolder;
 import com.tfcode.comparetout.model.scenario.MonthlyDist;
 
+/**
+ * Room database type converters for complex data types serialization.
+ * 
+ * This class provides bidirectional conversion between complex Java objects and
+ * their JSON string representations for storage in the SQLite database. Room
+ * requires type converters for any non-primitive data types, and this class
+ * handles the conversion for all custom objects used throughout the energy
+ * system data model.
+ * 
+ * The converters use Gson for JSON serialization/deserialization, providing
+ * robust handling of complex object hierarchies while maintaining type safety
+ * and null value handling. This approach allows the database to store rich
+ * data structures as TEXT fields while preserving object relationships and
+ * nested data structures.
+ * 
+ * Supported data types:
+ * - DoubleHolder: Hourly energy pricing data arrays
+ * - IntHolder: Day-of-week and scheduling configurations
+ * - Restrictions: Complex pricing rule definitions
+ * - MinuteRateRange: Minute-precision time-of-use rates
+ * - ChargeModel: Battery charging behavior models
+ * - Distribution objects: Temporal energy usage patterns
+ * - SubTotals: Aggregated cost calculation results
+ * 
+ * Each converter pair (to/from) ensures data integrity during database
+ * operations while providing efficient storage of complex energy system
+ * configurations and calculation results. The JSON representation also
+ * facilitates data export/import operations and debugging.
+ * 
+ * Performance considerations:
+ * - Gson operations are cached where possible to minimize serialization overhead
+ * - Converters are designed to handle null values gracefully
+ * - JSON format provides human-readable storage for debugging and maintenance
+ */
 public class Converters {
 
     @TypeConverter

@@ -61,6 +61,24 @@ import java.util.stream.Collectors;
 
 import io.reactivex.rxjava3.core.Single;
 
+/**
+ * Import overview fragment for Home Assistant integration.
+ * 
+ * This class manages the connection to Home Assistant and handles energy sensor data retrieval.
+ * It extends ImportOverviewFragment to provide a consistent interface for importing energy data
+ * from Home Assistant installations. The class facilitates user authentication, sensor discovery,
+ * and background data synchronization through worker tasks.
+ * 
+ * Key responsibilities:
+ * - Authenticate with Home Assistant WebSocket API
+ * - Discover and configure energy sensors (solar, battery, grid)  
+ * - Schedule periodic data import tasks
+ * - Manage credential storage and validation
+ * 
+ * @see ImportOverviewFragment for base functionality
+ * @see HADispatcher for WebSocket communication
+ * @see HACatchupWorker for background data synchronization
+ */
 public class ImportHAOverview extends ImportOverviewFragment {
 
     private static final Logger LOGGER = Logger.getLogger(ImportHAOverview.class.getName());
@@ -69,12 +87,30 @@ public class ImportHAOverview extends ImportOverviewFragment {
     private EnergySensors mEnergySensors;
     private ImportHAOverview mImportHAOverview;
 
+    /**
+     * Factory method to create new instance of ImportHAOverview fragment.
+     * 
+     * This method follows the Android Fragment pattern of using static factory methods
+     * rather than constructors to ensure proper initialization. The self-reference is
+     * stored to enable callback operations from inner classes.
+     * 
+     * @return A new configured instance of ImportHAOverview
+     */
     public static ImportHAOverview newInstance() {
         ImportHAOverview fragment = new ImportHAOverview();
         fragment.mImportHAOverview = fragment;
         return fragment;
     }
 
+    /**
+     * Removes stored preferences and resets battery capacity for a given serial number.
+     * 
+     * This method is called during cleanup operations when a system is being removed
+     * or reset. It specifically resets the estimated battery capacity to prevent
+     * stale data from affecting new configurations.
+     * 
+     * @param mSerialNumber The serial number of the system to clean up (unused in HA implementation)
+     */
     @Override
     protected void removePreferencesForSN(String mSerialNumber) {
         Activity activity = getActivity();
@@ -87,8 +123,23 @@ public class ImportHAOverview extends ImportOverviewFragment {
         }
     }
 
+    /**
+     * Loads system list and energy sensor configuration from persistent storage.
+     * 
+     * This method initializes the fragment state by retrieving previously stored
+     * Home Assistant system configuration and sensor definitions. It handles both
+     * the system identification (defaulting to "HomeAssistant") and the detailed
+     * sensor mappings required for energy data collection.
+     * 
+     * The method performs two main operations:
+     * 1. Load system list - establishes the connection to Home Assistant
+     * 2. Load sensor configuration - retrieves previously discovered energy sensors
+     * 
+     * @param application The application context for accessing data store
+     */
     @Override
     protected void loadSystemListFromPreferences(TOUTCApplication application) {
+        // Load the system list configuration, defaulting to HomeAssistant if none exists
         Preferences.Key<String> systemList = PreferencesKeys.stringKey(SYSTEM_LIST_KEY);
         Single<String> value4 = application.getDataStore()
                .data().firstOrError()
@@ -96,6 +147,8 @@ public class ImportHAOverview extends ImportOverviewFragment {
         String systemListJsonString =  value4.blockingGet();
         List<String> mprnListFromPreferences =
                 new Gson().fromJson(systemListJsonString, new TypeToken<List<String>>(){}.getType());
+        
+        // Initialize system list and set selection state if credentials are valid
         if (!(null == mprnListFromPreferences) && !(mprnListFromPreferences.isEmpty())) {
             mSerialNumbers = new ArrayList<>();
             mSerialNumbers.addAll(mprnListFromPreferences);
@@ -105,12 +158,15 @@ public class ImportHAOverview extends ImportOverviewFragment {
             }
         }
 
+        // Load previously discovered energy sensor configuration
         Preferences.Key<String> sensorsKey = PreferencesKeys.stringKey(HA_SENSORS_KEY);
         Single<String> value5 = application.getDataStore()
                 .data().firstOrError()
                 .map(prefs -> prefs.get(sensorsKey)).onErrorReturnItem("{}");
         String sensorsJsonString =  value5.blockingGet();
         EnergySensors energySensors = new EnergySensors();
+        
+        // Attempt to deserialize stored sensor configuration with error handling
         try {
             energySensors =
                     new Gson().fromJson(sensorsJsonString, new TypeToken<EnergySensors>(){}.getType());
@@ -121,6 +177,14 @@ public class ImportHAOverview extends ImportOverviewFragment {
         if (!(null == energySensors)) {mEnergySensors = energySensors;}
     }
 
+    /**
+     * Constructor for ImportHAOverview fragment.
+     * 
+     * Initializes the fragment with Home Assistant-specific configuration values.
+     * These constants define the keys used for storing credentials, system information,
+     * and other persistent data in the application's data store. The constructor
+     * establishes the importer type to ensure proper handling by the parent class.
+     */
     public ImportHAOverview() {
         // Required empty public constructor
         TAG = "ImportESBNOverview";
@@ -132,6 +196,16 @@ public class ImportHAOverview extends ImportOverviewFragment {
         SYSTEM_PREVIOUSLY_SELECTED = "ha_system_previously_selected";
     }
 
+    /**
+     * Configures the credential dialog prompts for Home Assistant connection.
+     * 
+     * This method customizes the credential input dialog to show appropriate
+     * prompts for Home Assistant connection (host URL and access token).
+     * It provides a default host format to guide users in entering the correct
+     * WebSocket endpoint URL.
+     * 
+     * @param credentialDialog The dialog to configure with Home Assistant-specific prompts
+     */
     @Override
     protected void setCredentialPrompt(CredentialDialog credentialDialog) {
         credentialDialog.setPrompts(R.string.hostPrompt, R.string.tokenPrompt,
@@ -140,6 +214,18 @@ public class ImportHAOverview extends ImportOverviewFragment {
                         : "http://<HOST>:8123/api/websocket");
     }
 
+    /**
+     * Creates the system selection row for the Home Assistant interface.
+     * 
+     * This method builds the UI row that allows users to view and select
+     * Home Assistant energy sensors. The button is only enabled when credentials
+     * are valid and systems are available. The status text shows the current
+     * system state for user feedback.
+     * 
+     * @param activity The parent activity context
+     * @param mCredentialsAreGood Whether valid credentials have been established
+     * @return TableRow containing the system selection button and status display
+     */
     @Override
     protected TableRow getSystemSelectionRow(Activity activity, boolean mCredentialsAreGood) {
         TableRow systemSelectionRow = new TableRow(activity);
@@ -156,6 +242,14 @@ public class ImportHAOverview extends ImportOverviewFragment {
         return systemSelectionRow;
     }
 
+    /**
+     * Displays the discovered energy sensors in a dialog for user review.
+     * 
+     * This method formats the energy sensor configuration as pretty-printed JSON
+     * and presents it to the user in a dialog. Upon confirmation, it sets the
+     * system as selected and triggers UI updates. This allows users to review
+     * what sensors were discovered before proceeding with data import.
+     */
     private void showEnergySensors() {
         Gson gson = new GsonBuilder().setPrettyPrinting().create();
         String prettyJsonString = gson.toJson(mEnergySensors);
@@ -172,12 +266,26 @@ public class ImportHAOverview extends ImportOverviewFragment {
                 .show();
     }
 
+    /**
+     * Initiates background workers for Home Assistant data collection.
+     * 
+     * This method sets up two types of workers:
+     * 1. Catchup worker - performs initial historical data import from the specified start date
+     * 2. Daily worker - schedules recurring daily imports to keep data current
+     * 
+     * The workers are configured with the necessary credentials and sensor information
+     * to autonomously collect energy data from Home Assistant. The daily worker is
+     * scheduled to run during off-peak hours (1-2 AM) to minimize impact.
+     * 
+     * @param serialNumber The system identifier (used for worker tagging)
+     * @param startDate The date from which to begin historical data import
+     */
     @Override
     protected void startWorkers(String serialNumber, Object startDate) {
         @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
         Context context = getContext();
         if (!(null == context) && !("".equals(serialNumber))) {
-            // start the catchup worker for the selected serial
+            // Start the catchup worker for historical data import from the selected start date
             Data inputData = new Data.Builder()
                     .putString(HACatchupWorker.KEY_HOST, mAppID)
                     .putString(HACatchupWorker.KEY_TOKEN, mAppSecret)
@@ -196,12 +304,14 @@ public class ImportHAOverview extends ImportOverviewFragment {
                     .beginUniqueWork(serialNumber, ExistingWorkPolicy.APPEND, catchupWorkRequest)
                     .enqueue();
 
-            // start the daily worker for the selected serial
+            // Start the daily recurring worker for ongoing data synchronization
             Data dailyData = new Data.Builder()
                     .putString(HACatchupWorker.KEY_HOST, mAppID)
                     .putString(HACatchupWorker.KEY_TOKEN, mAppSecret)
                     .putString(HACatchupWorker.KEY_SENSORS, new Gson().toJson(mEnergySensors))
                     .build();
+            
+            // Schedule for off-peak hours (1-2 AM) to minimize system impact
             int delay = 25 - LocalDateTime.now().getHour(); // Going for 01:00 <-> 02:00
             PeriodicWorkRequest dailyWorkRequest =
                     new PeriodicWorkRequest.Builder(HACatchupWorker.class, 1, TimeUnit.DAYS)
@@ -217,6 +327,18 @@ public class ImportHAOverview extends ImportOverviewFragment {
         }
     }
 
+    /**
+     * Establishes connection to Home Assistant WebSocket API for credential validation.
+     * 
+     * This method creates a new HADispatcher instance to handle WebSocket communication
+     * with Home Assistant. It registers handlers for authentication responses and
+     * initiates the connection process. The method is called during credential
+     * validation to verify that the provided host and token are valid.
+     * 
+     * @param host The Home Assistant WebSocket URL
+     * @param token The long-lived access token for authentication
+     * @throws ImportException if connection to Home Assistant fails
+     */
     @Override
     protected void reloadClient(String host, String token) throws ImportException {
         try {
@@ -228,6 +350,21 @@ public class ImportHAOverview extends ImportOverviewFragment {
             throw new ImportException("Failed to connect to Home Assistant");
         }
     }
+    /**
+     * Handles the energy preferences result from Home Assistant.
+     * 
+     * This inner class processes the response from Home Assistant's energy preferences API
+     * to discover and configure energy sensors. It parses the energy sources (solar, battery, grid)
+     * and creates appropriate sensor mappings for data collection. The class is responsible for
+     * transforming Home Assistant's energy configuration into the application's internal
+     * sensor representation.
+     * 
+     * Key responsibilities:
+     * - Parse energy source configuration from Home Assistant
+     * - Create sensor mappings for solar generation, battery, and grid interactions
+     * - Store sensor configuration for use by data collection workers
+     * - Update UI state upon successful sensor discovery
+     */
     class EnergyPrefsResultHandler implements MessageHandler<EnergyPrefsResult> {
 
         private final Logger LOGGER = Logger.getLogger(ImportHAOverview.class.getName());
@@ -239,6 +376,16 @@ public class ImportHAOverview extends ImportOverviewFragment {
         private final HADispatcher mHAClient;
         private final Activity mActivity;
 
+        /**
+         * Constructs energy sensor configuration from discovered sensor IDs.
+         * 
+         * This method creates an EnergySensors object that contains all the
+         * sensor identifiers discovered during the energy preferences query.
+         * This configuration is used by background workers to know which
+         * sensors to monitor for energy data collection.
+         * 
+         * @return EnergySensors object containing all discovered sensor mappings
+         */
         public EnergySensors getSensors() {
             EnergySensors ret = new EnergySensors();
             ret.solarGeneration = statSolarEnergyFrom;
@@ -248,31 +395,58 @@ public class ImportHAOverview extends ImportOverviewFragment {
             return ret;
         }
 
+        /**
+         * Constructor for EnergyPrefsResultHandler.
+         * 
+         * @param mHAClient The HADispatcher instance for WebSocket communication
+         * @param activity The parent activity for UI updates
+         */
         public EnergyPrefsResultHandler(HADispatcher mHAClient, Activity activity) {
             this.mHAClient = mHAClient;
             this.mActivity = activity;
         }
 
+        /**
+         * Processes the energy preferences result message from Home Assistant.
+         * 
+         * This method parses the energy configuration response and categorizes each
+         * energy source by type (solar, battery, grid). It creates appropriate sensor
+         * mappings for data collection and stores the configuration for future use.
+         * Upon successful processing, it updates the UI to reflect the discovered sensors.
+         * 
+         * The method handles three types of energy sources:
+         * - Solar: Maps energy generation sensors
+         * - Battery: Maps both charging and discharging sensors  
+         * - Grid: Maps both import and export flow sensors
+         * 
+         * @param message The energy preferences result message from Home Assistant
+         */
         @Override
         public void handleMessage(HAMessage message) {
             LOGGER.info("EnergyPrefsResultHandler.handleMessage");
             EnergyPrefsResult result = (EnergyPrefsResult) message;
             if (result.isSuccess()) {
+                // Initialize sensor lists for discovered energy sources
                 statSolarEnergyFrom = new ArrayList<>();
                 statBatteries = new ArrayList<>();
                 List<EnergySource> energySources = result.getResult().getEnergySources();
+                
+                // Process each energy source and categorize by type
                 for (EnergySource energySource : energySources) {
                     switch (energySource.getType()) {
                         case "solar":
+                            // Solar panels only generate energy (energy_from)
                             statSolarEnergyFrom.add(energySource.getStatEnergyFrom());
                             break;
                         case "battery":
+                            // Batteries have both charging (energy_to) and discharging (energy_from) sensors
                             BatterySensor batterySensor = new BatterySensor();
                             batterySensor.batteryCharging = energySource.getStatEnergyTo();
                             batterySensor.batteryDischarging = energySource.getStatEnergyFrom();
                             statBatteries.add(batterySensor);
                             break;
                         case "grid":
+                            // Grid has bidirectional flows - imports (from) and exports (to)
                             statGridEnergyFrom = energySource.getFlowFrom().stream().map(Flow::getStatEnergyFrom).collect(Collectors.toList());
                             statGridEnergyTo = energySource.getFlowTo().stream().map(Flow::getStatEnergyTo).collect(Collectors.toList());
                             break;
@@ -280,6 +454,7 @@ public class ImportHAOverview extends ImportOverviewFragment {
 
                 }
 
+                // Store the discovered sensor configuration and update UI
                 mEnergySensors = getSensors();
                 String stringResponse = new Gson().toJson(mEnergySensors);
                 if (!(null == mActivity) && !(null == mActivity.getApplication()) ) {
@@ -287,6 +462,8 @@ public class ImportHAOverview extends ImportOverviewFragment {
                     boolean x = application.putStringValueIntoDataStore(HA_SENSORS_KEY, stringResponse);
                     if (!x) System.out.println("ImportHAOverview::reloadClient, failed to store sensors");
                 }
+                
+                // Update system selection state and refresh UI
                 mSerialNumber = "HomeAssistant";
                 mSystemSelected = true;
                 mMainHandler.post(() -> {serialUpdated(mActivity);});
@@ -301,24 +478,54 @@ public class ImportHAOverview extends ImportOverviewFragment {
         }
     }
 
+    /**
+     * Handles successful authentication with Home Assistant.
+     * 
+     * This inner class processes the "auth_ok" message received after successful
+     * authentication with Home Assistant's WebSocket API. Upon receiving this message,
+     * it stores the validated credentials and initiates the energy preferences query
+     * to discover available energy sensors. This handler represents the successful
+     * path in the authentication flow.
+     */
     private class AuthOKHandler implements MessageHandler<HAMessage> {
         private final HADispatcher mHAClient;
         private final String host;
         private final String token;
 
+        /**
+         * Constructor for AuthOKHandler.
+         * 
+         * @param mHAClient The HADispatcher instance managing the WebSocket connection  
+         * @param host The Home Assistant WebSocket URL that was successfully authenticated
+         * @param token The access token that was validated
+         */
         public AuthOKHandler(HADispatcher mHAClient, String host, String token) {
             this.mHAClient = mHAClient;
             this.host = host;
             this.token = token;
         }
 
+        /**
+         * Processes successful authentication and initiates energy sensor discovery.
+         * 
+         * This method is called when Home Assistant confirms successful authentication.
+         * It updates the client's authorization state, stores the validated credentials,
+         * and sends an energy preferences request to discover available energy sensors.
+         * The energy preferences query is essential for identifying which sensors
+         * to monitor for solar, battery, and grid energy data.
+         * 
+         * @param message The authentication success message from Home Assistant
+         */
         @Override
         public void handleMessage(HAMessage message) {
             LOGGER.info("AuthOKHandler.handleMessage");
+            // Mark the client as authorized and store validated credentials
             mHAClient.setAuthorized(true);
             mAppID = host;
             mAppSecret = token;
             mFetchOngoing = false;
+            
+            // Initiate energy sensor discovery process
             EnergyPrefsResultHandler energyPrefsResultHandler =
                     new EnergyPrefsResultHandler(mHAClient, getActivity());
             EnergyPrefsRequest request = new EnergyPrefsRequest();
@@ -330,16 +537,42 @@ public class ImportHAOverview extends ImportOverviewFragment {
         public Class<? extends HAMessage> getMessageClass() {return AuthOK.class;}
     }
 
+    /**
+     * Handles authentication failure with Home Assistant.
+     * 
+     * This inner class processes the "auth_invalid" message received when 
+     * authentication with Home Assistant's WebSocket API fails. This typically
+     * occurs when the provided access token is invalid, expired, or lacks
+     * the necessary permissions. The handler ensures proper cleanup of the
+     * connection and updates the application state to reflect the failed authentication.
+     */
     private class AuthNotOKHandler implements MessageHandler<HAMessage> {
         private final HADispatcher mHAClient;
 
+        /**
+         * Constructor for AuthNotOKHandler.
+         * 
+         * @param mHAClient The HADispatcher instance that needs to be cleaned up on auth failure
+         */
         public AuthNotOKHandler(HADispatcher mHAClient) {
             this.mHAClient = mHAClient;
         }
 
+        /**
+         * Processes authentication failure and performs cleanup.
+         * 
+         * This method is called when Home Assistant rejects the authentication attempt.
+         * It marks the client as unauthorized, stops any ongoing fetch operations,
+         * and properly closes the WebSocket connection. This ensures the application
+         * doesn't attempt to use invalid credentials and provides clear feedback
+         * to the user about the authentication status.
+         * 
+         * @param message The authentication failure message from Home Assistant
+         */
         @Override
         public void handleMessage(HAMessage message) {
             LOGGER.info("AuthInvalidHandler.handleMessage");
+            // Mark client as unauthorized and stop operations
             mHAClient.setAuthorized(false);
             mFetchOngoing = false;
             mHAClient.stop();

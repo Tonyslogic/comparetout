@@ -88,11 +88,60 @@ import java.util.concurrent.Executors;
 
 @TypeConverters({Converters.class})
 
+/**
+ * Room database configuration for the TOUTC application.
+ * 
+ * This abstract class defines the central database structure using Android's Room
+ * persistence library, managing all energy system data, user scenarios, pricing
+ * information, and calculation results. The database uses a comprehensive entity
+ * model that captures the complex relationships between energy system components.
+ * 
+ * Key entity categories:
+ * - Price Plans: Electricity tariffs, rates, and billing structures
+ * - Scenarios: User-defined energy system configurations
+ * - Components: Inverters, batteries, solar panels, and load profiles
+ * - Associations: Many-to-many relationships between scenarios and components
+ * - Simulation Data: Time-series energy flow calculations
+ * - Cost Analysis: Financial calculations and comparison results
+ * - Import Data: Raw and processed data from external energy systems
+ * 
+ * The database employs automatic migrations to handle schema evolution gracefully,
+ * ensuring user data is preserved across application updates. A dedicated thread
+ * pool provides efficient concurrent access for database operations while
+ * maintaining data integrity through Room's built-in synchronization.
+ * 
+ * Database access is coordinated through specialized DAO (Data Access Object)
+ * interfaces that encapsulate query logic and provide type-safe database operations
+ * with LiveData support for reactive UI updates.
+ */
 public abstract class ToutcDB extends RoomDatabase {
 
+    /**
+     * Data Access Object for price plan and tariff operations.
+     * 
+     * @return DAO instance for managing electricity pricing data
+     */
     public abstract PricePlanDAO pricePlanDAO();
+    
+    /**
+     * Data Access Object for energy system scenario operations.
+     * 
+     * @return DAO instance for managing user scenarios and components
+     */
     public abstract ScenarioDAO scenarioDAO();
+    
+    /**
+     * Data Access Object for cost calculation and analysis operations.
+     * 
+     * @return DAO instance for managing financial comparison data
+     */
     public abstract CostingDAO costingDAO();
+    
+    /**
+     * Data Access Object for AlphaESS energy system integration.
+     * 
+     * @return DAO instance for managing imported energy system data
+     */
     public abstract AlphaEssDAO alphaEssDAO();
 
     private static volatile ToutcDB INSTANCE;
@@ -100,6 +149,17 @@ public abstract class ToutcDB extends RoomDatabase {
     static final ExecutorService databaseWriteExecutor =
             Executors.newFixedThreadPool(NUMBER_OF_THREADS);
 
+    /**
+     * Get the singleton database instance with thread-safe initialization.
+     * 
+     * Uses double-checked locking pattern to ensure thread-safe singleton
+     * creation while avoiding synchronization overhead after initialization.
+     * The database is configured with a dedicated thread pool for write
+     * operations to prevent blocking the main UI thread.
+     * 
+     * @param context application context for database creation
+     * @return the singleton ToutcDB instance
+     */
     static ToutcDB getDatabase(final Context context) {
         if (INSTANCE == null) {
             synchronized (ToutcDB.class) {

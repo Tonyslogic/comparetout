@@ -38,6 +38,35 @@ import java.util.Set;
 
 @Entity(tableName = "PricePlans", indices = {
         @Index(value = {"supplier","planName"}, unique = true) })
+
+/**
+ * Entity representing an electricity pricing plan with comprehensive tariff structure.
+ * 
+ * This Room entity encapsulates all pricing information for an electricity supply plan,
+ * including time-of-use rates, feed-in tariffs, standing charges, and complex restriction
+ * rules. The entity supports sophisticated pricing schemes used by modern electricity
+ * suppliers, including tiered rates, seasonal variations, and usage-based pricing tiers.
+ * 
+ * Key pricing components:
+ * - Time-of-use rates through associated DayRate entities
+ * - Feed-in tariff rates for solar energy export
+ * - Daily standing charges and connection fees
+ * - Sign-up bonuses and promotional credits
+ * - Deemed export calculations for solar systems
+ * - Usage restrictions and tiered pricing schemes
+ * 
+ * The entity enforces a unique constraint on the combination of supplier and plan name
+ * to prevent duplicate plan definitions while allowing suppliers to offer multiple
+ * plans with different names.
+ * 
+ * Database relationships:
+ * - One-to-many with DayRate entities for time-based pricing
+ * - Referenced by Costings entities for calculation results
+ * - Supports complex restrictions through embedded Restrictions object
+ * 
+ * The plan includes metadata tracking (last update timestamp, reference information)
+ * to support data management and auditing capabilities.
+ */
 public class PricePlan {
     @PrimaryKey(autoGenerate = true)
     private long pricePlanIndex;
