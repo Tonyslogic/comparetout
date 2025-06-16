@@ -263,7 +263,7 @@ public class SimulationWorkerHelperTest {
         loadShift.setStopAt(90.0); // Charge to 90%
         loadShifts.add(loadShift);
         
-        SimulationWorker.ChargeFromGrid cfg = new SimulationWorker.ChargeFromGrid(loadShifts, 100);
+        SimulationWorker.ChargeFromGrid cfg = new SimulationWorker.ChargeFromGrid(loadShifts, 105120);
 
         Map<Inverter, SimulationWorker.InputData> inputDataMap = new HashMap<>();
         SimulationWorker.InputData iData = createInputData(inverter, battery, 5.0); // 50% SOC

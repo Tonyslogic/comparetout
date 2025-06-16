@@ -336,7 +336,8 @@ public class SimulationWorkerAdvancedTest {
 
     /**
      * Tests ChargeFromGrid sorting logic with multiple overlapping load shifts.
-     * Verifies proper chronological ordering of CFG periods.
+     * Verifies proper chronological ordering of CFG periods for a full non-leap year.
+     * ChargeFromGrid requires exactly 105,120 rows (288 intervals/day × 365 days).
      */
     @Test
     public void testChargeFromGridSortLoadShiftsWithMultipleShifts() {
@@ -356,7 +357,7 @@ public class SimulationWorkerAdvancedTest {
         loadShifts.add(shift1);
         loadShifts.add(shift2);
 
-        int rowsToProcess = 288; // 24 hours * 12 (5-minute intervals)
+        int rowsToProcess = 105120; // 288 intervals/day * 365 days (one non-leap year)
         SimulationWorker.ChargeFromGrid cfg = new SimulationWorker.ChargeFromGrid(loadShifts, rowsToProcess);
 
         assertNotNull(cfg.mCFG);

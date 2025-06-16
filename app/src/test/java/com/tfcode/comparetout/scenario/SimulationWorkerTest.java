@@ -593,7 +593,7 @@ public class SimulationWorkerTest {
         loadShift.setBegin(0);
         loadShift.setEnd(24);
         loadShifts.add(loadShift);
-        SimulationWorker.ChargeFromGrid cfg = new SimulationWorker.ChargeFromGrid(loadShifts, 10);
+        SimulationWorker.ChargeFromGrid cfg = new SimulationWorker.ChargeFromGrid(loadShifts, 105120);
 
         List<SimulationInputData> inputData = new ArrayList<>();
         SimulationWorker.InputData iData = new SimulationWorker.InputData(
@@ -624,7 +624,7 @@ public class SimulationWorkerTest {
         loadShift.setBegin(0);
         loadShift.setEnd(24);
         loadShifts.add(loadShift);
-        SimulationWorker.ChargeFromGrid cfg = new SimulationWorker.ChargeFromGrid(loadShifts, 10);
+        SimulationWorker.ChargeFromGrid cfg = new SimulationWorker.ChargeFromGrid(loadShifts, 105120);
 
         iData = new SimulationWorker.InputData(
                 inverter, inputData, null, cfg, null, null, null, null, null, null, 0.0);
@@ -683,7 +683,7 @@ public class SimulationWorkerTest {
         loadShift.setEnd(14);   // 2 PM
         loadShifts.add(loadShift);
 
-        int rowsToProcess = 100;
+        int rowsToProcess = 105120;
         SimulationWorker.ChargeFromGrid cfg = new SimulationWorker.ChargeFromGrid(loadShifts, rowsToProcess);
 
         assertNotNull(cfg.mCFG);
@@ -699,7 +699,7 @@ public class SimulationWorkerTest {
     @Test
     public void testChargeFromGridEmptyLoadShifts() {
         List<LoadShift> loadShifts = new ArrayList<>();
-        int rowsToProcess = 100;
+        int rowsToProcess = 105120;
         SimulationWorker.ChargeFromGrid cfg = new SimulationWorker.ChargeFromGrid(loadShifts, rowsToProcess);
 
         assertNotNull(cfg.mCFG);
@@ -728,7 +728,7 @@ public class SimulationWorkerTest {
         // This tests the constructor doesn't crash with empty list
         discharges.add(discharge);
 
-        int rowsToProcess = 100;
+        int rowsToProcess = 105120;
         SimulationWorker.ForceDischargeToGrid fdtg = new SimulationWorker.ForceDischargeToGrid(discharges, rowsToProcess);
 
         assertNotNull(fdtg.mD2G);
@@ -746,7 +746,7 @@ public class SimulationWorkerTest {
     @Test
     public void testForceDischargeToGridEmptyDischarges() {
         List<DischargeToGrid> discharges = new ArrayList<>();
-        int rowsToProcess = 100;
+        int rowsToProcess = 105120;
         SimulationWorker.ForceDischargeToGrid fdtg = new SimulationWorker.ForceDischargeToGrid(discharges, rowsToProcess);
 
         assertNotNull(fdtg.mD2G);

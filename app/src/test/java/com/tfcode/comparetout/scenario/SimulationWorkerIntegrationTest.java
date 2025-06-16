@@ -160,7 +160,7 @@ public class SimulationWorkerIntegrationTest {
         loadShift.setStopAt(90.0); // Charge to 90%
         loadShifts.add(loadShift);
         
-        SimulationWorker.ChargeFromGrid cfg = new SimulationWorker.ChargeFromGrid(loadShifts, 1000);
+        SimulationWorker.ChargeFromGrid cfg = new SimulationWorker.ChargeFromGrid(loadShifts, 105120);
 
         List<SimulationInputData> simulationInputData = new ArrayList<>();
         
