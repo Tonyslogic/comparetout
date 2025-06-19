@@ -61,6 +61,9 @@ public class SimulationWorkerHelperTest {
     /**
      * Tests battery charging logic with a single battery configuration.
      * Verifies proper SOC increase and capacity handling during PV excess periods.
+     * 
+     * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
+     * Test adapted to provide minimum required data rows.
      */
     @Test
     public void testChargeBatteriesWithSingleBattery() {
@@ -87,6 +90,7 @@ public class SimulationWorkerHelperTest {
         // Create a scenario with excess PV
         List<SimulationInputData> simulationInputData = new ArrayList<>();
         simulationInputData.add(createSID(1.0, 5.0)); // 5kW PV, 1kW load = 4kW excess
+        simulationInputData.add(createSID(1.2, 4.8)); // Second row as required by framework
         iData.simulationInputData = simulationInputData;
 
         // Call processOneRow to test charging logic
@@ -156,6 +160,9 @@ public class SimulationWorkerHelperTest {
     /**
      * Tests battery discharge logic with a single battery configuration.
      * Verifies proper SOC reduction and discharge threshold behavior during shortage periods.
+     * 
+     * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
+     * Test adapted to provide minimum required data rows.
      */
     @Test
     public void testDischargeBatteriesWithSingleBattery() {
@@ -174,6 +181,7 @@ public class SimulationWorkerHelperTest {
         // Create scenario where load exceeds PV
         List<SimulationInputData> simulationInputData = new ArrayList<>();
         simulationInputData.add(createSID(4.0, 1.0)); // 4kW load, 1kW PV = 3kW shortage
+        simulationInputData.add(createSID(3.8, 1.1)); // Second row as required by framework
         iData.simulationInputData = simulationInputData;
         
         inputDataMap.put(inverter, iData);
@@ -238,6 +246,9 @@ public class SimulationWorkerHelperTest {
     /**
      * Tests Charge From Grid (CFG) functionality when batteries need charging.
      * Verifies grid-to-battery charging during load shifting periods.
+     * 
+     * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
+     * Test adapted to provide minimum required data rows.
      */
     @Test
     public void testChargeBatteriesFromGridIfNeeded() {
@@ -272,6 +283,7 @@ public class SimulationWorkerHelperTest {
         // Create scenario with regular load
         List<SimulationInputData> simulationInputData = new ArrayList<>();
         simulationInputData.add(createSID(2.0, 1.0)); // 2kW load, 1kW PV
+        simulationInputData.add(createSID(2.1, 0.9)); // Second row as required by framework
         iData.simulationInputData = simulationInputData;
         
         inputDataMap.put(inverter, iData);
@@ -287,6 +299,9 @@ public class SimulationWorkerHelperTest {
     /**
      * Tests behavior when battery reaches discharge stop threshold.
      * Verifies that battery discharge ceases at configured minimum SOC level.
+     * 
+     * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
+     * Test adapted to provide minimum required data rows.
      */
     @Test
     public void testBatteryAtDischargeStop() {
@@ -305,6 +320,7 @@ public class SimulationWorkerHelperTest {
         // Create scenario with high load
         List<SimulationInputData> simulationInputData = new ArrayList<>();
         simulationInputData.add(createSID(5.0, 0.0)); // 5kW load, no PV
+        simulationInputData.add(createSID(4.8, 0.0)); // Second row as required by framework
         iData.simulationInputData = simulationInputData;
         
         inputDataMap.put(inverter, iData);
@@ -321,6 +337,9 @@ public class SimulationWorkerHelperTest {
     /**
      * Tests behavior when battery is fully charged (100% SOC).
      * Verifies that battery cannot accept additional charge when at maximum capacity.
+     * 
+     * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
+     * Test adapted to provide minimum required data rows.
      */
     @Test
     public void testBatteryFullyCharged() {
@@ -345,6 +364,7 @@ public class SimulationWorkerHelperTest {
         // Create scenario with excess PV
         List<SimulationInputData> simulationInputData = new ArrayList<>();
         simulationInputData.add(createSID(1.0, 5.0)); // 1kW load, 5kW PV = 4kW excess
+        simulationInputData.add(createSID(1.1, 4.9)); // Second row as required by framework
         iData.simulationInputData = simulationInputData;
         
         inputDataMap.put(inverter, iData);
@@ -361,6 +381,9 @@ public class SimulationWorkerHelperTest {
     /**
      * Tests scenario with zero PV generation and high load demand.
      * Verifies system behavior during periods with no solar generation.
+     * 
+     * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
+     * Test adapted to provide minimum required data rows.
      */
     @Test
     public void testZeroPVHighLoad() {
@@ -379,6 +402,7 @@ public class SimulationWorkerHelperTest {
         // Create scenario with no PV and high load
         List<SimulationInputData> simulationInputData = new ArrayList<>();
         simulationInputData.add(createSID(6.0, 0.0)); // 6kW load, no PV
+        simulationInputData.add(createSID(5.8, 0.0)); // Second row as required by framework
         iData.simulationInputData = simulationInputData;
         
         inputDataMap.put(inverter, iData);
@@ -397,6 +421,9 @@ public class SimulationWorkerHelperTest {
     /**
      * Tests balanced scenario where PV generation exactly matches load demand.
      * Verifies system behavior when there's no excess or shortage of energy.
+     * 
+     * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
+     * Test adapted to provide minimum required data rows.
      */
     @Test
     public void testPVExactlyMatchesLoad() {
@@ -413,6 +440,7 @@ public class SimulationWorkerHelperTest {
         // Create scenario where PV exactly matches load
         List<SimulationInputData> simulationInputData = new ArrayList<>();
         simulationInputData.add(createSID(2.0, 2.0)); // 2kW load, 2kW PV
+        simulationInputData.add(createSID(2.1, 2.1)); // Second row as required by framework
         iData.simulationInputData = simulationInputData;
         
         inputDataMap.put(inverter, iData);

@@ -216,6 +216,9 @@ public class SimulationWorkerAdvancedTest {
     /**
      * Tests processOneRow with various inverter loss configurations.
      * Verifies AC/DC conversion losses are properly applied to energy calculations.
+     * 
+     * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
+     * Test adapted to provide minimum required data rows.
      */
     @Test
     public void testProcessOneRowWithInverterLosses() {
@@ -233,6 +236,7 @@ public class SimulationWorkerAdvancedTest {
         double load = 1.0;
         double tpv = 2.0;
         simulationInputData.add(createSID(load, tpv));
+        simulationInputData.add(createSID(load + 0.1, tpv - 0.1)); // Second row as required by framework
 
         SimulationWorker.InputData idata = new SimulationWorker.InputData(
                 inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0);
@@ -252,6 +256,9 @@ public class SimulationWorkerAdvancedTest {
     /**
      * Tests processOneRow with maximum inverter load limitations.
      * Verifies that inverter capacity constraints are properly enforced.
+     * 
+     * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
+     * Test adapted to provide minimum required data rows.
      */
     @Test
     public void testProcessOneRowWithMaxInverterLoad() {
@@ -278,6 +285,7 @@ public class SimulationWorkerAdvancedTest {
         double load = 0.5;
         double tpv = 5.0; // High PV that would exceed inverter limit
         simulationInputData.add(createSID(load, tpv));
+        simulationInputData.add(createSID(load + 0.1, tpv - 0.2)); // Second row as required by framework
 
         SimulationWorker.InputData idata = new SimulationWorker.InputData(
                 inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0);
@@ -400,6 +408,9 @@ public class SimulationWorkerAdvancedTest {
     /**
      * Tests processOneRow with minimum excess threshold and battery charging.
      * Verifies that small PV excess below threshold doesn't trigger battery charging.
+     * 
+     * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
+     * Test adapted to provide minimum required data rows.
      */
     @Test
     public void testProcessOneRowWithMinExcessAndCharging() {
@@ -426,6 +437,7 @@ public class SimulationWorkerAdvancedTest {
         double load = 2.0;
         double tpv = 2.5; // Only 0.5kW excess, below min excess
         simulationInputData.add(createSID(load, tpv));
+        simulationInputData.add(createSID(load + 0.1, tpv + 0.1)); // Second row as required by framework
 
         SimulationWorker.InputData idata = new SimulationWorker.InputData(
                 inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0);

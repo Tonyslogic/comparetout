@@ -54,6 +54,9 @@ public class SimulationWorkerEdgeCaseTest {
     /**
      * Tests processOneRow behavior with null battery configuration.
      * Verifies system operates correctly without battery storage components.
+     * 
+     * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
+     * Test adapted to provide minimum required data rows.
      */
     @Test
     public void testNullBatteryHandlingInProcessOneRow() {
@@ -65,6 +68,7 @@ public class SimulationWorkerEdgeCaseTest {
         Inverter inverter = new Inverter();
         List<SimulationInputData> simulationInputData = new ArrayList<>();
         simulationInputData.add(createSID(2.0, 1.0));
+        simulationInputData.add(createSID(2.5, 1.2)); // Second row as required by framework
 
         // Create InputData with null battery
         SimulationWorker.InputData iData = new SimulationWorker.InputData(
@@ -114,6 +118,9 @@ public class SimulationWorkerEdgeCaseTest {
     /**
      * Tests system behavior with extremely high PV generation values.
      * Verifies numerical stability and proper handling of unrealistic PV inputs.
+     * 
+     * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
+     * Test adapted to provide minimum required data rows.
      */
     @Test
     public void testExtremelyHighPVValues() {
@@ -136,6 +143,7 @@ public class SimulationWorkerEdgeCaseTest {
 
         List<SimulationInputData> simulationInputData = new ArrayList<>();
         simulationInputData.add(createSID(1.0, 1000.0)); // Extremely high PV
+        simulationInputData.add(createSID(1.2, 950.0)); // Second row as required by framework
 
         SimulationWorker.InputData iData = new SimulationWorker.InputData(
                 inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0.0);
@@ -157,6 +165,9 @@ public class SimulationWorkerEdgeCaseTest {
     /**
      * Tests system behavior with extremely high load demand values.
      * Verifies numerical stability and proper handling of unrealistic load inputs.
+     * 
+     * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
+     * Test adapted to provide minimum required data rows.
      */
     @Test
     public void testExtremelyHighLoadValues() {
@@ -173,6 +184,7 @@ public class SimulationWorkerEdgeCaseTest {
 
         List<SimulationInputData> simulationInputData = new ArrayList<>();
         simulationInputData.add(createSID(1000.0, 5.0)); // Extremely high load
+        simulationInputData.add(createSID(950.0, 5.2)); // Second row as required by framework
 
         SimulationWorker.InputData iData = new SimulationWorker.InputData(
                 inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0.0);
@@ -195,6 +207,9 @@ public class SimulationWorkerEdgeCaseTest {
     /**
      * Tests system behavior with very small PV and load values.
      * Verifies precision handling and proper calculation of minimal energy flows.
+     * 
+     * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
+     * Test adapted to provide minimum required data rows.
      */
     @Test
     public void testVerySmallValues() {
@@ -218,6 +233,7 @@ public class SimulationWorkerEdgeCaseTest {
 
         List<SimulationInputData> simulationInputData = new ArrayList<>();
         simulationInputData.add(createSID(0.001, 0.002)); // Very small values
+        simulationInputData.add(createSID(0.0015, 0.0025)); // Second row as required by framework
 
         SimulationWorker.InputData iData = new SimulationWorker.InputData(
                 inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0.0);
