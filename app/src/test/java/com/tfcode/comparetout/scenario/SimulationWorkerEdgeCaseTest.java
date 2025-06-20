@@ -56,7 +56,7 @@ public class SimulationWorkerEdgeCaseTest {
      * Verifies system operates correctly without battery storage components.
      * 
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
-     * Test adapted to provide minimum required data rows.
+     * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */
     @Test
     public void testNullBatteryHandlingInProcessOneRow() {
@@ -76,7 +76,7 @@ public class SimulationWorkerEdgeCaseTest {
         
         inputDataMap.put(inverter, iData);
 
-        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        SimulationWorker.processOneRow(scenarioID, outputRows, 1, inputDataMap);
 
         assertEquals("Should have 1 output row", 1, outputRows.size());
         
@@ -120,7 +120,7 @@ public class SimulationWorkerEdgeCaseTest {
      * Verifies numerical stability and proper handling of unrealistic PV inputs.
      * 
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
-     * Test adapted to provide minimum required data rows.
+     * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */
     @Test
     public void testExtremelyHighPVValues() {
@@ -149,7 +149,7 @@ public class SimulationWorkerEdgeCaseTest {
                 inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0.0);
         inputDataMap.put(inverter, iData);
 
-        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        SimulationWorker.processOneRow(scenarioID, outputRows, 1, inputDataMap);
 
         assertEquals("Should have 1 output row", 1, outputRows.size());
         
@@ -167,7 +167,7 @@ public class SimulationWorkerEdgeCaseTest {
      * Verifies numerical stability and proper handling of unrealistic load inputs.
      * 
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
-     * Test adapted to provide minimum required data rows.
+     * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */
     @Test
     public void testExtremelyHighLoadValues() {
@@ -191,7 +191,7 @@ public class SimulationWorkerEdgeCaseTest {
         iData.soc = 10.0; // Full battery
         inputDataMap.put(inverter, iData);
 
-        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        SimulationWorker.processOneRow(scenarioID, outputRows, 1, inputDataMap);
 
         assertEquals("Should have 1 output row", 1, outputRows.size());
         
@@ -209,7 +209,7 @@ public class SimulationWorkerEdgeCaseTest {
      * Verifies precision handling and proper calculation of minimal energy flows.
      * 
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
-     * Test adapted to provide minimum required data rows.
+     * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */
     @Test
     public void testVerySmallValues() {
@@ -240,7 +240,7 @@ public class SimulationWorkerEdgeCaseTest {
         iData.soc = 5.0; // 50% SOC
         inputDataMap.put(inverter, iData);
 
-        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        SimulationWorker.processOneRow(scenarioID, outputRows, 1, inputDataMap);
 
         assertEquals("Should have 1 output row", 1, outputRows.size());
         

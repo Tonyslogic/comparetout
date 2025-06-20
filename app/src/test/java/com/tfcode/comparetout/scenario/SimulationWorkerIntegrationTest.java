@@ -248,7 +248,7 @@ public class SimulationWorkerIntegrationTest {
         inputDataMap.put(inverter1, iData1);
         inputDataMap.put(inverter2, iData2);
 
-        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        SimulationWorker.processOneRow(scenarioID, outputRows, 1, inputDataMap);
 
         assertEquals("Should have 1 output row", 1, outputRows.size());
         
@@ -348,7 +348,7 @@ public class SimulationWorkerIntegrationTest {
                 inverter, simulationInputData, battery, null, null, null, null, null, null, null, exportLimit);
         inputDataMap.put(inverter, iData);
 
-        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        SimulationWorker.processOneRow(scenarioID, outputRows, 1, inputDataMap);
 
         assertEquals("Should have 1 output row", 1, outputRows.size());
         
@@ -387,7 +387,7 @@ public class SimulationWorkerIntegrationTest {
         iData.soc = 5.0; // 50% SOC
         inputDataMap.put(inverter, iData);
 
-        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        SimulationWorker.processOneRow(scenarioID, outputRows, 1, inputDataMap);
 
         assertEquals("Should have 1 output row", 1, outputRows.size());
         

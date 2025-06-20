@@ -63,7 +63,8 @@ public class SimulationWorkerHelperTest {
      * Verifies proper SOC increase and capacity handling during PV excess periods.
      * 
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
-     * Test adapted to provide minimum required data rows.
+     * Test operates on second row (index 1) to avoid first-row initialization artifacts
+     * where SOC gets overwritten to discharge stop value.
      */
     @Test
     public void testChargeBatteriesWithSingleBattery() {
@@ -93,9 +94,9 @@ public class SimulationWorkerHelperTest {
         simulationInputData.add(createSID(1.2, 4.8)); // Second row as required by framework
         iData.simulationInputData = simulationInputData;
 
-        // Call processOneRow to test charging logic
+        // Call processOneRow to test charging logic (using row 1 to avoid initialization)
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
-        SimulationWorker.processOneRow(1L, outputRows, 0, inputDataMap);
+        SimulationWorker.processOneRow(1L, outputRows, 1, inputDataMap);
 
         // Verify that charging occurred
         assertTrue("PV to charge should be > 0", outputRows.get(0).getPvToCharge() > 0);
@@ -150,7 +151,7 @@ public class SimulationWorkerHelperTest {
 
         // Test the charging distribution
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
-        SimulationWorker.processOneRow(1L, outputRows, 0, inputDataMap);
+        SimulationWorker.processOneRow(1L, outputRows, 1, inputDataMap);
 
         // Verify that charging occurred and total SOC increased
         assertTrue("SOC should increase", outputRows.get(0).getSOC() > 7.5); // 5.0 + 2.5
@@ -162,7 +163,7 @@ public class SimulationWorkerHelperTest {
      * Verifies proper SOC reduction and discharge threshold behavior during shortage periods.
      * 
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
-     * Test adapted to provide minimum required data rows.
+     * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */
     @Test
     public void testDischargeBatteriesWithSingleBattery() {
@@ -187,7 +188,7 @@ public class SimulationWorkerHelperTest {
         inputDataMap.put(inverter, iData);
 
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
-        SimulationWorker.processOneRow(1L, outputRows, 0, inputDataMap);
+        SimulationWorker.processOneRow(1L, outputRows, 1, inputDataMap);
 
         // Verify that discharge occurred
         assertTrue("Battery should discharge", outputRows.get(0).getBatToLoad() > 0);
@@ -236,7 +237,7 @@ public class SimulationWorkerHelperTest {
         inputDataMap.put(inverter2, iData2);
 
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
-        SimulationWorker.processOneRow(1L, outputRows, 0, inputDataMap);
+        SimulationWorker.processOneRow(1L, outputRows, 1, inputDataMap);
 
         // Verify that both batteries discharged
         assertTrue("Batteries should discharge", outputRows.get(0).getBatToLoad() > 0);
@@ -248,7 +249,7 @@ public class SimulationWorkerHelperTest {
      * Verifies grid-to-battery charging during load shifting periods.
      * 
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
-     * Test adapted to provide minimum required data rows.
+     * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */
     @Test
     public void testChargeBatteriesFromGridIfNeeded() {
@@ -289,7 +290,7 @@ public class SimulationWorkerHelperTest {
         inputDataMap.put(inverter, iData);
 
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
-        SimulationWorker.processOneRow(1L, outputRows, 0, inputDataMap);
+        SimulationWorker.processOneRow(1L, outputRows, 1, inputDataMap);
 
         // Verify that grid charging occurred
         assertTrue("Grid to battery should be > 0", outputRows.get(0).getGridToBattery() > 0);
@@ -301,7 +302,7 @@ public class SimulationWorkerHelperTest {
      * Verifies that battery discharge ceases at configured minimum SOC level.
      * 
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
-     * Test adapted to provide minimum required data rows.
+     * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */
     @Test
     public void testBatteryAtDischargeStop() {
@@ -326,7 +327,7 @@ public class SimulationWorkerHelperTest {
         inputDataMap.put(inverter, iData);
 
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
-        SimulationWorker.processOneRow(1L, outputRows, 0, inputDataMap);
+        SimulationWorker.processOneRow(1L, outputRows, 1, inputDataMap);
 
         // Verify that battery doesn't discharge further
         assertEquals("Battery should not discharge below stop", 0.0, outputRows.get(0).getBatToLoad(), 0.001);
@@ -339,7 +340,7 @@ public class SimulationWorkerHelperTest {
      * Verifies that battery cannot accept additional charge when at maximum capacity.
      * 
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
-     * Test adapted to provide minimum required data rows.
+     * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */
     @Test
     public void testBatteryFullyCharged() {
@@ -370,7 +371,7 @@ public class SimulationWorkerHelperTest {
         inputDataMap.put(inverter, iData);
 
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
-        SimulationWorker.processOneRow(1L, outputRows, 0, inputDataMap);
+        SimulationWorker.processOneRow(1L, outputRows, 1, inputDataMap);
 
         // Verify that no charging occurred and excess went to feed
         assertEquals("No PV should go to charging", 0.0, outputRows.get(0).getPvToCharge(), 0.001);
@@ -383,7 +384,7 @@ public class SimulationWorkerHelperTest {
      * Verifies system behavior during periods with no solar generation.
      * 
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
-     * Test adapted to provide minimum required data rows.
+     * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */
     @Test
     public void testZeroPVHighLoad() {
@@ -408,7 +409,7 @@ public class SimulationWorkerHelperTest {
         inputDataMap.put(inverter, iData);
 
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
-        SimulationWorker.processOneRow(1L, outputRows, 0, inputDataMap);
+        SimulationWorker.processOneRow(1L, outputRows, 1, inputDataMap);
 
         // Verify that battery discharges and remaining is bought from grid
         assertTrue("Battery should discharge", outputRows.get(0).getBatToLoad() > 0);
@@ -423,7 +424,7 @@ public class SimulationWorkerHelperTest {
      * Verifies system behavior when there's no excess or shortage of energy.
      * 
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
-     * Test adapted to provide minimum required data rows.
+     * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */
     @Test
     public void testPVExactlyMatchesLoad() {
@@ -446,7 +447,7 @@ public class SimulationWorkerHelperTest {
         inputDataMap.put(inverter, iData);
 
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
-        SimulationWorker.processOneRow(1L, outputRows, 0, inputDataMap);
+        SimulationWorker.processOneRow(1L, outputRows, 1, inputDataMap);
 
         // Verify that no grid interaction occurs
         assertEquals("No grid purchase", 0.0, outputRows.get(0).getBuy(), 0.001);

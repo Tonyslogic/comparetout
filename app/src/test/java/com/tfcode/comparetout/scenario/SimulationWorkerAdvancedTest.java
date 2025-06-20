@@ -207,7 +207,7 @@ public class SimulationWorkerAdvancedTest {
         Map<Inverter, SimulationWorker.InputData> inputDataMap = new HashMap<>();
 
         // Create empty input data map (should result in null inputRow)
-        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        SimulationWorker.processOneRow(scenarioID, outputRows, 1, inputDataMap);
         
         // Should handle null inputRow gracefully (early return)
         assertTrue("Output rows should remain empty", outputRows.isEmpty());
@@ -218,7 +218,7 @@ public class SimulationWorkerAdvancedTest {
      * Verifies AC/DC conversion losses are properly applied to energy calculations.
      * 
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
-     * Test adapted to provide minimum required data rows.
+     * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */
     @Test
     public void testProcessOneRowWithInverterLosses() {
@@ -242,9 +242,9 @@ public class SimulationWorkerAdvancedTest {
                 inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0);
         inputDataMap.put(inverter, idata);
 
-        int row = 0;
+        int row = 1;
         SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
-        com.tfcode.comparetout.model.scenario.ScenarioSimulationData aRow = outputRows.get(row);
+        com.tfcode.comparetout.model.scenario.ScenarioSimulationData aRow = outputRows.get(0); // Get first output row
 
         // Verify that losses are applied
         double effectivePV = tpv * 0.9; // 90% efficiency (10% loss)
@@ -258,7 +258,7 @@ public class SimulationWorkerAdvancedTest {
      * Verifies that inverter capacity constraints are properly enforced.
      * 
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
-     * Test adapted to provide minimum required data rows.
+     * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */
     @Test
     public void testProcessOneRowWithMaxInverterLoad() {
@@ -291,9 +291,9 @@ public class SimulationWorkerAdvancedTest {
                 inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0);
         inputDataMap.put(inverter, idata);
 
-        int row = 0;
+        int row = 1;
         SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
-        com.tfcode.comparetout.model.scenario.ScenarioSimulationData aRow = outputRows.get(row);
+        com.tfcode.comparetout.model.scenario.ScenarioSimulationData aRow = outputRows.get(0); // Get first output row
 
         // Verify that inverter load limit is respected
         double maxFeedAndCharge = 2.0; // Max inverter load
@@ -410,7 +410,7 @@ public class SimulationWorkerAdvancedTest {
      * Verifies that small PV excess below threshold doesn't trigger battery charging.
      * 
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
-     * Test adapted to provide minimum required data rows.
+     * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */
     @Test
     public void testProcessOneRowWithMinExcessAndCharging() {
@@ -443,9 +443,9 @@ public class SimulationWorkerAdvancedTest {
                 inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0);
         inputDataMap.put(inverter, idata);
 
-        int row = 0;
+        int row = 1;
         SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
-        com.tfcode.comparetout.model.scenario.ScenarioSimulationData aRow = outputRows.get(row);
+        com.tfcode.comparetout.model.scenario.ScenarioSimulationData aRow = outputRows.get(0); // Get first output row
 
         // Should not charge because excess is below minimum
         assertEquals("Should not charge battery", 0.0, aRow.getPvToCharge(), 0.001);
