@@ -201,6 +201,11 @@ public class SimulationWorkerIntegrationTest {
     /**
      * Tests coordination between multiple inverters in complex scenarios.
      * Verifies proper load distribution and battery sharing across multiple inverters.
+     * 
+     * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
+     * Test operates on second row (index 1) to avoid first-row initialization artifacts
+     * where SOC gets overwritten to discharge stop value. Each InputData object must have
+     * sufficient rows in its simulationInputData list to support the requested index.
      */
     @Test
     public void testMultipleInvertersCoordination() {
@@ -234,9 +239,11 @@ public class SimulationWorkerIntegrationTest {
 
         List<SimulationInputData> simulationInputData1 = new ArrayList<>();
         simulationInputData1.add(createSID(2.0, 3.0)); // 2kW load, 3kW PV
+        simulationInputData1.add(createSID(2.1, 2.9)); // Second row as required by framework
         
         List<SimulationInputData> simulationInputData2 = new ArrayList<>();
         simulationInputData2.add(createSID(0.0, 2.0)); // No load, 2kW PV
+        simulationInputData2.add(createSID(0.1, 1.9)); // Second row as required by framework
 
         SimulationWorker.InputData iData1 = new SimulationWorker.InputData(
                 inverter1, simulationInputData1, battery1, null, null, null, null, null, null, null, 0.0);
@@ -327,6 +334,10 @@ public class SimulationWorkerIntegrationTest {
     /**
      * Tests export limit handling in grid-tie scenarios.
      * Verifies proper curtailment of PV generation when export limits are reached.
+     * 
+     * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
+     * Test operates on second row (index 1) to avoid first-row initialization artifacts
+     * where SOC gets overwritten to discharge stop value.
      */
     @Test
     public void testExportLimitHandling() {
@@ -342,6 +353,7 @@ public class SimulationWorkerIntegrationTest {
 
         List<SimulationInputData> simulationInputData = new ArrayList<>();
         simulationInputData.add(createSID(1.0, 10.0)); // High excess PV
+        simulationInputData.add(createSID(1.1, 9.8)); // Second row as required by framework
 
         double exportLimit = 3.0; // Limit export to 3kW
         SimulationWorker.InputData iData = new SimulationWorker.InputData(
@@ -364,6 +376,10 @@ public class SimulationWorkerIntegrationTest {
     /**
      * Tests integration behavior with zero and negative energy values.
      * Verifies system stability and proper handling of edge case energy flows.
+     * 
+     * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
+     * Test operates on second row (index 1) to avoid first-row initialization artifacts
+     * where SOC gets overwritten to discharge stop value.
      */
     @Test
     public void testZeroAndNegativeValues() {
@@ -381,6 +397,7 @@ public class SimulationWorkerIntegrationTest {
 
         List<SimulationInputData> simulationInputData = new ArrayList<>();
         simulationInputData.add(createSID(0.0, 0.0)); // No load, no PV
+        simulationInputData.add(createSID(0.1, 0.1)); // Second row as required by framework
 
         SimulationWorker.InputData iData = new SimulationWorker.InputData(
                 inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0.0);

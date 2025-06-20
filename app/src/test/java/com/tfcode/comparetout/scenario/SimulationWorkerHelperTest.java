@@ -106,6 +106,11 @@ public class SimulationWorkerHelperTest {
     /**
      * Tests battery charging logic with multiple batteries in the system.
      * Verifies proper charge distribution and individual battery SOC management.
+     * 
+     * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
+     * Test operates on second row (index 1) to avoid first-row initialization artifacts
+     * where SOC gets overwritten to discharge stop value. Each InputData object must have
+     * sufficient rows in its simulationInputData list to support the requested index.
      */
     @Test
     public void testChargeBatteriesWithMultipleBatteries() {
@@ -140,10 +145,12 @@ public class SimulationWorkerHelperTest {
         // Create simulation data with excess PV
         List<SimulationInputData> simulationInputData1 = new ArrayList<>();
         simulationInputData1.add(createSID(1.0, 3.0)); // 3kW PV
+        simulationInputData1.add(createSID(1.1, 2.9)); // Second row as required by framework
         iData1.simulationInputData = simulationInputData1;
         
         List<SimulationInputData> simulationInputData2 = new ArrayList<>();
         simulationInputData2.add(createSID(0.0, 2.0)); // 2kW PV
+        simulationInputData2.add(createSID(0.1, 1.9)); // Second row as required by framework
         iData2.simulationInputData = simulationInputData2;
         
         inputDataMap.put(inverter1, iData1);
@@ -199,6 +206,11 @@ public class SimulationWorkerHelperTest {
     /**
      * Tests battery discharge logic with multiple batteries in the system.
      * Verifies proper discharge distribution and coordinated battery management.
+     * 
+     * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
+     * Test operates on second row (index 1) to avoid first-row initialization artifacts
+     * where SOC gets overwritten to discharge stop value. Each InputData object must have
+     * sufficient rows in its simulationInputData list to support the requested index.
      */
     @Test
     public void testDischargeBatteriesMultipleBatteries() {
@@ -227,10 +239,12 @@ public class SimulationWorkerHelperTest {
         // Create scenario with insufficient PV
         List<SimulationInputData> simulationInputData1 = new ArrayList<>();
         simulationInputData1.add(createSID(3.0, 0.5)); // 3kW load, 0.5kW PV
+        simulationInputData1.add(createSID(2.9, 0.6)); // Second row as required by framework
         iData1.simulationInputData = simulationInputData1;
         
         List<SimulationInputData> simulationInputData2 = new ArrayList<>();
         simulationInputData2.add(createSID(0.0, 0.0)); // No additional load/PV
+        simulationInputData2.add(createSID(0.1, 0.1)); // Second row as required by framework
         iData2.simulationInputData = simulationInputData2;
         
         inputDataMap.put(inverter1, iData1);
