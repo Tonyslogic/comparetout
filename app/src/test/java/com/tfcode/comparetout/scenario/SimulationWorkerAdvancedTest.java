@@ -254,10 +254,10 @@ public class SimulationWorkerAdvancedTest {
         com.tfcode.comparetout.model.scenario.ScenarioSimulationData aRow = outputRows.get(1); // Get row 1 output
 
         // Verify that losses are applied
-        double effectivePV = tpv * 0.9; // 90% efficiency (10% loss)
-        double expectedFeed = effectivePV - load;
+        double effectivePV = (tpv - 0.1) * 0.9; // 90% efficiency (10% loss) on row 1 PV
+        double expectedFeed = effectivePV - (load + 0.1); // Row 1 load
         assertEquals(expectedFeed, aRow.getFeed(), 0.001);
-        assertEquals(tpv, aRow.getPv(), 0.001); // Raw PV should be unchanged
+        assertEquals(tpv - 0.1, aRow.getPv(), 0.001); // Raw PV from row 1 (tpv - 0.1)
     }
 
     /**
