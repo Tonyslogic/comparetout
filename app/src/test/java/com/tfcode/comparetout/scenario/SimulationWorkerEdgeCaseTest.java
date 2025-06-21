@@ -162,7 +162,7 @@ public class SimulationWorkerEdgeCaseTest {
         // Should handle extreme values gracefully
         assertEquals("PV should be recorded as input", 950.0, row.getPv(), 0.001);
         assertTrue("Should charge battery", row.getPvToCharge() > 0);
-        assertTrue("Should feed large amount to grid", row.getFeed() > 940);
+        assertEquals("Should feed to grid within inverter capacity", 3.0, row.getFeed(), 0.001);
         assertEquals("Should not buy from grid", 0.0, row.getBuy(), 0.001);
     }
 
