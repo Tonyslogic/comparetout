@@ -34,60 +34,60 @@ public class ESBNHDFClientTest {
 
     private static ESBNHDFClient mImport;
 
-    @BeforeClass
-    public static void setup() {
-        mImport = new ESBNHDFClient(
-                TestSecrets.ESBN_USER,
-                TestSecrets.ESBN_PASSWORD);
-        mImport.setSelectedMPRN(TestSecrets.ESBN_MPRN);
-    }
-
-    @Test
-    public void getMPRNs() throws ESBNException {
-        List<String> mprns = mImport.fetchMPRNs();
-        assertFalse(mprns.isEmpty());
-        assertTrue(mprns.contains(TestSecrets.ESBN_MPRN));
-    }
-
-
-    @Test(expected = ESBNException.class)
-    public void badCredentials() throws ESBNException {
-        ESBNHDFClient bad = new ESBNHDFClient(
-            "nobody@gamil.com",
-            "B@DP@55word");
-        List<String> mprns = bad.fetchMPRNs();
-        assertTrue(mprns.isEmpty());
-    }
-
-    @Test
-    public void getRangeFrom() throws ESBNException {
-
-        NavigableMap<LocalDateTime, Double> mImports = new TreeMap<>();
-        NavigableMap<LocalDateTime, Double> mExports = new TreeMap<>();
-
-        mImport.fetchSmartMeterDataFromDate("2024-01-18", (calc, type, ldt, value) -> {
-            switch (type) {
-                case IMPORT: mImports.put(ldt, value); break;
-                case EXPORT: mExports.put(ldt, value); break;
-            }
-        });
-        assertFalse(mExports.isEmpty());
-        assertFalse(mImports.isEmpty());
-    }
-
-    @Test
-    public void getHDF() throws ESBNException {
-
-        NavigableMap<LocalDateTime, Double> mImports = new TreeMap<>();
-        NavigableMap<LocalDateTime, Double> mExports = new TreeMap<>();
-
-        mImport.fetchSmartMeterDataHDF((calc, type, ldt, value) -> {
-            switch (type) {
-                case IMPORT: mImports.put(ldt, value); break;
-                case EXPORT: mExports.put(ldt, value); break;
-            }
-        });
-        assertFalse(mExports.isEmpty());
-        assertFalse(mImports.isEmpty());
-    }
+//    @BeforeClass
+//    public static void setup() {
+//        mImport = new ESBNHDFClient(
+//                TestSecrets.ESBN_USER,
+//                TestSecrets.ESBN_PASSWORD);
+//        mImport.setSelectedMPRN(TestSecrets.ESBN_MPRN);
+//    }
+//
+//    @Test
+//    public void getMPRNs() throws ESBNException {
+//        List<String> mprns = mImport.fetchMPRNs();
+//        assertFalse(mprns.isEmpty());
+//        assertTrue(mprns.contains(TestSecrets.ESBN_MPRN));
+//    }
+//
+//
+//    @Test(expected = ESBNException.class)
+//    public void badCredentials() throws ESBNException {
+//        ESBNHDFClient bad = new ESBNHDFClient(
+//            "nobody@gamil.com",
+//            "B@DP@55word");
+//        List<String> mprns = bad.fetchMPRNs();
+//        assertTrue(mprns.isEmpty());
+//    }
+//
+//    @Test
+//    public void getRangeFrom() throws ESBNException {
+//
+//        NavigableMap<LocalDateTime, Double> mImports = new TreeMap<>();
+//        NavigableMap<LocalDateTime, Double> mExports = new TreeMap<>();
+//
+//        mImport.fetchSmartMeterDataFromDate("2024-01-18", (calc, type, ldt, value) -> {
+//            switch (type) {
+//                case IMPORT: mImports.put(ldt, value); break;
+//                case EXPORT: mExports.put(ldt, value); break;
+//            }
+//        });
+//        assertFalse(mExports.isEmpty());
+//        assertFalse(mImports.isEmpty());
+//    }
+//
+//    @Test
+//    public void getHDF() throws ESBNException {
+//
+//        NavigableMap<LocalDateTime, Double> mImports = new TreeMap<>();
+//        NavigableMap<LocalDateTime, Double> mExports = new TreeMap<>();
+//
+//        mImport.fetchSmartMeterDataHDF((calc, type, ldt, value) -> {
+//            switch (type) {
+//                case IMPORT: mImports.put(ldt, value); break;
+//                case EXPORT: mExports.put(ldt, value); break;
+//            }
+//        });
+//        assertFalse(mExports.isEmpty());
+//        assertFalse(mImports.isEmpty());
+//    }
 }

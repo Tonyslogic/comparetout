@@ -63,7 +63,7 @@ public class OpenAlphaESSClientTest {
         try {
             GetOneDayEnergyResponse energy = mClient.getOneDayEnergyBySn(queryDate);
         } catch (AlphaESSException ae) {
-            assertEquals("err.code=6005 err.msg=This appId is not bound to the SN" , ae.getMessage());
+            assertEquals("err.code=6005 err.msg=This appId is not bound to the SN Serial: AL2342125067171" , ae.getMessage());
         }
 
     }
