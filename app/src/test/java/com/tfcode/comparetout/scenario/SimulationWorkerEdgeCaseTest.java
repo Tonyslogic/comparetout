@@ -134,7 +134,7 @@ public class SimulationWorkerEdgeCaseTest {
         Battery battery = new Battery();
         battery.setBatterySize(10.0);
         battery.setMaxCharge(2.0);
-        battery.setDischargeStop(100.0);
+        battery.setDischargeStop(20.0); // 20% discharge stop allows charging from 20% to 100%
         
         ChargeModel chargeModel = new ChargeModel();
         chargeModel.percent0 = 100;
@@ -162,7 +162,7 @@ public class SimulationWorkerEdgeCaseTest {
         // Should handle extreme values gracefully
         assertEquals("PV should be recorded as input", 950.0, row.getPv(), 0.001);
         assertTrue("Should charge battery", row.getPvToCharge() > 0);
-        assertTrue("Should feed large amount to grid", row.getFeed() > 890);
+        assertTrue("Should feed large amount to grid", row.getFeed() > 940);
         assertEquals("Should not buy from grid", 0.0, row.getBuy(), 0.001);
     }
 
@@ -183,7 +183,7 @@ public class SimulationWorkerEdgeCaseTest {
         Battery battery = new Battery();
         battery.setBatterySize(10.0);
         battery.setMaxDischarge(3.0);
-        battery.setDischargeStop(0.0);
+        battery.setDischargeStop(20.0); // 20% discharge stop, so battery starts at 20% SOC = 2.0 kWh
         battery.setStorageLoss(0.0);
 
         List<SimulationInputData> simulationInputData = new ArrayList<>();
@@ -192,11 +192,15 @@ public class SimulationWorkerEdgeCaseTest {
 
         SimulationWorker.InputData iData = new SimulationWorker.InputData(
                 inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0.0);
-        iData.soc = 10.0; // Full battery
+        // Manual SOC setting will be overridden by algorithm in row 0, so we need to set it after row 0 processing
         inputDataMap.put(inverter, iData);
 
         // First process row 0 to populate outputRows for baseline state
         SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        
+        // Manually set SOC to full after row 0 initialization for the test scenario
+        iData.soc = 10.0; // Full battery for testing discharge
+        
         SimulationWorker.processOneRow(scenarioID, outputRows, 1, inputDataMap);
 
         assertEquals("Should have 2 output rows", 2, outputRows.size());
