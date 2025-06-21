@@ -76,11 +76,13 @@ public class SimulationWorkerEdgeCaseTest {
         
         inputDataMap.put(inverter, iData);
 
+        // First process row 0 to populate outputRows for baseline state
+        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
         SimulationWorker.processOneRow(scenarioID, outputRows, 1, inputDataMap);
 
-        assertEquals("Should have 1 output row", 1, outputRows.size());
+        assertEquals("Should have 2 output rows", 2, outputRows.size());
         
-        com.tfcode.comparetout.model.scenario.ScenarioSimulationData row = outputRows.get(0);
+        com.tfcode.comparetout.model.scenario.ScenarioSimulationData row = outputRows.get(1); // Get row 1 result
         
         // With null battery, should behave like no battery system
         assertEquals("SOC should be 0", 0.0, row.getSOC(), 0.001);
@@ -149,11 +151,13 @@ public class SimulationWorkerEdgeCaseTest {
                 inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0.0);
         inputDataMap.put(inverter, iData);
 
+        // First process row 0 to populate outputRows for baseline state
+        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
         SimulationWorker.processOneRow(scenarioID, outputRows, 1, inputDataMap);
 
-        assertEquals("Should have 1 output row", 1, outputRows.size());
+        assertEquals("Should have 2 output rows", 2, outputRows.size());
         
-        com.tfcode.comparetout.model.scenario.ScenarioSimulationData row = outputRows.get(0);
+        com.tfcode.comparetout.model.scenario.ScenarioSimulationData row = outputRows.get(1); // Get row 1 result
         
         // Should handle extreme values gracefully
         assertEquals("PV should be recorded as input", 1000.0, row.getPv(), 0.001);
@@ -191,11 +195,13 @@ public class SimulationWorkerEdgeCaseTest {
         iData.soc = 10.0; // Full battery
         inputDataMap.put(inverter, iData);
 
+        // First process row 0 to populate outputRows for baseline state
+        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
         SimulationWorker.processOneRow(scenarioID, outputRows, 1, inputDataMap);
 
-        assertEquals("Should have 1 output row", 1, outputRows.size());
+        assertEquals("Should have 2 output rows", 2, outputRows.size());
         
-        com.tfcode.comparetout.model.scenario.ScenarioSimulationData row = outputRows.get(0);
+        com.tfcode.comparetout.model.scenario.ScenarioSimulationData row = outputRows.get(1); // Get row 1 result
         
         // Should handle extreme load gracefully
         assertEquals("Load should be recorded as input", 1000.0, row.getLoad(), 0.001);
@@ -240,11 +246,13 @@ public class SimulationWorkerEdgeCaseTest {
         iData.soc = 5.0; // 50% SOC
         inputDataMap.put(inverter, iData);
 
+        // First process row 0 to populate outputRows for baseline state
+        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
         SimulationWorker.processOneRow(scenarioID, outputRows, 1, inputDataMap);
 
-        assertEquals("Should have 1 output row", 1, outputRows.size());
+        assertEquals("Should have 2 output rows", 2, outputRows.size());
         
-        com.tfcode.comparetout.model.scenario.ScenarioSimulationData row = outputRows.get(0);
+        com.tfcode.comparetout.model.scenario.ScenarioSimulationData row = outputRows.get(1); // Get row 1 result
         
         // Should handle very small values
         assertEquals("Load should be recorded precisely", 0.001, row.getLoad(), 0.0001);

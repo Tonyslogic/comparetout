@@ -96,11 +96,13 @@ public class SimulationWorkerHelperTest {
 
         // Call processOneRow to test charging logic (using row 1 to avoid initialization)
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
+        // First process row 0 to populate outputRows for baseline state
+        SimulationWorker.processOneRow(1L, outputRows, 0, inputDataMap);
         SimulationWorker.processOneRow(1L, outputRows, 1, inputDataMap);
 
-        // Verify that charging occurred
-        assertTrue("PV to charge should be > 0", outputRows.get(0).getPvToCharge() > 0);
-        assertTrue("SOC should increase", outputRows.get(0).getSOC() > 5.0);
+        // Verify that charging occurred (row 1 result is at index 1)
+        assertTrue("PV to charge should be > 0", outputRows.get(1).getPvToCharge() > 0);
+        assertTrue("SOC should increase", outputRows.get(1).getSOC() > 5.0);
     }
 
     /**
@@ -158,11 +160,13 @@ public class SimulationWorkerHelperTest {
 
         // Test the charging distribution
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
+        // First process row 0 to populate outputRows for baseline state
+        SimulationWorker.processOneRow(1L, outputRows, 0, inputDataMap);
         SimulationWorker.processOneRow(1L, outputRows, 1, inputDataMap);
 
-        // Verify that charging occurred and total SOC increased
-        assertTrue("SOC should increase", outputRows.get(0).getSOC() > 7.5); // 5.0 + 2.5
-        assertTrue("PV to charge should be > 0", outputRows.get(0).getPvToCharge() > 0);
+        // Verify that charging occurred and total SOC increased (row 1 result is at index 1)
+        assertTrue("SOC should increase", outputRows.get(1).getSOC() > 7.5); // 5.0 + 2.5
+        assertTrue("PV to charge should be > 0", outputRows.get(1).getPvToCharge() > 0);
     }
 
     /**
@@ -195,12 +199,14 @@ public class SimulationWorkerHelperTest {
         inputDataMap.put(inverter, iData);
 
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
+        // First process row 0 to populate outputRows for baseline state
+        SimulationWorker.processOneRow(1L, outputRows, 0, inputDataMap);
         SimulationWorker.processOneRow(1L, outputRows, 1, inputDataMap);
 
-        // Verify that discharge occurred
-        assertTrue("Battery should discharge", outputRows.get(0).getBatToLoad() > 0);
-        assertTrue("SOC should decrease", outputRows.get(0).getSOC() < 8.0);
-        assertTrue("Should still need to buy some power", outputRows.get(0).getBuy() > 0);
+        // Verify that discharge occurred (row 1 result is at index 1)
+        assertTrue("Battery should discharge", outputRows.get(1).getBatToLoad() > 0);
+        assertTrue("SOC should decrease", outputRows.get(1).getSOC() < 8.0);
+        assertTrue("Should still need to buy some power", outputRows.get(1).getBuy() > 0);
     }
 
     /**
@@ -251,11 +257,13 @@ public class SimulationWorkerHelperTest {
         inputDataMap.put(inverter2, iData2);
 
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
+        // First process row 0 to populate outputRows for baseline state
+        SimulationWorker.processOneRow(1L, outputRows, 0, inputDataMap);
         SimulationWorker.processOneRow(1L, outputRows, 1, inputDataMap);
 
-        // Verify that both batteries discharged
-        assertTrue("Batteries should discharge", outputRows.get(0).getBatToLoad() > 0);
-        assertTrue("Total SOC should decrease", outputRows.get(0).getSOC() < 12.0); // 8.0 + 4.0
+        // Verify that both batteries discharged (row 1 result is at index 1)
+        assertTrue("Batteries should discharge", outputRows.get(1).getBatToLoad() > 0);
+        assertTrue("Total SOC should decrease", outputRows.get(1).getSOC() < 12.0); // 8.0 + 4.0
     }
 
     /**
@@ -304,11 +312,13 @@ public class SimulationWorkerHelperTest {
         inputDataMap.put(inverter, iData);
 
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
+        // First process row 0 to populate outputRows for baseline state
+        SimulationWorker.processOneRow(1L, outputRows, 0, inputDataMap);
         SimulationWorker.processOneRow(1L, outputRows, 1, inputDataMap);
 
-        // Verify that grid charging occurred
-        assertTrue("Grid to battery should be > 0", outputRows.get(0).getGridToBattery() > 0);
-        assertTrue("Buy should include grid charging", outputRows.get(0).getBuy() > 1.0);
+        // Verify that grid charging occurred (row 1 result is at index 1)
+        assertTrue("Grid to battery should be > 0", outputRows.get(1).getGridToBattery() > 0);
+        assertTrue("Buy should include grid charging", outputRows.get(1).getBuy() > 1.0);
     }
 
     /**
@@ -341,12 +351,14 @@ public class SimulationWorkerHelperTest {
         inputDataMap.put(inverter, iData);
 
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
+        // First process row 0 to populate outputRows for baseline state
+        SimulationWorker.processOneRow(1L, outputRows, 0, inputDataMap);
         SimulationWorker.processOneRow(1L, outputRows, 1, inputDataMap);
 
-        // Verify that battery doesn't discharge further
-        assertEquals("Battery should not discharge below stop", 0.0, outputRows.get(0).getBatToLoad(), 0.001);
-        assertEquals("SOC should remain at discharge stop", 2.0, outputRows.get(0).getSOC(), 0.001);
-        assertEquals("Should buy all power from grid", 5.0, outputRows.get(0).getBuy(), 0.001);
+        // Verify that battery doesn't discharge further (row 1 result is at index 1)
+        assertEquals("Battery should not discharge below stop", 0.0, outputRows.get(1).getBatToLoad(), 0.001);
+        assertEquals("SOC should remain at discharge stop", 2.0, outputRows.get(1).getSOC(), 0.001);
+        assertEquals("Should buy all power from grid", 5.0, outputRows.get(1).getBuy(), 0.001);
     }
 
     /**
@@ -385,12 +397,14 @@ public class SimulationWorkerHelperTest {
         inputDataMap.put(inverter, iData);
 
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
+        // First process row 0 to populate outputRows for baseline state
+        SimulationWorker.processOneRow(1L, outputRows, 0, inputDataMap);
         SimulationWorker.processOneRow(1L, outputRows, 1, inputDataMap);
 
-        // Verify that no charging occurred and excess went to feed
-        assertEquals("No PV should go to charging", 0.0, outputRows.get(0).getPvToCharge(), 0.001);
-        assertEquals("SOC should remain the same", 10.0, outputRows.get(0).getSOC(), 0.001);
-        assertTrue("Excess should feed to grid", outputRows.get(0).getFeed() > 0);
+        // Verify that no charging occurred and excess went to feed (row 1 result is at index 1)
+        assertEquals("No PV should go to charging", 0.0, outputRows.get(1).getPvToCharge(), 0.001);
+        assertEquals("SOC should remain the same", 10.0, outputRows.get(1).getSOC(), 0.001);
+        assertTrue("Excess should feed to grid", outputRows.get(1).getFeed() > 0);
     }
 
     /**
@@ -423,14 +437,16 @@ public class SimulationWorkerHelperTest {
         inputDataMap.put(inverter, iData);
 
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
+        // First process row 0 to populate outputRows for baseline state
+        SimulationWorker.processOneRow(1L, outputRows, 0, inputDataMap);
         SimulationWorker.processOneRow(1L, outputRows, 1, inputDataMap);
 
-        // Verify that battery discharges and remaining is bought from grid
-        assertTrue("Battery should discharge", outputRows.get(0).getBatToLoad() > 0);
-        assertTrue("Should buy power from grid", outputRows.get(0).getBuy() > 0);
-        assertEquals("No PV", 0.0, outputRows.get(0).getPv(), 0.001);
-        assertEquals("No feed to grid", 0.0, outputRows.get(0).getFeed(), 0.001);
-        assertEquals("No PV to charge", 0.0, outputRows.get(0).getPvToCharge(), 0.001);
+        // Verify that battery discharges and remaining is bought from grid (row 1 result is at index 1)
+        assertTrue("Battery should discharge", outputRows.get(1).getBatToLoad() > 0);
+        assertTrue("Should buy power from grid", outputRows.get(1).getBuy() > 0);
+        assertEquals("No PV", 0.0, outputRows.get(1).getPv(), 0.001);
+        assertEquals("No feed to grid", 0.0, outputRows.get(1).getFeed(), 0.001);
+        assertEquals("No PV to charge", 0.0, outputRows.get(1).getPvToCharge(), 0.001);
     }
 
     /**
@@ -461,13 +477,15 @@ public class SimulationWorkerHelperTest {
         inputDataMap.put(inverter, iData);
 
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
+        // First process row 0 to populate outputRows for baseline state
+        SimulationWorker.processOneRow(1L, outputRows, 0, inputDataMap);
         SimulationWorker.processOneRow(1L, outputRows, 1, inputDataMap);
 
-        // Verify that no grid interaction occurs
-        assertEquals("No grid purchase", 0.0, outputRows.get(0).getBuy(), 0.001);
-        assertEquals("No feed to grid", 0.0, outputRows.get(0).getFeed(), 0.001);
-        assertEquals("No battery discharge", 0.0, outputRows.get(0).getBatToLoad(), 0.001);
-        assertEquals("No PV to charge", 0.0, outputRows.get(0).getPvToCharge(), 0.001);
-        assertEquals("SOC unchanged", 5.0, outputRows.get(0).getSOC(), 0.001);
+        // Verify that no grid interaction occurs (row 1 result is at index 1)
+        assertEquals("No grid purchase", 0.0, outputRows.get(1).getBuy(), 0.001);
+        assertEquals("No feed to grid", 0.0, outputRows.get(1).getFeed(), 0.001);
+        assertEquals("No battery discharge", 0.0, outputRows.get(1).getBatToLoad(), 0.001);
+        assertEquals("No PV to charge", 0.0, outputRows.get(1).getPvToCharge(), 0.001);
+        assertEquals("SOC unchanged", 5.0, outputRows.get(1).getSOC(), 0.001);
     }
 }

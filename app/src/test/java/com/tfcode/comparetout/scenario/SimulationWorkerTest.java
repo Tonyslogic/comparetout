@@ -72,6 +72,9 @@ public class SimulationWorkerTest {
         double tpv = 2.1;
         SimulationInputData sid = createSID(load, tpv);
         simulationInputData.add(sid);
+        // Add second row required by framework for row index 1
+        SimulationInputData sid2 = createSID(load + 0.1, tpv + 0.1);
+        simulationInputData.add(sid2);
 
         SimulationWorker.InputData idata = new SimulationWorker.InputData(inverter, simulationInputData, battery, cfg, null, null, null, null, null, null, 0);
         // Set battery to full SOC for this test
@@ -80,9 +83,11 @@ public class SimulationWorkerTest {
         inputDataMap.put(inverter, idata);
 
         // FULL BATTERY, NO DISCHARGE; ROW 1; SOLAR > LOAD; LS=Always
+        // First process row 0 to populate outputRows for baseline state
+        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
         int row = 1;
         SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
-        ScenarioSimulationData aRow = outputRows.get(0); // Get first output row
+        ScenarioSimulationData aRow = outputRows.get(1); // Get row 1 output
 
         assertEquals(0, aRow.getBuy(), 0);
         double dc2acLoss = (100d - inverter.getDc2acLoss()) / 100d;
@@ -247,13 +252,22 @@ public class SimulationWorkerTest {
         double tpv2 = 1.0;
         SimulationInputData sid1 = createSID(load, tpv1);
         simulationInputData1.add(sid1);
+        // Add second row required by framework for row index 1
+        SimulationInputData sid1_row2 = createSID(load + 0.1, tpv1 + 0.1);
+        simulationInputData1.add(sid1_row2);
+        
         SimulationInputData sid2 = createSID(0, tpv2);
         simulationInputData2.add(sid2);
+        // Add second row required by framework for row index 1
+        SimulationInputData sid2_row2 = createSID(0.1, tpv2 + 0.1);
+        simulationInputData2.add(sid2_row2);
 
         // FULL BATTERY, NO DISCHARGE; ROW 1; SOLAR > LOAD
+        // First process row 0 to populate outputRows for baseline state
+        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
         int row = 1;
         SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
-        ScenarioSimulationData aRow = outputRows.get(0);
+        ScenarioSimulationData aRow = outputRows.get(1); // Get row 1 output
 
         assertEquals(0, aRow.getBuy(), 0);
         double dc2acLoss = (100d - inverter1.getDc2acLoss()) / 100d;
@@ -338,6 +352,9 @@ public class SimulationWorkerTest {
         double tpv = 2.1;
         SimulationInputData sid = createSID(load, tpv);
         simulationInputData.add(sid);
+        // Add second row required by framework for row index 1
+        SimulationInputData sid2 = createSID(load + 0.1, tpv + 0.1);
+        simulationInputData.add(sid2);
 
         SimulationWorker.InputData idata = new SimulationWorker.InputData(inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0);
         // Set battery to full SOC for this test  
@@ -346,9 +363,11 @@ public class SimulationWorkerTest {
         inputDataMap.put(inverter, idata);
 
         // FULL BATTERY, NO DISCHARGE; ROW 1; SOLAR > LOAD
+        // First process row 0 to populate outputRows for baseline state
+        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
         int row = 1;
         SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
-        ScenarioSimulationData aRow = outputRows.get(0);
+        ScenarioSimulationData aRow = outputRows.get(1); // Get row 1 output
 
         assertEquals(0, aRow.getBuy(), 0);
         double dc2acLoss = (100d - inverter.getDc2acLoss()) / 100d;
@@ -797,15 +816,20 @@ public class SimulationWorkerTest {
         double tpv = 2.0;
         SimulationInputData sid = createSID(load, tpv);
         simulationInputData.add(sid);
+        // Add second row required by framework for row index 1
+        SimulationInputData sid2 = createSID(load + 0.1, tpv + 0.1);
+        simulationInputData.add(sid2);
 
         // No battery (null)
         SimulationWorker.InputData idata = new SimulationWorker.InputData(
                 inverter, simulationInputData, null, null, null, null, null, null, null, null, 0);
         inputDataMap.put(inverter, idata);
 
+        // First process row 0 to populate outputRows for baseline state
+        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
         int row = 1;
         SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
-        ScenarioSimulationData aRow = outputRows.get(0);
+        ScenarioSimulationData aRow = outputRows.get(1); // Get row 1 output
 
         assertEquals(0, aRow.getBuy(), 0.001);
         double dc2acLoss = (100d - inverter.getDc2acLoss()) / 100d;
@@ -842,14 +866,19 @@ public class SimulationWorkerTest {
         double tpv = 1.0; // PV less than load
         SimulationInputData sid = createSID(load, tpv);
         simulationInputData.add(sid);
+        // Add second row required by framework for row index 1
+        SimulationInputData sid2 = createSID(load + 0.1, tpv + 0.1);
+        simulationInputData.add(sid2);
 
         SimulationWorker.InputData idata = new SimulationWorker.InputData(
                 inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0);
         inputDataMap.put(inverter, idata);
 
+        // First process row 0 to populate outputRows for baseline state
+        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
         int row = 1;
         SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
-        ScenarioSimulationData aRow = outputRows.get(0);
+        ScenarioSimulationData aRow = outputRows.get(1); // Get row 1 output
 
         // Should buy from grid since load exceeds available local supply
         assertTrue("Should buy from grid when load exceeds PV+battery", aRow.getBuy() > 0);
@@ -881,14 +910,19 @@ public class SimulationWorkerTest {
         double tpv = 1.3; // Small excess, below min excess
         SimulationInputData sid = createSID(load, tpv);
         simulationInputData.add(sid);
+        // Add second row required by framework for row index 1
+        SimulationInputData sid2 = createSID(load + 0.1, tpv + 0.1);
+        simulationInputData.add(sid2);
 
         SimulationWorker.InputData idata = new SimulationWorker.InputData(
                 inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0);
         inputDataMap.put(inverter, idata);
 
+        // First process row 0 to populate outputRows for baseline state
+        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
         int row = 1;
         SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
-        ScenarioSimulationData aRow = outputRows.get(0);
+        ScenarioSimulationData aRow = outputRows.get(1); // Get row 1 output
 
         // With small excess below min excess, should not charge battery
         assertEquals(0, aRow.getPvToCharge(), 0.001);
