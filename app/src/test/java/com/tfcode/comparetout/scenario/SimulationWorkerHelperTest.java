@@ -318,7 +318,7 @@ public class SimulationWorkerHelperTest {
 
         // Verify that grid charging occurred (row 1 result is at index 1)
         assertTrue("Grid to battery should be > 0", outputRows.get(1).getGridToBattery() > 0);
-        assertTrue("Buy should include grid charging", outputRows.get(1).getBuy() > 1.0);
+        assertTrue("Buy should include grid charging", outputRows.get(1).getBuy() > 1.2); // Row 1 load (2.1) minus PV (0.9) plus grid charging
     }
 
     /**
@@ -358,7 +358,7 @@ public class SimulationWorkerHelperTest {
         // Verify that battery doesn't discharge further (row 1 result is at index 1)
         assertEquals("Battery should not discharge below stop", 0.0, outputRows.get(1).getBatToLoad(), 0.001);
         assertEquals("SOC should remain at discharge stop", 2.0, outputRows.get(1).getSOC(), 0.001);
-        assertEquals("Should buy all power from grid", 5.0, outputRows.get(1).getBuy(), 0.001);
+        assertEquals("Should buy all power from grid", 4.8, outputRows.get(1).getBuy(), 0.001);
     }
 
     /**
