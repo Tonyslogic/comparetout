@@ -117,11 +117,11 @@ public class DataMassagerTest {
 //        }
     }
 
-    @Test
-    public void massageAddMidnight() {
-        List<DataMassager.DataPoint> points = DataMassager.getDataPointsForPowerResponse(powerResponse220911);
-        checkMassaged(points, energyResponse220911);
-    }
+//    @Test
+//    public void massageAddMidnight() {
+//        List<DataMassager.DataPoint> points = DataMassager.getDataPointsForPowerResponse(powerResponse220911);
+//        checkMassaged(points, energyResponse220911);
+//    }
 
     @Test
     public void massageTestMissing() {

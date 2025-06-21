@@ -162,6 +162,7 @@
 				"Inverter": "AlphaESS"
 			}
 		],
+		"DischargeToGrid": [],
 		"EVCharge": [
 			{
 				"Name": "Smart night",
