@@ -35,6 +35,9 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
+    - name: Verify Gradle version
+      run: ./gradlew --version
+
     - name: Build with Gradle
       run: ./gradlew assembleDebug --stacktrace
 
