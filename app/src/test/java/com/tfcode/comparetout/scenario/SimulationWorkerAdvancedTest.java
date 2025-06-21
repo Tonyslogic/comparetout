@@ -242,9 +242,16 @@ public class SimulationWorkerAdvancedTest {
                 inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0);
         inputDataMap.put(inverter, idata);
 
+        // First process row 0 to populate outputRows for baseline state
+        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        // Intermediate assertion: Check that row 0 result exists
+        assertEquals(1, outputRows.size());
+        
         int row = 1;
         SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
-        com.tfcode.comparetout.model.scenario.ScenarioSimulationData aRow = outputRows.get(0); // Get first output row
+        // Intermediate assertion: Check that row 1 result exists
+        assertEquals(2, outputRows.size());
+        com.tfcode.comparetout.model.scenario.ScenarioSimulationData aRow = outputRows.get(1); // Get row 1 output
 
         // Verify that losses are applied
         double effectivePV = tpv * 0.9; // 90% efficiency (10% loss)
@@ -291,9 +298,16 @@ public class SimulationWorkerAdvancedTest {
                 inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0);
         inputDataMap.put(inverter, idata);
 
+        // First process row 0 to populate outputRows for baseline state
+        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        // Intermediate assertion: Check that row 0 result exists
+        assertEquals(1, outputRows.size());
+        
         int row = 1;
         SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
-        com.tfcode.comparetout.model.scenario.ScenarioSimulationData aRow = outputRows.get(0); // Get first output row
+        // Intermediate assertion: Check that row 1 result exists
+        assertEquals(2, outputRows.size());
+        com.tfcode.comparetout.model.scenario.ScenarioSimulationData aRow = outputRows.get(1); // Get row 1 output
 
         // Verify that inverter load limit is respected
         double maxFeedAndCharge = 2.0; // Max inverter load
@@ -443,9 +457,16 @@ public class SimulationWorkerAdvancedTest {
                 inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0);
         inputDataMap.put(inverter, idata);
 
+        // First process row 0 to populate outputRows for baseline state
+        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        // Intermediate assertion: Check that row 0 result exists
+        assertEquals(1, outputRows.size());
+        
         int row = 1;
         SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
-        com.tfcode.comparetout.model.scenario.ScenarioSimulationData aRow = outputRows.get(0); // Get first output row
+        // Intermediate assertion: Check that row 1 result exists
+        assertEquals(2, outputRows.size());
+        com.tfcode.comparetout.model.scenario.ScenarioSimulationData aRow = outputRows.get(1); // Get row 1 output
 
         // Should not charge because excess is below minimum
         assertEquals("Should not charge battery", 0.0, aRow.getPvToCharge(), 0.001);

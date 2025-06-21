@@ -85,14 +85,19 @@ public class SimulationWorkerTest {
         // FULL BATTERY, NO DISCHARGE; ROW 1; SOLAR > LOAD; LS=Always
         // First process row 0 to populate outputRows for baseline state
         SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        // Intermediate assertion: Check that row 0 result exists
+        assertEquals(1, outputRows.size());
+        assertNotNull("Row 0 output should exist", outputRows.get(0));
+        
         int row = 1;
         SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
+        // Intermediate assertion: Check that row 1 result exists
+        assertEquals(2, outputRows.size());
         ScenarioSimulationData aRow = outputRows.get(1); // Get row 1 output
 
         assertEquals(0, aRow.getBuy(), 0);
         double dc2acLoss = (100d - inverter.getDc2acLoss()) / 100d;
         double expected = (tpv * dc2acLoss - load) - 0 ;
-        assertEquals(expected, aRow.getFeed(), 0);
         assertEquals(expected, aRow.getFeed(), 0);
         expected = battery.getBatterySize();
         assertEquals(expected, aRow.getSOC(), 0);
@@ -106,11 +111,13 @@ public class SimulationWorkerTest {
         battery.setDischargeStop(20.0D);
         simulationInputData.add(createSID(load, tpv));
         SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
-        aRow = outputRows.get(0);
+        // Intermediate assertion: Check that row 2 result exists
+        assertEquals(3, outputRows.size());
+        aRow = outputRows.get(2); // Get row 2 output
 
         expected = 0D; // Excess PV
         assertEquals(expected, aRow.getBuy(), 0);
-        double dc2acLoss = (100d - inverter.getDc2acLoss())/100d;
+        dc2acLoss = (100d - inverter.getDc2acLoss())/100d;
         expected = ((tpv * dc2acLoss - load) ) ; // effective PV - load
         assertEquals(expected, aRow.getFeed(), 0);
         expected = battery.getBatterySize(); // Full battery (CFG enabled)
@@ -128,7 +135,9 @@ public class SimulationWorkerTest {
         idata.soc = 2.85;
         simulationInputData.add(createSID(load, tpv));
         SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
-        aRow = outputRows.get(0);
+        // Intermediate assertion: Check that row 3 result exists
+        assertEquals(4, outputRows.size());
+        aRow = outputRows.get(3); // Get row 3 output
 
         expected = load + idata.mBattery.getMaxCharge();
         assertEquals(expected, aRow.getBuy(), 0);
@@ -148,7 +157,9 @@ public class SimulationWorkerTest {
         idata.soc = 5.13;
         simulationInputData.add(createSID(load, tpv));
         SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
-        aRow = outputRows.get(0);
+        // Intermediate assertion: Check that row 4 result exists
+        assertEquals(5, outputRows.size());
+        aRow = outputRows.get(4); // Get row 4 output
 
 //        expected = load;
         assertEquals(expected, aRow.getBuy(), 0);
@@ -195,18 +206,30 @@ public class SimulationWorkerTest {
         double tpv2 = 1.0;
         SimulationInputData sid1 = createSID(load, tpv1);
         simulationInputData1.add(sid1);
+        // Add second row required by framework for row index 1
+        simulationInputData1.add(createSID(load + 0.1, tpv1 + 0.1));
+        
         SimulationInputData sid2 = createSID(0, tpv2);
         simulationInputData2.add(sid2);
+        // Add second row required by framework for row index 1
+        simulationInputData2.add(createSID(0.1, tpv2 + 0.1));
 
         // FULL BATTERY, NO DISCHARGE; ROW 1; SOLAR > LOAD
+        // First process row 0 to populate outputRows for baseline state
+        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        // Intermediate assertion: Check that row 0 result exists
+        assertEquals(1, outputRows.size());
+        
         int row = 1;
         SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
-        ScenarioSimulationData aRow = outputRows.get(0);
-
+        // Intermediate assertion: Check that row 1 result exists
+        assertEquals(2, outputRows.size());
+        ScenarioSimulationData aRow = outputRows.get(1); // Get row 1 output
 
         assertEquals(load, aRow.getLoad(), 0);
         double expected = tpv1 + tpv2;
-        assertEquals(expected, aRow.getPv(), 0);assertEquals(0, aRow.getBuy(), 0);
+        assertEquals(expected, aRow.getPv(), 0);
+        assertEquals(0, aRow.getBuy(), 0);
         double dc2acLoss = (100d - inverter1.getDc2acLoss()) / 100d;
         expected = ((tpv1 + tpv2) * dc2acLoss - load) - 0 ;
         assertEquals(expected, aRow.getFeed(), 0);
@@ -265,8 +288,13 @@ public class SimulationWorkerTest {
         // FULL BATTERY, NO DISCHARGE; ROW 1; SOLAR > LOAD
         // First process row 0 to populate outputRows for baseline state
         SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        // Intermediate assertion: Check that row 0 result exists
+        assertEquals(1, outputRows.size());
+        
         int row = 1;
         SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
+        // Intermediate assertion: Check that row 1 result exists
+        assertEquals(2, outputRows.size());
         ScenarioSimulationData aRow = outputRows.get(1); // Get row 1 output
 
         assertEquals(0, aRow.getBuy(), 0);
@@ -289,7 +317,9 @@ public class SimulationWorkerTest {
         simulationInputData2.add(createSID(0, tpv2));
 
         SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
-        aRow = outputRows.get(0);
+        // Intermediate assertion: Check that row 2 result exists
+        assertEquals(3, outputRows.size());
+        aRow = outputRows.get(2); // Get row 2 output
 
         assertEquals(load, aRow.getBuy(), 0);
         expected = max(0, (tpv1 + tpv2 - load));
@@ -312,7 +342,9 @@ public class SimulationWorkerTest {
         battery1.setDischargeStop(dischargeStop);
         battery2.setDischargeStop(dischargeStop);
         SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
-        aRow = outputRows.get(0);
+        // Intermediate assertion: Check that row 3 result exists
+        assertEquals(4, outputRows.size());
+        aRow = outputRows.get(3); // Get row 3 output
 
 
         assertEquals(load, aRow.getLoad(), 0);
@@ -365,8 +397,13 @@ public class SimulationWorkerTest {
         // FULL BATTERY, NO DISCHARGE; ROW 1; SOLAR > LOAD
         // First process row 0 to populate outputRows for baseline state
         SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        // Intermediate assertion: Check that row 0 result exists
+        assertEquals(1, outputRows.size());
+        
         int row = 1;
         SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
+        // Intermediate assertion: Check that row 1 result exists
+        assertEquals(2, outputRows.size());
         ScenarioSimulationData aRow = outputRows.get(1); // Get row 1 output
 
         assertEquals(0, aRow.getBuy(), 0);
@@ -385,7 +422,9 @@ public class SimulationWorkerTest {
         tpv = 0;
         simulationInputData.add(createSID(load,tpv));
         SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
-        aRow = outputRows.get(0);
+        // Intermediate assertion: Check that row 2 result exists
+        assertEquals(3, outputRows.size());
+        aRow = outputRows.get(2); // Get row 2 output
 
         assertEquals(load, aRow.getBuy(), 0);
         expected = max(0, (tpv - load));
@@ -404,7 +443,9 @@ public class SimulationWorkerTest {
         simulationInputData.add(createSID(load, tpv));
         battery.setDischargeStop(dischargeStop);
         SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
-        aRow = outputRows.get(0);
+        // Intermediate assertion: Check that row 3 result exists
+        assertEquals(4, outputRows.size());
+        aRow = outputRows.get(3); // Get row 3 output
 
         expected = load - battery.getMaxDischarge();
         assertEquals(expected, aRow.getBuy(), 0);
@@ -424,7 +465,9 @@ public class SimulationWorkerTest {
         tpv = 1;
         simulationInputData.add(createSID(load, tpv));
         SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
-        aRow = outputRows.get(0);
+        // Intermediate assertion: Check that row 4 result exists
+        assertEquals(5, outputRows.size());
+        aRow = outputRows.get(4); // Get row 4 output
 
         double lastSOC =  battery.getBatterySize() - (battery.getMaxCharge() * (1 + battery.getStorageLoss()/100d));
 
@@ -447,7 +490,9 @@ public class SimulationWorkerTest {
         inputDataMap.entrySet().iterator().next().getValue().mBattery = null;
         simulationInputData.add(createSID(load, tpv));
         SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
-        aRow = outputRows.get(0);
+        // Intermediate assertion: Check that row 5 result exists
+        assertEquals(6, outputRows.size());
+        aRow = outputRows.get(5); // Get row 5 output
 
         expected = max (0, min(load, load - tpv));
         assertEquals(expected, aRow.getBuy(), 0);
@@ -827,8 +872,13 @@ public class SimulationWorkerTest {
 
         // First process row 0 to populate outputRows for baseline state
         SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        // Intermediate assertion: Check that row 0 result exists
+        assertEquals(1, outputRows.size());
+        
         int row = 1;
         SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
+        // Intermediate assertion: Check that row 1 result exists
+        assertEquals(2, outputRows.size());
         ScenarioSimulationData aRow = outputRows.get(1); // Get row 1 output
 
         assertEquals(0, aRow.getBuy(), 0.001);
@@ -876,8 +926,13 @@ public class SimulationWorkerTest {
 
         // First process row 0 to populate outputRows for baseline state
         SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        // Intermediate assertion: Check that row 0 result exists
+        assertEquals(1, outputRows.size());
+        
         int row = 1;
         SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
+        // Intermediate assertion: Check that row 1 result exists
+        assertEquals(2, outputRows.size());
         ScenarioSimulationData aRow = outputRows.get(1); // Get row 1 output
 
         // Should buy from grid since load exceeds available local supply
@@ -920,8 +975,13 @@ public class SimulationWorkerTest {
 
         // First process row 0 to populate outputRows for baseline state
         SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        // Intermediate assertion: Check that row 0 result exists
+        assertEquals(1, outputRows.size());
+        
         int row = 1;
         SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
+        // Intermediate assertion: Check that row 1 result exists
+        assertEquals(2, outputRows.size());
         ScenarioSimulationData aRow = outputRows.get(1); // Get row 1 output
 
         // With small excess below min excess, should not charge battery
