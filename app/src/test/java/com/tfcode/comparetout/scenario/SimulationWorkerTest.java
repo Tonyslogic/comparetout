@@ -118,7 +118,7 @@ public class SimulationWorkerTest {
         expected = 0D; // Excess PV
         assertEquals(expected, aRow.getBuy(), 0);
         dc2acLoss = (100d - inverter.getDc2acLoss())/100d;
-        expected = (((tpv + 0.1) * dc2acLoss - (load + 0.1)) ) ; // effective PV - load
+        expected = ((tpv * dc2acLoss - load)) ; // effective PV - load (row 2 values)
         assertEquals(expected, aRow.getFeed(), 0);
         expected = battery.getBatterySize(); // Full battery (CFG enabled)
         assertEquals(expected, aRow.getSOC(), 0);
@@ -226,12 +226,12 @@ public class SimulationWorkerTest {
         assertEquals(2, outputRows.size());
         ScenarioSimulationData aRow = outputRows.get(1); // Get row 1 output
 
-        assertEquals(load + 0.1, aRow.getLoad(), 0); // Load from row 1 (load + 0.1)
+        assertEquals((load + 0.1) + 0.1, aRow.getLoad(), 0); // Total load from row 1: (load + 0.1) + 0.1
         double expected = (tpv1 + 0.1) + (tpv2 + 0.1); // PV from row 1 of both inverters
         assertEquals(expected, aRow.getPv(), 0);
         assertEquals(0, aRow.getBuy(), 0);
         double dc2acLoss = (100d - inverter1.getDc2acLoss()) / 100d;
-        expected = (((tpv1 + 0.1) + (tpv2 + 0.1)) * dc2acLoss - (load + 0.1)) - 0 ;
+        expected = (((tpv1 + 0.1) + (tpv2 + 0.1)) * dc2acLoss - ((load + 0.1) + 0.1)) - 0 ; // Row 1 total load
         assertEquals(expected, aRow.getFeed(), 0);
         expected = battery1.getBatterySize();
         assertEquals(expected, aRow.getSOC(), 0);
@@ -473,7 +473,7 @@ public class SimulationWorkerTest {
 
         assertEquals(0, aRow.getBuy(), 0);
         double maxCharge = SimulationWorker.InputData.getMaxChargeForSOC(lastSOC, battery);
-        double dc2acLoss = (100d - inverter.getDc2acLoss())/100d;
+        dc2acLoss = (100d - inverter.getDc2acLoss())/100d;
         expected = (tpv * dc2acLoss - maxCharge) ;
         assertEquals(expected, aRow.getFeed(), 0);
         expected = lastSOC + maxCharge * (1d - (inverter.getDc2dcLoss()/100d));
