@@ -255,11 +255,13 @@ public class SimulationWorkerIntegrationTest {
         inputDataMap.put(inverter1, iData1);
         inputDataMap.put(inverter2, iData2);
 
+        // First process row 0 to populate outputRows for baseline state
+        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
         SimulationWorker.processOneRow(scenarioID, outputRows, 1, inputDataMap);
 
-        assertEquals("Should have 1 output row", 1, outputRows.size());
+        assertEquals("Should have 2 output rows", 2, outputRows.size());
         
-        com.tfcode.comparetout.model.scenario.ScenarioSimulationData row = outputRows.get(0);
+        com.tfcode.comparetout.model.scenario.ScenarioSimulationData row = outputRows.get(1); // Get row 1 result
         
         // Verify aggregated results
         assertEquals("Total load should be 2kW", 2.0, row.getLoad(), 0.001);
@@ -360,11 +362,13 @@ public class SimulationWorkerIntegrationTest {
                 inverter, simulationInputData, battery, null, null, null, null, null, null, null, exportLimit);
         inputDataMap.put(inverter, iData);
 
+        // First process row 0 to populate outputRows for baseline state
+        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
         SimulationWorker.processOneRow(scenarioID, outputRows, 1, inputDataMap);
 
-        assertEquals("Should have 1 output row", 1, outputRows.size());
+        assertEquals("Should have 2 output rows", 2, outputRows.size());
         
-        com.tfcode.comparetout.model.scenario.ScenarioSimulationData row = outputRows.get(0);
+        com.tfcode.comparetout.model.scenario.ScenarioSimulationData row = outputRows.get(1); // Get row 1 result
         
         // With 9kW excess PV, export should be limited
         // Exact behavior depends on implementation details, but export shouldn't exceed limit
@@ -404,11 +408,13 @@ public class SimulationWorkerIntegrationTest {
         iData.soc = 5.0; // 50% SOC
         inputDataMap.put(inverter, iData);
 
+        // First process row 0 to populate outputRows for baseline state
+        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
         SimulationWorker.processOneRow(scenarioID, outputRows, 1, inputDataMap);
 
-        assertEquals("Should have 1 output row", 1, outputRows.size());
+        assertEquals("Should have 2 output rows", 2, outputRows.size());
         
-        com.tfcode.comparetout.model.scenario.ScenarioSimulationData row = outputRows.get(0);
+        com.tfcode.comparetout.model.scenario.ScenarioSimulationData row = outputRows.get(1); // Get row 1 result
         
         // With no load and no PV, everything should be zero
         assertEquals("No buy", 0.0, row.getBuy(), 0.001);
