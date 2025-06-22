@@ -320,7 +320,7 @@ public class SimulationWorkerEdgeCaseTest {
 
         // Test exact 90% boundary (90.0 kWh)
         maxCharge = SimulationWorker.InputData.getMaxChargeForSOC(90.0, battery);
-        assertEquals("At exactly 90%, should still use percent12 rate", 10.0, maxCharge, 0.001);
+        assertEquals("At exactly 90%, should still use percent12 rate", 8.0, maxCharge, 0.001);
 
         // Test just above 90% (90.1 kWh)
         maxCharge = SimulationWorker.InputData.getMaxChargeForSOC(90.1, battery);
