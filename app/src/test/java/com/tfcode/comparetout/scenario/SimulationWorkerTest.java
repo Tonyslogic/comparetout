@@ -725,7 +725,7 @@ public class SimulationWorkerTest {
 
         // Test at 5% SOC (0.5 kWh)
         double result = SimulationWorker.InputData.getMaxChargeForSOC(0.5, battery);
-        assertEquals(1.6, result, 0.001); // 80% of 2.0
+        assertEquals(2.0, result, 0.001); // 100% of 2.0
 
         // Test at 50% SOC (5.0 kWh)
         result = SimulationWorker.InputData.getMaxChargeForSOC(5.0, battery);

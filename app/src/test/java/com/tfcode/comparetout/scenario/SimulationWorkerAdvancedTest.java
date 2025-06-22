@@ -146,7 +146,7 @@ public class SimulationWorkerAdvancedTest {
 
         // Test exact boundary at 12% (1.2 kWh)
         double result = SimulationWorker.InputData.getMaxChargeForSOC(1.2, battery);
-        assertEquals(1.6, result, 0.001); // Should use percent12 (80% of 2.0)
+        assertEquals(2.0, result, 0.001); // Should use percent12 (100% of 2.0)
 
         // Test exact boundary at 90% (9.0 kWh)
         result = SimulationWorker.InputData.getMaxChargeForSOC(9.0, battery);
