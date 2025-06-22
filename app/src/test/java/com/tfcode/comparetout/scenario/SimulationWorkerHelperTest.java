@@ -474,15 +474,15 @@ public class SimulationWorkerHelperTest {
     }
 
     /**
-     * Tests balanced scenario where PV generation exactly matches load demand.
-     * Verifies system behavior when there's no excess or shortage of energy.
+     * Tests balanced scenario where PV generation exactly matches load demand after DC to AC conversion losses.
+     * Verifies system behavior when there's no excess or shortage of energy after accounting for inverter efficiency.
      * 
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
      * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */
     @Test
     public void testPVExactlyMatchesLoad() {
-        // Test scenario where PV exactly matches load
+        // Test scenario where PV exactly matches load after accounting for DC to AC conversion losses
         
         Inverter inverter = new Inverter();
         Battery battery = new Battery();
@@ -492,10 +492,12 @@ public class SimulationWorkerHelperTest {
         Map<Inverter, SimulationWorker.InputData> inputDataMap = new HashMap<>();
         SimulationWorker.InputData iData = createInputData(inverter, battery, 5.0); // 50% SOC
         
-        // Create scenario where PV exactly matches load
+        // Create scenario where PV exactly matches load after DC to AC conversion losses
+        // Default inverter has 5% DC to AC loss, so effective conversion = 95%
+        // To get exact AC output, need DC input = AC_load / 0.95
         List<SimulationInputData> simulationInputData = new ArrayList<>();
-        simulationInputData.add(createSID(2.0, 2.0)); // 2kW load, 2kW PV
-        simulationInputData.add(createSID(2.1, 2.1)); // Second row as required by framework
+        simulationInputData.add(createSID(2.0, 2.0 / 0.95)); // 2kW load, exact PV to match after loss
+        simulationInputData.add(createSID(2.1, 2.1 / 0.95)); // 2.1kW load, exact PV to match after loss
         iData.simulationInputData = simulationInputData;
         
         inputDataMap.put(inverter, iData);
