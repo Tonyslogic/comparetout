@@ -122,13 +122,13 @@ public class SimulationWorkerHelperTest {
         Battery battery1 = new Battery();
         battery1.setBatterySize(10.0);
         battery1.setMaxCharge(2.0);
-        battery1.setDischargeStop(100.0);
+        battery1.setDischargeStop(20.0); // Allow charging from 20% to 100%
         
         Inverter inverter2 = new Inverter();
         Battery battery2 = new Battery();
         battery2.setBatterySize(5.0);
         battery2.setMaxCharge(1.0);
-        battery2.setDischargeStop(100.0);
+        battery2.setDischargeStop(20.0); // Allow charging from 20% to 100%
 
         ChargeModel chargeModel = new ChargeModel();
         chargeModel.percent0 = 100;
@@ -140,7 +140,7 @@ public class SimulationWorkerHelperTest {
 
         Map<Inverter, SimulationWorker.InputData> inputDataMap = new HashMap<>();
         
-        // Both batteries at 50% SOC
+        // Batteries will be initialized to discharge stop (20% SOC) during first row processing
         SimulationWorker.InputData iData1 = createInputData(inverter1, battery1, 5.0);
         SimulationWorker.InputData iData2 = createInputData(inverter2, battery2, 2.5);
         
@@ -165,7 +165,7 @@ public class SimulationWorkerHelperTest {
         SimulationWorker.processOneRow(1L, outputRows, 1, inputDataMap);
 
         // Verify that charging occurred and total SOC increased (row 1 result is at index 1)
-        assertTrue("SOC should increase", outputRows.get(1).getSOC() > 7.5); // 5.0 + 2.5
+        assertTrue("SOC should increase", outputRows.get(1).getSOC() > 3.0); // Initial SOC: 2.0 + 1.0 = 3.0 (20% each)
         assertTrue("PV to charge should be > 0", outputRows.get(1).getPvToCharge() > 0);
     }
 
