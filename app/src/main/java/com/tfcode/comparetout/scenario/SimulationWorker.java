@@ -528,7 +528,7 @@ public class SimulationWorker extends Worker {
         double pv2charge = 0;
         double pv2load;
         double bat2Load = 0;
-        double totalSOC = 0;
+        double totalSOC;
 
         if (inputLoad >= locallyAvailable) {
             buy += inputLoad - locallyAvailable;
@@ -557,8 +557,10 @@ public class SimulationWorker extends Worker {
                     feed = max(0, feed );
                 }
                 else {
-                    ScenarioSimulationData scenarioSimulationData = outputRows.get(row - 1);
+                    ScenarioSimulationData scenarioSimulationData = null;
+                    if (row > 0) scenarioSimulationData = outputRows.get(row - 1);
                     if (!(null == scenarioSimulationData)) totalSOC = scenarioSimulationData.getSOC();
+                    else totalSOC = firstInputData.soc;
                 }
             }
         }
@@ -925,6 +927,7 @@ public class SimulationWorker extends Worker {
          * @return The charge capacity in kWh.
          */
         public double getChargeCapacity() {
+            if (null == mBattery) return 0D;
             return min((mBattery.getBatterySize() - soc),
                     InputData.getMaxChargeForSOC(soc, mBattery));
         }
@@ -937,6 +940,7 @@ public class SimulationWorker extends Worker {
          */
         public double getDischargeCapacity(int row) {
             if (isCFG(row)) return 0D;
+            if (null == mBattery) return 0D;
             else return min(mBattery.getMaxDischarge(),
                     max(0, (soc - getDischargeStop() )));
         }
@@ -967,7 +971,7 @@ public class SimulationWorker extends Worker {
             double maxCharge = battery.getMaxCharge();
             double batteryPercentSOC = (batterySOC / battery.getBatterySize()) * 100d;
             if (batteryPercentSOC <= 12) ret = (maxCharge * cm.percent0) / 100d;
-            if (batteryPercentSOC <= 90) ret = (maxCharge * cm.percent12) / 100d;
+            else if (batteryPercentSOC <= 90) ret = (maxCharge * cm.percent12) / 100d;
             if (batteryPercentSOC > 90) ret = (maxCharge * cm.percent90) / 100d;
             if (batteryPercentSOC == 100) ret = (maxCharge * cm.percent100) / 100d;
             return ret;
@@ -990,6 +994,11 @@ public class SimulationWorker extends Worker {
          * @param rowsToProcess Number of time steps.
          */
         public ChargeFromGrid(List<LoadShift> loadShifts, int rowsToProcess) {
+            if (rowsToProcess == 0) {
+                mCFG = new ArrayList<>();
+                mStopAt = new ArrayList<>();
+                return;
+            }
             mCFG = new ArrayList<>(Collections.nCopies(rowsToProcess, false));
             mStopAt = new ArrayList<>(Collections.nCopies(rowsToProcess, 0D));
             Map<Integer, List<LoadShift>> groupedLoadShifts = sortLoadShifts(loadShifts);
