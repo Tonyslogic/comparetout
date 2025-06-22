@@ -165,11 +165,11 @@ public class SimulationWorkerIntegrationTest {
         battery.setChargeModel(chargeModel);
 
         // Create load shift schedule for cheap rate period
-        // Since we're testing with rows 0, 1, 2 (00:00, 00:05, 00:10), set schedule to cover early hours
+        // LoadShift granularity is hourly - begin=0, end=0 covers hour 0 (rows 0-11)
         List<LoadShift> loadShifts = new ArrayList<>();
         LoadShift loadShift = new LoadShift();
         loadShift.setBegin(0);  // Midnight 
-        loadShift.setEnd(1);    // 1 AM (covers rows 0-11, including row 1)
+        loadShift.setEnd(0);    // Hour 0 only (covers rows 0-11)
         loadShift.setStopAt(90.0); // Charge to 90%
         loadShifts.add(loadShift);
         
@@ -179,9 +179,13 @@ public class SimulationWorkerIntegrationTest {
         
         // First row: Charge battery to enable discharge testing
         simulationInputData.add(createSID(1.0, 5.0, "2001-01-01", "01:00", 60, 1, 1)); // Low load, high PV
-        // During load shift period (row 1 = 00:05, within 0-1 AM window)
+        // During load shift period (row 1 = 00:05, within hour 0)
         simulationInputData.add(createSID(2.0, 0.0, "2001-01-01", "03:00", 180, 1, 1));
-        // After load shift period - peak time (row 2 = 00:10, outside 0-1 AM window)
+        // After load shift period - need row 12+ to be outside hour 0, so add more rows
+        for (int i = 2; i < 13; i++) {
+            simulationInputData.add(createSID(3.0, 0.0, "2001-01-01", "05:00", 300, 1, 1));
+        }
+        // Final row outside load shift period (row 13 = 01:05, outside hour 0)
         simulationInputData.add(createSID(4.0, 0.0, "2001-01-01", "19:00", 1140, 1, 1));
 
         SimulationWorker.InputData iData = new SimulationWorker.InputData(
@@ -194,19 +198,19 @@ public class SimulationWorkerIntegrationTest {
             SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
         }
 
-        assertEquals("Should have 3 output rows", 3, outputRows.size());
+        assertEquals("Should have " + simulationInputData.size() + " output rows", simulationInputData.size(), outputRows.size());
 
         // First row - should charge battery with excess PV
         com.tfcode.comparetout.model.scenario.ScenarioSimulationData firstRow = outputRows.get(0);
         assertTrue("Should charge battery with excess PV", firstRow.getPvToCharge() > 0);
 
-        // During load shift - should charge from grid
+        // During load shift - should charge from grid (row 1 is within hour 0)
         com.tfcode.comparetout.model.scenario.ScenarioSimulationData duringRow = outputRows.get(1);
         assertTrue("Should charge from grid during load shift", duringRow.getGridToBattery() > 0);
         assertTrue("Total buy should include grid charging", duringRow.getBuy() > 2.0);
 
-        // After load shift - should use battery during peak
-        com.tfcode.comparetout.model.scenario.ScenarioSimulationData afterRow = outputRows.get(2);
+        // After load shift - should use battery during peak (last row is outside hour 0)
+        com.tfcode.comparetout.model.scenario.ScenarioSimulationData afterRow = outputRows.get(outputRows.size() - 1);
         assertEquals("Should not charge from grid after period", 0.0, afterRow.getGridToBattery(), 0.001);
         assertTrue("Should discharge battery during peak", afterRow.getBatToLoad() > 0);
     }
