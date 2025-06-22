@@ -165,10 +165,11 @@ public class SimulationWorkerIntegrationTest {
         battery.setChargeModel(chargeModel);
 
         // Create load shift schedule for cheap rate period
+        // Since we're testing with rows 0, 1, 2 (00:00, 00:05, 00:10), set schedule to cover early hours
         List<LoadShift> loadShifts = new ArrayList<>();
         LoadShift loadShift = new LoadShift();
-        loadShift.setBegin(2);  // 2 AM
-        loadShift.setEnd(6);    // 6 AM
+        loadShift.setBegin(0);  // Midnight 
+        loadShift.setEnd(1);    // 1 AM (covers rows 0-11, including row 1)
         loadShift.setStopAt(90.0); // Charge to 90%
         loadShifts.add(loadShift);
         
@@ -178,9 +179,9 @@ public class SimulationWorkerIntegrationTest {
         
         // First row: Charge battery to enable discharge testing
         simulationInputData.add(createSID(1.0, 5.0, "2001-01-01", "01:00", 60, 1, 1)); // Low load, high PV
-        // During load shift period  
+        // During load shift period (row 1 = 00:05, within 0-1 AM window)
         simulationInputData.add(createSID(2.0, 0.0, "2001-01-01", "03:00", 180, 1, 1));
-        // After load shift period - peak time
+        // After load shift period - peak time (row 2 = 00:10, outside 0-1 AM window)
         simulationInputData.add(createSID(4.0, 0.0, "2001-01-01", "19:00", 1140, 1, 1));
 
         SimulationWorker.InputData iData = new SimulationWorker.InputData(
