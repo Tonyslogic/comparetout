@@ -115,7 +115,8 @@ public class SimulationWorkerIntegrationTest {
         // Verify second row (morning) - mixed scenario
         com.tfcode.comparetout.model.scenario.ScenarioSimulationData morningRow = outputRows.get(1);
         assertEquals("Load should be 2kW", 2.0, morningRow.getLoad(), 0.001);
-        assertTrue("Should buy some power", morningRow.getBuy() > 0);
+        assertEquals("Should not buy power, battery meets demand", 0.0, morningRow.getBuy(), 0.001);
+        assertTrue("Battery should discharge to meet shortfall", morningRow.getBatToLoad() > 0);
 
         // Verify third row (midday) - should charge battery and feed grid
         com.tfcode.comparetout.model.scenario.ScenarioSimulationData middayRow = outputRows.get(2);
