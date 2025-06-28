@@ -1,0 +1,363 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" modified="2024-06-28T09:11:00.000Z" agent="5.0" etag="generated" version="24.7.7" type="device">
+  <diagram name="ToutcDB Schema" id="database-schema">
+    <mxGraphModel dx="2074" dy="1196" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="2336" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Central Scenario Entity -->
+        <mxCell id="scenario" value="&lt;b&gt;Scenario&lt;/b&gt;&lt;hr&gt;scenarioIndex (PK)&lt;br&gt;scenarioName&lt;br&gt;hasInverters&lt;br&gt;hasBatteries&lt;br&gt;hasPanels&lt;br&gt;hasIRData&lt;br&gt;hasHWSystem&lt;br&gt;hasLoadProfiles&lt;br&gt;hasLoadShifts&lt;br&gt;hasDischarges&lt;br&gt;hasEVCharges&lt;br&gt;hasHWSchedules&lt;br&gt;hasHWDiverts&lt;br&gt;hasEVDiverts&lt;br&gt;active" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1">
+          <mxGeometry x="750" y="600" width="200" height="240" as="geometry" />
+        </mxCell>
+        
+        <!-- Price Plan Entities -->
+        <mxCell id="priceplan" value="&lt;b&gt;PricePlan&lt;/b&gt;&lt;hr&gt;pricePlanIndex (PK)&lt;br&gt;supplier&lt;br&gt;planName&lt;br&gt;feed&lt;br&gt;standingCharges&lt;br&gt;signUpBonus&lt;br&gt;deemedExport&lt;br&gt;restrictions&lt;br&gt;lastUpdate&lt;br&gt;reference&lt;br&gt;active" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="100" y="300" width="180" height="180" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="dayrate" value="&lt;b&gt;DayRate&lt;/b&gt;&lt;hr&gt;dayRateIndex (PK)&lt;br&gt;pricePlanId (FK)&lt;br&gt;days&lt;br&gt;hours&lt;br&gt;minuteRateRange&lt;br&gt;startDate&lt;br&gt;endDate" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="100" y="520" width="180" height="120" as="geometry" />
+        </mxCell>
+        
+        <!-- Component Entities -->
+        <mxCell id="inverter" value="&lt;b&gt;Inverter&lt;/b&gt;&lt;hr&gt;inverterIndex (PK)&lt;br&gt;inverterName&lt;br&gt;minExcess&lt;br&gt;maxInverterLoad&lt;br&gt;mpptCount&lt;br&gt;ac2dcLoss&lt;br&gt;dc2acLoss&lt;br&gt;dc2dcLoss" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="350" y="100" width="160" height="140" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="battery" value="&lt;b&gt;Battery&lt;/b&gt;&lt;hr&gt;batteryIndex (PK)&lt;br&gt;batteryName&lt;br&gt;batterySize&lt;br&gt;dischargeStop&lt;br&gt;chargeModel&lt;br&gt;maxDischarge&lt;br&gt;maxCharge&lt;br&gt;storageLoss&lt;br&gt;inverter" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="550" y="100" width="160" height="160" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="panel" value="&lt;b&gt;Panel&lt;/b&gt;&lt;hr&gt;panelIndex (PK)&lt;br&gt;panelName&lt;br&gt;connectionMode&lt;br&gt;panelCount&lt;br&gt;panelkWp&lt;br&gt;azimuth&lt;br&gt;slope&lt;br&gt;latitude&lt;br&gt;longitude" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="750" y="100" width="160" height="160" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="loadprofile" value="&lt;b&gt;LoadProfile&lt;/b&gt;&lt;hr&gt;loadProfileIndex (PK)&lt;br&gt;annualUsage&lt;br&gt;hourlyBaseLoad&lt;br&gt;gridImportMax&lt;br&gt;gridExportMax&lt;br&gt;distributionSource&lt;br&gt;hourlyDist&lt;br&gt;dowDist&lt;br&gt;monthlyDist" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="950" y="100" width="160" height="160" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="hwsystem" value="&lt;b&gt;HWSystem&lt;/b&gt;&lt;hr&gt;hwSystemIndex (PK)&lt;br&gt;hwCapacity&lt;br&gt;hwUsage&lt;br&gt;hwIntake&lt;br&gt;hwTarget&lt;br&gt;hwLoss&lt;br&gt;hwRate&lt;br&gt;hwUse" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="100" width="160" height="140" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="loadshift" value="&lt;b&gt;LoadShift&lt;/b&gt;&lt;hr&gt;loadShiftIndex (PK)&lt;br&gt;name&lt;br&gt;begin&lt;br&gt;end&lt;br&gt;stopAt&lt;br&gt;months&lt;br&gt;days&lt;br&gt;inverter" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="350" y="300" width="160" height="140" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="discharge2grid" value="&lt;b&gt;DischargeToGrid&lt;/b&gt;&lt;hr&gt;d2gIndex (PK)&lt;br&gt;name&lt;br&gt;begin&lt;br&gt;end&lt;br&gt;stopAt&lt;br&gt;rate&lt;br&gt;months&lt;br&gt;days&lt;br&gt;inverter" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="550" y="300" width="160" height="160" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="evcharge" value="&lt;b&gt;EVCharge&lt;/b&gt;&lt;hr&gt;evChargeIndex (PK)&lt;br&gt;name&lt;br&gt;begin&lt;br&gt;end&lt;br&gt;draw&lt;br&gt;months&lt;br&gt;days" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="950" y="300" width="160" height="120" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="hwschedule" value="&lt;b&gt;HWSchedule&lt;/b&gt;&lt;hr&gt;hwScheduleIndex (PK)&lt;br&gt;name&lt;br&gt;begin&lt;br&gt;end&lt;br&gt;months&lt;br&gt;days" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="300" width="160" height="120" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="hwdivert" value="&lt;b&gt;HWDivert&lt;/b&gt;&lt;hr&gt;hwDivertIndex (PK)&lt;br&gt;active" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1350" y="100" width="160" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="evdivert" value="&lt;b&gt;EVDivert&lt;/b&gt;&lt;hr&gt;evDivertIndex (PK)&lt;br&gt;name&lt;br&gt;active&lt;br&gt;ev1st&lt;br&gt;begin&lt;br&gt;end&lt;br&gt;dailyMax&lt;br&gt;minimum&lt;br&gt;months&lt;br&gt;days" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1">
+          <mxGeometry x="1350" y="200" width="160" height="160" as="geometry" />
+        </mxCell>
+        
+        <!-- Junction Tables -->
+        <mxCell id="s2inverter" value="&lt;b&gt;Scenario2Inverter&lt;/b&gt;&lt;hr&gt;s2iID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;inverterID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="500" y="480" width="140" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s2battery" value="&lt;b&gt;Scenario2Battery&lt;/b&gt;&lt;hr&gt;s2bID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;batteryID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="660" y="480" width="140" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s2panel" value="&lt;b&gt;Scenario2Panel&lt;/b&gt;&lt;hr&gt;s2pID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;panelID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="820" y="480" width="140" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s2loadprofile" value="&lt;b&gt;Scenario2LoadProfile&lt;/b&gt;&lt;hr&gt;s2lpID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;loadProfileID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="980" y="480" width="140" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s2hwsystem" value="&lt;b&gt;Scenario2HWSystem&lt;/b&gt;&lt;hr&gt;s2hwID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;hwSystemID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="480" width="140" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s2loadshift" value="&lt;b&gt;Scenario2LoadShift&lt;/b&gt;&lt;hr&gt;s2lsID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;loadShiftID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="340" y="580" width="140" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s2discharge" value="&lt;b&gt;Scenario2DischargeToGrid&lt;/b&gt;&lt;hr&gt;s2d2gID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;d2gID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="500" y="680" width="160" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s2evcharge" value="&lt;b&gt;Scenario2EVCharge&lt;/b&gt;&lt;hr&gt;s2evcID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;evChargeID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="980" y="680" width="140" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s2hwschedule" value="&lt;b&gt;Scenario2HWSchedule&lt;/b&gt;&lt;hr&gt;s2hwsID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;hwScheduleID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1140" y="680" width="150" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s2hwdivert" value="&lt;b&gt;Scenario2HWDivert&lt;/b&gt;&lt;hr&gt;s2hwdID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;hwDivertID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1310" y="480" width="140" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="s2evdivert" value="&lt;b&gt;Scenario2EVDivert&lt;/b&gt;&lt;hr&gt;s2evdID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;evDivertID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1">
+          <mxGeometry x="1310" y="580" width="140" height="80" as="geometry" />
+        </mxCell>
+        
+        <!-- Data Tables -->
+        <mxCell id="loadprofiledata" value="&lt;b&gt;LoadProfileData&lt;/b&gt;&lt;hr&gt;loadProfileID (PK/FK)&lt;br&gt;date (PK)&lt;br&gt;minute (PK)&lt;br&gt;millisSinceEpoch&lt;br&gt;load&lt;br&gt;mod&lt;br&gt;dow&lt;br&gt;do2001" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="900" width="160" height="140" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="scenariosimdata" value="&lt;b&gt;ScenarioSimulationData&lt;/b&gt;&lt;hr&gt;scenarioID (PK/FK)&lt;br&gt;date (PK)&lt;br&gt;minuteOfDay (PK)&lt;br&gt;millisSinceEpoch&lt;br&gt;feed&lt;br&gt;buy&lt;br&gt;SOC&lt;br&gt;battery2Grid&lt;br&gt;gridToBattery&lt;br&gt;load&lt;br&gt;dayOf2001&lt;br&gt;dayOfWeek" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="750" y="900" width="180" height="200" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="paneldata" value="&lt;b&gt;PanelData&lt;/b&gt;&lt;hr&gt;panelID (PK/FK)&lt;br&gt;date (PK)&lt;br&gt;minute (PK)&lt;br&gt;millisSinceEpoch&lt;br&gt;pv&lt;br&gt;mod&lt;br&gt;dow&lt;br&gt;do2001" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#f8cecc;strokeColor=#b85450;" vertex="1" parent="1">
+          <mxGeometry x="950" y="900" width="160" height="140" as="geometry" />
+        </mxCell>
+        
+        <!-- Cost Analysis -->
+        <mxCell id="costings" value="&lt;b&gt;Costings&lt;/b&gt;&lt;hr&gt;scenarioID (PK/FK)&lt;br&gt;pricePlanID (PK/FK)&lt;br&gt;buy&lt;br&gt;sell&lt;br&gt;subTotals&lt;br&gt;scenarioName&lt;br&gt;fullPlanName&lt;br&gt;net" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1">
+          <mxGeometry x="400" y="900" width="160" height="140" as="geometry" />
+        </mxCell>
+        
+        <!-- AlphaESS Import Data -->
+        <mxCell id="alphaessrawpower" value="&lt;b&gt;AlphaESSRawPower&lt;/b&gt;&lt;hr&gt;sysSn (PK)&lt;br&gt;uploadTime (PK)&lt;br&gt;ppv&lt;br&gt;load&lt;br&gt;cbat&lt;br&gt;feedIn&lt;br&gt;gridCharge&lt;br&gt;pchargingPile" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#e6e6e6;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="100" y="1200" width="160" height="140" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="alphaessrawenergy" value="&lt;b&gt;AlphaESSRawEnergy&lt;/b&gt;&lt;hr&gt;sysSn (PK)&lt;br&gt;theDate (PK)&lt;br&gt;energyCharge&lt;br&gt;energypv&lt;br&gt;energyOutput&lt;br&gt;energyInput&lt;br&gt;energyGridCharge&lt;br&gt;energyDischarge&lt;br&gt;energyChargingPile" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#e6e6e6;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="300" y="1200" width="160" height="160" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="alphaessransformed" value="&lt;b&gt;AlphaESSTransformedData&lt;/b&gt;&lt;hr&gt;sysSn (PK)&lt;br&gt;date (PK)&lt;br&gt;minute (PK)&lt;br&gt;millisSinceEpoch&lt;br&gt;pv&lt;br&gt;load&lt;br&gt;feed&lt;br&gt;buy&lt;br&gt;charge" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#e6e6e6;strokeColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="500" y="1200" width="180" height="160" as="geometry" />
+        </mxCell>
+        
+        <!-- Relationships -->
+        <!-- PricePlan to DayRate (1:many) -->
+        <mxCell id="rel1" style="endArrow=ERmany;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="priceplan" target="dayrate">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="700" as="sourcePoint" />
+            <mxPoint x="550" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Scenario to Junction Tables -->
+        <mxCell id="rel2" style="endArrow=ERmany;html=1;rounded=0;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="scenario" target="s2inverter">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="700" as="sourcePoint" />
+            <mxPoint x="550" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="rel3" style="endArrow=ERmany;html=1;rounded=0;exitX=0.2;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="scenario" target="s2battery">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="700" as="sourcePoint" />
+            <mxPoint x="550" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="rel4" style="endArrow=ERmany;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="scenario" target="s2panel">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="700" as="sourcePoint" />
+            <mxPoint x="550" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="rel5" style="endArrow=ERmany;html=1;rounded=0;exitX=0.8;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="scenario" target="s2loadprofile">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="700" as="sourcePoint" />
+            <mxPoint x="550" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="rel6" style="endArrow=ERmany;html=1;rounded=0;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="scenario" target="s2hwsystem">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="700" as="sourcePoint" />
+            <mxPoint x="550" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="rel7" style="endArrow=ERmany;html=1;rounded=0;exitX=0;exitY=0.8;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="scenario" target="s2loadshift">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="700" as="sourcePoint" />
+            <mxPoint x="550" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="rel8" style="endArrow=ERmany;html=1;rounded=0;exitX=0.2;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="scenario" target="s2discharge">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="700" as="sourcePoint" />
+            <mxPoint x="550" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="rel9" style="endArrow=ERmany;html=1;rounded=0;exitX=0.8;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="scenario" target="s2evcharge">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="700" as="sourcePoint" />
+            <mxPoint x="550" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="rel10" style="endArrow=ERmany;html=1;rounded=0;exitX=1;exitY=0.8;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="scenario" target="s2hwschedule">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="700" as="sourcePoint" />
+            <mxPoint x="550" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="rel11" style="endArrow=ERmany;html=1;rounded=0;exitX=1;exitY=0.2;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="scenario" target="s2hwdivert">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="700" as="sourcePoint" />
+            <mxPoint x="550" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="rel12" style="endArrow=ERmany;html=1;rounded=0;exitX=1;exitY=0.4;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="scenario" target="s2evdivert">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="700" as="sourcePoint" />
+            <mxPoint x="550" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Junction Tables to Components -->
+        <mxCell id="rel13" style="endArrow=ERone;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;" edge="1" parent="1" source="s2inverter" target="inverter">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="700" as="sourcePoint" />
+            <mxPoint x="550" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="rel14" style="endArrow=ERone;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;" edge="1" parent="1" source="s2battery" target="battery">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="700" as="sourcePoint" />
+            <mxPoint x="550" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="rel15" style="endArrow=ERone;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;" edge="1" parent="1" source="s2panel" target="panel">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="700" as="sourcePoint" />
+            <mxPoint x="550" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="rel16" style="endArrow=ERone;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;" edge="1" parent="1" source="s2loadprofile" target="loadprofile">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="700" as="sourcePoint" />
+            <mxPoint x="550" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="rel17" style="endArrow=ERone;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;" edge="1" parent="1" source="s2hwsystem" target="hwsystem">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="700" as="sourcePoint" />
+            <mxPoint x="550" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="rel18" style="endArrow=ERone;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;" edge="1" parent="1" source="s2loadshift" target="loadshift">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="700" as="sourcePoint" />
+            <mxPoint x="550" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="rel19" style="endArrow=ERone;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;" edge="1" parent="1" source="s2discharge" target="discharge2grid">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="700" as="sourcePoint" />
+            <mxPoint x="550" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="rel20" style="endArrow=ERone;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;" edge="1" parent="1" source="s2evcharge" target="evcharge">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="700" as="sourcePoint" />
+            <mxPoint x="550" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="rel21" style="endArrow=ERone;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;" edge="1" parent="1" source="s2hwschedule" target="hwschedule">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="700" as="sourcePoint" />
+            <mxPoint x="550" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="rel22" style="endArrow=ERone;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;" edge="1" parent="1" source="s2hwdivert" target="hwdivert">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="700" as="sourcePoint" />
+            <mxPoint x="550" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="rel23" style="endArrow=ERone;html=1;rounded=0;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;" edge="1" parent="1" source="s2evdivert" target="evdivert">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="700" as="sourcePoint" />
+            <mxPoint x="550" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Data table relationships -->
+        <mxCell id="rel24" style="endArrow=ERmany;html=1;rounded=0;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="scenario" target="scenariosimdata">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="700" as="sourcePoint" />
+            <mxPoint x="550" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="rel25" style="endArrow=ERmany;html=1;rounded=0;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="loadprofile" target="loadprofiledata">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="700" as="sourcePoint" />
+            <mxPoint x="550" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="rel26" style="endArrow=ERmany;html=1;rounded=0;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="panel" target="paneldata">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="700" as="sourcePoint" />
+            <mxPoint x="550" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Cost analysis relationships -->
+        <mxCell id="rel27" style="endArrow=ERmany;html=1;rounded=0;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="scenario" target="costings">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="700" as="sourcePoint" />
+            <mxPoint x="550" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="rel28" style="endArrow=ERmany;html=1;rounded=0;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="priceplan" target="costings">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="700" as="sourcePoint" />
+            <mxPoint x="550" y="650" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Title -->
+        <mxCell id="title" value="&lt;b&gt;&lt;font size=&quot;6&quot;&gt;TOUTC Database Schema - Entity Relationship Diagram&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;font size=&quot;4&quot;&gt;Energy System Modeling Database&lt;/font&gt;&lt;br&gt;&lt;font size=&quot;3&quot;&gt;Android Room / SQLite Implementation&lt;/font&gt;" style="whiteSpace=wrap;html=1;align=center;fontSize=12;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="600" y="20" width="500" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Legend -->
+        <mxCell id="legend" value="&lt;b&gt;LEGEND&lt;/b&gt;&lt;hr&gt;&lt;div style=&quot;background-color:#e1d5e7;&quot;&gt;Central Entity&lt;/div&gt;&lt;div style=&quot;background-color:#d5e8d4;&quot;&gt;Price Plans&lt;/div&gt;&lt;div style=&quot;background-color:#dae8fc;&quot;&gt;Components&lt;/div&gt;&lt;div style=&quot;background-color:#fff2cc;&quot;&gt;Junction Tables&lt;/div&gt;&lt;div style=&quot;background-color:#f8cecc;&quot;&gt;Time-Series Data&lt;/div&gt;&lt;div style=&quot;background-color:#ffe6cc;&quot;&gt;Cost Analysis&lt;/div&gt;&lt;div style=&quot;background-color:#e6e6e6;&quot;&gt;Import Data&lt;/div&gt;" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="100" y="700" width="160" height="140" as="geometry" />
+        </mxCell>
+        
+        <!-- Note -->
+        <mxCell id="note" value="&lt;b&gt;NOTE:&lt;/b&gt; Foreign key relationships are implied by the software logic as SQLite/Room does not enforce FK constraints. Junction tables implement many-to-many relationships between Scenario and component entities." style="whiteSpace=wrap;html=1;align=left;fontSize=10;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
+          <mxGeometry x="100" y="880" width="250" height="80" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
