@@ -31,7 +31,7 @@
           </mxGeometry>
         </mxCell>
         
-        <mxCell id="dao1-label" value="ScenarioDAO&#xa;savePanel()&#xa;getPanelsForScenarioID()&#xa;copyPanelFromScenario()&#xa;linkPanelFromScenario()&#xa;deletePanelFromScenario()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;fontColor=#333333;" vertex="1" connectable="0" parent="connection1">
+        <mxCell id="dao1-label" value="ScenarioDAO&#xa;savePanel()&#xa;getPanelsForScenarioID()&#xa;copyPanelFromScenario()&#xa;linkPanelFromScenario()&#xa;deletePanelFromScenario()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="connection1">
           <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
             <mxPoint x="-35" y="5" as="offset" />
           </mxGeometry>
@@ -44,7 +44,7 @@
           </mxGeometry>
         </mxCell>
         
-        <mxCell id="dao2-label" value="ScenarioDAO&#xa;scenario2panel&#xa;junction operations" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;fontColor=#333333;" vertex="1" connectable="0" parent="connection2">
+        <mxCell id="dao2-label" value="ScenarioDAO&#xa;scenario2panel&#xa;junction operations" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="connection2">
           <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
             <mxPoint x="5" y="5" as="offset" />
           </mxGeometry>
@@ -57,7 +57,7 @@
           </mxGeometry>
         </mxCell>
         
-        <mxCell id="dao3-label" value="ScenarioDAO&#xa;savePanelData()&#xa;removePanelData()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;fontColor=#333333;" vertex="1" connectable="0" parent="connection3">
+        <mxCell id="dao3-label" value="ScenarioDAO&#xa;savePanelData()&#xa;removePanelData()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="connection3">
           <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
             <mxPoint x="15" y="5" as="offset" />
           </mxGeometry>

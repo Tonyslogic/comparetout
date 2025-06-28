@@ -27,7 +27,7 @@
           </mxGeometry>
         </mxCell>
         
-        <mxCell id="dao1-label" value="AlphaEssDAO&#xa;addRawEnergy()&#xa;checkSysSnForDataOnDate()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#333333;" vertex="1" connectable="0" parent="connection1">
+        <mxCell id="dao1-label" value="AlphaEssDAO&#xa;addRawEnergy()&#xa;checkSysSnForDataOnDate()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="connection1">
           <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
             <mxPoint x="-30" y="5" as="offset" />
           </mxGeometry>
@@ -40,7 +40,7 @@
           </mxGeometry>
         </mxCell>
         
-        <mxCell id="dao2-label" value="AlphaEssDAO&#xa;addRawPower()&#xa;checkSysSnForDataOnDate()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#333333;" vertex="1" connectable="0" parent="connection2">
+        <mxCell id="dao2-label" value="AlphaEssDAO&#xa;addRawPower()&#xa;checkSysSnForDataOnDate()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="connection2">
           <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
             <mxPoint x="30" y="5" as="offset" />
           </mxGeometry>

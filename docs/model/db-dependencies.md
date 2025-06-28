@@ -97,7 +97,26 @@ Based on the @Entity annotations, the application uses 33 database tables:
 |----------|-----------|------------|------------------|
 | **ImportOverviewFragment** | `PricePlans`, `DayRates` | PricePlanDAO | `getAllPricePlansNow()`, `getAllDayRatesForPricePlanID()` |
 | **ImportGenerateScenarioFragment** | `scenarios` | ScenarioDAO | `addNewScenarioWithComponents()` |
-| **ImportKeyStatsFragment** | Various import tables | Various DAOs | Import-specific queries |
+| **ImportKeyStatsFragment** | `alphaESSTransformedData`, `alphaESSRawEnergy`, `alphaESSRawPower`, `esbnHDFData`, `homeAssistantRawEnergy` | AlphaEssDAO, ESBNDao, HomeAssistantDAO | `getKeyStats()`, `getKPIs()`, `getLiveDateRanges()` |
+| **BaseGraphsFragment** | `alphaESSTransformedData`, `esbnHDFData`, `scenariosimulationdata`, `homeAssistantRawEnergy` | AlphaEssDAO, ESBNDao, HomeAssistantDAO, ScenarioDAO | `getLiveDateRanges()`, `getSumHour()`, `getSumDOY()`, `getSumDOW()`, `getSumMonth()`, `getSumYear()`, `getAvgHour()`, `getAvgDOY()`, `getAvgDOW()`, `getAvgMonth()`, `getAvgYear()` |
+| **ScenarioDetails** | `costings`, `scenariosimulationdata` | CostingDAO, ScenarioDAO | `getAllComparisons()`, `getBarData()`, `getLineData()` |
+| **ScenarioGraphs** | `scenariosimulationdata`, `alphaESSTransformedData`, `esbnHDFData`, `homeAssistantRawEnergy` | ScenarioDAO, AlphaEssDAO, ESBNDao, HomeAssistantDAO | Graph display methods from BaseGraphsFragment |
+| **ScenarioOverview** | `scenarios`, `costings` | ScenarioDAO, CostingDAO | `loadScenarios()`, `getAllComparisons()` |
+| **ScenarioMonthly** | `scenariosimulationdata` | ScenarioDAO | `getMonthlyData()` |
+| **ScenarioYear** | `scenariosimulationdata` | ScenarioDAO | `getYearlyData()` |
+| **ImportAlphaOverview** | `alphaESSRawEnergy`, `alphaESSTransformedData` | AlphaEssDAO | `getDateRanges()`, `getSystemSNs()` |
+| **ImportAlphaKeyStats** | `alphaESSTransformedData`, `alphaESSRawEnergy` | AlphaEssDAO | `getKeyStats()`, `getKPIs()` |
+| **ImportAlphaGraphs** | `alphaESSTransformedData` | AlphaEssDAO | All BaseGraphsFragment methods |
+| **ImportAlphaGenerateScenario** | `scenarios`, `alphaESSTransformedData` | ScenarioDAO, AlphaEssDAO | `addNewScenarioWithComponents()`, `getAvgHour()` |
+| **ImportESBNOverview** | `esbnHDFData` | ESBNDao | `getDateRanges()`, `getMPRNs()` |
+| **ImportESBNGraphs** | `esbnHDFData` | ESBNDao | All BaseGraphsFragment methods |
+| **ImportESBNGenerateScenario** | `scenarios`, `esbnHDFData` | ScenarioDAO, ESBNDao | `addNewScenarioWithComponents()`, `getAvgHour()` |
+| **ImportHAOverview** | `homeAssistantRawEnergy` | HomeAssistantDAO | `getDateRanges()`, `getEntityIDs()` |
+| **ImportHAKeyStats** | `homeAssistantRawEnergy` | HomeAssistantDAO | `getKeyStats()`, `getKPIs()` |
+| **ImportHAGraphs** | `homeAssistantRawEnergy` | HomeAssistantDAO | All BaseGraphsFragment methods |
+| **ImportHAGenerateScenario** | `scenarios`, `homeAssistantRawEnergy` | ScenarioDAO, HomeAssistantDAO | `addNewScenarioWithComponents()`, `getAvgHour()` |
+| **CompareScenarioSelectDialog** | `scenarios` | ScenarioDAO | `loadScenarios()` |
+| **ScenarioSelectDialog** | `scenarios` | ScenarioDAO | `loadScenarios()` |
 
 ### Activities (via ComparisonUIViewModel)
 
@@ -144,6 +163,7 @@ Based on the @Entity annotations, the application uses 33 database tables:
 | **ESBN GenerationWorker** | `loadprofiledata`, `paneldata`, `scenarios`, `inverters`, `panels`, `batteries`, `loadprofile` | ScenarioDAO | `addNewScenarioWithComponents()`, `createLoadProfileDataEntries()`, `savePanelData()`|
 | **HomeAssistant HACatchupWorker** | `loadprofiledata`, `paneldata`, `alphaESSTransformedData` | ScenarioDAO, AlphaEssDAO | `createLoadProfileDataEntries()`, `savePanelData()`, `addTransformedData()`|
 | **HomeAssistant GenerationWorker** | `loadprofiledata`, `paneldata`, `scenarios`, `inverters`, `panels`, `batteries`, `loadprofile`, `alphaESSTransformedData` | ScenarioDAO, AlphaEssDAO | `addNewScenarioWithComponents()`, `createLoadProfileDataEntries()`, `savePanelData()`, `getAlphaESSTransformedData()`|
+| **PVGISLoader** | `paneldata` | ScenarioDAO | `savePanelData()` |
 
 ### Abstract Classes (Base Classes for Workers)
 

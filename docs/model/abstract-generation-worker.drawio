@@ -61,7 +61,7 @@
           </mxGeometry>
         </mxCell>
         
-        <mxCell id="dao1-label" value="ScenarioDAO&#xa;getScenarios()&#xa;insertScenarioAndReturnID()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;fontColor=#333333;" vertex="1" connectable="0" parent="connection1">
+        <mxCell id="dao1-label" value="ScenarioDAO&#xa;getScenarios()&#xa;insertScenarioAndReturnID()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="connection1">
           <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
             <mxPoint x="-25" y="5" as="offset" />
           </mxGeometry>
@@ -74,7 +74,7 @@
           </mxGeometry>
         </mxCell>
         
-        <mxCell id="dao2-label" value="ScenarioDAO&#xa;saveLoadProfileAndReturnID()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;fontColor=#333333;" vertex="1" connectable="0" parent="connection2">
+        <mxCell id="dao2-label" value="ScenarioDAO&#xa;saveLoadProfileAndReturnID()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="connection2">
           <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
             <mxPoint x="0" y="5" as="offset" />
           </mxGeometry>
@@ -87,7 +87,7 @@
           </mxGeometry>
         </mxCell>
         
-        <mxCell id="dao3-label" value="ScenarioDAO&#xa;createLoadProfileDataEntries()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;fontColor=#333333;" vertex="1" connectable="0" parent="connection3">
+        <mxCell id="dao3-label" value="ScenarioDAO&#xa;createLoadProfileDataEntries()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="connection3">
           <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
             <mxPoint x="5" y="5" as="offset" />
           </mxGeometry>
@@ -100,7 +100,7 @@
           </mxGeometry>
         </mxCell>
         
-        <mxCell id="dao4-label" value="ScenarioDAO&#xa;saveInverter()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;fontColor=#333333;" vertex="1" connectable="0" parent="connection4">
+        <mxCell id="dao4-label" value="ScenarioDAO&#xa;saveInverter()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="connection4">
           <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
             <mxPoint x="5" y="5" as="offset" />
           </mxGeometry>
@@ -113,7 +113,7 @@
           </mxGeometry>
         </mxCell>
         
-        <mxCell id="dao5-label" value="ScenarioDAO&#xa;savePanel()&#xa;savePanelData()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;fontColor=#333333;" vertex="1" connectable="0" parent="connection5">
+        <mxCell id="dao5-label" value="ScenarioDAO&#xa;savePanel()&#xa;savePanelData()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="connection5">
           <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
             <mxPoint x="10" y="5" as="offset" />
           </mxGeometry>
@@ -126,7 +126,7 @@
           </mxGeometry>
         </mxCell>
         
-        <mxCell id="dao6-label" value="AlphaEssDAO&#xa;getAlphaESSTransformedData()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;fontColor=#333333;" vertex="1" connectable="0" parent="connection6">
+        <mxCell id="dao6-label" value="AlphaEssDAO&#xa;getAlphaESSTransformedData()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="connection6">
           <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
             <mxPoint x="25" y="5" as="offset" />
           </mxGeometry>

@@ -69,7 +69,7 @@
           </mxGeometry>
         </mxCell>
         
-        <mxCell id="main-dao-label" value="ScenarioDAO&#xa;getAllScenariosThatNeedSimulation()&#xa;getScenarioComponentsForScenarioID()&#xa;getSimulationInputNoSolar()&#xa;getSimulationInputForPanel()&#xa;saveSimulationDataForScenario()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#333333;" vertex="1" connectable="0" parent="main-connection">
+        <mxCell id="main-dao-label" value="ScenarioDAO&#xa;getAllScenariosThatNeedSimulation()&#xa;getScenarioComponentsForScenarioID()&#xa;getSimulationInputNoSolar()&#xa;getSimulationInputForPanel()&#xa;saveSimulationDataForScenario()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="main-connection">
           <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
             <mxPoint x="-120" y="10" as="offset" />
           </mxGeometry>
