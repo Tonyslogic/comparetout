@@ -1,0 +1,52 @@
+<mxfile host="app.diagrams.net" modified="2024-01-01T00:00:00.000Z" agent="CompareToUT Documentation" etag="1" version="24.0.0" type="device">
+  <diagram name="Main Comparison Dependencies" id="main-comparison">
+    <mxGraphModel dx="1000" dy="600" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1200" pageHeight="800" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Main Comparison Activity -->
+        <mxCell id="main-comparison-activity" value="Main Comparison Activity" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#000000;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="50" width="200" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Database Tables -->
+        <mxCell id="scenarios-table" value="scenarios" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="100" y="200" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="costings-table" value="costings" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="280" y="200" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Connections with DAO annotations -->
+        <mxCell id="connection1" value="" style="endArrow=classic;html=1;rounded=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="main-comparison-activity" target="scenarios-table">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="300" y="300" as="sourcePoint" />
+            <mxPoint x="350" y="250" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="dao1-label" value="ScenarioDAO&#xa;loadScenarios()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#333333;" vertex="1" connectable="0" parent="connection1">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint x="-10" y="5" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="connection2" value="" style="endArrow=classic;html=1;rounded=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="main-comparison-activity" target="costings-table">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="300" y="300" as="sourcePoint" />
+            <mxPoint x="350" y="250" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="dao2-label" value="CostingDAO&#xa;loadCostings()&#xa;getBestCostingForScenario()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#333333;" vertex="1" connectable="0" parent="connection2">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint x="10" y="5" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

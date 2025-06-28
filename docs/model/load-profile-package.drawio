@@ -1,0 +1,74 @@
+<mxfile host="app.diagrams.net" modified="2024-01-01T00:00:00.000Z" agent="CompareToUT Documentation" etag="1" version="24.0.0" type="device">
+  <diagram name="Load Profile Package Dependencies" id="load-profile-package">
+    <mxGraphModel dx="1200" dy="700" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- Load Profile Package -->
+        <mxCell id="load-profile-package" value="Load Profile Package" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#000000;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="150" y="50" width="200" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Database Tables -->
+        <mxCell id="loadprofile-table" value="loadprofile" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="50" y="200" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="loadprofiledata-table" value="loadprofiledata" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="220" y="200" width="140" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="scenario2loadprofile-table" value="scenario2loadprofile" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="410" y="200" width="150" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Connections with DAO annotations -->
+        <mxCell id="connection1" value="" style="endArrow=classic;html=1;rounded=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="load-profile-package" target="loadprofile-table">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="400" y="400" as="sourcePoint" />
+            <mxPoint x="450" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="dao1-label" value="ScenarioDAO&#xa;saveLoadProfile()&#xa;getLoadProfileForScenarioID()&#xa;copyLoadProfileFromScenario()&#xa;linkLoadProfileFromScenario()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;fontColor=#333333;" vertex="1" connectable="0" parent="connection1">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint x="-40" y="5" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="connection2" value="" style="endArrow=classic;html=1;rounded=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="load-profile-package" target="loadprofiledata-table">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="400" y="400" as="sourcePoint" />
+            <mxPoint x="450" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="dao2-label" value="ScenarioDAO&#xa;createLoadProfileDataEntries()&#xa;deleteLoadProfileData()&#xa;getLoadProfileDataForScenario()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;fontColor=#333333;" vertex="1" connectable="0" parent="connection2">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint x="5" y="5" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="connection3" value="" style="endArrow=classic;html=1;rounded=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="load-profile-package" target="scenario2loadprofile-table">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="400" y="400" as="sourcePoint" />
+            <mxPoint x="450" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="dao3-label" value="ScenarioDAO&#xa;scenario2loadprofile&#xa;junction operations" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=8;fontColor=#333333;" vertex="1" connectable="0" parent="connection3">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint x="25" y="5" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Sub-fragments note -->
+        <mxCell id="note" value="Includes fragments:&#xa;• LoadProfilePropertiesFragment&#xa;• LoadProfileDailyDistributionFragment&#xa;• LoadProfileHourlyDistributionFragment&#xa;• LoadProfileMonthlyDistributionFragment" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontColor=#000000;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="630" y="50" width="280" height="120" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,86 @@
+<mxfile host="app.diagrams.net" modified="2024-01-01T00:00:00.000Z" agent="CompareToUT Documentation" etag="1" version="24.0.0" type="device">
+  <diagram name="SimulationWorker Dependencies" id="simulation-worker">
+    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1200" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        
+        <!-- SimulationWorker -->
+        <mxCell id="simulation-worker" value="SimulationWorker" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontColor=#000000;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="300" y="50" width="200" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Core Tables Row 1 -->
+        <mxCell id="scenarios-table" value="scenarios" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="50" y="180" width="100" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="scenariosimulationdata-table" value="scenariosimulationdata" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="170" y="180" width="140" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="batteries-table" value="batteries" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="330" y="180" width="100" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="panels-table" value="panels" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="450" y="180" width="100" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="inverters-table" value="inverters" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="570" y="180" width="100" height="50" as="geometry" />
+        </mxCell>
+        
+        <!-- Component Tables Row 2 -->
+        <mxCell id="hwsystem-table" value="hwsystem" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="50" y="280" width="100" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="loadprofile-table" value="loadprofile" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="170" y="280" width="100" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="evcharge-table" value="evcharge" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="290" y="280" width="100" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="hwschedule-table" value="hwschedule" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="410" y="280" width="100" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="loadshift-table" value="loadshift" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="530" y="280" width="100" height="50" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="discharge2grid-table" value="discharge2grid" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="650" y="280" width="110" height="50" as="geometry" />
+        </mxCell>
+        
+        <!-- Junction Tables -->
+        <mxCell id="junction-tables" value="All scenario2* tables&#xa;(scenario2battery, scenario2panel,&#xa;scenario2inverter, scenario2hwsystem,&#xa;scenario2loadprofile, scenario2evcharge,&#xa;scenario2hwschedule, scenario2loadshift,&#xa;scenario2discharge, etc.)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="800" y="180" width="200" height="150" as="geometry" />
+        </mxCell>
+        
+        <!-- Main connections -->
+        <mxCell id="main-connection" value="" style="endArrow=classic;html=1;rounded=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="simulation-worker" target="scenarios-table">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="500" y="400" as="sourcePoint" />
+            <mxPoint x="550" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="main-dao-label" value="ScenarioDAO&#xa;getAllScenariosThatNeedSimulation()&#xa;getScenarioComponentsForScenarioID()&#xa;getSimulationInputNoSolar()&#xa;getSimulationInputForPanel()&#xa;saveSimulationDataForScenario()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#333333;" vertex="1" connectable="0" parent="main-connection">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint x="-120" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Note about comprehensive access -->
+        <mxCell id="note" value="Note: SimulationWorker accesses ALL&#xa;component and junction tables to build&#xa;complete scenario configurations for&#xa;energy simulation calculations.&#xa;&#xa;Uses direct ToutcRepository access&#xa;for performance in background processing." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontColor=#000000;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="1050" y="50" width="280" height="140" as="geometry" />
+        </mxCell>
+        
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
