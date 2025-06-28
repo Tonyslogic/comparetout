@@ -55,39 +55,52 @@ Based on the @Entity annotations, the application uses 33 database tables:
 
 ### UI Components (via ComparisonUIViewModel)
 
-| Activity/Package | DB Tables | DAO Access | Invocation Path |
-|------------------|-----------|------------|-----------------|
-| **Main Comparison** | `scenarios`, `costings` | ScenarioDAO, CostingDAO | UI → ComparisonUIViewModel → ToutcRepository → DAO |
-| **Price Plan Management** | `PricePlans`, `DayRates` | PricePlanDAO | UI → ComparisonUIViewModel → ToutcRepository → PricePlanDAO |
-| **Scenario Management** | `scenarios`, `scenario2*` (all junction tables) | ScenarioDAO | UI → ComparisonUIViewModel → ToutcRepository → ScenarioDAO |
-| **Battery Package** | `batteries`, `scenario2battery` | ScenarioDAO | UI → ComparisonUIViewModel → ToutcRepository → ScenarioDAO |
-| **Panel Package** | `panels`, `scenario2panel`, `paneldata` | ScenarioDAO | UI → ComparisonUIViewModel → ToutcRepository → ScenarioDAO |
-| **Inverter Package** | `inverters`, `scenario2inverter` | ScenarioDAO | UI → ComparisonUIViewModel → ToutcRepository → ScenarioDAO |
-| **EV Package** | `evcharge`, `evdivert`, `scenario2evcharge`, `scenario2evdivert` | ScenarioDAO | UI → ComparisonUIViewModel → ToutcRepository → ScenarioDAO |
-| **Water Package** | `hwsystem`, `hwschedule`, `hwdivert`, `scenario2hwsystem`, `scenario2hwschedule`, `scenario2hwdivert` | ScenarioDAO | UI → ComparisonUIViewModel → ToutcRepository → ScenarioDAO |
-| **Load Profile Package** | `loadprofile`, `loadprofiledata`, `scenario2loadprofile` | ScenarioDAO | UI → ComparisonUIViewModel → ToutcRepository → ScenarioDAO |
-| **Load Shift Package** | `loadshift`, `scenario2loadshift` | ScenarioDAO | UI → ComparisonUIViewModel → ToutcRepository → ScenarioDAO |
-| **Discharge to Grid** | `discharge2grid`, `scenario2discharge` | ScenarioDAO | UI → ComparisonUIViewModel → ToutcRepository → ScenarioDAO |
+| Activity/Package | DB Tables | DAO Access | DAO Methods Used | Invocation Path |
+|------------------|-----------|------------|------------------|-----------------|
+| **Main Comparison** | `scenarios`, `costings` | ScenarioDAO, CostingDAO | `loadScenarios()`, `loadCostings()`, `getBestCostingForScenario()` | UI → ComparisonUIViewModel → ToutcRepository → DAO |
+| **Price Plan Management** | `PricePlans`, `DayRates` | PricePlanDAO | `loadPricePlans()`, `addNewPricePlanWithDayRates()`, `updatePricePlanWithDayRates()`, `deletePricePlan()`, `updatePricePlanActiveStatus()` | UI → ComparisonUIViewModel → ToutcRepository → PricePlanDAO |
+| **Scenario Management** | `scenarios`, `scenario2*` (all junction tables) | ScenarioDAO | `addNewScenarioWithComponents()`, `updateScenario()`, `deleteScenario()`, `copyScenario()`, `updateScenarioActiveStatus()` | UI → ComparisonUIViewModel → ToutcRepository → ScenarioDAO |
+| **Battery Package** | `batteries`, `scenario2battery` | ScenarioDAO | `saveBatteryForScenario()`, `getBatteriesForScenarioID()`, `copyBatteryFromScenario()`, `linkBatteryFromScenario()`, `deleteBatteryFromScenario()` | UI → ComparisonUIViewModel → ToutcRepository → ScenarioDAO |
+| **Panel Package** | `panels`, `scenario2panel`, `paneldata` | ScenarioDAO | `savePanel()`, `getPanelsForScenarioID()`, `copyPanelFromScenario()`, `linkPanelFromScenario()`, `deletePanelFromScenario()`, `savePanelData()`, `removePanelData()` | UI → ComparisonUIViewModel → ToutcRepository → ScenarioDAO |
+| **Inverter Package** | `inverters`, `scenario2inverter` | ScenarioDAO | `saveInverter()`, `getInvertersForScenarioID()`, `copyInverterFromScenario()`, `linkInverterFromScenario()`, `deleteInverterFromScenario()` | UI → ComparisonUIViewModel → ToutcRepository → ScenarioDAO |
+| **EV Package** | `evcharge`, `evdivert`, `scenario2evcharge`, `scenario2evdivert` | ScenarioDAO | `saveEVChargeForScenario()`, `getEVChargesForScenarioID()`, `saveEVDivertForScenario()`, `getEVDivertForScenarioID()`, `deleteEVChargeFromScenario()`, `deleteEVDivertFromScenario()` | UI → ComparisonUIViewModel → ToutcRepository → ScenarioDAO |
+| **Water Package** | `hwsystem`, `hwschedule`, `hwdivert`, `scenario2hwsystem`, `scenario2hwschedule`, `scenario2hwdivert` | ScenarioDAO | `saveHWSystemForScenario()`, `getHWSystemForScenarioID()`, `saveHWScheduleForScenario()`, `getHWSchedulesForScenarioID()`, `saveHWDivert()`, `getHWDivertForScenarioID()` | UI → ComparisonUIViewModel → ToutcRepository → ScenarioDAO |
+| **Load Profile Package** | `loadprofile`, `loadprofiledata`, `scenario2loadprofile` | ScenarioDAO | `saveLoadProfile()`, `getLoadProfileForScenarioID()`, `copyLoadProfileFromScenario()`, `linkLoadProfileFromScenario()`, `createLoadProfileDataEntries()`, `deleteLoadProfileData()` | UI → ComparisonUIViewModel → ToutcRepository → ScenarioDAO |
+| **Load Shift Package** | `loadshift`, `scenario2loadshift` | ScenarioDAO | `saveLoadShiftForScenario()`, `getLoadShiftsForScenarioID()`, `copyLoadShiftFromScenario()`, `linkLoadShiftFromScenario()`, `deleteLoadShiftFromScenario()` | UI → ComparisonUIViewModel → ToutcRepository → ScenarioDAO |
+| **Discharge to Grid** | `discharge2grid`, `scenario2discharge` | ScenarioDAO | `saveDischargeForScenario()`, `getDischargesForScenarioID()`, `copyDischargeFromScenario()`, `linkDischargeFromScenario()`, `deleteDischargeFromScenario()` | UI → ComparisonUIViewModel → ToutcRepository → ScenarioDAO |
 
 ### Worker Classes (Direct Repository Access)
 
-| Worker Class | DB Tables | DAO Access | Invocation Path |
-|--------------|-----------|------------|-----------------|
-| **CostingWorker** | `scenarios`, `costings`, `scenariosimulationdata`, `PricePlans` | ScenarioDAO, CostingDAO, PricePlanDAO | CostingWorker → ToutcRepository → DAO |
-| **SimulationWorker** | `scenarios`, `scenariosimulationdata`, `batteries`, `panels`, `inverters`, `hwsystem`, `loadprofile`, `evcharge`, `hwschedule`, `loadshift`, `discharge2grid`, all `scenario2*` tables | ScenarioDAO | SimulationWorker → ToutcRepository → ScenarioDAO |
-| **GenerateMissingLoadDataWorker** | `loadprofile`, `loadprofiledata` | ScenarioDAO | Worker → ToutcRepository → ScenarioDAO |
-| **DeleteLoadDataFromProfileWorker** | `loadprofiledata` | ScenarioDAO | Worker → ToutcRepository → ScenarioDAO |
-| **AlphaESS ImportWorker** | `alphaESSRawEnergy`, `alphaESSRawPower` | AlphaEssDAO | Worker → ToutcRepository → AlphaEssDAO |
-| **AlphaESS ExportWorker** | `alphaESSRawEnergy`, `alphaESSRawPower`, `alphaESSTransformedData` | AlphaEssDAO | Worker → ToutcRepository → AlphaEssDAO |
-| **AlphaESS GenerationWorker** | `alphaESSTransformedData`, `loadprofiledata`, `paneldata` | AlphaEssDAO, ScenarioDAO | Worker → ToutcRepository → DAO |
-| **AlphaESS CatchUpWorker** | `alphaESSRawEnergy`, `alphaESSRawPower` | AlphaEssDAO | Worker → ToutcRepository → AlphaEssDAO |
-| **AlphaESS DailyWorker** | `alphaESSRawEnergy`, `alphaESSRawPower` | AlphaEssDAO | Worker → ToutcRepository → AlphaEssDAO |
-| **ESBN ImportWorker** | `loadprofiledata` | ScenarioDAO | Worker → ToutcRepository → ScenarioDAO |
-| **ESBN CatchUpWorker** | `loadprofiledata` | ScenarioDAO | Worker → ToutcRepository → ScenarioDAO |
-| **ESBN GenerationWorker** | `loadprofiledata`, `paneldata` | ScenarioDAO | Worker → ToutcRepository → ScenarioDAO |
-| **HomeAssistant HACatchupWorker** | `loadprofiledata`, `paneldata` | ScenarioDAO | Worker → ToutcRepository → ScenarioDAO |
-| **HomeAssistant GenerationWorker** | `loadprofiledata`, `paneldata` | ScenarioDAO | Worker → ToutcRepository → ScenarioDAO |
-| **AbstractGenerationWorker** | `loadprofiledata`, `paneldata` | ScenarioDAO | Worker → ToutcRepository → ScenarioDAO |
+| Worker Class | DB Tables | DAO Access | DAO Methods Used | Invocation Path |
+|--------------|-----------|------------|------------------|-----------------|
+| **CostingWorker** | `scenarios`, `costings`, `scenariosimulationdata`, `PricePlans` | ScenarioDAO, CostingDAO, PricePlanDAO | `getScenarioForID()`, `getSimulationDataForScenario()`, `saveCosting()`, `loadPricePlansNow()`, `getAllDayRatesForPricePlanID()` | CostingWorker → ToutcRepository → DAO |
+| **SimulationWorker** | `scenarios`, `scenariosimulationdata`, `batteries`, `panels`, `inverters`, `hwsystem`, `loadprofile`, `evcharge`, `hwschedule`, `loadshift`, `discharge2grid`, all `scenario2*` tables | ScenarioDAO | `getAllScenariosThatNeedSimulation()`, `getScenarioComponentsForScenarioID()`, `getSimulationInputNoSolar()`, `getSimulationInputForPanel()`, `saveSimulationDataForScenario()` | SimulationWorker → ToutcRepository → ScenarioDAO |
+| **GenerateMissingLoadDataWorker** | `loadprofile`, `loadprofiledata` | ScenarioDAO | `checkForMissingLoadProfileData()`, `createLoadProfileDataEntries()` | Worker → ToutcRepository → ScenarioDAO |
+| **DeleteLoadDataFromProfileWorker** | `loadprofiledata` | ScenarioDAO | `deleteLoadProfileData()` | Worker → ToutcRepository → ScenarioDAO |
+| **AlphaESS ImportWorker** | `alphaESSRawEnergy`, `alphaESSRawPower` | AlphaEssDAO | `addRawEnergy()`, `addRawPower()`, `checkSysSnForDataOnDate()` | Worker → ToutcRepository → AlphaEssDAO |
+| **AlphaESS ExportWorker** | `alphaESSRawEnergy`, `alphaESSRawPower`, `alphaESSTransformedData` | AlphaEssDAO | `getAlphaESSEnergyForSharing()`, `getAlphaESSPowerForSharing()`, `addTransformedData()` | Worker → ToutcRepository → AlphaEssDAO |
+| **AlphaESS GenerationWorker** | `alphaESSTransformedData`, `loadprofiledata`, `paneldata`, `scenarios`, `inverters`, `panels`, `batteries`, `loadprofile` | AlphaEssDAO, ScenarioDAO | `getAlphaESSTransformedData()`, `addNewScenarioWithComponents()`, `createLoadProfileDataEntries()`, `savePanelData()` | Worker → ToutcRepository → DAO |
+| **AlphaESS CatchUpWorker** | `alphaESSRawEnergy`, `alphaESSRawPower` | AlphaEssDAO | `addRawEnergy()`, `addRawPower()`, `getLatestDateForSn()` | Worker → ToutcRepository → AlphaEssDAO |
+| **AlphaESS DailyWorker** | `alphaESSRawEnergy`, `alphaESSRawPower` | AlphaEssDAO | `addRawEnergy()`, `addRawPower()` | Worker → ToutcRepository → AlphaEssDAO |
+| **ESBN ImportWorker** | `loadprofiledata`, `scenarios`, `loadprofile` | ScenarioDAO | `createLoadProfileDataEntries()`, `addNewScenarioWithComponents()`, `saveLoadProfile()` | Worker → ToutcRepository → ScenarioDAO |
+| **ESBN CatchUpWorker** | `loadprofiledata` | ScenarioDAO | `createLoadProfileDataEntries()`, `getLatestDateForSn()` | Worker → ToutcRepository → ScenarioDAO |
+| **ESBN GenerationWorker** | `loadprofiledata`, `paneldata`, `scenarios`, `inverters`, `panels`, `batteries`, `loadprofile` | ScenarioDAO | `addNewScenarioWithComponents()`, `createLoadProfileDataEntries()`, `savePanelData()` | Worker → ToutcRepository → ScenarioDAO |
+| **HomeAssistant HACatchupWorker** | `loadprofiledata`, `paneldata`, `alphaESSTransformedData` | ScenarioDAO, AlphaEssDAO | `createLoadProfileDataEntries()`, `savePanelData()`, `addTransformedData()` | Worker → ToutcRepository → DAO |
+| **HomeAssistant GenerationWorker** | `loadprofiledata`, `paneldata`, `scenarios`, `inverters`, `panels`, `batteries`, `loadprofile`, `alphaESSTransformedData` | ScenarioDAO, AlphaEssDAO | `addNewScenarioWithComponents()`, `createLoadProfileDataEntries()`, `savePanelData()`, `getAlphaESSTransformedData()` | Worker → ToutcRepository → DAO |
+
+### Abstract Classes (Base Classes for Workers)
+
+| Abstract Class | DB Tables | DAO Access | DAO Methods Used | Invocation Path |
+|----------------|-----------|------------|------------------|-----------------|
+| **AbstractGenerationWorker** | `scenarios`, `loadprofile`, `loadprofiledata`, `inverters`, `panels`, `paneldata`, `batteries`, `hwsystem`, `evcharge`, `hwschedule`, `loadshift`, `discharge2grid`, all `scenario2*` tables, `alphaESSTransformedData` | ScenarioDAO, AlphaEssDAO | `getScenarios()`, `insertScenarioAndReturnID()`, `saveLoadProfileAndReturnID()`, `createLoadProfileDataEntries()`, `saveInverter()`, `savePanel()`, `savePanelData()`, `getAlphaESSTransformedData()` | AbstractGenerationWorker → ToutcRepository → DAO |
+
+### Data Import Systems
+
+| Import System | DB Tables | DAO Access | DAO Methods Used | Invocation Path |
+|---------------|-----------|------------|------------------|-----------------|
+| **AlphaESS Import System** | `alphaESSRawEnergy`, `alphaESSRawPower`, `alphaESSTransformedData` | AlphaEssDAO | `addRawEnergy()`, `addRawPower()`, `addTransformedData()`, `checkSysSnForDataOnDate()`, `getExportDatesForSN()`, `clearAlphaESSDataForSN()` | Import System → ToutcRepository → AlphaEssDAO |
+| **ESBN Import System** | `loadprofiledata`, `scenarios`, `loadprofile` | ScenarioDAO | `createLoadProfileDataEntries()`, `addNewScenarioWithComponents()`, `saveLoadProfile()` | Import System → ToutcRepository → ScenarioDAO |
+| **HomeAssistant Import System** | `loadprofiledata`, `paneldata`, `alphaESSTransformedData` | ScenarioDAO, AlphaEssDAO | `createLoadProfileDataEntries()`, `savePanelData()`, `addTransformedData()`, `getAlphaESSTransformedData()` | Import System → ToutcRepository → DAO |
 
 ## Database Table Relationships and Architecture
 
@@ -138,11 +151,32 @@ All many-to-many relationships between scenarios and components:
 
 ### Data Access Patterns
 
-**DAO Distribution:**
-- **ScenarioDAO**: Handles 25+ tables (scenarios, all components, junction tables, time-series data)
-- **PricePlanDAO**: Manages `PricePlans` and `DayRates` tables
-- **CostingDAO**: Manages `costings` table for financial calculations
-- **AlphaEssDAO**: Manages all AlphaESS import tables (`alphaESSRawEnergy`, `alphaESSRawPower`, `alphaESSTransformedData`)
+**DAO Distribution and Key Methods:**
+
+- **ScenarioDAO** (Main DAO - 170+ methods): Handles 25+ tables including scenarios, all components, junction tables, time-series data
+  - Component Management: `addNewScenario()`, `addNewInverter()`, `addNewBattery()`, `addNewPanels()`, `addNewHWSystem()`, `addNewLoadProfile()`, etc.
+  - Junction Management: `addNewScenario2Inverter()`, `addNewScenario2Battery()`, `addNewScenario2Panel()`, etc.
+  - Complex Operations: `addNewScenarioWithComponents()`, `deleteScenario()`, `copyScenario()`
+  - Data Retrieval: `getInvertersForScenarioID()`, `getBatteriesForScenarioID()`, `getPanelsForScenarioID()`, etc.
+  - Time-Series: `saveSimulationDataForScenario()`, `getSimulationDataForScenario()`, `createLoadProfileDataEntries()`
+  - Visualization: `getBarData()`, `getLineData()`, `getMonthlyBarData()`, `getYearBarData()`
+
+- **PricePlanDAO** (30+ methods): Manages `PricePlans` and `DayRates` tables
+  - CRUD Operations: `addNewPricePlan()`, `addNewDayRate()`, `updatePricePlan()`, `deletePricePlan()`
+  - Complex Operations: `addNewPricePlanWithDayRates()`, `updatePricePlanWithDayRates()`
+  - Queries: `loadPricePlans()`, `getAllDayRatesForPricePlanID()`, `getPricePlanID()`
+
+- **CostingDAO** (10+ methods): Manages `costings` table for financial calculations
+  - Core Operations: `saveCosting()`, `loadCostings()`, `getBestCostingForScenario()`
+  - Maintenance: `deleteRelatedCostings()`, `pruneCostings()`, `costingExists()`
+  - Export: `getAllComparisonsNow()`
+
+- **AlphaEssDAO** (50+ methods): Manages all AlphaESS import tables with complex time-based aggregations
+  - Data Import: `addRawEnergy()`, `addRawPower()`, `addTransformedData()`
+  - Time Aggregations: `sumHour()`, `sumDOY()`, `sumDOW()`, `sumMonth()`, `sumYear()`
+  - Averages: `avgHour()`, `avgDOY()`, `avgDOW()`, `avgMonth()`, `avgYear()`
+  - Analysis: `getKPIs()`, `getKeyStats()`, `getBaseLoad()`, `getLosses()`
+  - System Management: `clearAlphaESSDataForSN()`, `checkSysSnForDataOnDate()`
 
 **Worker Class Repository Usage:**
 Worker classes bypass the ViewModel layer and directly instantiate ToutcRepository:
