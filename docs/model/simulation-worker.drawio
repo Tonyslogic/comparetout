@@ -1,83 +1,315 @@
 <mxfile host="app.diagrams.net" modified="2024-01-01T00:00:00.000Z" agent="CompareToUT Documentation" etag="1" version="24.0.0" type="device">
   <diagram name="SimulationWorker Dependencies" id="simulation-worker">
-    <mxGraphModel dx="1600" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1200" math="0" shadow="0">
+    <mxGraphModel dx="2200" dy="1300" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="2400" pageHeight="1600" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         
         <!-- SimulationWorker -->
         <mxCell id="simulation-worker" value="SimulationWorker" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFE6CC;strokeColor=#D79B00;fontColor=#000000;fontStyle=1;" vertex="1" parent="1">
-          <mxGeometry x="300" y="50" width="200" height="60" as="geometry" />
+          <mxGeometry x="1000" y="50" width="200" height="60" as="geometry" />
         </mxCell>
         
         <!-- Core Tables Row 1 -->
         <mxCell id="scenarios-table" value="scenarios" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
-          <mxGeometry x="50" y="180" width="100" height="50" as="geometry" />
+          <mxGeometry x="50" y="200" width="120" height="60" as="geometry" />
         </mxCell>
         
         <mxCell id="scenariosimulationdata-table" value="scenariosimulationdata" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
-          <mxGeometry x="170" y="180" width="140" height="50" as="geometry" />
+          <mxGeometry x="200" y="200" width="140" height="60" as="geometry" />
         </mxCell>
         
-        <mxCell id="batteries-table" value="batteries" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
-          <mxGeometry x="330" y="180" width="100" height="50" as="geometry" />
+        <mxCell id="loadprofiledata-table" value="loadprofiledata" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="370" y="200" width="120" height="60" as="geometry" />
         </mxCell>
         
-        <mxCell id="panels-table" value="panels" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
-          <mxGeometry x="450" y="180" width="100" height="50" as="geometry" />
-        </mxCell>
-        
-        <mxCell id="inverters-table" value="inverters" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
-          <mxGeometry x="570" y="180" width="100" height="50" as="geometry" />
+        <mxCell id="paneldata-table" value="paneldata" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="520" y="200" width="120" height="60" as="geometry" />
         </mxCell>
         
         <!-- Component Tables Row 2 -->
-        <mxCell id="hwsystem-table" value="hwsystem" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
-          <mxGeometry x="50" y="280" width="100" height="50" as="geometry" />
+        <mxCell id="batteries-table" value="batteries" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="50" y="320" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="panels-table" value="panels" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="200" y="320" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="inverters-table" value="inverters" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="350" y="320" width="120" height="60" as="geometry" />
         </mxCell>
         
         <mxCell id="loadprofile-table" value="loadprofile" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
-          <mxGeometry x="170" y="280" width="100" height="50" as="geometry" />
+          <mxGeometry x="500" y="320" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- System Tables Row 3 -->
+        <mxCell id="hwsystem-table" value="hwsystem" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="50" y="440" width="120" height="60" as="geometry" />
         </mxCell>
         
         <mxCell id="evcharge-table" value="evcharge" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
-          <mxGeometry x="290" y="280" width="100" height="50" as="geometry" />
+          <mxGeometry x="200" y="440" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="evdivert-table" value="evdivert" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="350" y="440" width="120" height="60" as="geometry" />
         </mxCell>
         
         <mxCell id="hwschedule-table" value="hwschedule" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
-          <mxGeometry x="410" y="280" width="100" height="50" as="geometry" />
+          <mxGeometry x="500" y="440" width="120" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Additional Tables Row 4 -->
+        <mxCell id="hwdivert-table" value="hwdivert" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="50" y="560" width="120" height="60" as="geometry" />
         </mxCell>
         
         <mxCell id="loadshift-table" value="loadshift" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
-          <mxGeometry x="530" y="280" width="100" height="50" as="geometry" />
+          <mxGeometry x="200" y="560" width="120" height="60" as="geometry" />
         </mxCell>
         
         <mxCell id="discharge2grid-table" value="discharge2grid" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
-          <mxGeometry x="650" y="280" width="110" height="50" as="geometry" />
+          <mxGeometry x="350" y="560" width="120" height="60" as="geometry" />
         </mxCell>
         
         <!-- Junction Tables -->
-        <mxCell id="junction-tables" value="All scenario2* tables&#xa;(scenario2battery, scenario2panel,&#xa;scenario2inverter, scenario2hwsystem,&#xa;scenario2loadprofile, scenario2evcharge,&#xa;scenario2hwschedule, scenario2loadshift,&#xa;scenario2discharge, etc.)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" vertex="1" parent="1">
-          <mxGeometry x="800" y="180" width="200" height="150" as="geometry" />
+        <mxCell id="scenario2loadprofile-table" value="scenario2loadprofile" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="700" y="200" width="140" height="60" as="geometry" />
         </mxCell>
         
-        <!-- Main connections -->
-        <mxCell id="main-connection" value="" style="endArrow=classic;html=1;rounded=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="simulation-worker" target="scenarios-table">
+        <mxCell id="scenario2panel-table" value="scenario2panel" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="870" y="200" width="140" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="scenario2battery-table" value="scenario2battery" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="700" y="290" width="140" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="scenario2inverter-table" value="scenario2inverter" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="870" y="290" width="140" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="scenario2hwsystem-table" value="scenario2hwsystem" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="700" y="380" width="140" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="scenario2evcharge-table" value="scenario2evcharge" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="870" y="380" width="140" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="scenario2evdivert-table" value="scenario2evdivert" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="700" y="470" width="140" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="scenario2hwschedule-table" value="scenario2hwschedule" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="870" y="470" width="140" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="scenario2hwdivert-table" value="scenario2hwdivert" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="700" y="560" width="140" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="scenario2loadshift-table" value="scenario2loadshift" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="870" y="560" width="140" height="60" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="scenario2discharge-table" value="scenario2discharge" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#000000;" vertex="1" parent="1">
+          <mxGeometry x="700" y="650" width="140" height="60" as="geometry" />
+        </mxCell>
+        
+        <!-- Connections -->
+        <mxCell id="conn1" value="" style="endArrow=classic;html=1;rounded=1;exitX=0.15;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="simulation-worker" target="scenarios-table">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="500" y="400" as="sourcePoint" />
-            <mxPoint x="550" y="350" as="targetPoint" />
+            <mxPoint x="1200" y="400" as="sourcePoint" />
+            <mxPoint x="1250" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dao1-label" value="ScenarioDAO&#xa;getAllScenariosThatNeedSimulation()&#xa;getScenarioForID()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="conn1">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint x="-60" y="10" as="offset" />
           </mxGeometry>
         </mxCell>
         
-        <mxCell id="main-dao-label" value="ScenarioDAO&#xa;getAllScenariosThatNeedSimulation()&#xa;getScenarioComponentsForScenarioID()&#xa;getSimulationInputNoSolar()&#xa;getSimulationInputForPanel()&#xa;saveSimulationDataForScenario()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="main-connection">
+        <mxCell id="conn2" value="" style="endArrow=classic;html=1;rounded=1;exitX=0.25;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="simulation-worker" target="scenariosimulationdata-table">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1200" y="400" as="sourcePoint" />
+            <mxPoint x="1250" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dao2-label" value="ScenarioDAO&#xa;saveSimulationDataForScenario()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="conn2">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint x="-20" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="conn3" value="" style="endArrow=classic;html=1;rounded=1;exitX=0.35;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="simulation-worker" target="loadprofiledata-table">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1200" y="400" as="sourcePoint" />
+            <mxPoint x="1250" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dao3-label" value="ScenarioDAO&#xa;getSimulationInputNoSolar()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="conn3">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint x="20" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="conn4" value="" style="endArrow=classic;html=1;rounded=1;exitX=0.45;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="simulation-worker" target="paneldata-table">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1200" y="400" as="sourcePoint" />
+            <mxPoint x="1250" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dao4-label" value="ScenarioDAO&#xa;getSimulationInputForPanel()&#xa;checkForMissingPanelData()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="conn4">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint x="40" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Component connections via getScenarioComponentsForScenarioID -->
+        <mxCell id="comp-note" value="All component and junction table access&#xa;via getScenarioComponentsForScenarioID()&#xa;which calls individual getter methods:" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontColor=#000000;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="200" width="280" height="80" as="geometry" />
+        </mxCell>
+        
+        <mxCell id="comp-conn1" value="" style="endArrow=classic;html=1;rounded=1;exitX=0.55;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="simulation-worker" target="batteries-table">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1200" y="400" as="sourcePoint" />
+            <mxPoint x="1250" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="comp-dao1-label" value="ScenarioDAO&#xa;getBatteriesForScenarioID()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="comp-conn1">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint x="-80" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="comp-conn2" value="" style="endArrow=classic;html=1;rounded=1;exitX=0.6;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="simulation-worker" target="panels-table">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1200" y="400" as="sourcePoint" />
+            <mxPoint x="1250" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="comp-dao2-label" value="ScenarioDAO&#xa;getPanelsForScenarioID()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="comp-conn2">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint x="-50" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="comp-conn3" value="" style="endArrow=classic;html=1;rounded=1;exitX=0.65;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="simulation-worker" target="inverters-table">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1200" y="400" as="sourcePoint" />
+            <mxPoint x="1250" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="comp-dao3-label" value="ScenarioDAO&#xa;getInvertersForScenarioID()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="comp-conn3">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint x="-20" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="comp-conn4" value="" style="endArrow=classic;html=1;rounded=1;exitX=0.7;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="simulation-worker" target="loadprofile-table">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1200" y="400" as="sourcePoint" />
+            <mxPoint x="1250" y="350" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="comp-dao4-label" value="ScenarioDAO&#xa;getLoadProfileForScenarioID()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="comp-conn4">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint x="10" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- System component connections -->
+        <mxCell id="sys-conn1" value="" style="endArrow=classic;html=1;rounded=1;exitX=0.75;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="simulation-worker" target="hwsystem-table">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1200" y="500" as="sourcePoint" />
+            <mxPoint x="1250" y="450" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sys-dao1-label" value="ScenarioDAO&#xa;getHWSystemForScenarioID()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="sys-conn1">
           <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
             <mxPoint x="-120" y="10" as="offset" />
           </mxGeometry>
         </mxCell>
         
-        <!-- Note about comprehensive access -->
-        <mxCell id="note" value="Note: SimulationWorker accesses ALL&#xa;component and junction tables to build&#xa;complete scenario configurations for&#xa;energy simulation calculations.&#xa;&#xa;Uses direct ToutcRepository access&#xa;for performance in background processing." style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontColor=#000000;fontStyle=2;" vertex="1" parent="1">
-          <mxGeometry x="1050" y="50" width="280" height="140" as="geometry" />
+        <mxCell id="sys-conn2" value="" style="endArrow=classic;html=1;rounded=1;exitX=0.8;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="simulation-worker" target="evcharge-table">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1200" y="500" as="sourcePoint" />
+            <mxPoint x="1250" y="450" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sys-dao2-label" value="ScenarioDAO&#xa;getEVChargesForScenarioID()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="sys-conn2">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint x="-90" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="sys-conn3" value="" style="endArrow=classic;html=1;rounded=1;exitX=0.85;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="simulation-worker" target="evdivert-table">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1200" y="500" as="sourcePoint" />
+            <mxPoint x="1250" y="450" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sys-dao3-label" value="ScenarioDAO&#xa;getEVDivertForScenarioID()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="sys-conn3">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint x="-60" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="sys-conn4" value="" style="endArrow=classic;html=1;rounded=1;exitX=0.9;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="simulation-worker" target="hwschedule-table">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1200" y="500" as="sourcePoint" />
+            <mxPoint x="1250" y="450" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="sys-dao4-label" value="ScenarioDAO&#xa;getHWSchedulesForScenarioID()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="sys-conn4">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint x="-30" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Additional system connections -->
+        <mxCell id="add-conn1" value="" style="endArrow=classic;html=1;rounded=1;exitX=0.95;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="simulation-worker" target="hwdivert-table">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1200" y="600" as="sourcePoint" />
+            <mxPoint x="1250" y="550" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="add-dao1-label" value="ScenarioDAO&#xa;getHWDivertForScenarioID()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="add-conn1">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint x="-150" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="add-conn2" value="" style="endArrow=classic;html=1;rounded=1;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="simulation-worker" target="loadshift-table">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1200" y="600" as="sourcePoint" />
+            <mxPoint x="1250" y="550" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="add-dao2-label" value="ScenarioDAO&#xa;getLoadShiftsForScenarioID()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="add-conn2">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint x="-120" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <mxCell id="add-conn3" value="" style="endArrow=classic;html=1;rounded=1;exitX=1;exitY=0.8;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="simulation-worker" target="discharge2grid-table">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="1200" y="600" as="sourcePoint" />
+            <mxPoint x="1250" y="550" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="add-dao3-label" value="ScenarioDAO&#xa;getDischargesForScenarioID()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="add-conn3">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint x="-90" y="10" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        
+        <!-- Junction table note -->
+        <mxCell id="junction-note" value="All junction tables are accessed&#xa;implicitly through the component&#xa;getter methods in&#xa;getScenarioComponentsForScenarioID()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontColor=#000000;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="1300" y="450" width="280" height="100" as="geometry" />
         </mxCell>
         
       </root>
