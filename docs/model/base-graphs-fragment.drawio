@@ -42,14 +42,3 @@
     </mxGraphModel>
   </diagram>
 </mxfile>
-        </mxCell>
-        <mxCell id="dao3-label" value="ScenarioDAO&#xa;getSumHour(), getAvgHour()&#xa;getSumDOY(), getAvgDOY()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;labelBackgroundColor=#FFFFFF;" vertex="1" connectable="0" parent="connection3">
-          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
-            <mxPoint as="offset" />
-          </mxGeometry>
-        </mxCell>
-        
-      </root>
-    </mxGraphModel>
-  </diagram>
-</mxfile>
