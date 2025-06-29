@@ -1,501 +1,421 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<mxfile host="app.diagrams.net" modified="2024-06-28T09:11:00.000Z" agent="5.0" etag="generated" version="24.7.7" type="device">
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/27.0.9 Chrome/134.0.6998.205 Electron/35.4.0 Safari/537.36" version="27.0.9">
   <diagram name="ToutcDB Schema" id="database-schema">
-    <mxGraphModel dx="2074" dy="1196" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="2336" math="0" shadow="0">
+    <mxGraphModel dx="2377" dy="1402" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1654" pageHeight="1169" background="#ffffff" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
-        
-        <!-- Central Scenario Entity -->
-        <mxCell id="scenario" value="&lt;b&gt;Scenario&lt;/b&gt;&lt;hr&gt;scenarioIndex (PK)&lt;br&gt;scenarioName&lt;br&gt;hasInverters&lt;br&gt;hasBatteries&lt;br&gt;hasPanels&lt;br&gt;hasIRData&lt;br&gt;hasHWSystem&lt;br&gt;hasLoadProfiles&lt;br&gt;hasLoadShifts&lt;br&gt;hasDischarges&lt;br&gt;hasEVCharges&lt;br&gt;hasHWSchedules&lt;br&gt;hasHWDiverts&lt;br&gt;hasEVDiverts&lt;br&gt;active" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#9673a6;strokeColor=#333333;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="750" y="600" width="200" height="240" as="geometry" />
+        <mxCell id="scenario" value="&lt;b&gt;Scenario&lt;/b&gt;&lt;hr&gt;scenarioIndex (PK)&lt;br&gt;scenarioName&lt;br&gt;hasInverters&lt;br&gt;hasBatteries&lt;br&gt;hasPanels&lt;br&gt;hasIRData&lt;br&gt;hasHWSystem&lt;br&gt;hasLoadProfiles&lt;br&gt;hasLoadShifts&lt;br&gt;hasDischarges&lt;br&gt;hasEVCharges&lt;br&gt;hasHWSchedules&lt;br&gt;hasHWDiverts&lt;br&gt;hasEVDiverts&lt;br&gt;active" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#9673a6;strokeColor=#333333;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="1070" y="820" width="200" height="240" as="geometry" />
         </mxCell>
-        
-        <!-- Price Plan Entities -->
-        <mxCell id="priceplan" value="&lt;b&gt;PricePlan&lt;/b&gt;&lt;hr&gt;pricePlanIndex (PK)&lt;br&gt;supplier&lt;br&gt;planName&lt;br&gt;feed&lt;br&gt;standingCharges&lt;br&gt;signUpBonus&lt;br&gt;deemedExport&lt;br&gt;restrictions&lt;br&gt;lastUpdate&lt;br&gt;reference&lt;br&gt;active" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#82b366;strokeColor=#333333;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="100" y="300" width="180" height="180" as="geometry" />
+        <mxCell id="priceplan" value="&lt;b&gt;PricePlan&lt;/b&gt;&lt;hr&gt;pricePlanIndex (PK)&lt;br&gt;supplier&lt;br&gt;planName&lt;br&gt;feed&lt;br&gt;standingCharges&lt;br&gt;signUpBonus&lt;br&gt;deemedExport&lt;br&gt;restrictions&lt;br&gt;lastUpdate&lt;br&gt;reference&lt;br&gt;active" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#82b366;strokeColor=#333333;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="385" y="912" width="180" height="180" as="geometry" />
         </mxCell>
-        
-        <mxCell id="dayrate" value="&lt;b&gt;DayRate&lt;/b&gt;&lt;hr&gt;dayRateIndex (PK)&lt;br&gt;pricePlanId (FK)&lt;br&gt;days&lt;br&gt;hours&lt;br&gt;minuteRateRange&lt;br&gt;startDate&lt;br&gt;endDate" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#82b366;strokeColor=#333333;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="100" y="520" width="180" height="120" as="geometry" />
+        <mxCell id="dayrate" value="&lt;b&gt;DayRate&lt;/b&gt;&lt;hr&gt;dayRateIndex (PK)&lt;br&gt;pricePlanId (FK)&lt;br&gt;days&lt;br&gt;hours&lt;br&gt;minuteRateRange&lt;br&gt;startDate&lt;br&gt;endDate" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#82b366;strokeColor=#333333;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="385" y="1132" width="180" height="120" as="geometry" />
         </mxCell>
-        
-        <!-- Component Entities -->
-        <mxCell id="inverter" value="&lt;b&gt;Inverter&lt;/b&gt;&lt;hr&gt;inverterIndex (PK)&lt;br&gt;inverterName&lt;br&gt;minExcess&lt;br&gt;maxInverterLoad&lt;br&gt;mpptCount&lt;br&gt;ac2dcLoss&lt;br&gt;dc2acLoss&lt;br&gt;dc2dcLoss" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#6c8ebf;strokeColor=#333333;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="350" y="100" width="160" height="140" as="geometry" />
+        <mxCell id="inverter" value="&lt;b&gt;Inverter&lt;/b&gt;&lt;hr&gt;inverterIndex (PK)&lt;br&gt;inverterName&lt;br&gt;minExcess&lt;br&gt;maxInverterLoad&lt;br&gt;mpptCount&lt;br&gt;ac2dcLoss&lt;br&gt;dc2acLoss&lt;br&gt;dc2dcLoss" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#6c8ebf;strokeColor=#333333;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="960" y="414" width="160" height="140" as="geometry" />
         </mxCell>
-        
-        <mxCell id="battery" value="&lt;b&gt;Battery&lt;/b&gt;&lt;hr&gt;batteryIndex (PK)&lt;br&gt;batteryName&lt;br&gt;batterySize&lt;br&gt;dischargeStop&lt;br&gt;chargeModel&lt;br&gt;maxDischarge&lt;br&gt;maxCharge&lt;br&gt;storageLoss&lt;br&gt;inverter" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#6c8ebf;strokeColor=#333333;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="550" y="100" width="160" height="160" as="geometry" />
+        <mxCell id="battery" value="&lt;b&gt;Battery&lt;/b&gt;&lt;hr&gt;batteryIndex (PK)&lt;br&gt;batteryName&lt;br&gt;batterySize&lt;br&gt;dischargeStop&lt;br&gt;chargeModel&lt;br&gt;maxDischarge&lt;br&gt;maxCharge&lt;br&gt;storageLoss&lt;br&gt;inverter" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#6c8ebf;strokeColor=#333333;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="1161" y="414" width="160" height="160" as="geometry" />
         </mxCell>
-        
-        <mxCell id="panel" value="&lt;b&gt;Panel&lt;/b&gt;&lt;hr&gt;panelIndex (PK)&lt;br&gt;panelName&lt;br&gt;connectionMode&lt;br&gt;panelCount&lt;br&gt;panelkWp&lt;br&gt;azimuth&lt;br&gt;slope&lt;br&gt;latitude&lt;br&gt;longitude" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#6c8ebf;strokeColor=#333333;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="750" y="100" width="160" height="160" as="geometry" />
+        <mxCell id="panel" value="&lt;b&gt;Panel&lt;/b&gt;&lt;hr&gt;panelIndex (PK)&lt;br&gt;panelName&lt;br&gt;connectionMode&lt;br&gt;panelCount&lt;br&gt;panelkWp&lt;br&gt;azimuth&lt;br&gt;slope&lt;br&gt;latitude&lt;br&gt;longitude" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#6c8ebf;strokeColor=#333333;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="1361" y="414" width="160" height="160" as="geometry" />
         </mxCell>
-        
-        <mxCell id="loadprofile" value="&lt;b&gt;LoadProfile&lt;/b&gt;&lt;hr&gt;loadProfileIndex (PK)&lt;br&gt;annualUsage&lt;br&gt;hourlyBaseLoad&lt;br&gt;gridImportMax&lt;br&gt;gridExportMax&lt;br&gt;distributionSource&lt;br&gt;hourlyDist&lt;br&gt;dowDist&lt;br&gt;monthlyDist" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#6c8ebf;strokeColor=#333333;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="950" y="100" width="160" height="160" as="geometry" />
+        <mxCell id="loadprofile" value="&lt;b&gt;LoadProfile&lt;/b&gt;&lt;hr&gt;loadProfileIndex (PK)&lt;br&gt;annualUsage&lt;br&gt;hourlyBaseLoad&lt;br&gt;gridImportMax&lt;br&gt;gridExportMax&lt;br&gt;distributionSource&lt;br&gt;hourlyDist&lt;br&gt;dowDist&lt;br&gt;monthlyDist" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#6c8ebf;strokeColor=#333333;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="1561" y="414" width="160" height="160" as="geometry" />
         </mxCell>
-        
-        <mxCell id="hwsystem" value="&lt;b&gt;HWSystem&lt;/b&gt;&lt;hr&gt;hwSystemIndex (PK)&lt;br&gt;hwCapacity&lt;br&gt;hwUsage&lt;br&gt;hwIntake&lt;br&gt;hwTarget&lt;br&gt;hwLoss&lt;br&gt;hwRate&lt;br&gt;hwUse" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#6c8ebf;strokeColor=#333333;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="1150" y="100" width="160" height="140" as="geometry" />
+        <mxCell id="hwsystem" value="&lt;b&gt;HWSystem&lt;/b&gt;&lt;hr&gt;hwSystemIndex (PK)&lt;br&gt;hwCapacity&lt;br&gt;hwUsage&lt;br&gt;hwIntake&lt;br&gt;hwTarget&lt;br&gt;hwLoss&lt;br&gt;hwRate&lt;br&gt;hwUse" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#6c8ebf;strokeColor=#333333;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="1761" y="414" width="160" height="140" as="geometry" />
         </mxCell>
-        
-        <mxCell id="loadshift" value="&lt;b&gt;LoadShift&lt;/b&gt;&lt;hr&gt;loadShiftIndex (PK)&lt;br&gt;name&lt;br&gt;begin&lt;br&gt;end&lt;br&gt;stopAt&lt;br&gt;months&lt;br&gt;days&lt;br&gt;inverter" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#6c8ebf;strokeColor=#333333;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="350" y="300" width="160" height="140" as="geometry" />
+        <mxCell id="loadshift" value="&lt;b&gt;LoadShift&lt;/b&gt;&lt;hr&gt;loadShiftIndex (PK)&lt;br&gt;name&lt;br&gt;begin&lt;br&gt;end&lt;br&gt;stopAt&lt;br&gt;months&lt;br&gt;days&lt;br&gt;inverter" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#6c8ebf;strokeColor=#333333;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="764" y="414" width="160" height="140" as="geometry" />
         </mxCell>
-        
-        <mxCell id="discharge2grid" value="&lt;b&gt;DischargeToGrid&lt;/b&gt;&lt;hr&gt;d2gIndex (PK)&lt;br&gt;name&lt;br&gt;begin&lt;br&gt;end&lt;br&gt;stopAt&lt;br&gt;rate&lt;br&gt;months&lt;br&gt;days&lt;br&gt;inverter" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#6c8ebf;strokeColor=#333333;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="550" y="300" width="160" height="160" as="geometry" />
+        <mxCell id="discharge2grid" value="&lt;b&gt;DischargeToGrid&lt;/b&gt;&lt;hr&gt;d2gIndex (PK)&lt;br&gt;name&lt;br&gt;begin&lt;br&gt;end&lt;br&gt;stopAt&lt;br&gt;rate&lt;br&gt;months&lt;br&gt;days&lt;br&gt;inverter" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#6c8ebf;strokeColor=#333333;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="570" y="414" width="160" height="160" as="geometry" />
         </mxCell>
-        
-        <mxCell id="evcharge" value="&lt;b&gt;EVCharge&lt;/b&gt;&lt;hr&gt;evChargeIndex (PK)&lt;br&gt;name&lt;br&gt;begin&lt;br&gt;end&lt;br&gt;draw&lt;br&gt;months&lt;br&gt;days" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#6c8ebf;strokeColor=#333333;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="950" y="300" width="160" height="120" as="geometry" />
+        <mxCell id="evcharge" value="&lt;b&gt;EVCharge&lt;/b&gt;&lt;hr&gt;evChargeIndex (PK)&lt;br&gt;name&lt;br&gt;begin&lt;br&gt;end&lt;br&gt;draw&lt;br&gt;months&lt;br&gt;days" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#6c8ebf;strokeColor=#333333;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="1761" y="1279" width="160" height="120" as="geometry" />
         </mxCell>
-        
-        <mxCell id="hwschedule" value="&lt;b&gt;HWSchedule&lt;/b&gt;&lt;hr&gt;hwScheduleIndex (PK)&lt;br&gt;name&lt;br&gt;begin&lt;br&gt;end&lt;br&gt;months&lt;br&gt;days" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#6c8ebf;strokeColor=#333333;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="1150" y="300" width="160" height="120" as="geometry" />
+        <mxCell id="hwschedule" value="&lt;b&gt;HWSchedule&lt;/b&gt;&lt;hr&gt;hwScheduleIndex (PK)&lt;br&gt;name&lt;br&gt;begin&lt;br&gt;end&lt;br&gt;months&lt;br&gt;days" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#6c8ebf;strokeColor=#333333;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="1761" y="1129" width="160" height="120" as="geometry" />
         </mxCell>
-        
-        <mxCell id="hwdivert" value="&lt;b&gt;HWDivert&lt;/b&gt;&lt;hr&gt;hwDivertIndex (PK)&lt;br&gt;active" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#6c8ebf;strokeColor=#333333;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="1350" y="100" width="160" height="60" as="geometry" />
+        <mxCell id="hwdivert" value="&lt;b&gt;HWDivert&lt;/b&gt;&lt;hr&gt;hwDivertIndex (PK)&lt;br&gt;active" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#6c8ebf;strokeColor=#333333;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="1761" y="840" width="160" height="60" as="geometry" />
         </mxCell>
-        
-        <mxCell id="evdivert" value="&lt;b&gt;EVDivert&lt;/b&gt;&lt;hr&gt;evDivertIndex (PK)&lt;br&gt;name&lt;br&gt;active&lt;br&gt;ev1st&lt;br&gt;begin&lt;br&gt;end&lt;br&gt;dailyMax&lt;br&gt;minimum&lt;br&gt;months&lt;br&gt;days" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#6c8ebf;strokeColor=#333333;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="1350" y="200" width="160" height="160" as="geometry" />
+        <mxCell id="evdivert" value="&lt;b&gt;EVDivert&lt;/b&gt;&lt;hr&gt;evDivertIndex (PK)&lt;br&gt;name&lt;br&gt;active&lt;br&gt;ev1st&lt;br&gt;begin&lt;br&gt;end&lt;br&gt;dailyMax&lt;br&gt;minimum&lt;br&gt;months&lt;br&gt;days" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#6c8ebf;strokeColor=#333333;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="1761" y="941" width="160" height="160" as="geometry" />
         </mxCell>
-        
-        <!-- Junction Tables -->
-        <mxCell id="s2inverter" value="&lt;b&gt;Scenario2Inverter&lt;/b&gt;&lt;hr&gt;s2iID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;inverterID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#d6b656;strokeColor=#333333;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="500" y="480" width="140" height="80" as="geometry" />
+        <mxCell id="s2inverter" value="&lt;b&gt;Scenario2Inverter&lt;/b&gt;&lt;hr&gt;s2iID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;inverterID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#d6b656;strokeColor=#333333;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="970" y="670" width="140" height="80" as="geometry" />
         </mxCell>
-        
-        <mxCell id="s2battery" value="&lt;b&gt;Scenario2Battery&lt;/b&gt;&lt;hr&gt;s2bID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;batteryID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#d6b656;strokeColor=#333333;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="660" y="480" width="140" height="80" as="geometry" />
+        <mxCell id="s2battery" value="&lt;b&gt;Scenario2Battery&lt;/b&gt;&lt;hr&gt;s2bID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;batteryID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#d6b656;strokeColor=#333333;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="1171" y="670" width="140" height="80" as="geometry" />
         </mxCell>
-        
-        <mxCell id="s2panel" value="&lt;b&gt;Scenario2Panel&lt;/b&gt;&lt;hr&gt;s2pID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;panelID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#d6b656;strokeColor=#333333;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="820" y="480" width="140" height="80" as="geometry" />
+        <mxCell id="s2panel" value="&lt;b&gt;Scenario2Panel&lt;/b&gt;&lt;hr&gt;s2pID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;panelID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#d6b656;strokeColor=#333333;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="1371" y="670" width="140" height="80" as="geometry" />
         </mxCell>
-        
-        <mxCell id="s2loadprofile" value="&lt;b&gt;Scenario2LoadProfile&lt;/b&gt;&lt;hr&gt;s2lpID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;loadProfileID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#d6b656;strokeColor=#333333;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="980" y="480" width="140" height="80" as="geometry" />
+        <mxCell id="s2loadprofile" value="&lt;b&gt;Scenario2LoadProfile&lt;/b&gt;&lt;hr&gt;s2lpID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;loadProfileID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#d6b656;strokeColor=#333333;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="1571" y="670" width="140" height="80" as="geometry" />
         </mxCell>
-        
-        <mxCell id="s2hwsystem" value="&lt;b&gt;Scenario2HWSystem&lt;/b&gt;&lt;hr&gt;s2hwID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;hwSystemID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#d6b656;strokeColor=#333333;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="1140" y="480" width="140" height="80" as="geometry" />
+        <mxCell id="s2hwsystem" value="&lt;b&gt;Scenario2HWSystem&lt;/b&gt;&lt;hr&gt;s2hwID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;hwSystemID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#d6b656;strokeColor=#333333;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="1771" y="670" width="140" height="80" as="geometry" />
         </mxCell>
-        
-        <mxCell id="s2loadshift" value="&lt;b&gt;Scenario2LoadShift&lt;/b&gt;&lt;hr&gt;s2lsID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;loadShiftID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#d6b656;strokeColor=#333333;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="340" y="580" width="140" height="80" as="geometry" />
+        <mxCell id="s2loadshift" value="&lt;b&gt;Scenario2LoadShift&lt;/b&gt;&lt;hr&gt;s2lsID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;loadShiftID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#d6b656;strokeColor=#333333;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="774" y="670" width="140" height="80" as="geometry" />
         </mxCell>
-        
-        <mxCell id="s2discharge" value="&lt;b&gt;Scenario2DischargeToGrid&lt;/b&gt;&lt;hr&gt;s2d2gID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;d2gID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#d6b656;strokeColor=#333333;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="500" y="680" width="160" height="80" as="geometry" />
+        <mxCell id="s2discharge" value="&lt;b&gt;Scenario2DischargeToGrid&lt;/b&gt;&lt;hr&gt;s2d2gID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;d2gID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#d6b656;strokeColor=#333333;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="570" y="670" width="160" height="80" as="geometry" />
         </mxCell>
-        
-        <mxCell id="s2evcharge" value="&lt;b&gt;Scenario2EVCharge&lt;/b&gt;&lt;hr&gt;s2evcID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;evChargeID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#d6b656;strokeColor=#333333;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="980" y="680" width="140" height="80" as="geometry" />
+        <mxCell id="s2evcharge" value="&lt;b&gt;Scenario2EVCharge&lt;/b&gt;&lt;hr&gt;s2evcID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;evChargeID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#d6b656;strokeColor=#333333;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="1460" y="1241" width="140" height="80" as="geometry" />
         </mxCell>
-        
-        <mxCell id="s2hwschedule" value="&lt;b&gt;Scenario2HWSchedule&lt;/b&gt;&lt;hr&gt;s2hwsID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;hwScheduleID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#d6b656;strokeColor=#333333;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="1140" y="680" width="150" height="80" as="geometry" />
+        <mxCell id="s2hwschedule" value="&lt;b&gt;Scenario2HWSchedule&lt;/b&gt;&lt;hr&gt;s2hwsID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;hwScheduleID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#d6b656;strokeColor=#333333;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="1455" y="1131" width="150" height="80" as="geometry" />
         </mxCell>
-        
-        <mxCell id="s2hwdivert" value="&lt;b&gt;Scenario2HWDivert&lt;/b&gt;&lt;hr&gt;s2hwdID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;hwDivertID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#d6b656;strokeColor=#333333;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="1310" y="480" width="140" height="80" as="geometry" />
+        <mxCell id="s2hwdivert" value="&lt;b&gt;Scenario2HWDivert&lt;/b&gt;&lt;hr&gt;s2hwdID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;hwDivertID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#d6b656;strokeColor=#333333;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="1465" y="900" width="140" height="80" as="geometry" />
         </mxCell>
-        
-        <mxCell id="s2evdivert" value="&lt;b&gt;Scenario2EVDivert&lt;/b&gt;&lt;hr&gt;s2evdID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;evDivertID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#d6b656;strokeColor=#333333;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="1310" y="580" width="140" height="80" as="geometry" />
+        <mxCell id="s2evdivert" value="&lt;b&gt;Scenario2EVDivert&lt;/b&gt;&lt;hr&gt;s2evdID (PK)&lt;br&gt;scenarioID (FK)&lt;br&gt;evDivertID (FK)" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#d6b656;strokeColor=#333333;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="1460" y="1021" width="140" height="80" as="geometry" />
         </mxCell>
-        
-        <!-- Data Tables -->
-        <mxCell id="loadprofiledata" value="&lt;b&gt;LoadProfileData&lt;/b&gt;&lt;hr&gt;loadProfileID (PK/FK)&lt;br&gt;date (PK)&lt;br&gt;minute (PK)&lt;br&gt;millisSinceEpoch&lt;br&gt;load&lt;br&gt;mod&lt;br&gt;dow&lt;br&gt;do2001" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#b85450;strokeColor=#333333;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="1200" y="900" width="160" height="140" as="geometry" />
+        <mxCell id="loadprofiledata" value="&lt;b&gt;LoadProfileData&lt;/b&gt;&lt;hr&gt;loadProfileID (PK/FK)&lt;br&gt;date (PK)&lt;br&gt;minute (PK)&lt;br&gt;millisSinceEpoch&lt;br&gt;load&lt;br&gt;mod&lt;br&gt;dow&lt;br&gt;do2001" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#b85450;strokeColor=#333333;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="1561" y="174" width="160" height="140" as="geometry" />
         </mxCell>
-        
-        <mxCell id="scenariosimdata" value="&lt;b&gt;ScenarioSimulationData&lt;/b&gt;&lt;hr&gt;scenarioID (PK/FK)&lt;br&gt;date (PK)&lt;br&gt;minuteOfDay (PK)&lt;br&gt;millisSinceEpoch&lt;br&gt;feed&lt;br&gt;buy&lt;br&gt;SOC&lt;br&gt;battery2Grid&lt;br&gt;gridToBattery&lt;br&gt;load&lt;br&gt;dayOf2001&lt;br&gt;dayOfWeek" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#b85450;strokeColor=#333333;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="750" y="900" width="180" height="200" as="geometry" />
+        <mxCell id="scenariosimdata" value="&lt;b&gt;ScenarioSimulationData&lt;/b&gt;&lt;hr&gt;scenarioID (PK/FK)&lt;br&gt;date (PK)&lt;br&gt;minuteOfDay (PK)&lt;br&gt;millisSinceEpoch&lt;br&gt;feed&lt;br&gt;buy&lt;br&gt;SOC&lt;br&gt;battery2Grid&lt;br&gt;gridToBattery&lt;br&gt;load&lt;br&gt;dayOf2001&lt;br&gt;dayOfWeek" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#b85450;strokeColor=#333333;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="1080" y="1110" width="180" height="200" as="geometry" />
         </mxCell>
-        
-        <mxCell id="paneldata" value="&lt;b&gt;PanelData&lt;/b&gt;&lt;hr&gt;panelID (PK/FK)&lt;br&gt;date (PK)&lt;br&gt;minute (PK)&lt;br&gt;millisSinceEpoch&lt;br&gt;pv&lt;br&gt;mod&lt;br&gt;dow&lt;br&gt;do2001" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#b85450;strokeColor=#333333;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="950" y="900" width="160" height="140" as="geometry" />
+        <mxCell id="paneldata" value="&lt;b&gt;PanelData&lt;/b&gt;&lt;hr&gt;panelID (PK/FK)&lt;br&gt;date (PK)&lt;br&gt;minute (PK)&lt;br&gt;millisSinceEpoch&lt;br&gt;pv&lt;br&gt;mod&lt;br&gt;dow&lt;br&gt;do2001" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#b85450;strokeColor=#333333;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="1361" y="174" width="160" height="140" as="geometry" />
         </mxCell>
-        
-        <!-- Cost Analysis -->
-        <mxCell id="costings" value="&lt;b&gt;Costings&lt;/b&gt;&lt;hr&gt;scenarioID (PK/FK)&lt;br&gt;pricePlanID (PK/FK)&lt;br&gt;buy&lt;br&gt;sell&lt;br&gt;subTotals&lt;br&gt;scenarioName&lt;br&gt;fullPlanName&lt;br&gt;net" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#d79b00;strokeColor=#333333;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="400" y="900" width="160" height="140" as="geometry" />
+        <mxCell id="costings" value="&lt;b&gt;Costings&lt;/b&gt;&lt;hr&gt;scenarioID (PK/FK)&lt;br&gt;pricePlanID (PK/FK)&lt;br&gt;buy&lt;br&gt;sell&lt;br&gt;subTotals&lt;br&gt;scenarioName&lt;br&gt;fullPlanName&lt;br&gt;net" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#d79b00;strokeColor=#333333;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="745" y="932" width="160" height="140" as="geometry" />
         </mxCell>
-        
-        <!-- AlphaESS Import Data -->
-        <mxCell id="alphaessrawpower" value="&lt;b&gt;AlphaESSRawPower&lt;/b&gt;&lt;hr&gt;sysSn (PK)&lt;br&gt;uploadTime (PK)&lt;br&gt;ppv&lt;br&gt;load&lt;br&gt;cbat&lt;br&gt;feedIn&lt;br&gt;gridCharge&lt;br&gt;pchargingPile" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#333333;strokeColor=#000000;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="100" y="1200" width="160" height="140" as="geometry" />
+        <mxCell id="alphaessrawpower" value="&lt;b&gt;AlphaESSRawPower&lt;/b&gt;&lt;hr&gt;sysSn (PK)&lt;br&gt;uploadTime (PK)&lt;br&gt;ppv&lt;br&gt;load&lt;br&gt;cbat&lt;br&gt;feedIn&lt;br&gt;gridCharge&lt;br&gt;pchargingPile" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#333333;strokeColor=#000000;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="385" y="1321" width="160" height="140" as="geometry" />
         </mxCell>
-        
-        <mxCell id="alphaessrawenergy" value="&lt;b&gt;AlphaESSRawEnergy&lt;/b&gt;&lt;hr&gt;sysSn (PK)&lt;br&gt;theDate (PK)&lt;br&gt;energyCharge&lt;br&gt;energypv&lt;br&gt;energyOutput&lt;br&gt;energyInput&lt;br&gt;energyGridCharge&lt;br&gt;energyDischarge&lt;br&gt;energyChargingPile" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#333333;strokeColor=#000000;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="300" y="1200" width="160" height="160" as="geometry" />
+        <mxCell id="alphaessrawenergy" value="&lt;b&gt;AlphaESSRawEnergy&lt;/b&gt;&lt;hr&gt;sysSn (PK)&lt;br&gt;theDate (PK)&lt;br&gt;energyCharge&lt;br&gt;energypv&lt;br&gt;energyOutput&lt;br&gt;energyInput&lt;br&gt;energyGridCharge&lt;br&gt;energyDischarge&lt;br&gt;energyChargingPile" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#333333;strokeColor=#000000;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="585" y="1321" width="160" height="160" as="geometry" />
         </mxCell>
-        
-        <mxCell id="alphaessransformed" value="&lt;b&gt;AlphaESSTransformedData&lt;/b&gt;&lt;hr&gt;sysSn (PK)&lt;br&gt;date (PK)&lt;br&gt;minute (PK)&lt;br&gt;millisSinceEpoch&lt;br&gt;pv&lt;br&gt;load&lt;br&gt;feed&lt;br&gt;buy&lt;br&gt;charge" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#333333;strokeColor=#000000;fontColor=#ffffff;" vertex="1" parent="1">
-          <mxGeometry x="500" y="1200" width="180" height="160" as="geometry" />
+        <mxCell id="alphaessransformed" value="&lt;b&gt;AlphaESSTransformedData&lt;/b&gt;&lt;hr&gt;sysSn (PK)&lt;br&gt;date (PK)&lt;br&gt;minute (PK)&lt;br&gt;millisSinceEpoch&lt;br&gt;pv&lt;br&gt;load&lt;br&gt;feed&lt;br&gt;buy&lt;br&gt;charge" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#333333;strokeColor=#000000;fontColor=#ffffff;" parent="1" vertex="1">
+          <mxGeometry x="785" y="1321" width="180" height="160" as="geometry" />
         </mxCell>
-        
-        <!-- Relationships -->
-        <!-- PricePlan to DayRate (1:many) -->
-        <mxCell id="rel1" style="endArrow=ERmany;html=1;rounded=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="priceplan" target="dayrate">
+        <mxCell id="rel1" style="endArrow=ERmany;html=1;rounded=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;strokeColor=#003300;fontColor=#003300;labelBackgroundColor=default;" parent="1" source="priceplan" target="dayrate" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="500" y="700" as="sourcePoint" />
-            <mxPoint x="550" y="650" as="targetPoint" />
+            <mxPoint x="820" y="920" as="sourcePoint" />
+            <mxPoint x="870" y="870" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rel1_label" value="pricePlanId" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="rel1">
-          <mxGeometry x="-0.1" y="0" relative="1" as="geometry">
+        <mxCell id="rel1_label" value="pricePlanId" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;labelBackgroundColor=none;fontColor=#003300;" parent="rel1" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        
-        <!-- Scenario to Junction Tables -->
-        <mxCell id="rel2" style="endArrow=ERmany;html=1;rounded=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="scenario" target="s2inverter">
+        <mxCell id="rel2" style="endArrow=ERmany;html=1;rounded=1;exitX=0.25;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;strokeColor=#003300;fontColor=#003300;labelBackgroundColor=default;" parent="1" source="scenario" target="s2inverter" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="500" y="700" as="sourcePoint" />
-            <mxPoint x="550" y="650" as="targetPoint" />
+            <mxPoint x="820" y="920" as="sourcePoint" />
+            <mxPoint x="870" y="870" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rel2_label" value="scenarioID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="rel2">
-          <mxGeometry x="-0.1" y="0" relative="1" as="geometry">
+        <mxCell id="rel2_label" value="scenarioID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;labelBackgroundColor=none;fontColor=#003300;" parent="rel2" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        
-        <mxCell id="rel3" style="endArrow=ERmany;html=1;rounded=1;exitX=0.2;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="scenario" target="s2battery">
+        <mxCell id="rel3" style="endArrow=ERmany;html=1;rounded=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;exitX=0.75;exitY=0;exitDx=0;exitDy=0;strokeColor=#003300;fontColor=#003300;labelBackgroundColor=default;" parent="1" source="scenario" target="s2battery" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="500" y="700" as="sourcePoint" />
-            <mxPoint x="550" y="650" as="targetPoint" />
+            <mxPoint x="1110" y="820" as="sourcePoint" />
+            <mxPoint x="870" y="870" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rel3_label" value="scenarioID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="rel3">
-          <mxGeometry x="-0.1" y="0" relative="1" as="geometry">
+        <mxCell id="rel3_label" value="scenarioID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;labelBackgroundColor=none;fontColor=#003300;" parent="rel3" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        
-        <mxCell id="rel4" style="endArrow=ERmany;html=1;rounded=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="scenario" target="s2panel">
+        <mxCell id="rel4" style="endArrow=ERmany;html=1;rounded=1;exitX=1;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;strokeColor=#003300;fontColor=#003300;labelBackgroundColor=default;" parent="1" source="scenario" target="s2panel" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="500" y="700" as="sourcePoint" />
-            <mxPoint x="550" y="650" as="targetPoint" />
+            <mxPoint x="820" y="920" as="sourcePoint" />
+            <mxPoint x="870" y="870" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rel4_label" value="scenarioID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="rel4">
-          <mxGeometry x="-0.1" y="0" relative="1" as="geometry">
+        <mxCell id="rel4_label" value="scenarioID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;labelBackgroundColor=none;fontColor=#003300;" parent="rel4" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        
-        <mxCell id="rel5" style="endArrow=ERmany;html=1;rounded=1;exitX=0.8;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="scenario" target="s2loadprofile">
+        <mxCell id="rel5" style="endArrow=ERmany;html=1;rounded=1;exitX=1;exitY=0.25;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;strokeColor=#003300;fontColor=#003300;labelBackgroundColor=default;" parent="1" source="scenario" target="s2loadprofile" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="500" y="700" as="sourcePoint" />
-            <mxPoint x="550" y="650" as="targetPoint" />
+            <mxPoint x="820" y="920" as="sourcePoint" />
+            <mxPoint x="870" y="870" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rel5_label" value="scenarioID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="rel5">
-          <mxGeometry x="-0.1" y="0" relative="1" as="geometry">
+        <mxCell id="rel5_label" value="scenarioID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;labelBackgroundColor=none;fontColor=#003300;" parent="rel5" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        
-        <mxCell id="rel6" style="endArrow=ERmany;html=1;rounded=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="scenario" target="s2hwsystem">
+        <mxCell id="rel6" style="endArrow=ERmany;html=1;rounded=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;strokeColor=#003300;fontColor=#003300;labelBackgroundColor=default;" parent="1" source="scenario" target="s2hwsystem" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="500" y="700" as="sourcePoint" />
-            <mxPoint x="550" y="650" as="targetPoint" />
+            <mxPoint x="820" y="920" as="sourcePoint" />
+            <mxPoint x="870" y="870" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rel6_label" value="scenarioID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="rel6">
-          <mxGeometry x="-0.1" y="0" relative="1" as="geometry">
+        <mxCell id="rel6_label" value="scenarioID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;labelBackgroundColor=none;fontColor=#003300;" parent="rel6" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        
-        <mxCell id="rel7" style="endArrow=ERmany;html=1;rounded=1;exitX=0;exitY=0.8;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="scenario" target="s2loadshift">
+        <mxCell id="rel7" style="endArrow=ERmany;html=1;rounded=1;exitX=0;exitY=0.25;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;strokeColor=#003300;fontColor=#003300;labelBackgroundColor=default;" parent="1" source="scenario" target="s2loadshift" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="500" y="700" as="sourcePoint" />
-            <mxPoint x="550" y="650" as="targetPoint" />
+            <mxPoint x="820" y="920" as="sourcePoint" />
+            <mxPoint x="870" y="870" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rel7_label" value="scenarioID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="rel7">
-          <mxGeometry x="-0.1" y="0" relative="1" as="geometry">
+        <mxCell id="rel7_label" value="scenarioID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;labelBackgroundColor=none;fontColor=#003300;" parent="rel7" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        
-        <mxCell id="rel8" style="endArrow=ERmany;html=1;rounded=1;exitX=0.2;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="scenario" target="s2discharge">
+        <mxCell id="rel8" style="endArrow=ERmany;html=1;rounded=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;strokeColor=#003300;fontColor=#003300;labelBackgroundColor=default;" parent="1" source="scenario" target="s2discharge" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="500" y="700" as="sourcePoint" />
-            <mxPoint x="550" y="650" as="targetPoint" />
+            <mxPoint x="820" y="920" as="sourcePoint" />
+            <mxPoint x="870" y="870" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rel8_label" value="scenarioID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="rel8">
-          <mxGeometry x="-0.1" y="0" relative="1" as="geometry">
+        <mxCell id="rel8_label" value="scenarioID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;labelBackgroundColor=none;fontColor=#003300;" parent="rel8" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        
-        <mxCell id="rel9" style="endArrow=ERmany;html=1;rounded=1;exitX=0.8;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="scenario" target="s2evcharge">
+        <mxCell id="rel9" style="endArrow=ERmany;html=1;rounded=1;exitX=0.8;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;strokeColor=#003300;fontColor=#003300;labelBackgroundColor=default;" parent="1" source="scenario" target="s2evcharge" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="500" y="700" as="sourcePoint" />
-            <mxPoint x="550" y="650" as="targetPoint" />
+            <mxPoint x="820" y="920" as="sourcePoint" />
+            <mxPoint x="870" y="870" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rel9_label" value="scenarioID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="rel9">
-          <mxGeometry x="-0.1" y="0" relative="1" as="geometry">
+        <mxCell id="rel9_label" value="scenarioID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;labelBackgroundColor=none;fontColor=#003300;" parent="rel9" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        
-        <mxCell id="rel10" style="endArrow=ERmany;html=1;rounded=1;exitX=1;exitY=0.8;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="scenario" target="s2hwschedule">
+        <mxCell id="rel10" style="endArrow=ERmany;html=1;rounded=1;exitX=1;exitY=0.8;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;strokeColor=#003300;fontColor=#003300;labelBackgroundColor=default;" parent="1" source="scenario" target="s2hwschedule" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="500" y="700" as="sourcePoint" />
-            <mxPoint x="550" y="650" as="targetPoint" />
+            <mxPoint x="820" y="920" as="sourcePoint" />
+            <mxPoint x="870" y="870" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rel10_label" value="scenarioID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="rel10">
-          <mxGeometry x="-0.1" y="0" relative="1" as="geometry">
+        <mxCell id="rel10_label" value="scenarioID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;labelBackgroundColor=none;fontColor=#003300;" parent="rel10" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        
-        <mxCell id="rel11" style="endArrow=ERmany;html=1;rounded=1;exitX=1;exitY=0.2;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="scenario" target="s2hwdivert">
+        <mxCell id="rel11" style="endArrow=ERmany;html=1;rounded=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;strokeColor=#003300;fontColor=#003300;labelBackgroundColor=default;" parent="1" source="scenario" target="s2hwdivert" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="500" y="700" as="sourcePoint" />
-            <mxPoint x="550" y="650" as="targetPoint" />
+            <mxPoint x="820" y="920" as="sourcePoint" />
+            <mxPoint x="870" y="870" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rel11_label" value="scenarioID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="rel11">
-          <mxGeometry x="-0.1" y="0" relative="1" as="geometry">
+        <mxCell id="rel11_label" value="scenarioID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;labelBackgroundColor=none;fontColor=#003300;" parent="rel11" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        
-        <mxCell id="rel12" style="endArrow=ERmany;html=1;rounded=1;exitX=1;exitY=0.4;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="scenario" target="s2evdivert">
+        <mxCell id="rel12" style="endArrow=ERmany;html=1;rounded=1;exitX=1;exitY=0.75;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;strokeColor=#003300;fontColor=#003300;labelBackgroundColor=default;" parent="1" source="scenario" target="s2evdivert" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="500" y="700" as="sourcePoint" />
-            <mxPoint x="550" y="650" as="targetPoint" />
+            <mxPoint x="820" y="920" as="sourcePoint" />
+            <mxPoint x="870" y="870" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rel12_label" value="scenarioID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="rel12">
-          <mxGeometry x="-0.1" y="0" relative="1" as="geometry">
+        <mxCell id="rel12_label" value="scenarioID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;labelBackgroundColor=none;fontColor=#003300;" parent="rel12" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        
-        <!-- Junction Tables to Components -->
-        <mxCell id="rel13" style="endArrow=ERone;html=1;rounded=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;" edge="1" parent="1" source="s2inverter" target="inverter">
+        <mxCell id="rel13" style="endArrow=ERone;html=1;rounded=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;strokeColor=#003300;fontColor=#003300;labelBackgroundColor=default;" parent="1" source="s2inverter" target="inverter" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="500" y="700" as="sourcePoint" />
-            <mxPoint x="550" y="650" as="targetPoint" />
+            <mxPoint x="820" y="920" as="sourcePoint" />
+            <mxPoint x="870" y="870" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rel13_label" value="inverterID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="rel13">
-          <mxGeometry x="-0.1" y="0" relative="1" as="geometry">
+        <mxCell id="rel13_label" value="inverterID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;labelBackgroundColor=none;fontColor=#003300;" parent="rel13" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        
-        <mxCell id="rel14" style="endArrow=ERone;html=1;rounded=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;" edge="1" parent="1" source="s2battery" target="battery">
+        <mxCell id="rel14" style="endArrow=ERone;html=1;rounded=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;strokeColor=#003300;fontColor=#003300;labelBackgroundColor=default;" parent="1" source="s2battery" target="battery" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="500" y="700" as="sourcePoint" />
-            <mxPoint x="550" y="650" as="targetPoint" />
+            <mxPoint x="820" y="920" as="sourcePoint" />
+            <mxPoint x="870" y="870" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rel14_label" value="batteryID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="rel14">
-          <mxGeometry x="-0.1" y="0" relative="1" as="geometry">
+        <mxCell id="rel14_label" value="batteryID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;labelBackgroundColor=none;fontColor=#003300;" parent="rel14" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        
-        <mxCell id="rel15" style="endArrow=ERone;html=1;rounded=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;" edge="1" parent="1" source="s2panel" target="panel">
+        <mxCell id="rel15" style="endArrow=ERone;html=1;rounded=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;strokeColor=#003300;fontColor=#003300;labelBackgroundColor=default;" parent="1" source="s2panel" target="panel" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="500" y="700" as="sourcePoint" />
-            <mxPoint x="550" y="650" as="targetPoint" />
+            <mxPoint x="820" y="920" as="sourcePoint" />
+            <mxPoint x="870" y="870" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rel15_label" value="panelID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="rel15">
-          <mxGeometry x="-0.1" y="0" relative="1" as="geometry">
+        <mxCell id="rel15_label" value="panelID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;labelBackgroundColor=none;fontColor=#003300;" parent="rel15" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        
-        <mxCell id="rel16" style="endArrow=ERone;html=1;rounded=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;" edge="1" parent="1" source="s2loadprofile" target="loadprofile">
+        <mxCell id="rel16" style="endArrow=ERone;html=1;rounded=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;strokeColor=#003300;fontColor=#003300;labelBackgroundColor=default;" parent="1" source="s2loadprofile" target="loadprofile" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="500" y="700" as="sourcePoint" />
-            <mxPoint x="550" y="650" as="targetPoint" />
+            <mxPoint x="820" y="920" as="sourcePoint" />
+            <mxPoint x="870" y="870" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rel16_label" value="loadProfileID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="rel16">
-          <mxGeometry x="-0.1" y="0" relative="1" as="geometry">
+        <mxCell id="rel16_label" value="loadProfileID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;labelBackgroundColor=none;fontColor=#003300;" parent="rel16" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        
-        <mxCell id="rel17" style="endArrow=ERone;html=1;rounded=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;" edge="1" parent="1" source="s2hwsystem" target="hwsystem">
+        <mxCell id="rel17" style="endArrow=ERone;html=1;rounded=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;strokeColor=#003300;fontColor=#003300;labelBackgroundColor=default;" parent="1" source="s2hwsystem" target="hwsystem" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="500" y="700" as="sourcePoint" />
-            <mxPoint x="550" y="650" as="targetPoint" />
+            <mxPoint x="820" y="920" as="sourcePoint" />
+            <mxPoint x="870" y="870" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rel17_label" value="hwSystemID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="rel17">
-          <mxGeometry x="-0.1" y="0" relative="1" as="geometry">
+        <mxCell id="rel17_label" value="hwSystemID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;labelBackgroundColor=none;fontColor=#003300;" parent="rel17" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        
-        <mxCell id="rel18" style="endArrow=ERone;html=1;rounded=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;" edge="1" parent="1" source="s2loadshift" target="loadshift">
+        <mxCell id="rel18" style="endArrow=ERone;html=1;rounded=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;strokeColor=#003300;fontColor=#003300;labelBackgroundColor=default;" parent="1" source="s2loadshift" target="loadshift" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="500" y="700" as="sourcePoint" />
-            <mxPoint x="550" y="650" as="targetPoint" />
+            <mxPoint x="820" y="920" as="sourcePoint" />
+            <mxPoint x="870" y="870" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rel18_label" value="loadShiftID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="rel18">
-          <mxGeometry x="-0.1" y="0" relative="1" as="geometry">
+        <mxCell id="rel18_label" value="loadShiftID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;labelBackgroundColor=none;fontColor=#003300;" parent="rel18" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        
-        <mxCell id="rel19" style="endArrow=ERone;html=1;rounded=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;" edge="1" parent="1" source="s2discharge" target="discharge2grid">
+        <mxCell id="rel19" style="endArrow=ERone;html=1;rounded=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;strokeColor=#003300;fontColor=#003300;labelBackgroundColor=default;" parent="1" source="s2discharge" target="discharge2grid" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="500" y="700" as="sourcePoint" />
-            <mxPoint x="550" y="650" as="targetPoint" />
+            <mxPoint x="820" y="920" as="sourcePoint" />
+            <mxPoint x="870" y="870" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rel19_label" value="d2gID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="rel19">
-          <mxGeometry x="-0.1" y="0" relative="1" as="geometry">
+        <mxCell id="rel19_label" value="d2gID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;labelBackgroundColor=none;fontColor=#003300;" parent="rel19" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        
-        <mxCell id="rel20" style="endArrow=ERone;html=1;rounded=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;" edge="1" parent="1" source="s2evcharge" target="evcharge">
+        <mxCell id="rel20" style="endArrow=ERone;html=1;rounded=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;strokeColor=#003300;fontColor=#003300;labelBackgroundColor=default;" parent="1" source="s2evcharge" target="evcharge" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="500" y="700" as="sourcePoint" />
-            <mxPoint x="550" y="650" as="targetPoint" />
+            <mxPoint x="820" y="1001" as="sourcePoint" />
+            <mxPoint x="870" y="951" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rel20_label" value="evChargeID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="rel20">
-          <mxGeometry x="-0.1" y="0" relative="1" as="geometry">
+        <mxCell id="rel20_label" value="evChargeID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;labelBackgroundColor=none;fontColor=#003300;" parent="rel20" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        
-        <mxCell id="rel21" style="endArrow=ERone;html=1;rounded=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;" edge="1" parent="1" source="s2hwschedule" target="hwschedule">
+        <mxCell id="rel21" style="endArrow=ERone;html=1;rounded=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;strokeColor=#003300;fontColor=#003300;labelBackgroundColor=default;" parent="1" source="s2hwschedule" target="hwschedule" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="500" y="700" as="sourcePoint" />
-            <mxPoint x="550" y="650" as="targetPoint" />
+            <mxPoint x="820" y="1001" as="sourcePoint" />
+            <mxPoint x="870" y="951" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rel21_label" value="hwScheduleID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="rel21">
-          <mxGeometry x="-0.1" y="0" relative="1" as="geometry">
+        <mxCell id="rel21_label" value="hwScheduleID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;labelBackgroundColor=none;fontColor=#003300;" parent="rel21" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        
-        <mxCell id="rel22" style="endArrow=ERone;html=1;rounded=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;" edge="1" parent="1" source="s2hwdivert" target="hwdivert">
+        <mxCell id="rel22" style="endArrow=ERone;html=1;rounded=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;strokeColor=#003300;fontColor=#003300;labelBackgroundColor=default;" parent="1" source="s2hwdivert" target="hwdivert" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="500" y="700" as="sourcePoint" />
-            <mxPoint x="550" y="650" as="targetPoint" />
+            <mxPoint x="820" y="920" as="sourcePoint" />
+            <mxPoint x="870" y="870" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rel22_label" value="hwDivertID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="rel22">
-          <mxGeometry x="-0.1" y="0" relative="1" as="geometry">
+        <mxCell id="rel22_label" value="hwDivertID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;labelBackgroundColor=none;fontColor=#003300;" parent="rel22" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        
-        <mxCell id="rel23" style="endArrow=ERone;html=1;rounded=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;" edge="1" parent="1" source="s2evdivert" target="evdivert">
+        <mxCell id="rel23" style="endArrow=ERone;html=1;rounded=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERmany;startFill=0;endFill=0;strokeColor=#003300;fontColor=#003300;labelBackgroundColor=default;" parent="1" source="s2evdivert" target="evdivert" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="500" y="700" as="sourcePoint" />
-            <mxPoint x="550" y="650" as="targetPoint" />
+            <mxPoint x="820" y="1001" as="sourcePoint" />
+            <mxPoint x="870" y="951" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rel23_label" value="evDivertID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="rel23">
-          <mxGeometry x="-0.1" y="0" relative="1" as="geometry">
+        <mxCell id="rel23_label" value="evDivertID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;labelBackgroundColor=none;fontColor=#003300;" parent="rel23" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        
-        <!-- Data table relationships -->
-        <mxCell id="rel24" style="endArrow=ERmany;html=1;rounded=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="scenario" target="scenariosimdata">
+        <mxCell id="rel24" style="endArrow=ERmany;html=1;rounded=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" parent="1" source="scenario" target="scenariosimdata" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="500" y="700" as="sourcePoint" />
-            <mxPoint x="550" y="650" as="targetPoint" />
+            <mxPoint x="820" y="920" as="sourcePoint" />
+            <mxPoint x="870" y="870" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rel24_label" value="scenarioID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="rel24">
-          <mxGeometry x="-0.1" y="0" relative="1" as="geometry">
+        <mxCell id="rel24_label" value="scenarioID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;labelBackgroundColor=none;fontColor=#003300;" parent="rel24" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        
-        <mxCell id="rel25" style="endArrow=ERmany;html=1;rounded=1;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="loadprofile" target="loadprofiledata">
+        <mxCell id="rel25" style="endArrow=ERmany;html=1;rounded=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;strokeColor=#003300;fontColor=#003300;labelBackgroundColor=default;" parent="1" source="loadprofile" target="loadprofiledata" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="500" y="700" as="sourcePoint" />
-            <mxPoint x="550" y="650" as="targetPoint" />
+            <mxPoint x="894" y="1014" as="sourcePoint" />
+            <mxPoint x="944" y="964" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rel25_label" value="loadProfileID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="rel25">
-          <mxGeometry x="-0.1" y="0" relative="1" as="geometry">
+        <mxCell id="rel25_label" value="loadProfileID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;labelBackgroundColor=none;fontColor=#003300;" parent="rel25" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        
-        <mxCell id="rel26" style="endArrow=ERmany;html=1;rounded=1;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="panel" target="paneldata">
+        <mxCell id="rel26" style="endArrow=ERmany;html=1;rounded=1;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0.5;entryY=1;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;strokeColor=#003300;fontColor=#003300;labelBackgroundColor=default;" parent="1" source="panel" target="paneldata" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="500" y="700" as="sourcePoint" />
-            <mxPoint x="550" y="650" as="targetPoint" />
+            <mxPoint x="894" y="1014" as="sourcePoint" />
+            <mxPoint x="944" y="964" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rel26_label" value="panelID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="rel26">
-          <mxGeometry x="-0.1" y="0" relative="1" as="geometry">
+        <mxCell id="rel26_label" value="panelID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;labelBackgroundColor=none;fontColor=#003300;" parent="rel26" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        
-        <!-- Cost analysis relationships -->
-        <mxCell id="rel27" style="endArrow=ERmany;html=1;rounded=1;exitX=0;exitY=1;exitDx=0;exitDy=0;entryX=1;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="scenario" target="costings">
+        <mxCell id="rel27" style="endArrow=ERmany;html=1;rounded=1;exitX=0;exitY=0.75;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;strokeColor=#003300;fontColor=#003300;labelBackgroundColor=default;" parent="1" source="scenario" target="costings" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="500" y="700" as="sourcePoint" />
-            <mxPoint x="550" y="650" as="targetPoint" />
+            <mxPoint x="820" y="920" as="sourcePoint" />
+            <mxPoint x="870" y="870" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rel27_label" value="scenarioID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="rel27">
-          <mxGeometry x="-0.1" y="0" relative="1" as="geometry">
+        <mxCell id="rel27_label" value="scenarioID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;labelBackgroundColor=none;fontColor=#003300;" parent="rel27" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        
-        <mxCell id="rel28" style="endArrow=ERmany;html=1;rounded=1;exitX=1;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;" edge="1" parent="1" source="priceplan" target="costings">
+        <mxCell id="rel28" style="endArrow=ERmany;html=1;rounded=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;startArrow=ERone;startFill=0;endFill=0;strokeColor=#003300;fontColor=#003300;labelBackgroundColor=default;" parent="1" source="priceplan" target="costings" edge="1">
           <mxGeometry width="50" height="50" relative="1" as="geometry">
-            <mxPoint x="500" y="700" as="sourcePoint" />
-            <mxPoint x="550" y="650" as="targetPoint" />
+            <mxPoint x="820" y="920" as="sourcePoint" />
+            <mxPoint x="870" y="870" as="targetPoint" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="rel28_label" value="pricePlanID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;" vertex="1" connectable="0" parent="rel28">
-          <mxGeometry x="-0.1" y="0" relative="1" as="geometry">
+        <mxCell id="rel28_label" value="pricePlanID" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontStyle=1;labelBackgroundColor=none;fontColor=#003300;" parent="rel28" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" relative="1" as="geometry">
             <mxPoint as="offset" />
           </mxGeometry>
         </mxCell>
-        
-        <!-- Title -->
-        <mxCell id="title" value="&lt;b&gt;&lt;font size=&quot;6&quot;&gt;TOUTC Database Schema - Entity Relationship Diagram&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;font size=&quot;4&quot;&gt;Energy System Modeling Database&lt;/font&gt;&lt;br&gt;&lt;font size=&quot;3&quot;&gt;Android Room / SQLite Implementation&lt;/font&gt;" style="whiteSpace=wrap;html=1;align=center;fontSize=12;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
-          <mxGeometry x="600" y="20" width="500" height="60" as="geometry" />
+        <mxCell id="title" value="&lt;b&gt;&lt;font size=&quot;6&quot;&gt;TOUTC Database Schema - Entity Relationship Diagram&lt;/font&gt;&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;font size=&quot;4&quot;&gt;Energy System Modeling Database&lt;/font&gt;&lt;br&gt;&lt;font size=&quot;3&quot;&gt;Android Room / SQLite Implementation&lt;/font&gt;" style="whiteSpace=wrap;html=1;align=center;fontSize=12;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" parent="1" vertex="1">
+          <mxGeometry x="710" y="174" width="500" height="170" as="geometry" />
         </mxCell>
-        
-        <!-- Legend -->
-        <mxCell id="legend" value="&lt;b&gt;LEGEND&lt;/b&gt;&lt;hr&gt;&lt;div style=&quot;background-color:#9673a6;color:#ffffff;padding:2px;&quot;&gt;Central Entity&lt;/div&gt;&lt;div style=&quot;background-color:#82b366;color:#ffffff;padding:2px;&quot;&gt;Price Plans&lt;/div&gt;&lt;div style=&quot;background-color:#6c8ebf;color:#ffffff;padding:2px;&quot;&gt;Components&lt;/div&gt;&lt;div style=&quot;background-color:#d6b656;color:#ffffff;padding:2px;&quot;&gt;Junction Tables&lt;/div&gt;&lt;div style=&quot;background-color:#b85450;color:#ffffff;padding:2px;&quot;&gt;Time-Series Data&lt;/div&gt;&lt;div style=&quot;background-color:#d79b00;color:#ffffff;padding:2px;&quot;&gt;Cost Analysis&lt;/div&gt;&lt;div style=&quot;background-color:#333333;color:#ffffff;padding:2px;&quot;&gt;Import Data&lt;/div&gt;" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
-          <mxGeometry x="100" y="700" width="160" height="140" as="geometry" />
+        <mxCell id="legend" value="&lt;b&gt;LEGEND&lt;/b&gt;&lt;hr&gt;&lt;div style=&quot;background-color:#9673a6;color:#ffffff;padding:2px;&quot;&gt;Central Entity&lt;/div&gt;&lt;div style=&quot;background-color:#82b366;color:#ffffff;padding:2px;&quot;&gt;Price Plans&lt;/div&gt;&lt;div style=&quot;background-color:#6c8ebf;color:#ffffff;padding:2px;&quot;&gt;Components&lt;/div&gt;&lt;div style=&quot;background-color:#d6b656;color:#ffffff;padding:2px;&quot;&gt;Junction Tables&lt;/div&gt;&lt;div style=&quot;background-color:#b85450;color:#ffffff;padding:2px;&quot;&gt;Time-Series Data&lt;/div&gt;&lt;div style=&quot;background-color:#d79b00;color:#ffffff;padding:2px;&quot;&gt;Cost Analysis&lt;/div&gt;&lt;div style=&quot;background-color:#333333;color:#ffffff;padding:2px;&quot;&gt;Import Data&lt;/div&gt;" style="whiteSpace=wrap;html=1;align=left;fontSize=11;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" parent="1" vertex="1">
+          <mxGeometry x="370" y="414" width="160" height="180" as="geometry" />
         </mxCell>
-        
-        <!-- Note -->
-        <mxCell id="note" value="&lt;b&gt;NOTE:&lt;/b&gt; Foreign key relationships are implied by the software logic as SQLite/Room does not enforce FK constraints. Junction tables implement many-to-many relationships between Scenario and component entities." style="whiteSpace=wrap;html=1;align=left;fontSize=10;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" vertex="1" parent="1">
-          <mxGeometry x="100" y="880" width="250" height="80" as="geometry" />
+        <mxCell id="note" value="&lt;b&gt;NOTE:&lt;/b&gt; Foreign key relationships are implied by the software logic as SQLite/Room does not enforce FK constraints. Junction tables implement many-to-many relationships between Scenario and component entities." style="whiteSpace=wrap;html=1;align=left;fontSize=10;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;" parent="1" vertex="1">
+          <mxGeometry x="385" y="800" width="250" height="80" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
