@@ -94,8 +94,11 @@ When modifying a database table:
 | batteries | com.tfcode.comparetout.scenario.battery | BatteryDischargeFragment |
 | batteries | com.tfcode.comparetout.scenario | SimulationWorker |
 | batteries | com.tfcode.comparetout.importers.alphaess | GenerationWorker |
+| evdivert | com.tfcode.comparetout.importers.alphaess | GenerationWorker |
 | batteries | com.tfcode.comparetout.importers.esbn | GenerationWorker |
+| evdivert | com.tfcode.comparetout.importers.esbn | GenerationWorker |
 | batteries | com.tfcode.comparetout.importers.homeassistant | GenerationWorker |
+| evdivert | com.tfcode.comparetout.importers.homeassistant | GenerationWorker |
 | batteries | com.tfcode.comparetout.importers | AbstractGenerationWorker |
 | inverters | com.tfcode.comparetout.scenario.inverter | InverterActivity |
 | inverters | com.tfcode.comparetout.scenario.inverter | InverterFragment |
@@ -133,6 +136,7 @@ When modifying a database table:
 | evcharge | com.tfcode.comparetout.scenario.ev | EVScheduleFragment |
 | evcharge | com.tfcode.comparetout.scenario | SimulationWorker |
 | evcharge | com.tfcode.comparetout.importers | AbstractGenerationWorker |
+| evdivert | com.tfcode.comparetout.importers | AbstractGenerationWorker |
 | evdivert | com.tfcode.comparetout.scenario.ev | EVDivertActivity |
 | evdivert | com.tfcode.comparetout.scenario.ev | EVDivertFragment |
 | evdivert | com.tfcode.comparetout.scenario.battery | BatteryDischargeFragment |
@@ -141,6 +145,7 @@ When modifying a database table:
 | hwschedule | com.tfcode.comparetout.scenario.water | WaterScheduleFragment |
 | hwschedule | com.tfcode.comparetout.scenario | SimulationWorker |
 | hwschedule | com.tfcode.comparetout.importers | AbstractGenerationWorker |
+| hwdivert | com.tfcode.comparetout.importers | AbstractGenerationWorker |
 | hwdivert | com.tfcode.comparetout.scenario | SimulationWorker |
 | hwdivert | com.tfcode.comparetout.scenario.water | WaterScheduleActivity |
 | hwdivert | com.tfcode.comparetout.scenario.water | WaterSettingsActivity |
@@ -182,6 +187,7 @@ When modifying a database table:
 | scenario2evcharge | com.tfcode.comparetout.scenario.ev | EVScheduleFragment |
 | scenario2evcharge | com.tfcode.comparetout.scenario | SimulationWorker |
 | scenario2evcharge | com.tfcode.comparetout.importers | AbstractGenerationWorker |
+| scenario2evdivert | com.tfcode.comparetout.importers | AbstractGenerationWorker |
 | scenario2evdivert | com.tfcode.comparetout.scenario.ev | EVDivertActivity |
 | scenario2evdivert | com.tfcode.comparetout.scenario.ev | EVDivertFragment |
 | scenario2evdivert | com.tfcode.comparetout.scenario.battery | BatteryDischargeFragment |
@@ -190,6 +196,7 @@ When modifying a database table:
 | scenario2hwschedule | com.tfcode.comparetout.scenario.water | WaterScheduleFragment |
 | scenario2hwschedule | com.tfcode.comparetout.scenario | SimulationWorker |
 | scenario2hwschedule | com.tfcode.comparetout.importers | AbstractGenerationWorker |
+| scenario2hwdivert | com.tfcode.comparetout.importers | AbstractGenerationWorker |
 | scenario2hwdivert | com.tfcode.comparetout.scenario | SimulationWorker |
 | scenario2hwdivert | com.tfcode.comparetout.scenario.water | WaterScheduleActivity |
 | scenario2hwdivert | com.tfcode.comparetout.scenario.water | WaterSettingsActivity |
