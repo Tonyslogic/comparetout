@@ -7,7 +7,7 @@ This document outlines the database dependencies for each activity and package i
 
 ## Complete Database Tables List
 
-Based on the @Entity annotations, the application uses 33 database tables:
+Based on the @Entity annotations, the application uses 32 database tables:
 
 **Core Tables:**
 - `scenarios` - Main scenario definitions
@@ -48,8 +48,10 @@ Based on the @Entity annotations, the application uses 33 database tables:
 
 **Import Tables:**
 - `alphaESSRawEnergy` - Raw daily energy data from AlphaESS
-- `alphaESSRawPower` - Raw 5-minute power data from AlphaESS
+- `alphaESSRawPower` - Raw 5-minute power data from AlphaESS  
 - `alphaESSTransformedData` - Processed energy data for analysis
+
+**Note:** All import systems (AlphaESS, ESBN, HomeAssistant) use the AlphaESS table structure as a shared format. The table names were not refactored when additional import types were added, so all importers store their data in the `alphaESS*` tables regardless of the original data source.
 
 ## Activity/Package to Database Dependencies
 
@@ -97,10 +99,10 @@ Based on the @Entity annotations, the application uses 33 database tables:
 |----------|-----------|------------|------------------|
 | **ImportOverviewFragment** | `PricePlans`, `DayRates` | PricePlanDAO | `getAllPricePlansNow()`, `getAllDayRatesForPricePlanID()` |
 | **ImportGenerateScenarioFragment** | `scenarios` | ScenarioDAO | `addNewScenarioWithComponents()` |
-| **ImportKeyStatsFragment** | `alphaESSTransformedData`, `alphaESSRawEnergy`, `alphaESSRawPower`, `esbnHDFData`, `homeAssistantRawEnergy` | AlphaEssDAO, ESBNDao, HomeAssistantDAO | `getKeyStats()`, `getKPIs()`, `getLiveDateRanges()` |
-| **BaseGraphsFragment** | `alphaESSTransformedData`, `esbnHDFData`, `scenariosimulationdata`, `homeAssistantRawEnergy` | AlphaEssDAO, ESBNDao, HomeAssistantDAO, ScenarioDAO | `getLiveDateRanges()`, `getSumHour()`, `getSumDOY()`, `getSumDOW()`, `getSumMonth()`, `getSumYear()`, `getAvgHour()`, `getAvgDOY()`, `getAvgDOW()`, `getAvgMonth()`, `getAvgYear()` |
+| **ImportKeyStatsFragment** | `alphaESSTransformedData`, `alphaESSRawEnergy`, `alphaESSRawPower` | AlphaEssDAO | `getKeyStats()`, `getKPIs()`, `getLiveDateRanges()` |
+| **BaseGraphsFragment** | `alphaESSTransformedData`, `scenariosimulationdata` | AlphaEssDAO, ScenarioDAO | `getLiveDateRanges()`, `getSumHour()`, `getSumDOY()`, `getSumDOW()`, `getSumMonth()`, `getSumYear()`, `getAvgHour()`, `getAvgDOY()`, `getAvgDOW()`, `getAvgMonth()`, `getAvgYear()` |
 | **ScenarioDetails** | `costings`, `scenariosimulationdata` | CostingDAO, ScenarioDAO | `getAllComparisons()`, `getBarData()`, `getLineData()` |
-| **ScenarioGraphs** | `scenariosimulationdata`, `alphaESSTransformedData`, `esbnHDFData`, `homeAssistantRawEnergy` | ScenarioDAO, AlphaEssDAO, ESBNDao, HomeAssistantDAO | Graph display methods from BaseGraphsFragment |
+| **ScenarioGraphs** | `scenariosimulationdata`, `alphaESSTransformedData` | ScenarioDAO, AlphaEssDAO | Graph display methods from BaseGraphsFragment |
 | **ScenarioOverview** | `scenarios`, `costings` | ScenarioDAO, CostingDAO | `loadScenarios()`, `getAllComparisons()` |
 | **ScenarioMonthly** | `scenariosimulationdata` | ScenarioDAO | `getMonthlyData()` |
 | **ScenarioYear** | `scenariosimulationdata` | ScenarioDAO | `getYearlyData()` |
@@ -108,13 +110,13 @@ Based on the @Entity annotations, the application uses 33 database tables:
 | **ImportAlphaKeyStats** | `alphaESSTransformedData`, `alphaESSRawEnergy` | AlphaEssDAO | `getKeyStats()`, `getKPIs()` |
 | **ImportAlphaGraphs** | `alphaESSTransformedData` | AlphaEssDAO | All BaseGraphsFragment methods |
 | **ImportAlphaGenerateScenario** | `scenarios`, `alphaESSTransformedData` | ScenarioDAO, AlphaEssDAO | `addNewScenarioWithComponents()`, `getAvgHour()` |
-| **ImportESBNOverview** | `esbnHDFData` | ESBNDao | `getDateRanges()`, `getMPRNs()` |
-| **ImportESBNGraphs** | `esbnHDFData` | ESBNDao | All BaseGraphsFragment methods |
-| **ImportESBNGenerateScenario** | `scenarios`, `esbnHDFData` | ScenarioDAO, ESBNDao | `addNewScenarioWithComponents()`, `getAvgHour()` |
-| **ImportHAOverview** | `homeAssistantRawEnergy` | HomeAssistantDAO | `getDateRanges()`, `getEntityIDs()` |
-| **ImportHAKeyStats** | `homeAssistantRawEnergy` | HomeAssistantDAO | `getKeyStats()`, `getKPIs()` |
-| **ImportHAGraphs** | `homeAssistantRawEnergy` | HomeAssistantDAO | All BaseGraphsFragment methods |
-| **ImportHAGenerateScenario** | `scenarios`, `homeAssistantRawEnergy` | ScenarioDAO, HomeAssistantDAO | `addNewScenarioWithComponents()`, `getAvgHour()` |
+| **ImportESBNOverview** | `alphaESSRawEnergy`, `alphaESSTransformedData` | AlphaEssDAO | `getDateRanges()`, `getSystemSNs()` (uses AlphaESS tables) |
+| **ImportESBNGraphs** | `alphaESSTransformedData` | AlphaEssDAO | All BaseGraphsFragment methods (uses AlphaESS tables) |
+| **ImportESBNGenerateScenario** | `scenarios`, `alphaESSTransformedData` | ScenarioDAO, AlphaEssDAO | `addNewScenarioWithComponents()`, `getAvgHour()` (uses AlphaESS tables) |
+| **ImportHAOverview** | `alphaESSRawEnergy`, `alphaESSTransformedData` | AlphaEssDAO | `getDateRanges()`, `getSystemSNs()` (uses AlphaESS tables) |
+| **ImportHAKeyStats** | `alphaESSTransformedData`, `alphaESSRawEnergy` | AlphaEssDAO | `getKeyStats()`, `getKPIs()` (uses AlphaESS tables) |
+| **ImportHAGraphs** | `alphaESSTransformedData` | AlphaEssDAO | All BaseGraphsFragment methods (uses AlphaESS tables) |
+| **ImportHAGenerateScenario** | `scenarios`, `alphaESSTransformedData` | ScenarioDAO, AlphaEssDAO | `addNewScenarioWithComponents()`, `getAvgHour()` (uses AlphaESS tables) |
 | **CompareScenarioSelectDialog** | `scenarios` | ScenarioDAO | `loadScenarios()` |
 | **ScenarioSelectDialog** | `scenarios` | ScenarioDAO | `loadScenarios()` |
 
@@ -142,8 +144,6 @@ Based on the @Entity annotations, the application uses 33 database tables:
 | Activity | DB Tables | DAO Access | DAO Methods Used |
 |----------|-----------|------------|------------------|
 | **ImportAlphaActivity** | None (delegates to Workers) | None | None (UI only, triggers Workers) |
-| **ImportESBNActivity** | None (delegates to Workers) | None | None (UI only, triggers Workers) |
-| **ImportHomeAssistantActivity** | None (delegates to Workers) | None | None (UI only, triggers Workers) |
 
 ### Worker Classes (Direct Repository Access)
 
@@ -158,11 +158,11 @@ Based on the @Entity annotations, the application uses 33 database tables:
 | **AlphaESS GenerationWorker** | `alphaESSTransformedData`, `loadprofiledata`, `paneldata`, `scenarios`, `inverters`, `panels`, `batteries`, `loadprofile` | AlphaEssDAO, ScenarioDAO | `getAlphaESSTransformedData()`, `addNewScenarioWithComponents()`, `createLoadProfileDataEntries()`, `savePanelData()`|
 | **AlphaESS CatchUpWorker** | `alphaESSRawEnergy`, `alphaESSRawPower` | AlphaEssDAO | `addRawEnergy()`, `addRawPower()`, `getLatestDateForSn()`|
 | **AlphaESS DailyWorker** | `alphaESSRawEnergy`, `alphaESSRawPower` | AlphaEssDAO | `addRawEnergy()`, `addRawPower()`|
-| **ESBN ImportWorker** | `loadprofiledata`, `scenarios`, `loadprofile` | ScenarioDAO | `createLoadProfileDataEntries()`, `addNewScenarioWithComponents()`, `saveLoadProfile()`|
-| **ESBN CatchUpWorker** | `loadprofiledata` | ScenarioDAO | `createLoadProfileDataEntries()`, `getLatestDateForSn()`|
-| **ESBN GenerationWorker** | `loadprofiledata`, `paneldata`, `scenarios`, `inverters`, `panels`, `batteries`, `loadprofile` | ScenarioDAO | `addNewScenarioWithComponents()`, `createLoadProfileDataEntries()`, `savePanelData()`|
-| **HomeAssistant HACatchupWorker** | `loadprofiledata`, `paneldata`, `alphaESSTransformedData` | ScenarioDAO, AlphaEssDAO | `createLoadProfileDataEntries()`, `savePanelData()`, `addTransformedData()`|
-| **HomeAssistant GenerationWorker** | `loadprofiledata`, `paneldata`, `scenarios`, `inverters`, `panels`, `batteries`, `loadprofile`, `alphaESSTransformedData` | ScenarioDAO, AlphaEssDAO | `addNewScenarioWithComponents()`, `createLoadProfileDataEntries()`, `savePanelData()`, `getAlphaESSTransformedData()`|
+| **ESBN ImportWorker** | `loadprofiledata`, `scenarios`, `loadprofile`, `alphaESSTransformedData` | ScenarioDAO, AlphaEssDAO | `createLoadProfileDataEntries()`, `addNewScenarioWithComponents()`, `saveLoadProfile()`, `addTransformedData()` (uses AlphaESS tables)|
+| **ESBN CatchUpWorker** | `loadprofiledata`, `alphaESSTransformedData` | ScenarioDAO, AlphaEssDAO | `createLoadProfileDataEntries()`, `getLatestDateForSn()`, `addTransformedData()` (uses AlphaESS tables)|
+| **ESBN GenerationWorker** | `loadprofiledata`, `paneldata`, `scenarios`, `inverters`, `panels`, `batteries`, `loadprofile`, `alphaESSTransformedData` | ScenarioDAO, AlphaEssDAO | `addNewScenarioWithComponents()`, `createLoadProfileDataEntries()`, `savePanelData()`, `addTransformedData()` (uses AlphaESS tables)|
+| **HomeAssistant HACatchupWorker** | `loadprofiledata`, `paneldata`, `alphaESSTransformedData` | ScenarioDAO, AlphaEssDAO | `createLoadProfileDataEntries()`, `savePanelData()`, `addTransformedData()` (uses AlphaESS tables)|
+| **HomeAssistant GenerationWorker** | `loadprofiledata`, `paneldata`, `scenarios`, `inverters`, `panels`, `batteries`, `loadprofile`, `alphaESSTransformedData` | ScenarioDAO, AlphaEssDAO | `addNewScenarioWithComponents()`, `createLoadProfileDataEntries()`, `savePanelData()`, `getAlphaESSTransformedData()` (uses AlphaESS tables)|
 | **PVGISLoader** | `paneldata` | ScenarioDAO | `savePanelData()` |
 
 ### Abstract Classes (Base Classes for Workers)
@@ -176,8 +176,8 @@ Based on the @Entity annotations, the application uses 33 database tables:
 | Import System | DB Tables | DAO Access | DAO Methods Used |
 |---------------|-----------|------------|------------------|
 | **AlphaESS Import System** | `alphaESSRawEnergy`, `alphaESSRawPower`, `alphaESSTransformedData` | AlphaEssDAO | `addRawEnergy()`, `addRawPower()`, `addTransformedData()`, `checkSysSnForDataOnDate()`, `getExportDatesForSN()`, `clearAlphaESSDataForSN()`|
-| **ESBN Import System** | `loadprofiledata`, `scenarios`, `loadprofile` | ScenarioDAO | `createLoadProfileDataEntries()`, `addNewScenarioWithComponents()`, `saveLoadProfile()`|
-| **HomeAssistant Import System** | `loadprofiledata`, `paneldata`, `alphaESSTransformedData` | ScenarioDAO, AlphaEssDAO | `createLoadProfileDataEntries()`, `savePanelData()`, `addTransformedData()`, `getAlphaESSTransformedData()`|
+| **ESBN Import System** | `loadprofiledata`, `scenarios`, `loadprofile`, `alphaESSTransformedData` | ScenarioDAO, AlphaEssDAO | `createLoadProfileDataEntries()`, `addNewScenarioWithComponents()`, `saveLoadProfile()`, `addTransformedData()` (uses AlphaESS tables)|
+| **HomeAssistant Import System** | `loadprofiledata`, `paneldata`, `alphaESSTransformedData` | ScenarioDAO, AlphaEssDAO | `createLoadProfileDataEntries()`, `savePanelData()`, `addTransformedData()`, `getAlphaESSTransformedData()` (uses AlphaESS tables)|
 
 ## Database Table Relationships and Architecture
 
@@ -187,6 +187,17 @@ The CompareToUT application uses a dual-path architecture for database access:
 
 1. **UI-driven path**: UI Components → ComparisonUIViewModel → ToutcRepository → DAO → Database
 2. **Background processing path**: Worker Classes → ToutcRepository (direct) → DAO → Database
+
+### Data Access Object (DAO) Layer
+
+The application uses **only 4 DAO classes** to access all database tables:
+
+- **ScenarioDAO** - Manages scenarios, components, and all junction table relationships
+- **PricePlanDAO** - Handles price plans and day rate structures  
+- **CostingDAO** - Manages cost calculation results
+- **AlphaEssDAO** - Handles all import data (AlphaESS, ESBN, HomeAssistant via shared tables)
+
+**Important:** All import systems (AlphaESS, ESBN, HomeAssistant) use the same DAO (`AlphaEssDAO`) and table structure. The `alphaESS*` tables serve as a shared format for all energy data imports, regardless of the original source.
 
 ### Core Table Categories
 
