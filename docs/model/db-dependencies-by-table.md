@@ -1,6 +1,6 @@
 # Database Table Dependencies - Impact Analysis
 
-This document provides a reverse mapping showing which packages, activities, fragments, and workers depend on each database table. This helps maintainers understand the impact of modifying any database table structure.
+This document provides a reverse mapping showing which packages and classes depend on each database table. This helps maintainers understand the impact of modifying any database table structure.
 
 ## How to Use This Document
 
@@ -12,256 +12,236 @@ When modifying a database table:
 
 ## Database Table Dependencies
 
-### Core Business Tables
-
-#### `scenarios`
-**Components that depend on this table:**
-- **Activities**: MainActivity, ScenarioActivity, BatterySettingsActivity, BatteryChargingActivity, BatteryDischargeActivity, InverterActivity, PanelActivity, PVGISActivity, LoadProfileActivity, EVScheduleActivity, EVDivertActivity, WaterScheduleActivity, WaterSettingsActivity
-- **Fragments**: ComparisonFragment, ScenarioNavFragment, BatterySettingsFragment, BatteryChargingFragment, BatteryDischargeFragment, PanelFragment, InverterFragment, EVScheduleFragment, EVDivertFragment, WaterScheduleFragment, LoadProfilePropertiesFragment, LoadProfileDailyDistributionFragment, LoadProfileHourlyDistributionFragment, LoadProfileMonthlyDistributionFragment, ImportGenerateScenarioFragment, ScenarioDetails, ScenarioGraphs, ScenarioOverview, ScenarioMonthly, ScenarioYear, ImportAlphaGenerateScenario, ImportESBNGenerateScenario, ImportHAGenerateScenario, CompareScenarioSelectDialog, ScenarioSelectDialog
-- **Workers**: CostingWorker, SimulationWorker, AlphaESS GenerationWorker, ESBN ImportWorker, ESBN GenerationWorker, HomeAssistant GenerationWorker
-- **Abstract Classes**: AbstractGenerationWorker
-
-#### `PricePlans`
-**Components that depend on this table:**
-- **Activities**: MainActivity, PricePlanActivity
-- **Fragments**: PricePlanNavFragment, PricePlanEditFragment, ImportOverviewFragment
-- **Workers**: CostingWorker
-
-#### `DayRates`
-**Components that depend on this table:**
-- **Activities**: PricePlanActivity
-- **Fragments**: PricePlanEditFragment, PricePlanEditDayFragment, ImportOverviewFragment
-
-#### `costings`
-**Components that depend on this table:**
-- **Activities**: MainActivity
-- **Fragments**: ComparisonFragment, ScenarioDetails, ScenarioOverview
-- **Workers**: CostingWorker
-
-### Energy System Component Tables
-
-#### `batteries`
-**Components that depend on this table:**
-- **Activities**: BatterySettingsActivity, BatteryChargingActivity, BatteryDischargeActivity
-- **Fragments**: BatterySettingsFragment, BatteryChargingFragment, BatteryDischargeFragment
-- **Workers**: SimulationWorker, AlphaESS GenerationWorker, ESBN GenerationWorker, HomeAssistant GenerationWorker
-- **Abstract Classes**: AbstractGenerationWorker
-
-#### `inverters`
-**Components that depend on this table:**
-- **Activities**: InverterActivity
-- **Fragments**: InverterFragment
-- **Workers**: SimulationWorker, AlphaESS GenerationWorker, ESBN GenerationWorker, HomeAssistant GenerationWorker
-- **Abstract Classes**: AbstractGenerationWorker
-
-#### `panels`
-**Components that depend on this table:**
-- **Activities**: PanelActivity
-- **Fragments**: PanelFragment
-- **Workers**: SimulationWorker, AlphaESS GenerationWorker, ESBN GenerationWorker, HomeAssistant GenerationWorker
-- **Abstract Classes**: AbstractGenerationWorker
-
-#### `hwsystem`
-**Components that depend on this table:**
-- **Activities**: WaterSettingsActivity
-- **Fragments**: WaterScheduleFragment
-- **Workers**: SimulationWorker
-- **Abstract Classes**: AbstractGenerationWorker
-
-#### `loadprofile`
-**Components that depend on this table:**
-- **Activities**: LoadProfileActivity
-- **Fragments**: LoadProfilePropertiesFragment, LoadProfileDailyDistributionFragment, LoadProfileHourlyDistributionFragment, LoadProfileMonthlyDistributionFragment
-- **Workers**: SimulationWorker, GenerateMissingLoadDataWorker, AlphaESS GenerationWorker, ESBN ImportWorker, ESBN GenerationWorker, HomeAssistant GenerationWorker
-- **Abstract Classes**: AbstractGenerationWorker
-
-#### `evcharge`
-**Components that depend on this table:**
-- **Activities**: EVScheduleActivity
-- **Fragments**: EVScheduleFragment
-- **Workers**: SimulationWorker
-- **Abstract Classes**: AbstractGenerationWorker
-
-#### `evdivert`
-**Components that depend on this table:**
-- **Activities**: EVDivertActivity
-- **Fragments**: EVDivertFragment, BatteryDischargeFragment
-- **Workers**: SimulationWorker
-
-#### `hwschedule`
-**Components that depend on this table:**
-- **Activities**: WaterScheduleActivity
-- **Fragments**: WaterScheduleFragment
-- **Workers**: SimulationWorker
-- **Abstract Classes**: AbstractGenerationWorker
-
-#### `hwdivert`
-**Components that depend on this table:**
-- **Workers**: SimulationWorker
-
-#### `loadshift`
-**Components that depend on this table:**
-- **Workers**: SimulationWorker
-- **Abstract Classes**: AbstractGenerationWorker
-
-#### `discharge2grid`
-**Components that depend on this table:**
-- **Fragments**: BatteryDischargeFragment
-- **Workers**: SimulationWorker
-- **Abstract Classes**: AbstractGenerationWorker
-
-### Junction Tables (Many-to-Many Relationships)
-
-#### `scenario2battery`
-**Components that depend on this table:**
-- **Activities**: BatterySettingsActivity, BatteryChargingActivity, BatteryDischargeActivity
-- **Fragments**: BatterySettingsFragment, BatteryChargingFragment, BatteryDischargeFragment
-- **Workers**: SimulationWorker
-- **Abstract Classes**: AbstractGenerationWorker
-
-#### `scenario2inverter`
-**Components that depend on this table:**
-- **Activities**: InverterActivity
-- **Fragments**: InverterFragment
-- **Workers**: SimulationWorker
-- **Abstract Classes**: AbstractGenerationWorker
-
-#### `scenario2panel`
-**Components that depend on this table:**
-- **Activities**: PanelActivity
-- **Fragments**: PanelFragment
-- **Workers**: SimulationWorker
-- **Abstract Classes**: AbstractGenerationWorker
-
-#### `scenario2hwsystem`
-**Components that depend on this table:**
-- **Activities**: WaterSettingsActivity
-- **Fragments**: WaterScheduleFragment
-- **Workers**: SimulationWorker
-- **Abstract Classes**: AbstractGenerationWorker
-
-#### `scenario2loadprofile`
-**Components that depend on this table:**
-- **Activities**: LoadProfileActivity
-- **Fragments**: LoadProfilePropertiesFragment, LoadProfileDailyDistributionFragment, LoadProfileHourlyDistributionFragment, LoadProfileMonthlyDistributionFragment
-- **Workers**: SimulationWorker
-- **Abstract Classes**: AbstractGenerationWorker
-
-#### `scenario2evcharge`
-**Components that depend on this table:**
-- **Activities**: EVScheduleActivity
-- **Fragments**: EVScheduleFragment
-- **Workers**: SimulationWorker
-- **Abstract Classes**: AbstractGenerationWorker
-
-#### `scenario2evdivert`
-**Components that depend on this table:**
-- **Activities**: EVDivertActivity
-- **Fragments**: EVDivertFragment, BatteryDischargeFragment
-- **Workers**: SimulationWorker
-
-#### `scenario2hwschedule`
-**Components that depend on this table:**
-- **Activities**: WaterScheduleActivity
-- **Fragments**: WaterScheduleFragment
-- **Workers**: SimulationWorker
-- **Abstract Classes**: AbstractGenerationWorker
-
-#### `scenario2hwdivert`
-**Components that depend on this table:**
-- **Workers**: SimulationWorker
-
-#### `scenario2loadshift`
-**Components that depend on this table:**
-- **Workers**: SimulationWorker
-- **Abstract Classes**: AbstractGenerationWorker
-
-#### `scenario2discharge`
-**Components that depend on this table:**
-- **Fragments**: BatteryDischargeFragment
-- **Workers**: SimulationWorker
-- **Abstract Classes**: AbstractGenerationWorker
-
-### Time-Series Data Tables
-
-#### `loadprofiledata`
-**Components that depend on this table:**
-- **Fragments**: LoadProfileDailyDistributionFragment, LoadProfileHourlyDistributionFragment, LoadProfileMonthlyDistributionFragment
-- **Workers**: SimulationWorker, GenerateMissingLoadDataWorker, DeleteLoadDataFromProfileWorker, AlphaESS GenerationWorker, ESBN ImportWorker, ESBN CatchUpWorker, ESBN GenerationWorker, HomeAssistant HACatchupWorker, HomeAssistant GenerationWorker
-- **Abstract Classes**: AbstractGenerationWorker
-
-#### `paneldata`
-**Components that depend on this table:**
-- **Activities**: PVGISActivity
-- **Fragments**: PanelFragment
-- **Workers**: SimulationWorker, AlphaESS GenerationWorker, ESBN GenerationWorker, HomeAssistant HACatchupWorker, HomeAssistant GenerationWorker, PVGISLoader
-- **Abstract Classes**: AbstractGenerationWorker
-
-#### `scenariosimulationdata`
-**Components that depend on this table:**
-- **Fragments**: BaseGraphsFragment, ScenarioDetails, ScenarioGraphs, ScenarioMonthly, ScenarioYear
-- **Workers**: CostingWorker, SimulationWorker
-
-### Import/Integration Tables
-
-#### `alphaESSRawEnergy`
-**Components that depend on this table:**
-- **Fragments**: ImportKeyStatsFragment, BaseGraphsFragment, ImportAlphaOverview, ImportAlphaKeyStats, ImportESBNOverview, ImportHAOverview
-- **Workers**: AlphaESS ImportWorker, AlphaESS ExportWorker, AlphaESS CatchUpWorker, AlphaESS DailyWorker
-
-#### `alphaESSRawPower`
-**Components that depend on this table:**
-- **Fragments**: ImportKeyStatsFragment, BaseGraphsFragment
-- **Workers**: AlphaESS ImportWorker, AlphaESS ExportWorker, AlphaESS CatchUpWorker, AlphaESS DailyWorker
-
-#### `alphaESSTransformedData`
-**Components that depend on this table:**
-- **Fragments**: ImportKeyStatsFragment, BaseGraphsFragment, ScenarioGraphs, ImportAlphaOverview, ImportAlphaKeyStats, ImportAlphaGraphs, ImportAlphaGenerateScenario, ImportESBNOverview, ImportESBNGraphs, ImportESBNGenerateScenario, ImportHAOverview, ImportHAKeyStats, ImportHAGraphs, ImportHAGenerateScenario
-- **Workers**: AlphaESS ExportWorker, AlphaESS GenerationWorker, ESBN ImportWorker, ESBN CatchUpWorker, ESBN GenerationWorker, HomeAssistant HACatchupWorker, HomeAssistant GenerationWorker
-- **Abstract Classes**: AbstractGenerationWorker
-
-## High-Impact Tables
-
-The following tables have the most dependencies and should be modified with extreme caution:
-
-### Highest Impact (20+ dependencies)
-- **`scenarios`** - Core table used by almost all components
-- **`loadprofiledata`** - Critical for load profile management and import systems
-- **`alphaESSTransformedData`** - Central to all import and analysis functionality
-
-### High Impact (10-19 dependencies)
-- **`paneldata`** - Solar panel data used across generation and simulation
-- **`scenariosimulationdata`** - Simulation results used by analysis and graphing
-- **`batteries`**, **`inverters`**, **`panels`** - Core component tables
-- **`scenario2*` junction tables** - Critical for scenario component relationships
-
-### Medium Impact (5-9 dependencies)
-- **`PricePlans`**, **`DayRates`** - Price management system
-- **`costings`** - Financial calculation results
-- **`loadprofile`** - Load profile definitions
-- **`evcharge`**, **`hwsystem`**, **`hwschedule`** - Specific component systems
-
-### Lower Impact (1-4 dependencies)
-- **`evdivert`**, **`hwdivert`**, **`loadshift`**, **`discharge2grid`** - Specialized features
-- **`alphaESSRawEnergy`**, **`alphaESSRawPower`** - Raw import data
-
-## DAO Impact Summary
-
-When modifying database tables, consider which DAO handles the table:
-
-- **ScenarioDAO modifications affect**: 25+ tables and 150+ components (highest impact)
-- **AlphaEssDAO modifications affect**: 3 import tables and 30+ import-related components
-- **PricePlanDAO modifications affect**: 2 tables and price management system
-- **CostingDAO modifications affect**: 1 table and financial calculation system
-
-## Testing Recommendations
-
-When modifying any database table:
-
-1. **High-impact tables**: Run full integration tests covering all dependent components
-2. **Component tables**: Test all related activities, fragments, and worker classes
-3. **Junction tables**: Test scenario copying, linking, and component management
-4. **Time-series tables**: Test data import, simulation, and visualization components
-5. **Import tables**: Test all three import systems (AlphaESS, ESBN, HomeAssistant)
-
-Always verify that database migrations maintain data integrity and that all dependent components continue to function correctly after table modifications.
+| DB Table | Package | Classname |
+|----------|---------|-----------|
+| scenarios | com.tfcode.comparetout | MainActivity |
+| scenarios | com.tfcode.comparetout.scenario | ScenarioActivity |
+| scenarios | com.tfcode.comparetout.scenario.battery | BatterySettingsActivity |
+| scenarios | com.tfcode.comparetout.scenario.battery | BatteryChargingActivity |
+| scenarios | com.tfcode.comparetout.scenario.battery | BatteryDischargeActivity |
+| scenarios | com.tfcode.comparetout.scenario.inverter | InverterActivity |
+| scenarios | com.tfcode.comparetout.scenario.panel | PanelActivity |
+| scenarios | com.tfcode.comparetout.scenario.panel | PVGISActivity |
+| scenarios | com.tfcode.comparetout.scenario.loadprofile | LoadProfileActivity |
+| scenarios | com.tfcode.comparetout.scenario.ev | EVScheduleActivity |
+| scenarios | com.tfcode.comparetout.scenario.ev | EVDivertActivity |
+| scenarios | com.tfcode.comparetout.scenario.water | WaterScheduleActivity |
+| scenarios | com.tfcode.comparetout.scenario.water | WaterSettingsActivity |
+| scenarios | com.tfcode.comparetout | ComparisonFragment |
+| scenarios | com.tfcode.comparetout | ScenarioNavFragment |
+| scenarios | com.tfcode.comparetout.scenario.battery | BatterySettingsFragment |
+| scenarios | com.tfcode.comparetout.scenario.battery | BatteryChargingFragment |
+| scenarios | com.tfcode.comparetout.scenario.battery | BatteryDischargeFragment |
+| scenarios | com.tfcode.comparetout.scenario.panel | PanelFragment |
+| scenarios | com.tfcode.comparetout.scenario.inverter | InverterFragment |
+| scenarios | com.tfcode.comparetout.scenario.ev | EVScheduleFragment |
+| scenarios | com.tfcode.comparetout.scenario.ev | EVDivertFragment |
+| scenarios | com.tfcode.comparetout.scenario.water | WaterScheduleFragment |
+| scenarios | com.tfcode.comparetout.scenario.loadprofile | LoadProfilePropertiesFragment |
+| scenarios | com.tfcode.comparetout.scenario.loadprofile | LoadProfileDailyDistributionFragment |
+| scenarios | com.tfcode.comparetout.scenario.loadprofile | LoadProfileHourlyDistributionFragment |
+| scenarios | com.tfcode.comparetout.scenario.loadprofile | LoadProfileMonthlyDistributionFragment |
+| scenarios | com.tfcode.comparetout.importers | ImportGenerateScenarioFragment |
+| scenarios | com.tfcode.comparetout.scenario | ScenarioDetails |
+| scenarios | com.tfcode.comparetout.scenario | ScenarioGraphs |
+| scenarios | com.tfcode.comparetout.scenario | ScenarioOverview |
+| scenarios | com.tfcode.comparetout.scenario | ScenarioMonthly |
+| scenarios | com.tfcode.comparetout.scenario | ScenarioYear |
+| scenarios | com.tfcode.comparetout.importers.alphaess | ImportAlphaGenerateScenario |
+| scenarios | com.tfcode.comparetout.importers.esbn | ImportESBNGenerateScenario |
+| scenarios | com.tfcode.comparetout.importers.homeassistant | ImportHAGenerateScenario |
+| scenarios | com.tfcode.comparetout.util | CompareScenarioSelectDialog |
+| scenarios | com.tfcode.comparetout.scenario | ScenarioSelectDialog |
+| scenarios | com.tfcode.comparetout | CostingWorker |
+| scenarios | com.tfcode.comparetout.scenario | SimulationWorker |
+| scenarios | com.tfcode.comparetout.importers.alphaess | GenerationWorker |
+| scenarios | com.tfcode.comparetout.importers.esbn | ImportWorker |
+| scenarios | com.tfcode.comparetout.importers.esbn | GenerationWorker |
+| scenarios | com.tfcode.comparetout.importers.homeassistant | GenerationWorker |
+| scenarios | com.tfcode.comparetout.importers | AbstractGenerationWorker |
+| PricePlans | com.tfcode.comparetout | MainActivity |
+| PricePlans | com.tfcode.comparetout.priceplan | PricePlanActivity |
+| PricePlans | com.tfcode.comparetout | PricePlanNavFragment |
+| PricePlans | com.tfcode.comparetout.priceplan | PricePlanEditFragment |
+| PricePlans | com.tfcode.comparetout.importers | ImportOverviewFragment |
+| PricePlans | com.tfcode.comparetout | CostingWorker |
+| DayRates | com.tfcode.comparetout.priceplan | PricePlanActivity |
+| DayRates | com.tfcode.comparetout.priceplan | PricePlanEditFragment |
+| DayRates | com.tfcode.comparetout.priceplan | PricePlanEditDayFragment |
+| DayRates | com.tfcode.comparetout.importers | ImportOverviewFragment |
+| costings | com.tfcode.comparetout | MainActivity |
+| costings | com.tfcode.comparetout | ComparisonFragment |
+| costings | com.tfcode.comparetout.scenario | ScenarioDetails |
+| costings | com.tfcode.comparetout.scenario | ScenarioOverview |
+| costings | com.tfcode.comparetout | CostingWorker |
+| batteries | com.tfcode.comparetout.scenario.battery | BatterySettingsActivity |
+| batteries | com.tfcode.comparetout.scenario.battery | BatteryChargingActivity |
+| batteries | com.tfcode.comparetout.scenario.battery | BatteryDischargeActivity |
+| batteries | com.tfcode.comparetout.scenario.battery | BatterySettingsFragment |
+| batteries | com.tfcode.comparetout.scenario.battery | BatteryChargingFragment |
+| batteries | com.tfcode.comparetout.scenario.battery | BatteryDischargeFragment |
+| batteries | com.tfcode.comparetout.scenario | SimulationWorker |
+| batteries | com.tfcode.comparetout.importers.alphaess | GenerationWorker |
+| batteries | com.tfcode.comparetout.importers.esbn | GenerationWorker |
+| batteries | com.tfcode.comparetout.importers.homeassistant | GenerationWorker |
+| batteries | com.tfcode.comparetout.importers | AbstractGenerationWorker |
+| inverters | com.tfcode.comparetout.scenario.inverter | InverterActivity |
+| inverters | com.tfcode.comparetout.scenario.inverter | InverterFragment |
+| inverters | com.tfcode.comparetout.scenario | SimulationWorker |
+| inverters | com.tfcode.comparetout.importers.alphaess | GenerationWorker |
+| inverters | com.tfcode.comparetout.importers.esbn | GenerationWorker |
+| inverters | com.tfcode.comparetout.importers.homeassistant | GenerationWorker |
+| inverters | com.tfcode.comparetout.importers | AbstractGenerationWorker |
+| panels | com.tfcode.comparetout.scenario.panel | PanelActivity |
+| panels | com.tfcode.comparetout.scenario.panel | PanelFragment |
+| panels | com.tfcode.comparetout.scenario | SimulationWorker |
+| panels | com.tfcode.comparetout.importers.alphaess | GenerationWorker |
+| panels | com.tfcode.comparetout.importers.esbn | GenerationWorker |
+| panels | com.tfcode.comparetout.importers.homeassistant | GenerationWorker |
+| panels | com.tfcode.comparetout.importers | AbstractGenerationWorker |
+| hwsystem | com.tfcode.comparetout.scenario.water | WaterSettingsActivity |
+| hwsystem | com.tfcode.comparetout.scenario.water | WaterScheduleFragment |
+| hwsystem | com.tfcode.comparetout.scenario | SimulationWorker |
+| hwsystem | com.tfcode.comparetout.importers | AbstractGenerationWorker |
+| loadprofile | com.tfcode.comparetout.scenario.loadprofile | LoadProfileActivity |
+| loadprofile | com.tfcode.comparetout.scenario.loadprofile | LoadProfilePropertiesFragment |
+| loadprofile | com.tfcode.comparetout.scenario.loadprofile | LoadProfileDailyDistributionFragment |
+| loadprofile | com.tfcode.comparetout.scenario.loadprofile | LoadProfileHourlyDistributionFragment |
+| loadprofile | com.tfcode.comparetout.scenario.loadprofile | LoadProfileMonthlyDistributionFragment |
+| loadprofile | com.tfcode.comparetout.scenario | SimulationWorker |
+| loadprofile | com.tfcode.comparetout.scenario.loadprofile | GenerateMissingLoadDataWorker |
+| loadprofile | com.tfcode.comparetout.importers.alphaess | GenerationWorker |
+| loadprofile | com.tfcode.comparetout.importers.esbn | ImportWorker |
+| loadprofile | com.tfcode.comparetout.importers.esbn | GenerationWorker |
+| loadprofile | com.tfcode.comparetout.importers.homeassistant | GenerationWorker |
+| loadprofile | com.tfcode.comparetout.importers | AbstractGenerationWorker |
+| evcharge | com.tfcode.comparetout.scenario.ev | EVScheduleActivity |
+| evcharge | com.tfcode.comparetout.scenario.ev | EVScheduleFragment |
+| evcharge | com.tfcode.comparetout.scenario | SimulationWorker |
+| evcharge | com.tfcode.comparetout.importers | AbstractGenerationWorker |
+| evdivert | com.tfcode.comparetout.scenario.ev | EVDivertActivity |
+| evdivert | com.tfcode.comparetout.scenario.ev | EVDivertFragment |
+| evdivert | com.tfcode.comparetout.scenario.battery | BatteryDischargeFragment |
+| evdivert | com.tfcode.comparetout.scenario | SimulationWorker |
+| hwschedule | com.tfcode.comparetout.scenario.water | WaterScheduleActivity |
+| hwschedule | com.tfcode.comparetout.scenario.water | WaterScheduleFragment |
+| hwschedule | com.tfcode.comparetout.scenario | SimulationWorker |
+| hwschedule | com.tfcode.comparetout.importers | AbstractGenerationWorker |
+| hwdivert | com.tfcode.comparetout.scenario | SimulationWorker |
+| loadshift | com.tfcode.comparetout.scenario | SimulationWorker |
+| loadshift | com.tfcode.comparetout.importers | AbstractGenerationWorker |
+| discharge2grid | com.tfcode.comparetout.scenario.battery | BatteryDischargeFragment |
+| discharge2grid | com.tfcode.comparetout.scenario | SimulationWorker |
+| discharge2grid | com.tfcode.comparetout.importers | AbstractGenerationWorker |
+| scenario2battery | com.tfcode.comparetout.scenario.battery | BatterySettingsActivity |
+| scenario2battery | com.tfcode.comparetout.scenario.battery | BatteryChargingActivity |
+| scenario2battery | com.tfcode.comparetout.scenario.battery | BatteryDischargeActivity |
+| scenario2battery | com.tfcode.comparetout.scenario.battery | BatterySettingsFragment |
+| scenario2battery | com.tfcode.comparetout.scenario.battery | BatteryChargingFragment |
+| scenario2battery | com.tfcode.comparetout.scenario.battery | BatteryDischargeFragment |
+| scenario2battery | com.tfcode.comparetout.scenario | SimulationWorker |
+| scenario2battery | com.tfcode.comparetout.importers | AbstractGenerationWorker |
+| scenario2inverter | com.tfcode.comparetout.scenario.inverter | InverterActivity |
+| scenario2inverter | com.tfcode.comparetout.scenario.inverter | InverterFragment |
+| scenario2inverter | com.tfcode.comparetout.scenario | SimulationWorker |
+| scenario2inverter | com.tfcode.comparetout.importers | AbstractGenerationWorker |
+| scenario2panel | com.tfcode.comparetout.scenario.panel | PanelActivity |
+| scenario2panel | com.tfcode.comparetout.scenario.panel | PanelFragment |
+| scenario2panel | com.tfcode.comparetout.scenario | SimulationWorker |
+| scenario2panel | com.tfcode.comparetout.importers | AbstractGenerationWorker |
+| scenario2hwsystem | com.tfcode.comparetout.scenario.water | WaterSettingsActivity |
+| scenario2hwsystem | com.tfcode.comparetout.scenario.water | WaterScheduleFragment |
+| scenario2hwsystem | com.tfcode.comparetout.scenario | SimulationWorker |
+| scenario2hwsystem | com.tfcode.comparetout.importers | AbstractGenerationWorker |
+| scenario2loadprofile | com.tfcode.comparetout.scenario.loadprofile | LoadProfileActivity |
+| scenario2loadprofile | com.tfcode.comparetout.scenario.loadprofile | LoadProfilePropertiesFragment |
+| scenario2loadprofile | com.tfcode.comparetout.scenario.loadprofile | LoadProfileDailyDistributionFragment |
+| scenario2loadprofile | com.tfcode.comparetout.scenario.loadprofile | LoadProfileHourlyDistributionFragment |
+| scenario2loadprofile | com.tfcode.comparetout.scenario.loadprofile | LoadProfileMonthlyDistributionFragment |
+| scenario2loadprofile | com.tfcode.comparetout.scenario | SimulationWorker |
+| scenario2loadprofile | com.tfcode.comparetout.importers | AbstractGenerationWorker |
+| scenario2evcharge | com.tfcode.comparetout.scenario.ev | EVScheduleActivity |
+| scenario2evcharge | com.tfcode.comparetout.scenario.ev | EVScheduleFragment |
+| scenario2evcharge | com.tfcode.comparetout.scenario | SimulationWorker |
+| scenario2evcharge | com.tfcode.comparetout.importers | AbstractGenerationWorker |
+| scenario2evdivert | com.tfcode.comparetout.scenario.ev | EVDivertActivity |
+| scenario2evdivert | com.tfcode.comparetout.scenario.ev | EVDivertFragment |
+| scenario2evdivert | com.tfcode.comparetout.scenario.battery | BatteryDischargeFragment |
+| scenario2evdivert | com.tfcode.comparetout.scenario | SimulationWorker |
+| scenario2hwschedule | com.tfcode.comparetout.scenario.water | WaterScheduleActivity |
+| scenario2hwschedule | com.tfcode.comparetout.scenario.water | WaterScheduleFragment |
+| scenario2hwschedule | com.tfcode.comparetout.scenario | SimulationWorker |
+| scenario2hwschedule | com.tfcode.comparetout.importers | AbstractGenerationWorker |
+| scenario2hwdivert | com.tfcode.comparetout.scenario | SimulationWorker |
+| scenario2loadshift | com.tfcode.comparetout.scenario | SimulationWorker |
+| scenario2loadshift | com.tfcode.comparetout.importers | AbstractGenerationWorker |
+| scenario2discharge | com.tfcode.comparetout.scenario.battery | BatteryDischargeFragment |
+| scenario2discharge | com.tfcode.comparetout.scenario | SimulationWorker |
+| scenario2discharge | com.tfcode.comparetout.importers | AbstractGenerationWorker |
+| loadprofiledata | com.tfcode.comparetout.scenario.loadprofile | LoadProfileDailyDistributionFragment |
+| loadprofiledata | com.tfcode.comparetout.scenario.loadprofile | LoadProfileHourlyDistributionFragment |
+| loadprofiledata | com.tfcode.comparetout.scenario.loadprofile | LoadProfileMonthlyDistributionFragment |
+| loadprofiledata | com.tfcode.comparetout.scenario | SimulationWorker |
+| loadprofiledata | com.tfcode.comparetout.scenario.loadprofile | GenerateMissingLoadDataWorker |
+| loadprofiledata | com.tfcode.comparetout.scenario.loadprofile | DeleteLoadDataFromProfileWorker |
+| loadprofiledata | com.tfcode.comparetout.importers.alphaess | GenerationWorker |
+| loadprofiledata | com.tfcode.comparetout.importers.esbn | ImportWorker |
+| loadprofiledata | com.tfcode.comparetout.importers.esbn | CatchUpWorker |
+| loadprofiledata | com.tfcode.comparetout.importers.esbn | GenerationWorker |
+| loadprofiledata | com.tfcode.comparetout.importers.homeassistant | HACatchupWorker |
+| loadprofiledata | com.tfcode.comparetout.importers.homeassistant | GenerationWorker |
+| loadprofiledata | com.tfcode.comparetout.importers | AbstractGenerationWorker |
+| paneldata | com.tfcode.comparetout.scenario.panel | PVGISActivity |
+| paneldata | com.tfcode.comparetout.scenario.panel | PanelFragment |
+| paneldata | com.tfcode.comparetout.scenario | SimulationWorker |
+| paneldata | com.tfcode.comparetout.importers.alphaess | GenerationWorker |
+| paneldata | com.tfcode.comparetout.importers.esbn | GenerationWorker |
+| paneldata | com.tfcode.comparetout.importers.homeassistant | HACatchupWorker |
+| paneldata | com.tfcode.comparetout.importers.homeassistant | GenerationWorker |
+| paneldata | com.tfcode.comparetout.scenario.panel | PVGISLoader |
+| paneldata | com.tfcode.comparetout.importers | AbstractGenerationWorker |
+| scenariosimulationdata | com.tfcode.comparetout.util | BaseGraphsFragment |
+| scenariosimulationdata | com.tfcode.comparetout.scenario | ScenarioDetails |
+| scenariosimulationdata | com.tfcode.comparetout.scenario | ScenarioGraphs |
+| scenariosimulationdata | com.tfcode.comparetout.scenario | ScenarioMonthly |
+| scenariosimulationdata | com.tfcode.comparetout.scenario | ScenarioYear |
+| scenariosimulationdata | com.tfcode.comparetout | CostingWorker |
+| scenariosimulationdata | com.tfcode.comparetout.scenario | SimulationWorker |
+| alphaESSRawEnergy | com.tfcode.comparetout.importers | ImportKeyStatsFragment |
+| alphaESSRawEnergy | com.tfcode.comparetout.util | BaseGraphsFragment |
+| alphaESSRawEnergy | com.tfcode.comparetout.importers.alphaess | ImportAlphaOverview |
+| alphaESSRawEnergy | com.tfcode.comparetout.importers.alphaess | ImportAlphaKeyStats |
+| alphaESSRawEnergy | com.tfcode.comparetout.importers.esbn | ImportESBNOverview |
+| alphaESSRawEnergy | com.tfcode.comparetout.importers.homeassistant | ImportHAOverview |
+| alphaESSRawEnergy | com.tfcode.comparetout.importers.alphaess | ImportWorker |
+| alphaESSRawEnergy | com.tfcode.comparetout.importers.alphaess | ExportWorker |
+| alphaESSRawEnergy | com.tfcode.comparetout.importers.alphaess | CatchUpWorker |
+| alphaESSRawEnergy | com.tfcode.comparetout.importers.alphaess | DailyWorker |
+| alphaESSRawPower | com.tfcode.comparetout.importers | ImportKeyStatsFragment |
+| alphaESSRawPower | com.tfcode.comparetout.util | BaseGraphsFragment |
+| alphaESSRawPower | com.tfcode.comparetout.importers.alphaess | ImportWorker |
+| alphaESSRawPower | com.tfcode.comparetout.importers.alphaess | ExportWorker |
+| alphaESSRawPower | com.tfcode.comparetout.importers.alphaess | CatchUpWorker |
+| alphaESSRawPower | com.tfcode.comparetout.importers.alphaess | DailyWorker |
+| alphaESSTransformedData | com.tfcode.comparetout.importers | ImportKeyStatsFragment |
+| alphaESSTransformedData | com.tfcode.comparetout.util | BaseGraphsFragment |
+| alphaESSTransformedData | com.tfcode.comparetout.scenario | ScenarioGraphs |
+| alphaESSTransformedData | com.tfcode.comparetout.importers.alphaess | ImportAlphaOverview |
+| alphaESSTransformedData | com.tfcode.comparetout.importers.alphaess | ImportAlphaKeyStats |
+| alphaESSTransformedData | com.tfcode.comparetout.importers.alphaess | ImportAlphaGraphs |
+| alphaESSTransformedData | com.tfcode.comparetout.importers.alphaess | ImportAlphaGenerateScenario |
+| alphaESSTransformedData | com.tfcode.comparetout.importers.esbn | ImportESBNOverview |
+| alphaESSTransformedData | com.tfcode.comparetout.importers.esbn | ImportESBNGraphs |
+| alphaESSTransformedData | com.tfcode.comparetout.importers.esbn | ImportESBNGenerateScenario |
+| alphaESSTransformedData | com.tfcode.comparetout.importers.homeassistant | ImportHAOverview |
+| alphaESSTransformedData | com.tfcode.comparetout.importers.homeassistant | ImportHAKeyStats |
+| alphaESSTransformedData | com.tfcode.comparetout.importers.homeassistant | ImportHAGraphs |
+| alphaESSTransformedData | com.tfcode.comparetout.importers.homeassistant | ImportHAGenerateScenario |
+| alphaESSTransformedData | com.tfcode.comparetout.importers.alphaess | ExportWorker |
+| alphaESSTransformedData | com.tfcode.comparetout.importers.alphaess | GenerationWorker |
+| alphaESSTransformedData | com.tfcode.comparetout.importers.esbn | ImportWorker |
+| alphaESSTransformedData | com.tfcode.comparetout.importers.esbn | CatchUpWorker |
+| alphaESSTransformedData | com.tfcode.comparetout.importers.esbn | GenerationWorker |
+| alphaESSTransformedData | com.tfcode.comparetout.importers.homeassistant | HACatchupWorker |
+| alphaESSTransformedData | com.tfcode.comparetout.importers.homeassistant | GenerationWorker |
+| alphaESSTransformedData | com.tfcode.comparetout.importers | AbstractGenerationWorker |
