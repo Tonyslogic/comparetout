@@ -16,6 +16,17 @@ When modifying a database table:
 |----------|---------|-----------|
 | scenarios | com.tfcode.comparetout | MainActivity |
 | scenarios | com.tfcode.comparetout.scenario | ScenarioActivity |
+| scenario2battery | com.tfcode.comparetout.scenario | ScenarioActivity |
+| scenario2inverter | com.tfcode.comparetout.scenario | ScenarioActivity |
+| scenario2panel | com.tfcode.comparetout.scenario | ScenarioActivity |
+| scenario2hwsystem | com.tfcode.comparetout.scenario | ScenarioActivity |
+| scenario2loadprofile | com.tfcode.comparetout.scenario | ScenarioActivity |
+| scenario2evcharge | com.tfcode.comparetout.scenario | ScenarioActivity |
+| scenario2evdivert | com.tfcode.comparetout.scenario | ScenarioActivity |
+| scenario2hwschedule | com.tfcode.comparetout.scenario | ScenarioActivity |
+| scenario2hwdivert | com.tfcode.comparetout.scenario | ScenarioActivity |
+| scenario2loadshift | com.tfcode.comparetout.scenario | ScenarioActivity |
+| scenario2discharge | com.tfcode.comparetout.scenario | ScenarioActivity |
 | scenarios | com.tfcode.comparetout.scenario.battery | BatterySettingsActivity |
 | scenarios | com.tfcode.comparetout.scenario.battery | BatteryChargingActivity |
 | scenarios | com.tfcode.comparetout.scenario.battery | BatteryDischargeActivity |
@@ -55,7 +66,7 @@ When modifying a database table:
 | scenarios | com.tfcode.comparetout | CostingWorker |
 | scenarios | com.tfcode.comparetout.scenario | SimulationWorker |
 | scenarios | com.tfcode.comparetout.importers.alphaess | GenerationWorker |
-| scenarios | com.tfcode.comparetout.importers.esbn | ImportWorker |
+| scenarios | com.tfcode.comparetout.importers.esbn | ESBNImportWorker |
 | scenarios | com.tfcode.comparetout.importers.esbn | GenerationWorker |
 | scenarios | com.tfcode.comparetout.importers.homeassistant | GenerationWorker |
 | scenarios | com.tfcode.comparetout.importers | AbstractGenerationWorker |
@@ -77,6 +88,7 @@ When modifying a database table:
 | batteries | com.tfcode.comparetout.scenario.battery | BatterySettingsActivity |
 | batteries | com.tfcode.comparetout.scenario.battery | BatteryChargingActivity |
 | batteries | com.tfcode.comparetout.scenario.battery | BatteryDischargeActivity |
+| discharge2grid | com.tfcode.comparetout.scenario.battery | BatteryDischargeActivity |
 | batteries | com.tfcode.comparetout.scenario.battery | BatterySettingsFragment |
 | batteries | com.tfcode.comparetout.scenario.battery | BatteryChargingFragment |
 | batteries | com.tfcode.comparetout.scenario.battery | BatteryDischargeFragment |
@@ -93,6 +105,7 @@ When modifying a database table:
 | inverters | com.tfcode.comparetout.importers.homeassistant | GenerationWorker |
 | inverters | com.tfcode.comparetout.importers | AbstractGenerationWorker |
 | panels | com.tfcode.comparetout.scenario.panel | PanelActivity |
+| paneldata | com.tfcode.comparetout.scenario.panel | PanelActivity |
 | panels | com.tfcode.comparetout.scenario.panel | PanelFragment |
 | panels | com.tfcode.comparetout.scenario | SimulationWorker |
 | panels | com.tfcode.comparetout.importers.alphaess | GenerationWorker |
@@ -104,6 +117,7 @@ When modifying a database table:
 | hwsystem | com.tfcode.comparetout.scenario | SimulationWorker |
 | hwsystem | com.tfcode.comparetout.importers | AbstractGenerationWorker |
 | loadprofile | com.tfcode.comparetout.scenario.loadprofile | LoadProfileActivity |
+| loadprofiledata | com.tfcode.comparetout.scenario.loadprofile | LoadProfileActivity |
 | loadprofile | com.tfcode.comparetout.scenario.loadprofile | LoadProfilePropertiesFragment |
 | loadprofile | com.tfcode.comparetout.scenario.loadprofile | LoadProfileDailyDistributionFragment |
 | loadprofile | com.tfcode.comparetout.scenario.loadprofile | LoadProfileHourlyDistributionFragment |
@@ -111,7 +125,7 @@ When modifying a database table:
 | loadprofile | com.tfcode.comparetout.scenario | SimulationWorker |
 | loadprofile | com.tfcode.comparetout.scenario.loadprofile | GenerateMissingLoadDataWorker |
 | loadprofile | com.tfcode.comparetout.importers.alphaess | GenerationWorker |
-| loadprofile | com.tfcode.comparetout.importers.esbn | ImportWorker |
+| loadprofile | com.tfcode.comparetout.importers.esbn | ESBNImportWorker |
 | loadprofile | com.tfcode.comparetout.importers.esbn | GenerationWorker |
 | loadprofile | com.tfcode.comparetout.importers.homeassistant | GenerationWorker |
 | loadprofile | com.tfcode.comparetout.importers | AbstractGenerationWorker |
@@ -128,6 +142,9 @@ When modifying a database table:
 | hwschedule | com.tfcode.comparetout.scenario | SimulationWorker |
 | hwschedule | com.tfcode.comparetout.importers | AbstractGenerationWorker |
 | hwdivert | com.tfcode.comparetout.scenario | SimulationWorker |
+| hwdivert | com.tfcode.comparetout.scenario.water | WaterScheduleActivity |
+| hwdivert | com.tfcode.comparetout.scenario.water | WaterSettingsActivity |
+| hwdivert | com.tfcode.comparetout.scenario.water | WaterScheduleFragment |
 | loadshift | com.tfcode.comparetout.scenario | SimulationWorker |
 | loadshift | com.tfcode.comparetout.importers | AbstractGenerationWorker |
 | discharge2grid | com.tfcode.comparetout.scenario.battery | BatteryDischargeFragment |
@@ -136,6 +153,7 @@ When modifying a database table:
 | scenario2battery | com.tfcode.comparetout.scenario.battery | BatterySettingsActivity |
 | scenario2battery | com.tfcode.comparetout.scenario.battery | BatteryChargingActivity |
 | scenario2battery | com.tfcode.comparetout.scenario.battery | BatteryDischargeActivity |
+| scenario2discharge | com.tfcode.comparetout.scenario.battery | BatteryDischargeActivity |
 | scenario2battery | com.tfcode.comparetout.scenario.battery | BatterySettingsFragment |
 | scenario2battery | com.tfcode.comparetout.scenario.battery | BatteryChargingFragment |
 | scenario2battery | com.tfcode.comparetout.scenario.battery | BatteryDischargeFragment |
@@ -173,6 +191,9 @@ When modifying a database table:
 | scenario2hwschedule | com.tfcode.comparetout.scenario | SimulationWorker |
 | scenario2hwschedule | com.tfcode.comparetout.importers | AbstractGenerationWorker |
 | scenario2hwdivert | com.tfcode.comparetout.scenario | SimulationWorker |
+| scenario2hwdivert | com.tfcode.comparetout.scenario.water | WaterScheduleActivity |
+| scenario2hwdivert | com.tfcode.comparetout.scenario.water | WaterSettingsActivity |
+| scenario2hwdivert | com.tfcode.comparetout.scenario.water | WaterScheduleFragment |
 | scenario2loadshift | com.tfcode.comparetout.scenario | SimulationWorker |
 | scenario2loadshift | com.tfcode.comparetout.importers | AbstractGenerationWorker |
 | scenario2discharge | com.tfcode.comparetout.scenario.battery | BatteryDischargeFragment |
@@ -185,8 +206,8 @@ When modifying a database table:
 | loadprofiledata | com.tfcode.comparetout.scenario.loadprofile | GenerateMissingLoadDataWorker |
 | loadprofiledata | com.tfcode.comparetout.scenario.loadprofile | DeleteLoadDataFromProfileWorker |
 | loadprofiledata | com.tfcode.comparetout.importers.alphaess | GenerationWorker |
-| loadprofiledata | com.tfcode.comparetout.importers.esbn | ImportWorker |
-| loadprofiledata | com.tfcode.comparetout.importers.esbn | CatchUpWorker |
+| loadprofiledata | com.tfcode.comparetout.importers.esbn | ESBNImportWorker |
+| loadprofiledata | com.tfcode.comparetout.importers.esbn | ESBNCatchUpWorker |
 | loadprofiledata | com.tfcode.comparetout.importers.esbn | GenerationWorker |
 | loadprofiledata | com.tfcode.comparetout.importers.homeassistant | HACatchupWorker |
 | loadprofiledata | com.tfcode.comparetout.importers.homeassistant | GenerationWorker |
@@ -239,8 +260,8 @@ When modifying a database table:
 | alphaESSTransformedData | com.tfcode.comparetout.importers.homeassistant | ImportHAGenerateScenario |
 | alphaESSTransformedData | com.tfcode.comparetout.importers.alphaess | ExportWorker |
 | alphaESSTransformedData | com.tfcode.comparetout.importers.alphaess | GenerationWorker |
-| alphaESSTransformedData | com.tfcode.comparetout.importers.esbn | ImportWorker |
-| alphaESSTransformedData | com.tfcode.comparetout.importers.esbn | CatchUpWorker |
+| alphaESSTransformedData | com.tfcode.comparetout.importers.esbn | ESBNImportWorker |
+| alphaESSTransformedData | com.tfcode.comparetout.importers.esbn | ESBNCatchUpWorker |
 | alphaESSTransformedData | com.tfcode.comparetout.importers.esbn | GenerationWorker |
 | alphaESSTransformedData | com.tfcode.comparetout.importers.homeassistant | HACatchupWorker |
 | alphaESSTransformedData | com.tfcode.comparetout.importers.homeassistant | GenerationWorker |
