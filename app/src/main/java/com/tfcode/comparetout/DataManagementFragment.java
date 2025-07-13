@@ -43,10 +43,12 @@ import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.importers.alphaess.ImportAlphaActivity;
 import com.tfcode.comparetout.importers.esbn.ImportESBNActivity;
 import com.tfcode.comparetout.importers.homeassistant.ImportHomeAssistantActivity;
+import com.tfcode.comparetout.util.EdgeInsets;
+import com.tfcode.comparetout.util.InsetRespectingFragment;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 
-public class DataManagementFragment extends Fragment {
+public class DataManagementFragment extends InsetRespectingFragment {
 
     private WebViewAssetLoader mAssetLoader;
     private View mPopupView;
@@ -97,7 +99,9 @@ public class DataManagementFragment extends Fragment {
         mHelpWindow = new PopupWindow(mPopupView, width, height, focusable);
 
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_data_management, container, false);
+        View view = inflater.inflate(R.layout.fragment_data_management, container, false);
+//        applyInsetsToView(R.id.tab_layout, EdgeInsets.Edge.TOP);
+        return view;
     }
 
     @Override

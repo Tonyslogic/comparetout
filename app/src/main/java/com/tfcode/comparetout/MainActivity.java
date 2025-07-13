@@ -49,6 +49,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
+import androidx.core.view.WindowCompat;
 import androidx.datastore.preferences.core.Preferences;
 import androidx.datastore.preferences.core.PreferencesKeys;
 import androidx.lifecycle.ViewModelProvider;
@@ -70,6 +71,8 @@ import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.priceplan.PricePlanActivity;
+import com.tfcode.comparetout.util.EdgeInsets;
+import com.tfcode.comparetout.util.InsetRespectingActivity;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.io.FileNotFoundException;
@@ -114,7 +117,7 @@ import io.reactivex.rxjava3.core.Single;
  * - COSTS_FRAGMENT: Price plan definition and management
  * - COMPARE_FRAGMENT: Cost comparison and analysis results
  */
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends InsetRespectingActivity {
 
     public static final String CHANNEL_ID = "TOUTC-PROGRESS";
     public static final int USAGE_FRAGMENT = 1;
@@ -317,6 +320,8 @@ public class MainActivity extends AppCompatActivity {
                     .build();
 
         setContentView(R.layout.activity_main);
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        applyInsetsToView(R.id.tab_layout, EdgeInsets.Edge.TOP);
         createSimulationFeedback();
         createProgressBar();
 

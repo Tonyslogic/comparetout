@@ -1,0 +1,36 @@
+/*
+ * Copyright (c) 2025. Tony Finnerty
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+
+package com.tfcode.comparetout.util;
+
+// Simple container for selected edges
+public class EdgeInsets {
+
+    public enum Edge {
+        TOP, BOTTOM, LEFT, RIGHT
+    }
+    private final boolean[] edgeFlags = new boolean[4];
+
+    EdgeInsets(Edge... edges) {
+        for (Edge edge : edges) {
+            edgeFlags[edge.ordinal()] = true;
+        }
+    }
+
+    public boolean contains(Edge edge) {
+        return edgeFlags[edge.ordinal()];
+    }
+}
