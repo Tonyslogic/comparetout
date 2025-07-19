@@ -37,7 +37,7 @@ import java.util.List;
 
 import io.reactivex.rxjava3.core.Single;
 
-public abstract class AbstractEPOFolderActivity extends AppCompatActivity {
+public abstract class AbstractEPOFolderActivity extends InsetRespectingActivity {
 
     public static final String EPO_FILE_LOCATION_KEY = "files_uri";
 

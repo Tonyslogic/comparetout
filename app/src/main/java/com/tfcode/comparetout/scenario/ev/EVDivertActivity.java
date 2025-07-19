@@ -21,7 +21,6 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.lifecycle.ViewModelProvider;
@@ -63,6 +62,8 @@ import com.tfcode.comparetout.model.json.scenario.EVDivertJson;
 import com.tfcode.comparetout.model.scenario.EVDivert;
 import com.tfcode.comparetout.model.scenario.Scenario2EVDivert;
 import com.tfcode.comparetout.scenario.ScenarioSelectDialog;
+import com.tfcode.comparetout.util.EdgeInsets;
+import com.tfcode.comparetout.util.InsetRespectingActivity;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.io.FileNotFoundException;
@@ -77,7 +78,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public class EVDivertActivity extends AppCompatActivity {
+public class EVDivertActivity extends InsetRespectingActivity {
 
     private Handler mMainHandler;
     private ProgressBar mProgressBar;
@@ -157,6 +158,7 @@ public class EVDivertActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        applyInsetsToView(R.id.ev_divert_tab_layout, EdgeInsets.Edge.TOP);
         setContentView(R.layout.activity_evdivert);
         createSimulationFeedback();
         createProgressBar();
@@ -322,7 +324,7 @@ public class EVDivertActivity extends AppCompatActivity {
 
     private void deleteAllEVDivertsInTab() {
         int pos = mViewPager.getCurrentItem();
-        if (mEVDiverts.size() > 0) {
+        if (!mEVDiverts.isEmpty()) {
 
             List<EVDivert> evChargesToBeDeleted = mTabContents.get(pos);
             if (!(null == evChargesToBeDeleted))
@@ -371,7 +373,7 @@ public class EVDivertActivity extends AppCompatActivity {
 
         LinearLayout linearLayout = (LinearLayout)tabLayout.getChildAt(0);
         for (int i = 0; i < linearLayout.getChildCount(); i++) {
-            ((View) linearLayout.getChildAt(i)).setOnLongClickListener(v -> {
+            linearLayout.getChildAt(i).setOnLongClickListener(v -> {
                 showHelp("https://appassets.androidplatform.net/assets/scenario/ev_divert/help.html");
                 return true;
             });
@@ -758,7 +760,7 @@ public class EVDivertActivity extends AppCompatActivity {
 
     private void showHelp(String url) {
         mHelpWindow.setHeight((int) (getWindow().getDecorView().getHeight()*0.6));
-        mHelpWindow.setWidth((int) (getWindow().getDecorView().getWidth()));
+        mHelpWindow.setWidth(getWindow().getDecorView().getWidth());
         mHelpWindow.showAtLocation(mViewPager.getRootView(), Gravity.CENTER, 0, 0);
         WebView webView = mPopupView.findViewById(R.id.helpWebView);
 

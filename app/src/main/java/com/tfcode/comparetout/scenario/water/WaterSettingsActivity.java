@@ -46,7 +46,6 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.lifecycle.ViewModelProvider;
@@ -68,6 +67,8 @@ import com.tfcode.comparetout.model.scenario.HWSystem;
 import com.tfcode.comparetout.model.scenario.Scenario2HWSystem;
 import com.tfcode.comparetout.scenario.ScenarioSelectDialog;
 import com.tfcode.comparetout.util.AbstractTextWatcher;
+import com.tfcode.comparetout.util.EdgeInsets;
+import com.tfcode.comparetout.util.InsetRespectingActivity;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.io.FileNotFoundException;
@@ -81,7 +82,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class WaterSettingsActivity extends AppCompatActivity {
+public class WaterSettingsActivity extends InsetRespectingActivity {
 
     private Handler mMainHandler;
     private ProgressBar mSimulationInProgressBar;
@@ -165,6 +166,8 @@ public class WaterSettingsActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        applyInsetsToView(R.id.water_settings_table, EdgeInsets.Edge.TOP);
+        applyInsetsToView(R.id.water_use_table_scroll, EdgeInsets.Edge.BOTTOM);
         setContentView(R.layout.activity_water_settings);
         createSimulationFeedback();
 
@@ -673,7 +676,7 @@ public class WaterSettingsActivity extends AppCompatActivity {
 
     private void showHelp(String url) {
         mHelpWindow.setHeight((int) (getWindow().getDecorView().getHeight()*0.6));
-        mHelpWindow.setWidth((int) (getWindow().getDecorView().getWidth()));
+        mHelpWindow.setWidth(getWindow().getDecorView().getWidth());
         mHelpWindow.showAtLocation(getWindow().getDecorView().getRootView(), Gravity.CENTER, 0, 0);
         WebView webView = mPopupView.findViewById(R.id.helpWebView);
 

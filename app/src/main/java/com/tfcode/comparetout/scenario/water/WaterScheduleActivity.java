@@ -21,7 +21,6 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.lifecycle.ViewModelProvider;
@@ -63,6 +62,8 @@ import com.tfcode.comparetout.model.json.scenario.HWScheduleJson;
 import com.tfcode.comparetout.model.scenario.HWSchedule;
 import com.tfcode.comparetout.model.scenario.Scenario2HWSchedule;
 import com.tfcode.comparetout.scenario.ScenarioSelectDialog;
+import com.tfcode.comparetout.util.EdgeInsets;
+import com.tfcode.comparetout.util.InsetRespectingActivity;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.io.FileNotFoundException;
@@ -77,7 +78,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public class WaterScheduleActivity extends AppCompatActivity {
+public class WaterScheduleActivity extends InsetRespectingActivity {
 
     private Handler mMainHandler;
     private ProgressBar mProgressBar;
@@ -157,6 +158,7 @@ public class WaterScheduleActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        applyInsetsToView(R.id.water_schedule_tab_layout, EdgeInsets.Edge.TOP);
         setContentView(R.layout.activity_water_schedule);
         createSimulationFeedback();
         createProgressBar();
@@ -322,7 +324,7 @@ public class WaterScheduleActivity extends AppCompatActivity {
 
     private void deleteAllHWSchedulesInTab() {
         int pos = mViewPager.getCurrentItem();
-        if (mHWSchedules.size() > 0) {
+        if (!mHWSchedules.isEmpty()) {
 
             List<HWSchedule> hwSchedulesToBeDeleted = mTabContents.get(pos);
             if (!(null == hwSchedulesToBeDeleted))
@@ -371,7 +373,7 @@ public class WaterScheduleActivity extends AppCompatActivity {
 
         LinearLayout linearLayout = (LinearLayout)tabLayout.getChildAt(0);
         for (int i = 0; i < linearLayout.getChildCount(); i++) {
-            ((View) linearLayout.getChildAt(i)).setOnLongClickListener(v -> {
+            linearLayout.getChildAt(i).setOnLongClickListener(v -> {
                 showHelp("https://appassets.androidplatform.net/assets/scenario/water_schedule/help.html");
                 return true;
             });
@@ -755,7 +757,7 @@ public class WaterScheduleActivity extends AppCompatActivity {
 
     private void showHelp(String url) {
         mHelpWindow.setHeight((int) (getWindow().getDecorView().getHeight()*0.6));
-        mHelpWindow.setWidth((int) (getWindow().getDecorView().getWidth()));
+        mHelpWindow.setWidth(getWindow().getDecorView().getWidth());
         mHelpWindow.showAtLocation(mViewPager.getRootView(), Gravity.CENTER, 0, 0);
         WebView webView = mPopupView.findViewById(R.id.helpWebView);
 

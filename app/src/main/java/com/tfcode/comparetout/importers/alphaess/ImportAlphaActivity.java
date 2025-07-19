@@ -50,6 +50,7 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.util.AbstractEPOFolderActivity;
+import com.tfcode.comparetout.util.EdgeInsets;
 import com.tfcode.comparetout.util.GraphableActivity;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
@@ -132,6 +133,7 @@ public class ImportAlphaActivity extends AbstractEPOFolderActivity implements Gr
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        applyInsetsToView(R.id.import_alpha_tab_layout, EdgeInsets.Edge.TOP);
 
         mAssetLoader = new WebViewAssetLoader.Builder()
                 .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))

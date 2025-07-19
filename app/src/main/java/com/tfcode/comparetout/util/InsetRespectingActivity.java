@@ -25,6 +25,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import java.util.HashMap;
@@ -41,6 +42,15 @@ public abstract class InsetRespectingActivity  extends AppCompatActivity {
      */
     protected void applyInsetsToView(@IdRes int viewId, EdgeInsets.Edge... edges) {
         insetTargets.put(viewId, new EdgeInsets(edges));
+    }
+
+    @Override
+    protected void onCreate(@Nullable Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+
+        // Required for edge-to-edge to work; disables automatic system window insets
+        Window window = getWindow();
+        WindowCompat.setDecorFitsSystemWindows(window, false);
     }
 
     @Override
@@ -66,6 +76,7 @@ public abstract class InsetRespectingActivity  extends AppCompatActivity {
                     v.setPadding(left, top, right, bottom);
                     return insets;
                 });
+                ViewCompat.requestApplyInsets(target);
             }
         }
     }

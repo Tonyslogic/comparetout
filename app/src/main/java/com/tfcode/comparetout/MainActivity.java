@@ -310,6 +310,7 @@ public class MainActivity extends InsetRespectingActivity {
 //                .penaltyDeath()
                 .build());
         super.onCreate(savedInstanceState);
+        applyInsetsToView(R.id.tab_layout, EdgeInsets.Edge.TOP);
         createNotificationChannel();
 
         loadSettingsFromDataStore();
@@ -320,8 +321,6 @@ public class MainActivity extends InsetRespectingActivity {
                     .build();
 
         setContentView(R.layout.activity_main);
-        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
-        applyInsetsToView(R.id.tab_layout, EdgeInsets.Edge.TOP);
         createSimulationFeedback();
         createProgressBar();
 

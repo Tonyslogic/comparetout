@@ -43,13 +43,15 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.R;
+import com.tfcode.comparetout.util.EdgeInsets;
 import com.tfcode.comparetout.util.GraphableActivity;
+import com.tfcode.comparetout.util.InsetRespectingActivity;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.util.ArrayList;
 import java.util.Objects;
 
-public class ImportHomeAssistantActivity  extends AppCompatActivity implements GraphableActivity {
+public class ImportHomeAssistantActivity  extends InsetRespectingActivity implements GraphableActivity {
     ViewPager2 mViewPager;
     private boolean mZoom = false;
     private WebViewAssetLoader mAssetLoader;
@@ -100,6 +102,7 @@ public class ImportHomeAssistantActivity  extends AppCompatActivity implements G
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        applyInsetsToView(R.id.import_alpha_tab_layout, EdgeInsets.Edge.TOP);
         setContentView(R.layout.activity_import_alpha);
 
         mAssetLoader = new WebViewAssetLoader.Builder()

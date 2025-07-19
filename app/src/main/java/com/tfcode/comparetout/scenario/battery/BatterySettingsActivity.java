@@ -21,7 +21,6 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.lifecycle.ViewModelProvider;
@@ -63,6 +62,8 @@ import com.tfcode.comparetout.model.json.scenario.BatteryJson;
 import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.Scenario2Battery;
 import com.tfcode.comparetout.scenario.ScenarioSelectDialog;
+import com.tfcode.comparetout.util.EdgeInsets;
+import com.tfcode.comparetout.util.InsetRespectingActivity;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.io.FileNotFoundException;
@@ -76,7 +77,7 @@ import java.util.List;
 import java.util.Objects;
 
 
-public class BatterySettingsActivity extends AppCompatActivity {
+public class BatterySettingsActivity extends InsetRespectingActivity {
 
     private Handler mMainHandler;
     private ProgressBar mProgressBar;
@@ -162,6 +163,7 @@ public class BatterySettingsActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        applyInsetsToView(R.id.battery_settings_tab_layout, EdgeInsets.Edge.TOP);
         setContentView(R.layout.activity_battery_settings);
         createSimulationFeedback();
         createProgressBar();
@@ -278,7 +280,7 @@ public class BatterySettingsActivity extends AppCompatActivity {
 
     private void deleteBattery() {
         int pos = mViewPager.getCurrentItem();
-        if (mBatteries.size() > 0) {
+        if (!mBatteries.isEmpty()) {
             Battery removed = mBatteries.remove(pos);
             if (null == mRemovedBatteries) mRemovedBatteries = new ArrayList<>();
             mRemovedBatteries.add(removed.getBatteryIndex());
@@ -323,7 +325,7 @@ public class BatterySettingsActivity extends AppCompatActivity {
 
         LinearLayout linearLayout = (LinearLayout)tabLayout.getChildAt(0);
         for (int i = 0; i < linearLayout.getChildCount(); i++) {
-            ((View) linearLayout.getChildAt(i)).setOnLongClickListener(v -> {
+            linearLayout.getChildAt(i).setOnLongClickListener(v -> {
                 showHelp("https://appassets.androidplatform.net/assets/scenario/battery_settings/help.html");
                 return true;
             });
@@ -676,7 +678,7 @@ public class BatterySettingsActivity extends AppCompatActivity {
 
     private void showHelp(String url) {
         mHelpWindow.setHeight((int) (getWindow().getDecorView().getHeight()*0.6));
-        mHelpWindow.setWidth((int) (getWindow().getDecorView().getWidth()));
+        mHelpWindow.setWidth(getWindow().getDecorView().getWidth());
         mHelpWindow.showAtLocation(mViewPager.getRootView(), Gravity.CENTER, 0, 0);
         WebView webView = mPopupView.findViewById(R.id.helpWebView);
 

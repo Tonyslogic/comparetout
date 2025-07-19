@@ -36,7 +36,6 @@ import android.widget.PopupWindow;
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 import androidx.webkit.WebViewAssetLoader;
@@ -55,6 +54,8 @@ import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.json.scenario.LoadProfileJson;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
 import com.tfcode.comparetout.scenario.ScenarioSelectDialog;
+import com.tfcode.comparetout.util.EdgeInsets;
+import com.tfcode.comparetout.util.InsetRespectingActivity;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.lang.reflect.Type;
@@ -62,7 +63,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class LoadProfileActivity extends AppCompatActivity {
+public class LoadProfileActivity extends InsetRespectingActivity {
 
     ViewPager2 mViewPager;
     private Long scenarioID = 0L;
@@ -108,6 +109,7 @@ public class LoadProfileActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        applyInsetsToView(R.id.loadProfile_tab_layout, EdgeInsets.Edge.TOP);
         Intent intent = getIntent();
         scenarioID = intent.getLongExtra("ScenarioID", 0L);
         String scenarioName = intent.getStringExtra("ScenarioName");
@@ -333,16 +335,16 @@ public class LoadProfileActivity extends AppCompatActivity {
         mMediator.attach();
 
         LinearLayout linearLayout = (LinearLayout)tabLayout.getChildAt(0);
-        ((View)linearLayout.getChildAt(0)).setOnLongClickListener(v -> {
+        linearLayout.getChildAt(0).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/scenario/load_profile/help.html");
             return true;});
-        ((View)linearLayout.getChildAt(1)).setOnLongClickListener(v -> {
+        linearLayout.getChildAt(1).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/scenario/load_profile/daily_tab.html");
             return true;});
-        ((View)linearLayout.getChildAt(2)).setOnLongClickListener(v -> {
+        linearLayout.getChildAt(2).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/scenario/load_profile/monthly_tab.html");
             return true;});
-        ((View)linearLayout.getChildAt(3)).setOnLongClickListener(v -> {
+        linearLayout.getChildAt(3).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/scenario/load_profile/hourly_tab.html");
             return true;});
     }
@@ -380,7 +382,7 @@ public class LoadProfileActivity extends AppCompatActivity {
     }
 
     public String getLoadProfileJson() {
-        if (mLoadProfileJson.equals("")) {
+        if (mLoadProfileJson.isEmpty()) {
             LoadProfile loadProfile = new LoadProfile();
             LoadProfileJson lpj = JsonTools.createLoadProfileJson(loadProfile);
             Type type = new TypeToken<LoadProfileJson>(){}.getType();
@@ -401,7 +403,7 @@ public class LoadProfileActivity extends AppCompatActivity {
 
     private void showHelp(String url) {
         mHelpWindow.setHeight((int) (getWindow().getDecorView().getHeight()*0.6));
-        mHelpWindow.setWidth((int) (getWindow().getDecorView().getWidth()));
+        mHelpWindow.setWidth(getWindow().getDecorView().getWidth());
         mHelpWindow.showAtLocation(mViewPager.getRootView(), Gravity.CENTER, 0, 0);
         WebView webView = mPopupView.findViewById(R.id.helpWebView);
 
