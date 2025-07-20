@@ -38,7 +38,6 @@ import android.widget.ProgressBar;
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.lifecycle.ViewModelProvider;
@@ -53,8 +52,6 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
-import com.tfcode.comparetout.util.CompareScenarioSelectDialog;
-import com.tfcode.comparetout.util.CompareScenarioSelectDialogListener;
 import com.tfcode.comparetout.util.EdgeInsets;
 import com.tfcode.comparetout.util.GraphableActivity;
 import com.tfcode.comparetout.model.json.JsonTools;
@@ -165,11 +162,13 @@ public class ScenarioActivity extends InsetRespectingActivity implements Graphab
                 if (!(mZoom)) {
                     actionBar.hide();
                     tabLayout.setVisibility(View.GONE);
+                    updateTopInsetTarget(tabLayout, viewPager);
                     mZoom = true;
                 }
                 else {
                     actionBar.show();
                     tabLayout.setVisibility(View.VISIBLE);
+                    updateTopInsetTarget(tabLayout, viewPager);
                     mZoom = false;
                 }}
         });
@@ -436,6 +435,7 @@ public class ScenarioActivity extends InsetRespectingActivity implements Graphab
                     if (!(null == actionBar) && !(null == tabLayout)) {
                         actionBar.show();
                         tabLayout.setVisibility(View.VISIBLE);
+                        updateTopInsetTarget(tabLayout, viewPager);
                         mZoom = false;
                     }
                 }

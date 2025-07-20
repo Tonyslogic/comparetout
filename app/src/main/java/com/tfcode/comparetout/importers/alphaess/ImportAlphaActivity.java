@@ -106,6 +106,7 @@ public class ImportAlphaActivity extends AbstractEPOFolderActivity implements Gr
                     if (!(null == actionBar) && !(null == tabLayout)) {
                         actionBar.show();
                         tabLayout.setVisibility(View.VISIBLE);
+                        updateTopInsetTarget(tabLayout, mViewPager);
                         mZoom = false;
                     }
                 }
@@ -174,11 +175,13 @@ public class ImportAlphaActivity extends AbstractEPOFolderActivity implements Gr
                 if (!(mZoom)) {
                     actionBar.hide();
                     tabLayout.setVisibility(View.GONE);
+                    updateTopInsetTarget(tabLayout, mViewPager);
                     mZoom = true;
                 }
                 else {
                     actionBar.show();
                     tabLayout.setVisibility(View.VISIBLE);
+                    updateTopInsetTarget(tabLayout, mViewPager);
                     mZoom = false;
                 }}
         });

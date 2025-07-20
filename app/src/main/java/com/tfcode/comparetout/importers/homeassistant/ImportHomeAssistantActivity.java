@@ -35,7 +35,6 @@ import android.widget.PopupWindow;
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager2.widget.ViewPager2;
 import androidx.webkit.WebViewAssetLoader;
 
@@ -70,6 +69,7 @@ public class ImportHomeAssistantActivity  extends InsetRespectingActivity implem
                     if (!(null == actionBar) && !(null == tabLayout)) {
                         actionBar.show();
                         tabLayout.setVisibility(View.VISIBLE);
+                        updateTopInsetTarget(tabLayout, mViewPager);
                         mZoom = false;
                     }
                 }
@@ -144,11 +144,13 @@ public class ImportHomeAssistantActivity  extends InsetRespectingActivity implem
                 if (!(mZoom)) {
                     actionBar.hide();
                     tabLayout.setVisibility(View.GONE);
+                    updateTopInsetTarget(tabLayout, mViewPager);
                     mZoom = true;
                 }
                 else {
                     actionBar.show();
                     tabLayout.setVisibility(View.VISIBLE);
+                    updateTopInsetTarget(tabLayout, mViewPager);
                     mZoom = false;
                 }}
         });

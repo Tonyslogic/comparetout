@@ -44,6 +44,34 @@ public abstract class InsetRespectingActivity  extends AppCompatActivity {
         insetTargets.put(viewId, new EdgeInsets(edges));
     }
 
+    /**
+     * Update the top inset target based on the visibility of the tab view.
+     * If the tab view is visible, apply insets to it; otherwise, apply to the fallback view.
+     */
+    protected void updateTopInsetTarget(View tabView, View fallbackView) {
+        if (tabView.getVisibility() == View.VISIBLE) {
+            applyTopInset(tabView);
+            clearInset(fallbackView);
+        } else {
+            clearInset(tabView);
+            applyTopInset(fallbackView);
+        }
+    }
+
+    private void applyTopInset(View view) {
+        ViewCompat.setOnApplyWindowInsetsListener(view, (v, insets) -> {
+            Insets sysBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(v.getPaddingLeft(), sysBars.top, v.getPaddingRight(), v.getPaddingBottom());
+            return insets;
+        });
+        ViewCompat.requestApplyInsets(view);
+    }
+
+    private void clearInset(View view) {
+        view.setPadding(view.getPaddingLeft(), 0, view.getPaddingRight(), view.getPaddingBottom());
+        ViewCompat.setOnApplyWindowInsetsListener(view, null);
+    }
+
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
