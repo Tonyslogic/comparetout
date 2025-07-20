@@ -135,6 +135,8 @@ public class ImportAlphaActivity extends AbstractEPOFolderActivity implements Gr
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         applyInsetsToView(R.id.import_alpha_tab_layout, EdgeInsets.Edge.TOP);
+        applyInsetsToView(R.id.import_alpha_view_pager, EdgeInsets.Edge.RIGHT, EdgeInsets.Edge.BOTTOM);
+        applyInsetsToGuidelines(R.id.top_inset_guideline, R.id.bottom_inset_guideline, 0, R.id.right_inset_guideline );
 
         mAssetLoader = new WebViewAssetLoader.Builder()
                 .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))

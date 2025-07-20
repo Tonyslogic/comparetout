@@ -43,7 +43,7 @@ import java.util.Set;
 
 /*
   Entity representing an electricity pricing plan with comprehensive tariff structure.
-  
+
   This Room entity encapsulates all pricing information for an electricity supply plan,
   including time-of-use rates, feed-in tariffs, standing charges, and complex restriction
   rules. The entity supports sophisticated pricing schemes used by modern electricity

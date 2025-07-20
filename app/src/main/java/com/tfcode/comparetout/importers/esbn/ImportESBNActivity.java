@@ -150,6 +150,8 @@ public class ImportESBNActivity extends InsetRespectingActivity implements Graph
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         applyInsetsToView(R.id.import_alpha_tab_layout, EdgeInsets.Edge.TOP);
+        applyInsetsToView(R.id.import_alpha_view_pager, EdgeInsets.Edge.RIGHT, EdgeInsets.Edge.BOTTOM);
+        applyInsetsToGuidelines(R.id.top_inset_guideline, R.id.bottom_inset_guideline, 0, R.id.right_inset_guideline );
         setContentView(R.layout.activity_import_alpha);
 
         if (!(null == savedInstanceState)) {

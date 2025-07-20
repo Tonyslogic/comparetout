@@ -446,7 +446,7 @@ public abstract class BaseGraphsFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        MenuHost menuHost = (MenuHost) requireActivity();
+        MenuHost menuHost = requireActivity();
         menuHost.addMenuProvider(new MenuProvider() {
             @Override
             public void onCreateMenu(@NonNull Menu menu, @NonNull MenuInflater menuInflater) {
@@ -776,7 +776,7 @@ public abstract class BaseGraphsFragment extends Fragment {
                     if (mCompareType == ComparisonUIViewModel.Importer.SIMULATION && mImporterType != ComparisonUIViewModel.Importer.SIMULATION) {
                         if ("2001-12-31".compareTo(first) < 0) {
                             // no overlap
-                            if (!(null == getView())) Snackbar.make(getView(),
+                            if (!(null == getView())) Snackbar.make(getView().getRootView(),
                                             "No overlap exists. Select ranges separately.", Snackbar.LENGTH_LONG)
                                     .setAction("Action", null).show();
                             return;
@@ -786,7 +786,7 @@ public abstract class BaseGraphsFragment extends Fragment {
                     if (mCompareType != ComparisonUIViewModel.Importer.SIMULATION && mImporterType != ComparisonUIViewModel.Importer.SIMULATION) {
                         if (mCompareDateRange.finishDate.compareTo(first) < 0 || mCompareDateRange.startDate.compareTo(second) > 0) {
                             // no overlap
-                            if (!(null == getView())) Snackbar.make(getView(),
+                            if (!(null == getView())) Snackbar.make(getView().getRootView(),
                                             "No overlap exists. Select ranges separately.", Snackbar.LENGTH_LONG)
                                     .setAction("Action", null).show();
                             return;

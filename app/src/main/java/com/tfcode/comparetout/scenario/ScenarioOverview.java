@@ -251,7 +251,7 @@ public class ScenarioOverview extends Fragment {
                         ((ScenarioActivity) requireActivity()).setSaveNeeded(false);
                     }
                     else {
-                        if (!(null == getView())) Snackbar.make(getView(),
+                        if (!(null == getView())) Snackbar.make(getView().getRootView(),
                                         "Cannot save during simulation. Try again in a moment.", Snackbar.LENGTH_LONG)
                                 .setAction("Action", null).show();
                     }
@@ -404,7 +404,7 @@ public class ScenarioOverview extends Fragment {
             popup.setOnMenuItemClickListener(item -> {
                 if (item.getItemId() == R.id.settings) {
                     if (!mScenario.isHasLoadProfiles()) {
-                        if (!(null == getView())) Snackbar.make(getView(),
+                        if (!(null == getView())) Snackbar.make(getView().getRootView(),
                                 "Create a load profile before configuring hot water system",
                                 Snackbar.LENGTH_LONG).setAction("Action", null).show();
                     }
@@ -418,7 +418,7 @@ public class ScenarioOverview extends Fragment {
                 }
                 if (item.getItemId() == R.id.divert){
                     if (!mScenario.isHasHWSystem()) {
-                        if (!(null == getView())) Snackbar.make(getView(),
+                        if (!(null == getView())) Snackbar.make(getView().getRootView(),
                                 "Configure hot water system, before diverting to it",
                                 Snackbar.LENGTH_LONG).setAction("Action", null).show();
                     }
@@ -439,12 +439,12 @@ public class ScenarioOverview extends Fragment {
                                     SimulatorLauncher.simulateIfNeeded(getActivity().getApplicationContext());
                                 }).start();
                                 mMainHandler.postDelayed(this::updateScenarioComponents, 2000);
-                                if (!(null == getView())) Snackbar.make(getView(),
+                                if (!(null == getView())) Snackbar.make(getView().getRootView(),
                                         "Updating hot water diversion to " + (hwDivert.isActive() ? "enabled" : "disabled"),
                                         Snackbar.LENGTH_LONG).setAction("Action", null).show();
                             }
                             else {
-                                if (!(null == getView())) Snackbar.make(getView(),
+                                if (!(null == getView())) Snackbar.make(getView().getRootView(),
                                         "Simulation in progress. Try again in a moment",
                                         Snackbar.LENGTH_LONG).setAction("Action", null).show();
                             }
@@ -453,7 +453,7 @@ public class ScenarioOverview extends Fragment {
                 }
                 else if (item.getItemId() == R.id.schedule) {
                     if (!mScenario.isHasHWSystem()) {
-                        if (!(null == getView())) Snackbar.make(getView(),
+                        if (!(null == getView())) Snackbar.make(getView().getRootView(),
                                 "Configure hot water system, before diverting to it",
                                 Snackbar.LENGTH_LONG).setAction("Action", null).show();
                     }
@@ -504,7 +504,7 @@ public class ScenarioOverview extends Fragment {
             popup.setOnMenuItemClickListener(item -> {
                 if (item.getItemId() == R.id.schedule) {
                     if (!mScenario.isHasLoadProfiles()) {
-                        if (!(null == getView())) Snackbar.make(getView(),
+                        if (!(null == getView())) Snackbar.make(getView().getRootView(),
                                 "Create a load profile before configuring EV charging",
                                 Snackbar.LENGTH_LONG).setAction("Action", null).show();
                     } else {
@@ -517,7 +517,7 @@ public class ScenarioOverview extends Fragment {
                 }
                 if (item.getItemId() == R.id.divert) {
                     if (!mScenario.isHasInverters()) {
-                        if (!(null == getView())) Snackbar.make(getView(),
+                        if (!(null == getView())) Snackbar.make(getView().getRootView(),
                                 "Configure an inverter before configuring EV diversion",
                                 Snackbar.LENGTH_LONG).setAction("Action", null).show();
                     }else {
@@ -597,7 +597,7 @@ public class ScenarioOverview extends Fragment {
                     public void afterTextChanged(Editable s) {
                         mScenario.setScenarioName(s.toString());
                         if (mScenarioNames.contains(s.toString())) {
-                            if (!(null == getView())) Snackbar.make(getView(),
+                            if (!(null == getView())) Snackbar.make(getView().getRootView(),
                                             s + " already exists. Change before saving", Snackbar.LENGTH_LONG)
                                     .setAction("Action", null).show();
                         }

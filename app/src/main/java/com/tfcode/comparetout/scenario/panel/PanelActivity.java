@@ -155,7 +155,7 @@ public class PanelActivity extends InsetRespectingActivity {
         }).start();
 
         FloatingActionButton fab = findViewById(R.id.isLinked);
-        fab.setOnClickListener(view -> Snackbar.make(view, "Linked to " + mLinkedScenarios, Snackbar.LENGTH_LONG)
+        fab.setOnClickListener(view -> Snackbar.make(view.getRootView(), "Linked to " + mLinkedScenarios, Snackbar.LENGTH_LONG)
                 .setAction("Action", null).show());
     }
 
@@ -164,6 +164,8 @@ public class PanelActivity extends InsetRespectingActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         applyInsetsToView(R.id.panel_tab_layout, EdgeInsets.Edge.TOP);
+        applyInsetsToView(R.id.panel_view_pager, EdgeInsets.Edge.RIGHT, EdgeInsets.Edge.BOTTOM);
+        applyInsetsToGuidelines(R.id.top_inset_guideline, R.id.bottom_inset_guideline, 0, R.id.right_inset_guideline );
         setContentView(R.layout.activity_panel);
         createSimulationFeedback();
         createProgressBar();

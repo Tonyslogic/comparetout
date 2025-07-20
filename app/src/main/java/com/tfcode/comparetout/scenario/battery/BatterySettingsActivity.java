@@ -155,7 +155,7 @@ public class BatterySettingsActivity extends InsetRespectingActivity {
         }).start();
 
         FloatingActionButton fab = findViewById(R.id.isLinked);
-        fab.setOnClickListener(view -> Snackbar.make(view, "Linked to " + mLinkedScenarios, Snackbar.LENGTH_LONG)
+        fab.setOnClickListener(view -> Snackbar.make(view.getRootView(), "Linked to " + mLinkedScenarios, Snackbar.LENGTH_LONG)
                 .setAction("Action", null).show());
     }
 
@@ -164,7 +164,9 @@ public class BatterySettingsActivity extends InsetRespectingActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         applyInsetsToView(R.id.battery_settings_tab_layout, EdgeInsets.Edge.TOP);
+        applyInsetsToView(R.id.battery_settings_view_pager, EdgeInsets.Edge.BOTTOM, EdgeInsets.Edge.RIGHT);
         setContentView(R.layout.activity_battery_settings);
+        applyInsetsToGuidelines(R.id.top_inset_guideline, R.id.bottom_inset_guideline, 0, R.id.right_inset_guideline );
         createSimulationFeedback();
         createProgressBar();
         mProgressBar.setVisibility(View.VISIBLE);

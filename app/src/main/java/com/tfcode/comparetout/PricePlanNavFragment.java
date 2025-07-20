@@ -143,7 +143,7 @@ public class PricePlanNavFragment extends Fragment {
 
     public void updateView() {
         mTableLayout.removeAllViews();
-        if ((mPlans != null) && (mPlans.entrySet().size() > 0) && !(null == getActivity())) {
+        if ((mPlans != null) && (!mPlans.isEmpty()) && !(null == getActivity())) {
             mTableLayout.setShrinkAllColumns(false);
             mTableLayout.setStretchAllColumns(true);
             mTableLayout.setColumnShrinkable(1, true);
@@ -241,7 +241,7 @@ public class PricePlanNavFragment extends Fragment {
                         alert.show();
                     }
                     else {
-                        if (!(null == getView())) Snackbar.make(getView(),
+                        if (!(null == getView())) Snackbar.make(getView().getRootView(),
                             "Cannot delete during simulation. Try again in a moment.", Snackbar.LENGTH_LONG)
                                 .setAction("Action", null).show();
                     }

@@ -101,7 +101,7 @@ public class LoadProfileActivity extends InsetRespectingActivity {
             }).start();
 
         FloatingActionButton fab = findViewById(R.id.isLinked);
-        fab.setOnClickListener(view -> Snackbar.make(view, "Linked to " + mLinkedScenarios, Snackbar.LENGTH_LONG)
+        fab.setOnClickListener(view -> Snackbar.make(view.getRootView(), "Linked to " + mLinkedScenarios, Snackbar.LENGTH_LONG)
             .setAction("Action", null).show());
     }
 
@@ -110,6 +110,8 @@ public class LoadProfileActivity extends InsetRespectingActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         applyInsetsToView(R.id.loadProfile_tab_layout, EdgeInsets.Edge.TOP);
+        applyInsetsToView(R.id.load_profile_view_pager, EdgeInsets.Edge.BOTTOM, EdgeInsets.Edge.RIGHT);
+        applyInsetsToGuidelines(R.id.top_inset_guideline, R.id.bottom_inset_guideline, 0, R.id.right_inset_guideline );
         Intent intent = getIntent();
         scenarioID = intent.getLongExtra("ScenarioID", 0L);
         String scenarioName = intent.getStringExtra("ScenarioName");

@@ -104,6 +104,8 @@ public class ScenarioActivity extends InsetRespectingActivity implements Graphab
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         applyInsetsToView(R.id.scenario_tab_layout, EdgeInsets.Edge.TOP);
+        applyInsetsToView(R.id.view_scenario_pager, EdgeInsets.Edge.RIGHT, EdgeInsets.Edge.BOTTOM);
+        applyInsetsToGuidelines(R.id.top_inset_guideline, R.id.bottom_inset_guideline, 0, R.id.right_inset_guideline );
         if (!(null == savedInstanceState)) {
             scenarioID = savedInstanceState.getLong(SCENARIO_KEY);
             mEdit = savedInstanceState.getBoolean(EDIT_KEY);

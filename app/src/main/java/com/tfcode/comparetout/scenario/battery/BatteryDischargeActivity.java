@@ -145,6 +145,8 @@ public class BatteryDischargeActivity extends InsetRespectingActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         applyInsetsToView(R.id.discharge_tab_layout, EdgeInsets.Edge.TOP);
+        applyInsetsToView(R.id.discharge_view_pager, EdgeInsets.Edge.BOTTOM, EdgeInsets.Edge.RIGHT);
+        applyInsetsToGuidelines(R.id.top_inset_guideline, R.id.bottom_inset_guideline, 0, R.id.right_inset_guideline );
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_battery_discharge);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.discharge_activity), (v, insets) -> {

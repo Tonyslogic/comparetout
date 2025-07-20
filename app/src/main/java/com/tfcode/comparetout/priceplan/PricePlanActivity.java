@@ -115,6 +115,7 @@ public class PricePlanActivity extends InsetRespectingActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         applyInsetsToView(R.id.tab_layout, EdgeInsets.Edge.TOP);
+        applyInsetsToView(R.id.view_plan_pager, EdgeInsets.Edge.BOTTOM, EdgeInsets.Edge.RIGHT);
         if (!(null == savedInstanceState)) {
             edit = savedInstanceState.getBoolean(EDIT_KEY);
             planID = savedInstanceState.getLong(PLAN_ID);

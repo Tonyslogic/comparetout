@@ -23,6 +23,8 @@ import android.view.Window;
 import androidx.annotation.IdRes;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.constraintlayout.widget.Guideline;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
@@ -70,6 +72,65 @@ public abstract class InsetRespectingActivity  extends AppCompatActivity {
     private void clearInset(View view) {
         view.setPadding(view.getPaddingLeft(), 0, view.getPaddingRight(), view.getPaddingBottom());
         ViewCompat.setOnApplyWindowInsetsListener(view, null);
+    }
+
+    /**
+     * Applies system bar insets to the specified constraint guidelines.
+     * Useful for positioning FABs or other elements using guidelines rather than padding.
+     * <p>
+     * Pass `0` for any ID you want to skip.
+     */
+    protected void applyInsetsToGuidelines(
+            @IdRes int topGuideId,
+            @IdRes int bottomGuideId,
+            @IdRes int startGuideId,
+            @IdRes int endGuideId
+    ) {
+        View rootView = getWindow().getDecorView().findViewById(android.R.id.content);
+        ViewCompat.setOnApplyWindowInsetsListener(rootView, (v, insets) -> {
+            Insets sysBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+
+            if (topGuideId != 0) {
+                View top = rootView.findViewById(topGuideId);
+                if (top instanceof Guideline) {
+                    ConstraintLayout.LayoutParams lp = (ConstraintLayout.LayoutParams) top.getLayoutParams();
+                    lp.guideBegin = sysBars.top;
+                    top.setLayoutParams(lp);
+                }
+            }
+
+            if (bottomGuideId != 0) {
+                View bottom = rootView.findViewById(bottomGuideId);
+                if (bottom instanceof Guideline) {
+                    ConstraintLayout.LayoutParams lp = (ConstraintLayout.LayoutParams) bottom.getLayoutParams();
+                    lp.guideEnd = sysBars.bottom;
+                    bottom.setLayoutParams(lp);
+                }
+            }
+
+            if (startGuideId != 0) {
+                View start = rootView.findViewById(startGuideId);
+                if (start instanceof Guideline) {
+                    ConstraintLayout.LayoutParams lp = (ConstraintLayout.LayoutParams) start.getLayoutParams();
+                    lp.guideBegin = sysBars.left;
+                    start.setLayoutParams(lp);
+                }
+            }
+
+            if (endGuideId != 0) {
+                View end = rootView.findViewById(endGuideId);
+                if (end instanceof Guideline) {
+                    ConstraintLayout.LayoutParams lp = (ConstraintLayout.LayoutParams) end.getLayoutParams();
+                    lp.guideEnd = sysBars.right;
+                    end.setLayoutParams(lp);
+                }
+            }
+
+            return insets;
+        });
+
+        // Trigger the first application
+        ViewCompat.requestApplyInsets(rootView);
     }
 
     @Override

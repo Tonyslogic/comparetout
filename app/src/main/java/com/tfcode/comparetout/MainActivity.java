@@ -311,6 +311,8 @@ public class MainActivity extends InsetRespectingActivity {
                 .build());
         super.onCreate(savedInstanceState);
         applyInsetsToView(R.id.tab_layout, EdgeInsets.Edge.TOP);
+        applyInsetsToView(R.id.view_pager, EdgeInsets.Edge.RIGHT, EdgeInsets.Edge.BOTTOM);
+        applyInsetsToGuidelines(0, R.id.bottom_inset_guideline, 0, R.id.right_inset_guideline );
         createNotificationChannel();
 
         loadSettingsFromDataStore();

@@ -160,6 +160,8 @@ public class BatteryChargingActivity extends InsetRespectingActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         applyInsetsToView(R.id.battery_charging_tab_layout, EdgeInsets.Edge.TOP);
+        applyInsetsToView(R.id.battery_charging_view_pager, EdgeInsets.Edge.BOTTOM, EdgeInsets.Edge.RIGHT);
+        applyInsetsToGuidelines(R.id.top_inset_guideline, R.id.bottom_inset_guideline, 0, R.id.right_inset_guideline );
         setContentView(R.layout.activity_battery_charging);
         createSimulationFeedback();
         createProgressBar();

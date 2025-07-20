@@ -158,7 +158,7 @@ public class WaterSettingsActivity extends InsetRespectingActivity {
         }).start();
 
         FloatingActionButton fab = findViewById(R.id.isLinked);
-        fab.setOnClickListener(view -> Snackbar.make(view, "Linked to " + mLinkedScenarios, Snackbar.LENGTH_LONG)
+        fab.setOnClickListener(view -> Snackbar.make(view.getRootView(), "Linked to " + mLinkedScenarios, Snackbar.LENGTH_LONG)
                 .setAction("Action", null).show());
     }
 
@@ -167,7 +167,8 @@ public class WaterSettingsActivity extends InsetRespectingActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         applyInsetsToView(R.id.water_settings_table, EdgeInsets.Edge.TOP);
-        applyInsetsToView(R.id.water_use_table_scroll, EdgeInsets.Edge.BOTTOM);
+        applyInsetsToView(R.id.water_use_table_scroll, EdgeInsets.Edge.BOTTOM, EdgeInsets.Edge.RIGHT);
+        applyInsetsToGuidelines(R.id.top_inset_guideline, R.id.bottom_inset_guideline, 0, R.id.right_inset_guideline );
         setContentView(R.layout.activity_water_settings);
         createSimulationFeedback();
 
