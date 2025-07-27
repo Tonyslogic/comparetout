@@ -400,7 +400,7 @@ public class BatteryDischargeFragment extends Fragment {
                     else {
                         linked.setEnabled(true);
                         linked.setImageResource(R.drawable.ic_baseline_link_24);
-                        linked.setOnClickListener(view -> Snackbar.make(view, "Linked to " + linkedScenarios, Snackbar.LENGTH_LONG)
+                        linked.setOnClickListener(view -> Snackbar.make(view.getRootView(), "Linked to " + linkedScenarios, Snackbar.LENGTH_LONG)
                                 .setAction("Action", null).show());
                     }
 

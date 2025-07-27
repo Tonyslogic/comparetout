@@ -18,6 +18,7 @@ package com.tfcode.comparetout.importers.esbn;
 
 import com.google.gson.Gson;
 import com.opencsv.CSVReader;
+import com.opencsv.exceptions.CsvValidationException;
 import com.tfcode.comparetout.importers.esbn.responses.ESBNException;
 import com.tfcode.comparetout.importers.esbn.responses.FetchRangeResponse;
 import com.tfcode.comparetout.importers.esbn.responses.LoginResponse;
@@ -272,21 +273,28 @@ public class ESBNHDFClient {
             throws IOException {
         String mprnFromFile = "";
         // skip header row
-        csvReader.readNext();
-        String[] nextLine;
-        while ((nextLine = csvReader.readNext()) != null) {
-            // nextLine[] is an array of values from the line
-            mprnFromFile = nextLine[MPRN_COL];
-            String dt = nextLine[READ_DATETIME].split("\\+")[0];
-            LocalDateTime readTime = LocalDateTime.parse(dt, HDF_FORMAT);
-            Double reading = Double.parseDouble(nextLine[READ_VALUE]);
-            boolean export;
-            boolean calculated;
-            String text = nextLine[READ_TYPE];
-            calculated = Pattern.matches(READ_KWH_PATTERN, text);
-            export = Pattern.matches(EXPORT_READ_PATTERN, text);
-            if (export) processor.processLine(calculated, ESBNImportExportEntry.HDFLineType.EXPORT, readTime, reading);
-            else processor.processLine(calculated, ESBNImportExportEntry.HDFLineType.IMPORT, readTime, reading);
+        try {
+            csvReader.readNext();
+            String[] nextLine;
+            while ((nextLine = csvReader.readNext()) != null) {
+                // nextLine[] is an array of values from the line
+                mprnFromFile = nextLine[MPRN_COL];
+                String dt = nextLine[READ_DATETIME].split("\\+")[0];
+                LocalDateTime readTime = LocalDateTime.parse(dt, HDF_FORMAT);
+                Double reading = Double.parseDouble(nextLine[READ_VALUE]);
+                boolean export;
+                boolean calculated;
+                String text = nextLine[READ_TYPE];
+                calculated = Pattern.matches(READ_KWH_PATTERN, text);
+                export = Pattern.matches(EXPORT_READ_PATTERN, text);
+                if (export)
+                    processor.processLine(calculated, ESBNImportExportEntry.HDFLineType.EXPORT, readTime, reading);
+                else
+                    processor.processLine(calculated, ESBNImportExportEntry.HDFLineType.IMPORT, readTime, reading);
+            }
+        }
+        catch (CsvValidationException ve) {
+            // Do nothing
         }
         return mprnFromFile;
     }

@@ -23,16 +23,37 @@
     tools:context=".importers.alphaess.ImportAlphaActivity"
     android:id="@+id/activity_import_alpha">
 
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/bottom_inset_guideline"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_end="0dp"
+        android:layout_height="0dp"
+        android:layout_width="0dp"/>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/top_inset_guideline"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_begin="0dp"
+        android:layout_height="0dp"
+        android:layout_width="0dp"/>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/right_inset_guideline"
+        android:orientation="vertical"
+        app:layout_constraintGuide_end="0dp"
+        android:layout_height="0dp"
+        android:layout_width="0dp"/>
+
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/zoom"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="40dp"
+        android:layout_marginTop="80dp"
         android:layout_marginStart="80dp"
         android:clickable="true"
         android:contentDescription="@string/zoom"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintTop_toTopOf="@+id/top_inset_guideline"
         android:visibility="invisible"
         app:srcCompat="@android:drawable/ic_menu_zoom" />
 

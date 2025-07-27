@@ -31,13 +31,11 @@ import android.widget.PopupWindow;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.viewpager2.widget.ViewPager2;
 import androidx.webkit.WebViewAssetLoader;
 
 import com.google.android.material.button.MaterialButton;
-import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.importers.alphaess.ImportAlphaActivity;
@@ -97,7 +95,9 @@ public class DataManagementFragment extends Fragment {
         mHelpWindow = new PopupWindow(mPopupView, width, height, focusable);
 
         // Inflate the layout for this fragment
-        return inflater.inflate(R.layout.fragment_data_management, container, false);
+        View view = inflater.inflate(R.layout.fragment_data_management, container, false);
+//        applyInsetsToView(R.id.tab_layout, EdgeInsets.Edge.TOP);
+        return view;
     }
 
     @Override
@@ -121,16 +121,16 @@ public class DataManagementFragment extends Fragment {
                 (tab, position) -> tab.setText(tabTitles[position])
         ).attach();
 
-        ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.USAGE_FRAGMENT)).setOnLongClickListener(v -> {
+        ((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.USAGE_FRAGMENT).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/main/scenarionav/tab.html");
             return true;});
-        ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.COSTS_FRAGMENT)).setOnLongClickListener(v -> {
+        ((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.COSTS_FRAGMENT).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/main/plannav/tab.html");
             return true;});
-        ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.COMPARE_FRAGMENT)).setOnLongClickListener(v -> {
+        ((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.COMPARE_FRAGMENT).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/main/compare/tab.html");
             return true;});
-        ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.DATA_MANAGEMENT_FRAGMENT)).setOnLongClickListener(v -> {
+        ((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.DATA_MANAGEMENT_FRAGMENT).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/main/datatab/tab.html");
             return true;});
     }
@@ -174,11 +174,11 @@ public class DataManagementFragment extends Fragment {
     private void showHelp(String url) {
         if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
             mHelpWindow.setHeight((int) (requireActivity().getWindow().getDecorView().getHeight()*0.6));
-            mHelpWindow.setWidth((int) (requireActivity().getWindow().getDecorView().getWidth()));
+            mHelpWindow.setWidth(requireActivity().getWindow().getDecorView().getWidth());
         }
         else {
             mHelpWindow.setWidth((int) (requireActivity().getWindow().getDecorView().getWidth() * 0.6));
-            mHelpWindow.setHeight((int) (requireActivity().getWindow().getDecorView().getHeight()));
+            mHelpWindow.setHeight(requireActivity().getWindow().getDecorView().getHeight());
         }
         mHelpWindow.showAtLocation(mLinearLayout, Gravity.CENTER, 0, 0);
         WebView webView = mPopupView.findViewById(R.id.helpWebView);

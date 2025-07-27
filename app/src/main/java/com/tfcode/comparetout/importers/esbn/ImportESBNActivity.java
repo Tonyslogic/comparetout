@@ -39,13 +39,11 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.viewpager2.widget.ViewPager2;
 import androidx.webkit.WebViewAssetLoader;
 import androidx.work.Data;
 import androidx.work.ExistingWorkPolicy;
 import androidx.work.OneTimeWorkRequest;
-import androidx.work.OutOfQuotaPolicy;
 import androidx.work.WorkManager;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -53,13 +51,15 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.R;
+import com.tfcode.comparetout.util.EdgeInsets;
 import com.tfcode.comparetout.util.GraphableActivity;
+import com.tfcode.comparetout.util.InsetRespectingActivity;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.util.ArrayList;
 import java.util.Objects;
 
-public class ImportESBNActivity extends AppCompatActivity implements GraphableActivity {
+public class ImportESBNActivity extends InsetRespectingActivity implements GraphableActivity {
 
     ViewPager2 mViewPager;
 
@@ -115,6 +115,7 @@ public class ImportESBNActivity extends AppCompatActivity implements GraphableAc
                     if (!(null == actionBar) && !(null == tabLayout)) {
                         actionBar.show();
                         tabLayout.setVisibility(View.VISIBLE);
+                        updateTopInsetTarget(tabLayout, mViewPager);
                         mZoom = false;
                     }
                 }
@@ -148,6 +149,9 @@ public class ImportESBNActivity extends AppCompatActivity implements GraphableAc
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        applyInsetsToView(R.id.import_alpha_tab_layout, EdgeInsets.Edge.TOP);
+        applyInsetsToView(R.id.import_alpha_view_pager, EdgeInsets.Edge.RIGHT, EdgeInsets.Edge.BOTTOM);
+        applyInsetsToGuidelines(R.id.top_inset_guideline, R.id.bottom_inset_guideline, 0, R.id.right_inset_guideline );
         setContentView(R.layout.activity_import_alpha);
 
         if (!(null == savedInstanceState)) {
@@ -199,11 +203,13 @@ public class ImportESBNActivity extends AppCompatActivity implements GraphableAc
                 if (!(mZoom)) {
                     actionBar.hide();
                     tabLayout.setVisibility(View.GONE);
+                    updateTopInsetTarget(tabLayout, mViewPager);
                     mZoom = true;
                 }
                 else {
                     actionBar.show();
                     tabLayout.setVisibility(View.VISIBLE);
+                    updateTopInsetTarget(tabLayout, mViewPager);
                     mZoom = false;
                 }}
         });

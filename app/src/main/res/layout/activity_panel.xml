@@ -23,12 +23,33 @@
     tools:context=".scenario.panel.PanelActivity"
     android:id="@+id/panel_activity">
 
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/bottom_inset_guideline"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_end="0dp"
+        android:layout_height="0dp"
+        android:layout_width="0dp"/>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/top_inset_guideline"
+        android:orientation="horizontal"
+        app:layout_constraintGuide_begin="0dp"
+        android:layout_height="0dp"
+        android:layout_width="0dp"/>
+
+    <androidx.constraintlayout.widget.Guideline
+        android:id="@+id/right_inset_guideline"
+        android:orientation="vertical"
+        app:layout_constraintGuide_end="0dp"
+        android:layout_height="0dp"
+        android:layout_width="0dp"/>
+
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/isLinked"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:clickable="true"
-        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintBottom_toBottomOf="@+id/bottom_inset_guideline"
         app:layout_constraintStart_toStartOf="parent"
         app:srcCompat="@drawable/ic_baseline_link_24"
         android:contentDescription="@string/linkedItem" />
@@ -38,8 +59,8 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:clickable="true"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="@+id/bottom_inset_guideline"
+        app:layout_constraintEnd_toEndOf="@+id/right_inset_guideline"
         app:srcCompat="@android:drawable/ic_input_add"
         android:contentDescription="@string/add_a_new_supplier_plan" />
 

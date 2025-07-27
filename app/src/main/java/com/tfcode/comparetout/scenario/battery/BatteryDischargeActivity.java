@@ -23,7 +23,6 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.core.graphics.Insets;
@@ -50,6 +49,8 @@ import com.tfcode.comparetout.model.json.scenario.DischargeToGridJson;
 import com.tfcode.comparetout.model.scenario.DischargeToGrid;
 import com.tfcode.comparetout.model.scenario.Scenario2DischargeToGrid;
 import com.tfcode.comparetout.scenario.ScenarioSelectDialog;
+import com.tfcode.comparetout.util.EdgeInsets;
+import com.tfcode.comparetout.util.InsetRespectingActivity;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.io.FileNotFoundException;
@@ -64,7 +65,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public class BatteryDischargeActivity extends AppCompatActivity {
+public class BatteryDischargeActivity extends InsetRespectingActivity {
 
     private Handler mMainHandler;
     private ProgressBar mProgressBar;
@@ -143,6 +144,9 @@ public class BatteryDischargeActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        applyInsetsToView(R.id.discharge_tab_layout, EdgeInsets.Edge.TOP);
+        applyInsetsToView(R.id.discharge_view_pager, EdgeInsets.Edge.BOTTOM, EdgeInsets.Edge.RIGHT);
+        applyInsetsToGuidelines(R.id.top_inset_guideline, R.id.bottom_inset_guideline, 0, R.id.right_inset_guideline );
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_battery_discharge);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.discharge_activity), (v, insets) -> {

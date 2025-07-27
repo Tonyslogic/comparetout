@@ -76,7 +76,8 @@ public class InverterFragment extends Fragment {
     private void unpackInverter() {
         Type type = new TypeToken<List<InverterJson>>(){}.getType();
         List<InverterJson> inverterJson = new Gson().fromJson(mInverterJsonString, type);
-        mInverter = JsonTools.createInverterList(inverterJson).get(mInverterIndex);
+        if (mInverterIndex == 0) mInverter = new Inverter();
+        else mInverter = JsonTools.createInverterList(inverterJson).get(mInverterIndex);
     }
 
     @Override

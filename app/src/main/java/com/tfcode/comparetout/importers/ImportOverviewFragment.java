@@ -449,7 +449,7 @@ public abstract class ImportOverviewFragment extends Fragment {
                     startWorkers(mSerialNumber, startDateAsLong);
                 } else {
                     addFetchStatus.setText((null == mFetchState) ? context.getString(R.string.Idle) : mFetchState);
-                    if (!(null == getView())) Snackbar.make(getView(),
+                    if (!(null == getView())) Snackbar.make(getView().getRootView(),
                                     "Positive selection with no date!", Snackbar.LENGTH_LONG)
                             .setAction("Action", null).show();
                 }

@@ -74,6 +74,7 @@ import com.tfcode.comparetout.model.scenario.PanelPVSummary;
 import com.tfcode.comparetout.util.AbstractEPOFolderActivity;
 import com.tfcode.comparetout.util.AbstractTextWatcher;
 import com.tfcode.comparetout.util.ContractFileUtils;
+import com.tfcode.comparetout.util.EdgeInsets;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.io.File;
@@ -188,6 +189,7 @@ public class PVGISActivity extends AbstractEPOFolderActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        applyInsetsToView(R.id.pvgis_table, EdgeInsets.Edge.TOP);
         setContentView(R.layout.activity_pvgis);
         createProgressBar();
         mProgressBar.setVisibility(View.VISIBLE);

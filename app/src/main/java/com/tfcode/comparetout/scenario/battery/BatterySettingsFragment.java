@@ -95,7 +95,8 @@ public class BatterySettingsFragment extends Fragment {
     private void unpackBattery() {
         Type type = new TypeToken<List<BatteryJson>>(){}.getType();
         List<BatteryJson> batteryJson = new Gson().fromJson(mBatteryJsonString, type);
-        mBattery = JsonTools.createBatteryList(batteryJson).get(mBatteryIndex);
+        if (mBatteryIndex == 0) mBattery = new Battery();
+        else mBattery = JsonTools.createBatteryList(batteryJson).get(mBatteryIndex);
     }
 
     @Override

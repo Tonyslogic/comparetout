@@ -39,7 +39,6 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.lifecycle.ViewModelProvider;
@@ -63,6 +62,8 @@ import com.tfcode.comparetout.model.json.scenario.PanelJson;
 import com.tfcode.comparetout.model.scenario.Panel;
 import com.tfcode.comparetout.model.scenario.Scenario2Panel;
 import com.tfcode.comparetout.scenario.ScenarioSelectDialog;
+import com.tfcode.comparetout.util.EdgeInsets;
+import com.tfcode.comparetout.util.InsetRespectingActivity;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.io.FileNotFoundException;
@@ -75,7 +76,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class PanelActivity extends AppCompatActivity {
+public class PanelActivity extends InsetRespectingActivity {
 
     private Handler mMainHandler;
     private ProgressBar mProgressBar;
@@ -154,7 +155,7 @@ public class PanelActivity extends AppCompatActivity {
         }).start();
 
         FloatingActionButton fab = findViewById(R.id.isLinked);
-        fab.setOnClickListener(view -> Snackbar.make(view, "Linked to " + mLinkedScenarios, Snackbar.LENGTH_LONG)
+        fab.setOnClickListener(view -> Snackbar.make(view.getRootView(), "Linked to " + mLinkedScenarios, Snackbar.LENGTH_LONG)
                 .setAction("Action", null).show());
     }
 
@@ -162,6 +163,9 @@ public class PanelActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        applyInsetsToView(R.id.panel_tab_layout, EdgeInsets.Edge.TOP);
+        applyInsetsToView(R.id.panel_view_pager, EdgeInsets.Edge.RIGHT, EdgeInsets.Edge.BOTTOM);
+        applyInsetsToGuidelines(R.id.top_inset_guideline, R.id.bottom_inset_guideline, 0, R.id.right_inset_guideline );
         setContentView(R.layout.activity_panel);
         createSimulationFeedback();
         createProgressBar();
@@ -280,7 +284,7 @@ public class PanelActivity extends AppCompatActivity {
 
     private void deletePanel() {
         int pos = mViewPager.getCurrentItem();
-        if (mPanels.size() > 0) {
+        if (!mPanels.isEmpty()) {
             Panel removed = mPanels.remove(pos);
             if (null == mRemovedPanels) mRemovedPanels = new ArrayList<>();
             mRemovedPanels.add(removed.getPanelIndex());
@@ -324,7 +328,7 @@ public class PanelActivity extends AppCompatActivity {
 
         LinearLayout linearLayout = (LinearLayout)tabLayout.getChildAt(0);
         for (int i = 0; i < linearLayout.getChildCount(); i++) {
-            ((View) linearLayout.getChildAt(i)).setOnLongClickListener(v -> {
+            linearLayout.getChildAt(i).setOnLongClickListener(v -> {
                 showHelp("https://appassets.androidplatform.net/assets/scenario/panel/help.html");
                 return true;
             });
@@ -677,7 +681,7 @@ public class PanelActivity extends AppCompatActivity {
 
     private void showHelp(String url) {
         mHelpWindow.setHeight((int) (getWindow().getDecorView().getHeight()*0.6));
-        mHelpWindow.setWidth((int) (getWindow().getDecorView().getWidth()));
+        mHelpWindow.setWidth(getWindow().getDecorView().getWidth());
         mHelpWindow.showAtLocation(mViewPager.getRootView(), Gravity.CENTER, 0, 0);
         WebView webView = mPopupView.findViewById(R.id.helpWebView);
 

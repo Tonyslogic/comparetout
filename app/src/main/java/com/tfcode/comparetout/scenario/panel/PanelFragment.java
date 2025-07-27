@@ -200,7 +200,7 @@ public class PanelFragment extends Fragment {
 //                mStartForResult.launch(intent);
             }
             else{
-                if (!(null == getView())) Snackbar.make(getView(),
+                if (!(null == getView())) Snackbar.make(getView().getRootView(),
                     "New panel! Save and try again.", Snackbar.LENGTH_LONG)
                         .setAction("Action", null).show();
             }

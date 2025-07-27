@@ -26,7 +26,6 @@ import android.util.Log;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.datastore.preferences.core.Preferences;
 import androidx.datastore.preferences.core.PreferencesKeys;
 import androidx.documentfile.provider.DocumentFile;
@@ -37,7 +36,7 @@ import java.util.List;
 
 import io.reactivex.rxjava3.core.Single;
 
-public abstract class AbstractEPOFolderActivity extends AppCompatActivity {
+public abstract class AbstractEPOFolderActivity extends InsetRespectingActivity {
 
     public static final String EPO_FILE_LOCATION_KEY = "files_uri";
 

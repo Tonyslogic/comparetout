@@ -55,6 +55,8 @@ import com.tfcode.comparetout.model.json.priceplan.DayRateJson;
 import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
+import com.tfcode.comparetout.util.EdgeInsets;
+import com.tfcode.comparetout.util.InsetRespectingActivity;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.lang.reflect.Type;
@@ -62,7 +64,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class PricePlanActivity extends AppCompatActivity {
+public class PricePlanActivity extends InsetRespectingActivity {
 
     private static final String EDIT_KEY = "Edit";
     private static final String FOCUSED_PLAN = "FOCUSED_PLAN";
@@ -112,6 +114,8 @@ public class PricePlanActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        applyInsetsToView(R.id.tab_layout, EdgeInsets.Edge.TOP);
+        applyInsetsToView(R.id.view_plan_pager, EdgeInsets.Edge.BOTTOM, EdgeInsets.Edge.RIGHT);
         if (!(null == savedInstanceState)) {
             edit = savedInstanceState.getBoolean(EDIT_KEY);
             planID = savedInstanceState.getLong(PLAN_ID);

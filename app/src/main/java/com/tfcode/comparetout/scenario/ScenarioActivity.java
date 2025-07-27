@@ -38,7 +38,6 @@ import android.widget.ProgressBar;
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.lifecycle.ViewModelProvider;
@@ -53,18 +52,18 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
-import com.tfcode.comparetout.util.CompareScenarioSelectDialog;
-import com.tfcode.comparetout.util.CompareScenarioSelectDialogListener;
+import com.tfcode.comparetout.util.EdgeInsets;
 import com.tfcode.comparetout.util.GraphableActivity;
 import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
+import com.tfcode.comparetout.util.InsetRespectingActivity;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
-public class ScenarioActivity extends AppCompatActivity implements GraphableActivity {
+public class ScenarioActivity extends InsetRespectingActivity implements GraphableActivity {
 
     private ProgressBar mSimulationInProgressBar;
     private boolean mSimulationInProgress = false;
@@ -104,6 +103,9 @@ public class ScenarioActivity extends AppCompatActivity implements GraphableActi
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        applyInsetsToView(R.id.scenario_tab_layout, EdgeInsets.Edge.TOP);
+        applyInsetsToView(R.id.view_scenario_pager, EdgeInsets.Edge.RIGHT, EdgeInsets.Edge.BOTTOM);
+        applyInsetsToGuidelines(R.id.top_inset_guideline, R.id.bottom_inset_guideline, 0, R.id.right_inset_guideline );
         if (!(null == savedInstanceState)) {
             scenarioID = savedInstanceState.getLong(SCENARIO_KEY);
             mEdit = savedInstanceState.getBoolean(EDIT_KEY);
@@ -162,11 +164,13 @@ public class ScenarioActivity extends AppCompatActivity implements GraphableActi
                 if (!(mZoom)) {
                     actionBar.hide();
                     tabLayout.setVisibility(View.GONE);
+                    updateTopInsetTarget(tabLayout, viewPager);
                     mZoom = true;
                 }
                 else {
                     actionBar.show();
                     tabLayout.setVisibility(View.VISIBLE);
+                    updateTopInsetTarget(tabLayout, viewPager);
                     mZoom = false;
                 }}
         });
@@ -433,6 +437,7 @@ public class ScenarioActivity extends AppCompatActivity implements GraphableActi
                     if (!(null == actionBar) && !(null == tabLayout)) {
                         actionBar.show();
                         tabLayout.setVisibility(View.VISIBLE);
+                        updateTopInsetTarget(tabLayout, viewPager);
                         mZoom = false;
                     }
                 }

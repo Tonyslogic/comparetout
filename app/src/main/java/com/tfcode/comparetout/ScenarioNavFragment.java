@@ -257,7 +257,7 @@ public class ScenarioNavFragment extends Fragment {
                         alert.show();
                     }
                     else {
-                        if (!(null == getView())) Snackbar.make(getView(),
+                        if (!(null == getView())) Snackbar.make(getView().getRootView(),
                                         "Cannot delete during simulation. Try again in a moment.", Snackbar.LENGTH_LONG)
                                 .setAction("Action", null).show();
                     }

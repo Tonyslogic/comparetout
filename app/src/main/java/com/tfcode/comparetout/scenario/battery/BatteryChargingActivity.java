@@ -63,6 +63,8 @@ import com.tfcode.comparetout.model.json.scenario.LoadShiftJson;
 import com.tfcode.comparetout.model.scenario.LoadShift;
 import com.tfcode.comparetout.model.scenario.Scenario2LoadShift;
 import com.tfcode.comparetout.scenario.ScenarioSelectDialog;
+import com.tfcode.comparetout.util.EdgeInsets;
+import com.tfcode.comparetout.util.InsetRespectingActivity;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 import java.io.FileNotFoundException;
@@ -77,7 +79,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-public class BatteryChargingActivity extends AppCompatActivity {
+public class BatteryChargingActivity extends InsetRespectingActivity {
 
     private Handler mMainHandler;
     private ProgressBar mProgressBar;
@@ -157,6 +159,9 @@ public class BatteryChargingActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        applyInsetsToView(R.id.battery_charging_tab_layout, EdgeInsets.Edge.TOP);
+        applyInsetsToView(R.id.battery_charging_view_pager, EdgeInsets.Edge.BOTTOM, EdgeInsets.Edge.RIGHT);
+        applyInsetsToGuidelines(R.id.top_inset_guideline, R.id.bottom_inset_guideline, 0, R.id.right_inset_guideline );
         setContentView(R.layout.activity_battery_charging);
         createSimulationFeedback();
         createProgressBar();

@@ -342,7 +342,7 @@ public class EVScheduleFragment extends Fragment {
                     }
                     else {
                         linked.setEnabled(true);
-                        linked.setOnClickListener(view -> Snackbar.make(view, "Linked to " + linkedScenarios, Snackbar.LENGTH_LONG)
+                        linked.setOnClickListener(view -> Snackbar.make(view.getRootView(), "Linked to " + linkedScenarios, Snackbar.LENGTH_LONG)
                                 .setAction("Action", null).show());
                     }
 

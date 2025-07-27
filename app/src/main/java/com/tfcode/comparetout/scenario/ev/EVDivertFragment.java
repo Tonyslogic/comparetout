@@ -83,7 +83,7 @@ public class EVDivertFragment extends Fragment {
         mMainHandler = new Handler(Looper.getMainLooper());
 
         // The activity may not be created, so these calls wait for the activity creation to complete
-        ((EVDivertActivity) requireActivity()).getLifecycle().addObserver((LifecycleEventObserver) (source, event) -> {
+        requireActivity().getLifecycle().addObserver((LifecycleEventObserver) (source, event) -> {
             if ((event.getTargetState() ==  Lifecycle.State.CREATED ) && !(null == getActivity()) ) {
                 mEVDivertsFromActivity = ((EVDivertActivity) requireActivity()).getEVDiverts(mEVDivertIndex);
                 mEdit = ((EVDivertActivity) requireActivity()).getEdit();
@@ -427,7 +427,7 @@ public class EVDivertFragment extends Fragment {
                     }
                     else {
                         linked.setEnabled(true);
-                        linked.setOnClickListener(view -> Snackbar.make(view, "Linked to " + linkedScenarios, Snackbar.LENGTH_LONG)
+                        linked.setOnClickListener(view -> Snackbar.make(view.getRootView(), "Linked to " + linkedScenarios, Snackbar.LENGTH_LONG)
                                 .setAction("Action", null).show());
                     }
 
