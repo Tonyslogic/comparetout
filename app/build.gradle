@@ -39,7 +39,7 @@ android {
     if (System.getenv("CI") == "true") {
         testOptions {
             unitTests {
-                configureEach {
+                all {
                     exclude '**/importers/alphaess/**'
                     exclude '**/importers/homeassistant/**'
                 }
