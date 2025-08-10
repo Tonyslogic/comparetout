@@ -40,6 +40,9 @@ jobs:
     - name: Verify Gradle version
       run: ./gradlew --version
 
+    - name: Show AGP version
+      run: ./gradlew :app:dependencies --configuration releaseRuntimeClasspath
+
     - name: Build with Gradle
       run: ./gradlew assembleDebug --stacktrace
 
