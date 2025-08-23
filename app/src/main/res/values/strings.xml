@@ -334,4 +334,7 @@
     <string name="Battery_charging">Charging</string>
     <string name="Battery_discharging">Discharging</string>
     <string name="compare">Compare</string>
+    <string name="confirm">Confirm</string>
+    <string name="dialog_ok">OK</string>
+    <string name="dialog_cancel">Cancel</string>
 </resources>

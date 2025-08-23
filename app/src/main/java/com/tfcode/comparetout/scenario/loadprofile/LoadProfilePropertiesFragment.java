@@ -16,6 +16,7 @@
 
 package com.tfcode.comparetout.scenario.loadprofile;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.Editable;
@@ -202,178 +203,178 @@ public class LoadProfilePropertiesFragment extends Fragment {
     private void updateView() {
         mTableLayout.removeAllViews();
 
+        Activity thisActivity = getActivity();
+        if (thisActivity == null) return;
+
         // CREATE PARAM FOR MARGINING
         TableRow.LayoutParams planParams = new TableRow.LayoutParams(
                 TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
         planParams.topMargin = 2;
         planParams.rightMargin = 2;
 
-        if (!(null == getActivity())) {
-
-            // CREATE TABLE ROWS
-            TableRow tableRow = new TableRow(getActivity());
-            MaterialTextView a = new MaterialTextView(getActivity());
-            a.setText(R.string.DistributionSource);
-            a.setPadding(10, 25, 0, 25);
-            MaterialButton source = new MaterialButton(getActivity());
-            source.setText(mLoadProfile.getDistributionSource());
-            source.setEnabled(mEdit);
-            source.setOnClickListener(v -> {
-                SourceDialog sourceDialog = new SourceDialog(getActivity(), newSource -> {
-                    switch (newSource) {
-                        case SourceDialog.CUSTOM:
-                            LoadProfile lLoadProfile = new LoadProfile();
-                            mLoadProfile.setHourlyDist(lLoadProfile.getHourlyDist());
-                            mLoadProfile.setDowDist(lLoadProfile.getDowDist());
-                            mLoadProfile.setMonthlyDist(lLoadProfile.getMonthlyDist());
-                            mLoadProfile.setDistributionSource("Custom");
-                            if (mEdit) updateMasterCopy();
-                            break;
-                        case SourceDialog.SLP:
-                            StandardLoadProfileDialog slpDialog = new StandardLoadProfileDialog(getActivity(), newSLP -> {
-                                String loadProfileJsonString = null;
-                                switch (newSLP) {
-                                    case StandardLoadProfiles.URBAN_24:
-                                        loadProfileJsonString = StandardLoadProfiles.SLP_24hr_urban;
-                                        break;
-                                    case StandardLoadProfiles.RURAL_24:
-                                        loadProfileJsonString = StandardLoadProfiles.SLP_24hr_rural;
-                                        break;
-                                    case StandardLoadProfiles.URBAN_NIGHT:
-                                        loadProfileJsonString = StandardLoadProfiles.SLP_NightSaver_urban;
-                                        break;
-                                    case StandardLoadProfiles.RURAL_NIGHT:
-                                        loadProfileJsonString = StandardLoadProfiles.SLP_NightSaver_rural;
-                                        break;
-                                    case StandardLoadProfiles.URBAN_SMART:
-                                        loadProfileJsonString = StandardLoadProfiles.SLP_Smart_urban;
-                                        break;
-                                    case StandardLoadProfiles.RURAL_SMART:
-                                        loadProfileJsonString = StandardLoadProfiles.SLP_Smart_rural;
-                                        break;
-                                }
-                                if (!(null == loadProfileJsonString)) {
-                                    Type type = new TypeToken<LoadProfileJson>() {
-                                    }.getType();
-                                    LoadProfileJson lpj = new Gson().fromJson(loadProfileJsonString, type);
-                                    LoadProfile slProfile = JsonTools.createLoadProfile(lpj);
-                                    mLoadProfile.setHourlyDist(slProfile.getHourlyDist());
-                                    mLoadProfile.setDowDist(slProfile.getDowDist());
-                                    mLoadProfile.setMonthlyDist(slProfile.getMonthlyDist());
-                                    mLoadProfile.setDistributionSource(newSLP);
-                                    if (mEdit) updateMasterCopy();
-                                }
-                            });
-                            slpDialog.show();
-                            break;
-                        case SourceDialog.HDF:
-                            Intent intent = new Intent(getActivity(), ImportESBNActivity.class);
-                            intent.putExtra("LoadProfileID", mLoadProfileID);
-                            intent.putExtra("ScenarioID", mScenarioID);
-                            startActivity(intent);
-                            break;
-                    }
-                });
-                sourceDialog.show();
+        // CREATE TABLE ROWS
+        TableRow tableRow = new TableRow(thisActivity);
+        MaterialTextView a = new MaterialTextView(thisActivity);
+        a.setText(R.string.DistributionSource);
+        a.setPadding(10, 25, 0, 25);
+        MaterialButton source = new MaterialButton(thisActivity);
+        source.setText(mLoadProfile.getDistributionSource());
+        source.setEnabled(mEdit);
+        source.setOnClickListener(v -> {
+            SourceDialog sourceDialog = new SourceDialog(thisActivity, newSource -> {
+                switch (newSource) {
+                    case SourceDialog.CUSTOM:
+                        LoadProfile lLoadProfile = new LoadProfile();
+                        mLoadProfile.setHourlyDist(lLoadProfile.getHourlyDist());
+                        mLoadProfile.setDowDist(lLoadProfile.getDowDist());
+                        mLoadProfile.setMonthlyDist(lLoadProfile.getMonthlyDist());
+                        mLoadProfile.setDistributionSource("Custom");
+                        if (mEdit) updateMasterCopy();
+                        break;
+                    case SourceDialog.SLP:
+                        StandardLoadProfileDialog slpDialog = new StandardLoadProfileDialog(thisActivity, newSLP -> {
+                            String loadProfileJsonString = null;
+                            switch (newSLP) {
+                                case StandardLoadProfiles.URBAN_24:
+                                    loadProfileJsonString = StandardLoadProfiles.SLP_24hr_urban;
+                                    break;
+                                case StandardLoadProfiles.RURAL_24:
+                                    loadProfileJsonString = StandardLoadProfiles.SLP_24hr_rural;
+                                    break;
+                                case StandardLoadProfiles.URBAN_NIGHT:
+                                    loadProfileJsonString = StandardLoadProfiles.SLP_NightSaver_urban;
+                                    break;
+                                case StandardLoadProfiles.RURAL_NIGHT:
+                                    loadProfileJsonString = StandardLoadProfiles.SLP_NightSaver_rural;
+                                    break;
+                                case StandardLoadProfiles.URBAN_SMART:
+                                    loadProfileJsonString = StandardLoadProfiles.SLP_Smart_urban;
+                                    break;
+                                case StandardLoadProfiles.RURAL_SMART:
+                                    loadProfileJsonString = StandardLoadProfiles.SLP_Smart_rural;
+                                    break;
+                            }
+                            if (!(null == loadProfileJsonString)) {
+                                Type type = new TypeToken<LoadProfileJson>() {
+                                }.getType();
+                                LoadProfileJson lpj = new Gson().fromJson(loadProfileJsonString, type);
+                                LoadProfile slProfile = JsonTools.createLoadProfile(lpj);
+                                mLoadProfile.setHourlyDist(slProfile.getHourlyDist());
+                                mLoadProfile.setDowDist(slProfile.getDowDist());
+                                mLoadProfile.setMonthlyDist(slProfile.getMonthlyDist());
+                                mLoadProfile.setDistributionSource(newSLP);
+                                if (mEdit) updateMasterCopy();
+                            }
+                        });
+                        slpDialog.show();
+                        break;
+                    case SourceDialog.HDF:
+                        Intent intent = new Intent(thisActivity, ImportESBNActivity.class);
+                        intent.putExtra("LoadProfileID", mLoadProfileID);
+                        intent.putExtra("ScenarioID", mScenarioID);
+                        startActivity(intent);
+                        break;
+                }
             });
-            tableRow.addView(a);
-            tableRow.addView(source);
-            mEditFields.add(source);
-            mTableLayout.addView(tableRow);
+            sourceDialog.show();
+        });
+        tableRow.addView(a);
+        tableRow.addView(source);
+        mEditFields.add(source);
+        mTableLayout.addView(tableRow);
 
-            tableRow = new TableRow(getActivity());
-            a = new MaterialTextView(getActivity());
-            a.setText(R.string.AnnualUsage);
-            a.setPadding(10, 25, 0, 25);
-            EditText b = new EditText(getActivity());
-            b.setText(String.format("%s", mLoadProfile.getAnnualUsage()));
-            b.setEnabled(mEdit);
-            b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-            b.addTextChangedListener(new AbstractTextWatcher() {
-                @Override
-                public void afterTextChanged(Editable s) {
-                    mLoadProfile.setAnnualUsage(getDoubleOrZero(s));
+        tableRow = new TableRow(thisActivity);
+        a = new MaterialTextView(thisActivity);
+        a.setText(R.string.AnnualUsage);
+        a.setPadding(10, 25, 0, 25);
+        EditText b = new EditText(thisActivity);
+        b.setText(String.format("%s", mLoadProfile.getAnnualUsage()));
+        b.setEnabled(mEdit);
+        b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        b.addTextChangedListener(new AbstractTextWatcher() {
+            @Override
+            public void afterTextChanged(Editable s) {
+                mLoadProfile.setAnnualUsage(getDoubleOrZero(s));
+                ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
+            }
+        });
+        b.setPadding(0, 25, 0, 25);
+        tableRow.addView(a);
+        tableRow.addView(b);
+        mTableLayout.addView(tableRow);
+        mEditFields.add(b);
+
+        tableRow = new TableRow(thisActivity);
+        a = new MaterialTextView(thisActivity);
+        a.setText(R.string.HourlyBaseLoad);
+        a.setPadding(10, 25, 0, 25);
+        b = new EditText(thisActivity);
+        b.setEnabled(mEdit);
+        b.setText(String.format("%s", mLoadProfile.getHourlyBaseLoad()));
+        b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        b.addTextChangedListener(new AbstractTextWatcher() {
+            @Override
+            public void afterTextChanged(Editable s) {
+                try {
+                    mLoadProfile.setHourlyBaseLoad(getDoubleOrZero(s));
                     ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
+                } catch (NumberFormatException nfe) {
+                    nfe.printStackTrace();
                 }
-            });
-            b.setPadding(0, 25, 0, 25);
-            tableRow.addView(a);
-            tableRow.addView(b);
-            mTableLayout.addView(tableRow);
-            mEditFields.add(b);
+            }
+        });
+        b.setPadding(0, 25, 0, 25);
+        tableRow.addView(a);
+        tableRow.addView(b);
+        mTableLayout.addView(tableRow);
+        mEditFields.add(b);
 
-            tableRow = new TableRow(getActivity());
-            a = new MaterialTextView(getActivity());
-            a.setText(R.string.HourlyBaseLoad);
-            a.setPadding(10, 25, 0, 25);
-            b = new EditText(getActivity());
-            b.setEnabled(mEdit);
-            b.setText(String.format("%s", mLoadProfile.getHourlyBaseLoad()));
-            b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-            b.addTextChangedListener(new AbstractTextWatcher() {
-                @Override
-                public void afterTextChanged(Editable s) {
-                    try {
-                        mLoadProfile.setHourlyBaseLoad(getDoubleOrZero(s));
-                        ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
-                    } catch (NumberFormatException nfe) {
-                        nfe.printStackTrace();
-                    }
-                }
-            });
-            b.setPadding(0, 25, 0, 25);
-            tableRow.addView(a);
-            tableRow.addView(b);
-            mTableLayout.addView(tableRow);
-            mEditFields.add(b);
+        tableRow = new TableRow(thisActivity);
+        a = new MaterialTextView(thisActivity);
+        a.setText(R.string.GridImportMax);
+        a.setPadding(10, 25, 0, 25);
+        b = new EditText(thisActivity);
+        b.setEnabled(mEdit);
+        b.setText(String.format("%s", mLoadProfile.getGridImportMax()));
+        b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        b.addTextChangedListener(new AbstractTextWatcher() {
+            @Override
+            public void afterTextChanged(Editable s) {
+                mLoadProfile.setGridImportMax(getDoubleOrZero(s));
+                ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
+            }
+        });
+        b.setPadding(0, 25, 0, 25);
+        tableRow.addView(a);
+        tableRow.addView(b);
+        mTableLayout.addView(tableRow);
+        mEditFields.add(b);
 
-            tableRow = new TableRow(getActivity());
-            a = new MaterialTextView(getActivity());
-            a.setText(R.string.GridImportMax);
-            a.setPadding(10, 25, 0, 25);
-            b = new EditText(getActivity());
-            b.setEnabled(mEdit);
-            b.setText(String.format("%s", mLoadProfile.getGridImportMax()));
-            b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-            b.addTextChangedListener(new AbstractTextWatcher() {
-                @Override
-                public void afterTextChanged(Editable s) {
-                    mLoadProfile.setGridImportMax(getDoubleOrZero(s));
-                    ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
-                }
-            });
-            b.setPadding(0, 25, 0, 25);
-            tableRow.addView(a);
-            tableRow.addView(b);
-            mTableLayout.addView(tableRow);
-            mEditFields.add(b);
-
-            tableRow = new TableRow(getActivity());
-            a = new MaterialTextView(getActivity());
-            a.setText(R.string.GridExportMax);
-            a.setPadding(10, 25, 0, 25);
-            b = new EditText(getActivity());
-            b.setEnabled(mEdit);
-            b.setText(String.format("%s", mLoadProfile.getGridExportMax()));
-            b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-            b.addTextChangedListener(new AbstractTextWatcher() {
-                @Override
-                public void afterTextChanged(Editable s) {
-                    mLoadProfile.setGridExportMax(getDoubleOrZero(s));
-                    if (mEdit) ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
-                }
-            });
-            b.setPadding(0, 25, 0, 25);
-            tableRow.addView(a);
-            tableRow.addView(b);
-            mTableLayout.addView(tableRow);
-            mEditFields.add(b);
-        }
+        tableRow = new TableRow(thisActivity);
+        a = new MaterialTextView(thisActivity);
+        a.setText(R.string.GridExportMax);
+        a.setPadding(10, 25, 0, 25);
+        b = new EditText(thisActivity);
+        b.setEnabled(mEdit);
+        b.setText(String.format("%s", mLoadProfile.getGridExportMax()));
+        b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        b.addTextChangedListener(new AbstractTextWatcher() {
+            @Override
+            public void afterTextChanged(Editable s) {
+                mLoadProfile.setGridExportMax(getDoubleOrZero(s));
+                if (mEdit) ((LoadProfileActivity) requireActivity()).setSaveNeeded(true);
+            }
+        });
+        b.setPadding(0, 25, 0, 25);
+        tableRow.addView(a);
+        tableRow.addView(b);
+        mTableLayout.addView(tableRow);
+        mEditFields.add(b);
     }
 
     public void setEditMode(boolean ed) {
         mEdit = ed;
-        for (View v : mEditFields) {
+        if (!(null == mEditFields)) for (View v : mEditFields) {
             v.setEnabled(mEdit);
         }
     }

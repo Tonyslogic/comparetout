@@ -21,6 +21,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -39,7 +40,6 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.lifecycle.ViewModelProvider;
@@ -327,7 +327,7 @@ public class BatteryChargingActivity extends InsetRespectingActivity {
 
     private void deleteAllLoadShiftsInTab() {
         int pos = mViewPager.getCurrentItem();
-        if (mLoadShifts.size() > 0) {
+        if (!mLoadShifts.isEmpty()) {
 
             List<LoadShift> loadShiftsToBeDeleted = mTabContents.get(pos);
             if (!(null == loadShiftsToBeDeleted))
@@ -376,7 +376,7 @@ public class BatteryChargingActivity extends InsetRespectingActivity {
 
         LinearLayout linearLayout = (LinearLayout)tabLayout.getChildAt(0);
         for (int i = 0; i < linearLayout.getChildCount(); i++) {
-            ((View) linearLayout.getChildAt(i)).setOnLongClickListener(v -> {
+            linearLayout.getChildAt(i).setOnLongClickListener(v -> {
                 showHelp("https://appassets.androidplatform.net/assets/scenario/battery_schedule/help.html");
                 return true;
             });
@@ -390,15 +390,19 @@ public class BatteryChargingActivity extends InsetRespectingActivity {
         getMenuInflater().inflate(R.menu.menu_load_profile, menu);
         mMenu = menu;
         int colour = Color.parseColor("White");
-        mMenu.findItem(R.id.lp_info).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMenu.findItem(R.id.lp_edit).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMenu.findItem(R.id.lp_share).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMenu.findItem(R.id.lp_save).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMenu.findItem(R.id.lp_import).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMenu.findItem(R.id.lp_copy).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMenu.findItem(R.id.lp_link).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMenu.findItem(R.id.lp_help).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMenu.findItem(R.id.lp_delete).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        PorterDuffColorFilter colorFilter = new PorterDuffColorFilter(colour, PorterDuff.Mode.DST);
+        int[] menuItems = {
+                R.id.lp_info, R.id.lp_edit, R.id.lp_share,
+                R.id.lp_save, R.id.lp_import, R.id.lp_copy,
+                R.id.lp_link, R.id.lp_help, R.id.lp_delete
+        };
+
+        for (int itemId : menuItems) {
+            MenuItem menuItem = mMenu.findItem(itemId);
+            if (menuItem != null && menuItem.getIcon() != null) {
+                menuItem.getIcon().setColorFilter(colorFilter);
+            }
+        }
         setMenuLongClick();
         return true;
     }
@@ -424,7 +428,7 @@ public class BatteryChargingActivity extends InsetRespectingActivity {
     }
 
     private void setMenuLongClick() {
-        new Handler().post(() -> {
+        new Handler(Looper.getMainLooper()).post(() -> {
             final View info = findViewById(R.id.lp_info);
             if (info != null) {
                 info.setOnLongClickListener(v -> {
@@ -767,7 +771,7 @@ public class BatteryChargingActivity extends InsetRespectingActivity {
 
     private void showHelp(String url) {
         mHelpWindow.setHeight((int) (getWindow().getDecorView().getHeight()*0.6));
-        mHelpWindow.setWidth((int) (getWindow().getDecorView().getWidth()));
+        mHelpWindow.setWidth(getWindow().getDecorView().getWidth());
         mHelpWindow.showAtLocation(mViewPager.getRootView(), Gravity.CENTER, 0, 0);
         WebView webView = mPopupView.findViewById(R.id.helpWebView);
 

@@ -21,7 +21,7 @@ import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
-import android.graphics.drawable.Drawable;
+import android.graphics.PorterDuffColorFilter;
 import android.os.Bundle;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -205,9 +205,18 @@ public class ImportHomeAssistantActivity  extends InsetRespectingActivity implem
         menu.findItem(R.id.export).setVisible(false); //.getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         mCompareButton = menu.findItem(R.id.compare);
         mCompareButton.setVisible(false);
-        Objects.requireNonNull(menu.findItem(R.id.compare).getIcon()).setColorFilter(colour, PorterDuff.Mode.DST);
-        Drawable icon = menu.findItem(R.id.help).getIcon();
-        if (icon != null) icon.setColorFilter(colour, PorterDuff.Mode.DST);
+
+        PorterDuffColorFilter colorFilter = new PorterDuffColorFilter(colour, PorterDuff.Mode.DST);
+        int[] menuItems = {
+                R.id.compare, R.id.lp_help
+        };
+
+        for (int itemId : menuItems) {
+            MenuItem menuItem = menu.findItem(itemId);
+            if (menuItem != null && menuItem.getIcon() != null) {
+                menuItem.getIcon().setColorFilter(colorFilter);
+            }
+        }
         return true;
     }
 

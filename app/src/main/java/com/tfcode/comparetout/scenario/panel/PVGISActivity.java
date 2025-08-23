@@ -22,7 +22,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.graphics.ColorFilter;
 import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -258,8 +260,11 @@ public class PVGISActivity extends AbstractEPOFolderActivity {
         getMenuInflater().inflate(R.menu.menu_prices, menu);
         int colour = Color.parseColor("White");
         MenuItem mi = menu.findItem(R.id.help);
-        if (!(null == mi) && !(null == mi.getIcon()))
-            mi.getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        ColorFilter filter = new PorterDuffColorFilter(colour, PorterDuff.Mode.DST);
+
+        if (mi != null && mi.getIcon() != null) {
+            mi.getIcon().setColorFilter(filter);
+        }
         menu.findItem(R.id.load).setVisible(false);
         menu.findItem(R.id.download).setVisible(false);
         menu.findItem(R.id.export).setVisible(false);
@@ -527,7 +532,6 @@ public class PVGISActivity extends AbstractEPOFolderActivity {
         File tempFile = new File(this.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), fileName);
         DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url))
                 .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)// Visibility of the download Notification
-                .setVisibleInDownloadsUi(true)
                 .setDestinationInExternalFilesDir(this, Environment.DIRECTORY_DOWNLOADS, fileName)
                 .setTitle(fileName)// Title of the Download Notification
                 .setDescription("Downloading PVGIS data")// Description of the Download Notification

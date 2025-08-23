@@ -244,8 +244,8 @@ public class ScenarioNavFragment extends Fragment {
                         AlertDialog.Builder alert = new AlertDialog.Builder(getActivity());
                         alert.setTitle("Delete entry");
                         alert.setMessage("Are you sure you want to delete?");
-                        alert.setPositiveButton(android.R.string.yes, (dialog, which) -> mViewModel.deleteScenario(v.getId()));
-                        alert.setNegativeButton(android.R.string.no, (dialog, which) -> {
+                        alert.setPositiveButton(R.string.confirm, (dialog, which) -> mViewModel.deleteScenario(v.getId()));
+                        alert.setNegativeButton(R.string.cancel, (dialog, which) -> {
                             // close dialog
                             dialog.cancel();
                             tableRow.setBackgroundColor(0);

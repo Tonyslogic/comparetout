@@ -90,18 +90,23 @@ public class ImportESBNOverview extends ImportOverviewFragment {
         super.onViewCreated(view, savedInstanceState);
         Activity activity = getActivity();
         if (!(null == activity)) {
+//            TOUTCApplication application = ((TOUTCApplication) activity.getApplication());
+//            RxDataStore<Preferences> dataStore = application.getDataStore();
+//            SettingsViewModel settingsViewModel = new ViewModelProvider(this, new ViewModelProvider.Factory() {
+//                @NonNull
+//                @Override
+//                public <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
+//                    if (modelClass.isAssignableFrom(SettingsViewModel.class)) {
+//                        return (T) new SettingsViewModel(dataStore);
+//                    }
+//                    throw new IllegalArgumentException("Unknown ViewModel class");
+//                }
+//            }).get(SettingsViewModel.class);
             TOUTCApplication application = ((TOUTCApplication) activity.getApplication());
             RxDataStore<Preferences> dataStore = application.getDataStore();
-            SettingsViewModel settingsViewModel = new ViewModelProvider(this, new ViewModelProvider.Factory() {
-                @NonNull
-                @Override
-                public <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
-                    if (modelClass.isAssignableFrom(SettingsViewModel.class)) {
-                        return (T) new SettingsViewModel(dataStore);
-                    }
-                    throw new IllegalArgumentException("Unknown ViewModel class");
-                }
-            }).get(SettingsViewModel.class);
+            SettingsViewModel settingsViewModel = new ViewModelProvider(
+                    this, new SettingsViewModelFactory(dataStore)
+            ).get(SettingsViewModel.class);
 
             settingsViewModel.getPreferencesLiveData().observe(getViewLifecycleOwner(), preferences -> {
                 Preferences.Key<String> KEY = PreferencesKeys.stringKey(ESBN_PREVIOUS_SELECTED_KEY);
@@ -135,11 +140,11 @@ public class ImportESBNOverview extends ImportOverviewFragment {
         alert.setMessage("This function uses an unofficial ESBN API. It may break at any time. " +
                 "If it does, you may still download the file manually and import using the menu " +
                 "above. See help for how to do this.");
-        alert.setPositiveButton(android.R.string.yes, (dialog, which) -> {
+        alert.setPositiveButton(R.string.dialog_ok, (dialog, which) -> {
             credentialStatus.setText(R.string.loading);
             getCredentials(application);
         });
-        alert.setNegativeButton(android.R.string.no, (dialog, which) -> dialog.cancel());
+        alert.setNegativeButton(R.string.dialog_cancel, (dialog, which) -> dialog.cancel());
         alert.show();
     }
 
@@ -153,9 +158,9 @@ public class ImportESBNOverview extends ImportOverviewFragment {
         alert.setMessage("This function uses an unofficial ESBN API. It is currently broken. " +
                 "You may still download the file manually. See help for how to do this. " +
                 "Clicking ok will cancel any recurring fetch workers.");
-        alert.setPositiveButton(android.R.string.yes, (dialog, which) ->
+        alert.setPositiveButton(R.string.dialog_ok, (dialog, which) ->
                 cancelOngoingFetch(addFetchButton));
-        alert.setNegativeButton(android.R.string.no, (dialog, which) -> dialog.cancel());
+        alert.setNegativeButton(R.string.dialog_cancel, (dialog, which) -> dialog.cancel());
         alert.show();
     }
 
@@ -223,5 +228,23 @@ public class ImportESBNOverview extends ImportOverviewFragment {
         // For ESBN importer, we do not want to disable the manual input of MPRN,
         // so HDF loading will still work
         return super.getSystemSelectionRow(activity, true);
+    }
+
+    public static class SettingsViewModelFactory implements ViewModelProvider.Factory {
+        private final RxDataStore<Preferences> dataStore;
+
+        public SettingsViewModelFactory(RxDataStore<Preferences> dataStore) {
+            this.dataStore = dataStore;
+        }
+
+        @NonNull
+        @Override
+        @SuppressWarnings("unchecked")
+        public <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
+            if (modelClass.isAssignableFrom(SettingsViewModel.class)) {
+                return (T) new SettingsViewModel(dataStore);
+            }
+            throw new IllegalArgumentException("Unknown ViewModel class");
+        }
     }
 }

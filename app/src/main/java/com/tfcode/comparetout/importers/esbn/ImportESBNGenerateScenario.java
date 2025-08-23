@@ -197,13 +197,13 @@ public class ImportESBNGenerateScenario extends Fragment {
                             "for inclusion in the load profile. Please edit the generated load " +
                             "profile to ensure a meaningful simulation. Both total and monthly " +
                             "distribution will need modification.");
-                    alert.setPositiveButton(android.R.string.yes, (dialog, which) -> {});
+                    alert.setPositiveButton(R.string.confirm, (dialog, which) -> {});
                     alert.show();
                 } else if (!mDatesOK && !(null == context)) {
                     MaterialAlertDialogBuilder alert = new MaterialAlertDialogBuilder(context);
                     alert.setTitle("Not enough days");
                     alert.setMessage("The generation requires at least 7 days to work.");
-                    alert.setPositiveButton(android.R.string.yes, (dialog, which) -> {});
+                    alert.setPositiveButton(R.string.confirm, (dialog, which) -> {});
                     alert.show();
                 }
                 setSelectionText();

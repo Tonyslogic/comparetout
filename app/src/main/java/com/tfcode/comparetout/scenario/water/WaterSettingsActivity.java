@@ -20,6 +20,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.PorterDuffColorFilter;
 import android.graphics.PorterDuff;
 import android.os.Bundle;
 import android.os.Handler;
@@ -250,20 +251,25 @@ public class WaterSettingsActivity extends InsetRespectingActivity {
         getMenuInflater().inflate(R.menu.menu_load_profile, menu);
         mMenu = menu;
         int colour = Color.parseColor("White");
-        mMenu.findItem(R.id.lp_info).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMenu.findItem(R.id.lp_edit).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMenu.findItem(R.id.lp_share).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMenu.findItem(R.id.lp_save).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMenu.findItem(R.id.lp_import).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMenu.findItem(R.id.lp_copy).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMenu.findItem(R.id.lp_link).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMenu.findItem(R.id.lp_help).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        PorterDuffColorFilter colorFilter = new PorterDuffColorFilter(colour, PorterDuff.Mode.DST);
+        int[] menuItems = {
+                R.id.lp_info, R.id.lp_edit, R.id.lp_share,
+                R.id.lp_save, R.id.lp_import, R.id.lp_copy,
+                R.id.lp_link, R.id.lp_help
+        };
+
+        for (int itemId : menuItems) {
+            MenuItem menuItem = menu.findItem(itemId);
+            if (menuItem != null && menuItem.getIcon() != null) {
+                menuItem.getIcon().setColorFilter(colorFilter);
+            }
+        }
         setMenuLongClick();
         return true;
     }
 
     private void setMenuLongClick() {
-        new Handler().post(() -> {
+        new Handler(Looper.getMainLooper()).post(() -> {
             final View info = findViewById(R.id.lp_info);
             if (info != null) {
                 info.setOnLongClickListener(v -> {

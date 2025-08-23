@@ -13,6 +13,6 @@ ext {
     coreTestingVersion = '2.2.0'
     junitVersion = '4.13.2'
     espressoVersion = '3.4.0'
-    androidxJunitVersion = '1.1.3'
-    workVersion = '2.10.2'
+    androidxJunitVersion = '1.3.0'
+    workVersion = '2.10.3'
 }

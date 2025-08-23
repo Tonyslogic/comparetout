@@ -25,6 +25,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Bundle;
@@ -46,10 +47,8 @@ import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
-import androidx.core.view.WindowCompat;
 import androidx.datastore.preferences.core.Preferences;
 import androidx.datastore.preferences.core.PreferencesKeys;
 import androidx.lifecycle.ViewModelProvider;
@@ -91,12 +90,12 @@ import io.reactivex.rxjava3.core.Single;
 
 /**
  * Main Activity serving as the primary entry point and navigation hub for the TOUTC application.
- * 
+ * <p>
  * This activity coordinates the entire user interface, managing a ViewPager2 that hosts multiple
  * fragments for different application sections (data management, usage, costs, and comparison).
  * It handles critical application lifecycle events, user onboarding, data import/export, and
  * provides centralized progress tracking for long-running operations.
- * 
+ * <p>
  * Key responsibilities:
  * - Application initialization and first-launch setup with disclaimers
  * - Fragment navigation and state management through ViewPager2
@@ -105,12 +104,12 @@ import io.reactivex.rxjava3.core.Single;
  * - Help system integration with asset-based web content
  * - Application menu management and user action handling
  * - Notification channel setup for background operations
- * 
+ *  <p>
  * The activity uses a ViewModel pattern to coordinate data operations and maintains
  * reactive subscriptions to provide real-time updates to the UI. It also implements
  * sophisticated error handling and user feedback mechanisms to ensure a smooth
  * user experience even when dealing with complex energy system data.
- * 
+ *  <p>
  * Fragment organization:
  * - DATA_MANAGEMENT_FRAGMENT: Import/export and data management tools
  * - USAGE_FRAGMENT: Energy usage scenarios and configuration
@@ -143,7 +142,7 @@ public class MainActivity extends InsetRespectingActivity {
 
     /**
      * Load user preferences from the encrypted DataStore.
-     * 
+     *  <p>
      * Retrieves the first-launch flag from secure storage to determine
      * whether to show the application disclaimers. Uses reactive programming
      * to handle the asynchronous data retrieval gracefully.
@@ -166,12 +165,12 @@ public class MainActivity extends InsetRespectingActivity {
 
     /**
      * Display application disclaimers and warnings to first-time users.
-     * 
+     *  <p>
      * Shows a comprehensive dialog explaining the limitations of the energy
      * calculations, data accuracy considerations, and legal disclaimers.
      * This ensures users understand that the app provides estimations for
      * exploration purposes rather than professional financial advice.
-     * 
+     *  <p>
      * Upon acceptance, marks the user as having seen the disclaimers and
      * stores this preference securely for future launches.
      * 
@@ -200,19 +199,19 @@ public class MainActivity extends InsetRespectingActivity {
 
     /**
      * Activity result launcher for importing price plan data from JSON files.
-     * 
+     *  <p>
      * Handles the complete import process for price plans, including:
      * - File selection and reading from external storage
      * - JSON deserialization using Gson with proper type handling
      * - Database insertion with optional overwrite capability
      * - Progress indication during import operations
      * - Cleanup of associated costing data when plans are updated
-     * 
+     *  <p>
      * The import process supports bulk operations and provides robust error
      * handling to prevent data corruption during the import process.
      */
     final ActivityResultLauncher<String> mLoadPricePlansFromFile = registerForActivityResult(new ActivityResultContracts.GetContent(),
-            new ActivityResultCallback<Uri>() {
+            new ActivityResultCallback<>() {
                 @Override
                 public void onActivityResult(Uri uri) {
                     // Handle the returned Uri
@@ -222,14 +221,15 @@ public class MainActivity extends InsetRespectingActivity {
                     try {
                         is = getContentResolver().openInputStream(uri);
                         InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
-                        Type type = new TypeToken<List<PricePlanJsonFile>>(){}.getType();
+                        Type type = new TypeToken<List<PricePlanJsonFile>>() {
+                        }.getType();
                         List<PricePlanJsonFile> ppList = new Gson().fromJson(reader, type);
-                        for(PricePlanJsonFile pp : ppList){
+                        for (PricePlanJsonFile pp : ppList) {
                             // Process each price plan in the imported file
                             System.out.println(pp.plan);
                             PricePlan p = JsonTools.createPricePlan(pp);
                             ArrayList<DayRate> drs = new ArrayList<>();
-                            for (DayRateJson drj : pp.rates){
+                            for (DayRateJson drj : pp.rates) {
                                 DayRate dr = JsonTools.createDayRate(drj);
                                 drs.add(dr);
                             }
@@ -240,8 +240,7 @@ public class MainActivity extends InsetRespectingActivity {
                         }
                     } catch (FileNotFoundException e) {
                         e.printStackTrace();
-                    }
-                    finally {
+                    } finally {
                         if (!(null == is)) {
                             try {
                                 is.close();
@@ -256,17 +255,17 @@ public class MainActivity extends InsetRespectingActivity {
 
     /**
      * Activity result launcher for importing scenario data from JSON files.
-     * 
+     *  <p>
      * Manages the import of complete energy system scenarios including all
      * associated component data (inverters, batteries, panels, loads, etc.).
      * The import process reconstructs complex scenario relationships and
      * ensures data integrity across multiple database tables.
-     * 
+     *  <p>
      * Provides the same robust error handling and progress indication as
      * price plan imports, with cleanup of dependent calculation data.
      */
     final ActivityResultLauncher<String> mLoadScenariosFromFile = registerForActivityResult(new ActivityResultContracts.GetContent(),
-            new ActivityResultCallback<Uri>() {
+            new ActivityResultCallback<>() {
                 @Override
                 public void onActivityResult(Uri uri) {
                     // Handle the returned Uri
@@ -276,7 +275,8 @@ public class MainActivity extends InsetRespectingActivity {
                     try {
                         is = getContentResolver().openInputStream(uri);
                         InputStreamReader reader = new InputStreamReader(is, StandardCharsets.UTF_8);
-                        Type type = new TypeToken<List<ScenarioJsonFile>>() {}.getType();
+                        Type type = new TypeToken<List<ScenarioJsonFile>>() {
+                        }.getType();
                         List<ScenarioJsonFile> scenarioJsonFiles = new Gson().fromJson(reader, type);
                         List<ScenarioComponents> scs = JsonTools.createScenarioComponentList(scenarioJsonFiles);
                         for (ScenarioComponents sc : scs) {
@@ -444,9 +444,10 @@ public class MainActivity extends InsetRespectingActivity {
         getMenuInflater().inflate(R.menu.menu_prices, menu);
         mMainMenu = menu;
         int colour = Color.parseColor("White");
+        PorterDuffColorFilter colorFilter = new PorterDuffColorFilter(colour, PorterDuff.Mode.DST);
         for (int i : new int[]{R.id.load, R.id.download, R.id.export, R.id.help}) {
             Drawable icon = mMainMenu.findItem(i).getIcon();
-            if (!(null == icon)) icon.setColorFilter(colour, PorterDuff.Mode.DST);
+            if (!(null == icon)) icon.setColorFilter(colorFilter);
         }
         if (viewPager.getCurrentItem() == COMPARE_FRAGMENT) {
             for (int i : new int[]{R.id.load, R.id.download}) {
@@ -463,7 +464,7 @@ public class MainActivity extends InsetRespectingActivity {
     }
 
     private void setMenuLongClick() {
-        new Handler().post(() -> {
+        new Handler(Looper.getMainLooper()).post(() -> {
             final View export = findViewById(R.id.export);
             if (export != null) {
                 export.setOnLongClickListener(v -> {

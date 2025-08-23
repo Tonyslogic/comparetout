@@ -21,6 +21,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
@@ -38,7 +39,6 @@ import android.widget.PopupWindow;
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 import androidx.webkit.WebViewAssetLoader;
@@ -220,16 +220,17 @@ public class PricePlanActivity extends InsetRespectingActivity {
         getMenuInflater().inflate(R.menu.menu_plans, menu);
         mMenu = menu;
         int colour = Color.parseColor("White");
+        PorterDuffColorFilter colorFilter = new PorterDuffColorFilter(colour, PorterDuff.Mode.DST);
         for (int i : new int[]{R.id.info, R.id.edit_a_plan, R.id.add_a_day_rate, R.id.export_a_plan, R.id.del_a_day_rate, R.id.save_a_plan, R.id.help}) {
             Drawable icon = menu.findItem(i).getIcon();
-            if (!(null == icon)) icon.setColorFilter(colour, PorterDuff.Mode.DST);
+            if (!(null == icon)) icon.setColorFilter(colorFilter);
         }
         setMenuLongClick();
         return true;
     }
 
     private void setMenuLongClick() {
-        new Handler().post(() -> {
+        new Handler(Looper.getMainLooper()).post(() -> {
             final View info = findViewById(R.id.info);
             if (info != null) {
                 info.setOnLongClickListener(v -> {

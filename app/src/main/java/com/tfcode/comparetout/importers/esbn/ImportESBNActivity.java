@@ -22,6 +22,7 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.Gravity;
@@ -78,7 +79,7 @@ public class ImportESBNActivity extends InsetRespectingActivity implements Graph
     private static final String PROFILE_KEY = "LoadProfileID";
 
     final ActivityResultLauncher<String> mLoadESBNHDFDataFromFile = registerForActivityResult(new ActivityResultContracts.GetContent(),
-            new ActivityResultCallback<Uri>() {
+            new ActivityResultCallback<>() {
                 @Override
                 public void onActivityResult(Uri uri) {
                     // Handle the returned Uri
@@ -220,12 +221,20 @@ public class ImportESBNActivity extends InsetRespectingActivity implements Graph
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_importer, menu);
         int colour = Color.parseColor("White");
-        menu.findItem(R.id.load).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        PorterDuffColorFilter colorFilter = new PorterDuffColorFilter(colour, PorterDuff.Mode.DST);
+        int[] menuItems = {
+                R.id.load, R.id.help, R.id.compare
+        };
+
+        for (int itemId : menuItems) {
+            MenuItem menuItem = menu.findItem(itemId);
+            if (menuItem != null && menuItem.getIcon() != null) {
+                menuItem.getIcon().setColorFilter(colorFilter);
+            }
+        }
         menu.findItem(R.id.export).setVisible(false); //.getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         mCompareButton = menu.findItem(R.id.compare);
         mCompareButton.setVisible(false);
-        Objects.requireNonNull(menu.findItem(R.id.compare).getIcon()).setColorFilter(colour, PorterDuff.Mode.DST);
-        menu.findItem(R.id.help).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
         return true;
     }
 

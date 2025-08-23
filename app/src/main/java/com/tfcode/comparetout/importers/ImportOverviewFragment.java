@@ -511,7 +511,7 @@ public abstract class ImportOverviewFragment extends Fragment {
             alert.setNeutralButton("Selected dates", (dialog, which) -> mViewModel.deleteInverterDatesBySN(mImporterType, mSerialNumber,
                     mCostViewModel.getSelectedStart().minusDays(1),
                     mCostViewModel.getSelectedEnd().minusDays(1)));
-            alert.setNegativeButton(android.R.string.no, (dialog, which) -> dialog.cancel());
+            alert.setNegativeButton(R.string.dialog_cancel, (dialog, which) -> dialog.cancel());
             alert.show();
 
         });

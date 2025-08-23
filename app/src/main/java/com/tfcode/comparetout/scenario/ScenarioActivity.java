@@ -21,6 +21,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Color;
+import android.graphics.PorterDuffColorFilter;
 import android.graphics.PorterDuff;
 import android.os.Bundle;
 import android.os.Handler;
@@ -183,20 +184,28 @@ public class ScenarioActivity extends InsetRespectingActivity implements Graphab
         getMenuInflater().inflate(R.menu.menu_scenarios, menu);
         mMenu = menu;
         int colour = Color.parseColor("White");
-        mMenu.findItem(R.id.edit_scenario).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMenu.findItem(R.id.share_scenario).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMenu.findItem(R.id.info_scenario).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
-        mMenu.findItem(R.id.save_scenario).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+        PorterDuffColorFilter colorFilter = new PorterDuffColorFilter(colour, PorterDuff.Mode.DST);
+        int[] menuItems = {
+                R.id.edit_scenario, R.id.share_scenario, R.id.info_scenario,
+                R.id.save_scenario, R.id.compare, R.id.help
+        };
+
+        for (int itemId : menuItems) {
+            MenuItem menuItem = menu.findItem(itemId);
+            if (menuItem != null && menuItem.getIcon() != null) {
+                menuItem.getIcon().setColorFilter(colorFilter);
+            }
+        }
+
         mCompareButton = menu.findItem(R.id.compare);
         mCompareButton.setVisible(false);
-        Objects.requireNonNull(menu.findItem(R.id.compare).getIcon()).setColorFilter(colour, PorterDuff.Mode.DST);
-        mMenu.findItem(R.id.help).getIcon().setColorFilter(colour, PorterDuff.Mode.DST);
+
         setMenuLongClick();
         return true;
     }
 
     private void setMenuLongClick() {
-        new Handler().post(() -> {
+        new Handler(Looper.getMainLooper()).post(() -> {
             final View info = findViewById(R.id.info_scenario);
             if (info != null) {
                 info.setOnLongClickListener(v -> {

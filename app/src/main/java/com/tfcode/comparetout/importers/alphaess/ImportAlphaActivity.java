@@ -21,6 +21,7 @@ import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.Gravity;
@@ -71,7 +72,7 @@ public class ImportAlphaActivity extends AbstractEPOFolderActivity implements Gr
     private boolean mZoom = false;
 
     final ActivityResultLauncher<String> mLoadAlphaESSDataFromFile = registerForActivityResult(new ActivityResultContracts.GetContent(),
-            new ActivityResultCallback<Uri>() {
+            new ActivityResultCallback<>() {
                 @Override
                 public void onActivityResult(Uri uri) {
                     // Handle the returned Uri
@@ -194,12 +195,19 @@ public class ImportAlphaActivity extends AbstractEPOFolderActivity implements Gr
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_importer, menu);
         int colour = Color.parseColor("White");
-        Objects.requireNonNull(menu.findItem(R.id.load).getIcon()).setColorFilter(colour, PorterDuff.Mode.DST);
-        Objects.requireNonNull(menu.findItem(R.id.export).getIcon()).setColorFilter(colour, PorterDuff.Mode.DST);
+        PorterDuffColorFilter colorFilter = new PorterDuffColorFilter(colour, PorterDuff.Mode.DST);
+        int[] menuItems = {
+                R.id.load, R.id.export, R.id.compare, R.id.help
+        };
+
+        for (int itemId : menuItems) {
+            MenuItem menuItem = menu.findItem(itemId);
+            if (menuItem != null && menuItem.getIcon() != null) {
+                menuItem.getIcon().setColorFilter(colorFilter);
+            }
+        }
         mCompareButton = menu.findItem(R.id.compare);
         mCompareButton.setVisible(false);
-        Objects.requireNonNull(menu.findItem(R.id.compare).getIcon()).setColorFilter(colour, PorterDuff.Mode.DST);
-        Objects.requireNonNull(menu.findItem(R.id.help).getIcon()).setColorFilter(colour, PorterDuff.Mode.DST);
         return true;
     }
 
