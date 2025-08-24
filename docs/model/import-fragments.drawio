@@ -1,0 +1,341 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/27.0.9 Chrome/134.0.6998.205 Electron/35.4.0 Safari/537.36" version="27.0.9">
+  <diagram name="Import Fragments Dependencies" id="import-fragments">
+    <mxGraphModel dx="1426" dy="841" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1400" background="#ffffff" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="import-overview-fragment" value="ImportOverviewFragment&#xa;(Abstract)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#000000;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="675" y="53" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="import-generate-scenario" value="ImportGenerateScenarioFragment&#xa;(Abstract)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#000000;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="665" y="648" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="import-keystats-fragment" value="ImportKeyStatsFragment&#xa;(Abstract)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#DAE8FC;strokeColor=#6C8EBF;fontColor=#000000;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="675" y="168" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="import-alpha-overview" value="ImportAlphaOverview" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#000000;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="695" y="266" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="import-alpha-keystats" value="ImportAlphaKeyStats" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#000000;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="695" y="356" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="import-alpha-graphs" value="ImportAlphaGraphs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#000000;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="695" y="1018" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="import-alpha-generate" value="ImportAlphaGenerateScenario" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#000000;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="685" y="748" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="import-esbn-overview" value="ImportESBNOverview" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontColor=#000000;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="695" y="446" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="import-esbn-graphs" value="ImportESBNGraphs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontColor=#000000;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="695" y="1108" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="import-esbn-generate" value="ImportESBNGenerateScenario" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF2CC;strokeColor=#D6B656;fontColor=#000000;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="685" y="838" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="import-ha-overview" value="ImportHAOverview" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontColor=#000000;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="695" y="536" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="import-ha-keystats" value="ImportHAKeyStats" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontColor=#000000;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="695" y="1198" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="import-ha-graphs" value="ImportHAGraphs" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontColor=#000000;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="695" y="1288" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="import-ha-generate" value="ImportHAGenerateScenario" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F8CECC;strokeColor=#B85450;fontColor=#000000;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="685" y="928" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="priceplans-table" value="PricePlans" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="1295" y="53" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="dayrates-table" value="DayRates" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="355" y="53" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="scenarios-table" value="scenarios" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="355" y="736" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="alphaess-raw-table" value="alphaESSRawEnergy" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="355" y="356" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="alphaess-transformed-table" value="alphaESSTransformedData" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="1265" y="536" width="180" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="alphaess-power-table" value="alphaESSRawPower" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="1275" y="168" width="160" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="overview-priceplans-connection" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;startFill=0;endArrow=block;endFill=1;strokeColor=#000000;noEdgeStyle=1;orthogonal=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="import-overview-fragment" target="priceplans-table" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="overview-priceplans-label" value="PricePlanDAO&#xa;getAllPricePlansNow()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;labelBackgroundColor=#FFFFFF;" parent="overview-priceplans-connection" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="overview-dayrates-connection" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;startFill=0;endArrow=block;endFill=1;strokeColor=#000000;noEdgeStyle=1;orthogonal=1;" parent="1" source="import-overview-fragment" target="dayrates-table" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="overview-dayrates-label" value="PricePlanDAO&#xa;getAllDayRatesForPricePlanID()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;labelBackgroundColor=#FFFFFF;" parent="overview-dayrates-connection" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="generate-scenarios-connection" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;startFill=0;endArrow=block;endFill=1;strokeColor=#000000;noEdgeStyle=1;orthogonal=1;" parent="1" source="import-generate-scenario" target="scenarios-table" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="435" y="678" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="generate-scenarios-label" value="ScenarioDAO&#xa;addNewScenarioWithComponents()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;labelBackgroundColor=#FFFFFF;" parent="generate-scenarios-connection" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="keystats-transformed-connection" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;startFill=0;endArrow=block;endFill=1;strokeColor=#000000;noEdgeStyle=1;orthogonal=1;" parent="1" source="import-keystats-fragment" target="alphaess-transformed-table" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1415" y="348" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="keystats-transformed-label" value="AlphaEssDAO&#xa;getKeyStats(), getKPIs()&#xa;getLiveDateRanges()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;labelBackgroundColor=#FFFFFF;" parent="keystats-transformed-connection" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="keystats-raw-connection" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;startFill=0;endArrow=block;endFill=1;strokeColor=#000000;noEdgeStyle=1;orthogonal=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="import-keystats-fragment" target="alphaess-raw-table" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="485" y="198" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="keystats-raw-label" value="AlphaEssDAO&#xa;getLiveDateRanges()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;labelBackgroundColor=#FFFFFF;" parent="keystats-raw-connection" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
+            <mxPoint x="32" y="-1" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="keystats-power-connection" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;startFill=0;endArrow=block;endFill=1;strokeColor=#000000;noEdgeStyle=1;orthogonal=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" parent="1" source="import-keystats-fragment" target="alphaess-power-table" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="keystats-power-label" value="AlphaEssDAO&#xa;getPowerData()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;labelBackgroundColor=#FFFFFF;" parent="keystats-power-connection" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="alpha-overview-raw-connection" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;startFill=0;endArrow=block;endFill=1;strokeColor=#000000;noEdgeStyle=1;orthogonal=1;" parent="1" source="import-alpha-overview" target="alphaess-raw-table" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="1005" y="296" as="sourcePoint" />
+            <Array as="points">
+              <mxPoint x="595" y="276" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="alpha-overview-raw-label" value="AlphaEssDAO&#xa;getDateRanges()&#xa;getSystemSNs()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;labelBackgroundColor=#FFFFFF;" parent="alpha-overview-raw-connection" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="alpha-overview-transformed-connection" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;startFill=0;endArrow=block;endFill=1;strokeColor=#000000;noEdgeStyle=1;orthogonal=1;" parent="1" source="import-alpha-overview" target="alphaess-transformed-table" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1385" y="408" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="alpha-overview-transformed-label" value="AlphaEssDAO&#xa;getDateRanges()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;labelBackgroundColor=#FFFFFF;" parent="alpha-overview-transformed-connection" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="alpha-keystats-transformed-connection" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;startFill=0;endArrow=block;endFill=1;strokeColor=#000000;noEdgeStyle=1;orthogonal=1;" parent="1" source="import-alpha-keystats" target="alphaess-transformed-table" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1355" y="428" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="alpha-keystats-transformed-label" value="AlphaEssDAO&#xa;getKeyStats()&#xa;getKPIs()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;labelBackgroundColor=#FFFFFF;" parent="alpha-keystats-transformed-connection" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="alpha-keystats-raw-connection" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;startFill=0;endArrow=block;endFill=1;strokeColor=#000000;noEdgeStyle=1;orthogonal=1;exitX=0;exitY=0.5;exitDx=0;exitDy=0;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="import-alpha-keystats" target="alphaess-raw-table" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="alpha-keystats-raw-label" value="AlphaEssDAO&#xa;getDateRanges()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;labelBackgroundColor=#FFFFFF;" parent="alpha-keystats-raw-connection" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="alpha-graphs-transformed-connection" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;startFill=0;endArrow=block;endFill=1;strokeColor=#000000;noEdgeStyle=1;orthogonal=1;" parent="1" source="import-alpha-graphs" target="alphaess-transformed-table" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1325" y="828" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="alpha-graphs-transformed-label" value="AlphaEssDAO&#xa;All BaseGraphsFragment methods&#xa;(getSumHour, getAvgHour, etc.)" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;labelBackgroundColor=#FFFFFF;" parent="alpha-graphs-transformed-connection" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="alpha-generate-scenarios-connection" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;startFill=0;endArrow=block;endFill=1;strokeColor=#000000;noEdgeStyle=1;orthogonal=1;" parent="1" target="scenarios-table" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="683" y="778" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="alpha-generate-scenarios-label" value="ScenarioDAO&#xa;addNewScenarioWithComponents()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;labelBackgroundColor=#FFFFFF;" parent="alpha-generate-scenarios-connection" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="alpha-generate-transformed-connection" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;startFill=0;endArrow=block;endFill=1;strokeColor=#000000;noEdgeStyle=1;orthogonal=1;" parent="1" source="import-alpha-generate" target="alphaess-transformed-table" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1065" y="598" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="alpha-generate-transformed-label" value="AlphaEssDAO&#xa;getAvgHour()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;labelBackgroundColor=#FFFFFF;" parent="alpha-generate-transformed-connection" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="esbn-overview-raw-connection" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;startFill=0;endArrow=block;endFill=1;strokeColor=#000000;noEdgeStyle=1;orthogonal=1;" parent="1" source="import-esbn-overview" target="alphaess-raw-table" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="575" y="476" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="esbn-overview-raw-label" value="AlphaEssDAO&#xa;(uses AlphaESS tables)&#xa;getDateRanges(), getSystemSNs()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;labelBackgroundColor=#FFFFFF;" parent="esbn-overview-raw-connection" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="esbn-overview-transformed-connection" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;startFill=0;endArrow=block;endFill=1;strokeColor=#000000;noEdgeStyle=1;orthogonal=1;" parent="1" source="import-esbn-overview" target="alphaess-transformed-table" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1325" y="458" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="esbn-overview-transformed-label" value="AlphaEssDAO&#xa;(uses AlphaESS tables)&#xa;getDateRanges()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;labelBackgroundColor=#FFFFFF;" parent="esbn-overview-transformed-connection" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
+            <mxPoint x="-68" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="esbn-graphs-transformed-connection" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;startFill=0;endArrow=block;endFill=1;strokeColor=#000000;noEdgeStyle=1;orthogonal=1;" parent="1" source="import-esbn-graphs" target="alphaess-transformed-table" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1355" y="868" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="esbn-graphs-transformed-label" value="AlphaEssDAO&#xa;(uses AlphaESS tables)&#xa;All BaseGraphsFragment methods" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;labelBackgroundColor=#FFFFFF;" parent="esbn-graphs-transformed-connection" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="esbn-generate-scenarios-connection" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;startFill=0;endArrow=block;endFill=1;strokeColor=#000000;noEdgeStyle=1;orthogonal=1;" parent="1" source="import-esbn-generate" target="scenarios-table" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="625" y="848" />
+              <mxPoint x="565" y="858" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="esbn-generate-scenarios-label" value="ScenarioDAO&#xa;addNewScenarioWithComponents()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;labelBackgroundColor=#FFFFFF;" parent="esbn-generate-scenarios-connection" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="esbn-generate-transformed-connection" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;startFill=0;endArrow=block;endFill=1;strokeColor=#000000;noEdgeStyle=1;orthogonal=1;" parent="1" source="import-esbn-generate" target="alphaess-transformed-table" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1265" y="758" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="esbn-generate-transformed-label" value="AlphaEssDAO&#xa;(uses AlphaESS tables)&#xa;getAvgHour()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;labelBackgroundColor=#FFFFFF;" parent="esbn-generate-transformed-connection" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ha-overview-raw-connection" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;startFill=0;endArrow=block;endFill=1;strokeColor=#000000;noEdgeStyle=1;orthogonal=1;exitX=0;exitY=0.25;exitDx=0;exitDy=0;" parent="1" source="import-ha-overview" target="alphaess-raw-table" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="485" y="551" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ha-overview-raw-label" value="AlphaEssDAO&#xa;(uses AlphaESS tables)&#xa;getDateRanges(), getSystemSNs()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;labelBackgroundColor=#FFFFFF;" parent="ha-overview-raw-connection" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
+            <mxPoint x="40" y="-1" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ha-overview-transformed-connection" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;startFill=0;endArrow=block;endFill=1;strokeColor=#000000;noEdgeStyle=1;orthogonal=1;" parent="1" source="import-ha-overview" target="alphaess-transformed-table" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="ha-overview-transformed-label" value="AlphaEssDAO&#xa;(uses AlphaESS tables)&#xa;getDateRanges()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;labelBackgroundColor=#FFFFFF;" parent="ha-overview-transformed-connection" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ha-keystats-transformed-connection" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;startFill=0;endArrow=block;endFill=1;strokeColor=#000000;noEdgeStyle=1;orthogonal=1;" parent="1" source="import-ha-keystats" target="alphaess-transformed-table" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1385" y="908" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ha-keystats-transformed-label" value="AlphaEssDAO&#xa;(uses AlphaESS tables)&#xa;getKeyStats()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;labelBackgroundColor=#FFFFFF;" parent="ha-keystats-transformed-connection" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ha-graphs-transformed-connection" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;startFill=0;endArrow=block;endFill=1;strokeColor=#000000;noEdgeStyle=1;orthogonal=1;" parent="1" source="import-ha-graphs" target="alphaess-transformed-table" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1415" y="938" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ha-graphs-transformed-label" value="AlphaEssDAO&#xa;(uses AlphaESS tables)&#xa;All BaseGraphsFragment methods" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;labelBackgroundColor=#FFFFFF;" parent="ha-graphs-transformed-connection" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ha-generate-scenarios-connection" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;startFill=0;endArrow=block;endFill=1;strokeColor=#000000;noEdgeStyle=1;orthogonal=1;" parent="1" source="import-ha-generate" target="scenarios-table" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="555" y="946" />
+              <mxPoint x="465" y="908" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ha-generate-scenarios-label" value="ScenarioDAO&#xa;addNewScenarioWithComponents()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;labelBackgroundColor=#FFFFFF;" parent="ha-generate-scenarios-connection" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ha-generate-transformed-connection" style="rounded=1;orthogonalLoop=1;jettySize=auto;html=1;startArrow=none;startFill=0;endArrow=block;endFill=1;strokeColor=#000000;noEdgeStyle=1;orthogonal=1;" parent="1" source="import-ha-generate" target="alphaess-transformed-table" edge="1">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1295" y="798" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="ha-generate-transformed-label" value="AlphaEssDAO&#xa;(uses AlphaESS tables)&#xa;getAvgHour()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=10;fontColor=#000000;labelBackgroundColor=#FFFFFF;" parent="ha-generate-transformed-connection" vertex="1" connectable="0">
+          <mxGeometry x="-0.1" y="1" relative="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

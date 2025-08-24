@@ -1,0 +1,69 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/27.0.9 Chrome/134.0.6998.205 Electron/35.4.0 Safari/537.36" version="27.0.9">
+  <diagram name="Battery Package Dependencies" id="battery-package">
+    <mxGraphModel dx="1426" dy="841" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="battery-package" value="Battery Package" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E1D5E7;strokeColor=#9673A6;fontColor=#000000;fontStyle=1;" parent="1" vertex="1">
+          <mxGeometry x="500" y="380" width="200" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="batteries-table" value="batteries" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="250" y="220" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="scenario2battery-table" value="scenario2battery" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="240" y="540" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="discharge2grid-table" value="discharge2grid" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="810" y="220" width="120" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="scenario2discharge-table" value="scenario2discharge" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#D5E8D4;strokeColor=#82B366;fontColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="800" y="540" width="140" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="connection1" value="" style="endArrow=classic;html=1;rounded=1;" parent="1" source="battery-package" target="batteries-table" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="300" y="300" as="sourcePoint" />
+            <mxPoint x="350" y="250" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dao1-label" value="ScenarioDAO&#xa;saveBatteryForScenario()&#xa;getBatteriesForScenarioID()&#xa;copyBatteryFromScenario()&#xa;linkBatteryFromScenario()&#xa;deleteBatteryFromScenario()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#000000;labelBackgroundColor=#FFFFFF;" parent="connection1" vertex="1" connectable="0">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint x="-50" y="5" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="connection2" value="" style="endArrow=classic;html=1;rounded=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="battery-package" target="scenario2battery-table" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="300" y="300" as="sourcePoint" />
+            <mxPoint x="350" y="250" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dao2-label" value="ScenarioDAO&#xa;scenario2battery&#xa;operations" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#000000;labelBackgroundColor=#FFFFFF;" parent="connection2" vertex="1" connectable="0">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint y="5" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="connection3" value="" style="endArrow=classic;html=1;rounded=1;" parent="1" source="battery-package" target="discharge2grid-table" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="300" y="300" as="sourcePoint" />
+            <mxPoint x="350" y="250" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dao3-label" value="ScenarioDAO&#xa;saveDischargeForScenario()&#xa;getDischargesForScenarioID()" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#000000;labelBackgroundColor=#FFFFFF;" parent="connection3" vertex="1" connectable="0">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint x="20" y="5" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="connection4" value="" style="endArrow=classic;html=1;rounded=1;exitX=0.8;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="battery-package" target="scenario2discharge-table" edge="1">
+          <mxGeometry width="50" height="50" relative="1" as="geometry">
+            <mxPoint x="300" y="300" as="sourcePoint" />
+            <mxPoint x="350" y="250" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="dao4-label" value="ScenarioDAO&#xa;scenario2discharge&#xa;operations" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontSize=9;fontColor=#000000;labelBackgroundColor=#FFFFFF;" parent="connection4" vertex="1" connectable="0">
+          <mxGeometry x="-0.2" y="1" relative="1" as="geometry">
+            <mxPoint x="30" y="5" as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
