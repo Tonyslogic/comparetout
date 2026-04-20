@@ -17,7 +17,6 @@
 package com.tfcode.comparetout.scenario.inverter;
 
 import android.annotation.SuppressLint;
-import android.content.pm.ActivityInfo;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.InputType;
@@ -76,8 +75,7 @@ public class InverterFragment extends Fragment {
     private void unpackInverter() {
         Type type = new TypeToken<List<InverterJson>>(){}.getType();
         List<InverterJson> inverterJson = new Gson().fromJson(mInverterJsonString, type);
-        if (mInverterIndex == 0) mInverter = new Inverter();
-        else mInverter = JsonTools.createInverterList(inverterJson).get(mInverterIndex);
+        mInverter = JsonTools.createInverterList(inverterJson).get(mInverterIndex);
     }
 
     @Override

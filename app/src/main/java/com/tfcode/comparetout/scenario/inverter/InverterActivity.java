@@ -93,6 +93,7 @@ public class InverterActivity extends InsetRespectingActivity {
     private FloatingActionButton mFab;
     private boolean mDoubleBackToExitPressedOnce = false;
     private boolean mUnsavedChanges = false;
+    private boolean mRetryMediator = false;
 
     private WebViewAssetLoader mAssetLoader;
     private View mPopupView;
@@ -180,8 +181,6 @@ public class InverterActivity extends InsetRespectingActivity {
                 .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
                 .addPathHandler("/res/", new WebViewAssetLoader.ResourcesPathHandler(this))
                 .build();
-
-        setContentView(R.layout.activity_inverter);
 
         mViewPager = findViewById(R.id.inverter_view_pager);
 
@@ -312,9 +311,20 @@ public class InverterActivity extends InsetRespectingActivity {
         mMediator.detach();
         ArrayList<String> tabTitlesList = new ArrayList<>();
         for (InverterJson ij: inverterJsons) tabTitlesList.add(ij.name);
-        mMediator = new TabLayoutMediator(tabLayout, mViewPager,
-                (tab, position) -> tab.setText(tabTitlesList.get(position))
-        );
+        try {
+            mMediator = new TabLayoutMediator(tabLayout, mViewPager,
+                    (tab, position) -> tab.setText(tabTitlesList.get(position))
+            );
+            mRetryMediator = false;
+        }
+        catch (ArrayIndexOutOfBoundsException aie) {
+            aie.printStackTrace();
+            if (!mRetryMediator) {
+                mRetryMediator = true;
+                new Handler(Looper.getMainLooper()).postDelayed(this::refreshMediator,2000);
+            }
+            else return;
+        }
         mMediator.attach();
 
         LinearLayout linearLayout = (LinearLayout)tabLayout.getChildAt(0);
