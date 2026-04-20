@@ -7,10 +7,14 @@ Beta test version V1.54 (Ireland only, so far)
 
 > Sign up from your [browser](https://play.google.com/apps/testing/com.tfcode.comparetout)
 
-Internal test version V1.55 
+Internal test version V1.56 
 > [email me](mailto:tonysfreecode@gmail.com?subject=AlphaTest), with the email address used in your android play store account
 
 Read more on the [documentation site](https://github.com/Tonyslogic/comparetout-doc)
+
+V1.56
+
+* Bugfix: loading battery & inverter settings
 
 V1.55
 
