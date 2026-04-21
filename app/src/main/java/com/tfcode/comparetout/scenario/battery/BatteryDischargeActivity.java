@@ -153,7 +153,7 @@ public class BatteryDischargeActivity extends InsetRespectingActivity {
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.discharge_activity), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
+            return insets.inset(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
         });
         createSimulationFeedback();
         createProgressBar();

@@ -12,6 +12,11 @@ Internal test version V1.56
 
 Read more on the [documentation site](https://github.com/Tonyslogic/comparetout-doc)
 
+V1.57
+
+* Bugfix: Layout issue for battery discharge
+* Library updates
+
 V1.56
 
 * Bugfix: loading battery & inverter settings
