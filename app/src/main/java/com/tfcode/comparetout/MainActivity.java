@@ -139,6 +139,7 @@ public class MainActivity extends InsetRespectingActivity {
 
     private boolean mFirstLaunch = true;
     private boolean mFirstLaunchDialogRendered = false;
+    private boolean mUseUI2 = false;
 
     /**
      * Load user preferences from the encrypted DataStore.
@@ -159,6 +160,20 @@ public class MainActivity extends InsetRespectingActivity {
             if (ret.equals("False")) {
 //                mMainHandler.post(() -> showDisclaimers(application));
                 mFirstLaunch = false;
+            }
+
+            Preferences.Key<String> UseUI2 = PreferencesKeys.stringKey("use_ui2");
+            Single<String> ui2Value = application.getDataStore()
+                    .data().firstOrError()
+                    .map(prefs -> prefs.get(UseUI2)).onErrorReturnItem("false");
+            String ui2Ret = ui2Value.blockingGet();
+            if (ui2Ret != null && ui2Ret.equals("true")) {
+                mUseUI2 = true;
+                mMainHandler.post(() -> {
+                    Intent intent = new Intent(MainActivity.this, com.tfcode.comparetout.ui2.UI2MainActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(intent);
+                });
             }
         }).start();
     }
@@ -652,6 +667,19 @@ public class MainActivity extends InsetRespectingActivity {
             showHelp("https://appassets.androidplatform.net/assets/main/help.html");
         }
 
+        if (itemID == R.id.action_switch_ui2) {
+            new Thread(() -> {
+                TOUTCApplication application = ((TOUTCApplication)getApplication());
+                application.putStringValueIntoDataStore("use_ui2", "true");
+                mMainHandler.post(() -> {
+                    Intent intent = new Intent(MainActivity.this, com.tfcode.comparetout.ui2.UI2MainActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(intent);
+                });
+            }).start();
+            return true;
+        }
+
         return(super.onOptionsItemSelected(item));
     }
 
@@ -742,3 +770,4 @@ public class MainActivity extends InsetRespectingActivity {
         webView.loadUrl(url);
     }
 }
+

@@ -20,6 +20,10 @@
         android:theme="@style/Theme.comparetout"
         tools:targetApi="34">
         <activity
+            android:name=".ui2.UI2MainActivity"
+            android:exported="false" >
+        </activity>
+        <activity
             android:name=".MainActivity"
             android:configChanges="orientation"
             android:exported="true">
@@ -29,14 +33,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <meta-data
-                android:name="android.app.lib_name"
-                android:value="" />
-        </activity>
-        <activity
-            android:name=".importers.homeassistant.ImportHomeAssistantActivity"
-            android:exported="false"
-            android:parentActivityName=".MainActivity">
             <meta-data
                 android:name="android.app.lib_name"
                 android:value="" />
