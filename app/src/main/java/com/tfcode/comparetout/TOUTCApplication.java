@@ -40,6 +40,7 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 
 import io.reactivex.rxjava3.core.Single;
+import dagger.hilt.android.HiltAndroidApp;
 
 /**
  * Main Application class for the TOUTC (Time of Use Tariff Comparison) application.
@@ -59,6 +60,7 @@ import io.reactivex.rxjava3.core.Single;
  * stored in the Android hardware security module when available, providing protection
  * against key extraction even on rooted devices.
  */
+@HiltAndroidApp
 public class TOUTCApplication extends Application {
 
     private RxDataStore<Preferences> dataStore;

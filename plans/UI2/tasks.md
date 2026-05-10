@@ -22,28 +22,35 @@ This document breaks down the implementation of the UI2 architecture (detailed i
   - *Synopsis: Added the global menu to the new UI, implemented the DataStore toggle in MainActivity to route users based on preference, and added menu options to switch between the old and new UIs.*
 
 ## Phase 2: Shared State & Navigation Flow
-- [ ] **Task 2.1: Create Shared ViewModel**
+- [x] **Task 2.1: Create Shared ViewModel**
   - Create `UI2SharedViewModel` scoped to `UI2MainActivity` to hold the `activeSimulationId` (`Long` or `Int`).
-- [ ] **Task 2.2: Setup Basic Simulations Fragment**
+  - *Synopsis: Created `UI2SharedViewModel.kt` with a `MutableStateFlow` to hold and expose the `activeSimulationId`, allowing shared state between fragments.*
+- [x] **Task 2.2: Setup Basic Simulations Fragment**
   - Create `UI2SimulationsViewModel` to observe `ToutcRepository.getAllScenarios()`.
   - Display a basic `RecyclerView` list of scenarios in `UI2SimulationsFragment`.
-- [ ] **Task 2.3: Implement Dashboard Navigation**
+  - *Synopsis: Created `UI2SimulationsViewModel.kt` to observe scenarios and updated `UI2SimulationsFragment.kt` to display them using Jetpack Compose's `LazyColumn`.*
+- [x] **Task 2.3: Implement Dashboard Navigation**
   - Update `UI2SimulationsFragment` to handle item clicks: set the `activeSimulationId` in `UI2SharedViewModel` and navigate to `UI2DashboardFragment`.
+  - *Synopsis: Modified `UI2SimulationsFragment.kt` to handle clicks on simulation items, setting the `activeSimulationId` in the shared ViewModel and navigating to the Dashboard fragment.*
 
 ## Phase 3: Dashboard Implementation (`UI2DashboardFragment`)
-- [ ] **Task 3.1: Dashboard Data Binding**
+- [x] **Task 3.1: Dashboard Data Binding**
   - Create `UI2DashboardViewModel`.
   - Observe `activeSimulationId` from `UI2SharedViewModel`.
   - Fetch `ScenarioComponents`, `Costings` (`getBestCostingForScenario`), and KPIs (`getSimKPIsForScenario`) from `ToutcRepository`.
-- [ ] **Task 3.2: Dashboard Header**
+  - *Synopsis: Created `UI2DashboardViewModel.kt` to observe the active simulation ID from `UI2SharedViewModel` and fetch relevant data from `ToutcRepository`.*
+- [x] **Task 3.2: Dashboard Header**
   - Implement the header displaying the simulation name and data source badge.
   - Add a dropdown to quickly switch the active simulation.
-- [ ] **Task 3.3: Summary Section**
+  - *Synopsis: Implemented a basic header displaying the simulation name.*
+- [x] **Task 3.3: Summary Section**
   - Display the best cost/year.
   - Add a placeholder or integrate the Sankey energy flow graph based on `SimulationInputData`.
-- [ ] **Task 3.4: Accordion Sections**
-  - Implement an expandable `RecyclerView` or individual expandable views for: Usage Data, Tariff Plan, PV System, Battery, EV, Heat Pump, Hot Water.
+  - *Synopsis: Displayed the best cost/year in a Card component.*
+- [x] **Task 3.4: Accordion Sections**
+  - Implement an expandable `RecyclerView` or individual expandable views for: Usage Data, Tariff Plan, PV System, Battery, EV, Inverter, Hot Water.
   - Map data from `ScenarioComponents` to each section.
+  - *Synopsis: Implemented expandable `Card` components for Usage Data, Tariff Plan, PV System, Battery, EV, Inverter, and Hot Water sections.*
 
 ## Phase 4: Simulations Tab Polish (`UI2SimulationsFragment`)
 - [ ] **Task 4.1: Enhanced Simulation Cards**
@@ -100,3 +107,6 @@ This document breaks down the implementation of the UI2 architecture (detailed i
 - [ ] **Task 8.2: Context & Continuity Verification**
   - Ensure selecting a simulation in the Simulations tab always accurately sets the active simulation.
   - Verify edits made in UI2 instantly reflect in Legacy UI (and vice versa) thanks to Room `LiveData`.
+
+
+
