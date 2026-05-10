@@ -6,9 +6,14 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -17,6 +22,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -25,21 +32,21 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
@@ -52,6 +59,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -65,7 +73,7 @@ import com.tfcode.comparetout.MainActivity
 import com.tfcode.comparetout.R
 import com.tfcode.comparetout.TOUTCApplication
 import com.tfcode.comparetout.model.scenario.SimKPIs
-import com.tfcode.comparetout.scenario.ScenarioActivity
+import androidx.navigation.fragment.findNavController
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -95,10 +103,8 @@ class UI2DashboardFragment : Fragment() {
                 requireActivity().startActivity(intent)
             }
         }
-        val onLaunchGraphs: (Long) -> Unit = { id ->
-            val intent = Intent(requireContext(), ScenarioActivity::class.java)
-            intent.putExtra("ScenarioID", id)
-            startActivity(intent)
+        val onLaunchGraphs: (Long) -> Unit = { _ ->
+            findNavController().navigate(R.id.action_dashboard_to_graphs)
         }
         return ComposeView(requireContext()).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
@@ -133,48 +139,34 @@ class UI2DashboardFragment : Fragment() {
 @Composable
 fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit, onLaunchGraphs: (Long) -> Unit) {
     val dashboardData by viewModel.dashboardData.observeAsState(initial = null)
-    var menuExpanded by remember { mutableStateOf(false) }
+    var showDrawer by remember { mutableStateOf(false) }
     val df = remember { DecimalFormat("#,##0.00") }
 
     SideEffect {
         Log.d("UI2", "DashboardScreen recompose: scenarioName=${dashboardData?.scenarioComponents?.scenario?.scenarioName ?: "null"}")
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Eco Power Optimiser") },
-                actions = {
-                    IconButton(onClick = { menuExpanded = true }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "More options")
+    Scaffold { paddingValues ->
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
+                    .verticalScroll(rememberScrollState())
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { showDrawer = true }) {
+                        Icon(Icons.Default.Menu, contentDescription = "Menu")
                     }
-                    DropdownMenu(
-                        expanded = menuExpanded,
-                        onDismissRequest = { menuExpanded = false }
-                    ) {
-                        DropdownMenuItem(text = { Text("Settings") }, onClick = { menuExpanded = false })
-                        DropdownMenuItem(text = { Text("Units") }, onClick = { menuExpanded = false })
-                        DropdownMenuItem(text = { Text("Timezone") }, onClick = { menuExpanded = false })
-                        DropdownMenuItem(
-                            text = { Text("Switch to Legacy UI") },
-                            onClick = { menuExpanded = false; onSwitchLegacy() }
-                        )
-                    }
+                    Text(
+                        text = dashboardData?.scenarioComponents?.scenario?.scenarioName ?: "Select a Simulation",
+                        style = MaterialTheme.typography.headlineSmall,
+                        modifier = Modifier.weight(1f).padding(start = 4.dp)
+                    )
                 }
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .padding(paddingValues)
-                .padding(horizontal = 16.dp)
-                .verticalScroll(rememberScrollState())
-        ) {
-            Text(
-                text = dashboardData?.scenarioComponents?.scenario?.scenarioName ?: "Select a Simulation",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(vertical = 16.dp)
-            )
 
             dashboardData?.bestCosting?.let { costing ->
                 Card(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
@@ -424,7 +416,64 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     }
                 }
             }
+        }   // end Column
+
+            // Scrim
+            AnimatedVisibility(visible = showDrawer, enter = fadeIn(tween(180)), exit = fadeOut(tween(180))) {
+                Box(modifier = Modifier.fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.4f))
+                    .clickable { showDrawer = false })
+            }
+
+            // Left drawer
+            AnimatedVisibility(
+                visible = showDrawer,
+                enter = slideInHorizontally(tween(220)) { -it },
+                exit = slideOutHorizontally(tween(220)) { -it },
+                modifier = Modifier.align(Alignment.CenterStart).fillMaxHeight().width(280.dp)
+            ) {
+                Surface(tonalElevation = 8.dp, shadowElevation = 8.dp, modifier = Modifier.fillMaxSize()) {
+                    DrawerContent(
+                        onSwitchLegacy = { showDrawer = false; onSwitchLegacy() },
+                        onClose = { showDrawer = false }
+                    )
+                }
+            }
+        }   // end Box
+    }
+}
+
+@Composable
+private fun DrawerContent(onSwitchLegacy: () -> Unit, onClose: () -> Unit) {
+    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Menu", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            IconButton(onClick = onClose) { Icon(Icons.Default.Close, "Close") }
         }
+        HorizontalDivider()
+        DrawerItem(R.drawable.ic_baseline_euro_symbol_24,     "Supplier Plans",         onClose)
+        DrawerItem(R.drawable.ic_baseline_settings_24,        "Units",                  onClose)
+        DrawerItem(R.drawable.ic_baseline_access_time_24,     "Timezone",               onClose)
+        DrawerItem(R.drawable.ic_baseline_call_split_24,      "Data Source Management", onClose)
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        DrawerItem(R.drawable.ic_baseline_settings_24,        "Switch to Legacy UI",    onSwitchLegacy)
+    }
+}
+
+@Composable
+private fun DrawerItem(iconRes: Int, label: String, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Icon(painterResource(iconRes), null, Modifier.size(22.dp),
+            tint = MaterialTheme.colorScheme.onSurface)
+        Spacer(Modifier.width(16.dp))
+        Text(label, style = MaterialTheme.typography.bodyLarge)
     }
 }
 
@@ -489,6 +538,8 @@ fun SimulationPieCharts(kpis: SimKPIs) {
     if (zoomedChart >= 0) {
         val (title, slices) = charts[zoomedChart]
         val visible = slices.filter { it.value > 0 }
+        val cfg = LocalConfiguration.current
+        val pieSize = minOf(cfg.screenWidthDp, cfg.screenHeightDp).dp * 0.9f
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -498,12 +549,7 @@ fun SimulationPieCharts(kpis: SimKPIs) {
         ) {
             Text(title, style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.height(8.dp))
-            PieChart(
-                slices = visible,
-                modifier = Modifier
-                    .fillMaxWidth(0.9f)
-                    .aspectRatio(1f)
-            )
+            PieChart(slices = visible, modifier = Modifier.size(pieSize))
             PieLegend(slices = visible)
         }
     } else {

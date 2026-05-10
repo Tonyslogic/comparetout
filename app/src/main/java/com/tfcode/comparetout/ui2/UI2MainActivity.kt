@@ -2,6 +2,7 @@ package com.tfcode.comparetout.ui2
 
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -45,6 +46,7 @@ class UI2MainActivity : AppCompatActivity() {
                 }
                 controller.addOnDestinationChangedListener { _, dest, _ ->
                     Log.d("UI2", "NavController destination changed: ${dest.label}")
+                    bottomNav.visibility = if (dest.id == R.id.ui2GraphsFragment) View.GONE else View.VISIBLE
                     if (bottomNav.selectedItemId != dest.id) {
                         bottomNav.selectedItemId = dest.id
                     }

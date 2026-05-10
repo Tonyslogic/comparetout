@@ -25,7 +25,11 @@
         android:id="@+id/ui2DashboardFragment"
         android:name="com.tfcode.comparetout.ui2.UI2DashboardFragment"
         android:label="Dashboard"
-        tools:layout="@layout/fragment_ui2_dashboard" />
+        tools:layout="@layout/fragment_ui2_dashboard">
+        <action
+            android:id="@+id/action_dashboard_to_graphs"
+            app:destination="@id/ui2GraphsFragment" />
+    </fragment>
 
     <fragment
         android:id="@+id/ui2SimulationsFragment"
@@ -44,4 +48,9 @@
         android:name="com.tfcode.comparetout.ui2.UI2DirectorsFragment"
         android:label="Directors"
         tools:layout="@layout/fragment_ui2_directors" />
+
+    <fragment
+        android:id="@+id/ui2GraphsFragment"
+        android:name="com.tfcode.comparetout.ui2.UI2GraphsFragment"
+        android:label="Graphs" />
 </navigation>
