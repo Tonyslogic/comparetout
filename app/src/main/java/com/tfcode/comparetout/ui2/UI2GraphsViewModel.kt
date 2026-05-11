@@ -91,7 +91,9 @@ class UI2GraphsViewModel @Inject constructor(
 
         val availableFilters: Set<FilterSeries>
             get() {
-                if (isDataSourceMode) return CORE_FILTERS
+                if (isDataSourceMode) {
+                    return if (importerType == ComparisonUIViewModel.Importer.ESBNHDF) ESBN_FILTERS else CORE_FILTERS
+                }
                 val sc = components ?: return CORE_FILTERS
                 val set = CORE_FILTERS.toMutableSet()
                 val batteryPresent = sc.scenario?.isHasBatteries == true || sc.batteries?.isNotEmpty() == true
@@ -110,6 +112,7 @@ class UI2GraphsViewModel @Inject constructor(
         val CORE_FILTERS = setOf(
             FilterSeries.LOAD, FilterSeries.FEED, FilterSeries.BUY, FilterSeries.PV
         )
+        val ESBN_FILTERS = setOf(FilterSeries.FEED, FilterSeries.BUY)
         val BATTERY_FILTERS = setOf(
             FilterSeries.PV2BAT, FilterSeries.PV2LOAD, FilterSeries.BAT2LOAD,
             FilterSeries.GRID2BAT, FilterSeries.BAT2GRID,
@@ -125,7 +128,8 @@ class UI2GraphsViewModel @Inject constructor(
     fun initialize(scenarioId: Long) {
         if (_state.value.scenarioId == scenarioId && _state.value.components != null) return
         Log.d("UI2Graphs", "initialize($scenarioId)")
-        _state.update { it.copy(scenarioId = scenarioId, isLoading = true, importerType = null, dataSysSn = "") }
+        _state.update { it.copy(scenarioId = scenarioId, isLoading = true, importerType = null, dataSysSn = "",
+            graphType = GraphType.SANKEY, activeFilters = CORE_FILTERS) }
         viewModelScope.launch(Dispatchers.IO) {
             val components = repository.getScenarioComponentsForScenarioID(scenarioId)
             val name = components?.scenario?.scenarioName ?: ""
@@ -160,8 +164,10 @@ class UI2GraphsViewModel @Inject constructor(
     ) {
         if (_state.value.dataSysSn == sysSn && _state.value.importerType == importerType && !_state.value.isLoading) return
         Log.d("UI2Graphs", "initializeDataSource($sysSn, $importerType)")
+        val initFilters = if (importerType == ComparisonUIViewModel.Importer.ESBNHDF) ESBN_FILTERS else CORE_FILTERS
         _state.update { it.copy(dataSysSn = sysSn, importerType = importerType, scenarioId = 0L,
-            scenarioName = sysSn, components = null, isLoading = true) }
+            scenarioName = sysSn, components = null, isLoading = true,
+            displayScale = DisplayScale.HOUR, activeFilters = initFilters) }
         viewModelScope.launch(Dispatchers.IO) {
             val today = LocalDate.now()
             val dataEnd = if (endDate.isNotEmpty()) {
@@ -170,7 +176,8 @@ class UI2GraphsViewModel @Inject constructor(
             val dataStart = if (startDate.isNotEmpty()) {
                 try { LocalDate.parse(startDate, FMT) } catch (e: Exception) { dataEnd.minusMonths(1) }
             } else dataEnd.minusMonths(1)
-            val from = dataEnd.minusMonths(1).coerceAtLeast(dataStart).format(FMT)
+            // Use the full available range for data sources
+            val from = dataStart.format(FMT)
             val to = dataEnd.format(FMT)
             _state.update { it.copy(dataStartDate = startDate, dataEndDate = endDate, from = from, to = to) }
             fetchData()

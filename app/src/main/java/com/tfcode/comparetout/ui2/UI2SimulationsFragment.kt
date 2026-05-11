@@ -6,6 +6,12 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -14,6 +20,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -24,6 +32,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
@@ -104,7 +113,7 @@ class UI2SimulationsFragment : Fragment() {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 UI2Theme {
-                    SimulationsScreen(
+                    ScenariosScreen(
                         viewModel = viewModel,
                         onSimulationView = onSimulationView,
                         onDataSourceView = onDataSourceView,
@@ -118,7 +127,7 @@ class UI2SimulationsFragment : Fragment() {
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
-fun SimulationsScreen(
+fun ScenariosScreen(
     viewModel: UI2SimulationsViewModel,
     onSimulationView: (Long) -> Unit,
     onDataSourceView: (UI2SimulationsViewModel.SimListItem.DataSource) -> Unit,
@@ -127,7 +136,7 @@ fun SimulationsScreen(
     val items by viewModel.items.collectAsState()
     val context = LocalContext.current
     var showDeleteDialog by remember { mutableStateOf<UI2SimulationsViewModel.SimListItem.Simulation?>(null) }
-    var menuExpanded by remember { mutableStateOf(false) }
+    var showDrawer by remember { mutableStateOf(false) }
 
     val simItems = remember(items) { items.filterIsInstance<UI2SimulationsViewModel.SimListItem.Simulation>() }
     val dataSourceItems = remember(items) { items.filterIsInstance<UI2SimulationsViewModel.SimListItem.DataSource>() }
@@ -135,16 +144,10 @@ fun SimulationsScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Simulations") },
-                actions = {
-                    IconButton(onClick = { menuExpanded = true }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "Options")
-                    }
-                    DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
-                        DropdownMenuItem(
-                            text = { Text("Switch to Legacy UI") },
-                            onClick = { menuExpanded = false; onSwitchLegacy() }
-                        )
+                title = { Text("Scenarios") },
+                navigationIcon = {
+                    IconButton(onClick = { showDrawer = true }) {
+                        Icon(Icons.Default.Menu, contentDescription = "Menu")
                     }
                 }
             )
@@ -157,34 +160,65 @@ fun SimulationsScreen(
             }
         }
     ) { padding ->
-        LazyColumn(contentPadding = padding) {
-            if (simItems.isNotEmpty()) {
-                stickyHeader(key = "header_simulations") {
-                    SectionHeader("Simulations")
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            LazyColumn {
+                if (simItems.isNotEmpty()) {
+                    stickyHeader(key = "header_simulations") {
+                        SectionHeader("Simulations")
+                    }
+                    items(simItems, key = { it.scenario.scenarioIndex }) { item ->
+                        SimulationCard(
+                            item = item,
+                            onView = { onSimulationView(item.scenario.scenarioIndex) },
+                            onDelete = { showDeleteDialog = item },
+                            onEdit = {
+                                context.startActivity(
+                                    Intent(context, UI2WizardActivity::class.java)
+                                        .putExtra("ScenarioID", item.scenario.scenarioIndex)
+                                )
+                            }
+                        )
+                    }
                 }
-                items(simItems, key = { it.scenario.scenarioIndex }) { item ->
-                    SimulationCard(
-                        item = item,
-                        onView = { onSimulationView(item.scenario.scenarioIndex) },
-                        onDelete = { showDeleteDialog = item },
-                        onEdit = {
-                            context.startActivity(
-                                Intent(context, UI2WizardActivity::class.java)
-                                    .putExtra("ScenarioID", item.scenario.scenarioIndex)
-                            )
-                        }
-                    )
+
+                if (dataSourceItems.isNotEmpty()) {
+                    stickyHeader(key = "header_datasources") {
+                        SectionHeader("Sources")
+                    }
+                    items(dataSourceItems, key = { it.sysSn }) { item ->
+                        DataSourceCard(
+                            item = item,
+                            onView = { onDataSourceView(item) }
+                        )
+                    }
                 }
             }
 
-            if (dataSourceItems.isNotEmpty()) {
-                stickyHeader(key = "header_datasources") {
-                    SectionHeader("Explore data")
-                }
-                items(dataSourceItems, key = { it.sysSn }) { item ->
-                    DataSourceCard(
-                        item = item,
-                        onView = { onDataSourceView(item) }
+            // Scrim
+            AnimatedVisibility(
+                visible = showDrawer,
+                enter = fadeIn(tween(180)),
+                exit = fadeOut(tween(180))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.4f))
+                        .clickable { showDrawer = false }
+                )
+            }
+
+            // Left drawer
+            AnimatedVisibility(
+                visible = showDrawer,
+                enter = slideInHorizontally(tween(220)) { -it },
+                exit = slideOutHorizontally(tween(220)) { -it },
+                modifier = Modifier.align(Alignment.CenterStart).fillMaxHeight().width(280.dp)
+            ) {
+                Surface(tonalElevation = 8.dp, shadowElevation = 8.dp, modifier = Modifier.fillMaxSize()) {
+                    UI2DrawerContent(
+                        onSwitchLegacy = { showDrawer = false; onSwitchLegacy() },
+                        onClose = { showDrawer = false }
                     )
                 }
             }
@@ -326,7 +360,8 @@ private fun DataSourceCard(
                 Spacer(Modifier.width(4.dp))
                 Text("View")
             }
-        }
+        },
+        modifier = Modifier.clickable { onView() }
     )
     HorizontalDivider()
 }

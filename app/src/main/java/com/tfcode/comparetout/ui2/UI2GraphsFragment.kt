@@ -985,7 +985,7 @@ private fun FilterGroupContent(
     state: UI2GraphsViewModel.GraphState,
     viewModel: UI2GraphsViewModel
 ) {
-    FilterGroup("Core", UI2GraphsViewModel.CORE_FILTERS, state, viewModel)
+    FilterGroup("Core", state.availableFilters.intersect(UI2GraphsViewModel.CORE_FILTERS), state, viewModel)
     if (state.hasBattery) {
         Text("Battery", style = MaterialTheme.typography.labelLarge,
             modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
@@ -1060,10 +1060,13 @@ private fun DateRangePickerDialog(
         selectableDates = selectableDates
     )
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         Column(
             modifier = Modifier
-                .fillMaxWidth()
+                .fillMaxWidth(0.95f)
                 .background(MaterialTheme.colorScheme.surface, shape = MaterialTheme.shapes.medium)
                 .padding(8.dp)
         ) {

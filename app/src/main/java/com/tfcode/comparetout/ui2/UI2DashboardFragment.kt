@@ -17,6 +17,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -40,6 +41,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -57,8 +59,21 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.viewinterop.AndroidView
+import com.github.mikephil.charting.charts.BarChart
+import com.github.mikephil.charting.components.XAxis
+import com.github.mikephil.charting.data.BarData
+import com.github.mikephil.charting.data.BarDataSet
+import com.github.mikephil.charting.data.BarEntry
+import com.github.mikephil.charting.formatter.ValueFormatter
+import com.tfcode.comparetout.model.costings.Costings
+import com.tfcode.comparetout.model.scenario.LoadProfile
+import com.tfcode.comparetout.model.scenario.Panel
+import com.tfcode.comparetout.model.scenario.PanelPVSummary
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.painterResource
@@ -145,8 +160,12 @@ class UI2DashboardFragment : Fragment() {
 @Composable
 fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit, onLaunchGraphs: () -> Unit) {
     val dashboardData by viewModel.dashboardData.observeAsState(initial = null)
+    val panelSummary by viewModel.panelPVSummary.observeAsState(emptyList())
+    val selectedPeriod by viewModel.selectedPeriod.observeAsState(null)
+    val periodTotals by viewModel.periodTotals.observeAsState(null)
     var showDrawer by remember { mutableStateOf(false) }
     val df = remember { DecimalFormat("#,##0.00") }
+    val kwhDf = remember { DecimalFormat("#,##0.0") }
 
     SideEffect {
         Log.d("UI2", "DashboardScreen recompose: scenarioName=${dashboardData?.scenarioComponents?.scenario?.scenarioName ?: "null"}")
@@ -229,7 +248,12 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     },
                     showEdit = false
                 ) {
-                    Text("No tariff plan linked to this data source")
+                    DataSourceTariffSection(
+                        selectedPeriod = selectedPeriod,
+                        periodTotals = periodTotals,
+                        onPeriodSelected = { viewModel.setDataSourcePeriod(it) },
+                        kwhDf = kwhDf
+                    )
                 }
             } else {
                 // ── Simulation mode ───────────────────────────────────────────
@@ -249,9 +273,9 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     val costing = dashboardData?.bestCosting
                     val kpis = dashboardData?.simKPIs
 
-                    // 1. Simulation
+                    // 1. Explore data
                     ExpandableCard(
-                        title = "Simulation",
+                        title = "Explore data",
                         leadingIcon = {
                             Icon(painterResource(R.drawable.piechart_25), null, Modifier.size(24.dp),
                                 tint = MaterialTheme.colorScheme.onSurface)
@@ -301,6 +325,8 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         if (lp != null) {
                             Text("Source: ${lp.distributionSource}")
                             Text("Annual usage: ${"%.0f".format(lp.annualUsage)} kWh")
+                            Spacer(Modifier.height(8.dp))
+                            LoadDistributionCharts(lp = lp)
                         } else {
                             Text("No usage data linked")
                         }
@@ -346,6 +372,10 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         if (sc.panels.isEmpty()) Text("No panels configured")
                         else sc.panels.forEach { p ->
                             Text("${p.panelName}: ${p.panelCount} × ${p.panelkWp}W, ${p.azimuth}° azimuth, ${p.slope}° slope")
+                        }
+                        if (panelSummary.isNotEmpty()) {
+                            Spacer(Modifier.height(8.dp))
+                            PVSummaryBarChart(panelSummary = panelSummary, panels = sc.panels)
                         }
                     }
 
@@ -451,13 +481,16 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                             }
                         }
                     ) {
-                        if (costing != null) {
-                            Text("Plan: ${costing.fullPlanName}")
-                            Text("Buy: €${df.format(costing.buy / 100.0)}")
-                            Text("Sell: €${df.format(costing.sell / 100.0)}")
-                            Text("Net: €${df.format(costing.net / 100.0)}")
-                        } else {
+                        val allCostings = dashboardData?.allCostings ?: emptyList()
+                        if (allCostings.isEmpty()) {
                             Text("No simulation results yet")
+                        } else {
+                            AllCostingsTable(
+                                costings = allCostings,
+                                planStandingCharges = dashboardData?.planStandingCharges ?: emptyMap(),
+                                simDays = dashboardData?.simDays ?: 365L,
+                                df = df
+                            )
                         }
                     }
                 }
@@ -479,7 +512,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                 modifier = Modifier.align(Alignment.CenterStart).fillMaxHeight().width(280.dp)
             ) {
                 Surface(tonalElevation = 8.dp, shadowElevation = 8.dp, modifier = Modifier.fillMaxSize()) {
-                    DrawerContent(
+                    UI2DrawerContent(
                         onSwitchLegacy = { showDrawer = false; onSwitchLegacy() },
                         onClose = { showDrawer = false }
                     )
@@ -489,37 +522,361 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
     }
 }
 
+// ─── Bar chart helpers ──────────────────────────────────────────────────────
+
+private fun styleDistBarChart(chart: BarChart, labelColor: Int, gridColor: Int) {
+    chart.description.isEnabled = false
+    chart.setDrawGridBackground(false)
+    chart.setDrawBarShadow(false)
+    chart.setFitBars(true)
+    chart.setNoDataTextColor(labelColor)
+    chart.setTouchEnabled(false)
+    chart.xAxis.position = XAxis.XAxisPosition.BOTTOM
+    chart.xAxis.granularity = 1f
+    chart.xAxis.setDrawGridLines(false)
+    chart.xAxis.textColor = labelColor
+    chart.xAxis.textSize = 9f
+    chart.axisLeft.isEnabled = true
+    chart.axisLeft.setLabelCount(2, true)   // shows actual min + max of the data range
+    chart.axisLeft.setDrawGridLines(false)
+    chart.axisLeft.textColor = labelColor
+    chart.axisLeft.textSize = 8f
+    chart.axisLeft.resetAxisMinimum()       // auto-scale to data, not forced to zero
+    chart.axisLeft.valueFormatter = object : ValueFormatter() {
+        override fun getFormattedValue(value: Float) = "%.1f%%".format(value)
+    }
+    chart.axisRight.isEnabled = false
+    chart.legend.isEnabled = false
+    chart.setScaleEnabled(false)
+}
+
+private fun stylePVBarChart(chart: BarChart, labelColor: Int, gridColor: Int) {
+    chart.description.isEnabled = false
+    chart.setDrawGridBackground(false)
+    chart.setDrawBarShadow(false)
+    chart.setFitBars(true)
+    chart.setNoDataTextColor(labelColor)
+    chart.setTouchEnabled(false)
+    chart.xAxis.position = XAxis.XAxisPosition.BOTTOM
+    chart.xAxis.granularity = 1f
+    chart.xAxis.setDrawGridLines(false)
+    chart.xAxis.textColor = labelColor
+    chart.xAxis.textSize = 9f
+    chart.axisLeft.textColor = labelColor
+    chart.axisLeft.gridColor = gridColor
+    chart.axisLeft.axisMinimum = 0f
+    chart.axisRight.isEnabled = false
+    chart.legend.isEnabled = false
+    chart.setScaleEnabled(false)
+}
+
+// ─── Load distribution charts ──────────────────────────────────────────────
+
 @Composable
-private fun DrawerContent(onSwitchLegacy: () -> Unit, onClose: () -> Unit) {
-    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 4.dp),
-            verticalAlignment = Alignment.CenterVertically
+fun LoadDistributionCharts(lp: LoadProfile) {
+    var zoomedIdx by remember { mutableStateOf(-1) }
+
+    val hourlyDist  = remember(lp) { lp.hourlyDist?.dist ?: emptyList<Double>() }
+    val dailyDist   = remember(lp) { lp.dowDist?.dowDist ?: emptyList<Double>() }
+    val monthlyDist = remember(lp) { lp.monthlyDist?.monthlyDist ?: emptyList<Double>() }
+
+    val hourLabels  = remember { (0..23).map { "%02d".format(it) } }
+    val dayLabels   = remember { listOf("Sun","Mon","Tue","Wed","Thu","Fri","Sat") }
+    val monthLabels = remember { listOf("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec") }
+
+    val charts = remember(lp) {
+        listOf(
+            Triple("Hourly (%)",   hourlyDist,  hourLabels),
+            Triple("Daily (%)",    dailyDist,   dayLabels),
+            Triple("Monthly (%)",  monthlyDist, monthLabels)
+        )
+    }
+
+    val cfg = LocalConfiguration.current
+
+    if (zoomedIdx >= 0) {
+        val (title, dist, labels) = charts[zoomedIdx]
+        val chartH = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.6f).dp
+        Column(
+            modifier = Modifier.fillMaxWidth().clickable { zoomedIdx = -1 }.padding(top = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Menu", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-            IconButton(onClick = onClose) { Icon(Icons.Default.Close, "Close") }
+            Text("$title  (tap to close)", style = MaterialTheme.typography.titleSmall)
+            Spacer(Modifier.height(4.dp))
+            SimpleDistBarChart(dist = dist, labels = labels, modifier = Modifier.fillMaxWidth().height(chartH))
         }
-        HorizontalDivider()
-        DrawerItem(R.drawable.ic_baseline_euro_symbol_24,     "Supplier Plans",         onClose)
-        DrawerItem(R.drawable.ic_baseline_settings_24,        "Units",                  onClose)
-        DrawerItem(R.drawable.ic_baseline_access_time_24,     "Timezone",               onClose)
-        DrawerItem(R.drawable.ic_baseline_call_split_24,      "Data Source Management", onClose)
-        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-        DrawerItem(R.drawable.ic_baseline_settings_24,        "Switch to Legacy UI",    onSwitchLegacy)
+    } else {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            charts.forEachIndexed { idx, (title, dist, labels) ->
+                if (dist.isNotEmpty()) {
+                    Column(modifier = Modifier.fillMaxWidth().clickable { zoomedIdx = idx }) {
+                        Text("$title  ↗", style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(bottom = 2.dp))
+                        SimpleDistBarChart(dist = dist, labels = labels,
+                            modifier = Modifier.fillMaxWidth().height(80.dp))
+                    }
+                }
+            }
+        }
     }
 }
 
 @Composable
-private fun DrawerItem(iconRes: Int, label: String, onClick: () -> Unit) {
+private fun SimpleDistBarChart(
+    dist: List<Double>,
+    labels: List<String>,
+    modifier: Modifier = Modifier
+) {
+    val labelColorArgb = MaterialTheme.colorScheme.onSurface.toArgb()
+    val gridColorArgb  = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f).toArgb()
+    val barColorArgb   = MaterialTheme.colorScheme.primary.toArgb()
+
+    AndroidView(
+        factory = { ctx ->
+            BarChart(ctx).apply { styleDistBarChart(this, labelColorArgb, gridColorArgb) }
+        },
+        update = { chart ->
+            styleDistBarChart(chart, labelColorArgb, gridColorArgb)
+            val entries = dist.mapIndexed { i, v -> BarEntry(i.toFloat(), v.toFloat()) }
+            val ds = BarDataSet(entries, "").apply {
+                color = barColorArgb
+                setDrawValues(false)
+            }
+            chart.xAxis.valueFormatter = object : ValueFormatter() {
+                override fun getFormattedValue(value: Float) =
+                    labels.getOrElse(value.toInt()) { "" }
+            }
+            chart.data = BarData(ds)
+            chart.invalidate()
+        },
+        modifier = modifier
+    )
+}
+
+// ─── PV string monthly bar charts (one per panel string) ──────────────────
+
+@Composable
+fun PVSummaryBarChart(panelSummary: List<PanelPVSummary>, panels: List<Panel>) {
+    var zoomedIdx by remember { mutableStateOf(-1) }
+    val monthLabels = remember { listOf("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec") }
+
+    val grouped  = remember(panelSummary) { panelSummary.groupBy { it.panelID } }
+    // Only show strings that belong to this scenario's panel configurations
+    val scenarioPanelIds = remember(panels) { panels.map { it.panelIndex }.toSet() }
+    val panelIds = remember(grouped, scenarioPanelIds) { grouped.keys.filter { it in scenarioPanelIds }.sorted() }
+
+    val cfg = LocalConfiguration.current
+
+    Text("PV Monthly Generation (kWh)", style = MaterialTheme.typography.labelSmall,
+        modifier = Modifier.padding(bottom = 4.dp))
+
+    if (zoomedIdx >= 0) {
+        val panelId  = panelIds[zoomedIdx]
+        val name     = panels.firstOrNull { it.panelIndex == panelId }?.panelName ?: "Panel $panelId"
+        val monthMap = grouped[panelId]?.associate { (it.month.toIntOrNull() ?: 1) to it.tot } ?: emptyMap()
+        val dist     = (1..12).map { m -> monthMap[m] ?: 0.0 }
+        val chartH   = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.55f).dp
+
+        Column(
+            modifier = Modifier.fillMaxWidth().clickable { zoomedIdx = -1 }.padding(vertical = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("$name  (tap to close)", style = MaterialTheme.typography.titleSmall)
+            Spacer(Modifier.height(4.dp))
+            PVStringBarChart(dist = dist, labels = monthLabels, modifier = Modifier.fillMaxWidth().height(chartH))
+        }
+    } else {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            panelIds.forEachIndexed { idx, panelId ->
+                val name     = panels.firstOrNull { it.panelIndex == panelId }?.panelName ?: "Panel $panelId"
+                val monthMap = grouped[panelId]?.associate { (it.month.toIntOrNull() ?: 1) to it.tot } ?: emptyMap()
+                val dist     = (1..12).map { m -> monthMap[m] ?: 0.0 }
+                Column(modifier = Modifier.fillMaxWidth().clickable { zoomedIdx = idx }) {
+                    Text("$name  ↗", style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(bottom = 2.dp))
+                    PVStringBarChart(dist = dist, labels = monthLabels,
+                        modifier = Modifier.fillMaxWidth().height(100.dp))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PVStringBarChart(
+    dist: List<Double>,
+    labels: List<String>,
+    modifier: Modifier = Modifier
+) {
+    val labelColorArgb = MaterialTheme.colorScheme.onSurface.toArgb()
+    val gridColorArgb  = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f).toArgb()
+    val barColorArgb   = android.graphics.Color.parseColor("#F44336")
+
+    AndroidView(
+        factory = { ctx ->
+            BarChart(ctx).apply { stylePVBarChart(this, labelColorArgb, gridColorArgb) }
+        },
+        update = { chart ->
+            stylePVBarChart(chart, labelColorArgb, gridColorArgb)
+            val entries = dist.mapIndexed { i, v -> BarEntry((i + 1).toFloat(), v.toFloat()) }
+            val ds = BarDataSet(entries, "").apply {
+                color = barColorArgb
+                setDrawValues(false)
+            }
+            chart.xAxis.valueFormatter = object : ValueFormatter() {
+                override fun getFormattedValue(value: Float) =
+                    labels.getOrElse(value.toInt() - 1) { "" }
+            }
+            chart.xAxis.labelCount = 12
+            chart.data = BarData(ds)
+            chart.invalidate()
+        },
+        modifier = modifier
+    )
+}
+
+// ─── All-plans costing table ────────────────────────────────────────────────
+
+private val TARIFF_PIE_COLORS = listOf(
+    Color(0xFF304567), Color(0xFF2ECC71), Color(0xFFE74C3C), Color(0xFF9B59B6),
+    Color(0xFF3498DB), Color(0xFFF39C12), Color(0xFF1ABC9C), Color(0xFF34495E),
+    Color(0xFFE67E22), Color(0xFF27AE60)
+)
+
+@Composable
+private fun AllCostingsTable(
+    costings: List<Costings>,
+    planStandingCharges: Map<Long, Double>,
+    simDays: Long,
+    df: DecimalFormat
+) {
+    var zoomedCosting by remember { mutableStateOf<Costings?>(null) }
+    val cfg = LocalConfiguration.current
+
+    if (zoomedCosting != null) {
+        val c = zoomedCosting!!
+        val slices = remember(c) {
+            val st = c.subTotals ?: return@remember emptyList<PieSlice>()
+            st.getPrices().sortedBy { it }.mapIndexed { i, price ->
+                val kwh = st.getSubTotalForPrice(price) ?: 0.0
+                PieSlice("%.1fc".format(price), kwh, TARIFF_PIE_COLORS[i % TARIFF_PIE_COLORS.size])
+            }.filter { it.value > 0 }
+        }
+        val pieSize = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.85f).dp
+        Column(
+            modifier = Modifier.fillMaxWidth().clickable { zoomedCosting = null }.padding(top = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(c.fullPlanName ?: "", style = MaterialTheme.typography.titleSmall,
+                textAlign = TextAlign.Center)
+            Text("(tap to close)", style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Spacer(Modifier.height(8.dp))
+            PieChart(slices = slices, modifier = Modifier.size(pieSize))
+            PieLegend(slices = slices)
+        }
+        return
+    }
+
+    // Header row
+    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Text("Plan", Modifier.weight(2.5f), style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Net", Modifier.weight(1f), textAlign = TextAlign.End,
+            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Buy", Modifier.weight(1f), textAlign = TextAlign.End,
+            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Sell", Modifier.weight(1f), textAlign = TextAlign.End,
+            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Fixed", Modifier.weight(1f), textAlign = TextAlign.End,
+            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    HorizontalDivider()
+
+    costings.forEachIndexed { idx, c ->
+        val fixed = (planStandingCharges[c.pricePlanID] ?: 0.0) * (simDays / 365.0)
+        val isBest = idx == 0
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { zoomedCosting = c }
+                .background(
+                    if (isBest) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                    else Color.Transparent
+                )
+                .padding(vertical = 3.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(c.fullPlanName ?: "", Modifier.weight(2.5f),
+                style = MaterialTheme.typography.bodySmall, maxLines = 1,
+                overflow = TextOverflow.Ellipsis)
+            Text(df.format(c.net / 100.0), Modifier.weight(1f), textAlign = TextAlign.End,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (isBest) MaterialTheme.colorScheme.primary else Color.Unspecified)
+            Text(df.format(c.buy / 100.0), Modifier.weight(1f), textAlign = TextAlign.End,
+                style = MaterialTheme.typography.bodySmall)
+            Text(df.format(c.sell / 100.0), Modifier.weight(1f), textAlign = TextAlign.End,
+                style = MaterialTheme.typography.bodySmall)
+            Text(df.format(fixed), Modifier.weight(1f), textAlign = TextAlign.End,
+                style = MaterialTheme.typography.bodySmall)
+        }
+        HorizontalDivider()
+    }
+    Spacer(Modifier.height(4.dp))
+    Text("Tap a row to see tariff band breakdown  ↗",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant)
+}
+
+// ─── Data source tariff / period summary ───────────────────────────────────
+
+@Composable
+private fun DataSourceTariffSection(
+    selectedPeriod: DataSourcePeriod?,
+    periodTotals: PeriodTotals?,
+    onPeriodSelected: (DataSourcePeriod) -> Unit,
+    kwhDf: DecimalFormat
+) {
     Row(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        Icon(painterResource(iconRes), null, Modifier.size(22.dp),
-            tint = MaterialTheme.colorScheme.onSurface)
-        Spacer(Modifier.width(16.dp))
-        Text(label, style = MaterialTheme.typography.bodyLarge)
+        DataSourcePeriod.values().forEach { period ->
+            FilterChip(
+                selected = period == selectedPeriod,
+                onClick = { onPeriodSelected(period) },
+                label = { Text(period.label, style = MaterialTheme.typography.labelMedium) }
+            )
+        }
+    }
+    when {
+        selectedPeriod == null -> Text(
+            "Select a period",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+        periodTotals == null -> CircularProgressIndicator(
+            modifier = Modifier.padding(top = 8.dp).size(20.dp), strokeWidth = 2.dp
+        )
+        else -> {
+            Spacer(Modifier.height(4.dp))
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                if (periodTotals.load > 0) PeriodTotalRow("Load",   periodTotals.load, kwhDf)
+                if (periodTotals.buy  > 0) PeriodTotalRow("Import", periodTotals.buy,  kwhDf)
+                if (periodTotals.feed > 0) PeriodTotalRow("Export", periodTotals.feed, kwhDf)
+                if (periodTotals.pv   > 0) PeriodTotalRow("Solar",  periodTotals.pv,   kwhDf)
+            }
+        }
+    }
+}
+
+@Composable
+private fun PeriodTotalRow(label: String, value: Double, df: DecimalFormat) {
+    Row(Modifier.fillMaxWidth()) {
+        Text(label, Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+        Text("${df.format(value)} kWh", style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

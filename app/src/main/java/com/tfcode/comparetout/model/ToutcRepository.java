@@ -365,6 +365,10 @@ public class ToutcRepository {
         return costingDAO.getBestCostingForScenario(scenarioID);
     }
 
+    public List<Costings> getAllCostingsForScenario(Long scenarioID) {
+        return costingDAO.getAllCostingsForScenario(scenarioID);
+    }
+
     public List<Inverter> getInvertersForScenario(Long scenarioID) {
         return scenarioDAO.getInvertersForScenarioID(scenarioID);
     }

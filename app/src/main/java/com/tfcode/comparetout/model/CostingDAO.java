@@ -91,6 +91,9 @@ public abstract class CostingDAO {
             "AND scenarioID = :scenarioID")
     public abstract Costings getBestCostingForScenario(Long scenarioID);
 
+    @Query("SELECT * FROM costings WHERE scenarioID = :scenarioID ORDER BY net ASC")
+    public abstract List<Costings> getAllCostingsForScenario(Long scenarioID);
+
     /**
      * Check if a cost calculation already exists for a scenario/price plan combination.
      * Used to avoid duplicate calculations and improve performance.

@@ -101,7 +101,7 @@ class UI2SimulationsViewModel @Inject constructor(
             scenarios.forEach { scenario ->
                 val id = scenario.scenarioIndex
                 if (_enrichments.value.containsKey(id)) return@forEach
-                val cost   = runCatching { repository.getBestCostingForScenario(id)?.net }.getOrNull()
+                val cost   = runCatching { repository.getBestCostingForScenario(id)?.net?.let { it / 100.0 } }.getOrNull()
                 val dsName = runCatching {
                     repository.getScenarioComponentsForScenarioID(id)?.loadProfile?.distributionSource
                 }.getOrNull()
