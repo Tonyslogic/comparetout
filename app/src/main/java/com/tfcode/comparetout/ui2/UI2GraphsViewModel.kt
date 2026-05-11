@@ -3,6 +3,7 @@ package com.tfcode.comparetout.ui2
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.tfcode.comparetout.ComparisonUIViewModel
 import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.model.importers.IntervalRow
 import com.tfcode.comparetout.model.scenario.ScenarioBarChartData
@@ -72,20 +73,34 @@ class UI2GraphsViewModel @Inject constructor(
         val intervalData: List<IntervalRow> = emptyList(),
         val singleDayBarData: List<ScenarioBarChartData> = emptyList(),
         val lineData: List<ScenarioLineGraphData> = emptyList(),
-        val isLoading: Boolean = false
+        val isLoading: Boolean = false,
+        // Data source mode — non-null when showing importer data instead of a simulation
+        val importerType: ComparisonUIViewModel.Importer? = null,
+        val dataSysSn: String = ""
     ) {
+        val isDataSourceMode: Boolean get() =
+            importerType != null && importerType != ComparisonUIViewModel.Importer.SIMULATION
+
         val isSingleDay: Boolean get() = from.isNotEmpty() && from == to
-        val hasBattery: Boolean get() = (components?.batteries?.isNotEmpty()) == true
-        val hasHW: Boolean get() = components?.hwSystem != null
-        val showLineFab: Boolean get() = isSingleDay && (hasBattery || hasHW)
+        val hasBattery: Boolean get() =
+            components?.scenario?.isHasBatteries == true || components?.batteries?.isNotEmpty() == true
+        val hasHW: Boolean get() =
+            components?.scenario?.isHasHWSystem == true || components?.hwSystem != null
+        // Line fab only applies to simulation mode
+        val showLineFab: Boolean get() = !isDataSourceMode && isSingleDay && (hasBattery || hasHW)
 
         val availableFilters: Set<FilterSeries>
             get() {
+                if (isDataSourceMode) return CORE_FILTERS
                 val sc = components ?: return CORE_FILTERS
                 val set = CORE_FILTERS.toMutableSet()
-                if (sc.batteries?.isNotEmpty() == true) set.addAll(BATTERY_FILTERS)
-                if (sc.evCharges?.isNotEmpty() == true || sc.evDiverts?.isNotEmpty() == true) set.addAll(EV_FILTERS)
-                if (sc.hwSystem != null) set.addAll(HW_FILTERS)
+                val batteryPresent = sc.scenario?.isHasBatteries == true || sc.batteries?.isNotEmpty() == true
+                val evPresent = sc.scenario?.isHasEVCharges == true || sc.scenario?.isHasEVDivert == true ||
+                        sc.evCharges?.isNotEmpty() == true || sc.evDiverts?.isNotEmpty() == true
+                val hwPresent = sc.scenario?.isHasHWSystem == true || sc.hwSystem != null
+                if (batteryPresent) set.addAll(BATTERY_FILTERS)
+                if (evPresent) set.addAll(EV_FILTERS)
+                if (hwPresent) set.addAll(HW_FILTERS)
                 return set
             }
     }
@@ -110,7 +125,7 @@ class UI2GraphsViewModel @Inject constructor(
     fun initialize(scenarioId: Long) {
         if (_state.value.scenarioId == scenarioId && _state.value.components != null) return
         Log.d("UI2Graphs", "initialize($scenarioId)")
-        _state.update { it.copy(scenarioId = scenarioId, isLoading = true) }
+        _state.update { it.copy(scenarioId = scenarioId, isLoading = true, importerType = null, dataSysSn = "") }
         viewModelScope.launch(Dispatchers.IO) {
             val components = repository.getScenarioComponentsForScenarioID(scenarioId)
             val name = components?.scenario?.scenarioName ?: ""
@@ -133,6 +148,31 @@ class UI2GraphsViewModel @Inject constructor(
                     from = from, to = to
                 )
             }
+            fetchData()
+        }
+    }
+
+    fun initializeDataSource(
+        sysSn: String,
+        importerType: ComparisonUIViewModel.Importer,
+        startDate: String,
+        endDate: String
+    ) {
+        if (_state.value.dataSysSn == sysSn && _state.value.importerType == importerType && !_state.value.isLoading) return
+        Log.d("UI2Graphs", "initializeDataSource($sysSn, $importerType)")
+        _state.update { it.copy(dataSysSn = sysSn, importerType = importerType, scenarioId = 0L,
+            scenarioName = sysSn, components = null, isLoading = true) }
+        viewModelScope.launch(Dispatchers.IO) {
+            val today = LocalDate.now()
+            val dataEnd = if (endDate.isNotEmpty()) {
+                try { LocalDate.parse(endDate, FMT).coerceAtMost(today) } catch (e: Exception) { today }
+            } else today
+            val dataStart = if (startDate.isNotEmpty()) {
+                try { LocalDate.parse(startDate, FMT) } catch (e: Exception) { dataEnd.minusMonths(1) }
+            } else dataEnd.minusMonths(1)
+            val from = dataEnd.minusMonths(1).coerceAtLeast(dataStart).format(FMT)
+            val to = dataEnd.format(FMT)
+            _state.update { it.copy(dataStartDate = startDate, dataEndDate = endDate, from = from, to = to) }
             fetchData()
         }
     }
@@ -198,12 +238,39 @@ class UI2GraphsViewModel @Inject constructor(
 
     private suspend fun fetchData() = withContext(Dispatchers.IO) {
         val s = _state.value
-        val id = s.scenarioId
         val from = s.from
         val to = s.to
-        if (id == 0L || from.isEmpty() || to.isEmpty()) return@withContext
+        if (from.isEmpty() || to.isEmpty()) return@withContext
 
         _state.update { it.copy(isLoading = true) }
+
+        if (s.isDataSourceMode) {
+            val sysSn = s.dataSysSn
+            Log.d("UI2Graphs", "fetchData (DS): sysSn=$sysSn from=$from to=$to scale=${s.displayScale} calc=${s.calculation}")
+            val rows: List<IntervalRow> = when (s.calculation) {
+                Calculation.SUM -> when (s.displayScale) {
+                    DisplayScale.HOUR  -> repository.getSumHour(sysSn, from, to)
+                    DisplayScale.DOY   -> repository.getSumDOY(sysSn, from, to)
+                    DisplayScale.WEEK  -> repository.getSumDOW(sysSn, from, to)
+                    DisplayScale.MNTH  -> repository.getSumMonth(sysSn, from, to)
+                    DisplayScale.YEAR  -> repository.getSumYear(sysSn, from, to)
+                }
+                Calculation.AVG -> when (s.displayScale) {
+                    DisplayScale.HOUR  -> repository.getAvgHour(sysSn, from, to)
+                    DisplayScale.DOY   -> repository.getAvgDOY(sysSn, from, to)
+                    DisplayScale.WEEK  -> repository.getAvgDOW(sysSn, from, to)
+                    DisplayScale.MNTH  -> repository.getAvgMonth(sysSn, from, to)
+                    DisplayScale.YEAR  -> repository.getAvgYear(sysSn, from, to)
+                }
+            }
+            Log.d("UI2Graphs", "fetchData (DS): got ${rows.size} rows")
+            _state.update { it.copy(intervalData = rows, singleDayBarData = emptyList(), lineData = emptyList(), isLoading = false) }
+            return@withContext
+        }
+
+        // Simulation mode
+        val id = s.scenarioId
+        if (id == 0L) return@withContext
         Log.d("UI2Graphs", "fetchData: id=$id from=$from to=$to scale=${s.displayScale} calc=${s.calculation}")
 
         val dayOfYear = runCatching { LocalDate.parse(from, FMT).dayOfYear }.getOrElse { 1 }
@@ -230,7 +297,6 @@ class UI2GraphsViewModel @Inject constructor(
                     DisplayScale.YEAR  -> repository.getSimAvgYear(idStr, from, to)
                 }
             }
-            // Always fetch line data for single-day views regardless of display scale
             val lineData = if (s.isSingleDay) repository.getLineData(id, dayOfYear) else emptyList()
             Log.d("UI2Graphs", "fetchData: got ${rows.size} rows, lineData=${lineData.size}")
             _state.update { it.copy(intervalData = rows, singleDayBarData = emptyList(), lineData = lineData, isLoading = false) }

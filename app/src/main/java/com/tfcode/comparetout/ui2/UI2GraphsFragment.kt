@@ -158,10 +158,17 @@ class UI2GraphsFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         lifecycleScope.launch {
             repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
-                sharedViewModel.activeSimulationId.collect { id ->
-                    if (id != null) {
-                        Log.d("UI2Graphs", "initializing id=$id")
-                        viewModel.initialize(id)
+                sharedViewModel.activeSelection.collect { sel ->
+                    when (sel) {
+                        is UI2SharedViewModel.ActiveSelection.Simulation -> {
+                            Log.d("UI2Graphs", "initializing simulation id=${sel.id}")
+                            viewModel.initialize(sel.id)
+                        }
+                        is UI2SharedViewModel.ActiveSelection.DataSource -> {
+                            Log.d("UI2Graphs", "initializing data source sysSn=${sel.sysSn}")
+                            viewModel.initializeDataSource(sel.sysSn, sel.importerType, sel.startDate, sel.endDate)
+                        }
+                        UI2SharedViewModel.ActiveSelection.None -> {}
                     }
                 }
             }
@@ -984,8 +991,9 @@ private fun FilterGroupContent(
             modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
         FilterGroup(null, UI2GraphsViewModel.BATTERY_FILTERS, state, viewModel)
     }
-    val hasEV = state.components?.evCharges?.isNotEmpty() == true ||
-            state.components?.evDiverts?.isNotEmpty() == true
+    val sc = state.components
+    val hasEV = sc?.scenario?.isHasEVCharges == true || sc?.scenario?.isHasEVDivert == true ||
+            sc?.evCharges?.isNotEmpty() == true || sc?.evDiverts?.isNotEmpty() == true
     if (hasEV) {
         Text("EV", style = MaterialTheme.typography.labelLarge,
             modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))

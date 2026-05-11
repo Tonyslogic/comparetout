@@ -53,15 +53,25 @@ This document breaks down the implementation of the UI2 architecture (detailed i
   - *Synopsis: Implemented expandable `Card` components for Usage Data, Tariff Plan, PV System, Battery, EV, Inverter, and Hot Water sections.*
 
 ## Phase 4: Simulations Tab Polish (`UI2SimulationsFragment`)
-- [ ] **Task 4.1: Enhanced Simulation Cards**
+- [x] **Task 4.1: Enhanced Simulation Cards**
   - Update the `RecyclerView` item layout to match requirements: Name, Data source badge, Cost/year, Preview icon.
-- [ ] **Task 4.2: Card Actions**
+  - *Synopsis: Rewrote SimulationCard with leading barchart icon, component badges (Solar/Battery/EV/HW), async-loaded cost badge, and 3-dot menu. ViewModel uses `combine(_scenarios, _enrichments)` to async-enrich each scenario with best cost and distributionSource.*
+- [x] **Task 4.2: Card Actions**
+  - Implement a type icon to the left of the name indicating a simulation.
   - Implement **View** button (navigates to Dashboard).
   - Implement **Delete** button (shows confirmation dialog, then calls `ToutcRepository.deleteScenario` and related costings).
   - Implement **Edit** button (launches Wizard with preloaded ID).
-- [ ] **Task 4.3: Add Simulation FAB**
+  - *Synopsis: Per-card DropdownMenu with eye (Visibility) icon for View, Edit, and Delete. Delete shows AlertDialog confirmation. Edit and Add FAB both launch UI2WizardActivity.*
+- [x] **Task 4.3: Add Simulation FAB**
   - Add a Floating Action Button to launch `UI2WizardActivity`.
   - Implement the Wizard start modal: "Start from scratch" vs "Start from existing".
+  - *Synopsis: FAB added to Scaffold. UI2WizardActivity created as a placeholder "Wizard coming soon" screen registered in AndroidManifest. ScenarioID extra passed for edit mode.*
+- [x] **Task 4.4: Add Data sources to list**
+  - Implement a type icon to the left of the name indicating a data source.
+  - Implement **View** button (navigates to Dashboard).
+  - Delete and edit are not applicable for these
+  - Look at java/com/tfcode/comparetout/importers for more details about data sources
+  - *Synopsis: Data Sources section shows scenarios whose loadProfile.distributionSource is non-empty (created from importers). Uses download icon instead of barchart. View navigates to Dashboard with the scenario's ID directly. Section is hidden when no data-source scenarios exist.*
 
 ## Phase 5: Wizard Implementation (`UI2WizardActivity`)
 - [ ] **Task 5.1: Wizard Host & State**

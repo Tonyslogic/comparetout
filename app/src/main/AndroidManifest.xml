@@ -25,6 +25,10 @@
             android:theme="@style/Theme.comparetout.UI2" >
         </activity>
         <activity
+            android:name=".ui2.UI2WizardActivity"
+            android:exported="false"
+            android:theme="@style/Theme.comparetout.UI2" />
+        <activity
             android:name=".MainActivity"
             android:configChanges="orientation"
             android:exported="true">

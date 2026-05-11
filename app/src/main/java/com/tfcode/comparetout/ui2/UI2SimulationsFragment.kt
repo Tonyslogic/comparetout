@@ -6,30 +6,57 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
@@ -41,17 +68,18 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.text.DecimalFormat
 
 @AndroidEntryPoint
 class UI2SimulationsFragment : Fragment() {
 
-    private val simulationsViewModel: UI2SimulationsViewModel by viewModels()
+    private val viewModel: UI2SimulationsViewModel by viewModels()
     private val sharedViewModel: UI2SharedViewModel by activityViewModels()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
-    ): View? {
+    ): View {
         Log.d("UI2", "UI2SimulationsFragment.onCreateView")
         val onSwitchLegacy: () -> Unit = {
             CoroutineScope(Dispatchers.IO).launch {
@@ -62,63 +90,57 @@ class UI2SimulationsFragment : Fragment() {
                 requireActivity().startActivity(intent)
             }
         }
+        val onSimulationView: (Long) -> Unit = { scenarioId ->
+            Log.d("UI2", "View simulation: scenarioId=$scenarioId")
+            sharedViewModel.setActiveSimulationId(scenarioId)
+            findNavController().navigate(R.id.ui2DashboardFragment)
+        }
+        val onDataSourceView: (UI2SimulationsViewModel.SimListItem.DataSource) -> Unit = { ds ->
+            Log.d("UI2", "View data source: sysSn=${ds.sysSn} type=${ds.importerType}")
+            sharedViewModel.setActiveDataSource(ds.sysSn, ds.importerType, ds.startDate, ds.finishDate)
+            findNavController().navigate(R.id.ui2DashboardFragment)
+        }
         return ComposeView(requireContext()).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
                 UI2Theme {
                     SimulationsScreen(
-                        simulationsViewModel = simulationsViewModel,
-                        onSimulationClick = { scenarioId ->
-                            Log.d("UI2", "Simulation clicked: scenarioId=$scenarioId")
-                            sharedViewModel.setActiveSimulationId(scenarioId)
-                            findNavController().navigate(R.id.ui2DashboardFragment)
-                        },
+                        viewModel = viewModel,
+                        onSimulationView = onSimulationView,
+                        onDataSourceView = onDataSourceView,
                         onSwitchLegacy = onSwitchLegacy
                     )
                 }
             }
         }
     }
-
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        super.onViewCreated(view, savedInstanceState)
-        Log.d("UI2", "UI2SimulationsFragment.onViewCreated — observing scenarios LiveData")
-        simulationsViewModel.scenarios.observe(viewLifecycleOwner) { list ->
-            Log.d("UI2", "UI2SimulationsFragment: scenarios LiveData emitted ${list?.size ?: "null"} items")
-            list?.forEachIndexed { i, s -> Log.d("UI2", "  [$i] id=${s.scenarioIndex} name=${s.scenarioName}") }
-        }
-    }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun SimulationsScreen(
-    simulationsViewModel: UI2SimulationsViewModel,
-    onSimulationClick: (Long) -> Unit,
+    viewModel: UI2SimulationsViewModel,
+    onSimulationView: (Long) -> Unit,
+    onDataSourceView: (UI2SimulationsViewModel.SimListItem.DataSource) -> Unit,
     onSwitchLegacy: () -> Unit
 ) {
-    val scenarios by simulationsViewModel.scenarios.observeAsState(initial = emptyList())
+    val items by viewModel.items.collectAsState()
+    val context = LocalContext.current
+    var showDeleteDialog by remember { mutableStateOf<UI2SimulationsViewModel.SimListItem.Simulation?>(null) }
     var menuExpanded by remember { mutableStateOf(false) }
 
-    SideEffect {
-        Log.d("UI2", "SimulationsScreen recompose: ${scenarios.size} scenarios")
-    }
+    val simItems = remember(items) { items.filterIsInstance<UI2SimulationsViewModel.SimListItem.Simulation>() }
+    val dataSourceItems = remember(items) { items.filterIsInstance<UI2SimulationsViewModel.SimListItem.DataSource>() }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Eco Power Optimiser") },
+                title = { Text("Simulations") },
                 actions = {
                     IconButton(onClick = { menuExpanded = true }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "More options")
+                        Icon(Icons.Default.MoreVert, contentDescription = "Options")
                     }
-                    DropdownMenu(
-                        expanded = menuExpanded,
-                        onDismissRequest = { menuExpanded = false }
-                    ) {
-                        DropdownMenuItem(text = { Text("Settings") }, onClick = { menuExpanded = false })
-                        DropdownMenuItem(text = { Text("Units") }, onClick = { menuExpanded = false })
-                        DropdownMenuItem(text = { Text("Timezone") }, onClick = { menuExpanded = false })
+                    DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                         DropdownMenuItem(
                             text = { Text("Switch to Legacy UI") },
                             onClick = { menuExpanded = false; onSwitchLegacy() }
@@ -126,15 +148,196 @@ fun SimulationsScreen(
                     }
                 }
             )
-        }
-    ) { paddingValues ->
-        LazyColumn(contentPadding = paddingValues) {
-            items(scenarios) {
-                ListItem(
-                    headlineContent = { Text(it.scenarioName) },
-                    modifier = Modifier.clickable { onSimulationClick(it.scenarioIndex) }
-                )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = {
+                context.startActivity(Intent(context, UI2WizardActivity::class.java))
+            }) {
+                Icon(Icons.Default.Add, contentDescription = "New simulation")
             }
         }
+    ) { padding ->
+        LazyColumn(contentPadding = padding) {
+            if (simItems.isNotEmpty()) {
+                stickyHeader(key = "header_simulations") {
+                    SectionHeader("Simulations")
+                }
+                items(simItems, key = { it.scenario.scenarioIndex }) { item ->
+                    SimulationCard(
+                        item = item,
+                        onView = { onSimulationView(item.scenario.scenarioIndex) },
+                        onDelete = { showDeleteDialog = item },
+                        onEdit = {
+                            context.startActivity(
+                                Intent(context, UI2WizardActivity::class.java)
+                                    .putExtra("ScenarioID", item.scenario.scenarioIndex)
+                            )
+                        }
+                    )
+                }
+            }
+
+            if (dataSourceItems.isNotEmpty()) {
+                stickyHeader(key = "header_datasources") {
+                    SectionHeader("Explore data")
+                }
+                items(dataSourceItems, key = { it.sysSn }) { item ->
+                    DataSourceCard(
+                        item = item,
+                        onView = { onDataSourceView(item) }
+                    )
+                }
+            }
+        }
+    }
+
+    showDeleteDialog?.let { sim ->
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = null },
+            title = { Text("Delete simulation?") },
+            text = { Text("\"${sim.scenario.scenarioName}\" will be permanently deleted.") },
+            confirmButton = {
+                Button(onClick = {
+                    viewModel.deleteSimulation(sim.scenario.scenarioIndex.toInt())
+                    showDeleteDialog = null
+                }) { Text("Delete") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = null }) { Text("Cancel") }
+            }
+        )
+    }
+}
+
+@Composable
+private fun SectionHeader(title: String) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(
+            title,
+            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+    }
+}
+
+@Composable
+private fun SimulationCard(
+    item: UI2SimulationsViewModel.SimListItem.Simulation,
+    onView: () -> Unit,
+    onDelete: () -> Unit,
+    onEdit: () -> Unit
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
+    val scenario = item.scenario
+    val costFmt = remember { DecimalFormat("#,##0") }
+
+    ListItem(
+        leadingContent = {
+            Icon(
+                painter = painterResource(R.drawable.barchart),
+                contentDescription = "Simulation",
+                modifier = Modifier.size(24.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+        },
+        headlineContent = {
+            Text(scenario.scenarioName, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        },
+        supportingContent = {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (scenario.isHasPanels) ComponentBadge("Solar", Color(0xFFF44336))
+                    if (scenario.isHasBatteries) ComponentBadge("Battery", Color(0xFF4CAF50))
+                    if (scenario.isHasEVCharges) ComponentBadge("EV", Color(0xFFFF9800))
+                    if (scenario.isHasHWSystem) ComponentBadge("HW", Color(0xFF9C27B0))
+                }
+            }
+        },
+        trailingContent = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                item.bestCostPerYear?.let { cost ->
+                    Text(
+                        "€${costFmt.format(cost)}/yr",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.secondary
+                    )
+                    Spacer(Modifier.width(4.dp))
+                }
+                Box {
+                    IconButton(onClick = { menuExpanded = true }) {
+                        Icon(Icons.Default.MoreVert, contentDescription = "Options")
+                    }
+                    DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                        DropdownMenuItem(
+                            text = { Text("View") },
+                            leadingIcon = { Icon(Icons.Default.Visibility, null) },
+                            onClick = { menuExpanded = false; onView() }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Edit") },
+                            leadingIcon = { Icon(Icons.Default.Edit, null) },
+                            onClick = { menuExpanded = false; onEdit() }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Delete") },
+                            leadingIcon = { Icon(Icons.Default.Delete, null) },
+                            onClick = { menuExpanded = false; onDelete() }
+                        )
+                    }
+                }
+            }
+        },
+        modifier = Modifier.clickable { onView() }
+    )
+    HorizontalDivider()
+}
+
+@Composable
+private fun DataSourceCard(
+    item: UI2SimulationsViewModel.SimListItem.DataSource,
+    onView: () -> Unit
+) {
+    ListItem(
+        leadingContent = {
+            Icon(
+                painter = painterResource(R.drawable.ic_baseline_download_24),
+                contentDescription = "Data source",
+                modifier = Modifier.size(24.dp),
+                tint = MaterialTheme.colorScheme.secondary
+            )
+        },
+        headlineContent = {
+            Text(item.sysSn, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        },
+        supportingContent = {
+            Text(
+                "${item.displayTypeName}  ·  ${item.startDate} → ${item.finishDate}",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        trailingContent = {
+            TextButton(onClick = onView) {
+                Icon(Icons.Default.Visibility, contentDescription = null)
+                Spacer(Modifier.width(4.dp))
+                Text("View")
+            }
+        }
+    )
+    HorizontalDivider()
+}
+
+@Composable
+private fun ComponentBadge(label: String, color: Color) {
+    Box(
+        modifier = Modifier
+            .background(color.copy(alpha = 0.15f), shape = MaterialTheme.shapes.extraSmall)
+            .padding(horizontal = 6.dp, vertical = 2.dp)
+    ) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = color)
     }
 }

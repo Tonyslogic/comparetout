@@ -103,7 +103,7 @@ class UI2DashboardFragment : Fragment() {
                 requireActivity().startActivity(intent)
             }
         }
-        val onLaunchGraphs: (Long) -> Unit = { _ ->
+        val onLaunchGraphs: () -> Unit = {
             findNavController().navigate(R.id.action_dashboard_to_graphs)
         }
         return ComposeView(requireContext()).apply {
@@ -126,9 +126,15 @@ class UI2DashboardFragment : Fragment() {
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                sharedViewModel.activeSimulationId.collect { id ->
-                    Log.d("UI2", "UI2DashboardFragment: activeSimulationId=$id")
-                    if (id != null) viewModel.setActiveSimulationId(id)
+                sharedViewModel.activeSelection.collect { sel ->
+                    Log.d("UI2", "UI2DashboardFragment: activeSelection=$sel")
+                    when (sel) {
+                        is UI2SharedViewModel.ActiveSelection.Simulation ->
+                            viewModel.setActiveSimulationId(sel.id)
+                        is UI2SharedViewModel.ActiveSelection.DataSource ->
+                            viewModel.setActiveDataSource(sel.sysSn, sel.importerType, sel.startDate, sel.endDate)
+                        UI2SharedViewModel.ActiveSelection.None -> {}
+                    }
                 }
             }
         }
@@ -137,7 +143,7 @@ class UI2DashboardFragment : Fragment() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit, onLaunchGraphs: (Long) -> Unit) {
+fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit, onLaunchGraphs: () -> Unit) {
     val dashboardData by viewModel.dashboardData.observeAsState(initial = null)
     var showDrawer by remember { mutableStateOf(false) }
     val df = remember { DecimalFormat("#,##0.00") }
@@ -161,54 +167,31 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     IconButton(onClick = { showDrawer = true }) {
                         Icon(Icons.Default.Menu, contentDescription = "Menu")
                     }
+                    val title = dashboardData?.dataSourceInfo?.run { "$sysSn  ·  $displayTypeName" }
+                        ?: dashboardData?.scenarioComponents?.scenario?.scenarioName
+                        ?: "Select a Simulation"
                     Text(
-                        text = dashboardData?.scenarioComponents?.scenario?.scenarioName ?: "Select a Simulation",
+                        text = title,
                         style = MaterialTheme.typography.headlineSmall,
                         modifier = Modifier.weight(1f).padding(start = 4.dp)
                     )
                 }
 
-            dashboardData?.bestCosting?.let { costing ->
-                Card(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(
-                            text = "Best Cost/Year: €${df.format(costing.net / 100.0)}",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Text(
-                            text = costing.fullPlanName ?: "",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-            }
-
-            dashboardData?.scenarioComponents?.let { sc ->
-                val costing = dashboardData?.bestCosting
-                val kpis = dashboardData?.simKPIs
-                val scenarioId = sc.scenario?.scenarioIndex ?: 0L
-
-                // 1. Simulation
+            val dsInfo = dashboardData?.dataSourceInfo
+            if (dsInfo != null) {
+                // ── Data source mode ──────────────────────────────────────────
                 ExpandableCard(
-                    title = "Simulation",
+                    title = "Explore data",
                     leadingIcon = {
-                        Icon(painterResource(R.drawable.piechart_25), null, Modifier.size(24.dp),
-                            tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(painterResource(R.drawable.ic_baseline_download_24), null,
+                            Modifier.size(24.dp), tint = MaterialTheme.colorScheme.secondary)
                     },
                     trailingContent = { expanded ->
-                        val isError = sc.panels.isNotEmpty() && dashboardData?.hasPanelData != true
-                        when {
-                            isError -> Icon(painterResource(R.drawable.ic_baseline_warning_24), null,
-                                Modifier.size(18.dp), tint = StatusRed)
-                            kpis != null -> Icon(painterResource(R.drawable.tick), null,
-                                Modifier.size(18.dp), tint = Color.Unspecified)
-                            else -> CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
-                        }
-                        if (expanded && kpis != null) {
+                        if (expanded) {
                             Spacer(Modifier.width(4.dp))
                             Box(
                                 modifier = Modifier
-                                    .clickable { onLaunchGraphs(scenarioId) }
+                                    .clickable { onLaunchGraphs() }
                                     .padding(horizontal = 6.dp, vertical = 4.dp),
                                 contentAlignment = Alignment.Center
                             ) {
@@ -219,14 +202,10 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     },
                     showEdit = false
                 ) {
-                    if (kpis == null) {
-                        Text("No simulation results yet")
-                    } else {
-                        SimulationPieCharts(kpis = kpis)
-                    }
+                    Text("Type: ${dsInfo.displayTypeName}")
+                    Text("Date range: ${dsInfo.startDate} – ${dsInfo.endDate}")
                 }
 
-                // 2. Usage Data
                 ExpandableCard(
                     title = "Usage Data",
                     leadingIcon = {
@@ -234,185 +213,252 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                             tint = MaterialTheme.colorScheme.onSurface)
                     },
                     trailingContent = { _ ->
-                        if (sc.loadProfile != null) {
-                            Icon(painterResource(R.drawable.tick), null, Modifier.size(18.dp), tint = Color.Unspecified)
-                        }
-                    }
-                ) {
-                    val lp = sc.loadProfile
-                    if (lp != null) {
-                        Text("Source: ${lp.distributionSource}")
-                        Text("Annual usage: ${"%.0f".format(lp.annualUsage)} kWh")
-                    } else {
-                        Text("No usage data linked")
-                    }
-                }
-
-                // 3. Inverter
-                ExpandableCard(
-                    title = "Inverter",
-                    leadingIcon = {
-                        Icon(painterResource(R.drawable.inverter), null, Modifier.size(24.dp),
-                            tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(painterResource(R.drawable.tick), null, Modifier.size(18.dp), tint = Color.Unspecified)
                     },
-                    trailingContent = { _ ->
-                        if (sc.inverters.isNotEmpty()) {
-                            Icon(painterResource(R.drawable.tick), null, Modifier.size(18.dp), tint = Color.Unspecified)
-                        }
-                    }
+                    showEdit = false
                 ) {
-                    if (sc.inverters.isEmpty()) {
-                        Text("No inverters configured")
-                    } else {
-                        sc.inverters.forEach { inv ->
-                            Text("${inv.inverterName}: max ${inv.maxInverterLoad} kW, ${inv.mpptCount} MPPT")
-                        }
-                    }
+                    Text("Source: ${dsInfo.sysSn}")
+                    Text("Type: ${dsInfo.displayTypeName}")
                 }
 
-                // 4. PV System
-                ExpandableCard(
-                    title = "PV System",
-                    leadingIcon = {
-                        Icon(painterResource(R.drawable.solarpanel), null, Modifier.size(24.dp), tint = Color.Unspecified)
-                    },
-                    trailingContent = { _ ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (dashboardData?.hasPanelData == true) {
-                                Icon(painterResource(R.drawable.ic_baseline_wb_sunny_36), null,
-                                    Modifier.size(18.dp), tint = StatusGreen)
-                            }
-                            if (sc.panels.isNotEmpty()) {
-                                Icon(painterResource(R.drawable.tick), null, Modifier.size(18.dp), tint = Color.Unspecified)
-                            }
-                        }
-                    }
-                ) {
-                    if (sc.panels.isEmpty()) {
-                        Text("No panels configured")
-                    } else {
-                        sc.panels.forEach { p ->
-                            Text("${p.panelName}: ${p.panelCount} × ${p.panelkWp}W, ${p.azimuth}° azimuth, ${p.slope}° slope")
-                        }
-                    }
-                }
-
-                // 5. Battery
-                ExpandableCard(
-                    title = "Battery",
-                    leadingIcon = {
-                        Icon(painterResource(R.drawable.battery1), null, Modifier.size(24.dp),
-                            tint = MaterialTheme.colorScheme.onSurface)
-                    },
-                    trailingContent = { _ ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (sc.batteries.isNotEmpty()) {
-                                Icon(painterResource(R.drawable.ic_baseline_settings_24), null,
-                                    Modifier.size(18.dp), tint = StatusGreen)
-                            }
-                            if (sc.discharges.isNotEmpty()) {
-                                Icon(painterResource(R.drawable.baseline_file_upload_24), null,
-                                    Modifier.size(18.dp), tint = StatusGreen)
-                            }
-                            if (sc.loadShifts.isNotEmpty()) {
-                                Icon(painterResource(R.drawable.ic_baseline_access_time_24), null,
-                                    Modifier.size(18.dp), tint = StatusGreen)
-                            }
-                        }
-                    }
-                ) {
-                    if (sc.batteries.isEmpty()) {
-                        Text("No batteries configured")
-                    } else {
-                        sc.batteries.forEach { b ->
-                            Text("${b.batterySize} kWh, stop at ${b.dischargeStop}%, charge ${b.maxCharge} kW / discharge ${b.maxDischarge} kW")
-                        }
-                    }
-                }
-
-                // 6. Hot Water
-                ExpandableCard(
-                    title = "Hot Water",
-                    leadingIcon = {
-                        val res = if (sc.hwSystem != null) R.drawable.waterwarm else R.drawable.watercold
-                        Icon(painterResource(res), null, Modifier.size(24.dp),
-                            tint = MaterialTheme.colorScheme.onSurface)
-                    },
-                    trailingContent = { _ ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (sc.hwSystem != null) {
-                                Icon(painterResource(R.drawable.ic_baseline_settings_24), null,
-                                    Modifier.size(18.dp), tint = StatusGreen)
-                            }
-                            if (sc.hwDivert != null) {
-                                Icon(painterResource(R.drawable.ic_baseline_call_split_24), null,
-                                    Modifier.size(18.dp), tint = StatusGreen)
-                            }
-                            if (sc.hwSchedules.isNotEmpty()) {
-                                Icon(painterResource(R.drawable.ic_baseline_access_time_24), null,
-                                    Modifier.size(18.dp), tint = StatusGreen)
-                            }
-                        }
-                    }
-                ) {
-                    val hw = sc.hwSystem
-                    if (hw == null) {
-                        Text("No hot water system configured")
-                    } else {
-                        Text("Tank: ${hw.hwCapacity} L, usage ${hw.hwUsage} L/day")
-                        Text("Target: ${hw.hwTarget}°C, heater ${hw.hwRate} kW")
-                    }
-                }
-
-                // 7. EV
-                ExpandableCard(
-                    title = "EV",
-                    leadingIcon = {
-                        val res = if (sc.evCharges.isNotEmpty()) R.drawable.ev_on else R.drawable.ev_off
-                        Icon(painterResource(res), null, Modifier.size(24.dp), tint = Color.Unspecified)
-                    },
-                    trailingContent = { _ ->
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            if (sc.evCharges.isNotEmpty()) {
-                                Icon(painterResource(R.drawable.ic_baseline_access_time_24), null,
-                                    Modifier.size(18.dp), tint = StatusGreen)
-                            }
-                            if (sc.evDiverts.isNotEmpty()) {
-                                Icon(painterResource(R.drawable.ic_baseline_call_split_24), null,
-                                    Modifier.size(18.dp), tint = StatusGreen)
-                            }
-                        }
-                    }
-                ) {
-                    if (sc.evCharges.isEmpty()) {
-                        Text("No EV charging configured")
-                    } else {
-                        sc.evCharges.forEach { ev ->
-                            Text("${ev.name}: ${ev.begin}:00–${ev.end}:00 @ ${ev.draw} kW")
-                        }
-                    }
-                }
-
-                // 8. Tariff Plan
                 ExpandableCard(
                     title = "Tariff Plan",
                     leadingIcon = {
-                        Icon(painterResource(R.drawable.ic_baseline_euro_symbol_24), null, Modifier.size(24.dp),
-                            tint = MaterialTheme.colorScheme.onSurface)
+                        Icon(painterResource(R.drawable.ic_baseline_euro_symbol_24), null,
+                            Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
                     },
-                    trailingContent = { _ ->
-                        if (costing != null) {
-                            Icon(painterResource(R.drawable.tick), null, Modifier.size(18.dp), tint = Color.Unspecified)
+                    showEdit = false
+                ) {
+                    Text("No tariff plan linked to this data source")
+                }
+            } else {
+                // ── Simulation mode ───────────────────────────────────────────
+                dashboardData?.bestCosting?.let { costing ->
+                    Card(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(
+                                text = "Best Cost/Year: €${df.format(costing.net / 100.0)}",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Text(text = costing.fullPlanName ?: "", style = MaterialTheme.typography.bodyMedium)
                         }
                     }
-                ) {
-                    if (costing != null) {
-                        Text("Plan: ${costing.fullPlanName}")
-                        Text("Buy: €${df.format(costing.buy / 100.0)}")
-                        Text("Sell: €${df.format(costing.sell / 100.0)}")
-                        Text("Net: €${df.format(costing.net / 100.0)}")
-                    } else {
-                        Text("No simulation results yet")
+                }
+
+                dashboardData?.scenarioComponents?.let { sc ->
+                    val costing = dashboardData?.bestCosting
+                    val kpis = dashboardData?.simKPIs
+
+                    // 1. Simulation
+                    ExpandableCard(
+                        title = "Simulation",
+                        leadingIcon = {
+                            Icon(painterResource(R.drawable.piechart_25), null, Modifier.size(24.dp),
+                                tint = MaterialTheme.colorScheme.onSurface)
+                        },
+                        trailingContent = { expanded ->
+                            val isError = sc.panels.isNotEmpty() && dashboardData?.hasPanelData != true
+                            when {
+                                isError -> Icon(painterResource(R.drawable.ic_baseline_warning_24), null,
+                                    Modifier.size(18.dp), tint = StatusRed)
+                                kpis != null -> Icon(painterResource(R.drawable.tick), null,
+                                    Modifier.size(18.dp), tint = Color.Unspecified)
+                                else -> CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                            }
+                            if (expanded && kpis != null) {
+                                Spacer(Modifier.width(4.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .clickable { onLaunchGraphs() }
+                                        .padding(horizontal = 6.dp, vertical = 4.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(painterResource(R.drawable.barchart), "View graphs",
+                                        Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
+                                }
+                            }
+                        },
+                        showEdit = false
+                    ) {
+                        if (kpis == null) Text("No simulation results yet")
+                        else SimulationPieCharts(kpis = kpis)
+                    }
+
+                    // 2. Usage Data
+                    ExpandableCard(
+                        title = "Usage Data",
+                        leadingIcon = {
+                            Icon(painterResource(R.drawable.house), null, Modifier.size(24.dp),
+                                tint = MaterialTheme.colorScheme.onSurface)
+                        },
+                        trailingContent = { _ ->
+                            if (sc.loadProfile != null) {
+                                Icon(painterResource(R.drawable.tick), null, Modifier.size(18.dp), tint = Color.Unspecified)
+                            }
+                        }
+                    ) {
+                        val lp = sc.loadProfile
+                        if (lp != null) {
+                            Text("Source: ${lp.distributionSource}")
+                            Text("Annual usage: ${"%.0f".format(lp.annualUsage)} kWh")
+                        } else {
+                            Text("No usage data linked")
+                        }
+                    }
+
+                    // 3. Inverter
+                    ExpandableCard(
+                        title = "Inverter",
+                        leadingIcon = {
+                            Icon(painterResource(R.drawable.inverter), null, Modifier.size(24.dp),
+                                tint = MaterialTheme.colorScheme.onSurface)
+                        },
+                        trailingContent = { _ ->
+                            if (sc.inverters.isNotEmpty()) {
+                                Icon(painterResource(R.drawable.tick), null, Modifier.size(18.dp), tint = Color.Unspecified)
+                            }
+                        }
+                    ) {
+                        if (sc.inverters.isEmpty()) Text("No inverters configured")
+                        else sc.inverters.forEach { inv ->
+                            Text("${inv.inverterName}: max ${inv.maxInverterLoad} kW, ${inv.mpptCount} MPPT")
+                        }
+                    }
+
+                    // 4. PV System
+                    ExpandableCard(
+                        title = "PV System",
+                        leadingIcon = {
+                            Icon(painterResource(R.drawable.solarpanel), null, Modifier.size(24.dp), tint = Color.Unspecified)
+                        },
+                        trailingContent = { _ ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (dashboardData?.hasPanelData == true) {
+                                    Icon(painterResource(R.drawable.ic_baseline_wb_sunny_36), null,
+                                        Modifier.size(18.dp), tint = StatusGreen)
+                                }
+                                if (sc.panels.isNotEmpty()) {
+                                    Icon(painterResource(R.drawable.tick), null, Modifier.size(18.dp), tint = Color.Unspecified)
+                                }
+                            }
+                        }
+                    ) {
+                        if (sc.panels.isEmpty()) Text("No panels configured")
+                        else sc.panels.forEach { p ->
+                            Text("${p.panelName}: ${p.panelCount} × ${p.panelkWp}W, ${p.azimuth}° azimuth, ${p.slope}° slope")
+                        }
+                    }
+
+                    // 5. Battery
+                    ExpandableCard(
+                        title = "Battery",
+                        leadingIcon = {
+                            Icon(painterResource(R.drawable.battery1), null, Modifier.size(24.dp),
+                                tint = MaterialTheme.colorScheme.onSurface)
+                        },
+                        trailingContent = { _ ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (sc.batteries.isNotEmpty()) {
+                                    Icon(painterResource(R.drawable.ic_baseline_settings_24), null,
+                                        Modifier.size(18.dp), tint = StatusGreen)
+                                }
+                                if (sc.discharges.isNotEmpty()) {
+                                    Icon(painterResource(R.drawable.baseline_file_upload_24), null,
+                                        Modifier.size(18.dp), tint = StatusGreen)
+                                }
+                                if (sc.loadShifts.isNotEmpty()) {
+                                    Icon(painterResource(R.drawable.ic_baseline_access_time_24), null,
+                                        Modifier.size(18.dp), tint = StatusGreen)
+                                }
+                            }
+                        }
+                    ) {
+                        if (sc.batteries.isEmpty()) Text("No batteries configured")
+                        else sc.batteries.forEach { b ->
+                            Text("${b.batterySize} kWh, stop at ${b.dischargeStop}%, charge ${b.maxCharge} kW / discharge ${b.maxDischarge} kW")
+                        }
+                    }
+
+                    // 6. Hot Water
+                    ExpandableCard(
+                        title = "Hot Water",
+                        leadingIcon = {
+                            val res = if (sc.hwSystem != null) R.drawable.waterwarm else R.drawable.watercold
+                            Icon(painterResource(res), null, Modifier.size(24.dp),
+                                tint = MaterialTheme.colorScheme.onSurface)
+                        },
+                        trailingContent = { _ ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (sc.hwSystem != null) {
+                                    Icon(painterResource(R.drawable.ic_baseline_settings_24), null,
+                                        Modifier.size(18.dp), tint = StatusGreen)
+                                }
+                                if (sc.hwDivert != null) {
+                                    Icon(painterResource(R.drawable.ic_baseline_call_split_24), null,
+                                        Modifier.size(18.dp), tint = StatusGreen)
+                                }
+                                if (sc.hwSchedules.isNotEmpty()) {
+                                    Icon(painterResource(R.drawable.ic_baseline_access_time_24), null,
+                                        Modifier.size(18.dp), tint = StatusGreen)
+                                }
+                            }
+                        }
+                    ) {
+                        val hw = sc.hwSystem
+                        if (hw == null) Text("No hot water system configured")
+                        else {
+                            Text("Tank: ${hw.hwCapacity} L, usage ${hw.hwUsage} L/day")
+                            Text("Target: ${hw.hwTarget}°C, heater ${hw.hwRate} kW")
+                        }
+                    }
+
+                    // 7. EV
+                    ExpandableCard(
+                        title = "EV",
+                        leadingIcon = {
+                            val res = if (sc.evCharges.isNotEmpty()) R.drawable.ev_on else R.drawable.ev_off
+                            Icon(painterResource(res), null, Modifier.size(24.dp), tint = Color.Unspecified)
+                        },
+                        trailingContent = { _ ->
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (sc.evCharges.isNotEmpty()) {
+                                    Icon(painterResource(R.drawable.ic_baseline_access_time_24), null,
+                                        Modifier.size(18.dp), tint = StatusGreen)
+                                }
+                                if (sc.evDiverts.isNotEmpty()) {
+                                    Icon(painterResource(R.drawable.ic_baseline_call_split_24), null,
+                                        Modifier.size(18.dp), tint = StatusGreen)
+                                }
+                            }
+                        }
+                    ) {
+                        if (sc.evCharges.isEmpty()) Text("No EV charging configured")
+                        else sc.evCharges.forEach { ev ->
+                            Text("${ev.name}: ${ev.begin}:00–${ev.end}:00 @ ${ev.draw} kW")
+                        }
+                    }
+
+                    // 8. Tariff Plan
+                    ExpandableCard(
+                        title = "Tariff Plan",
+                        leadingIcon = {
+                            Icon(painterResource(R.drawable.ic_baseline_euro_symbol_24), null,
+                                Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
+                        },
+                        trailingContent = { _ ->
+                            if (costing != null) {
+                                Icon(painterResource(R.drawable.tick), null, Modifier.size(18.dp), tint = Color.Unspecified)
+                            }
+                        }
+                    ) {
+                        if (costing != null) {
+                            Text("Plan: ${costing.fullPlanName}")
+                            Text("Buy: €${df.format(costing.buy / 100.0)}")
+                            Text("Sell: €${df.format(costing.sell / 100.0)}")
+                            Text("Net: €${df.format(costing.net / 100.0)}")
+                        } else {
+                            Text("No simulation results yet")
+                        }
                     }
                 }
             }
