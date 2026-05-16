@@ -34,7 +34,7 @@
     <fragment
         android:id="@+id/ui2SimulationsFragment"
         android:name="com.tfcode.comparetout.ui2.UI2SimulationsFragment"
-        android:label="Simulations"
+        android:label="Scenarios"
         tools:layout="@layout/fragment_ui2_simulations" />
 
     <fragment

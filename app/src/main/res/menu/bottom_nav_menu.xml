@@ -23,7 +23,7 @@
     <item
         android:id="@+id/ui2SimulationsFragment"
         android:icon="@drawable/ic_baseline_list_24"
-        android:title="Simulations" />
+        android:title="Scenarios" />
     <item
         android:id="@+id/ui2ComparisonsFragment"
         android:icon="@drawable/ic_baseline_compare_arrows_24"

@@ -36,6 +36,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Card
@@ -70,11 +72,14 @@ import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.formatter.ValueFormatter
+import com.tfcode.comparetout.ComparisonUIViewModel
 import com.tfcode.comparetout.model.costings.Costings
 import com.tfcode.comparetout.model.scenario.LoadProfile
 import com.tfcode.comparetout.model.scenario.Panel
 import com.tfcode.comparetout.model.scenario.PanelPVSummary
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -94,6 +99,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.text.DecimalFormat
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 private val StatusGreen = Color(0xFF0B8043)
 private val StatusRed = Color(0xFFD32F2F)
@@ -161,8 +168,16 @@ class UI2DashboardFragment : Fragment() {
 fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit, onLaunchGraphs: () -> Unit) {
     val dashboardData by viewModel.dashboardData.observeAsState(initial = null)
     val panelSummary by viewModel.panelPVSummary.observeAsState(emptyList())
-    val selectedPeriod by viewModel.selectedPeriod.observeAsState(null)
-    val periodTotals by viewModel.periodTotals.observeAsState(null)
+    val explorePeriod  by viewModel.explorePeriod.observeAsState(DataSourcePeriod.ALL)
+    val exploreAnchor  by viewModel.exploreAnchor.observeAsState(LocalDate.now())
+    val exploreTotals  by viewModel.exploreTotals.observeAsState(null)
+    val usagePeriod        by viewModel.usagePeriod.observeAsState(DataSourcePeriod.ALL)
+    val usageAnchor        by viewModel.usageAnchor.observeAsState(LocalDate.now())
+    val usageTotals        by viewModel.usageTotals.observeAsState(null)
+    val usageDistribution  by viewModel.usageDistribution.observeAsState(null)
+    val tariffPeriod   by viewModel.tariffPeriod.observeAsState(DataSourcePeriod.ALL)
+    val tariffAnchor   by viewModel.tariffAnchor.observeAsState(LocalDate.now())
+    val tariffCostings by viewModel.tariffCostings.observeAsState(null)
     var showDrawer by remember { mutableStateOf(false) }
     val df = remember { DecimalFormat("#,##0.00") }
     val kwhDf = remember { DecimalFormat("#,##0.0") }
@@ -221,8 +236,23 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     },
                     showEdit = false
                 ) {
-                    Text("Type: ${dsInfo.displayTypeName}")
-                    Text("Date range: ${dsInfo.startDate} – ${dsInfo.endDate}")
+                    Text("${dsInfo.displayTypeName}  ·  ${dsInfo.startDate} – ${dsInfo.endDate}",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(bottom = 4.dp))
+                    PeriodNavigator(
+                        selectedPeriod   = explorePeriod,
+                        anchorDate       = exploreAnchor,
+                        dataStart        = dsInfo.startDate,
+                        dataEnd          = dsInfo.endDate,
+                        onPeriodSelected = { viewModel.setExplorePeriod(it) },
+                        onNavigate       = { viewModel.navigateExplore(it) }
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    DataSourceExplorePies(
+                        importerType = dsInfo.importerType,
+                        periodTotals = exploreTotals
+                    )
                 }
 
                 ExpandableCard(
@@ -232,12 +262,37 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                             tint = MaterialTheme.colorScheme.onSurface)
                     },
                     trailingContent = { _ ->
-                        Icon(painterResource(R.drawable.tick), null, Modifier.size(18.dp), tint = Color.Unspecified)
+                        if (usageTotals != null)
+                            Icon(painterResource(R.drawable.tick), null, Modifier.size(18.dp), tint = Color.Unspecified)
                     },
                     showEdit = false
                 ) {
-                    Text("Source: ${dsInfo.sysSn}")
-                    Text("Type: ${dsInfo.displayTypeName}")
+                    PeriodNavigator(
+                        selectedPeriod   = usagePeriod,
+                        anchorDate       = usageAnchor,
+                        dataStart        = dsInfo.startDate,
+                        dataEnd          = dsInfo.endDate,
+                        onPeriodSelected = { viewModel.setUsagePeriod(it) },
+                        onNavigate       = { viewModel.navigateUsage(it) }
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    val isEsbn = dsInfo.importerType == ComparisonUIViewModel.Importer.ESBNHDF
+                    val totals = usageTotals
+                    when {
+                        totals == null -> CircularProgressIndicator(
+                            modifier = Modifier.padding(4.dp).size(20.dp), strokeWidth = 2.dp)
+                        else -> Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            if (!isEsbn && totals.load > 0) PeriodTotalRow("Load",   totals.load,  kwhDf)
+                            if (totals.buy  > 0) PeriodTotalRow("Import", totals.buy,   kwhDf)
+                            if (totals.feed > 0) PeriodTotalRow("Export", totals.feed,  kwhDf)
+                            if (!isEsbn && totals.pv > 0) PeriodTotalRow("Solar",  totals.pv,    kwhDf)
+                        }
+                    }
+                    val dist = usageDistribution
+                    if (dist != null) {
+                        Spacer(Modifier.height(8.dp))
+                        DataSourceDistributionCharts(distribution = dist)
+                    }
                 }
 
                 ExpandableCard(
@@ -246,13 +301,24 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         Icon(painterResource(R.drawable.ic_baseline_euro_symbol_24), null,
                             Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
                     },
+                    trailingContent = { _ ->
+                        if (tariffCostings != null)
+                            Icon(painterResource(R.drawable.tick), null, Modifier.size(18.dp), tint = Color.Unspecified)
+                    },
                     showEdit = false
                 ) {
-                    DataSourceTariffSection(
-                        selectedPeriod = selectedPeriod,
-                        periodTotals = periodTotals,
-                        onPeriodSelected = { viewModel.setDataSourcePeriod(it) },
-                        kwhDf = kwhDf
+                    PeriodNavigator(
+                        selectedPeriod   = tariffPeriod,
+                        anchorDate       = tariffAnchor,
+                        dataStart        = dsInfo.startDate,
+                        dataEnd          = dsInfo.endDate,
+                        onPeriodSelected = { viewModel.setTariffPeriod(it) },
+                        onNavigate       = { viewModel.navigateTariff(it) }
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    DataSourceCostingsTable(
+                        costings = tariffCostings,
+                        df       = df
                     )
                 }
             } else {
@@ -272,6 +338,8 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                 dashboardData?.scenarioComponents?.let { sc ->
                     val costing = dashboardData?.bestCosting
                     val kpis = dashboardData?.simKPIs
+                    val ctx = LocalContext.current
+                    val scenarioId = sc.scenario?.scenarioIndex ?: -1L
 
                     // 1. Explore data
                     ExpandableCard(
@@ -319,7 +387,14 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                             if (sc.loadProfile != null) {
                                 Icon(painterResource(R.drawable.tick), null, Modifier.size(18.dp), tint = Color.Unspecified)
                             }
-                        }
+                        },
+                        onEdit = if (scenarioId != -1L) ({
+                            ctx.startActivity(
+                                Intent(ctx, UI2WizardActivity::class.java)
+                                    .putExtra("ScenarioID", scenarioId)
+                                    .putExtra("WizardSection", "load")
+                            )
+                        }) else null
                     ) {
                         val lp = sc.loadProfile
                         if (lp != null) {
@@ -460,7 +535,14 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                                         Modifier.size(18.dp), tint = StatusGreen)
                                 }
                             }
-                        }
+                        },
+                        onEdit = if (scenarioId != -1L) ({
+                            ctx.startActivity(
+                                Intent(ctx, UI2WizardActivity::class.java)
+                                    .putExtra("ScenarioID", scenarioId)
+                                    .putExtra("WizardSection", "ev")
+                            )
+                        }) else null
                     ) {
                         if (sc.evCharges.isEmpty()) Text("No EV charging configured")
                         else sc.evCharges.forEach { ev ->
@@ -594,27 +676,32 @@ fun LoadDistributionCharts(lp: LoadProfile) {
 
     val cfg = LocalConfiguration.current
 
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        charts.forEachIndexed { idx, (title, dist, labels) ->
+            if (dist.isNotEmpty()) {
+                Column(modifier = Modifier.fillMaxWidth().clickable { zoomedIdx = idx }) {
+                    Text("$title  ↗", style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(bottom = 2.dp))
+                    SimpleDistBarChart(dist = dist, labels = labels,
+                        modifier = Modifier.fillMaxWidth().height(80.dp))
+                }
+            }
+        }
+    }
+
     if (zoomedIdx >= 0) {
         val (title, dist, labels) = charts[zoomedIdx]
-        val chartH = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.6f).dp
-        Column(
-            modifier = Modifier.fillMaxWidth().clickable { zoomedIdx = -1 }.padding(top = 4.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text("$title  (tap to close)", style = MaterialTheme.typography.titleSmall)
-            Spacer(Modifier.height(4.dp))
-            SimpleDistBarChart(dist = dist, labels = labels, modifier = Modifier.fillMaxWidth().height(chartH))
-        }
-    } else {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            charts.forEachIndexed { idx, (title, dist, labels) ->
-                if (dist.isNotEmpty()) {
-                    Column(modifier = Modifier.fillMaxWidth().clickable { zoomedIdx = idx }) {
-                        Text("$title  ↗", style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.padding(bottom = 2.dp))
-                        SimpleDistBarChart(dist = dist, labels = labels,
-                            modifier = Modifier.fillMaxWidth().height(80.dp))
-                    }
+        val size = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.9f).dp
+        Dialog(onDismissRequest = { zoomedIdx = -1 }) {
+            Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
+                Column(
+                    modifier = Modifier.padding(12.dp).fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(title, style = MaterialTheme.typography.titleSmall)
+                    Spacer(Modifier.height(8.dp))
+                    SimpleDistBarChart(dist = dist, labels = labels,
+                        modifier = Modifier.fillMaxWidth().weight(1f))
                 }
             }
         }
@@ -670,32 +757,36 @@ fun PVSummaryBarChart(panelSummary: List<PanelPVSummary>, panels: List<Panel>) {
     Text("PV Monthly Generation (kWh)", style = MaterialTheme.typography.labelSmall,
         modifier = Modifier.padding(bottom = 4.dp))
 
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        panelIds.forEachIndexed { idx, panelId ->
+            val name     = panels.firstOrNull { it.panelIndex == panelId }?.panelName ?: "Panel $panelId"
+            val monthMap = grouped[panelId]?.associate { (it.month.toIntOrNull() ?: 1) to it.tot } ?: emptyMap()
+            val dist     = (1..12).map { m -> monthMap[m] ?: 0.0 }
+            Column(modifier = Modifier.fillMaxWidth().clickable { zoomedIdx = idx }) {
+                Text("$name  ↗", style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(bottom = 2.dp))
+                PVStringBarChart(dist = dist, labels = monthLabels,
+                    modifier = Modifier.fillMaxWidth().height(100.dp))
+            }
+        }
+    }
+
     if (zoomedIdx >= 0) {
         val panelId  = panelIds[zoomedIdx]
         val name     = panels.firstOrNull { it.panelIndex == panelId }?.panelName ?: "Panel $panelId"
         val monthMap = grouped[panelId]?.associate { (it.month.toIntOrNull() ?: 1) to it.tot } ?: emptyMap()
         val dist     = (1..12).map { m -> monthMap[m] ?: 0.0 }
-        val chartH   = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.55f).dp
-
-        Column(
-            modifier = Modifier.fillMaxWidth().clickable { zoomedIdx = -1 }.padding(vertical = 4.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text("$name  (tap to close)", style = MaterialTheme.typography.titleSmall)
-            Spacer(Modifier.height(4.dp))
-            PVStringBarChart(dist = dist, labels = monthLabels, modifier = Modifier.fillMaxWidth().height(chartH))
-        }
-    } else {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            panelIds.forEachIndexed { idx, panelId ->
-                val name     = panels.firstOrNull { it.panelIndex == panelId }?.panelName ?: "Panel $panelId"
-                val monthMap = grouped[panelId]?.associate { (it.month.toIntOrNull() ?: 1) to it.tot } ?: emptyMap()
-                val dist     = (1..12).map { m -> monthMap[m] ?: 0.0 }
-                Column(modifier = Modifier.fillMaxWidth().clickable { zoomedIdx = idx }) {
-                    Text("$name  ↗", style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.padding(bottom = 2.dp))
+        val size     = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.9f).dp
+        Dialog(onDismissRequest = { zoomedIdx = -1 }) {
+            Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
+                Column(
+                    modifier = Modifier.padding(12.dp).fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(name, style = MaterialTheme.typography.titleSmall)
+                    Spacer(Modifier.height(8.dp))
                     PVStringBarChart(dist = dist, labels = monthLabels,
-                        modifier = Modifier.fillMaxWidth().height(100.dp))
+                        modifier = Modifier.fillMaxWidth().weight(1f))
                 }
             }
         }
@@ -753,31 +844,6 @@ private fun AllCostingsTable(
     var zoomedCosting by remember { mutableStateOf<Costings?>(null) }
     val cfg = LocalConfiguration.current
 
-    if (zoomedCosting != null) {
-        val c = zoomedCosting!!
-        val slices = remember(c) {
-            val st = c.subTotals ?: return@remember emptyList<PieSlice>()
-            st.getPrices().sortedBy { it }.mapIndexed { i, price ->
-                val kwh = st.getSubTotalForPrice(price) ?: 0.0
-                PieSlice("%.1fc".format(price), kwh, TARIFF_PIE_COLORS[i % TARIFF_PIE_COLORS.size])
-            }.filter { it.value > 0 }
-        }
-        val pieSize = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.85f).dp
-        Column(
-            modifier = Modifier.fillMaxWidth().clickable { zoomedCosting = null }.padding(top = 4.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(c.fullPlanName ?: "", style = MaterialTheme.typography.titleSmall,
-                textAlign = TextAlign.Center)
-            Text("(tap to close)", style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Spacer(Modifier.height(8.dp))
-            PieChart(slices = slices, modifier = Modifier.size(pieSize))
-            PieLegend(slices = slices)
-        }
-        return
-    }
-
     // Header row
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
         Text("Plan", Modifier.weight(2.5f), style = MaterialTheme.typography.labelSmall,
@@ -826,46 +892,256 @@ private fun AllCostingsTable(
     Text("Tap a row to see tariff band breakdown  ↗",
         style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+    if (zoomedCosting != null) {
+        val c = zoomedCosting!!
+        val slices = remember(c) {
+            val st = c.subTotals ?: return@remember emptyList<PieSlice>()
+            st.getPrices().sortedBy { it }.mapIndexed { i, price ->
+                val kwh = st.getSubTotalForPrice(price) ?: 0.0
+                PieSlice("%.1fc".format(price), kwh, TARIFF_PIE_COLORS[i % TARIFF_PIE_COLORS.size])
+            }.filter { it.value > 0 }
+        }
+        val size = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.9f).dp
+        Dialog(onDismissRequest = { zoomedCosting = null }) {
+            Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
+                Column(
+                    modifier = Modifier.padding(16.dp).fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(c.fullPlanName ?: "", style = MaterialTheme.typography.titleSmall,
+                        textAlign = TextAlign.Center)
+                    Spacer(Modifier.height(8.dp))
+                    PieChart(slices = slices, modifier = Modifier.size(size * 0.72f), isDonut = true)
+                    PieLegend(slices = slices)
+                }
+            }
+        }
+    }
 }
 
-// ─── Data source tariff / period summary ───────────────────────────────────
+// ─── Data source period navigation + content ──────────────────────────────
 
 @Composable
-private fun DataSourceTariffSection(
-    selectedPeriod: DataSourcePeriod?,
-    periodTotals: PeriodTotals?,
+private fun PeriodNavigator(
+    selectedPeriod: DataSourcePeriod,
+    anchorDate: LocalDate,
+    dataStart: String,
+    dataEnd: String,
     onPeriodSelected: (DataSourcePeriod) -> Unit,
-    kwhDf: DecimalFormat
+    onNavigate: (forward: Boolean) -> Unit
 ) {
+    val dataStartDate = remember(dataStart) { LocalDate.parse(dataStart) }
+    val dataEndDate   = remember(dataEnd)   { LocalDate.parse(dataEnd) }
+    val showNav = selectedPeriod != DataSourcePeriod.ALL
+    val dateLabel = if (showNav) when (selectedPeriod) {
+        DataSourcePeriod.YESTERDAY -> anchorDate.format(DateTimeFormatter.ofPattern("dd/MM/yy"))
+        DataSourcePeriod.MONTH     -> anchorDate.format(DateTimeFormatter.ofPattern("MMM yy"))
+        DataSourcePeriod.YEAR      -> anchorDate.year.toString()
+        else -> ""
+    } else ""
+    val atStart = showNav && anchorDate <= dataStartDate
+    val atEnd   = showNav && anchorDate >= dataEndDate
+
     Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(4.dp)
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth()
     ) {
         DataSourcePeriod.values().forEach { period ->
             FilterChip(
                 selected = period == selectedPeriod,
                 onClick = { onPeriodSelected(period) },
-                label = { Text(period.label, style = MaterialTheme.typography.labelMedium) }
+                label = { Text(period.label, style = MaterialTheme.typography.labelSmall) },
+                modifier = Modifier.height(28.dp)
+            )
+            Spacer(Modifier.width(2.dp))
+        }
+        if (showNav) {
+            Spacer(Modifier.width(4.dp))
+            IconButton(
+                onClick = { onNavigate(false) },
+                enabled = !atStart,
+                modifier = Modifier.size(28.dp)
+            ) {
+                Icon(Icons.Default.KeyboardArrowLeft, null, Modifier.size(18.dp))
+            }
+            Text(dateLabel, Modifier.weight(1f),
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.labelSmall)
+            IconButton(
+                onClick = { onNavigate(true) },
+                enabled = !atEnd,
+                modifier = Modifier.size(28.dp)
+            ) {
+                Icon(Icons.Default.KeyboardArrowRight, null, Modifier.size(18.dp))
+            }
+        }
+    }
+}
+
+@Composable
+private fun DataSourceExplorePies(
+    importerType: ComparisonUIViewModel.Importer,
+    periodTotals: PeriodTotals?
+) {
+    if (periodTotals == null) {
+        CircularProgressIndicator(modifier = Modifier.padding(4.dp).size(20.dp), strokeWidth = 2.dp)
+        return
+    }
+
+    val isEsbn = importerType == ComparisonUIViewModel.Importer.ESBNHDF
+    val charts = remember(periodTotals, isEsbn) {
+        if (isEsbn) {
+            listOf(
+                "Import vs Export" to listOf(
+                    PieSlice("Import", periodTotals.buy,  Color(0xFFF44336)),
+                    PieSlice("Export", periodTotals.feed, Color(0xFF2196F3))
+                )
+            )
+        } else {
+            listOf(
+                "Load Source" to listOf(
+                    PieSlice("Solar",  maxOf(0.0, periodTotals.load - periodTotals.buy), Color(0xFF4CAF50)),
+                    PieSlice("Bought", periodTotals.buy,  Color(0xFFF44336))
+                ),
+                "Self Consumption" to listOf(
+                    PieSlice("PV Used",  maxOf(0.0, periodTotals.pv - periodTotals.feed), Color(0xFF4CAF50)),
+                    PieSlice("Exported", periodTotals.feed, Color(0xFF2196F3))
+                )
             )
         }
     }
-    when {
-        selectedPeriod == null -> Text(
-            "Select a period",
+
+    var zoomedChart by remember { mutableStateOf(-1) }
+    val cfg = LocalConfiguration.current
+
+    Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+        charts.forEachIndexed { idx, (title, slices) ->
+            val visible = slices.filter { it.value > 0 }
+            Column(
+                modifier = Modifier.weight(1f).clickable { zoomedChart = idx }.padding(4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(title, style = MaterialTheme.typography.labelSmall,
+                    textAlign = TextAlign.Center)
+                Spacer(Modifier.height(4.dp))
+                PieChart(slices = visible, modifier = Modifier.size(80.dp))
+            }
+        }
+    }
+
+    if (zoomedChart >= 0) {
+        val (title, slices) = charts[zoomedChart]
+        val visible = slices.filter { it.value > 0 }
+        val size = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.9f).dp
+        Dialog(onDismissRequest = { zoomedChart = -1 }) {
+            Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
+                Column(
+                    modifier = Modifier.padding(16.dp).fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(title, style = MaterialTheme.typography.titleSmall)
+                    Spacer(Modifier.height(8.dp))
+                    PieChart(slices = visible, modifier = Modifier.size(size * 0.72f), isDonut = true)
+                    PieLegend(slices = visible)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DataSourceCostingsTable(
+    costings: List<DataSourceCostingRow>?,
+    df: DecimalFormat
+) {
+    if (costings == null) {
+        CircularProgressIndicator(modifier = Modifier.padding(4.dp).size(20.dp), strokeWidth = 2.dp)
+        return
+    }
+    if (costings.isEmpty()) {
+        Text("No price plans configured",
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 4.dp)
-        )
-        periodTotals == null -> CircularProgressIndicator(
-            modifier = Modifier.padding(top = 8.dp).size(20.dp), strokeWidth = 2.dp
-        )
-        else -> {
-            Spacer(Modifier.height(4.dp))
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                if (periodTotals.load > 0) PeriodTotalRow("Load",   periodTotals.load, kwhDf)
-                if (periodTotals.buy  > 0) PeriodTotalRow("Import", periodTotals.buy,  kwhDf)
-                if (periodTotals.feed > 0) PeriodTotalRow("Export", periodTotals.feed, kwhDf)
-                if (periodTotals.pv   > 0) PeriodTotalRow("Solar",  periodTotals.pv,   kwhDf)
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        return
+    }
+
+    var zoomedRow by remember { mutableStateOf<DataSourceCostingRow?>(null) }
+    val cfg = LocalConfiguration.current
+
+    // Header
+    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Text("Plan",  Modifier.weight(2.5f), style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Net",   Modifier.weight(1f), textAlign = TextAlign.End,
+            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Buy",   Modifier.weight(1f), textAlign = TextAlign.End,
+            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Sell",  Modifier.weight(1f), textAlign = TextAlign.End,
+            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Fixed", Modifier.weight(1f), textAlign = TextAlign.End,
+            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    HorizontalDivider()
+
+    costings.forEachIndexed { idx, row ->
+        val isBest = idx == 0
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { zoomedRow = row }
+                .background(
+                    if (isBest) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                    else Color.Transparent
+                )
+                .padding(vertical = 3.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(row.planName, Modifier.weight(2.5f),
+                style = MaterialTheme.typography.bodySmall, maxLines = 1,
+                overflow = TextOverflow.Ellipsis)
+            Text(df.format(row.net / 100.0), Modifier.weight(1f), textAlign = TextAlign.End,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (isBest) MaterialTheme.colorScheme.primary else Color.Unspecified)
+            Text(df.format(row.buy / 100.0), Modifier.weight(1f), textAlign = TextAlign.End,
+                style = MaterialTheme.typography.bodySmall)
+            Text(df.format(row.sell / 100.0), Modifier.weight(1f), textAlign = TextAlign.End,
+                style = MaterialTheme.typography.bodySmall)
+            Text(df.format(row.fixed), Modifier.weight(1f), textAlign = TextAlign.End,
+                style = MaterialTheme.typography.bodySmall)
+        }
+        HorizontalDivider()
+    }
+    Spacer(Modifier.height(4.dp))
+    Text("Tap a row to see tariff band breakdown  ↗",
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant)
+
+    if (zoomedRow != null) {
+        val r = zoomedRow!!
+        val slices = remember(r) {
+            val st = r.subTotals ?: return@remember emptyList<PieSlice>()
+            st.getPrices().sortedBy { it }.mapIndexed { i, price ->
+                val kwh = st.getSubTotalForPrice(price) ?: 0.0
+                PieSlice("%.1fc".format(price), kwh, TARIFF_PIE_COLORS[i % TARIFF_PIE_COLORS.size])
+            }.filter { it.value > 0 }
+        }
+        val size = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.9f).dp
+        Dialog(onDismissRequest = { zoomedRow = null }) {
+            Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
+                Column(
+                    modifier = Modifier.padding(16.dp).fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(r.planName, style = MaterialTheme.typography.titleSmall,
+                        textAlign = TextAlign.Center)
+                    Spacer(Modifier.height(8.dp))
+                    PieChart(slices = slices, modifier = Modifier.size(size * 0.72f), isDonut = true)
+                    PieLegend(slices = slices)
+                }
             }
         }
     }
@@ -880,10 +1156,56 @@ private fun PeriodTotalRow(label: String, value: Double, df: DecimalFormat) {
     }
 }
 
+@Composable
+private fun DataSourceDistributionCharts(distribution: UsageDistribution) {
+    var zoomedIdx by remember { mutableStateOf(-1) }
+
+    val hourLabels  = remember { (0..23).map { "%02d".format(it) } }
+    val dayLabels   = remember { listOf("Sun","Mon","Tue","Wed","Thu","Fri","Sat") }
+    val monthLabels = remember { listOf("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec") }
+
+    val charts = remember(distribution) {
+        listOf(
+            Triple("Import Hourly (%)",   distribution.hourly,   hourLabels),
+            Triple("Import Daily (%)",    distribution.daily,    dayLabels),
+            Triple("Import Monthly (%)",  distribution.monthly,  monthLabels)
+        )
+    }
+
+    val cfg = LocalConfiguration.current
+
+    if (zoomedIdx >= 0) {
+        val (title, dist, labels) = charts[zoomedIdx]
+        val chartH = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.6f).dp
+        Column(
+            modifier = Modifier.fillMaxWidth().clickable { zoomedIdx = -1 }.padding(top = 4.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("$title  (tap to close)", style = MaterialTheme.typography.titleSmall)
+            Spacer(Modifier.height(4.dp))
+            SimpleDistBarChart(dist = dist, labels = labels, modifier = Modifier.fillMaxWidth().height(chartH))
+        }
+    } else {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            charts.forEachIndexed { idx, (title, dist, labels) ->
+                if (dist.any { it > 0 }) {
+                    Column(modifier = Modifier.fillMaxWidth().clickable { zoomedIdx = idx }) {
+                        Text("$title  ↗", style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(bottom = 2.dp))
+                        SimpleDistBarChart(dist = dist, labels = labels,
+                            modifier = Modifier.fillMaxWidth().height(80.dp))
+                    }
+                }
+            }
+        }
+    }
+}
+
 data class PieSlice(val label: String, val value: Double, val color: Color)
 
 @Composable
-fun PieChart(slices: List<PieSlice>, modifier: Modifier = Modifier) {
+fun PieChart(slices: List<PieSlice>, modifier: Modifier = Modifier, isDonut: Boolean = false) {
+    val holeColor = MaterialTheme.colorScheme.surface
     Canvas(modifier = modifier) {
         val total = slices.sumOf { it.value }.toFloat()
         if (total <= 0f) return@Canvas
@@ -892,6 +1214,9 @@ fun PieChart(slices: List<PieSlice>, modifier: Modifier = Modifier) {
             val sweep = (slice.value.toFloat() / total) * 360f
             drawArc(color = slice.color, startAngle = startAngle, sweepAngle = sweep, useCenter = true)
             startAngle += sweep
+        }
+        if (isDonut) {
+            drawCircle(color = holeColor, radius = size.minDimension * 0.35f)
         }
     }
 }
@@ -938,46 +1263,49 @@ fun SimulationPieCharts(kpis: SimKPIs) {
         )
     }
 
+    val cfg = LocalConfiguration.current
+
+    Column(modifier = Modifier.padding(top = 4.dp)) {
+        for (row in 0 until 2) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                for (col in 0 until 2) {
+                    val idx = row * 2 + col
+                    val visible = charts[idx].second.filter { it.value > 0 }
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clickable { zoomedChart = idx }
+                            .padding(4.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            charts[idx].first,
+                            style = MaterialTheme.typography.labelSmall,
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        PieChart(slices = visible, modifier = Modifier.size(80.dp))
+                    }
+                }
+            }
+        }
+    }
+
     if (zoomedChart >= 0) {
         val (title, slices) = charts[zoomedChart]
         val visible = slices.filter { it.value > 0 }
-        val cfg = LocalConfiguration.current
-        val pieSize = minOf(cfg.screenWidthDp, cfg.screenHeightDp).dp * 0.9f
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { zoomedChart = -1 }
-                .padding(top = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(title, style = MaterialTheme.typography.titleSmall)
-            Spacer(Modifier.height(8.dp))
-            PieChart(slices = visible, modifier = Modifier.size(pieSize))
-            PieLegend(slices = visible)
-        }
-    } else {
-        Column(modifier = Modifier.padding(top = 4.dp)) {
-            for (row in 0 until 2) {
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    for (col in 0 until 2) {
-                        val idx = row * 2 + col
-                        val visible = charts[idx].second.filter { it.value > 0 }
-                        Column(
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable { zoomedChart = idx }
-                                .padding(4.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                charts[idx].first,
-                                style = MaterialTheme.typography.labelSmall,
-                                textAlign = TextAlign.Center
-                            )
-                            Spacer(Modifier.height(4.dp))
-                            PieChart(slices = visible, modifier = Modifier.size(80.dp))
-                        }
-                    }
+        val size = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.9f).dp
+        Dialog(onDismissRequest = { zoomedChart = -1 }) {
+            Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
+                Column(
+                    modifier = Modifier.padding(16.dp).fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(title, style = MaterialTheme.typography.titleSmall)
+                    Spacer(Modifier.height(8.dp))
+                    PieChart(slices = visible, modifier = Modifier.size(size * 0.72f), isDonut = true)
+                    PieLegend(slices = visible)
                 }
             }
         }
@@ -990,6 +1318,7 @@ fun ExpandableCard(
     leadingIcon: (@Composable () -> Unit)? = null,
     trailingContent: (@Composable (expanded: Boolean) -> Unit)? = null,
     showEdit: Boolean = true,
+    onEdit: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -1017,10 +1346,10 @@ fun ExpandableCard(
                     trailingContent(expanded)
                     Spacer(Modifier.width(4.dp))
                 }
-                if (expanded && showEdit) {
+                if (expanded && showEdit && onEdit != null) {
                     Box(
                         modifier = Modifier
-                            .clickable { /* edit placeholder */ }
+                            .clickable { onEdit() }
                             .padding(horizontal = 8.dp, vertical = 4.dp),
                         contentAlignment = Alignment.Center
                     ) {

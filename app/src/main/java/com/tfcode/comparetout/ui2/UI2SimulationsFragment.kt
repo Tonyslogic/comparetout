@@ -164,7 +164,7 @@ fun ScenariosScreen(
             LazyColumn {
                 if (simItems.isNotEmpty()) {
                     stickyHeader(key = "header_simulations") {
-                        SectionHeader("Simulations")
+                        SectionHeader("Scenarios")
                     }
                     items(simItems, key = { it.scenario.scenarioIndex }) { item ->
                         SimulationCard(

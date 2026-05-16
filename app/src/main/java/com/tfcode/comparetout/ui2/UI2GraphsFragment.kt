@@ -676,53 +676,51 @@ private fun PieChartView(state: UI2GraphsViewModel.GraphState) {
     }
 
     var zoomedIdx by remember(specs) { mutableStateOf(-1) }
+    val cfg = LocalConfiguration.current
+
+    val cols = 2
+    val rows = (specs.size + cols - 1) / cols
+    Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(top = 4.dp)) {
+        for (row in 0 until rows) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                for (col in 0 until cols) {
+                    val idx = row * cols + col
+                    if (idx < specs.size) {
+                        val spec = specs[idx]
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable { zoomedIdx = idx }
+                                .padding(4.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(spec.title, style = MaterialTheme.typography.labelSmall,
+                                textAlign = TextAlign.Center)
+                            Spacer(Modifier.height(4.dp))
+                            PieChart(slices = spec.slices, modifier = Modifier.size(80.dp))
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+    }
 
     if (zoomedIdx in specs.indices) {
         val spec = specs[zoomedIdx]
-        val cfg = LocalConfiguration.current
-        val pieSize = minOf(cfg.screenWidthDp, cfg.screenHeightDp).dp * 0.9f
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .clickable { zoomedIdx = -1 }
-                .padding(top = 8.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(spec.title, style = MaterialTheme.typography.titleSmall)
-            Spacer(Modifier.height(8.dp))
-            PieChart(slices = spec.slices, modifier = Modifier.size(pieSize))
-            PieLegend(slices = spec.slices)
-            Spacer(Modifier.height(8.dp))
-            Text("Tap to return to grid", style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
-        }
-    } else {
-        val cols = 2
-        val rows = (specs.size + cols - 1) / cols
-        Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(top = 4.dp)) {
-            for (row in 0 until rows) {
-                Row(modifier = Modifier.fillMaxWidth()) {
-                    for (col in 0 until cols) {
-                        val idx = row * cols + col
-                        if (idx < specs.size) {
-                            val spec = specs[idx]
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .clickable { zoomedIdx = idx }
-                                    .padding(4.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(spec.title, style = MaterialTheme.typography.labelSmall,
-                                    textAlign = TextAlign.Center)
-                                Spacer(Modifier.height(4.dp))
-                                PieChart(slices = spec.slices, modifier = Modifier.size(80.dp))
-                            }
-                        } else {
-                            Spacer(modifier = Modifier.weight(1f))
-                        }
-                    }
+        val size = minOf(cfg.screenWidthDp, cfg.screenHeightDp).dp * 0.9f
+        Dialog(onDismissRequest = { zoomedIdx = -1 }) {
+            Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
+                Column(
+                    modifier = Modifier.padding(16.dp).fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(spec.title, style = MaterialTheme.typography.titleSmall)
+                    Spacer(Modifier.height(8.dp))
+                    PieChart(slices = spec.slices, modifier = Modifier.size(size * 0.72f), isDonut = true)
+                    PieLegend(slices = spec.slices)
                 }
             }
         }
