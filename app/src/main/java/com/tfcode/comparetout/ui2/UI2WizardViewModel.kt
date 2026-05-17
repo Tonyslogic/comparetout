@@ -14,6 +14,7 @@ import com.tfcode.comparetout.model.IntHolder
 import com.tfcode.comparetout.model.ToutcRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import com.tfcode.comparetout.model.scenario.EVCharge
+import com.tfcode.comparetout.model.scenario.Inverter
 import com.tfcode.comparetout.scenario.loadprofile.StandardLoadProfiles
 import com.tfcode.comparetout.model.scenario.DOWDist
 import com.tfcode.comparetout.model.scenario.HourlyDist
@@ -70,6 +71,38 @@ private fun EVCharge.toWizardEvEntry() = WizardEvEntry(
     months = months?.months?.sorted() ?: (1..12).toList()
 )
 
+data class WizardInverterEntry(
+    val id: String = UUID.randomUUID().toString(),
+    val inverterName: String = "Inverter",
+    val maxInverterLoad: Double = 5.0,
+    val mpptCount: Int = 2,
+    val minExcess: Double = 0.008,
+    val ac2dcLoss: Int = 5,
+    val dc2acLoss: Int = 5,
+    val dc2dcLoss: Int = 0
+) {
+    fun toInverter(): Inverter = Inverter().also { inv ->
+        inv.inverterName = inverterName
+        inv.maxInverterLoad = maxInverterLoad
+        inv.mpptCount = mpptCount
+        inv.minExcess = minExcess
+        inv.ac2dcLoss = ac2dcLoss
+        inv.dc2acLoss = dc2acLoss
+        inv.dc2dcLoss = dc2dcLoss
+    }
+}
+
+private fun Inverter.toWizardInverterEntry() = WizardInverterEntry(
+    id = if (inverterIndex > 0) inverterIndex.toString() else UUID.randomUUID().toString(),
+    inverterName = inverterName ?: "Inverter",
+    maxInverterLoad = maxInverterLoad,
+    mpptCount = mpptCount,
+    minExcess = minExcess,
+    ac2dcLoss = ac2dcLoss,
+    dc2acLoss = dc2acLoss,
+    dc2dcLoss = dc2dcLoss
+)
+
 data class WizardBuilder(
     // Start
     val scenarioMode: ScenarioMode = ScenarioMode.NEW,
@@ -91,7 +124,9 @@ data class WizardBuilder(
     val loadProfileDaily: List<Double>? = null,
     val loadProfileMonthly: List<Double>? = null,
     // EV
-    val evEntries: List<WizardEvEntry> = emptyList()
+    val evEntries: List<WizardEvEntry> = emptyList(),
+    // Inverters
+    val inverterEntries: List<WizardInverterEntry> = emptyList()
 ) {
     val isStartComplete: Boolean get() = scenarioName.isNotBlank()
     val isLoadComplete: Boolean get() = annualUsage.toDoubleOrNull()?.let { it > 0.0 } == true
@@ -116,7 +151,7 @@ data class WizardBuilder(
     fun toScenarioComponents(): ScenarioComponents {
         val sc = Scenario().also { it.scenarioName = scenarioName }
         return ScenarioComponents(
-            sc, emptyList(), emptyList(), emptyList(), null, toLoadProfile(),
+            sc, inverterEntries.map { it.toInverter() }, emptyList(), emptyList(), null, toLoadProfile(),
             emptyList(), emptyList(), evEntries.map { it.toEvCharge() },
             emptyList(), null, emptyList()
         )
@@ -131,11 +166,11 @@ data class WizardBuilder(
         )
     }
 
-    // Shell with EV from builder but no load profile — used for load-linked saves
+    // Shell with EV+inverters from builder but no load profile — used for load-linked saves
     fun toScenarioShellWithEV(): ScenarioComponents {
         val sc = Scenario().also { it.scenarioName = scenarioName }
         return ScenarioComponents(
-            sc, emptyList(), emptyList(), emptyList(), null, LoadProfile(),
+            sc, inverterEntries.map { it.toInverter() }, emptyList(), emptyList(), null, LoadProfile(),
             emptyList(), emptyList(), evEntries.map { it.toEvCharge() },
             emptyList(), null, emptyList()
         )
@@ -290,7 +325,8 @@ class UI2WizardViewModel @Inject constructor(
             loadProfileHourly = lp?.hourlyDist?.dist,
             loadProfileDaily = lp?.dowDist?.dowDist,
             loadProfileMonthly = lp?.monthlyDist?.monthlyDist,
-            evEntries = c.evCharges?.map { it.toWizardEvEntry() } ?: emptyList()
+            evEntries = c.evCharges?.map { it.toWizardEvEntry() } ?: emptyList(),
+            inverterEntries = c.inverters?.map { it.toWizardInverterEntry() } ?: emptyList()
         )
     }
 
@@ -321,6 +357,16 @@ class UI2WizardViewModel @Inject constructor(
     fun updateEvEntry(id: String, transform: (WizardEvEntry) -> WizardEvEntry) =
         updateBuilder { b ->
             b.copy(evEntries = b.evEntries.map { if (it.id == id) transform(it) else it })
+        }
+
+    fun addInverterEntry() = updateBuilder { it.copy(inverterEntries = it.inverterEntries + WizardInverterEntry()) }
+
+    fun removeInverterEntry(id: String) =
+        updateBuilder { it.copy(inverterEntries = it.inverterEntries.filter { e -> e.id != id }) }
+
+    fun updateInverterEntry(id: String, transform: (WizardInverterEntry) -> WizardInverterEntry) =
+        updateBuilder { b ->
+            b.copy(inverterEntries = b.inverterEntries.map { if (it.id == id) transform(it) else it })
         }
 
     fun loadSLPProfile(name: String) {
@@ -500,23 +546,34 @@ class UI2WizardViewModel @Inject constructor(
                     isEditMode -> {
                         // Update existing scenario in place
                         val existing = repository.getScenarioComponentsForScenarioID(scenarioId)
-                        existing.scenario?.also { it.scenarioName = b.scenarioName }
-                            ?.let { repository.updateScenario(it) }
+                        existing.scenario?.also { sc ->
+                            sc.scenarioName = b.scenarioName
+                            sc.setHasEVCharges(b.evEntries.isNotEmpty())
+                            sc.setHasInverters(b.inverterEntries.isNotEmpty())
+                        }?.let { repository.updateScenario(it) }
                         repository.saveLoadProfile(scenarioId, b.toLoadProfile())
-                        // Replace all EV charges: delete current ones, then insert from builder
+                        // Replace EV charges
                         existing.evCharges?.forEach { ev ->
                             repository.deleteEVChargeFromScenario(ev.evChargeIndex, scenarioId)
                         }
                         b.evEntries.forEach { entry ->
                             repository.saveEVChargeForScenario(scenarioId, entry.toEvCharge())
                         }
+                        // Replace inverters (panels are managed separately via the legacy UI)
+                        existing.inverters?.forEach { inv ->
+                            repository.deleteInverterFromScenario(inv.inverterIndex, scenarioId)
+                        }
+                        b.inverterEntries.forEach { entry ->
+                            repository.saveInverter(scenarioId, entry.toInverter())
+                        }
                         scenarioId
                     }
                     b.isLinked -> {
-                        // Full link: create shell scenario, then link both load profile and EV
+                        // Full link: create shell scenario, then link load profile, EV, and inverters
                         val newId = repository.insertScenarioAndReturnID(b.toScenarioShell(), false)
                         repository.linkLoadProfileFromScenario(b.basedOnId, newId)
                         repository.linkEVChargeFromScenario(b.basedOnId, newId)
+                        repository.linkInverterFromScenario(b.basedOnId, newId)
                         newId
                     }
                     b.loadSource == LoadSource.LINKED -> {

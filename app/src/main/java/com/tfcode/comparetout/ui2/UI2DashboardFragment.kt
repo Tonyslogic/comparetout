@@ -434,7 +434,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         },
                         trailingContent = { _ ->
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (dashboardData?.hasPanelData == true) {
+                                if (sc.panels.isNotEmpty() && dashboardData?.hasPanelData == true) {
                                     Icon(painterResource(R.drawable.ic_baseline_wb_sunny_36), null,
                                         Modifier.size(18.dp), tint = StatusGreen)
                                 }

@@ -262,6 +262,34 @@ private fun WizardScreen(
                 )
             }
 
+            // ── Inverters ────────────────────────────────────────────────
+            val inverterCount = builder.inverterEntries.size
+            WizardAccordionSection(
+                id = "inverters",
+                iconContent = {
+                    val res = if (inverterCount > 0) R.drawable.invertertick else R.drawable.inverter
+                    Icon(painterResource(res), null, Modifier.size(20.dp), tint = Color.Unspecified)
+                },
+                title = "Inverters",
+                isLinked = builder.isLinked && inverterCount > 0,
+                subtitle = if (!expandedSections.contains("inverters") && inverterCount > 0)
+                    "$inverterCount inverter${if (inverterCount > 1) "s" else ""}  ·  ${builder.inverterEntries.sumOf { it.maxInverterLoad }} kW"
+                else if (noviceMode) "Solar inverter configuration" else null,
+                isComplete = inverterCount > 0,
+                isLocked = !builder.isStartComplete,
+                lockedHint = "Complete Start first",
+                isExpanded = expandedSections.contains("inverters"),
+                onToggle = { viewModel.toggleSection("inverters") }
+            ) {
+                InverterSectionContent(
+                    entries = builder.inverterEntries,
+                    noviceMode = noviceMode,
+                    onAdd = { viewModel.addInverterEntry() },
+                    onRemove = { viewModel.removeInverterEntry(it) },
+                    onUpdate = { id, fn -> viewModel.updateInverterEntry(id, fn) }
+                )
+            }
+
             // ── EV ──────────────────────────────────────────────────────
             val evCount = builder.evEntries.size
             WizardAccordionSection(
@@ -312,7 +340,7 @@ private fun WizardScreen(
 
 @Composable
 private fun WizardProgressStrip(builder: WizardBuilder) {
-    val sections = listOf(builder.isStartComplete, builder.isLoadComplete, builder.evEntries.isNotEmpty())
+    val sections = listOf(builder.isStartComplete, builder.isLoadComplete, builder.evEntries.isNotEmpty(), builder.inverterEntries.isNotEmpty())
     val done = sections.count { it }
     Column {
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
@@ -1220,6 +1248,67 @@ private fun EvSectionContent(
             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(4.dp))
             Text("Add EV schedule")
+        }
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Inverter section content
+────────────────────────────────────────────────────────────────── */
+
+@Composable
+private fun InverterSectionContent(
+    entries: List<WizardInverterEntry>,
+    noviceMode: Boolean,
+    onAdd: () -> Unit,
+    onRemove: (String) -> Unit,
+    onUpdate: (String, (WizardInverterEntry) -> WizardInverterEntry) -> Unit
+) {
+    var expandedEntryId by remember { mutableStateOf<String?>(null) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        if (noviceMode) {
+            Text("Add solar inverters. Each inverter can serve multiple panel arrays and batteries.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        if (entries.isEmpty()) {
+            Box(modifier = Modifier.fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                .padding(vertical = 20.dp),
+                contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(painterResource(R.drawable.inverter), contentDescription = null,
+                        modifier = Modifier.size(40.dp), tint = Color.Unspecified)
+                    Spacer(Modifier.height(6.dp))
+                    Text("No inverters yet", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    if (noviceMode) {
+                        Spacer(Modifier.height(4.dp))
+                        Text("This section is optional — skip it if you have no solar or battery.",
+                            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        } else {
+            entries.forEachIndexed { index, entry ->
+                WizardInverterCard(
+                    entry = entry,
+                    index = index,
+                    expanded = expandedEntryId == entry.id,
+                    noviceMode = noviceMode,
+                    onToggle = { expandedEntryId = if (expandedEntryId == entry.id) null else entry.id },
+                    onUpdate = { updated -> onUpdate(entry.id) { updated } },
+                    onDelete = { onRemove(entry.id); if (expandedEntryId == entry.id) expandedEntryId = null }
+                )
+            }
+        }
+
+        FilledTonalButton(onClick = onAdd, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(4.dp))
+            Text("Add inverter")
         }
     }
 }

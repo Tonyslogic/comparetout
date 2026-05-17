@@ -427,6 +427,125 @@ fun WizardEvEntryCard(
 }
 
 /* ──────────────────────────────────────────────────────────────────
+   Inverter card — expandable, mirrors WizardEvEntryCard
+────────────────────────────────────────────────────────────────── */
+
+@Composable
+fun WizardInverterCard(
+    entry: WizardInverterEntry,
+    index: Int,
+    expanded: Boolean,
+    noviceMode: Boolean,
+    onToggle: () -> Unit,
+    onUpdate: (WizardInverterEntry) -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .border(1.dp,
+                if (expanded) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                RoundedCornerShape(12.dp))
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle)
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier.size(28.dp).clip(RoundedCornerShape(7.dp))
+                    .background(MaterialTheme.colorScheme.secondaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("${index + 1}", style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSecondaryContainer)
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(entry.inverterName.ifBlank { "Inverter" },
+                    style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "${entry.maxInverterLoad} kW  ·  ${entry.mpptCount} MPPT",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                contentDescription = if (expanded) "Collapse" else "Expand",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        AnimatedVisibility(visible = expanded) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                OutlinedTextField(
+                    value = entry.inverterName,
+                    onValueChange = { onUpdate(entry.copy(inverterName = it)) },
+                    label = { Text("Inverter name") },
+                    modifier = Modifier.fillMaxWidth(), singleLine = true
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = entry.maxInverterLoad.toString(),
+                        onValueChange = { v -> v.toDoubleOrNull()?.let { onUpdate(entry.copy(maxInverterLoad = it)) } },
+                        label = { Text("Max load (kW)") },
+                        modifier = Modifier.weight(1f), singleLine = true,
+                        supportingText = if (noviceMode) ({ Text("Rated AC output capacity.") }) else null
+                    )
+                    OutlinedTextField(
+                        value = entry.mpptCount.toString(),
+                        onValueChange = { v -> v.toIntOrNull()?.coerceIn(1, 8)?.let { onUpdate(entry.copy(mpptCount = it)) } },
+                        label = { Text("MPPT count") },
+                        modifier = Modifier.weight(1f), singleLine = true,
+                        supportingText = if (noviceMode) ({ Text("Independent string inputs.") }) else null
+                    )
+                }
+                if (!noviceMode) {
+                    OutlinedTextField(
+                        value = entry.minExcess.toString(),
+                        onValueChange = { v -> v.toDoubleOrNull()?.let { onUpdate(entry.copy(minExcess = it)) } },
+                        label = { Text("Min excess (kW)") },
+                        modifier = Modifier.fillMaxWidth(), singleLine = true
+                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = entry.ac2dcLoss.toString(),
+                            onValueChange = { v -> v.toIntOrNull()?.coerceIn(0, 50)?.let { onUpdate(entry.copy(ac2dcLoss = it)) } },
+                            label = { Text("AC→DC loss %") },
+                            modifier = Modifier.weight(1f), singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = entry.dc2acLoss.toString(),
+                            onValueChange = { v -> v.toIntOrNull()?.coerceIn(0, 50)?.let { onUpdate(entry.copy(dc2acLoss = it)) } },
+                            label = { Text("DC→AC loss %") },
+                            modifier = Modifier.weight(1f), singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = entry.dc2dcLoss.toString(),
+                            onValueChange = { v -> v.toIntOrNull()?.coerceIn(0, 50)?.let { onUpdate(entry.copy(dc2dcLoss = it)) } },
+                            label = { Text("DC→DC loss %") },
+                            modifier = Modifier.weight(1f), singleLine = true
+                        )
+                    }
+                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDelete) {
+                        Icon(Icons.Default.Delete, contentDescription = "Remove", modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Remove")
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────────
    Load profile distribution charts
    Mirrors DataSourceDistributionCharts in the dashboard.
    Uses a pure-Compose bar chart to avoid a second AndroidView reference.
