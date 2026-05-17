@@ -16,7 +16,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import com.tfcode.comparetout.model.scenario.EVCharge
 import com.tfcode.comparetout.model.scenario.Inverter
 import com.tfcode.comparetout.model.scenario.Panel
-import com.tfcode.comparetout.model.scenario.PanelData
 import com.tfcode.comparetout.model.scenario.PanelPVSummary
 import com.tfcode.comparetout.scenario.loadprofile.StandardLoadProfiles
 import com.tfcode.comparetout.model.scenario.DOWDist
@@ -32,7 +31,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.ArrayList
 import java.util.UUID
@@ -127,7 +125,13 @@ data class WizardPanelEntry(
     val pvDataSource: PanelDataSource = PanelDataSource.NONE,
     val pvSourceSysSn: String = "",
     val pvSourceFrom: String = "",
-    val pvSourceTo: String = ""
+    val pvSourceTo: String = "",
+    // Advanced source-processing: 0.0 means "match string total" (panelCount * panelkWp / 1000)
+    val pvSourceKwp: Double = 0.0,
+    // Apply azimuth conversion from pvSourceAzimuth -> azimuth using clear-sky model
+    val pvUseAzimuthFactor: Boolean = false,
+    // -1 means "match string azimuth" (effectively no conversion)
+    val pvSourceAzimuth: Int = -1
 ) {
     fun toPanel(): Panel = Panel().also { p ->
         if (panelIndex > 0L) p.panelIndex = panelIndex
@@ -308,7 +312,9 @@ class UI2WizardViewModel @Inject constructor(
                 if (seen.add(r.sysSn)) out.add(SourceDateRange(r.sysSn, r.startDate, r.finishDate, ComparisonUIViewModel.Importer.ALPHAESS))
             }
             esbnRanges.value?.forEach { r ->
-                if (seen.add(r.sysSn)) out.add(SourceDateRange(r.sysSn, r.startDate, r.finishDate, ComparisonUIViewModel.Importer.ESBNHDF))
+                val type = if (r.sysSn == "HomeAssistant") ComparisonUIViewModel.Importer.HOME_ASSISTANT
+                           else ComparisonUIViewModel.Importer.ESBNHDF
+                if (seen.add(r.sysSn)) out.add(SourceDateRange(r.sysSn, r.startDate, r.finishDate, type))
             }
             haRanges.value?.forEach { r ->
                 if (seen.add(r.sysSn)) out.add(SourceDateRange(r.sysSn, r.startDate, r.finishDate, ComparisonUIViewModel.Importer.HOME_ASSISTANT))
@@ -467,32 +473,48 @@ class UI2WizardViewModel @Inject constructor(
     fun locationRequestDismissed() { _pendingLocationRequest.value = null }
 
     private fun triggerPanelDataFetch(entry: WizardPanelEntry, panelId: Long) {
+        android.util.Log.i(PanelSourceFetchWorker.TAG,
+            "triggerPanelDataFetch: panelId=$panelId panelName='${entry.panelName}' " +
+            "dataSource=${entry.pvDataSource} sysSn='${entry.pvSourceSysSn}' " +
+            "from='${entry.pvSourceFrom}' to='${entry.pvSourceTo}' " +
+            "sourceKwp=${entry.pvSourceKwp} useAz=${entry.pvUseAzimuthFactor} srcAz=${entry.pvSourceAzimuth} " +
+            "panelCount=${entry.panelCount} panelkWp=${entry.panelkWp} azimuth=${entry.azimuth}")
         when (entry.pvDataSource) {
-            PanelDataSource.PVGIS -> PVGISDirectFetchWorker.enqueue(context, panelId)
+            PanelDataSource.PVGIS -> {
+                android.util.Log.i(PanelSourceFetchWorker.TAG, "→ PVGIS branch — enqueueing PVGISDirectFetchWorker")
+                PVGISDirectFetchWorker.enqueue(context, panelId)
+            }
             PanelDataSource.SOURCE -> {
                 if (entry.pvSourceSysSn.isNotBlank() && entry.pvSourceFrom.isNotBlank() && entry.pvSourceTo.isNotBlank()) {
-                    viewModelScope.launch(Dispatchers.IO) {
-                        val rows = repository.getAlphaESSTransformedData(entry.pvSourceSysSn, entry.pvSourceFrom, entry.pvSourceTo)
-                        val panelDataList = ArrayList<PanelData>()
-                        val fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-                        rows.filter { it.pv > 0 }.forEach { row ->
-                            val pd = PanelData()
-                            pd.setPanelID(panelId)
-                            pd.setDate(row.date)
-                            pd.setMinute(row.minute)
-                            val parts = row.minute.split(":")
-                            pd.setMod((parts.getOrNull(0)?.toIntOrNull() ?: 0) * 60 + (parts.getOrNull(1)?.toIntOrNull() ?: 0))
-                            val date = LocalDate.parse(row.date, fmt)
-                            pd.setDow(date.dayOfWeek.value)
-                            pd.setDo2001(date.dayOfYear)
-                            pd.setPv(row.pv)
-                            panelDataList.add(pd)
-                        }
-                        if (panelDataList.isNotEmpty()) repository.savePanelData(panelDataList)
-                    }
+                    android.util.Log.i(PanelSourceFetchWorker.TAG, "→ SOURCE branch — preconditions OK, will enqueue")
+                    val stringKwp = entry.panelCount * entry.panelkWp / 1000.0
+                    val srcKwp = if (entry.pvSourceKwp > 0.0) entry.pvSourceKwp else stringKwp
+                    val srcAz = if (entry.pvSourceAzimuth in 0..360) entry.pvSourceAzimuth.toDouble() else entry.azimuth.toDouble()
+                    PanelSourceFetchWorker.enqueue(
+                        context = context,
+                        panelId = panelId,
+                        sysSn = entry.pvSourceSysSn,
+                        from = entry.pvSourceFrom,
+                        to = entry.pvSourceTo,
+                        sourceKwp = srcKwp,
+                        targetKwp = stringKwp,
+                        useAzimuthFactor = entry.pvUseAzimuthFactor,
+                        sourceAzDeg = srcAz,
+                        targetAzDeg = entry.azimuth.toDouble(),
+                        lat = entry.latitude,
+                        lon = entry.longitude,
+                        tiltDeg = entry.slope.toDouble(),
+                        panelLabel = entry.panelName
+                    )
+                } else {
+                    android.util.Log.w(PanelSourceFetchWorker.TAG,
+                        "→ SOURCE branch SKIPPED — blank precondition " +
+                        "(sysSn='${entry.pvSourceSysSn}', from='${entry.pvSourceFrom}', to='${entry.pvSourceTo}')")
                 }
             }
-            PanelDataSource.NONE -> {}
+            PanelDataSource.NONE -> {
+                android.util.Log.i(PanelSourceFetchWorker.TAG, "→ NONE branch — no fetch")
+            }
         }
     }
 
@@ -669,6 +691,11 @@ class UI2WizardViewModel @Inject constructor(
             _saveResult.value = WizardSaveResult.Saving
             try {
                 val b = _builder.value
+                android.util.Log.i(PanelSourceFetchWorker.TAG,
+                    "save(): scenarioName='${b.scenarioName}' isEditMode=$isEditMode " +
+                    "isLinked=${b.isLinked} loadSource=${b.loadSource} " +
+                    "panelEntries=${b.panelEntries.size} " +
+                    "[" + b.panelEntries.joinToString { "${it.panelName}/${it.pvDataSource}/sysSn='${it.pvSourceSysSn}'" } + "]")
                 val pvgisCount = when {
                     isEditMode -> b.panelEntries.count { it.panelIndex == 0L && it.pvDataSource == PanelDataSource.PVGIS }
                     b.isLinked -> 0
@@ -705,7 +732,15 @@ class UI2WizardViewModel @Inject constructor(
                             .filter { it.panelIndex !in keptIds }
                             .forEach { repository.deletePanelFromScenario(it.panelIndex, scenarioId) }
                         b.panelEntries.filter { it.panelIndex > 0L }
-                            .forEach { entry -> repository.updatePanel(entry.toPanel()) }
+                            .forEach { entry ->
+                                repository.updatePanel(entry.toPanel())
+                                // pvDataSource / source config are wizard-only fields (not persisted
+                                // on the Panel row). If the user has configured a fetchable source
+                                // for an existing panel in this session, kick off the data fetch.
+                                if (entry.pvDataSource != PanelDataSource.NONE) {
+                                    triggerPanelDataFetch(entry, entry.panelIndex)
+                                }
+                            }
                         b.panelEntries.filter { it.panelIndex == 0L }
                             .forEach { entry ->
                                 val panelId = repository.savePanel(scenarioId, entry.toPanel())
@@ -742,8 +777,10 @@ class UI2WizardViewModel @Inject constructor(
                         newId
                     }
                 }
+                android.util.Log.i(PanelSourceFetchWorker.TAG, "save(): completed savedId=$savedId")
                 _saveResult.value = WizardSaveResult.Done(savedId, runSimulation, pvgisCount)
-            } catch (_: Exception) {
+            } catch (e: Exception) {
+                android.util.Log.e(PanelSourceFetchWorker.TAG, "save() threw — wizard will silently dismiss", e)
                 _saveResult.value = WizardSaveResult.Idle
             }
         }

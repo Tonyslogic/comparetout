@@ -21,11 +21,16 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FilterChip
@@ -69,6 +74,7 @@ import com.github.mikephil.charting.data.BarData
 import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.formatter.ValueFormatter
+import java.time.LocalDate
 
 // Breakpoint at which wide (landscape) layouts activate
 private val WIDE_BREAKPOINT: Dp = 380.dp
@@ -863,46 +869,116 @@ fun WizardPanelCard(
                         }
                     }
                     if (entry.pvDataSource == PanelDataSource.SOURCE && pvSources.isNotEmpty()) {
-                        var srcMenu by remember { mutableStateOf(false) }
-                        Box {
-                            OutlinedTextField(
-                                value = entry.pvSourceSysSn.ifBlank { "Select source…" },
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text("Source") },
-                                modifier = Modifier.fillMaxWidth(),
-                                trailingIcon = {
-                                    Icon(Icons.Default.KeyboardArrowDown, null,
-                                        Modifier.clickable { srcMenu = true })
+                        var showSourceDialog by remember { mutableStateOf(false) }
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                    RoundedCornerShape(8.dp))
+                                .clickable { showSourceDialog = true }
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            if (entry.pvSourceSysSn.isBlank()) {
+                                Text("Select source…",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f))
+                            } else {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(entry.pvSourceSysSn,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.SemiBold)
+                                    Text("${entry.pvSourceFrom} → ${entry.pvSourceTo}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
+                            }
+                            Icon(Icons.Default.KeyboardArrowDown, null, Modifier.size(16.dp))
+                        }
+                        if (showSourceDialog) {
+                            PvSourceDialog(
+                                sources      = pvSources,
+                                currentSysSn = entry.pvSourceSysSn,
+                                currentFrom  = entry.pvSourceFrom,
+                                currentTo    = entry.pvSourceTo,
+                                onApply      = { src, from, to ->
+                                    onUpdate(entry.copy(
+                                        pvSourceSysSn = src.sysSn,
+                                        pvSourceFrom  = from,
+                                        pvSourceTo    = to
+                                    ))
+                                },
+                                onDismiss    = { showSourceDialog = false }
                             )
-                            DropdownMenu(expanded = srcMenu, onDismissRequest = { srcMenu = false }) {
-                                pvSources.forEach { src ->
-                                    val label = when (src.importerType) {
-                                        ComparisonUIViewModel.Importer.ALPHAESS -> "AlphaESS: ${src.sysSn}"
-                                        ComparisonUIViewModel.Importer.HOME_ASSISTANT -> "HA: ${src.sysSn}"
-                                        else -> src.sysSn
+                        }
+                        if (entry.pvSourceSysSn.isNotBlank()) {
+                            Text(
+                                "On save: processed in the background with a progress notification.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            if (showAdvanced) {
+                                val stringKwp = entry.panelCount * entry.panelkWp / 1000.0
+                                val displayedKwp = if (entry.pvSourceKwp > 0.0) entry.pvSourceKwp else stringKwp
+                                OutlinedTextField(
+                                    value = "%.2f".format(displayedKwp),
+                                    onValueChange = { v ->
+                                        v.toDoubleOrNull()?.takeIf { it > 0.0 }
+                                            ?.let { onUpdate(entry.copy(pvSourceKwp = it)) }
+                                    },
+                                    label = { Text("Source kWp") },
+                                    modifier = Modifier.fillMaxWidth(), singleLine = true,
+                                    supportingText = {
+                                        Text("Rated kWp of the source. Data is scaled when it differs from the string total (${"%.2f".format(stringKwp)} kWp).")
                                     }
-                                    DropdownMenuItem(
-                                        text = { Text("$label  ${src.startDate}→${src.finishDate}") },
-                                        onClick = {
-                                            onUpdate(entry.copy(
-                                                pvSourceSysSn = src.sysSn,
-                                                pvSourceFrom = src.startDate,
-                                                pvSourceTo = src.finishDate
-                                            ))
-                                            srcMenu = false
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text("Apply azimuth factoring",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            fontWeight = FontWeight.SemiBold)
+                                        Text("Rotate the source generation curve to match this string's azimuth.",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    }
+                                    Switch(
+                                        checked = entry.pvUseAzimuthFactor,
+                                        onCheckedChange = { enabled ->
+                                            if (enabled && entry.pvSourceAzimuth < 0) {
+                                                onUpdate(entry.copy(
+                                                    pvUseAzimuthFactor = true,
+                                                    pvSourceAzimuth = entry.azimuth
+                                                ))
+                                            } else {
+                                                onUpdate(entry.copy(pvUseAzimuthFactor = enabled))
+                                            }
+                                        }
+                                    )
+                                }
+                                if (entry.pvUseAzimuthFactor) {
+                                    val displayedSrcAz = if (entry.pvSourceAzimuth in 0..360) entry.pvSourceAzimuth else entry.azimuth
+                                    OutlinedTextField(
+                                        value = displayedSrcAz.toString(),
+                                        onValueChange = { v ->
+                                            v.toIntOrNull()?.coerceIn(0, 360)
+                                                ?.let { onUpdate(entry.copy(pvSourceAzimuth = it)) }
+                                        },
+                                        label = { Text("Source azimuth °") },
+                                        modifier = Modifier.fillMaxWidth(), singleLine = true,
+                                        supportingText = {
+                                            Text("Azimuth of the source string (0/360=N · 90=E · 180=S · 270=W). Target: ${entry.azimuth}°.")
                                         }
                                     )
                                 }
                             }
-                        }
-                        if (entry.pvSourceSysSn.isNotBlank()) {
-                            Text(
-                                "Will be processed in background after save · ${entry.pvSourceFrom} → ${entry.pvSourceTo}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
                         }
                     }
                 }
@@ -1139,6 +1215,124 @@ private fun styleWizardDistBarChart(chart: BarChart, labelColor: Int, gridColor:
     chart.axisRight.isEnabled = false
     chart.legend.isEnabled = false
     chart.setScaleEnabled(false)
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   PV source picker dialog
+────────────────────────────────────────────────────────────────── */
+
+@Composable
+private fun PvSourceDialog(
+    sources: List<SourceDateRange>,
+    currentSysSn: String,
+    currentFrom: String,
+    currentTo: String,
+    onApply: (SourceDateRange, String, String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var selectedSource by remember(currentSysSn) {
+        mutableStateOf(sources.firstOrNull { it.sysSn == currentSysSn })
+    }
+    var fromDate by remember(currentFrom, selectedSource) { mutableStateOf(currentFrom) }
+    var toDate   by remember(currentTo,   selectedSource) { mutableStateOf(currentTo) }
+
+    fun pickSource(src: SourceDateRange) {
+        selectedSource = src
+        val finish = LocalDate.parse(src.finishDate)
+        val start  = LocalDate.parse(src.startDate)
+        val from   = finish.minusDays(364).let { if (it < start) start else it }
+        fromDate   = from.toString()
+        toDate     = src.finishDate
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Select PV source") },
+        text = {
+            LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                items(sources) { src ->
+                    val sel = src.sysSn == selectedSource?.sysSn
+                    val typeLabel = when (src.importerType) {
+                        ComparisonUIViewModel.Importer.ALPHAESS       -> "AlphaESS"
+                        ComparisonUIViewModel.Importer.HOME_ASSISTANT -> "Home Assistant"
+                        else -> src.sysSn
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(
+                                if (sel) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f)
+                                else MaterialTheme.colorScheme.surfaceVariant
+                            )
+                            .border(
+                                1.dp,
+                                if (sel) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                RoundedCornerShape(8.dp)
+                            )
+                            .clickable { pickSource(src) }
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                "$typeLabel — ${src.sysSn}",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (sel) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                "${src.startDate} → ${src.finishDate}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        if (sel) Icon(
+                            Icons.Default.CheckCircle, null,
+                            Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                if (selectedSource != null) {
+                    item {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            OutlinedTextField(
+                                value = fromDate,
+                                onValueChange = { fromDate = it },
+                                label = { Text("From (YYYY-MM-DD)") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true
+                            )
+                            OutlinedTextField(
+                                value = toDate,
+                                onValueChange = { toDate = it },
+                                label = { Text("To (YYYY-MM-DD)") },
+                                modifier = Modifier.weight(1f),
+                                singleLine = true
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            val fromParsed = runCatching { LocalDate.parse(fromDate) }.getOrNull()
+            val toParsed   = runCatching { LocalDate.parse(toDate) }.getOrNull()
+            val canApply   = selectedSource != null && fromParsed != null &&
+                             toParsed != null && !fromParsed.isAfter(toParsed)
+            Button(
+                onClick = {
+                    onApply(selectedSource!!, fromDate, toDate)
+                    onDismiss()
+                },
+                enabled = canApply
+            ) { Text("Apply") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+    )
 }
 
 /* ──────────────────────────────────────────────────────────────────

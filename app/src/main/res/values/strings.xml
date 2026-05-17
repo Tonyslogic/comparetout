@@ -290,6 +290,7 @@
     <string name="simulate_notification_text">Simulation in progress</string>
     <string name="pvgis_notification_title">Loading panel data</string>
     <string name="pvgis_notification_text">Reading raw data file</string>
+    <string name="panel_source_notification_title">Processing source PV data</string>
     <string name="load_gen_notification_title">Generating load data</string>
     <string name="load_gen_notification_text">Generation in progress</string>
     <string name="alphaess_channel_name">AlphaESS Progress</string>
