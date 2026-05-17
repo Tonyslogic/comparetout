@@ -1,10 +1,17 @@
 @file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@file:Suppress("MissingPermission")
 
 package com.tfcode.comparetout.ui2
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
+import com.google.android.gms.location.LocationServices
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -32,6 +39,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -88,6 +96,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tfcode.comparetout.ComparisonUIViewModel
+import com.tfcode.comparetout.model.scenario.PanelPVSummary
 import com.tfcode.comparetout.model.scenario.Scenario
 import dagger.hilt.android.AndroidEntryPoint
 import java.time.LocalDate
@@ -112,26 +121,74 @@ private fun WizardScreen(
     viewModel: UI2WizardViewModel = hiltViewModel(),
     onClose: () -> Unit
 ) {
-    val builder           by viewModel.builder.observeAsState(WizardBuilder())
-    val isLoading         by viewModel.isLoading.observeAsState(false)
-    val noviceMode        by viewModel.noviceMode.observeAsState(true)
-    val expandedSections  by viewModel.expandedSections.observeAsState(setOf("start"))
-    val allScenarios      by viewModel.allScenarios.observeAsState(emptyList())
-    val availableSources  by viewModel.availableSources.observeAsState(emptyList())
-    val isDeriving        by viewModel.isDeriving.observeAsState(false)
-    val saveResult        by viewModel.saveResult.observeAsState(WizardSaveResult.Idle)
-    val isSaving          = saveResult == WizardSaveResult.Saving
-    var simulationQueued  by remember { mutableStateOf(false) }
+    val builder                by viewModel.builder.observeAsState(WizardBuilder())
+    val isLoading              by viewModel.isLoading.observeAsState(false)
+    val noviceMode             by viewModel.noviceMode.observeAsState(true)
+    val expandedSections       by viewModel.expandedSections.observeAsState(setOf("start"))
+    val allScenarios           by viewModel.allScenarios.observeAsState(emptyList())
+    val availableSources       by viewModel.availableSources.observeAsState(emptyList())
+    val isDeriving             by viewModel.isDeriving.observeAsState(false)
+    val saveResult             by viewModel.saveResult.observeAsState(WizardSaveResult.Idle)
+    val pendingLocationRequest by viewModel.pendingLocationRequest.observeAsState(null)
+    val panelPvSummary         by viewModel.panelPvSummary.observeAsState(emptyList())
+    val pvgisParamCheck        by viewModel.pvgisParamCheck.observeAsState(emptyMap())
+    val isSaving               = saveResult == WizardSaveResult.Saving
+    var simulationQueued       by remember { mutableStateOf(false) }
+    var pvgisQueued            by remember { mutableIntStateOf(0) }
 
     val context = LocalContext.current
+    val locationClient = remember(context) { LocationServices.getFusedLocationProviderClient(context) }
+
+    val locationPermLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { perms ->
+        val granted = perms[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                      perms[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        val entryId = pendingLocationRequest
+        if (granted && entryId != null) {
+            locationClient.lastLocation
+                .addOnSuccessListener { loc ->
+                    if (loc != null) viewModel.locationRetrieved(entryId, loc.latitude, loc.longitude)
+                    else viewModel.locationRequestDismissed()
+                }
+                .addOnFailureListener { viewModel.locationRequestDismissed() }
+        } else if (entryId != null) {
+            viewModel.locationRequestDismissed()
+        }
+    }
+
+    LaunchedEffect(pendingLocationRequest) {
+        val entryId = pendingLocationRequest ?: return@LaunchedEffect
+        val hasFine   = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)   == PackageManager.PERMISSION_GRANTED
+        val hasCoarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+        if (hasFine || hasCoarse) {
+            locationClient.lastLocation
+                .addOnSuccessListener { loc ->
+                    if (loc != null) viewModel.locationRetrieved(entryId, loc.latitude, loc.longitude)
+                    else viewModel.locationRequestDismissed()
+                }
+                .addOnFailureListener { viewModel.locationRequestDismissed() }
+        } else {
+            locationPermLauncher.launch(arrayOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
+            ))
+        }
+    }
+
     LaunchedEffect(saveResult) {
         val result = saveResult
         if (result is WizardSaveResult.Done) {
-            if (result.runSimulation) {
-                SimulatorLauncher.simulateIfNeeded(context)
-                simulationQueued = true
-            } else {
-                onClose()
+            when {
+                result.runSimulation -> {
+                    SimulatorLauncher.simulateIfNeeded(context)
+                    simulationQueued = true
+                }
+                result.pvgisStringsQueued > 0 -> {
+                    pvgisQueued = result.pvgisStringsQueued
+                    // Don't auto-close; user sees the fetch banner and closes manually
+                }
+                else -> onClose()
             }
         }
     }
@@ -197,6 +254,10 @@ private fun WizardScreen(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             WizardProgressStrip(builder = builder)
+
+            if (pvgisQueued > 0) {
+                PvgisBackgroundBanner(stringCount = pvgisQueued, onClose = onClose)
+            }
 
             if (noviceMode) {
                 WizardHintBanner("Tap any section to expand it. Start and Usage Data are required to run a simulation.")
@@ -290,6 +351,42 @@ private fun WizardScreen(
                 )
             }
 
+            // ── PV System ────────────────────────────────────────────────
+            val panelCount = builder.panelEntries.size
+            WizardAccordionSection(
+                id = "pv",
+                iconContent = {
+                    val pvRes = if (panelCount > 0) R.drawable.solarpaneltick else R.drawable.solarpanel
+                    Icon(painterResource(pvRes), null, Modifier.size(20.dp), tint = Color.Unspecified)
+                },
+                title = "PV System",
+                isLinked = builder.isLinked && panelCount > 0,
+                subtitle = if (!expandedSections.contains("pv") && panelCount > 0)
+                    "$panelCount string${if (panelCount > 1) "s" else ""}  ·  ${builder.panelEntries.sumOf { it.panelCount * it.panelkWp }} Wp"
+                else if (noviceMode) "Solar panel strings" else null,
+                isComplete = panelCount > 0,
+                isLocked = !builder.isStartComplete,
+                lockedHint = "Complete Start first",
+                isExpanded = expandedSections.contains("pv"),
+                onToggle = { viewModel.toggleSection("pv") }
+            ) {
+                PVSystemSectionContent(
+                    entries = builder.panelEntries,
+                    noviceMode = noviceMode,
+                    inverterEntries = builder.inverterEntries,
+                    availableSources = availableSources,
+                    panelPvSummary = panelPvSummary,
+                    pvgisParamCheck = pvgisParamCheck,
+                    onAdd = { viewModel.addPanelEntry() },
+                    onRemove = { viewModel.removePanelEntry(it) },
+                    onUpdate = { id, fn -> viewModel.updatePanelEntry(id, fn) },
+                    onRequestLocation = { id -> viewModel.requestLocation(id) },
+                    onCheckPvgisParams = { id, lat, lon, az, sl ->
+                        viewModel.checkPvgisParams(id, lat, lon, az, sl)
+                    }
+                )
+            }
+
             // ── EV ──────────────────────────────────────────────────────
             val evCount = builder.evEntries.size
             WizardAccordionSection(
@@ -340,7 +437,13 @@ private fun WizardScreen(
 
 @Composable
 private fun WizardProgressStrip(builder: WizardBuilder) {
-    val sections = listOf(builder.isStartComplete, builder.isLoadComplete, builder.evEntries.isNotEmpty(), builder.inverterEntries.isNotEmpty())
+    val sections = listOf(
+        builder.isStartComplete,
+        builder.isLoadComplete,
+        builder.inverterEntries.isNotEmpty(),
+        builder.panelEntries.isNotEmpty(),
+        builder.evEntries.isNotEmpty()
+    )
     val done = sections.count { it }
     Column {
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
@@ -1309,6 +1412,121 @@ private fun InverterSectionContent(
             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(4.dp))
             Text("Add inverter")
+        }
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   PV System section content
+────────────────────────────────────────────────────────────────── */
+
+@Composable
+private fun PVSystemSectionContent(
+    entries: List<WizardPanelEntry>,
+    noviceMode: Boolean,
+    inverterEntries: List<WizardInverterEntry>,
+    availableSources: List<SourceDateRange>,
+    panelPvSummary: List<PanelPVSummary> = emptyList(),
+    pvgisParamCheck: Map<String, Boolean> = emptyMap(),
+    onAdd: () -> Unit,
+    onRemove: (String) -> Unit,
+    onUpdate: (String, (WizardPanelEntry) -> WizardPanelEntry) -> Unit,
+    onRequestLocation: (String) -> Unit,
+    onCheckPvgisParams: (String, Double, Double, Int, Int) -> Unit = { _, _, _, _, _ -> }
+) {
+    var expandedEntryId by remember { mutableStateOf<String?>(null) }
+    var advancedTab     by remember { mutableIntStateOf(0) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        TabRow(selectedTabIndex = advancedTab) {
+            Tab(selected = advancedTab == 0, onClick = { advancedTab = 0 }, text = { Text("Basic") })
+            Tab(selected = advancedTab == 1, onClick = { advancedTab = 1 }, text = { Text("Advanced") })
+        }
+        Spacer(Modifier.height(4.dp))
+
+        if (noviceMode && advancedTab == 0) {
+            Text("Add panel strings. Each string is an independent array with its own orientation and data source.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        if (entries.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxWidth()
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(MaterialTheme.colorScheme.surfaceVariant)
+                    .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                    .padding(vertical = 20.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(painterResource(R.drawable.solarpanel), contentDescription = null,
+                        modifier = Modifier.size(40.dp), tint = Color.Unspecified)
+                    Spacer(Modifier.height(6.dp))
+                    Text("No panel strings yet", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    if (noviceMode) {
+                        Spacer(Modifier.height(4.dp))
+                        Text("This section is optional — skip it if you have no solar panels.",
+                            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        } else {
+            entries.forEachIndexed { index, entry ->
+                WizardPanelCard(
+                    entry = entry,
+                    index = index,
+                    expanded = expandedEntryId == entry.id,
+                    noviceMode = noviceMode,
+                    inverterEntries = inverterEntries,
+                    availableSources = availableSources,
+                    panelMonthlySummary = panelPvSummary.filter { it.panelID == entry.panelIndex },
+                    pvgisParamsHaveData = pvgisParamCheck[entry.id] ?: false,
+                    showAdvanced = advancedTab == 1,
+                    onToggle = { expandedEntryId = if (expandedEntryId == entry.id) null else entry.id },
+                    onUpdate = { updated -> onUpdate(entry.id) { updated } },
+                    onDelete = { onRemove(entry.id); if (expandedEntryId == entry.id) expandedEntryId = null },
+                    onRequestLocation = { onRequestLocation(entry.id) },
+                    onCheckPvgisParams = { onCheckPvgisParams(entry.id, entry.latitude, entry.longitude, entry.azimuth, entry.slope) }
+                )
+            }
+        }
+
+        FilledTonalButton(onClick = onAdd, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(4.dp))
+            Text("Add panel string")
+        }
+    }
+}
+
+@Composable
+private fun PvgisBackgroundBanner(stringCount: Int, onClose: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f))
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(Icons.Default.Download, null, Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer)
+                Text("Fetching solar data",
+                    style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer)
+            }
+            Text(
+                "PVGIS data for $stringCount panel string${if (stringCount > 1) "s" else ""} is being downloaded in the background. " +
+                    "The dashboard PV System card will show solar data once complete.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSecondaryContainer
+            )
+            FilledTonalButton(onClick = onClose, modifier = Modifier.fillMaxWidth()) {
+                Text("Close")
+            }
         }
     }
 }

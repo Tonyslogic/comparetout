@@ -59,6 +59,11 @@
                 android:value="" />
         </activity>
         <activity
+            android:name=".importers.homeassistant.ImportHomeAssistantActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity">
+        </activity>
+        <activity
             android:name=".scenario.ev.EVDivertActivity"
             android:exported="false">
             <meta-data

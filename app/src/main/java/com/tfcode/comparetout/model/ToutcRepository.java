@@ -433,6 +433,10 @@ public class ToutcRepository {
         return panelPVSummary;
     }
 
+    public boolean hasPvgisDataForParameters(double lat, double lon, int azimuth, int slope) {
+        return scenarioDAO.countPanelDataForParameters(lat, lon, azimuth, slope) > 0;
+    }
+
     public void updatePanel(Panel panel) {
         scenarioDAO.updatePanel(panel);
     }

@@ -22,9 +22,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Switch
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
@@ -35,6 +40,7 @@ import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,7 +48,15 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.res.painterResource
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size as CanvasSize
+import com.tfcode.comparetout.ComparisonUIViewModel
+import com.tfcode.comparetout.R
+import com.tfcode.comparetout.model.scenario.PanelPVSummary
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -543,6 +557,453 @@ fun WizardInverterCard(
             }
         }
     }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Panel (PV string) card — expandable, mirrors WizardInverterCard
+────────────────────────────────────────────────────────────────── */
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun WizardPanelCard(
+    entry: WizardPanelEntry,
+    index: Int,
+    expanded: Boolean,
+    noviceMode: Boolean,
+    inverterEntries: List<WizardInverterEntry>,
+    availableSources: List<SourceDateRange>,
+    panelMonthlySummary: List<PanelPVSummary> = emptyList(),
+    pvgisParamsHaveData: Boolean = false,
+    showAdvanced: Boolean = false,
+    onToggle: () -> Unit,
+    onUpdate: (WizardPanelEntry) -> Unit,
+    onDelete: () -> Unit,
+    onRequestLocation: () -> Unit,
+    onCheckPvgisParams: () -> Unit = {},
+    modifier: Modifier = Modifier
+) {
+    // Auto-select inverter when exactly one exists and none is selected
+    LaunchedEffect(inverterEntries.size, entry.inverterName) {
+        if (inverterEntries.size == 1 && entry.inverterName.isBlank()) {
+            onUpdate(entry.copy(inverterName = inverterEntries[0].inverterName))
+        }
+    }
+
+    // Trigger parameter-based PVGIS check whenever PVGIS is selected or params change
+    LaunchedEffect(entry.pvDataSource, entry.latitude, entry.longitude, entry.azimuth, entry.slope) {
+        if (entry.pvDataSource == PanelDataSource.PVGIS) onCheckPvgisParams()
+    }
+
+    val monthlyKwh = remember(panelMonthlySummary) { panelMonthlySummary.toMonthlyKwh() }
+    val hasData = remember(monthlyKwh) { monthlyKwh.any { it > 0 } }
+
+    Column(
+        modifier = modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .border(
+                1.dp,
+                if (expanded) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                RoundedCornerShape(12.dp)
+            )
+    ) {
+        // Header
+        Row(
+            modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle)
+                .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier.size(28.dp).clip(RoundedCornerShape(7.dp))
+                    .background(MaterialTheme.colorScheme.secondaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    "${index + 1}", style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                )
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    entry.panelName.ifBlank { "String ${index + 1}" },
+                    style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    "${entry.panelCount} × ${entry.panelkWp} W",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                // Mini monthly bar chart when data already exists (collapsed preview)
+                if (!expanded && hasData) {
+                    Spacer(Modifier.height(4.dp))
+                    PanelMiniMonthlyBars(monthlyKwh = monthlyKwh)
+                }
+            }
+            if (entry.pvDataSource != PanelDataSource.NONE) {
+                Text(
+                    if (entry.pvDataSource == PanelDataSource.PVGIS) "PVGIS" else "SRC",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(Modifier.width(6.dp))
+            }
+            Icon(
+                imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        AnimatedVisibility(visible = expanded) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)
+            ) {
+                OutlinedTextField(
+                    value = entry.panelName,
+                    onValueChange = { onUpdate(entry.copy(panelName = it)) },
+                    label = { Text("String name") },
+                    modifier = Modifier.fillMaxWidth(), singleLine = true
+                )
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = entry.panelCount.toString(),
+                        onValueChange = { v -> v.toIntOrNull()?.coerceIn(1, 100)?.let { onUpdate(entry.copy(panelCount = it)) } },
+                        label = { Text("Count") },
+                        modifier = Modifier.weight(1f), singleLine = true,
+                        supportingText = if (noviceMode) ({ Text("Number of panels.") }) else null
+                    )
+                    OutlinedTextField(
+                        value = entry.panelkWp.toString(),
+                        onValueChange = { v -> v.toIntOrNull()?.coerceIn(50, 1000)?.let { onUpdate(entry.copy(panelkWp = it)) } },
+                        label = { Text("Wp / panel") },
+                        modifier = Modifier.weight(1f), singleLine = true,
+                        supportingText = if (noviceMode) ({ Text("Rated power per panel.") }) else null
+                    )
+                }
+                // Location
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    OutlinedTextField(
+                        value = "%.3f".format(entry.latitude),
+                        onValueChange = { v -> v.toDoubleOrNull()?.let { onUpdate(entry.copy(latitude = it)) } },
+                        label = { Text("Lat") },
+                        modifier = Modifier.weight(1f), singleLine = true
+                    )
+                    OutlinedTextField(
+                        value = "%.3f".format(entry.longitude),
+                        onValueChange = { v -> v.toDoubleOrNull()?.let { onUpdate(entry.copy(longitude = it)) } },
+                        label = { Text("Long") },
+                        modifier = Modifier.weight(1f), singleLine = true
+                    )
+                    androidx.compose.material3.IconButton(onClick = onRequestLocation) {
+                        Icon(Icons.Default.MyLocation, contentDescription = "Use GPS",
+                            tint = MaterialTheme.colorScheme.primary)
+                    }
+                }
+                // Orientation
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = entry.azimuth.toString(),
+                        onValueChange = { v -> v.toIntOrNull()?.coerceIn(0, 360)?.let { onUpdate(entry.copy(azimuth = it)) } },
+                        label = { Text("Azimuth °") },
+                        modifier = Modifier.weight(1f), singleLine = true,
+                        supportingText = if (noviceMode) ({ Text("0/360=N · 90=E · 180=S · 270=W") }) else null
+                    )
+                    OutlinedTextField(
+                        value = entry.slope.toString(),
+                        onValueChange = { v -> v.toIntOrNull()?.coerceIn(0, 90)?.let { onUpdate(entry.copy(slope = it)) } },
+                        label = { Text("Slope °") },
+                        modifier = Modifier.weight(1f), singleLine = true,
+                        supportingText = if (noviceMode) ({ Text("0=flat, 90=vertical") }) else null
+                    )
+                }
+                // Inverter + MPPT dropdown
+                if (inverterEntries.isNotEmpty()) {
+                    val maxMppt = inverterEntries.find { it.inverterName == entry.inverterName }?.mpptCount ?: 1
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (inverterEntries.size == 1) {
+                            OutlinedTextField(
+                                value = inverterEntries[0].inverterName,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Inverter") },
+                                modifier = Modifier.weight(2f), singleLine = true
+                            )
+                        } else {
+                            var invMenu by remember { mutableStateOf(false) }
+                            Box(modifier = Modifier.weight(2f)) {
+                                OutlinedTextField(
+                                    value = entry.inverterName.ifBlank { "Select…" },
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text("Inverter") },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    trailingIcon = {
+                                        Icon(Icons.Default.KeyboardArrowDown, null,
+                                            Modifier.clickable { invMenu = true })
+                                    }
+                                )
+                                DropdownMenu(expanded = invMenu, onDismissRequest = { invMenu = false }) {
+                                    inverterEntries.forEach { inv ->
+                                        DropdownMenuItem(
+                                            text = { Text(inv.inverterName) },
+                                            onClick = { onUpdate(entry.copy(inverterName = inv.inverterName, mppt = 1)); invMenu = false }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        // MPPT port dropdown
+                        var mpptMenu by remember { mutableStateOf(false) }
+                        Box(modifier = Modifier.weight(1f)) {
+                            OutlinedTextField(
+                                value = "Port ${entry.mppt}",
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("MPPT") },
+                                modifier = Modifier.fillMaxWidth(),
+                                trailingIcon = {
+                                    Icon(Icons.Default.KeyboardArrowDown, null,
+                                        Modifier.clickable { mpptMenu = true })
+                                }
+                            )
+                            DropdownMenu(expanded = mpptMenu, onDismissRequest = { mpptMenu = false }) {
+                                (1..maxMppt).forEach { port ->
+                                    DropdownMenuItem(
+                                        text = { Text("Port $port") },
+                                        onClick = { onUpdate(entry.copy(mppt = port)); mpptMenu = false }
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } else if (!noviceMode) {
+                    OutlinedTextField(
+                        value = entry.inverterName,
+                        onValueChange = { onUpdate(entry.copy(inverterName = it)) },
+                        label = { Text("Inverter name") },
+                        modifier = Modifier.fillMaxWidth(), singleLine = true
+                    )
+                }
+                // Data source
+                val pvSources = remember(availableSources) {
+                    availableSources.filter { it.importerType != ComparisonUIViewModel.Importer.ESBNHDF }
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text("Panel data", style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline)
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                        FilterChip(
+                            selected = entry.pvDataSource == PanelDataSource.NONE,
+                            onClick = { onUpdate(entry.copy(pvDataSource = PanelDataSource.NONE, pvSourceSysSn = "")) },
+                            label = { Text("None") }
+                        )
+                        FilterChip(
+                            selected = entry.pvDataSource == PanelDataSource.PVGIS,
+                            onClick = { onUpdate(entry.copy(pvDataSource = PanelDataSource.PVGIS, pvSourceSysSn = "")) },
+                            label = { Text("PVGIS") },
+                            leadingIcon = {
+                                Icon(painterResource(R.drawable.ic_baseline_wb_sunny_36), null,
+                                    Modifier.size(16.dp), tint = Color.Unspecified)
+                            }
+                        )
+                        if (pvSources.isNotEmpty()) {
+                            FilterChip(
+                                selected = entry.pvDataSource == PanelDataSource.SOURCE,
+                                onClick = { onUpdate(entry.copy(pvDataSource = PanelDataSource.SOURCE)) },
+                                label = { Text("Source") },
+                                leadingIcon = {
+                                    Icon(Icons.Default.Download, null, Modifier.size(16.dp))
+                                }
+                            )
+                        }
+                    }
+                    if (entry.pvDataSource == PanelDataSource.PVGIS) {
+                        Text(
+                            "lat ${"%.3f".format(entry.latitude)}, " +
+                                "lon ${"%.3f".format(entry.longitude)}, " +
+                                "slope ${entry.slope}°, az ${entry.azimuth}°",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        when {
+                            hasData -> {
+                                Spacer(Modifier.height(4.dp))
+                                Text(
+                                    "Data already fetched · ${"%.0f".format(monthlyKwh.sum())} kWh/yr",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(Modifier.height(4.dp))
+                                PanelMonthlyBarChart(
+                                    monthlyKwh = monthlyKwh,
+                                    modifier = Modifier.fillMaxWidth().height(100.dp)
+                                )
+                            }
+                            pvgisParamsHaveData -> {
+                                Text(
+                                    "Data for these settings is already in the system · will be visible after save",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            else -> {
+                                Text(
+                                    "Will be fetched from PVGIS in background after save",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                    if (entry.pvDataSource == PanelDataSource.SOURCE && pvSources.isNotEmpty()) {
+                        var srcMenu by remember { mutableStateOf(false) }
+                        Box {
+                            OutlinedTextField(
+                                value = entry.pvSourceSysSn.ifBlank { "Select source…" },
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("Source") },
+                                modifier = Modifier.fillMaxWidth(),
+                                trailingIcon = {
+                                    Icon(Icons.Default.KeyboardArrowDown, null,
+                                        Modifier.clickable { srcMenu = true })
+                                }
+                            )
+                            DropdownMenu(expanded = srcMenu, onDismissRequest = { srcMenu = false }) {
+                                pvSources.forEach { src ->
+                                    val label = when (src.importerType) {
+                                        ComparisonUIViewModel.Importer.ALPHAESS -> "AlphaESS: ${src.sysSn}"
+                                        ComparisonUIViewModel.Importer.HOME_ASSISTANT -> "HA: ${src.sysSn}"
+                                        else -> src.sysSn
+                                    }
+                                    DropdownMenuItem(
+                                        text = { Text("$label  ${src.startDate}→${src.finishDate}") },
+                                        onClick = {
+                                            onUpdate(entry.copy(
+                                                pvSourceSysSn = src.sysSn,
+                                                pvSourceFrom = src.startDate,
+                                                pvSourceTo = src.finishDate
+                                            ))
+                                            srcMenu = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                        if (entry.pvSourceSysSn.isNotBlank()) {
+                            Text(
+                                "Will be processed in background after save · ${entry.pvSourceFrom} → ${entry.pvSourceTo}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+                // Advanced: Optimised — shown when section-level advanced tab is active
+                if (showAdvanced) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("Optimised", style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.SemiBold)
+                            Text(
+                                "Individual MPPT optimiser per panel",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = entry.connectionMode == 1,
+                            onCheckedChange = { onUpdate(entry.copy(connectionMode = if (it) 1 else 0)) }
+                        )
+                    }
+                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDelete) {
+                        Icon(Icons.Default.Delete, contentDescription = "Remove", modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Remove")
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Panel data chart helpers
+────────────────────────────────────────────────────────────────── */
+
+private fun List<PanelPVSummary>.toMonthlyKwh(): List<Double> {
+    val result = MutableList(12) { 0.0 }
+    forEach { s -> val i = (s.month.toIntOrNull() ?: 1) - 1; if (i in 0..11) result[i] = s.tot }
+    return result
+}
+
+/** 24dp tall inline bar chart — 12 months, no labels, shown in collapsed header */
+@Composable
+private fun PanelMiniMonthlyBars(monthlyKwh: List<Double>, modifier: Modifier = Modifier) {
+    val barColor = MaterialTheme.colorScheme.primary
+    val maxVal = monthlyKwh.maxOrNull()?.takeIf { it > 0.0 } ?: 1.0
+    Canvas(modifier = modifier.height(24.dp).fillMaxWidth()) {
+        val bw = size.width / 12f
+        val gap = bw * 0.15f
+        monthlyKwh.forEachIndexed { i, v ->
+            val h = (v / maxVal * size.height).toFloat().coerceAtLeast(1f)
+            drawRect(
+                color = barColor,
+                topLeft = Offset(i * bw + gap, size.height - h),
+                size = CanvasSize(bw - gap * 2f, h)
+            )
+        }
+    }
+}
+
+/** Full monthly kWh bar chart for expanded PVGIS confirmation */
+@Composable
+private fun PanelMonthlyBarChart(monthlyKwh: List<Double>, modifier: Modifier = Modifier) {
+    val labels = listOf("J","F","M","A","M","J","J","A","S","O","N","D")
+    val primaryColor = MaterialTheme.colorScheme.primary.toArgb()
+    AndroidView(
+        factory = { ctx ->
+            BarChart(ctx).apply {
+                description.isEnabled = false
+                legend.isEnabled = false
+                setTouchEnabled(false)
+                setDrawGridBackground(false)
+                axisRight.isEnabled = false
+                axisLeft.apply { setDrawGridLines(false); textSize = 9f }
+                xAxis.apply {
+                    position = XAxis.XAxisPosition.BOTTOM
+                    setDrawGridLines(false)
+                    granularity = 1f
+                    valueFormatter = object : ValueFormatter() {
+                        override fun getFormattedValue(value: Float) =
+                            labels.getOrElse(value.toInt()) { "" }
+                    }
+                }
+            }
+        },
+        update = { chart ->
+            val entries = monthlyKwh.mapIndexed { i, v -> BarEntry(i.toFloat(), v.toFloat()) }
+            val ds = BarDataSet(entries, "kWh").apply {
+                color = primaryColor; setDrawValues(false)
+            }
+            chart.data = BarData(ds).apply { barWidth = 0.7f }
+            chart.invalidate()
+        },
+        modifier = modifier
+    )
 }
 
 /* ──────────────────────────────────────────────────────────────────

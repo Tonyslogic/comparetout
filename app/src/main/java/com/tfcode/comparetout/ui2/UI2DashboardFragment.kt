@@ -442,7 +442,14 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                                     Icon(painterResource(R.drawable.tick), null, Modifier.size(18.dp), tint = Color.Unspecified)
                                 }
                             }
-                        }
+                        },
+                        onEdit = if (scenarioId != -1L) ({
+                            ctx.startActivity(
+                                Intent(ctx, UI2WizardActivity::class.java)
+                                    .putExtra("ScenarioID", scenarioId)
+                                    .putExtra("WizardSection", "pv")
+                            )
+                        }) else null
                     ) {
                         if (sc.panels.isEmpty()) Text("No panels configured")
                         else sc.panels.forEach { p ->

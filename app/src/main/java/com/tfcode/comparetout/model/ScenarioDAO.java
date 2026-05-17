@@ -981,6 +981,11 @@ public abstract class ScenarioDAO {
     @Query("SELECT panelID, substr(Date, 6,2) AS Month, SUM(pv) AS tot FROM paneldata GROUP BY panelID, Month ORDER BY Month ASC")
     public abstract LiveData<List<PanelPVSummary>> getPanelPVSummary();
 
+    @Query("SELECT COUNT(*) FROM paneldata WHERE panelID IN " +
+            "(SELECT panelIndex FROM panels WHERE ROUND(latitude,3) = ROUND(:lat,3) " +
+            "AND ROUND(longitude,3) = ROUND(:lon,3) AND azimuth = :azimuth AND slope = :slope)")
+    public abstract int countPanelDataForParameters(double lat, double lon, int azimuth, int slope);
+
     @Query("SELECT CASE WHEN " +
             "(SELECT COUNT (DISTINCT paneldata.panelID) AS Found FROM paneldata, scenario2panel WHERE scenario2panel.panelID = paneldata.panelID AND scenarioID = :scenarioID) = " +
             "(SELECT COUNT (DISTINCT panelID) AS Needed FROM scenario2panel WHERE scenarioID = :scenarioID) " +

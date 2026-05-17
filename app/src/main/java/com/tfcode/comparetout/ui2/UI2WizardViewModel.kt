@@ -15,6 +15,9 @@ import com.tfcode.comparetout.model.ToutcRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import com.tfcode.comparetout.model.scenario.EVCharge
 import com.tfcode.comparetout.model.scenario.Inverter
+import com.tfcode.comparetout.model.scenario.Panel
+import com.tfcode.comparetout.model.scenario.PanelData
+import com.tfcode.comparetout.model.scenario.PanelPVSummary
 import com.tfcode.comparetout.scenario.loadprofile.StandardLoadProfiles
 import com.tfcode.comparetout.model.scenario.DOWDist
 import com.tfcode.comparetout.model.scenario.HourlyDist
@@ -26,9 +29,12 @@ import com.tfcode.comparetout.model.scenario.ScenarioComponents
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import java.util.ArrayList
 import java.util.UUID
 import javax.inject.Inject
 
@@ -103,6 +109,56 @@ private fun Inverter.toWizardInverterEntry() = WizardInverterEntry(
     dc2dcLoss = dc2dcLoss
 )
 
+enum class PanelDataSource { NONE, PVGIS, SOURCE }
+
+data class WizardPanelEntry(
+    val id: String = UUID.randomUUID().toString(),
+    val panelIndex: Long = 0L,
+    val panelName: String = "String 1",
+    val panelCount: Int = 7,
+    val panelkWp: Int = 325,
+    val azimuth: Int = 136,
+    val slope: Int = 24,
+    val latitude: Double = 53.490,
+    val longitude: Double = -10.015,
+    val inverterName: String = "",
+    val mppt: Int = 1,
+    val connectionMode: Int = 0,
+    val pvDataSource: PanelDataSource = PanelDataSource.NONE,
+    val pvSourceSysSn: String = "",
+    val pvSourceFrom: String = "",
+    val pvSourceTo: String = ""
+) {
+    fun toPanel(): Panel = Panel().also { p ->
+        if (panelIndex > 0L) p.panelIndex = panelIndex
+        p.panelName = panelName
+        p.panelCount = panelCount
+        p.panelkWp = panelkWp
+        p.azimuth = azimuth
+        p.slope = slope
+        p.latitude = latitude
+        p.longitude = longitude
+        p.inverter = inverterName.ifBlank { "Inverter" }
+        p.mppt = mppt
+        p.connectionMode = connectionMode
+    }
+}
+
+private fun Panel.toWizardPanelEntry() = WizardPanelEntry(
+    id = panelIndex.toString(),
+    panelIndex = panelIndex,
+    panelName = panelName ?: "String 1",
+    panelCount = panelCount,
+    panelkWp = panelkWp,
+    azimuth = azimuth,
+    slope = slope,
+    latitude = latitude,
+    longitude = longitude,
+    inverterName = inverter ?: "",
+    mppt = mppt,
+    connectionMode = connectionMode
+)
+
 data class WizardBuilder(
     // Start
     val scenarioMode: ScenarioMode = ScenarioMode.NEW,
@@ -126,7 +182,9 @@ data class WizardBuilder(
     // EV
     val evEntries: List<WizardEvEntry> = emptyList(),
     // Inverters
-    val inverterEntries: List<WizardInverterEntry> = emptyList()
+    val inverterEntries: List<WizardInverterEntry> = emptyList(),
+    // Panels
+    val panelEntries: List<WizardPanelEntry> = emptyList()
 ) {
     val isStartComplete: Boolean get() = scenarioName.isNotBlank()
     val isLoadComplete: Boolean get() = annualUsage.toDoubleOrNull()?.let { it > 0.0 } == true
@@ -182,7 +240,7 @@ private const val KEY_NOVICE_MODE = "wizard_novice_mode"
 sealed class WizardSaveResult {
     object Idle : WizardSaveResult()
     object Saving : WizardSaveResult()
-    data class Done(val scenarioId: Long, val runSimulation: Boolean) : WizardSaveResult()
+    data class Done(val scenarioId: Long, val runSimulation: Boolean, val pvgisStringsQueued: Int = 0) : WizardSaveResult()
 }
 
 @HiltViewModel
@@ -213,6 +271,20 @@ class UI2WizardViewModel @Inject constructor(
 
     private val _saveResult = MutableStateFlow<WizardSaveResult>(WizardSaveResult.Idle)
     val saveResult = _saveResult.asLiveData()
+
+    // Monthly PV totals per panel — used to display already-fetched PVGIS data (ID-based, edit mode)
+    val panelPvSummary: LiveData<List<PanelPVSummary>> = repository.getPanelDataSummary()
+
+    // Parameter-based PVGIS data check: entry.id → hasData
+    private val _pvgisParamCheck = MutableStateFlow<Map<String, Boolean>>(emptyMap())
+    val pvgisParamCheck = _pvgisParamCheck.asLiveData()
+
+    fun checkPvgisParams(entryId: String, lat: Double, lon: Double, azimuth: Int, slope: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val hasData = repository.hasPvgisDataForParameters(lat, lon, azimuth, slope)
+            _pvgisParamCheck.update { it + (entryId to hasData) }
+        }
+    }
 
     // All existing scenarios for the copy/link picker and name-uniqueness check
     val allScenarios = repository.getAllScenarios()
@@ -326,7 +398,8 @@ class UI2WizardViewModel @Inject constructor(
             loadProfileDaily = lp?.dowDist?.dowDist,
             loadProfileMonthly = lp?.monthlyDist?.monthlyDist,
             evEntries = c.evCharges?.map { it.toWizardEvEntry() } ?: emptyList(),
-            inverterEntries = c.inverters?.map { it.toWizardInverterEntry() } ?: emptyList()
+            inverterEntries = c.inverters?.map { it.toWizardInverterEntry() } ?: emptyList(),
+            panelEntries = c.panels?.map { it.toWizardPanelEntry() } ?: emptyList()
         )
     }
 
@@ -368,6 +441,60 @@ class UI2WizardViewModel @Inject constructor(
         updateBuilder { b ->
             b.copy(inverterEntries = b.inverterEntries.map { if (it.id == id) transform(it) else it })
         }
+
+    fun addPanelEntry() {
+        val count = _builder.value.panelEntries.size + 1
+        updateBuilder { it.copy(panelEntries = it.panelEntries + WizardPanelEntry(panelName = "String $count")) }
+    }
+
+    fun removePanelEntry(id: String) =
+        updateBuilder { it.copy(panelEntries = it.panelEntries.filter { e -> e.id != id }) }
+
+    fun updatePanelEntry(id: String, transform: (WizardPanelEntry) -> WizardPanelEntry) =
+        updateBuilder { b ->
+            b.copy(panelEntries = b.panelEntries.map { if (it.id == id) transform(it) else it })
+        }
+
+    // GPS location for panel lat/lon
+    private val _pendingLocationRequest = MutableStateFlow<String?>(null)
+    val pendingLocationRequest = _pendingLocationRequest.asLiveData()
+
+    fun requestLocation(entryId: String) { _pendingLocationRequest.value = entryId }
+    fun locationRetrieved(entryId: String, lat: Double, lon: Double) {
+        updatePanelEntry(entryId) { it.copy(latitude = lat, longitude = lon) }
+        _pendingLocationRequest.value = null
+    }
+    fun locationRequestDismissed() { _pendingLocationRequest.value = null }
+
+    private fun triggerPanelDataFetch(entry: WizardPanelEntry, panelId: Long) {
+        when (entry.pvDataSource) {
+            PanelDataSource.PVGIS -> PVGISDirectFetchWorker.enqueue(context, panelId)
+            PanelDataSource.SOURCE -> {
+                if (entry.pvSourceSysSn.isNotBlank() && entry.pvSourceFrom.isNotBlank() && entry.pvSourceTo.isNotBlank()) {
+                    viewModelScope.launch(Dispatchers.IO) {
+                        val rows = repository.getAlphaESSTransformedData(entry.pvSourceSysSn, entry.pvSourceFrom, entry.pvSourceTo)
+                        val panelDataList = ArrayList<PanelData>()
+                        val fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+                        rows.filter { it.pv > 0 }.forEach { row ->
+                            val pd = PanelData()
+                            pd.setPanelID(panelId)
+                            pd.setDate(row.date)
+                            pd.setMinute(row.minute)
+                            val parts = row.minute.split(":")
+                            pd.setMod((parts.getOrNull(0)?.toIntOrNull() ?: 0) * 60 + (parts.getOrNull(1)?.toIntOrNull() ?: 0))
+                            val date = LocalDate.parse(row.date, fmt)
+                            pd.setDow(date.dayOfWeek.value)
+                            pd.setDo2001(date.dayOfYear)
+                            pd.setPv(row.pv)
+                            panelDataList.add(pd)
+                        }
+                        if (panelDataList.isNotEmpty()) repository.savePanelData(panelDataList)
+                    }
+                }
+            }
+            PanelDataSource.NONE -> {}
+        }
+    }
 
     fun loadSLPProfile(name: String) {
         viewModelScope.launch(Dispatchers.Default) {
@@ -542,6 +669,11 @@ class UI2WizardViewModel @Inject constructor(
             _saveResult.value = WizardSaveResult.Saving
             try {
                 val b = _builder.value
+                val pvgisCount = when {
+                    isEditMode -> b.panelEntries.count { it.panelIndex == 0L && it.pvDataSource == PanelDataSource.PVGIS }
+                    b.isLinked -> 0
+                    else       -> b.panelEntries.count { it.pvDataSource == PanelDataSource.PVGIS }
+                }
                 val savedId: Long = when {
                     isEditMode -> {
                         // Update existing scenario in place
@@ -550,6 +682,7 @@ class UI2WizardViewModel @Inject constructor(
                             sc.scenarioName = b.scenarioName
                             sc.setHasEVCharges(b.evEntries.isNotEmpty())
                             sc.setHasInverters(b.inverterEntries.isNotEmpty())
+                            sc.setHasPanels(b.panelEntries.isNotEmpty())
                         }?.let { repository.updateScenario(it) }
                         repository.saveLoadProfile(scenarioId, b.toLoadProfile())
                         // Replace EV charges
@@ -559,35 +692,57 @@ class UI2WizardViewModel @Inject constructor(
                         b.evEntries.forEach { entry ->
                             repository.saveEVChargeForScenario(scenarioId, entry.toEvCharge())
                         }
-                        // Replace inverters (panels are managed separately via the legacy UI)
+                        // Replace inverters
                         existing.inverters?.forEach { inv ->
                             repository.deleteInverterFromScenario(inv.inverterIndex, scenarioId)
                         }
                         b.inverterEntries.forEach { entry ->
                             repository.saveInverter(scenarioId, entry.toInverter())
                         }
+                        // Panels: update existing (preserving data), delete removed, insert new
+                        val keptIds = b.panelEntries.filter { it.panelIndex > 0L }.map { it.panelIndex }.toSet()
+                        (existing.panels ?: emptyList())
+                            .filter { it.panelIndex !in keptIds }
+                            .forEach { repository.deletePanelFromScenario(it.panelIndex, scenarioId) }
+                        b.panelEntries.filter { it.panelIndex > 0L }
+                            .forEach { entry -> repository.updatePanel(entry.toPanel()) }
+                        b.panelEntries.filter { it.panelIndex == 0L }
+                            .forEach { entry ->
+                                val panelId = repository.savePanel(scenarioId, entry.toPanel())
+                                triggerPanelDataFetch(entry, panelId)
+                            }
                         scenarioId
                     }
                     b.isLinked -> {
-                        // Full link: create shell scenario, then link load profile, EV, and inverters
+                        // Full link: create shell scenario, then link load profile, EV, inverters, panels
                         val newId = repository.insertScenarioAndReturnID(b.toScenarioShell(), false)
                         repository.linkLoadProfileFromScenario(b.basedOnId, newId)
                         repository.linkEVChargeFromScenario(b.basedOnId, newId)
                         repository.linkInverterFromScenario(b.basedOnId, newId)
+                        repository.linkPanelFromScenario(b.basedOnId, newId)
                         newId
                     }
                     b.loadSource == LoadSource.LINKED -> {
-                        // Load-profile link only: create scenario with EV from builder, link load
+                        // Load-profile link only: create scenario with EV+inverters+panels from builder, link load
                         val newId = repository.insertScenarioAndReturnID(b.toScenarioShellWithEV(), false)
                         repository.linkLoadProfileFromScenario(b.basedOnId, newId)
+                        b.panelEntries.forEach { entry ->
+                            val panelId = repository.savePanel(newId, entry.toPanel())
+                            triggerPanelDataFetch(entry, panelId)
+                        }
                         newId
                     }
                     else -> {
-                        // NEW or COPY: all data is in the builder already
-                        repository.insertScenarioAndReturnID(b.toScenarioComponents(), false)
+                        // NEW or COPY: save panels separately to capture their IDs for data fetch
+                        val newId = repository.insertScenarioAndReturnID(b.toScenarioComponents(), false)
+                        b.panelEntries.forEach { entry ->
+                            val panelId = repository.savePanel(newId, entry.toPanel())
+                            triggerPanelDataFetch(entry, panelId)
+                        }
+                        newId
                     }
                 }
-                _saveResult.value = WizardSaveResult.Done(savedId, runSimulation)
+                _saveResult.value = WizardSaveResult.Done(savedId, runSimulation, pvgisCount)
             } catch (_: Exception) {
                 _saveResult.value = WizardSaveResult.Idle
             }
