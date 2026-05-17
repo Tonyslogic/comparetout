@@ -201,6 +201,9 @@ fun GraphsScreen(viewModel: UI2GraphsViewModel, onBack: () -> Unit) {
             // Main column
             Column(modifier = Modifier.fillMaxSize()) {
                 DateNavRow(state, viewModel, onDateClick = { showDatePick = true })
+                if (!state.isLoading && state.graphType != GraphType.SANKEY) {
+                    PeriodTotalsRow(state)
+                }
                 Box(modifier = Modifier.weight(1f)) {
                     if (state.isLoading) {
                         CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
@@ -269,6 +272,50 @@ fun GraphsScreen(viewModel: UI2GraphsViewModel, onBack: () -> Unit) {
         ) {
             LinePopupContent(state)
             Spacer(Modifier.height(32.dp))
+        }
+    }
+}
+
+// ─── Period totals row ─────────────────────────────────────────────────────
+
+@Composable
+private fun PeriodTotalsRow(state: UI2GraphsViewModel.GraphState) {
+    val activeSeries = remember(state.activeFilters, state.availableFilters) {
+        state.activeFilters.intersect(state.availableFilters).toList()
+    }
+    if (activeSeries.isEmpty()) return
+
+    val points = remember(state.intervalData, state.singleDayBarData, state.displayScale) {
+        buildChartPoints(state)
+    }
+    if (points.isEmpty()) return
+
+    val totals = remember(points, activeSeries) {
+        activeSeries.associateWith { series -> points.sumOf { it.values[series] ?: 0.0 } }
+    }
+    val df = remember { java.text.DecimalFormat("#,##0.0") }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 8.dp, vertical = 2.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        activeSeries.forEach { series ->
+            val total = totals[series] ?: 0.0
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(3.dp)
+            ) {
+                Box(modifier = Modifier.size(8.dp).background(SERIES_COLORS[series] ?: Color.Gray))
+                Text(
+                    "${series.displayName}: ${df.format(total)} kWh",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
@@ -984,7 +1031,7 @@ private fun FilterGroupContent(
     viewModel: UI2GraphsViewModel
 ) {
     FilterGroup("Core", state.availableFilters.intersect(UI2GraphsViewModel.CORE_FILTERS), state, viewModel)
-    if (state.hasBattery) {
+    if (state.hasBattery || state.hasBatteryData) {
         Text("Battery", style = MaterialTheme.typography.labelLarge,
             modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
         FilterGroup(null, UI2GraphsViewModel.BATTERY_FILTERS, state, viewModel)

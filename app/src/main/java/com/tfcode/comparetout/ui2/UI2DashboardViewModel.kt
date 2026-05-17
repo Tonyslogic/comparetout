@@ -6,6 +6,7 @@ import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import com.tfcode.comparetout.ComparisonUIViewModel
 import com.tfcode.comparetout.model.ToutcRepository
+import com.tfcode.comparetout.model.importers.IntervalRow
 import com.tfcode.comparetout.model.costings.Costings
 import com.tfcode.comparetout.model.costings.SubTotals
 import com.tfcode.comparetout.model.scenario.PanelPVSummary
@@ -29,7 +30,10 @@ enum class DataSourcePeriod(val label: String) {
     YESTERDAY("D"), MONTH("M"), YEAR("Y"), ALL("*")
 }
 
-data class PeriodTotals(val load: Double, val buy: Double, val feed: Double, val pv: Double)
+data class PeriodTotals(
+    val load: Double, val buy: Double, val feed: Double, val pv: Double,
+    val charging: Double = 0.0, val discharging: Double = 0.0
+)
 
 data class UsageDistribution(
     val hourly: List<Double>,   // 24 values, % of total import
@@ -71,6 +75,14 @@ class UI2DashboardViewModel @Inject constructor(
     private val ROWFMT  = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
     private val _activeItem = MutableStateFlow<ActiveDashboardItem?>(null)
+
+    // ── PV System accordion (data source mode) ───────────────────────────────
+    private val _pvPeriod    = MutableStateFlow(DataSourcePeriod.ALL)
+    private val _pvAnchor    = MutableStateFlow(LocalDate.now())
+    private val _pvChartData = MutableStateFlow<List<Pair<String, Double>>?>(null)
+    val pvPeriod    = _pvPeriod.asLiveData()
+    val pvAnchor    = _pvAnchor.asLiveData()
+    val pvChartData = _pvChartData.asLiveData()
 
     // ── Explore Data accordion ────────────────────────────────────────────────
     private val _explorePeriod = MutableStateFlow(DataSourcePeriod.ALL)
@@ -120,6 +132,9 @@ class UI2DashboardViewModel @Inject constructor(
         _tariffPeriod.value   = DataSourcePeriod.ALL
         _tariffAnchor.value   = LocalDate.now()
         _tariffCostings.value = null
+        _pvPeriod.value    = DataSourcePeriod.ALL
+        _pvAnchor.value    = LocalDate.now()
+        _pvChartData.value = null
         _activeItem.value = ActiveDashboardItem.DataSource(sysSn, importerType, startDate, endDate)
         val item = ActiveDashboardItem.DataSource(sysSn, importerType, startDate, endDate)
         viewModelScope.launch(Dispatchers.IO) {
@@ -128,6 +143,11 @@ class UI2DashboardViewModel @Inject constructor(
             _usageTotals.value       = sharedTotals
             _usageDistribution.value = fetchDistribution(DataSourcePeriod.ALL, LocalDate.now(), item)
             _tariffCostings.value    = fetchCostings(DataSourcePeriod.ALL, LocalDate.now(), item)
+            if (importerType != ComparisonUIViewModel.Importer.ESBNHDF) {
+                _pvChartData.value = fetchPvChartData(DataSourcePeriod.ALL, LocalDate.now(), item)
+            } else {
+                _pvChartData.value = emptyList()
+            }
         }
     }
 
@@ -196,6 +216,67 @@ class UI2DashboardViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) { _tariffCostings.value = fetchCostings(period, anchor, item) }
     }
 
+    fun setPvPeriod(period: DataSourcePeriod) {
+        val anchor = LocalDate.now()
+        _pvPeriod.value    = period
+        _pvAnchor.value    = anchor
+        _pvChartData.value = null
+        val item = _activeItem.value as? ActiveDashboardItem.DataSource ?: return
+        viewModelScope.launch(Dispatchers.IO) { _pvChartData.value = fetchPvChartData(period, anchor, item) }
+    }
+
+    fun navigatePv(forward: Boolean) {
+        val period = _pvPeriod.value
+        if (period == DataSourcePeriod.ALL) return
+        val item = _activeItem.value as? ActiveDashboardItem.DataSource ?: return
+        val anchor = moveAnchor(_pvAnchor.value, period, forward, item) ?: return
+        _pvAnchor.value    = anchor
+        _pvChartData.value = null
+        viewModelScope.launch(Dispatchers.IO) { _pvChartData.value = fetchPvChartData(period, anchor, item) }
+    }
+
+    private suspend fun fetchPvChartData(
+        period: DataSourcePeriod,
+        anchor: LocalDate,
+        item: ActiveDashboardItem.DataSource
+    ): List<Pair<String, Double>> {
+        val (from, to) = anchorDateRange(period, anchor, item.startDate, item.endDate)
+        return when (period) {
+            DataSourcePeriod.YESTERDAY -> {
+                repository.getSumHour(item.sysSn, from, to)
+                    .filter { it.pv > 0 }
+                    .mapNotNull { row ->
+                        val h = row.interval.toIntOrNull() ?: return@mapNotNull null
+                        "%02d:00".format(h) to row.pv
+                    }
+            }
+            DataSourcePeriod.MONTH -> {
+                val yearForDoy = LocalDate.parse(from, FMT).year
+                repository.getSumDOY(item.sysSn, from, to)
+                    .filter { it.pv > 0 }
+                    .mapNotNull { row ->
+                        val doy = row.interval.toIntOrNull() ?: return@mapNotNull null
+                        val dom = runCatching { LocalDate.ofYearDay(yearForDoy, doy).dayOfMonth }
+                            .getOrNull() ?: return@mapNotNull null
+                        dom.toString() to row.pv
+                    }
+            }
+            DataSourcePeriod.YEAR -> {
+                val monthNames = listOf("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
+                repository.getSumMonth(item.sysSn, from, to)
+                    .filter { it.pv > 0 }
+                    .mapNotNull { row ->
+                        val s = row.interval ?: return@mapNotNull null
+                        if (s.length != 6) return@mapNotNull null
+                        val month = s.drop(4).toIntOrNull()?.takeIf { it in 1..12 } ?: return@mapNotNull null
+                        monthNames[month - 1] to row.pv
+                    }
+            }
+            DataSourcePeriod.ALL ->
+                buildPvMonthly(repository.getSumMonth(item.sysSn, from, to))
+        }
+    }
+
     private fun moveAnchor(
         current: LocalDate,
         period: DataSourcePeriod,
@@ -223,10 +304,12 @@ class UI2DashboardViewModel @Inject constructor(
         val (from, to) = anchorDateRange(period, anchor, item.startDate, item.endDate)
         val rows = repository.getSumDOY(item.sysSn, from, to)
         return PeriodTotals(
-            load = rows.sumOf { it.load },
-            buy  = rows.sumOf { it.buy },
-            feed = rows.sumOf { it.feed },
-            pv   = rows.sumOf { it.pv }
+            load        = rows.sumOf { it.load },
+            buy         = rows.sumOf { it.buy },
+            feed        = rows.sumOf { it.feed },
+            pv          = rows.sumOf { it.pv },
+            charging    = rows.sumOf { it.batCharge },
+            discharging = rows.sumOf { it.batDischarge }
         )
     }
 
@@ -322,6 +405,19 @@ class UI2DashboardViewModel @Inject constructor(
                 subTotals  = subTotals
             )
         }.sortedBy { it.net }
+    }
+
+    private fun buildPvMonthly(rows: List<IntervalRow>): List<Pair<String, Double>> {
+        val monthNames = listOf("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
+        return rows
+            .filter { it.pv > 0 }
+            .mapNotNull { row ->
+                val s = row.interval ?: return@mapNotNull null
+                if (s.length != 6) return@mapNotNull null
+                val year  = s.take(4).toIntOrNull() ?: return@mapNotNull null
+                val month = s.drop(4).toIntOrNull()?.takeIf { it in 1..12 } ?: return@mapNotNull null
+                "${monthNames[month - 1]} ${year.toString().drop(2)}" to row.pv
+            }
     }
 
     val panelPVSummary = repository.getPanelDataSummary()

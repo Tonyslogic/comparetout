@@ -62,10 +62,16 @@ class UI2SimulationsViewModel @Inject constructor(
         // Deduplicate data sources by sysSn — alpha takes priority, then esbn, then ha.
         // getESBNLiveDateRanges and getHALiveDateRanges query the same underlying table so
         // every AlphaESS sysSn would otherwise appear three times.
+        // HA always stores sysSn = "HomeAssistant" (hardcoded in HACatchupWorker), so we
+        // detect it by name to avoid misclassifying it as ESBN.
         val seen = mutableSetOf<String>()
         val dsItems = buildList<SimListItem.DataSource> {
             alpha.forEach { if (seen.add(it.sysSn)) add(SimListItem.DataSource(it.sysSn, ComparisonUIViewModel.Importer.ALPHAESS,        it.startDate, it.finishDate)) }
-            esbn.forEach  { if (seen.add(it.sysSn)) add(SimListItem.DataSource(it.sysSn, ComparisonUIViewModel.Importer.ESBNHDF,          it.startDate, it.finishDate)) }
+            esbn.forEach  { r ->
+                val type = if (r.sysSn == "HomeAssistant") ComparisonUIViewModel.Importer.HOME_ASSISTANT
+                           else ComparisonUIViewModel.Importer.ESBNHDF
+                if (seen.add(r.sysSn)) add(SimListItem.DataSource(r.sysSn, type, r.startDate, r.finishDate))
+            }
             ha.forEach    { if (seen.add(it.sysSn)) add(SimListItem.DataSource(it.sysSn, ComparisonUIViewModel.Importer.HOME_ASSISTANT,    it.startDate, it.finishDate)) }
         }
         simItems + dsItems

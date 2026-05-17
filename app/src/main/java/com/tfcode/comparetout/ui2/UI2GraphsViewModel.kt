@@ -86,13 +86,19 @@ class UI2GraphsViewModel @Inject constructor(
             components?.scenario?.isHasBatteries == true || components?.batteries?.isNotEmpty() == true
         val hasHW: Boolean get() =
             components?.scenario?.isHasHWSystem == true || components?.hwSystem != null
+        // True when the loaded interval data contains actual battery charge/discharge rows
+        val hasBatteryData: Boolean get() =
+            isDataSourceMode && intervalData.any { it.batCharge > 0.0 || it.batDischarge > 0.0 }
         // Line fab only applies to simulation mode
         val showLineFab: Boolean get() = !isDataSourceMode && isSingleDay && (hasBattery || hasHW)
 
         val availableFilters: Set<FilterSeries>
             get() {
                 if (isDataSourceMode) {
-                    return if (importerType == ComparisonUIViewModel.Importer.ESBNHDF) ESBN_FILTERS else CORE_FILTERS
+                    return when (importerType) {
+                        ComparisonUIViewModel.Importer.ESBNHDF -> ESBN_FILTERS
+                        else -> if (hasBatteryData) CORE_FILTERS + BATTERY_FILTERS else CORE_FILTERS
+                    }
                 }
                 val sc = components ?: return CORE_FILTERS
                 val set = CORE_FILTERS.toMutableSet()

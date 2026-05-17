@@ -211,6 +211,10 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     )
                 }
 
+            val pvPeriod    by viewModel.pvPeriod.observeAsState(DataSourcePeriod.ALL)
+    val pvAnchor    by viewModel.pvAnchor.observeAsState(LocalDate.now())
+    val pvChartData by viewModel.pvChartData.observeAsState(null)
+
             val dsInfo = dashboardData?.dataSourceInfo
             if (dsInfo != null) {
                 // ── Data source mode ──────────────────────────────────────────
@@ -285,13 +289,50 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                             if (!isEsbn && totals.load > 0) PeriodTotalRow("Load",   totals.load,  kwhDf)
                             if (totals.buy  > 0) PeriodTotalRow("Import", totals.buy,   kwhDf)
                             if (totals.feed > 0) PeriodTotalRow("Export", totals.feed,  kwhDf)
-                            if (!isEsbn && totals.pv > 0) PeriodTotalRow("Solar",  totals.pv,    kwhDf)
+                            if (!isEsbn && totals.pv   > 0) PeriodTotalRow("Solar",      totals.pv,          kwhDf)
+                            if (!isEsbn && totals.charging    > 0) PeriodTotalRow("Charging",    totals.charging,    kwhDf)
+                            if (!isEsbn && totals.discharging > 0) PeriodTotalRow("Discharging", totals.discharging, kwhDf)
                         }
                     }
                     val dist = usageDistribution
                     if (dist != null) {
                         Spacer(Modifier.height(8.dp))
                         DataSourceDistributionCharts(distribution = dist)
+                    }
+                }
+
+                if (dsInfo.importerType != ComparisonUIViewModel.Importer.ESBNHDF) {
+                    ExpandableCard(
+                        title = "PV System",
+                        leadingIcon = {
+                            Icon(painterResource(R.drawable.solarpanel), null,
+                                Modifier.size(24.dp), tint = Color.Unspecified)
+                        },
+                        trailingContent = { _ ->
+                            if (pvChartData?.isNotEmpty() == true)
+                                Icon(painterResource(R.drawable.ic_baseline_wb_sunny_36), null,
+                                    Modifier.size(18.dp), tint = StatusGreen)
+                        },
+                        showEdit = false
+                    ) {
+                        PeriodNavigator(
+                            selectedPeriod   = pvPeriod,
+                            anchorDate       = pvAnchor,
+                            dataStart        = dsInfo.startDate,
+                            dataEnd          = dsInfo.endDate,
+                            onPeriodSelected = { viewModel.setPvPeriod(it) },
+                            onNavigate       = { viewModel.navigatePv(it) }
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        when {
+                            pvChartData == null ->
+                                CircularProgressIndicator(modifier = Modifier.padding(4.dp).size(20.dp), strokeWidth = 2.dp)
+                            pvChartData!!.isEmpty() ->
+                                Text("No solar data for this period",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            else -> DataSourcePVBarChart(pvData = pvChartData!!)
+                        }
                     }
                 }
 
@@ -922,6 +963,66 @@ private fun AllCostingsTable(
                     Spacer(Modifier.height(8.dp))
                     PieChart(slices = slices, modifier = Modifier.size(size * 0.72f), isDonut = true)
                     PieLegend(slices = slices)
+                }
+            }
+        }
+    }
+}
+
+// ─── Data source PV bar chart (period-aware) ──────────────────────────────
+
+@Composable
+private fun DataSourcePVBarChart(pvData: List<Pair<String, Double>>) {
+    var zoomed by remember { mutableStateOf(false) }
+    val cfg = LocalConfiguration.current
+    val labelColorArgb = MaterialTheme.colorScheme.onSurface.toArgb()
+    val gridColorArgb  = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f).toArgb()
+    val barColorArgb   = android.graphics.Color.parseColor("#F44336")
+    val labels = remember(pvData) { pvData.map { it.first } }
+    val values = remember(pvData) { pvData.map { it.second } }
+    val total  = remember(pvData) { pvData.sumOf { it.second } }
+    val kwhDf  = remember { DecimalFormat("#,##0.0") }
+
+    Column(modifier = Modifier.fillMaxWidth().clickable { zoomed = true }) {
+        Text("Solar: ${kwhDf.format(total)} kWh  ↗", style = MaterialTheme.typography.labelSmall,
+            modifier = Modifier.padding(bottom = 2.dp))
+        AndroidView(
+            factory = { ctx -> BarChart(ctx).apply { stylePVBarChart(this, labelColorArgb, gridColorArgb) } },
+            update = { chart ->
+                stylePVBarChart(chart, labelColorArgb, gridColorArgb)
+                val entries = values.mapIndexed { i, v -> BarEntry(i.toFloat(), v.toFloat()) }
+                val ds = BarDataSet(entries, "").apply { color = barColorArgb; setDrawValues(false) }
+                chart.xAxis.valueFormatter = object : ValueFormatter() {
+                    override fun getFormattedValue(v: Float) = labels.getOrElse(v.toInt()) { "" }
+                }
+                chart.xAxis.labelCount = minOf(labels.size, 8)
+                chart.data = BarData(ds); chart.invalidate()
+            },
+            modifier = Modifier.fillMaxWidth().height(100.dp)
+        )
+    }
+    if (zoomed) {
+        val size = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.9f).dp
+        Dialog(onDismissRequest = { zoomed = false }) {
+            Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
+                Column(modifier = Modifier.padding(12.dp).fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("Solar Generation (kWh)", style = MaterialTheme.typography.titleSmall)
+                    Spacer(Modifier.height(8.dp))
+                    AndroidView(
+                        factory = { ctx -> BarChart(ctx).apply { stylePVBarChart(this, labelColorArgb, gridColorArgb) } },
+                        update = { chart ->
+                            stylePVBarChart(chart, labelColorArgb, gridColorArgb)
+                            val entries = values.mapIndexed { i, v -> BarEntry(i.toFloat(), v.toFloat()) }
+                            val ds = BarDataSet(entries, "").apply { color = barColorArgb; setDrawValues(false) }
+                            chart.xAxis.valueFormatter = object : ValueFormatter() {
+                                override fun getFormattedValue(v: Float) = labels.getOrElse(v.toInt()) { "" }
+                            }
+                            chart.xAxis.labelCount = minOf(labels.size, 12)
+                            chart.data = BarData(ds); chart.invalidate()
+                        },
+                        modifier = Modifier.fillMaxWidth().weight(1f)
+                    )
                 }
             }
         }
