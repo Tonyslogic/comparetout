@@ -570,7 +570,8 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     ExpandableCard(
                         title = "EV",
                         leadingIcon = {
-                            val res = if (sc.evCharges.isNotEmpty()) R.drawable.ev_on else R.drawable.ev_off
+                            val res = if (sc.evCharges.isNotEmpty() || sc.evDiverts.isNotEmpty())
+                                R.drawable.ev_on else R.drawable.ev_off
                             Icon(painterResource(res), null, Modifier.size(24.dp), tint = Color.Unspecified)
                         },
                         trailingContent = { _ ->
@@ -593,9 +594,27 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                             )
                         }) else null
                     ) {
-                        if (sc.evCharges.isEmpty()) Text("No EV charging configured")
-                        else sc.evCharges.forEach { ev ->
-                            Text("${ev.name}: ${ev.begin}:00–${ev.end}:00 @ ${ev.draw} kW")
+                        if (sc.evCharges.isEmpty() && sc.evDiverts.isEmpty()) {
+                            Text("No EV configured")
+                        } else {
+                            if (sc.evCharges.isNotEmpty()) {
+                                Text("Schedules",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.outline)
+                                sc.evCharges.forEach { ev ->
+                                    Text("${ev.name}: ${ev.begin}:00–${ev.end}:00 @ ${ev.draw} kW")
+                                }
+                            }
+                            if (sc.evDiverts.isNotEmpty()) {
+                                if (sc.evCharges.isNotEmpty()) Spacer(Modifier.height(6.dp))
+                                Text("Solar Diverts",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.outline)
+                                sc.evDiverts.forEach { d ->
+                                    val activeTag = if (!d.isActive) "  ·  off" else ""
+                                    Text("${d.name}: ${d.begin}:00–${d.end}:00  ·  ${d.dailyMax} kWh/day$activeTag")
+                                }
+                            }
                         }
                     }
 

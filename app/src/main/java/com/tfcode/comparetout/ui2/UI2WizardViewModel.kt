@@ -13,8 +13,13 @@ import com.tfcode.comparetout.TOUTCApplication
 import com.tfcode.comparetout.model.IntHolder
 import com.tfcode.comparetout.model.ToutcRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
+import com.tfcode.comparetout.model.scenario.Battery
+import com.tfcode.comparetout.model.scenario.ChargeModel
+import com.tfcode.comparetout.model.scenario.DischargeToGrid
 import com.tfcode.comparetout.model.scenario.EVCharge
+import com.tfcode.comparetout.model.scenario.EVDivert
 import com.tfcode.comparetout.model.scenario.Inverter
+import com.tfcode.comparetout.model.scenario.LoadShift
 import com.tfcode.comparetout.model.scenario.Panel
 import com.tfcode.comparetout.model.scenario.PanelPVSummary
 import com.tfcode.comparetout.scenario.loadprofile.StandardLoadProfiles
@@ -65,6 +70,44 @@ data class WizardEvEntry(
     }
 }
 
+data class WizardEvDivertEntry(
+    val id: String = UUID.randomUUID().toString(),
+    val name: String = "Afternoon-nap",
+    val active: Boolean = false,
+    val ev1st: Boolean = true,
+    val beginHour: Int = 11,
+    val endHour: Int = 16,
+    val dailyMax: Double = 16.0,
+    val minimum: Double = 1.4,
+    val days: List<Int> = (0..6).toList(),
+    val months: List<Int> = (1..12).toList()
+) {
+    fun toEvDivert(): EVDivert = EVDivert().also { d ->
+        d.setName(name)
+        d.setActive(active)
+        d.setEv1st(ev1st)
+        d.setBegin(beginHour)
+        d.setEnd(endHour)
+        d.setDailyMax(dailyMax)
+        d.setMinimum(minimum)
+        d.setDays(IntHolder().also { it.ints = ArrayList(days) })
+        d.setMonths(MonthHolder().also { it.months = ArrayList(months) })
+    }
+}
+
+private fun EVDivert.toWizardEvDivertEntry() = WizardEvDivertEntry(
+    id = if (evDivertIndex > 0) evDivertIndex.toString() else UUID.randomUUID().toString(),
+    name = name ?: "Afternoon-nap",
+    active = isActive,
+    ev1st = isEv1st,
+    beginHour = begin,
+    endHour = end,
+    dailyMax = dailyMax,
+    minimum = minimum,
+    days = days?.ints?.sorted() ?: (0..6).toList(),
+    months = months?.months?.sorted() ?: (1..12).toList()
+)
+
 private fun EVCharge.toWizardEvEntry() = WizardEvEntry(
     id = if (evChargeIndex > 0) evChargeIndex.toString() else UUID.randomUUID().toString(),
     name = name ?: "EV Schedule",
@@ -105,6 +148,125 @@ private fun Inverter.toWizardInverterEntry() = WizardInverterEntry(
     ac2dcLoss = ac2dcLoss,
     dc2acLoss = dc2acLoss,
     dc2dcLoss = dc2dcLoss
+)
+
+/* ──────────────────────────────────────────────────────────────────
+   Battery
+   - Battery entity: size + inverter binding + BMS (advanced)
+   - LoadShift          → charge schedule (per-inverter binding in model;
+                          wizard shows one logical list and replicates
+                          per battery inverter on save)
+   - DischargeToGrid    → discharge schedule (same replication pattern)
+────────────────────────────────────────────────────────────────── */
+
+data class WizardBatteryEntry(
+    val id: String = UUID.randomUUID().toString(),
+    val batteryIndex: Long = 0L,
+    val inverterName: String = "",
+    val batterySize: Double = 5.7,        // kWh
+    val dischargeStop: Double = 19.6,     // % SOC floor
+    val maxCharge: Double = 5.7 / 24.0,   // kWh per 5-min ≈ 0.5C
+    val maxDischarge: Double = 5.7 / 24.0,
+    val storageLoss: Double = 1.0,        // % round-trip
+    val cmPercent0: Int = 30,             // 0–12% SOC charge rate %
+    val cmPercent12: Int = 100,           // 12–90% SOC charge rate %
+    val cmPercent90: Int = 10             // 90–100% SOC charge rate %
+) {
+    fun toBattery(): Battery = Battery().also { b ->
+        if (batteryIndex > 0L) b.batteryIndex = batteryIndex
+        b.batterySize = batterySize
+        b.dischargeStop = dischargeStop
+        b.maxCharge = maxCharge
+        b.maxDischarge = maxDischarge
+        b.storageLoss = storageLoss
+        b.inverter = inverterName.ifBlank { "AlphaESS" }
+        b.chargeModel = ChargeModel().also { cm ->
+            cm.percent0 = cmPercent0
+            cm.percent12 = cmPercent12
+            cm.percent90 = cmPercent90
+        }
+    }
+}
+
+private fun Battery.toWizardBatteryEntry() = WizardBatteryEntry(
+    id = if (batteryIndex > 0) batteryIndex.toString() else UUID.randomUUID().toString(),
+    batteryIndex = batteryIndex,
+    inverterName = inverter ?: "AlphaESS",
+    batterySize = batterySize,
+    dischargeStop = dischargeStop,
+    maxCharge = maxCharge,
+    maxDischarge = maxDischarge,
+    storageLoss = storageLoss,
+    cmPercent0 = chargeModel?.percent0 ?: 30,
+    cmPercent12 = chargeModel?.percent12 ?: 100,
+    cmPercent90 = chargeModel?.percent90 ?: 10
+)
+
+data class WizardBatteryChargeEntry(
+    val id: String = UUID.randomUUID().toString(),
+    val name: String = "Cheap-rate",
+    val inverterName: String = "",          // schedule applies to all batteries on this inverter
+    val beginHour: Int = 2,
+    val endHour: Int = 5,
+    val stopAt: Double = 80.0,              // target SOC %
+    val days: List<Int> = (0..6).toList(),
+    val months: List<Int> = (1..12).toList()
+) {
+    fun toLoadShift(): LoadShift = LoadShift().also { s ->
+        s.name = name
+        s.begin = beginHour
+        s.end = endHour
+        s.stopAt = stopAt
+        s.inverter = inverterName.ifBlank { "AlphaESS" }
+        s.days = IntHolder().also { it.ints = ArrayList(days) }
+        s.months = MonthHolder().also { it.months = ArrayList(months) }
+    }
+}
+
+private fun LoadShift.toWizardBatteryChargeEntry() = WizardBatteryChargeEntry(
+    id = if (loadShiftIndex > 0) loadShiftIndex.toString() else UUID.randomUUID().toString(),
+    name = name ?: "Cheap-rate",
+    inverterName = inverter ?: "",
+    beginHour = begin,
+    endHour = end,
+    stopAt = stopAt,
+    days = days?.ints?.sorted() ?: (0..6).toList(),
+    months = months?.months?.sorted() ?: (1..12).toList()
+)
+
+data class WizardBatteryDischargeEntry(
+    val id: String = UUID.randomUUID().toString(),
+    val name: String = "Peak-export",
+    val inverterName: String = "",
+    val beginHour: Int = 17,
+    val endHour: Int = 19,
+    val stopAt: Double = 20.0,              // SOC floor %
+    val rate: Double = 2.5,                 // kW export rate
+    val days: List<Int> = (0..6).toList(),
+    val months: List<Int> = (1..12).toList()
+) {
+    fun toDischargeToGrid(): DischargeToGrid = DischargeToGrid().also { d ->
+        d.name = name
+        d.begin = beginHour
+        d.end = endHour
+        d.stopAt = stopAt
+        d.rate = rate
+        d.inverter = inverterName.ifBlank { "AlphaESS" }
+        d.days = IntHolder().also { it.ints = ArrayList(days) }
+        d.months = MonthHolder().also { it.months = ArrayList(months) }
+    }
+}
+
+private fun DischargeToGrid.toWizardBatteryDischargeEntry() = WizardBatteryDischargeEntry(
+    id = if (d2gIndex > 0) d2gIndex.toString() else UUID.randomUUID().toString(),
+    name = name ?: "Peak-export",
+    inverterName = inverter ?: "",
+    beginHour = begin,
+    endHour = end,
+    stopAt = stopAt,
+    rate = rate,
+    days = days?.ints?.sorted() ?: (0..6).toList(),
+    months = months?.months?.sorted() ?: (1..12).toList()
 )
 
 enum class PanelDataSource { NONE, PVGIS, SOURCE }
@@ -185,10 +347,15 @@ data class WizardBuilder(
     val loadProfileMonthly: List<Double>? = null,
     // EV
     val evEntries: List<WizardEvEntry> = emptyList(),
+    val evDivertEntries: List<WizardEvDivertEntry> = emptyList(),
     // Inverters
     val inverterEntries: List<WizardInverterEntry> = emptyList(),
     // Panels
-    val panelEntries: List<WizardPanelEntry> = emptyList()
+    val panelEntries: List<WizardPanelEntry> = emptyList(),
+    // Battery
+    val batteryEntries: List<WizardBatteryEntry> = emptyList(),
+    val batteryChargeEntries: List<WizardBatteryChargeEntry> = emptyList(),
+    val batteryDischargeEntries: List<WizardBatteryDischargeEntry> = emptyList()
 ) {
     val isStartComplete: Boolean get() = scenarioName.isNotBlank()
     val isLoadComplete: Boolean get() = annualUsage.toDoubleOrNull()?.let { it > 0.0 } == true
@@ -210,12 +377,37 @@ data class WizardBuilder(
         loadProfileMonthly?.let { lp.monthlyDist = MonthlyDist().also { d -> d.monthlyDist  = ArrayList(it) } }
     }
 
+    /** Inverter names that have at least one battery attached. */
+    fun batteryInverterNames(): List<String> =
+        batteryEntries.map { it.inverterName.ifBlank { "AlphaESS" } }.distinct()
+
+    /** LoadShifts ready for the DB: one per entry, dropping entries with no inverter target. */
+    fun expandedLoadShifts(): List<LoadShift> =
+        batteryChargeEntries
+            .filter { it.inverterName.isNotBlank() }
+            .map { it.toLoadShift() }
+
+    /** DischargeToGrids ready for the DB: one per entry, dropping entries with no inverter target. */
+    fun expandedDischarges(): List<DischargeToGrid> =
+        batteryDischargeEntries
+            .filter { it.inverterName.isNotBlank() }
+            .map { it.toDischargeToGrid() }
+
     fun toScenarioComponents(): ScenarioComponents {
         val sc = Scenario().also { it.scenarioName = scenarioName }
         return ScenarioComponents(
-            sc, inverterEntries.map { it.toInverter() }, emptyList(), emptyList(), null, toLoadProfile(),
-            emptyList(), emptyList(), evEntries.map { it.toEvCharge() },
-            emptyList(), null, emptyList()
+            sc,
+            inverterEntries.map { it.toInverter() },
+            batteryEntries.map { it.toBattery() },
+            emptyList(),
+            null,
+            toLoadProfile(),
+            expandedLoadShifts(),
+            expandedDischarges(),
+            evEntries.map { it.toEvCharge() },
+            emptyList(),
+            null,
+            evDivertEntries.map { it.toEvDivert() }
         )
     }
 
@@ -228,13 +420,22 @@ data class WizardBuilder(
         )
     }
 
-    // Shell with EV+inverters from builder but no load profile — used for load-linked saves
+    // Shell with EV+inverters+batteries from builder but no load profile — used for load-linked saves
     fun toScenarioShellWithEV(): ScenarioComponents {
         val sc = Scenario().also { it.scenarioName = scenarioName }
         return ScenarioComponents(
-            sc, inverterEntries.map { it.toInverter() }, emptyList(), emptyList(), null, LoadProfile(),
-            emptyList(), emptyList(), evEntries.map { it.toEvCharge() },
-            emptyList(), null, emptyList()
+            sc,
+            inverterEntries.map { it.toInverter() },
+            batteryEntries.map { it.toBattery() },
+            emptyList(),
+            null,
+            LoadProfile(),
+            expandedLoadShifts(),
+            expandedDischarges(),
+            evEntries.map { it.toEvCharge() },
+            emptyList(),
+            null,
+            evDivertEntries.map { it.toEvDivert() }
         )
     }
 }
@@ -404,8 +605,12 @@ class UI2WizardViewModel @Inject constructor(
             loadProfileDaily = lp?.dowDist?.dowDist,
             loadProfileMonthly = lp?.monthlyDist?.monthlyDist,
             evEntries = c.evCharges?.map { it.toWizardEvEntry() } ?: emptyList(),
+            evDivertEntries = c.evDiverts?.map { it.toWizardEvDivertEntry() } ?: emptyList(),
             inverterEntries = c.inverters?.map { it.toWizardInverterEntry() } ?: emptyList(),
-            panelEntries = c.panels?.map { it.toWizardPanelEntry() } ?: emptyList()
+            panelEntries = c.panels?.map { it.toWizardPanelEntry() } ?: emptyList(),
+            batteryEntries = c.batteries?.map { it.toWizardBatteryEntry() } ?: emptyList(),
+            batteryChargeEntries = c.loadShifts?.map { it.toWizardBatteryChargeEntry() } ?: emptyList(),
+            batteryDischargeEntries = c.discharges?.map { it.toWizardBatteryDischargeEntry() } ?: emptyList()
         )
     }
 
@@ -436,6 +641,65 @@ class UI2WizardViewModel @Inject constructor(
     fun updateEvEntry(id: String, transform: (WizardEvEntry) -> WizardEvEntry) =
         updateBuilder { b ->
             b.copy(evEntries = b.evEntries.map { if (it.id == id) transform(it) else it })
+        }
+
+    fun addEvDivertEntry() = updateBuilder { it.copy(evDivertEntries = it.evDivertEntries + WizardEvDivertEntry()) }
+
+    fun removeEvDivertEntry(id: String) =
+        updateBuilder { it.copy(evDivertEntries = it.evDivertEntries.filter { e -> e.id != id }) }
+
+    fun updateEvDivertEntry(id: String, transform: (WizardEvDivertEntry) -> WizardEvDivertEntry) =
+        updateBuilder { b ->
+            b.copy(evDivertEntries = b.evDivertEntries.map { if (it.id == id) transform(it) else it })
+        }
+
+    fun addBatteryEntry() {
+        updateBuilder { b ->
+            // Auto-select inverter when exactly one exists
+            val inv = if (b.inverterEntries.size == 1) b.inverterEntries[0].inverterName else ""
+            val size = 5.7
+            val maxRate = size / 24.0   // 0.5C per 5-min interval
+            b.copy(batteryEntries = b.batteryEntries + WizardBatteryEntry(
+                inverterName = inv,
+                batterySize = size,
+                maxCharge = maxRate,
+                maxDischarge = maxRate
+            ))
+        }
+    }
+
+    fun removeBatteryEntry(id: String) =
+        updateBuilder { it.copy(batteryEntries = it.batteryEntries.filter { e -> e.id != id }) }
+
+    fun updateBatteryEntry(id: String, transform: (WizardBatteryEntry) -> WizardBatteryEntry) =
+        updateBuilder { b ->
+            b.copy(batteryEntries = b.batteryEntries.map { if (it.id == id) transform(it) else it })
+        }
+
+    fun addBatteryChargeEntry() = updateBuilder { b ->
+        val defaultInv = b.batteryInverterNames().firstOrNull() ?: ""
+        b.copy(batteryChargeEntries = b.batteryChargeEntries + WizardBatteryChargeEntry(inverterName = defaultInv))
+    }
+
+    fun removeBatteryChargeEntry(id: String) =
+        updateBuilder { it.copy(batteryChargeEntries = it.batteryChargeEntries.filter { e -> e.id != id }) }
+
+    fun updateBatteryChargeEntry(id: String, transform: (WizardBatteryChargeEntry) -> WizardBatteryChargeEntry) =
+        updateBuilder { b ->
+            b.copy(batteryChargeEntries = b.batteryChargeEntries.map { if (it.id == id) transform(it) else it })
+        }
+
+    fun addBatteryDischargeEntry() = updateBuilder { b ->
+        val defaultInv = b.batteryInverterNames().firstOrNull() ?: ""
+        b.copy(batteryDischargeEntries = b.batteryDischargeEntries + WizardBatteryDischargeEntry(inverterName = defaultInv))
+    }
+
+    fun removeBatteryDischargeEntry(id: String) =
+        updateBuilder { it.copy(batteryDischargeEntries = it.batteryDischargeEntries.filter { e -> e.id != id }) }
+
+    fun updateBatteryDischargeEntry(id: String, transform: (WizardBatteryDischargeEntry) -> WizardBatteryDischargeEntry) =
+        updateBuilder { b ->
+            b.copy(batteryDischargeEntries = b.batteryDischargeEntries.map { if (it.id == id) transform(it) else it })
         }
 
     fun addInverterEntry() = updateBuilder { it.copy(inverterEntries = it.inverterEntries + WizardInverterEntry()) }
@@ -708,8 +972,12 @@ class UI2WizardViewModel @Inject constructor(
                         existing.scenario?.also { sc ->
                             sc.scenarioName = b.scenarioName
                             sc.setHasEVCharges(b.evEntries.isNotEmpty())
+                            sc.setHasEVDivert(b.evDivertEntries.isNotEmpty())
                             sc.setHasInverters(b.inverterEntries.isNotEmpty())
                             sc.setHasPanels(b.panelEntries.isNotEmpty())
+                            sc.setHasBatteries(b.batteryEntries.isNotEmpty())
+                            sc.setHasLoadShifts(b.expandedLoadShifts().isNotEmpty())
+                            sc.setHasDischarges(b.expandedDischarges().isNotEmpty())
                         }?.let { repository.updateScenario(it) }
                         repository.saveLoadProfile(scenarioId, b.toLoadProfile())
                         // Replace EV charges
@@ -719,12 +987,40 @@ class UI2WizardViewModel @Inject constructor(
                         b.evEntries.forEach { entry ->
                             repository.saveEVChargeForScenario(scenarioId, entry.toEvCharge())
                         }
+                        // Replace EV diverts
+                        existing.evDiverts?.forEach { d ->
+                            repository.deleteEVDivertFromScenario(d.evDivertIndex, scenarioId)
+                        }
+                        b.evDivertEntries.forEach { entry ->
+                            repository.saveEVDivertForScenario(scenarioId, entry.toEvDivert())
+                        }
                         // Replace inverters
                         existing.inverters?.forEach { inv ->
                             repository.deleteInverterFromScenario(inv.inverterIndex, scenarioId)
                         }
                         b.inverterEntries.forEach { entry ->
                             repository.saveInverter(scenarioId, entry.toInverter())
+                        }
+                        // Replace batteries
+                        existing.batteries?.forEach { bat ->
+                            repository.deleteBatteryFromScenario(bat.batteryIndex, scenarioId)
+                        }
+                        b.batteryEntries.forEach { entry ->
+                            repository.saveBatteryForScenario(scenarioId, entry.toBattery())
+                        }
+                        // Replace battery charge schedules (LoadShift) — replicated per inverter
+                        existing.loadShifts?.forEach { ls ->
+                            repository.deleteLoadShiftFromScenario(ls.loadShiftIndex, scenarioId)
+                        }
+                        b.expandedLoadShifts().forEach { ls ->
+                            repository.saveLoadShiftForScenario(scenarioId, ls)
+                        }
+                        // Replace battery discharge schedules (DischargeToGrid) — replicated per inverter
+                        existing.discharges?.forEach { d ->
+                            repository.deleteDischargeFromScenario(d.d2gIndex, scenarioId)
+                        }
+                        b.expandedDischarges().forEach { d ->
+                            repository.saveDischargeForScenario(scenarioId, d)
                         }
                         // Panels: update existing (preserving data), delete removed, insert new
                         val keptIds = b.panelEntries.filter { it.panelIndex > 0L }.map { it.panelIndex }.toSet()
@@ -749,12 +1045,16 @@ class UI2WizardViewModel @Inject constructor(
                         scenarioId
                     }
                     b.isLinked -> {
-                        // Full link: create shell scenario, then link load profile, EV, inverters, panels
+                        // Full link: create shell scenario, then link load profile, EV, inverters,
+                        // panels, batteries and battery schedules
                         val newId = repository.insertScenarioAndReturnID(b.toScenarioShell(), false)
                         repository.linkLoadProfileFromScenario(b.basedOnId, newId)
                         repository.linkEVChargeFromScenario(b.basedOnId, newId)
                         repository.linkInverterFromScenario(b.basedOnId, newId)
                         repository.linkPanelFromScenario(b.basedOnId, newId)
+                        repository.linkBatteryFromScenario(b.basedOnId, newId)
+                        repository.linkLoadShiftFromScenario(b.basedOnId, newId)
+                        repository.linkDischargeFromScenario(b.basedOnId, newId)
                         newId
                     }
                     b.loadSource == LoadSource.LINKED -> {

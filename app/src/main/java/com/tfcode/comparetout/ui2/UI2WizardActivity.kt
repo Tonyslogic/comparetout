@@ -464,20 +464,70 @@ private fun WizardScreen(
                 )
             }
 
+            // ── Battery ─────────────────────────────────────────────────
+            val batteryCount = builder.batteryEntries.size
+            val batteryChargeCount = builder.batteryChargeEntries.size
+            val batteryDischargeCount = builder.batteryDischargeEntries.size
+            WizardAccordionSection(
+                id = "battery",
+                iconContent = {
+                    Icon(painterResource(R.drawable.battery1), null, Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                },
+                title = "Battery",
+                isLinked = builder.isLinked && batteryCount > 0,
+                subtitle = if (!expandedSections.contains("battery") && batteryCount > 0) {
+                    buildString {
+                        append("$batteryCount batter${if (batteryCount > 1) "ies" else "y"}")
+                        append("  ·  ")
+                        append("${builder.batteryEntries.sumOf { it.batterySize }} kWh")
+                        if (batteryChargeCount > 0) append("  ·  ${batteryChargeCount} charge")
+                        if (batteryDischargeCount > 0) append("  ·  ${batteryDischargeCount} discharge")
+                    }
+                } else if (noviceMode) "Battery storage and schedules" else null,
+                isComplete = batteryCount > 0,
+                isLocked = !builder.isStartComplete,
+                lockedHint = "Complete Start first",
+                isExpanded = expandedSections.contains("battery"),
+                onToggle = { viewModel.toggleSection("battery") }
+            ) {
+                BatterySectionContent(
+                    entries = builder.batteryEntries,
+                    chargeEntries = builder.batteryChargeEntries,
+                    dischargeEntries = builder.batteryDischargeEntries,
+                    inverterEntries = builder.inverterEntries,
+                    noviceMode = noviceMode,
+                    onAdd = { viewModel.addBatteryEntry() },
+                    onRemove = { viewModel.removeBatteryEntry(it) },
+                    onUpdate = { id, fn -> viewModel.updateBatteryEntry(id, fn) },
+                    onAddCharge = { viewModel.addBatteryChargeEntry() },
+                    onRemoveCharge = { viewModel.removeBatteryChargeEntry(it) },
+                    onUpdateCharge = { id, fn -> viewModel.updateBatteryChargeEntry(id, fn) },
+                    onAddDischarge = { viewModel.addBatteryDischargeEntry() },
+                    onRemoveDischarge = { viewModel.removeBatteryDischargeEntry(it) },
+                    onUpdateDischarge = { id, fn -> viewModel.updateBatteryDischargeEntry(id, fn) }
+                )
+            }
+
             // ── EV ──────────────────────────────────────────────────────
             val evCount = builder.evEntries.size
+            val evDivertCount = builder.evDivertEntries.size
             WizardAccordionSection(
                 id = "ev",
                 iconContent = {
-                    val evRes = if (evCount > 0) R.drawable.ev_on else R.drawable.ev_off
+                    val evRes = if (evCount > 0 || evDivertCount > 0) R.drawable.ev_on else R.drawable.ev_off
                     Icon(painterResource(evRes), null, Modifier.size(20.dp), tint = Color.Unspecified)
                 },
                 title = "EV",
-                isLinked = builder.isLinked && evCount > 0,
-                subtitle = if (!expandedSections.contains("ev") && evCount > 0)
-                    "$evCount schedule${if (evCount > 1) "s" else ""}"
-                else if (noviceMode) "Electric vehicle charge schedules" else null,
-                isComplete = evCount > 0,
+                isLinked = builder.isLinked && (evCount > 0 || evDivertCount > 0),
+                subtitle = if (!expandedSections.contains("ev") && (evCount > 0 || evDivertCount > 0)) {
+                    buildString {
+                        if (evCount > 0) append("$evCount schedule${if (evCount > 1) "s" else ""}")
+                        if (evCount > 0 && evDivertCount > 0) append(" · ")
+                        if (evDivertCount > 0) append("$evDivertCount divert${if (evDivertCount > 1) "s" else ""}")
+                    }
+                } else if (noviceMode) "EV charge schedules and solar divert" else null,
+                isComplete = evCount > 0 || evDivertCount > 0,
                 isLocked = !builder.isLoadComplete,
                 lockedHint = "Complete Usage Data first",
                 isExpanded = expandedSections.contains("ev"),
@@ -485,10 +535,14 @@ private fun WizardScreen(
             ) {
                 EvSectionContent(
                     entries = builder.evEntries,
+                    divertEntries = builder.evDivertEntries,
                     noviceMode = noviceMode,
                     onAdd = { viewModel.addEvEntry() },
                     onRemove = { viewModel.removeEvEntry(it) },
-                    onUpdate = { id, fn -> viewModel.updateEvEntry(id, fn) }
+                    onUpdate = { id, fn -> viewModel.updateEvEntry(id, fn) },
+                    onAddDivert = { viewModel.addEvDivertEntry() },
+                    onRemoveDivert = { viewModel.removeEvDivertEntry(it) },
+                    onUpdateDivert = { id, fn -> viewModel.updateEvDivertEntry(id, fn) }
                 )
             }
 
@@ -509,7 +563,8 @@ private fun WizardProgressStrip(builder: WizardBuilder) {
         builder.isLoadComplete,
         builder.inverterEntries.isNotEmpty(),
         builder.panelEntries.isNotEmpty(),
-        builder.evEntries.isNotEmpty()
+        builder.batteryEntries.isNotEmpty(),
+        builder.evEntries.isNotEmpty() || builder.evDivertEntries.isNotEmpty()
     )
     val done = sections.count { it }
     Column {
@@ -889,7 +944,11 @@ private fun UsageDataSectionContent(
 
             Text("SOURCE", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
 
-            USAGE_SOURCE_OPTIONS.forEach { opt ->
+            val noviceVisible = USAGE_SOURCE_OPTIONS.filter {
+                // Source (derive from raw data) and Hand-craft are advanced — hide in novice mode
+                it.src != LoadSource.SOURCE && it.src != LoadSource.HAND
+            }
+            noviceVisible.forEach { opt ->
                 val selected = builder.loadSource == opt.src
                 Column(
                     modifier = Modifier.fillMaxWidth()
@@ -1363,20 +1422,242 @@ private fun DistributionSliderList(
 }
 
 /* ──────────────────────────────────────────────────────────────────
+   Battery section content
+────────────────────────────────────────────────────────────────── */
+
+@Composable
+private fun BatterySectionContent(
+    entries: List<WizardBatteryEntry>,
+    chargeEntries: List<WizardBatteryChargeEntry>,
+    dischargeEntries: List<WizardBatteryDischargeEntry>,
+    inverterEntries: List<WizardInverterEntry>,
+    noviceMode: Boolean,
+    onAdd: () -> Unit,
+    onRemove: (String) -> Unit,
+    onUpdate: (String, (WizardBatteryEntry) -> WizardBatteryEntry) -> Unit,
+    onAddCharge: () -> Unit,
+    onRemoveCharge: (String) -> Unit,
+    onUpdateCharge: (String, (WizardBatteryChargeEntry) -> WizardBatteryChargeEntry) -> Unit,
+    onAddDischarge: () -> Unit,
+    onRemoveDischarge: (String) -> Unit,
+    onUpdateDischarge: (String, (WizardBatteryDischargeEntry) -> WizardBatteryDischargeEntry) -> Unit
+) {
+    var expandedBatteryId by remember { mutableStateOf<String?>(null) }
+    var expandedChargeId by remember { mutableStateOf<String?>(null) }
+    var expandedDischargeId by remember { mutableStateOf<String?>(null) }
+    var advancedTab by remember { mutableIntStateOf(0) }
+
+    // Distinct inverter names the schedule cards can target — one schedule applies to every
+    // battery sitting on the chosen inverter.
+    val batteryInverters = remember(entries) {
+        entries.map { it.inverterName.ifBlank { "AlphaESS" } }.distinct()
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        TabRow(selectedTabIndex = advancedTab) {
+            Tab(selected = advancedTab == 0, onClick = { advancedTab = 0 }, text = { Text("Basic") })
+            Tab(selected = advancedTab == 1, onClick = { advancedTab = 1 }, text = { Text("Advanced") })
+        }
+        Spacer(Modifier.height(4.dp))
+        // ── Batteries ──────────────────────────────────────────────
+        WizardScheduleLabel("Batteries")
+        if (noviceMode) {
+            Text("Each battery stores excess solar (or off-peak grid) energy for use later. " +
+                "Add one battery per physical unit; multiple batteries on the same inverter are fine.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        if (entries.isEmpty()) {
+            Box(modifier = Modifier.fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                .padding(vertical = 20.dp),
+                contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(painterResource(R.drawable.battery1), null, Modifier.size(40.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                    Spacer(Modifier.height(6.dp))
+                    Text("No batteries yet", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    if (noviceMode) {
+                        Spacer(Modifier.height(4.dp))
+                        Text("Optional — skip if you have no battery storage.",
+                            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        } else {
+            entries.forEachIndexed { index, entry ->
+                WizardBatteryCard(
+                    entry = entry,
+                    index = index,
+                    expanded = expandedBatteryId == entry.id,
+                    noviceMode = noviceMode,
+                    showAdvanced = advancedTab == 1,
+                    inverterEntries = inverterEntries,
+                    onToggle = { expandedBatteryId = if (expandedBatteryId == entry.id) null else entry.id },
+                    onUpdate = { updated -> onUpdate(entry.id) { updated } },
+                    onDelete = { onRemove(entry.id); if (expandedBatteryId == entry.id) expandedBatteryId = null }
+                )
+            }
+        }
+
+        FilledTonalButton(onClick = onAdd, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(4.dp))
+            Text("Add battery")
+        }
+
+        Spacer(Modifier.height(4.dp))
+
+        // ── Charge Schedule ────────────────────────────────────────
+        WizardScheduleLabel("Charge schedule")
+        if (noviceMode) {
+            Text("Charge from the grid during cheap windows (e.g. night-saver) so the stored energy " +
+                "covers expensive peak hours. Add a window for each cheap-rate period; leave empty if " +
+                "you only want solar charging.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        if (entries.isEmpty() && chargeEntries.isEmpty()) {
+            Text("Add a battery above to enable charge scheduling.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.padding(vertical = 6.dp))
+        } else if (chargeEntries.isEmpty()) {
+            Box(modifier = Modifier.fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                .padding(vertical = 16.dp),
+                contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("No charge windows", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    if (noviceMode) {
+                        Spacer(Modifier.height(4.dp))
+                        Text("Add one if your tariff has cheap off-peak hours worth pre-charging from.",
+                            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        } else {
+            if (entries.isEmpty()) {
+                Text("⚠  Schedules below target an inverter with no batteries — add a battery to make them effective.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(vertical = 4.dp))
+            }
+            chargeEntries.forEachIndexed { index, entry ->
+                WizardBatteryChargeCard(
+                    entry = entry,
+                    index = index,
+                    expanded = expandedChargeId == entry.id,
+                    noviceMode = noviceMode,
+                    batteryInverters = batteryInverters,
+                    onToggle = { expandedChargeId = if (expandedChargeId == entry.id) null else entry.id },
+                    onUpdate = { updated -> onUpdateCharge(entry.id) { updated } },
+                    onDelete = { onRemoveCharge(entry.id); if (expandedChargeId == entry.id) expandedChargeId = null }
+                )
+            }
+        }
+
+        FilledTonalButton(
+            onClick = onAddCharge,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = entries.isNotEmpty()
+        ) {
+            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(4.dp))
+            Text("Add charge window")
+        }
+
+        Spacer(Modifier.height(4.dp))
+
+        // ── Discharge Schedule ─────────────────────────────────────
+        WizardScheduleLabel("Discharge schedule")
+        if (noviceMode) {
+            Text("Force the battery to export to the grid during a chosen window — useful when feed-in " +
+                "rates are higher than the avoided import cost (peak-export tariffs). Leave empty for " +
+                "standard self-consumption only.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        if (entries.isEmpty() && dischargeEntries.isEmpty()) {
+            Text("Add a battery above to enable discharge scheduling.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.padding(vertical = 6.dp))
+        } else if (dischargeEntries.isEmpty()) {
+            Box(modifier = Modifier.fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                .padding(vertical = 16.dp),
+                contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("No discharge windows", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    if (noviceMode) {
+                        Spacer(Modifier.height(4.dp))
+                        Text("Add one if your tariff has high feed-in rates worth exporting to.",
+                            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        } else {
+            if (entries.isEmpty()) {
+                Text("⚠  Schedules below target an inverter with no batteries — add a battery to make them effective.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(vertical = 4.dp))
+            }
+            dischargeEntries.forEachIndexed { index, entry ->
+                WizardBatteryDischargeCard(
+                    entry = entry,
+                    index = index,
+                    expanded = expandedDischargeId == entry.id,
+                    noviceMode = noviceMode,
+                    batteryInverters = batteryInverters,
+                    onToggle = { expandedDischargeId = if (expandedDischargeId == entry.id) null else entry.id },
+                    onUpdate = { updated -> onUpdateDischarge(entry.id) { updated } },
+                    onDelete = { onRemoveDischarge(entry.id); if (expandedDischargeId == entry.id) expandedDischargeId = null }
+                )
+            }
+        }
+
+        FilledTonalButton(
+            onClick = onAddDischarge,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = entries.isNotEmpty()
+        ) {
+            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(4.dp))
+            Text("Add discharge window")
+        }
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────────
    EV section content
 ────────────────────────────────────────────────────────────────── */
 
 @Composable
 private fun EvSectionContent(
     entries: List<WizardEvEntry>,
+    divertEntries: List<WizardEvDivertEntry>,
     noviceMode: Boolean,
     onAdd: () -> Unit,
     onRemove: (String) -> Unit,
-    onUpdate: (String, (WizardEvEntry) -> WizardEvEntry) -> Unit
+    onUpdate: (String, (WizardEvEntry) -> WizardEvEntry) -> Unit,
+    onAddDivert: () -> Unit,
+    onRemoveDivert: (String) -> Unit,
+    onUpdateDivert: (String, (WizardEvDivertEntry) -> WizardEvDivertEntry) -> Unit
 ) {
     var expandedEntryId by remember { mutableStateOf<String?>(null) }
+    var expandedDivertId by remember { mutableStateOf<String?>(null) }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        // ── Charging Schedules ───────────────────────────────────
+        WizardScheduleLabel("Charging Schedules")
         if (noviceMode) {
             Text("Add scheduled EV charging windows. Each window defines when the car charges and at what rate.",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1418,6 +1699,55 @@ private fun EvSectionContent(
             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(4.dp))
             Text("Add EV schedule")
+        }
+
+        Spacer(Modifier.height(4.dp))
+
+        // ── Solar Divert ─────────────────────────────────────────
+        WizardScheduleLabel("Solar Divert")
+        if (noviceMode) {
+            Text("Divert surplus solar energy to charge the EV within a defined time window.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        if (divertEntries.isEmpty()) {
+            Box(modifier = Modifier.fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                .padding(vertical = 20.dp),
+                contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(painterResource(R.drawable.ic_baseline_call_split_24), null,
+                        Modifier.size(40.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                    Spacer(Modifier.height(6.dp))
+                    Text("No divert windows", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    if (noviceMode) {
+                        Spacer(Modifier.height(4.dp))
+                        Text("Optional — add if you want to charge the EV from excess solar.",
+                            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        } else {
+            divertEntries.forEachIndexed { index, entry ->
+                WizardEvDivertCard(
+                    entry = entry,
+                    index = index,
+                    expanded = expandedDivertId == entry.id,
+                    noviceMode = noviceMode,
+                    onToggle = { expandedDivertId = if (expandedDivertId == entry.id) null else entry.id },
+                    onUpdate = { updated -> onUpdateDivert(entry.id) { updated } },
+                    onDelete = { onRemoveDivert(entry.id); if (expandedDivertId == entry.id) expandedDivertId = null }
+                )
+            }
+        }
+
+        FilledTonalButton(onClick = onAddDivert, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(4.dp))
+            Text("Add divert window")
         }
     }
 }

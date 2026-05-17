@@ -447,6 +447,133 @@ fun WizardEvEntryCard(
 }
 
 /* ──────────────────────────────────────────────────────────────────
+   EV divert card — expandable with name, active, ev1st, dailyMax,
+   minimum, and schedule
+────────────────────────────────────────────────────────────────── */
+
+@Composable
+fun WizardEvDivertCard(
+    entry: WizardEvDivertEntry,
+    index: Int,
+    expanded: Boolean,
+    noviceMode: Boolean,
+    onToggle: () -> Unit,
+    onUpdate: (WizardEvDivertEntry) -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .border(1.dp,
+                if (expanded) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                RoundedCornerShape(12.dp))
+    ) {
+        Row(modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            Box(modifier = Modifier.size(28.dp).clip(RoundedCornerShape(7.dp))
+                .background(MaterialTheme.colorScheme.secondaryContainer),
+                contentAlignment = Alignment.Center) {
+                Text("${index + 1}", style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSecondaryContainer)
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(entry.name.ifBlank { "EV Divert" },
+                    style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "${fmtHour(entry.beginHour)}–${fmtHour(entry.endHour)}  ·  ${entry.dailyMax} kWh/day  ·  ${fmtDays(entry.days)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (!entry.active) {
+                Text("off", style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline)
+                Spacer(Modifier.width(6.dp))
+            }
+            Icon(imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                contentDescription = if (expanded) "Collapse" else "Expand",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        AnimatedVisibility(visible = expanded) {
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)) {
+
+                OutlinedTextField(value = entry.name,
+                    onValueChange = { onUpdate(entry.copy(name = it)) },
+                    label = { Text("Divert name") },
+                    modifier = Modifier.fillMaxWidth(), singleLine = true)
+
+                Row(modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Active", style = MaterialTheme.typography.bodySmall,
+                            fontWeight = FontWeight.SemiBold)
+                        if (noviceMode) Text("Enable this solar divert window.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    Switch(checked = entry.active, onCheckedChange = { onUpdate(entry.copy(active = it)) })
+                }
+
+                if (!noviceMode) {
+                    Row(modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text("EV priority", style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.SemiBold)
+                            Text("EV charges before other solar divert loads (e.g. hot water).",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        Switch(checked = entry.ev1st, onCheckedChange = { onUpdate(entry.copy(ev1st = it)) })
+                    }
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = entry.dailyMax.toString(),
+                            onValueChange = { v -> v.toDoubleOrNull()?.let { onUpdate(entry.copy(dailyMax = it)) } },
+                            label = { Text("Daily max (kWh)") },
+                            modifier = Modifier.weight(1f), singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = entry.minimum.toString(),
+                            onValueChange = { v -> v.toDoubleOrNull()?.let { onUpdate(entry.copy(minimum = it)) } },
+                            label = { Text("Min excess (kW)") },
+                            modifier = Modifier.weight(1f), singleLine = true
+                        )
+                    }
+                }
+
+                WizardScheduleBlock(
+                    startHour = entry.beginHour, endHour = entry.endHour,
+                    days = entry.days, months = entry.months,
+                    onStartHourChange = { onUpdate(entry.copy(beginHour = it)) },
+                    onEndHourChange = { onUpdate(entry.copy(endHour = it)) },
+                    onDaysChange = { onUpdate(entry.copy(days = it)) },
+                    onMonthsChange = { onUpdate(entry.copy(months = it)) },
+                    noviceMode = noviceMode
+                )
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDelete) {
+                        Icon(Icons.Default.Delete, contentDescription = "Remove", modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Remove")
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────────
    Inverter card — expandable, mirrors WizardEvEntryCard
 ────────────────────────────────────────────────────────────────── */
 
@@ -819,7 +946,7 @@ fun WizardPanelCard(
                                     Modifier.size(16.dp), tint = Color.Unspecified)
                             }
                         )
-                        if (pvSources.isNotEmpty()) {
+                        if (pvSources.isNotEmpty() && !noviceMode) {
                             FilterChip(
                                 selected = entry.pvDataSource == PanelDataSource.SOURCE,
                                 onClick = { onUpdate(entry.copy(pvDataSource = PanelDataSource.SOURCE)) },
@@ -1004,6 +1131,474 @@ fun WizardPanelCard(
                         )
                     }
                 }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDelete) {
+                        Icon(Icons.Default.Delete, contentDescription = "Remove", modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Remove")
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Battery card — expandable, mirrors WizardInverterCard
+────────────────────────────────────────────────────────────────── */
+
+@Composable
+fun WizardBatteryCard(
+    entry: WizardBatteryEntry,
+    index: Int,
+    expanded: Boolean,
+    noviceMode: Boolean,
+    showAdvanced: Boolean,
+    inverterEntries: List<WizardInverterEntry>,
+    onToggle: () -> Unit,
+    onUpdate: (WizardBatteryEntry) -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    // Auto-select inverter when exactly one exists and none is selected
+    LaunchedEffect(inverterEntries.size, entry.inverterName) {
+        if (inverterEntries.size == 1 && entry.inverterName.isBlank()) {
+            onUpdate(entry.copy(inverterName = inverterEntries[0].inverterName))
+        }
+    }
+
+    Column(
+        modifier = modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .border(1.dp,
+                if (expanded) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                RoundedCornerShape(12.dp))
+    ) {
+        Row(modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            Box(modifier = Modifier.size(28.dp).clip(RoundedCornerShape(7.dp))
+                .background(MaterialTheme.colorScheme.secondaryContainer),
+                contentAlignment = Alignment.Center) {
+                Text("${index + 1}", style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSecondaryContainer)
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Battery ${index + 1}",
+                    style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "${entry.batterySize} kWh  ·  ${entry.inverterName.ifBlank { "—" }}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                contentDescription = if (expanded) "Collapse" else "Expand",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        AnimatedVisibility(visible = expanded) {
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)) {
+
+                // Size + inverter
+                OutlinedTextField(
+                    value = entry.batterySize.toString(),
+                    onValueChange = { v ->
+                        v.toDoubleOrNull()?.let { newSize ->
+                            // If max charge/discharge are still at the 0.5C default for the previous
+                            // size, keep them in sync; otherwise leave the user's overrides alone.
+                            val prevRate = entry.batterySize / 24.0
+                            val keepCharge = kotlin.math.abs(entry.maxCharge - prevRate) < 1e-6
+                            val keepDischarge = kotlin.math.abs(entry.maxDischarge - prevRate) < 1e-6
+                            onUpdate(entry.copy(
+                                batterySize = newSize,
+                                maxCharge = if (keepCharge) newSize / 24.0 else entry.maxCharge,
+                                maxDischarge = if (keepDischarge) newSize / 24.0 else entry.maxDischarge
+                            ))
+                        }
+                    },
+                    label = { Text("Battery size (kWh)") },
+                    modifier = Modifier.fillMaxWidth(), singleLine = true,
+                    supportingText = if (noviceMode) ({ Text("Total usable capacity.") }) else null
+                )
+
+                // Inverter selector
+                if (inverterEntries.isNotEmpty()) {
+                    val unknownInverter = entry.inverterName.isNotBlank() &&
+                        inverterEntries.none { it.inverterName == entry.inverterName }
+                    var invMenu by remember { mutableStateOf(false) }
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedTextField(
+                            value = entry.inverterName.ifBlank { "Select…" },
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text("Inverter") },
+                            isError = unknownInverter,
+                            modifier = Modifier.fillMaxWidth().clickable { invMenu = true },
+                            trailingIcon = {
+                                Icon(Icons.Default.KeyboardArrowDown, null,
+                                    Modifier.clickable { invMenu = true })
+                            },
+                            supportingText = if (unknownInverter) ({
+                                Text("\"${entry.inverterName}\" is not in the inverter list — pick one above.")
+                            }) else null
+                        )
+                        DropdownMenu(expanded = invMenu, onDismissRequest = { invMenu = false }) {
+                            inverterEntries.forEach { inv ->
+                                DropdownMenuItem(
+                                    text = { Text(inv.inverterName) },
+                                    onClick = {
+                                        onUpdate(entry.copy(inverterName = inv.inverterName))
+                                        invMenu = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                } else {
+                    OutlinedTextField(
+                        value = entry.inverterName,
+                        onValueChange = { onUpdate(entry.copy(inverterName = it)) },
+                        label = { Text("Inverter name") },
+                        modifier = Modifier.fillMaxWidth(), singleLine = true,
+                        supportingText = { Text("Add an Inverter above to link this battery.") }
+                    )
+                }
+
+                if (showAdvanced) {
+                    // BMS: discharge floor + storage loss
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = entry.dischargeStop.toString(),
+                            onValueChange = { v -> v.toDoubleOrNull()?.coerceIn(0.0, 100.0)
+                                ?.let { onUpdate(entry.copy(dischargeStop = it)) } },
+                            label = { Text("Min SOC %") },
+                            modifier = Modifier.weight(1f), singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = entry.storageLoss.toString(),
+                            onValueChange = { v -> v.toDoubleOrNull()
+                                ?.let { onUpdate(entry.copy(storageLoss = it)) } },
+                            label = { Text("Storage loss %") },
+                            modifier = Modifier.weight(1f), singleLine = true
+                        )
+                    }
+                    // BMS: max charge / discharge per 5-min interval (~0.5C default)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = entry.maxCharge.toString(),
+                            onValueChange = { v -> v.toDoubleOrNull()
+                                ?.let { onUpdate(entry.copy(maxCharge = it)) } },
+                            label = { Text("Max charge kWh/5min") },
+                            modifier = Modifier.weight(1f), singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = entry.maxDischarge.toString(),
+                            onValueChange = { v -> v.toDoubleOrNull()
+                                ?.let { onUpdate(entry.copy(maxDischarge = it)) } },
+                            label = { Text("Max discharge kWh/5min") },
+                            modifier = Modifier.weight(1f), singleLine = true
+                        )
+                    }
+                    // BMS: charge model curve (taper at top/bottom of SOC range)
+                    Text("Charge curve — % of max rate at each SOC band",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.outline)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = entry.cmPercent0.toString(),
+                            onValueChange = { v -> v.toIntOrNull()?.coerceIn(0, 100)
+                                ?.let { onUpdate(entry.copy(cmPercent0 = it)) } },
+                            label = { Text("0–12% SOC") },
+                            modifier = Modifier.weight(1f), singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = entry.cmPercent12.toString(),
+                            onValueChange = { v -> v.toIntOrNull()?.coerceIn(0, 100)
+                                ?.let { onUpdate(entry.copy(cmPercent12 = it)) } },
+                            label = { Text("12–90% SOC") },
+                            modifier = Modifier.weight(1f), singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = entry.cmPercent90.toString(),
+                            onValueChange = { v -> v.toIntOrNull()?.coerceIn(0, 100)
+                                ?.let { onUpdate(entry.copy(cmPercent90 = it)) } },
+                            label = { Text("90–100% SOC") },
+                            modifier = Modifier.weight(1f), singleLine = true
+                        )
+                    }
+                }
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDelete) {
+                        Icon(Icons.Default.Delete, contentDescription = "Remove", modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Remove")
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Shared dropdown for picking which inverter a battery schedule targets.
+   Options are the distinct inverter names from the wizard's batteries.
+────────────────────────────────────────────────────────────────── */
+
+@Composable
+private fun BatteryInverterDropdown(
+    selected: String,
+    options: List<String>,
+    noviceMode: Boolean,
+    onSelect: (String) -> Unit
+) {
+    val unknown = selected.isNotBlank() && selected !in options
+    var menu by remember { mutableStateOf(false) }
+    Box(modifier = Modifier.fillMaxWidth()) {
+        OutlinedTextField(
+            value = selected.ifBlank { if (options.isEmpty()) "(no batteries)" else "Select…" },
+            onValueChange = {},
+            readOnly = true,
+            label = { Text("Applies to inverter") },
+            isError = unknown,
+            modifier = Modifier.fillMaxWidth()
+                .clickable(enabled = options.isNotEmpty()) { menu = true },
+            trailingIcon = {
+                Icon(Icons.Default.KeyboardArrowDown, null,
+                    Modifier.clickable(enabled = options.isNotEmpty()) { menu = true })
+            },
+            supportingText = when {
+                unknown -> ({ Text("\"$selected\" is not in the battery inverter list — pick one above.") })
+                noviceMode && options.size > 1 ->
+                    ({ Text("Applies to every battery attached to this inverter.") })
+                noviceMode && options.size == 1 ->
+                    ({ Text("Applies to all batteries on ${options[0]}.") })
+                else -> null
+            }
+        )
+        DropdownMenu(expanded = menu, onDismissRequest = { menu = false }) {
+            options.forEach { name ->
+                DropdownMenuItem(
+                    text = { Text(name) },
+                    onClick = { onSelect(name); menu = false }
+                )
+            }
+        }
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Battery charge schedule (LoadShift) card
+────────────────────────────────────────────────────────────────── */
+
+@Composable
+fun WizardBatteryChargeCard(
+    entry: WizardBatteryChargeEntry,
+    index: Int,
+    expanded: Boolean,
+    noviceMode: Boolean,
+    batteryInverters: List<String>,
+    onToggle: () -> Unit,
+    onUpdate: (WizardBatteryChargeEntry) -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    // Auto-select the only available inverter if none is selected
+    LaunchedEffect(batteryInverters, entry.inverterName) {
+        if (entry.inverterName.isBlank() && batteryInverters.size == 1) {
+            onUpdate(entry.copy(inverterName = batteryInverters[0]))
+        }
+    }
+    Column(
+        modifier = modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .border(1.dp,
+                if (expanded) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                RoundedCornerShape(12.dp))
+    ) {
+        Row(modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            Box(modifier = Modifier.size(28.dp).clip(RoundedCornerShape(7.dp))
+                .background(MaterialTheme.colorScheme.secondaryContainer),
+                contentAlignment = Alignment.Center) {
+                Text("${index + 1}", style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSecondaryContainer)
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(entry.name.ifBlank { "Charge schedule" },
+                    style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "${fmtHour(entry.beginHour)}–${fmtHour(entry.endHour)}  ·  charge to ${entry.stopAt.toInt()}%  ·  ${entry.inverterName.ifBlank { "—" }}  ·  ${fmtDays(entry.days)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                contentDescription = if (expanded) "Collapse" else "Expand",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        AnimatedVisibility(visible = expanded) {
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)) {
+
+                OutlinedTextField(value = entry.name,
+                    onValueChange = { onUpdate(entry.copy(name = it)) },
+                    label = { Text("Schedule name") },
+                    modifier = Modifier.fillMaxWidth(), singleLine = true)
+
+                BatteryInverterDropdown(
+                    selected = entry.inverterName,
+                    options = batteryInverters,
+                    noviceMode = noviceMode,
+                    onSelect = { onUpdate(entry.copy(inverterName = it)) }
+                )
+
+                OutlinedTextField(
+                    value = entry.stopAt.toString(),
+                    onValueChange = { v -> v.toDoubleOrNull()?.coerceIn(0.0, 100.0)
+                        ?.let { onUpdate(entry.copy(stopAt = it)) } },
+                    label = { Text("Target SOC %") },
+                    modifier = Modifier.fillMaxWidth(), singleLine = true,
+                    supportingText = if (noviceMode) ({
+                        Text("Charge stops once the battery reaches this state of charge.")
+                    }) else null
+                )
+
+                WizardScheduleBlock(
+                    startHour = entry.beginHour, endHour = entry.endHour,
+                    days = entry.days, months = entry.months,
+                    onStartHourChange = { onUpdate(entry.copy(beginHour = it)) },
+                    onEndHourChange = { onUpdate(entry.copy(endHour = it)) },
+                    onDaysChange = { onUpdate(entry.copy(days = it)) },
+                    onMonthsChange = { onUpdate(entry.copy(months = it)) },
+                    noviceMode = noviceMode
+                )
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDelete) {
+                        Icon(Icons.Default.Delete, contentDescription = "Remove", modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Remove")
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Battery discharge schedule (DischargeToGrid) card
+────────────────────────────────────────────────────────────────── */
+
+@Composable
+fun WizardBatteryDischargeCard(
+    entry: WizardBatteryDischargeEntry,
+    index: Int,
+    expanded: Boolean,
+    noviceMode: Boolean,
+    batteryInverters: List<String>,
+    onToggle: () -> Unit,
+    onUpdate: (WizardBatteryDischargeEntry) -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LaunchedEffect(batteryInverters, entry.inverterName) {
+        if (entry.inverterName.isBlank() && batteryInverters.size == 1) {
+            onUpdate(entry.copy(inverterName = batteryInverters[0]))
+        }
+    }
+    Column(
+        modifier = modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .border(1.dp,
+                if (expanded) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                RoundedCornerShape(12.dp))
+    ) {
+        Row(modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            Box(modifier = Modifier.size(28.dp).clip(RoundedCornerShape(7.dp))
+                .background(MaterialTheme.colorScheme.secondaryContainer),
+                contentAlignment = Alignment.Center) {
+                Text("${index + 1}", style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSecondaryContainer)
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(entry.name.ifBlank { "Discharge schedule" },
+                    style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "${fmtHour(entry.beginHour)}–${fmtHour(entry.endHour)}  ·  ${entry.rate} kW down to ${entry.stopAt.toInt()}%  ·  ${entry.inverterName.ifBlank { "—" }}  ·  ${fmtDays(entry.days)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                contentDescription = if (expanded) "Collapse" else "Expand",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        AnimatedVisibility(visible = expanded) {
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)) {
+
+                OutlinedTextField(value = entry.name,
+                    onValueChange = { onUpdate(entry.copy(name = it)) },
+                    label = { Text("Schedule name") },
+                    modifier = Modifier.fillMaxWidth(), singleLine = true)
+
+                BatteryInverterDropdown(
+                    selected = entry.inverterName,
+                    options = batteryInverters,
+                    noviceMode = noviceMode,
+                    onSelect = { onUpdate(entry.copy(inverterName = it)) }
+                )
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = entry.stopAt.toString(),
+                        onValueChange = { v -> v.toDoubleOrNull()?.coerceIn(0.0, 100.0)
+                            ?.let { onUpdate(entry.copy(stopAt = it)) } },
+                        label = { Text("Min SOC %") },
+                        modifier = Modifier.weight(1f), singleLine = true,
+                        supportingText = if (noviceMode) ({
+                            Text("Discharge stops at this SOC.")
+                        }) else null
+                    )
+                    OutlinedTextField(
+                        value = entry.rate.toString(),
+                        onValueChange = { v -> v.toDoubleOrNull()
+                            ?.let { onUpdate(entry.copy(rate = it)) } },
+                        label = { Text("Rate (kW)") },
+                        modifier = Modifier.weight(1f), singleLine = true,
+                        supportingText = if (noviceMode) ({
+                            Text("Export power to grid.")
+                        }) else null
+                    )
+                }
+
+                WizardScheduleBlock(
+                    startHour = entry.beginHour, endHour = entry.endHour,
+                    days = entry.days, months = entry.months,
+                    onStartHourChange = { onUpdate(entry.copy(beginHour = it)) },
+                    onEndHourChange = { onUpdate(entry.copy(endHour = it)) },
+                    onDaysChange = { onUpdate(entry.copy(days = it)) },
+                    onMonthsChange = { onUpdate(entry.copy(months = it)) },
+                    noviceMode = noviceMode
+                )
+
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = onDelete) {
                         Icon(Icons.Default.Delete, contentDescription = "Remove", modifier = Modifier.size(16.dp))
