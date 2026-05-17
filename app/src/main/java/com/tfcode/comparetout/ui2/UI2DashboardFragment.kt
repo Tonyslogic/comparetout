@@ -80,6 +80,7 @@ import com.tfcode.comparetout.model.scenario.PanelPVSummary
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
@@ -739,8 +740,9 @@ fun LoadDistributionCharts(lp: LoadProfile) {
 
     if (zoomedIdx >= 0) {
         val (title, dist, labels) = charts[zoomedIdx]
-        val size = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.9f).dp
-        Dialog(onDismissRequest = { zoomedIdx = -1 }) {
+        val size = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 1.0f).dp
+        Dialog(onDismissRequest = { zoomedIdx = -1 },
+            properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
                 Column(
                     modifier = Modifier.padding(12.dp).fillMaxSize(),
@@ -824,8 +826,9 @@ fun PVSummaryBarChart(panelSummary: List<PanelPVSummary>, panels: List<Panel>) {
         val name     = panels.firstOrNull { it.panelIndex == panelId }?.panelName ?: "Panel $panelId"
         val monthMap = grouped[panelId]?.associate { (it.month.toIntOrNull() ?: 1) to it.tot } ?: emptyMap()
         val dist     = (1..12).map { m -> monthMap[m] ?: 0.0 }
-        val size     = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.9f).dp
-        Dialog(onDismissRequest = { zoomedIdx = -1 }) {
+        val size     = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 1.0f).dp
+        Dialog(onDismissRequest = { zoomedIdx = -1 },
+            properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
                 Column(
                     modifier = Modifier.padding(12.dp).fillMaxSize(),
@@ -951,18 +954,20 @@ private fun AllCostingsTable(
             }.filter { it.value > 0 }
         }
         val size = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.9f).dp
-        Dialog(onDismissRequest = { zoomedCosting = null }) {
+        Dialog(onDismissRequest = { zoomedCosting = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
                 Column(
                     modifier = Modifier.padding(16.dp).fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(c.fullPlanName ?: "", style = MaterialTheme.typography.titleSmall,
                         textAlign = TextAlign.Center)
                     Spacer(Modifier.height(8.dp))
-                    PieChart(slices = slices, modifier = Modifier.size(size * 0.72f), isDonut = true)
-                    PieLegend(slices = slices)
+                    PieChart(slices = slices, modifier = Modifier.size(size * 0.55f), isDonut = true)
+                    Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
+                        PieLegend(slices = slices)
+                    }
                 }
             }
         }
@@ -1002,8 +1007,9 @@ private fun DataSourcePVBarChart(pvData: List<Pair<String, Double>>) {
         )
     }
     if (zoomed) {
-        val size = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.9f).dp
-        Dialog(onDismissRequest = { zoomed = false }) {
+        val size = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 1.0f).dp
+        Dialog(onDismissRequest = { zoomed = false },
+            properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
                 Column(modifier = Modifier.padding(12.dp).fillMaxSize(),
                     horizontalAlignment = Alignment.CenterHorizontally) {
@@ -1143,17 +1149,19 @@ private fun DataSourceExplorePies(
         val (title, slices) = charts[zoomedChart]
         val visible = slices.filter { it.value > 0 }
         val size = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.9f).dp
-        Dialog(onDismissRequest = { zoomedChart = -1 }) {
+        Dialog(onDismissRequest = { zoomedChart = -1 },
+            properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
                 Column(
                     modifier = Modifier.padding(16.dp).fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(title, style = MaterialTheme.typography.titleSmall)
                     Spacer(Modifier.height(8.dp))
-                    PieChart(slices = visible, modifier = Modifier.size(size * 0.72f), isDonut = true)
-                    PieLegend(slices = visible)
+                    PieChart(slices = visible, modifier = Modifier.size(size * 0.55f), isDonut = true)
+                    Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
+                        PieLegend(slices = visible)
+                    }
                 }
             }
         }
@@ -1237,18 +1245,20 @@ private fun DataSourceCostingsTable(
             }.filter { it.value > 0 }
         }
         val size = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.9f).dp
-        Dialog(onDismissRequest = { zoomedRow = null }) {
+        Dialog(onDismissRequest = { zoomedRow = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
                 Column(
                     modifier = Modifier.padding(16.dp).fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(r.planName, style = MaterialTheme.typography.titleSmall,
                         textAlign = TextAlign.Center)
                     Spacer(Modifier.height(8.dp))
-                    PieChart(slices = slices, modifier = Modifier.size(size * 0.72f), isDonut = true)
-                    PieLegend(slices = slices)
+                    PieChart(slices = slices, modifier = Modifier.size(size * 0.55f), isDonut = true)
+                    Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
+                        PieLegend(slices = slices)
+                    }
                 }
             }
         }
@@ -1282,27 +1292,33 @@ private fun DataSourceDistributionCharts(distribution: UsageDistribution) {
 
     val cfg = LocalConfiguration.current
 
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        charts.forEachIndexed { idx, (title, dist, labels) ->
+            if (dist.any { it > 0 }) {
+                Column(modifier = Modifier.fillMaxWidth().clickable { zoomedIdx = idx }) {
+                    Text("$title  ↗", style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(bottom = 2.dp))
+                    SimpleDistBarChart(dist = dist, labels = labels,
+                        modifier = Modifier.fillMaxWidth().height(80.dp))
+                }
+            }
+        }
+    }
+
     if (zoomedIdx >= 0) {
         val (title, dist, labels) = charts[zoomedIdx]
-        val chartH = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.6f).dp
-        Column(
-            modifier = Modifier.fillMaxWidth().clickable { zoomedIdx = -1 }.padding(top = 4.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text("$title  (tap to close)", style = MaterialTheme.typography.titleSmall)
-            Spacer(Modifier.height(4.dp))
-            SimpleDistBarChart(dist = dist, labels = labels, modifier = Modifier.fillMaxWidth().height(chartH))
-        }
-    } else {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            charts.forEachIndexed { idx, (title, dist, labels) ->
-                if (dist.any { it > 0 }) {
-                    Column(modifier = Modifier.fillMaxWidth().clickable { zoomedIdx = idx }) {
-                        Text("$title  ↗", style = MaterialTheme.typography.labelSmall,
-                            modifier = Modifier.padding(bottom = 2.dp))
-                        SimpleDistBarChart(dist = dist, labels = labels,
-                            modifier = Modifier.fillMaxWidth().height(80.dp))
-                    }
+        val size = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 1.0f).dp
+        Dialog(onDismissRequest = { zoomedIdx = -1 },
+            properties = DialogProperties(usePlatformDefaultWidth = false)) {
+            Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
+                Column(
+                    modifier = Modifier.padding(12.dp).fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(title, style = MaterialTheme.typography.titleSmall)
+                    Spacer(Modifier.height(8.dp))
+                    SimpleDistBarChart(dist = dist, labels = labels,
+                        modifier = Modifier.fillMaxWidth().weight(1f))
                 }
             }
         }
@@ -1324,7 +1340,7 @@ fun PieChart(slices: List<PieSlice>, modifier: Modifier = Modifier, isDonut: Boo
             startAngle += sweep
         }
         if (isDonut) {
-            drawCircle(color = holeColor, radius = size.minDimension * 0.35f)
+            drawCircle(color = holeColor, radius = size.minDimension * 0.245f)
         }
     }
 }
@@ -1403,17 +1419,19 @@ fun SimulationPieCharts(kpis: SimKPIs) {
         val (title, slices) = charts[zoomedChart]
         val visible = slices.filter { it.value > 0 }
         val size = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.9f).dp
-        Dialog(onDismissRequest = { zoomedChart = -1 }) {
+        Dialog(onDismissRequest = { zoomedChart = -1 },
+            properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
                 Column(
                     modifier = Modifier.padding(16.dp).fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(title, style = MaterialTheme.typography.titleSmall)
                     Spacer(Modifier.height(8.dp))
-                    PieChart(slices = visible, modifier = Modifier.size(size * 0.72f), isDonut = true)
-                    PieLegend(slices = visible)
+                    PieChart(slices = visible, modifier = Modifier.size(size * 0.55f), isDonut = true)
+                    Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
+                        PieLegend(slices = visible)
+                    }
                 }
             }
         }

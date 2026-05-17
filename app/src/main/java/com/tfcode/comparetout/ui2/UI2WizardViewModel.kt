@@ -338,7 +338,7 @@ class UI2WizardViewModel @Inject constructor(
         }
 
         if (wizardSection != null) {
-            _expandedSections.value = setOf("start", wizardSection)
+            _expandedSections.value = setOf(wizardSection)
         }
 
         if (isEditMode) loadExisting()

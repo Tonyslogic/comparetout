@@ -50,6 +50,7 @@ import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Surface
@@ -100,6 +101,9 @@ import com.tfcode.comparetout.model.scenario.PanelPVSummary
 import com.tfcode.comparetout.model.scenario.Scenario
 import dagger.hilt.android.AndroidEntryPoint
 import java.time.LocalDate
+import kotlinx.coroutines.delay
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
 
 @AndroidEntryPoint
 class UI2WizardActivity : AppCompatActivity() {
@@ -135,8 +139,27 @@ private fun WizardScreen(
     val isSaving               = saveResult == WizardSaveResult.Saving
     var simulationQueued       by remember { mutableStateOf(false) }
     var pvgisQueued            by remember { mutableIntStateOf(0) }
+    var lastSavedBuilder       by remember { mutableStateOf<WizardBuilder?>(null) }
+    var showCloseConfirm       by remember { mutableStateOf(false) }
+    var showSavedTick          by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
+
+    val simulationWorkInfos by remember(context) {
+        WorkManager.getInstance(context).getWorkInfosForUniqueWorkLiveData("Simulation")
+    }.observeAsState(emptyList())
+    val simButtonState: SimButtonState = when {
+        !simulationQueued -> SimButtonState.Idle
+        simulationWorkInfos.any { it.state == WorkInfo.State.RUNNING } -> SimButtonState.Running
+        simulationWorkInfos.isNotEmpty() && simulationWorkInfos.all { it.state.isFinished } &&
+            simulationWorkInfos.none {
+                it.state == WorkInfo.State.FAILED || it.state == WorkInfo.State.CANCELLED
+            } -> SimButtonState.Done
+        simulationWorkInfos.isNotEmpty() && simulationWorkInfos.any {
+            it.state == WorkInfo.State.FAILED || it.state == WorkInfo.State.CANCELLED
+        } -> SimButtonState.Failed
+        else -> SimButtonState.Queued
+    }
     val locationClient = remember(context) { LocationServices.getFusedLocationProviderClient(context) }
 
     val locationPermLauncher = rememberLauncherForActivityResult(
@@ -186,10 +209,19 @@ private fun WizardScreen(
                 }
                 result.pvgisStringsQueued > 0 -> {
                     pvgisQueued = result.pvgisStringsQueued
-                    // Don't auto-close; user sees the fetch banner and closes manually
                 }
-                else -> onClose()
             }
+            if (!result.runSimulation) {
+                lastSavedBuilder = builder
+                showSavedTick = true
+            }
+        }
+    }
+
+    LaunchedEffect(showSavedTick) {
+        if (showSavedTick) {
+            delay(2000L)
+            showSavedTick = false
         }
     }
 
@@ -209,14 +241,41 @@ private fun WizardScreen(
     }
 
     var menuOpen by remember { mutableStateOf(false) }
-    val title = if (viewModel.isEditMode) "Edit scenario" else "Build your scenario"
+    val title = when {
+        viewModel.isEditMode && builder.scenarioName.isNotBlank() ->
+            "Edit scenario · ${builder.scenarioName}"
+        viewModel.isEditMode -> "Edit scenario"
+        else -> "Build your scenario"
+    }
+
+    val handleClose: () -> Unit = {
+        val hasChanges = when {
+            lastSavedBuilder != null -> lastSavedBuilder != builder
+            else -> builder.isStartComplete || builder.isLoadComplete
+        }
+        if (hasChanges) showCloseConfirm = true else onClose()
+    }
+
+    if (showCloseConfirm) {
+        AlertDialog(
+            onDismissRequest = { showCloseConfirm = false },
+            title = { Text("Leave without saving?") },
+            text = { Text("You have unsaved changes. Leave anyway?") },
+            confirmButton = {
+                Button(onClick = { showCloseConfirm = false; onClose() }) { Text("Leave") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showCloseConfirm = false }) { Text("Stay") }
+            }
+        )
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(title, style = MaterialTheme.typography.titleMedium) },
                 navigationIcon = {
-                    IconButton(onClick = onClose) {
+                    IconButton(onClick = handleClose) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 },
@@ -246,24 +305,41 @@ private fun WizardScreen(
             )
         }
     ) { padding ->
-        Column(
-            modifier = Modifier
-                .padding(padding)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            WizardProgressStrip(builder = builder)
-
-            if (pvgisQueued > 0) {
-                PvgisBackgroundBanner(stringCount = pvgisQueued, onClose = onClose)
+        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+            // Fixed: progress strip + action buttons
+            Column(
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                WizardProgressStrip(builder = builder)
+                WizardFooter(
+                    canRun = builder.isRunnable && nameError == null,
+                    isSaving = isSaving,
+                    simButtonState = simButtonState,
+                    showSavedTick = showSavedTick,
+                    noviceMode = noviceMode,
+                    onSave = { viewModel.save(runSimulation = false) },
+                    onRun = { simulationQueued = false; viewModel.save(runSimulation = true) },
+                    onClose = handleClose
+                )
             }
+            // Scrollable accordion sections
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = 16.dp, vertical = 4.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                if (pvgisQueued > 0) {
+                    PvgisBackgroundBanner(stringCount = pvgisQueued, onClose = handleClose)
+                }
 
-            if (noviceMode) {
-                WizardHintBanner("Tap any section to expand it. Start and Usage Data are required to run a simulation.")
-            }
+                if (noviceMode) {
+                    WizardHintBanner("Tap any section to expand it. Start and Usage Data are required to run a simulation.")
+                }
 
-            // ── Start ───────────────────────────────────────────────────
+                // ── Start ───────────────────────────────────────────────────
             WizardAccordionSection(
                 id = "start",
                 iconContent = { Text("🌱", style = MaterialTheme.typography.titleSmall) },
@@ -329,7 +405,8 @@ private fun WizardScreen(
                 id = "inverters",
                 iconContent = {
                     val res = if (inverterCount > 0) R.drawable.invertertick else R.drawable.inverter
-                    Icon(painterResource(res), null, Modifier.size(20.dp), tint = Color.Unspecified)
+                    Icon(painterResource(res), null, Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 },
                 title = "Inverters",
                 isLinked = builder.isLinked && inverterCount > 0,
@@ -415,18 +492,8 @@ private fun WizardScreen(
                 )
             }
 
-            // ── Footer ──────────────────────────────────────────────────
-            WizardFooter(
-                canRun = builder.isRunnable && nameError == null,
-                isSaving = isSaving,
-                simulationQueued = simulationQueued,
-                noviceMode = noviceMode,
-                onSave = { viewModel.save(runSimulation = false) },
-                onRun = { simulationQueued = false; viewModel.save(runSimulation = true) },
-                onClose = onClose
-            )
-
             Spacer(Modifier.height(24.dp))
+            }
         }
     }
 }
@@ -1535,11 +1602,20 @@ private fun PvgisBackgroundBanner(stringCount: Int, onClose: () -> Unit) {
    Footer
 ────────────────────────────────────────────────────────────────── */
 
+private sealed class SimButtonState {
+    object Idle    : SimButtonState()
+    object Queued  : SimButtonState()
+    object Running : SimButtonState()
+    object Done    : SimButtonState()
+    object Failed  : SimButtonState()
+}
+
 @Composable
 private fun WizardFooter(
     canRun: Boolean,
     isSaving: Boolean,
-    simulationQueued: Boolean,
+    simButtonState: SimButtonState,
+    showSavedTick: Boolean,
     noviceMode: Boolean,
     onSave: () -> Unit,
     onRun: () -> Unit,
@@ -1547,51 +1623,78 @@ private fun WizardFooter(
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(10.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)),
         border = androidx.compose.foundation.BorderStroke(
             1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
             if (noviceMode) {
-                Text("Run the simulation", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                Spacer(Modifier.height(4.dp))
+                Text("Run the simulation", style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold)
+                Spacer(Modifier.height(2.dp))
                 Text("Required: Start and Usage Data. EV is optional.",
-                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(12.dp))
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(8.dp))
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                OutlinedButton(
-                    onClick = onSave,
-                    enabled = !isSaving,
-                    modifier = Modifier.weight(1f)
-                ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            OutlinedButton(
+                onClick = onSave,
+                enabled = !isSaving,
+                modifier = Modifier.weight(1f)
+            ) {
+                if (showSavedTick) {
+                    Icon(Icons.Default.CheckCircle, contentDescription = null,
+                        modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Saved")
+                } else {
                     Text("Save")
                 }
-                Button(
-                    onClick = onRun,
-                    enabled = canRun && !isSaving
-                ) {
-                    if (isSaving) {
-                        Text("Saving…")
-                    } else if (simulationQueued) {
+            }
+            Button(
+                onClick = onRun,
+                enabled = canRun && !isSaving &&
+                    simButtonState != SimButtonState.Queued &&
+                    simButtonState != SimButtonState.Running
+            ) {
+                when {
+                    isSaving -> Text("Saving…")
+                    simButtonState == SimButtonState.Running -> {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(14.dp), strokeWidth = 2.dp,
+                            color = MaterialTheme.colorScheme.onPrimary)
+                        Spacer(Modifier.width(6.dp))
+                        Text("Running…")
+                    }
+                    simButtonState == SimButtonState.Done -> {
+                        Icon(Icons.Default.CheckCircle, contentDescription = null,
+                            modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text("Done")
+                    }
+                    simButtonState == SimButtonState.Failed -> Text("Failed — retry?")
+                    simButtonState == SimButtonState.Queued -> {
                         Icon(Icons.Default.CheckCircle, contentDescription = null,
                             modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
                         Text("Queued")
-                    } else {
-                        Text("Run simulation")
                     }
-                }
-                OutlinedButton(
-                    onClick = onClose,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Close")
+                    else -> Text("Run simulation")
                 }
             }
+            OutlinedButton(
+                onClick = onClose,
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Close")
+            }
+        }
         }
     }
 }

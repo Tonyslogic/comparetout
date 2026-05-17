@@ -17,7 +17,12 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-private const val KEY_ACTIVE_SIM = "active_simulation_id"
+private const val KEY_ACTIVE_TYPE        = "active_type"           // "sim" | "ds"
+private const val KEY_ACTIVE_SIM         = "active_simulation_id"
+private const val KEY_ACTIVE_DS_SYSSN    = "active_ds_syssn"
+private const val KEY_ACTIVE_DS_IMPORTER = "active_ds_importer"
+private const val KEY_ACTIVE_DS_START    = "active_ds_start"
+private const val KEY_ACTIVE_DS_END      = "active_ds_end"
 
 @HiltViewModel
 class UI2SharedViewModel @Inject constructor(
@@ -46,21 +51,43 @@ class UI2SharedViewModel @Inject constructor(
     init {
         viewModelScope.launch(Dispatchers.IO) {
             val app = context.applicationContext as TOUTCApplication
-            val idStr = app.getDataStore()
+            val stored = app.getDataStore()
                 .data()
                 .firstOrError()
-                .map { prefs -> prefs[stringPreferencesKey(KEY_ACTIVE_SIM)] ?: "" }
-                .onErrorReturnItem("")
+                .map { prefs ->
+                    listOf(
+                        prefs[stringPreferencesKey(KEY_ACTIVE_TYPE)]        ?: "",
+                        prefs[stringPreferencesKey(KEY_ACTIVE_SIM)]         ?: "",
+                        prefs[stringPreferencesKey(KEY_ACTIVE_DS_SYSSN)]    ?: "",
+                        prefs[stringPreferencesKey(KEY_ACTIVE_DS_IMPORTER)] ?: "",
+                        prefs[stringPreferencesKey(KEY_ACTIVE_DS_START)]    ?: "",
+                        prefs[stringPreferencesKey(KEY_ACTIVE_DS_END)]      ?: ""
+                    )
+                }
+                .onErrorReturnItem(List(6) { "" })
                 .blockingGet()
-            idStr.toLongOrNull()?.let { _activeSelection.value = ActiveSelection.Simulation(it) }
+
+            if (stored[0] == "ds") {
+                val sysSn    = stored[2]
+                val typStr   = stored[3]
+                val start    = stored[4]
+                val end      = stored[5]
+                if (sysSn.isBlank() || typStr.isBlank() || start.isBlank() || end.isBlank()) return@launch
+                val importer = runCatching { ComparisonUIViewModel.Importer.valueOf(typStr) }.getOrNull()
+                    ?: return@launch
+                _activeSelection.value = ActiveSelection.DataSource(sysSn, importer, start, end)
+            } else {
+                stored[1].toLongOrNull()?.let { _activeSelection.value = ActiveSelection.Simulation(it) }
+            }
         }
     }
 
     fun setActiveSimulationId(id: Long) {
         _activeSelection.value = ActiveSelection.Simulation(id)
         viewModelScope.launch(Dispatchers.IO) {
-            (context.applicationContext as TOUTCApplication)
-                .putStringValueIntoDataStore(KEY_ACTIVE_SIM, id.toString())
+            val app = context.applicationContext as TOUTCApplication
+            app.putStringValueIntoDataStore(KEY_ACTIVE_TYPE, "sim")
+            app.putStringValueIntoDataStore(KEY_ACTIVE_SIM, id.toString())
         }
     }
 
@@ -71,5 +98,13 @@ class UI2SharedViewModel @Inject constructor(
         endDate: String
     ) {
         _activeSelection.value = ActiveSelection.DataSource(sysSn, importerType, startDate, endDate)
+        viewModelScope.launch(Dispatchers.IO) {
+            val app = context.applicationContext as TOUTCApplication
+            app.putStringValueIntoDataStore(KEY_ACTIVE_TYPE,        "ds")
+            app.putStringValueIntoDataStore(KEY_ACTIVE_DS_SYSSN,    sysSn)
+            app.putStringValueIntoDataStore(KEY_ACTIVE_DS_IMPORTER, importerType.name)
+            app.putStringValueIntoDataStore(KEY_ACTIVE_DS_START,    startDate)
+            app.putStringValueIntoDataStore(KEY_ACTIVE_DS_END,      endDate)
+        }
     }
 }
