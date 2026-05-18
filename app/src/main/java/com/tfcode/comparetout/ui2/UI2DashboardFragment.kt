@@ -570,7 +570,14 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                                         Modifier.size(18.dp), tint = StatusGreen)
                                 }
                             }
-                        }
+                        },
+                        onEdit = if (scenarioId != -1L) ({
+                            ctx.startActivity(
+                                Intent(ctx, UI2WizardActivity::class.java)
+                                    .putExtra("ScenarioID", scenarioId)
+                                    .putExtra("WizardSection", "hotwater")
+                            )
+                        }) else null
                     ) {
                         val hw = sc.hwSystem
                         if (hw == null) Text("No hot water system configured")

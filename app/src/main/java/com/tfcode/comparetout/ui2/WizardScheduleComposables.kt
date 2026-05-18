@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Download
@@ -39,6 +40,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SuggestionChip
@@ -1588,6 +1590,324 @@ fun WizardBatteryDischargeCard(
                         }) else null
                     )
                 }
+
+                WizardScheduleBlock(
+                    startHour = entry.beginHour, endHour = entry.endHour,
+                    days = entry.days, months = entry.months,
+                    onStartHourChange = { onUpdate(entry.copy(beginHour = it)) },
+                    onEndHourChange = { onUpdate(entry.copy(endHour = it)) },
+                    onDaysChange = { onUpdate(entry.copy(days = it)) },
+                    onMonthsChange = { onUpdate(entry.copy(months = it)) },
+                    noviceMode = noviceMode
+                )
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDelete) {
+                        Icon(Icons.Default.Delete, contentDescription = "Remove", modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Remove")
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Hot Water — system tank card (Basic/Advanced tab gated)
+────────────────────────────────────────────────────────────────── */
+
+@Composable
+fun WizardHwSystemCard(
+    entry: WizardHwSystemEntry,
+    expanded: Boolean,
+    noviceMode: Boolean,
+    showAdvanced: Boolean,
+    onToggle: () -> Unit,
+    onUpdate: (WizardHwSystemEntry) -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .border(1.dp,
+                if (expanded) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                RoundedCornerShape(12.dp))
+    ) {
+        Row(modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            Box(modifier = Modifier.size(28.dp).clip(RoundedCornerShape(7.dp))
+                .background(MaterialTheme.colorScheme.secondaryContainer),
+                contentAlignment = Alignment.Center) {
+                Icon(painterResource(R.drawable.waterwarm), null, Modifier.size(18.dp),
+                    tint = MaterialTheme.colorScheme.onSecondaryContainer)
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Hot water tank",
+                    style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "${entry.capacity} L  ·  ${entry.usage} L/day  ·  ${entry.rate} kW heater",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                contentDescription = if (expanded) "Collapse" else "Expand",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        AnimatedVisibility(visible = expanded) {
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)) {
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = entry.capacity.toString(),
+                        onValueChange = { v -> v.toIntOrNull()?.coerceIn(20, 1000)
+                            ?.let { onUpdate(entry.copy(capacity = it)) } },
+                        label = { Text("Tank size (L)") },
+                        modifier = Modifier.weight(1f), singleLine = true,
+                        supportingText = if (noviceMode) ({ Text("Cylinder volume.") }) else null
+                    )
+                    OutlinedTextField(
+                        value = entry.usage.toString(),
+                        onValueChange = { v -> v.toIntOrNull()?.coerceAtLeast(0)
+                            ?.let { onUpdate(entry.copy(usage = it)) } },
+                        label = { Text("Daily use (L)") },
+                        modifier = Modifier.weight(1f), singleLine = true,
+                        supportingText = if (noviceMode) ({ Text("Litres drawn per day.") }) else null
+                    )
+                }
+                OutlinedTextField(
+                    value = entry.rate.toString(),
+                    onValueChange = { v -> v.toDoubleOrNull()?.coerceAtLeast(0.0)
+                        ?.let { onUpdate(entry.copy(rate = it)) } },
+                    label = { Text("Heater power (kW)") },
+                    modifier = Modifier.fillMaxWidth(), singleLine = true,
+                    supportingText = if (noviceMode) ({
+                        Text("How fast the immersion can put energy into the tank.")
+                    }) else null
+                )
+
+                // Usage pattern — when in the day water is drawn (% of daily usage per hour)
+                WizardHwUsageEditor(
+                    pattern = entry.usagePattern,
+                    noviceMode = noviceMode,
+                    onChange = { onUpdate(entry.copy(usagePattern = it)) }
+                )
+
+                if (showAdvanced) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = entry.intake.toString(),
+                            onValueChange = { v -> v.toIntOrNull()?.coerceIn(0, 50)
+                                ?.let { onUpdate(entry.copy(intake = it)) } },
+                            label = { Text("Cold intake °C") },
+                            modifier = Modifier.weight(1f), singleLine = true
+                        )
+                        OutlinedTextField(
+                            value = entry.target.toString(),
+                            onValueChange = { v -> v.toIntOrNull()?.coerceIn(30, 90)
+                                ?.let { onUpdate(entry.copy(target = it)) } },
+                            label = { Text("Target °C") },
+                            modifier = Modifier.weight(1f), singleLine = true
+                        )
+                    }
+                    OutlinedTextField(
+                        value = entry.loss.toString(),
+                        onValueChange = { v -> v.toIntOrNull()?.coerceIn(0, 50)
+                            ?.let { onUpdate(entry.copy(loss = it)) } },
+                        label = { Text("Daily heat loss °C") },
+                        modifier = Modifier.fillMaxWidth(), singleLine = true,
+                        supportingText = { Text("Temperature drop per day with no top-up — depends on tank insulation.") }
+                    )
+                }
+
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = onDelete) {
+                        Icon(Icons.Default.Delete, contentDescription = "Remove", modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Remove tank")
+                    }
+                }
+            }
+        }
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Hot Water — usage pattern editor (when in the day water is drawn).
+   Rows of (hour, percent-of-daily-usage). Visual percent bar shows the
+   profile across 24h and a "totals 100%" hint nudges users when off.
+────────────────────────────────────────────────────────────────── */
+
+@Composable
+private fun WizardHwUsageEditor(
+    pattern: List<WizardHwUsePoint>,
+    noviceMode: Boolean,
+    onChange: (List<WizardHwUsePoint>) -> Unit
+) {
+    val total = pattern.sumOf { it.percent }
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        WizardScheduleLabel("Usage pattern")
+        if (noviceMode) {
+            Text("Mark the hours when hot water gets used and what share of the day's total each " +
+                "draw takes. Defaults model a typical morning shower / midday rinse / evening peak.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        HwUsageBar(pattern = pattern)
+        pattern.forEachIndexed { idx, point ->
+            Row(verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = point.hour.toString(),
+                    onValueChange = { v ->
+                        v.toIntOrNull()?.coerceIn(0, 23)?.let { h ->
+                            onChange(pattern.toMutableList().also { it[idx] = point.copy(hour = h) })
+                        }
+                    },
+                    label = { Text("Hour") },
+                    modifier = Modifier.weight(1f), singleLine = true
+                )
+                OutlinedTextField(
+                    value = "%.1f".format(point.percent),
+                    onValueChange = { v ->
+                        v.toDoubleOrNull()?.coerceIn(0.0, 100.0)?.let { p ->
+                            onChange(pattern.toMutableList().also { it[idx] = point.copy(percent = p) })
+                        }
+                    },
+                    label = { Text("% of daily") },
+                    modifier = Modifier.weight(1f), singleLine = true
+                )
+                IconButton(
+                    onClick = {
+                        onChange(pattern.toMutableList().also { it.removeAt(idx) })
+                    },
+                    enabled = pattern.size > 1
+                ) {
+                    Icon(Icons.Default.Delete, "Remove",
+                        tint = if (pattern.size > 1) MaterialTheme.colorScheme.error
+                               else MaterialTheme.colorScheme.outline)
+                }
+            }
+        }
+        Row(modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween) {
+            Text("Totals ${"%.0f".format(total)}%",
+                style = MaterialTheme.typography.labelSmall,
+                color = if (kotlin.math.abs(total - 100.0) < 1.0) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.error)
+            TextButton(
+                onClick = {
+                    val nextHour = ((pattern.maxOfOrNull { it.hour } ?: 0) + 2).coerceIn(0, 23)
+                    onChange(pattern + WizardHwUsePoint(nextHour, 0.0))
+                }
+            ) {
+                Icon(Icons.Default.Add, null, Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Add draw")
+            }
+        }
+    }
+}
+
+@Composable
+private fun HwUsageBar(pattern: List<WizardHwUsePoint>) {
+    val primary = MaterialTheme.colorScheme.primary
+    val surface = MaterialTheme.colorScheme.surfaceVariant
+    val byHour = remember(pattern) {
+        val a = DoubleArray(24)
+        pattern.forEach { p -> if (p.hour in 0..23) a[p.hour] += p.percent }
+        a
+    }
+    val max = (byHour.maxOrNull() ?: 0.0).coerceAtLeast(1.0)
+    Column {
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(1.dp)) {
+            (0..23).forEach { h ->
+                val frac = (byHour[h] / max).coerceIn(0.0, 1.0)
+                BoxWithConstraints(modifier = Modifier.weight(1f).height(18.dp)) {
+                    Column(modifier = Modifier.fillMaxHeight()) {
+                        Spacer(modifier = Modifier.fillMaxHeight((1.0 - frac).toFloat())
+                            .clip(RoundedCornerShape(2.dp)).background(Color.Transparent))
+                        Box(modifier = Modifier.fillMaxHeight().fillMaxWidth()
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(if (byHour[h] > 0.0) primary else surface))
+                    }
+                }
+            }
+        }
+        Row(modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+            horizontalArrangement = Arrangement.SpaceBetween) {
+            listOf("00", "06", "12", "18", "24").forEach {
+                Text(it, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+            }
+        }
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Hot Water — schedule (immersion on-window)
+────────────────────────────────────────────────────────────────── */
+
+@Composable
+fun WizardHwScheduleCard(
+    entry: WizardHwScheduleEntry,
+    index: Int,
+    expanded: Boolean,
+    noviceMode: Boolean,
+    onToggle: () -> Unit,
+    onUpdate: (WizardHwScheduleEntry) -> Unit,
+    onDelete: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .border(1.dp,
+                if (expanded) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                RoundedCornerShape(12.dp))
+    ) {
+        Row(modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            Box(modifier = Modifier.size(28.dp).clip(RoundedCornerShape(7.dp))
+                .background(MaterialTheme.colorScheme.secondaryContainer),
+                contentAlignment = Alignment.Center) {
+                Text("${index + 1}", style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.onSecondaryContainer)
+            }
+            Spacer(Modifier.width(10.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(entry.name.ifBlank { "HW Schedule" },
+                    style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    "${fmtHour(entry.beginHour)}–${fmtHour(entry.endHour)}  ·  ${fmtDays(entry.days)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                contentDescription = if (expanded) "Collapse" else "Expand",
+                tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        AnimatedVisibility(visible = expanded) {
+            Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp)) {
+
+                OutlinedTextField(value = entry.name,
+                    onValueChange = { onUpdate(entry.copy(name = it)) },
+                    label = { Text("Schedule name") },
+                    modifier = Modifier.fillMaxWidth(), singleLine = true)
 
                 WizardScheduleBlock(
                     startHour = entry.beginHour, endHour = entry.endHour,

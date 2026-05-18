@@ -25,6 +25,10 @@ import com.tfcode.comparetout.model.scenario.PanelPVSummary
 import com.tfcode.comparetout.scenario.loadprofile.StandardLoadProfiles
 import com.tfcode.comparetout.model.scenario.DOWDist
 import com.tfcode.comparetout.model.scenario.HourlyDist
+import com.tfcode.comparetout.model.scenario.HWDivert
+import com.tfcode.comparetout.model.scenario.HWSchedule
+import com.tfcode.comparetout.model.scenario.HWSystem
+import com.tfcode.comparetout.model.scenario.HWUse
 import com.tfcode.comparetout.model.scenario.LoadProfile
 import com.tfcode.comparetout.model.scenario.MonthHolder
 import com.tfcode.comparetout.model.scenario.MonthlyDist
@@ -269,6 +273,104 @@ private fun DischargeToGrid.toWizardBatteryDischargeEntry() = WizardBatteryDisch
     months = months?.months?.sorted() ?: (1..12).toList()
 )
 
+/* ──────────────────────────────────────────────────────────────────
+   Hot Water
+   - HWSystem  : single tank — size, daily usage, heater rate; advanced:
+                 intake temp, target temp, daily heat-loss °C
+   - HWSchedule: heater on-window (defaults to a cheap-rate night slot)
+   - HWDivert  : single boolean — divert excess solar to the immersion
+────────────────────────────────────────────────────────────────── */
+
+/** One draw moment in the day — (hour, percent-of-daily-usage). */
+data class WizardHwUsePoint(
+    val hour: Int = 8,
+    val percent: Double = 50.0
+)
+
+data class WizardHwSystemEntry(
+    val capacity: Int = 165,        // litres
+    val usage: Int = 200,           // litres/day
+    val rate: Double = 2.5,         // kW heater
+    val intake: Int = 15,           // °C cold-feed
+    val target: Int = 75,           // °C cylinder thermostat
+    val loss: Int = 8,              // daily °C drop with no draw
+    val usagePattern: List<WizardHwUsePoint> = listOf(
+        WizardHwUsePoint(8, 75.0),
+        WizardHwUsePoint(14, 10.0),
+        WizardHwUsePoint(20, 15.0)
+    )
+) {
+    fun toHwSystem(): HWSystem = HWSystem().also { s ->
+        s.hwCapacity = capacity
+        s.hwUsage = usage
+        s.hwRate = rate
+        s.hwIntake = intake
+        s.hwTarget = target
+        s.hwLoss = loss
+        s.hwUse = HWUse().also { hu ->
+            // Replace constructor defaults with the user's pattern.
+            hu.usage = ArrayList(usagePattern.map { p ->
+                ArrayList<Double>().apply { add(p.hour.toDouble()); add(p.percent) }
+            })
+        }
+    }
+}
+
+private fun HWSystem.toWizardHwSystemEntry() = WizardHwSystemEntry(
+    capacity = hwCapacity,
+    usage = hwUsage,
+    rate = hwRate,
+    intake = hwIntake,
+    target = hwTarget,
+    loss = hwLoss,
+    usagePattern = hwUse?.usage
+        ?.mapNotNull { row ->
+            val h = row.getOrNull(0)?.toInt() ?: return@mapNotNull null
+            val p = row.getOrNull(1) ?: return@mapNotNull null
+            WizardHwUsePoint(h, p)
+        }
+        ?.takeIf { it.isNotEmpty() }
+        ?: listOf(
+            WizardHwUsePoint(8, 75.0),
+            WizardHwUsePoint(14, 10.0),
+            WizardHwUsePoint(20, 15.0)
+        )
+)
+
+data class WizardHwScheduleEntry(
+    val id: String = UUID.randomUUID().toString(),
+    val name: String = "Midnight-water",
+    val beginHour: Int = 2,
+    val endHour: Int = 6,
+    val days: List<Int> = (0..6).toList(),
+    val months: List<Int> = (1..12).toList()
+) {
+    fun toHwSchedule(): HWSchedule = HWSchedule().also { h ->
+        h.name = name
+        h.begin = beginHour
+        h.end = endHour
+        h.days = IntHolder().also { it.ints = ArrayList(days) }
+        h.months = MonthHolder().also { it.months = ArrayList(months) }
+    }
+}
+
+private fun HWSchedule.toWizardHwScheduleEntry() = WizardHwScheduleEntry(
+    id = if (hwScheduleIndex > 0) hwScheduleIndex.toString() else UUID.randomUUID().toString(),
+    name = name ?: "Midnight-water",
+    beginHour = begin,
+    endHour = end,
+    days = days?.ints?.sorted() ?: (0..6).toList(),
+    months = months?.months?.sorted() ?: (1..12).toList()
+)
+
+data class WizardHwDivertEntry(
+    val active: Boolean = false
+) {
+    fun toHwDivert(): HWDivert = HWDivert().also { d -> d.setActive(active) }
+}
+
+private fun HWDivert.toWizardHwDivertEntry() = WizardHwDivertEntry(active = isActive)
+
 enum class PanelDataSource { NONE, PVGIS, SOURCE }
 
 data class WizardPanelEntry(
@@ -355,7 +457,11 @@ data class WizardBuilder(
     // Battery
     val batteryEntries: List<WizardBatteryEntry> = emptyList(),
     val batteryChargeEntries: List<WizardBatteryChargeEntry> = emptyList(),
-    val batteryDischargeEntries: List<WizardBatteryDischargeEntry> = emptyList()
+    val batteryDischargeEntries: List<WizardBatteryDischargeEntry> = emptyList(),
+    // Hot Water
+    val hwSystem: WizardHwSystemEntry? = null,
+    val hwSchedules: List<WizardHwScheduleEntry> = emptyList(),
+    val hwDivert: WizardHwDivertEntry = WizardHwDivertEntry()
 ) {
     val isStartComplete: Boolean get() = scenarioName.isNotBlank()
     val isLoadComplete: Boolean get() = annualUsage.toDoubleOrNull()?.let { it > 0.0 } == true
@@ -400,13 +506,13 @@ data class WizardBuilder(
             inverterEntries.map { it.toInverter() },
             batteryEntries.map { it.toBattery() },
             emptyList(),
-            null,
+            hwSystem?.toHwSystem(),
             toLoadProfile(),
             expandedLoadShifts(),
             expandedDischarges(),
             evEntries.map { it.toEvCharge() },
-            emptyList(),
-            null,
+            hwSchedules.map { it.toHwSchedule() },
+            if (hwDivert.active) hwDivert.toHwDivert() else null,
             evDivertEntries.map { it.toEvDivert() }
         )
     }
@@ -428,13 +534,13 @@ data class WizardBuilder(
             inverterEntries.map { it.toInverter() },
             batteryEntries.map { it.toBattery() },
             emptyList(),
-            null,
+            hwSystem?.toHwSystem(),
             LoadProfile(),
             expandedLoadShifts(),
             expandedDischarges(),
             evEntries.map { it.toEvCharge() },
-            emptyList(),
-            null,
+            hwSchedules.map { it.toHwSchedule() },
+            if (hwDivert.active) hwDivert.toHwDivert() else null,
             evDivertEntries.map { it.toEvDivert() }
         )
     }
@@ -610,7 +716,13 @@ class UI2WizardViewModel @Inject constructor(
             panelEntries = c.panels?.map { it.toWizardPanelEntry() } ?: emptyList(),
             batteryEntries = c.batteries?.map { it.toWizardBatteryEntry() } ?: emptyList(),
             batteryChargeEntries = c.loadShifts?.map { it.toWizardBatteryChargeEntry() } ?: emptyList(),
-            batteryDischargeEntries = c.discharges?.map { it.toWizardBatteryDischargeEntry() } ?: emptyList()
+            batteryDischargeEntries = c.discharges?.map { it.toWizardBatteryDischargeEntry() } ?: emptyList(),
+            hwSystem = c.hwSystem?.toWizardHwSystemEntry(),
+            hwSchedules = c.hwSchedules
+                ?.distinctBy { it.hwScheduleIndex }
+                ?.map { it.toWizardHwScheduleEntry() }
+                ?: emptyList(),
+            hwDivert = c.hwDivert?.toWizardHwDivertEntry() ?: WizardHwDivertEntry()
         )
     }
 
@@ -701,6 +813,32 @@ class UI2WizardViewModel @Inject constructor(
         updateBuilder { b ->
             b.copy(batteryDischargeEntries = b.batteryDischargeEntries.map { if (it.id == id) transform(it) else it })
         }
+
+    fun enableHwSystem() = updateBuilder {
+        if (it.hwSystem == null) it.copy(hwSystem = WizardHwSystemEntry()) else it
+    }
+
+    fun removeHwSystem() = updateBuilder {
+        it.copy(hwSystem = null, hwSchedules = emptyList(), hwDivert = WizardHwDivertEntry())
+    }
+
+    fun updateHwSystem(transform: (WizardHwSystemEntry) -> WizardHwSystemEntry) =
+        updateBuilder { b -> b.copy(hwSystem = b.hwSystem?.let(transform)) }
+
+    fun addHwSchedule() = updateBuilder {
+        it.copy(hwSchedules = it.hwSchedules + WizardHwScheduleEntry())
+    }
+
+    fun removeHwSchedule(id: String) =
+        updateBuilder { it.copy(hwSchedules = it.hwSchedules.filter { e -> e.id != id }) }
+
+    fun updateHwSchedule(id: String, transform: (WizardHwScheduleEntry) -> WizardHwScheduleEntry) =
+        updateBuilder { b ->
+            b.copy(hwSchedules = b.hwSchedules.map { if (it.id == id) transform(it) else it })
+        }
+
+    fun updateHwDivert(transform: (WizardHwDivertEntry) -> WizardHwDivertEntry) =
+        updateBuilder { b -> b.copy(hwDivert = transform(b.hwDivert)) }
 
     fun addInverterEntry() = updateBuilder { it.copy(inverterEntries = it.inverterEntries + WizardInverterEntry()) }
 
@@ -978,6 +1116,9 @@ class UI2WizardViewModel @Inject constructor(
                             sc.setHasBatteries(b.batteryEntries.isNotEmpty())
                             sc.setHasLoadShifts(b.expandedLoadShifts().isNotEmpty())
                             sc.setHasDischarges(b.expandedDischarges().isNotEmpty())
+                            sc.setHasHWSystem(b.hwSystem != null)
+                            sc.setHasHWSchedules(b.hwSchedules.isNotEmpty())
+                            sc.setHasHWDivert(b.hwDivert.active)
                         }?.let { repository.updateScenario(it) }
                         repository.saveLoadProfile(scenarioId, b.toLoadProfile())
                         // Replace EV charges
@@ -1022,6 +1163,19 @@ class UI2WizardViewModel @Inject constructor(
                         b.expandedDischarges().forEach { d ->
                             repository.saveDischargeForScenario(scenarioId, d)
                         }
+                        // Replace hot-water system, schedules, and divert
+                        if (b.hwSystem != null) {
+                            repository.saveHWSystemForScenario(scenarioId, b.hwSystem.toHwSystem())
+                        }
+                        existing.hwSchedules?.forEach { hs ->
+                            repository.deleteHWScheduleFromScenario(hs.hwScheduleIndex, scenarioId)
+                        }
+                        b.hwSchedules.forEach { entry ->
+                            repository.saveHWScheduleForScenario(scenarioId, entry.toHwSchedule())
+                        }
+                        if (b.hwDivert.active) {
+                            repository.saveHWDivert(scenarioId, b.hwDivert.toHwDivert())
+                        }
                         // Panels: update existing (preserving data), delete removed, insert new
                         val keptIds = b.panelEntries.filter { it.panelIndex > 0L }.map { it.panelIndex }.toSet()
                         (existing.panels ?: emptyList())
@@ -1055,6 +1209,12 @@ class UI2WizardViewModel @Inject constructor(
                         repository.linkBatteryFromScenario(b.basedOnId, newId)
                         repository.linkLoadShiftFromScenario(b.basedOnId, newId)
                         repository.linkDischargeFromScenario(b.basedOnId, newId)
+                        repository.linkHWSystemFromScenario(b.basedOnId, newId)
+                        repository.linkHWScheduleFromScenario(b.basedOnId, newId)
+                        // No linkHWDivert in repository — replay from builder state instead
+                        if (b.hwDivert.active) {
+                            repository.saveHWDivert(newId, b.hwDivert.toHwDivert())
+                        }
                         newId
                     }
                     b.loadSource == LoadSource.LINKED -> {

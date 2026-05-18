@@ -532,6 +532,52 @@ private fun WizardScreen(
                 )
             }
 
+            // ── Hot Water ────────────────────────────────────────────────
+            val hwSystemCount = if (builder.hwSystem != null) 1 else 0
+            val hwScheduleCount = builder.hwSchedules.size
+            val hwDivertActive = builder.hwDivert.active
+            WizardAccordionSection(
+                id = "hotwater",
+                iconContent = {
+                    val hwRes = if (hwSystemCount > 0) R.drawable.waterwarm else R.drawable.watercold
+                    Icon(painterResource(hwRes), null, Modifier.size(26.dp), tint = Color.Unspecified)
+                },
+                title = "Hot Water",
+                isLinked = builder.isLinked && (hwSystemCount > 0 || hwScheduleCount > 0),
+                subtitle = if (!expandedSections.contains("hotwater") && (hwSystemCount > 0 || hwScheduleCount > 0 || hwDivertActive)) {
+                    buildString {
+                        builder.hwSystem?.let { append("${it.capacity} L  ·  ${it.rate} kW") }
+                        if (hwScheduleCount > 0) {
+                            if (isNotEmpty()) append("  ·  ")
+                            append("$hwScheduleCount schedule${if (hwScheduleCount > 1) "s" else ""}")
+                        }
+                        if (hwDivertActive) {
+                            if (isNotEmpty()) append("  ·  ")
+                            append("divert")
+                        }
+                    }
+                } else if (noviceMode) "Immersion heater and solar divert" else null,
+                isComplete = hwSystemCount > 0,
+                isLocked = !builder.isStartComplete,
+                lockedHint = "Complete Start first",
+                isExpanded = expandedSections.contains("hotwater"),
+                onToggle = { viewModel.toggleSection("hotwater") }
+            ) {
+                HwSectionContent(
+                    system = builder.hwSystem,
+                    schedules = builder.hwSchedules,
+                    divert = builder.hwDivert,
+                    noviceMode = noviceMode,
+                    onEnableSystem = { viewModel.enableHwSystem() },
+                    onRemoveSystem = { viewModel.removeHwSystem() },
+                    onUpdateSystem = { viewModel.updateHwSystem(it) },
+                    onAddSchedule = { viewModel.addHwSchedule() },
+                    onRemoveSchedule = { viewModel.removeHwSchedule(it) },
+                    onUpdateSchedule = { id, fn -> viewModel.updateHwSchedule(id, fn) },
+                    onUpdateDivert = { viewModel.updateHwDivert(it) }
+                )
+            }
+
             // ── EV ──────────────────────────────────────────────────────
             val evCount = builder.evEntries.size
             val evDivertCount = builder.evDivertEntries.size
@@ -587,6 +633,7 @@ private fun WizardProgressStrip(builder: WizardBuilder) {
         builder.inverterEntries.isNotEmpty(),
         builder.panelEntries.isNotEmpty(),
         builder.batteryEntries.isNotEmpty(),
+        builder.hwSystem != null || builder.hwSchedules.isNotEmpty() || builder.hwDivert.active,
         builder.evEntries.isNotEmpty() || builder.evDivertEntries.isNotEmpty()
     )
     val done = sections.count { it }
@@ -1655,6 +1702,178 @@ private fun BatterySectionContent(
             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(4.dp))
             Text("Add discharge window")
+        }
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Hot Water section content
+────────────────────────────────────────────────────────────────── */
+
+@Composable
+private fun HwSectionContent(
+    system: WizardHwSystemEntry?,
+    schedules: List<WizardHwScheduleEntry>,
+    divert: WizardHwDivertEntry,
+    noviceMode: Boolean,
+    onEnableSystem: () -> Unit,
+    onRemoveSystem: () -> Unit,
+    onUpdateSystem: ((WizardHwSystemEntry) -> WizardHwSystemEntry) -> Unit,
+    onAddSchedule: () -> Unit,
+    onRemoveSchedule: (String) -> Unit,
+    onUpdateSchedule: (String, (WizardHwScheduleEntry) -> WizardHwScheduleEntry) -> Unit,
+    onUpdateDivert: ((WizardHwDivertEntry) -> WizardHwDivertEntry) -> Unit
+) {
+    var systemExpanded by remember { mutableStateOf(false) }
+    var expandedScheduleIndex by remember { mutableIntStateOf(-1) }
+    var advancedTab by remember { mutableIntStateOf(0) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        TabRow(selectedTabIndex = advancedTab) {
+            Tab(selected = advancedTab == 0, onClick = { advancedTab = 0 }, text = { Text("Basic") })
+            Tab(selected = advancedTab == 1, onClick = { advancedTab = 1 }, text = { Text("Advanced") })
+        }
+        Spacer(Modifier.height(4.dp))
+
+        // ── Tank ────────────────────────────────────────────────────
+        WizardScheduleLabel("Tank")
+        if (noviceMode) {
+            Text("Configure the hot-water cylinder so the simulation can model when the immersion " +
+                "is needed and how much excess solar can be diverted to it.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        if (system == null) {
+            Box(modifier = Modifier.fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                .padding(vertical = 20.dp),
+                contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(painterResource(R.drawable.watercold), null, Modifier.size(40.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
+                    Spacer(Modifier.height(6.dp))
+                    Text("No hot-water tank", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    if (noviceMode) {
+                        Spacer(Modifier.height(4.dp))
+                        Text("Optional — skip if hot water isn't part of this scenario.",
+                            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+            FilledTonalButton(onClick = onEnableSystem, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Add hot-water tank")
+            }
+        } else {
+            WizardHwSystemCard(
+                entry = system,
+                expanded = systemExpanded,
+                noviceMode = noviceMode,
+                showAdvanced = advancedTab == 1,
+                onToggle = { systemExpanded = !systemExpanded },
+                onUpdate = { updated -> onUpdateSystem { updated } },
+                onDelete = { onRemoveSystem(); systemExpanded = false }
+            )
+        }
+
+        Spacer(Modifier.height(4.dp))
+
+        // ── Schedule ────────────────────────────────────────────────
+        WizardScheduleLabel("Heater schedule")
+        if (noviceMode) {
+            Text("Windows when the immersion is allowed to run from the grid (e.g. cheap night-rate). " +
+                "Leave empty if you only want hot water from solar divert.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        if (system == null && schedules.isEmpty()) {
+            Text("Add a tank above to enable scheduling.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.padding(vertical = 6.dp))
+        } else if (schedules.isEmpty()) {
+            Box(modifier = Modifier.fillMaxWidth()
+                .clip(RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+                .padding(vertical = 16.dp),
+                contentAlignment = Alignment.Center) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("No heater windows", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    if (noviceMode) {
+                        Spacer(Modifier.height(4.dp))
+                        Text("Add one if your tariff has a cheap window worth heating the tank in.",
+                            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        } else {
+            schedules.forEachIndexed { index, entry ->
+                WizardHwScheduleCard(
+                    entry = entry,
+                    index = index,
+                    expanded = expandedScheduleIndex == index,
+                    noviceMode = noviceMode,
+                    onToggle = { expandedScheduleIndex = if (expandedScheduleIndex == index) -1 else index },
+                    onUpdate = { updated -> onUpdateSchedule(entry.id) { updated } },
+                    onDelete = {
+                        onRemoveSchedule(entry.id)
+                        if (expandedScheduleIndex == index) expandedScheduleIndex = -1
+                    }
+                )
+            }
+        }
+
+        FilledTonalButton(
+            onClick = onAddSchedule,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = system != null
+        ) {
+            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(4.dp))
+            Text("Add heater window")
+        }
+
+        Spacer(Modifier.height(4.dp))
+
+        // ── Solar Divert ───────────────────────────────────────────
+        WizardScheduleLabel("Solar divert")
+        if (noviceMode) {
+            Text("Send excess solar to the immersion instead of exporting it. Free hot water when " +
+                "the panels are producing more than the house is using.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        Row(modifier = Modifier.fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.3f), RoundedCornerShape(10.dp))
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Divert excess solar to hot water",
+                    style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    if (divert.active) "Active" else "Off",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (divert.active) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Switch(
+                checked = divert.active,
+                enabled = system != null,
+                onCheckedChange = { v -> onUpdateDivert { it.copy(active = v) } }
+            )
+        }
+        if (system == null && noviceMode) {
+            Text("Add a tank above to enable solar divert.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.padding(vertical = 4.dp))
         }
     }
 }
