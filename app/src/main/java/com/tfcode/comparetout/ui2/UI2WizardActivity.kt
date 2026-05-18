@@ -105,6 +105,10 @@ import kotlinx.coroutines.delay
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 
+// Pixels of scroll delta before the collapsing header toggles — small enough to feel
+// responsive, large enough to ignore fingertip wobble.
+private const val THRESHOLD = 4
+
 @AndroidEntryPoint
 class UI2WizardActivity : AppCompatActivity() {
 
@@ -305,29 +309,48 @@ private fun WizardScreen(
             )
         }
     ) { padding ->
+        // Browser-style collapsing header: hides when the user drags content up (scrolls into
+        // the content) and reappears the moment they drag content down. Always shown when
+        // the scroll position is at the top.
+        val scrollState = rememberScrollState()
+        var headerVisible by remember { mutableStateOf(true) }
+        var lastScrollValue by remember { mutableIntStateOf(0) }
+        LaunchedEffect(scrollState.value) {
+            val current = scrollState.value
+            val delta = current - lastScrollValue
+            when {
+                current == 0       -> headerVisible = true
+                delta >  THRESHOLD -> headerVisible = false
+                delta < -THRESHOLD -> headerVisible = true
+            }
+            lastScrollValue = current
+        }
+
         Column(modifier = Modifier.fillMaxSize().padding(padding)) {
-            // Fixed: progress strip + action buttons
-            Column(
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                WizardProgressStrip(builder = builder)
-                WizardFooter(
-                    canRun = builder.isRunnable && nameError == null,
-                    isSaving = isSaving,
-                    simButtonState = simButtonState,
-                    showSavedTick = showSavedTick,
-                    noviceMode = noviceMode,
-                    onSave = { viewModel.save(runSimulation = false) },
-                    onRun = { simulationQueued = false; viewModel.save(runSimulation = true) },
-                    onClose = handleClose
-                )
+            // Fixed: progress strip + action buttons (collapses on scroll up)
+            AnimatedVisibility(visible = headerVisible) {
+                Column(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    WizardProgressStrip(builder = builder)
+                    WizardFooter(
+                        canRun = builder.isRunnable && nameError == null,
+                        isSaving = isSaving,
+                        simButtonState = simButtonState,
+                        showSavedTick = showSavedTick,
+                        noviceMode = noviceMode,
+                        onSave = { viewModel.save(runSimulation = false) },
+                        onRun = { simulationQueued = false; viewModel.save(runSimulation = true) },
+                        onClose = handleClose
+                    )
+                }
             }
             // Scrollable accordion sections
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .verticalScroll(rememberScrollState())
+                    .verticalScroll(scrollState)
                     .padding(horizontal = 16.dp, vertical = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
@@ -342,7 +365,7 @@ private fun WizardScreen(
                 // ── Start ───────────────────────────────────────────────────
             WizardAccordionSection(
                 id = "start",
-                iconContent = { Text("🌱", style = MaterialTheme.typography.titleSmall) },
+                iconContent = { Text("🌱", style = MaterialTheme.typography.titleMedium) },
                 title = "Start",
                 isLinked = false,
                 subtitle = if (!expandedSections.contains("start") && builder.scenarioName.isNotBlank())
@@ -369,7 +392,7 @@ private fun WizardScreen(
                 id = "load",
                 iconContent = {
                     Icon(painterResource(R.drawable.house), contentDescription = null,
-                        modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.onSurface)
+                        modifier = Modifier.size(26.dp), tint = MaterialTheme.colorScheme.onSurface)
                 },
                 title = "Usage Data",
                 isLinked = builder.isLinked || builder.isLoadLinked,
@@ -405,7 +428,7 @@ private fun WizardScreen(
                 id = "inverters",
                 iconContent = {
                     val res = if (inverterCount > 0) R.drawable.invertertick else R.drawable.inverter
-                    Icon(painterResource(res), null, Modifier.size(20.dp),
+                    Icon(painterResource(res), null, Modifier.size(26.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 },
                 title = "Inverters",
@@ -434,7 +457,7 @@ private fun WizardScreen(
                 id = "pv",
                 iconContent = {
                     val pvRes = if (panelCount > 0) R.drawable.solarpaneltick else R.drawable.solarpanel
-                    Icon(painterResource(pvRes), null, Modifier.size(20.dp), tint = Color.Unspecified)
+                    Icon(painterResource(pvRes), null, Modifier.size(26.dp), tint = Color.Unspecified)
                 },
                 title = "PV System",
                 isLinked = builder.isLinked && panelCount > 0,
@@ -471,7 +494,7 @@ private fun WizardScreen(
             WizardAccordionSection(
                 id = "battery",
                 iconContent = {
-                    Icon(painterResource(R.drawable.battery1), null, Modifier.size(20.dp),
+                    Icon(painterResource(R.drawable.battery1), null, Modifier.size(26.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 },
                 title = "Battery",
@@ -516,7 +539,7 @@ private fun WizardScreen(
                 id = "ev",
                 iconContent = {
                     val evRes = if (evCount > 0 || evDivertCount > 0) R.drawable.ev_on else R.drawable.ev_off
-                    Icon(painterResource(evRes), null, Modifier.size(20.dp), tint = Color.Unspecified)
+                    Icon(painterResource(evRes), null, Modifier.size(26.dp), tint = Color.Unspecified)
                 },
                 title = "EV",
                 isLinked = builder.isLinked && (evCount > 0 || evDivertCount > 0),
@@ -633,7 +656,7 @@ private fun WizardAccordionSection(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            Box(modifier = Modifier.size(32.dp).clip(RoundedCornerShape(8.dp))
+            Box(modifier = Modifier.width(42.dp).height(32.dp).clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) {
                 iconContent()
             }

@@ -460,7 +460,14 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                             if (sc.inverters.isNotEmpty()) {
                                 Icon(painterResource(R.drawable.tick), null, Modifier.size(18.dp), tint = Color.Unspecified)
                             }
-                        }
+                        },
+                        onEdit = if (scenarioId != -1L) ({
+                            ctx.startActivity(
+                                Intent(ctx, UI2WizardActivity::class.java)
+                                    .putExtra("ScenarioID", scenarioId)
+                                    .putExtra("WizardSection", "inverters")
+                            )
+                        }) else null
                     ) {
                         if (sc.inverters.isEmpty()) Text("No inverters configured")
                         else sc.inverters.forEach { inv ->
@@ -525,7 +532,14 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                                         Modifier.size(18.dp), tint = StatusGreen)
                                 }
                             }
-                        }
+                        },
+                        onEdit = if (scenarioId != -1L) ({
+                            ctx.startActivity(
+                                Intent(ctx, UI2WizardActivity::class.java)
+                                    .putExtra("ScenarioID", scenarioId)
+                                    .putExtra("WizardSection", "battery")
+                            )
+                        }) else null
                     ) {
                         if (sc.batteries.isEmpty()) Text("No batteries configured")
                         else sc.batteries.forEach { b ->
