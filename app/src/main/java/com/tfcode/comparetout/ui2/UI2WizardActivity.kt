@@ -144,6 +144,8 @@ private fun WizardScreen(
     var simulationQueued       by remember { mutableStateOf(false) }
     var pvgisQueued            by remember { mutableIntStateOf(0) }
     var lastSavedBuilder       by remember { mutableStateOf<WizardBuilder?>(null) }
+    var initialBuilder         by remember { mutableStateOf<WizardBuilder?>(null) }
+    var sawLoading             by remember { mutableStateOf(false) }
     var showCloseConfirm       by remember { mutableStateOf(false) }
     var showSavedTick          by remember { mutableStateOf(false) }
 
@@ -252,11 +254,23 @@ private fun WizardScreen(
         else -> "Build your scenario"
     }
 
-    val handleClose: () -> Unit = {
-        val hasChanges = when {
-            lastSavedBuilder != null -> lastSavedBuilder != builder
-            else -> builder.isStartComplete || builder.isLoadComplete
+    // Capture the wizard's pristine baseline so close-confirm only fires after real
+    // user edits. In edit/copy/link modes the baseline is the loaded scenario; in new
+    // mode it's the default builder taken on first render.
+    LaunchedEffect(isLoading) {
+        if (isLoading) sawLoading = true
+    }
+    LaunchedEffect(isLoading, sawLoading, builder) {
+        if (initialBuilder == null && !isLoading) {
+            if (!viewModel.isEditMode || sawLoading) {
+                initialBuilder = builder
+            }
         }
+    }
+
+    val handleClose: () -> Unit = {
+        val baseline = lastSavedBuilder ?: initialBuilder
+        val hasChanges = baseline != null && baseline != builder
         if (hasChanges) showCloseConfirm = true else onClose()
     }
 

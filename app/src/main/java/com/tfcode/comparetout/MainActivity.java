@@ -163,19 +163,44 @@ public class MainActivity extends InsetRespectingActivity {
             }
 
             Preferences.Key<String> UseUI2 = PreferencesKeys.stringKey("use_ui2");
+            // Use sentinel default — distinguishes "never set" (null) from "explicitly false".
             Single<String> ui2Value = application.getDataStore()
                     .data().firstOrError()
-                    .map(prefs -> prefs.get(UseUI2)).onErrorReturnItem("false");
+                    .map(prefs -> {
+                        String v = prefs.get(UseUI2);
+                        return v == null ? "" : v;
+                    }).onErrorReturnItem("error");
             String ui2Ret = ui2Value.blockingGet();
-            if (ui2Ret != null && ui2Ret.equals("true")) {
-                mUseUI2 = true;
-                mMainHandler.post(() -> {
-                    Intent intent = new Intent(MainActivity.this, com.tfcode.comparetout.ui2.UI2MainActivity.class);
-                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                    startActivity(intent);
-                });
+            if ("true".equals(ui2Ret)) {
+                mMainHandler.post(this::switchToUI2);
+            } else if ("".equals(ui2Ret)) {
+                // First launch — explain legacy fallback, then opt into UI2 by default
+                mMainHandler.post(this::showUI2OnboardingDialog);
             }
+            // "false" or "error" → stay on legacy
         }).start();
+    }
+
+    private void switchToUI2() {
+        mUseUI2 = true;
+        Intent intent = new Intent(MainActivity.this, com.tfcode.comparetout.ui2.UI2MainActivity.class);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(intent);
+    }
+
+    private void showUI2OnboardingDialog() {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("New look")
+                .setMessage("You're getting the redesigned dashboard by default. The legacy interface is still available — pick \"Use legacy UI\" from the menu at any time.")
+                .setCancelable(false)
+                .setPositiveButton("Continue", (d, w) -> {
+                    new Thread(() -> {
+                        TOUTCApplication app = (TOUTCApplication) getApplication();
+                        app.putStringValueIntoDataStore("use_ui2", "true");
+                        mMainHandler.post(this::switchToUI2);
+                    }).start();
+                })
+                .show();
     }
 
     /**

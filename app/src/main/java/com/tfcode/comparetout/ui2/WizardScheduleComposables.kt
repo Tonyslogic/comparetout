@@ -46,6 +46,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -416,10 +418,12 @@ fun WizardEvEntryCard(
                     label = { Text("Schedule name") },
                     modifier = Modifier.fillMaxWidth(), singleLine = true)
 
-                OutlinedTextField(value = entry.drawKw.toString(),
-                    onValueChange = { v -> v.toDoubleOrNull()?.let { onUpdate(entry.copy(drawKw = it)) } },
-                    label = { Text("Draw rate (kW)") },
-                    modifier = Modifier.fillMaxWidth(), singleLine = true)
+                NumericDoubleField(
+                    value = entry.drawKw,
+                    onValueChange = { onUpdate(entry.copy(drawKw = it)) },
+                    label = "Draw rate (kW)",
+                    modifier = Modifier.fillMaxWidth()
+                )
                 if (noviceMode) {
                     Text("How much power the charger draws from the grid during the window.",
                         style = MaterialTheme.typography.labelSmall,
@@ -538,17 +542,17 @@ fun WizardEvDivertCard(
                         Switch(checked = entry.ev1st, onCheckedChange = { onUpdate(entry.copy(ev1st = it)) })
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = entry.dailyMax.toString(),
-                            onValueChange = { v -> v.toDoubleOrNull()?.let { onUpdate(entry.copy(dailyMax = it)) } },
-                            label = { Text("Daily max (kWh)") },
-                            modifier = Modifier.weight(1f), singleLine = true
+                        NumericDoubleField(
+                            value = entry.dailyMax,
+                            onValueChange = { onUpdate(entry.copy(dailyMax = it)) },
+                            label = "Daily max (kWh)",
+                            modifier = Modifier.weight(1f)
                         )
-                        OutlinedTextField(
-                            value = entry.minimum.toString(),
-                            onValueChange = { v -> v.toDoubleOrNull()?.let { onUpdate(entry.copy(minimum = it)) } },
-                            label = { Text("Min excess (kW)") },
-                            modifier = Modifier.weight(1f), singleLine = true
+                        NumericDoubleField(
+                            value = entry.minimum,
+                            onValueChange = { onUpdate(entry.copy(minimum = it)) },
+                            label = "Min excess (kW)",
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }
@@ -639,46 +643,50 @@ fun WizardInverterCard(
                     modifier = Modifier.fillMaxWidth(), singleLine = true
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = entry.maxInverterLoad.toString(),
-                        onValueChange = { v -> v.toDoubleOrNull()?.let { onUpdate(entry.copy(maxInverterLoad = it)) } },
-                        label = { Text("Max load (kW)") },
-                        modifier = Modifier.weight(1f), singleLine = true,
+                    NumericDoubleField(
+                        value = entry.maxInverterLoad,
+                        onValueChange = { onUpdate(entry.copy(maxInverterLoad = it)) },
+                        label = "Max load (kW)",
+                        modifier = Modifier.weight(1f),
                         supportingText = if (noviceMode) ({ Text("Rated AC output capacity.") }) else null
                     )
-                    OutlinedTextField(
-                        value = entry.mpptCount.toString(),
-                        onValueChange = { v -> v.toIntOrNull()?.coerceIn(1, 8)?.let { onUpdate(entry.copy(mpptCount = it)) } },
-                        label = { Text("MPPT count") },
-                        modifier = Modifier.weight(1f), singleLine = true,
+                    NumericIntField(
+                        value = entry.mpptCount,
+                        onValueChange = { onUpdate(entry.copy(mpptCount = it)) },
+                        label = "MPPT count",
+                        modifier = Modifier.weight(1f),
+                        range = 1..8,
                         supportingText = if (noviceMode) ({ Text("Independent string inputs.") }) else null
                     )
                 }
                 if (!noviceMode) {
-                    OutlinedTextField(
-                        value = entry.minExcess.toString(),
-                        onValueChange = { v -> v.toDoubleOrNull()?.let { onUpdate(entry.copy(minExcess = it)) } },
-                        label = { Text("Min excess (kW)") },
-                        modifier = Modifier.fillMaxWidth(), singleLine = true
+                    NumericDoubleField(
+                        value = entry.minExcess,
+                        onValueChange = { onUpdate(entry.copy(minExcess = it)) },
+                        label = "Min excess (kW)",
+                        modifier = Modifier.fillMaxWidth()
                     )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = entry.ac2dcLoss.toString(),
-                            onValueChange = { v -> v.toIntOrNull()?.coerceIn(0, 50)?.let { onUpdate(entry.copy(ac2dcLoss = it)) } },
-                            label = { Text("AC→DC loss %") },
-                            modifier = Modifier.weight(1f), singleLine = true
+                        NumericIntField(
+                            value = entry.ac2dcLoss,
+                            onValueChange = { onUpdate(entry.copy(ac2dcLoss = it)) },
+                            label = "AC→DC loss %",
+                            modifier = Modifier.weight(1f),
+                            range = 0..50
                         )
-                        OutlinedTextField(
-                            value = entry.dc2acLoss.toString(),
-                            onValueChange = { v -> v.toIntOrNull()?.coerceIn(0, 50)?.let { onUpdate(entry.copy(dc2acLoss = it)) } },
-                            label = { Text("DC→AC loss %") },
-                            modifier = Modifier.weight(1f), singleLine = true
+                        NumericIntField(
+                            value = entry.dc2acLoss,
+                            onValueChange = { onUpdate(entry.copy(dc2acLoss = it)) },
+                            label = "DC→AC loss %",
+                            modifier = Modifier.weight(1f),
+                            range = 0..50
                         )
-                        OutlinedTextField(
-                            value = entry.dc2dcLoss.toString(),
-                            onValueChange = { v -> v.toIntOrNull()?.coerceIn(0, 50)?.let { onUpdate(entry.copy(dc2dcLoss = it)) } },
-                            label = { Text("DC→DC loss %") },
-                            modifier = Modifier.weight(1f), singleLine = true
+                        NumericIntField(
+                            value = entry.dc2dcLoss,
+                            onValueChange = { onUpdate(entry.copy(dc2dcLoss = it)) },
+                            label = "DC→DC loss %",
+                            modifier = Modifier.weight(1f),
+                            range = 0..50
                         )
                     }
                 }
@@ -803,18 +811,20 @@ fun WizardPanelCard(
                     modifier = Modifier.fillMaxWidth(), singleLine = true
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = entry.panelCount.toString(),
-                        onValueChange = { v -> v.toIntOrNull()?.coerceIn(1, 100)?.let { onUpdate(entry.copy(panelCount = it)) } },
-                        label = { Text("Count") },
-                        modifier = Modifier.weight(1f), singleLine = true,
+                    NumericIntField(
+                        value = entry.panelCount,
+                        onValueChange = { onUpdate(entry.copy(panelCount = it)) },
+                        label = "Count",
+                        modifier = Modifier.weight(1f),
+                        range = 1..100,
                         supportingText = if (noviceMode) ({ Text("Number of panels.") }) else null
                     )
-                    OutlinedTextField(
-                        value = entry.panelkWp.toString(),
-                        onValueChange = { v -> v.toIntOrNull()?.coerceIn(50, 1000)?.let { onUpdate(entry.copy(panelkWp = it)) } },
-                        label = { Text("Wp / panel") },
-                        modifier = Modifier.weight(1f), singleLine = true,
+                    NumericIntField(
+                        value = entry.panelkWp,
+                        onValueChange = { onUpdate(entry.copy(panelkWp = it)) },
+                        label = "Wp / panel",
+                        modifier = Modifier.weight(1f),
+                        range = 50..1000,
                         supportingText = if (noviceMode) ({ Text("Rated power per panel.") }) else null
                     )
                 }
@@ -824,17 +834,17 @@ fun WizardPanelCard(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    OutlinedTextField(
-                        value = "%.3f".format(entry.latitude),
-                        onValueChange = { v -> v.toDoubleOrNull()?.let { onUpdate(entry.copy(latitude = it)) } },
-                        label = { Text("Lat") },
-                        modifier = Modifier.weight(1f), singleLine = true
+                    NumericDoubleField(
+                        value = entry.latitude,
+                        onValueChange = { onUpdate(entry.copy(latitude = it)) },
+                        label = "Lat",
+                        modifier = Modifier.weight(1f)
                     )
-                    OutlinedTextField(
-                        value = "%.3f".format(entry.longitude),
-                        onValueChange = { v -> v.toDoubleOrNull()?.let { onUpdate(entry.copy(longitude = it)) } },
-                        label = { Text("Long") },
-                        modifier = Modifier.weight(1f), singleLine = true
+                    NumericDoubleField(
+                        value = entry.longitude,
+                        onValueChange = { onUpdate(entry.copy(longitude = it)) },
+                        label = "Long",
+                        modifier = Modifier.weight(1f)
                     )
                     androidx.compose.material3.IconButton(onClick = onRequestLocation) {
                         Icon(Icons.Default.MyLocation, contentDescription = "Use GPS",
@@ -843,18 +853,20 @@ fun WizardPanelCard(
                 }
                 // Orientation
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = entry.azimuth.toString(),
-                        onValueChange = { v -> v.toIntOrNull()?.coerceIn(0, 360)?.let { onUpdate(entry.copy(azimuth = it)) } },
-                        label = { Text("Azimuth °") },
-                        modifier = Modifier.weight(1f), singleLine = true,
+                    NumericIntField(
+                        value = entry.azimuth,
+                        onValueChange = { onUpdate(entry.copy(azimuth = it)) },
+                        label = "Azimuth °",
+                        modifier = Modifier.weight(1f),
+                        range = 0..360,
                         supportingText = if (noviceMode) ({ Text("0/360=N · 90=E · 180=S · 270=W") }) else null
                     )
-                    OutlinedTextField(
-                        value = entry.slope.toString(),
-                        onValueChange = { v -> v.toIntOrNull()?.coerceIn(0, 90)?.let { onUpdate(entry.copy(slope = it)) } },
-                        label = { Text("Slope °") },
-                        modifier = Modifier.weight(1f), singleLine = true,
+                    NumericIntField(
+                        value = entry.slope,
+                        onValueChange = { onUpdate(entry.copy(slope = it)) },
+                        label = "Slope °",
+                        modifier = Modifier.weight(1f),
+                        range = 0..90,
                         supportingText = if (noviceMode) ({ Text("0=flat, 90=vertical") }) else null
                     )
                 }
@@ -898,7 +910,7 @@ fun WizardPanelCard(
                         var mpptMenu by remember { mutableStateOf(false) }
                         Box(modifier = Modifier.weight(1f)) {
                             OutlinedTextField(
-                                value = "Port ${entry.mppt}",
+                                value = entry.mppt.toString(),
                                 onValueChange = {},
                                 readOnly = true,
                                 label = { Text("MPPT") },
@@ -911,7 +923,7 @@ fun WizardPanelCard(
                             DropdownMenu(expanded = mpptMenu, onDismissRequest = { mpptMenu = false }) {
                                 (1..maxMppt).forEach { port ->
                                     DropdownMenuItem(
-                                        text = { Text("Port $port") },
+                                        text = { Text(port.toString()) },
                                         onClick = { onUpdate(entry.copy(mppt = port)); mpptMenu = false }
                                     )
                                 }
@@ -1053,14 +1065,13 @@ fun WizardPanelCard(
                             if (showAdvanced) {
                                 val stringKwp = entry.panelCount * entry.panelkWp / 1000.0
                                 val displayedKwp = if (entry.pvSourceKwp > 0.0) entry.pvSourceKwp else stringKwp
-                                OutlinedTextField(
-                                    value = "%.2f".format(displayedKwp),
+                                NumericDoubleField(
+                                    value = displayedKwp,
                                     onValueChange = { v ->
-                                        v.toDoubleOrNull()?.takeIf { it > 0.0 }
-                                            ?.let { onUpdate(entry.copy(pvSourceKwp = it)) }
+                                        if (v > 0.0) onUpdate(entry.copy(pvSourceKwp = v))
                                     },
-                                    label = { Text("Source kWp") },
-                                    modifier = Modifier.fillMaxWidth(), singleLine = true,
+                                    label = "Source kWp",
+                                    modifier = Modifier.fillMaxWidth(),
                                     supportingText = {
                                         Text("Rated kWp of the source. Data is scaled when it differs from the string total (${"%.2f".format(stringKwp)} kWp).")
                                     }
@@ -1094,14 +1105,12 @@ fun WizardPanelCard(
                                 }
                                 if (entry.pvUseAzimuthFactor) {
                                     val displayedSrcAz = if (entry.pvSourceAzimuth in 0..360) entry.pvSourceAzimuth else entry.azimuth
-                                    OutlinedTextField(
-                                        value = displayedSrcAz.toString(),
-                                        onValueChange = { v ->
-                                            v.toIntOrNull()?.coerceIn(0, 360)
-                                                ?.let { onUpdate(entry.copy(pvSourceAzimuth = it)) }
-                                        },
-                                        label = { Text("Source azimuth °") },
-                                        modifier = Modifier.fillMaxWidth(), singleLine = true,
+                                    NumericIntField(
+                                        value = displayedSrcAz,
+                                        onValueChange = { onUpdate(entry.copy(pvSourceAzimuth = it)) },
+                                        label = "Source azimuth °",
+                                        modifier = Modifier.fillMaxWidth(),
+                                        range = 0..360,
                                         supportingText = {
                                             Text("Azimuth of the source string (0/360=N · 90=E · 180=S · 270=W). Target: ${entry.azimuth}°.")
                                         }
@@ -1207,24 +1216,22 @@ fun WizardBatteryCard(
                 verticalArrangement = Arrangement.spacedBy(14.dp)) {
 
                 // Size + inverter
-                OutlinedTextField(
-                    value = entry.batterySize.toString(),
-                    onValueChange = { v ->
-                        v.toDoubleOrNull()?.let { newSize ->
-                            // If max charge/discharge are still at the 0.5C default for the previous
-                            // size, keep them in sync; otherwise leave the user's overrides alone.
-                            val prevRate = entry.batterySize / 24.0
-                            val keepCharge = kotlin.math.abs(entry.maxCharge - prevRate) < 1e-6
-                            val keepDischarge = kotlin.math.abs(entry.maxDischarge - prevRate) < 1e-6
-                            onUpdate(entry.copy(
-                                batterySize = newSize,
-                                maxCharge = if (keepCharge) newSize / 24.0 else entry.maxCharge,
-                                maxDischarge = if (keepDischarge) newSize / 24.0 else entry.maxDischarge
-                            ))
-                        }
+                NumericDoubleField(
+                    value = entry.batterySize,
+                    onValueChange = { newSize ->
+                        // If max charge/discharge are still at the 0.5C default for the previous
+                        // size, keep them in sync; otherwise leave the user's overrides alone.
+                        val prevRate = entry.batterySize / 24.0
+                        val keepCharge = kotlin.math.abs(entry.maxCharge - prevRate) < 1e-6
+                        val keepDischarge = kotlin.math.abs(entry.maxDischarge - prevRate) < 1e-6
+                        onUpdate(entry.copy(
+                            batterySize = newSize,
+                            maxCharge = if (keepCharge) newSize / 24.0 else entry.maxCharge,
+                            maxDischarge = if (keepDischarge) newSize / 24.0 else entry.maxDischarge
+                        ))
                     },
-                    label = { Text("Battery size (kWh)") },
-                    modifier = Modifier.fillMaxWidth(), singleLine = true,
+                    label = "Battery size (kWh)",
+                    modifier = Modifier.fillMaxWidth(),
                     supportingText = if (noviceMode) ({ Text("Total usable capacity.") }) else null
                 )
 
@@ -1274,36 +1281,33 @@ fun WizardBatteryCard(
                 if (showAdvanced) {
                     // BMS: discharge floor + storage loss
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = entry.dischargeStop.toString(),
-                            onValueChange = { v -> v.toDoubleOrNull()?.coerceIn(0.0, 100.0)
-                                ?.let { onUpdate(entry.copy(dischargeStop = it)) } },
-                            label = { Text("Min SOC %") },
-                            modifier = Modifier.weight(1f), singleLine = true
+                        NumericDoubleField(
+                            value = entry.dischargeStop,
+                            onValueChange = { onUpdate(entry.copy(dischargeStop = it)) },
+                            label = "Min SOC %",
+                            modifier = Modifier.weight(1f),
+                            range = 0.0..100.0
                         )
-                        OutlinedTextField(
-                            value = entry.storageLoss.toString(),
-                            onValueChange = { v -> v.toDoubleOrNull()
-                                ?.let { onUpdate(entry.copy(storageLoss = it)) } },
-                            label = { Text("Storage loss %") },
-                            modifier = Modifier.weight(1f), singleLine = true
+                        NumericDoubleField(
+                            value = entry.storageLoss,
+                            onValueChange = { onUpdate(entry.copy(storageLoss = it)) },
+                            label = "Storage loss %",
+                            modifier = Modifier.weight(1f)
                         )
                     }
                     // BMS: max charge / discharge per 5-min interval (~0.5C default)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = entry.maxCharge.toString(),
-                            onValueChange = { v -> v.toDoubleOrNull()
-                                ?.let { onUpdate(entry.copy(maxCharge = it)) } },
-                            label = { Text("Max charge kWh/5min") },
-                            modifier = Modifier.weight(1f), singleLine = true
+                        NumericDoubleField(
+                            value = entry.maxCharge,
+                            onValueChange = { onUpdate(entry.copy(maxCharge = it)) },
+                            label = "Max charge kWh/5min",
+                            modifier = Modifier.weight(1f)
                         )
-                        OutlinedTextField(
-                            value = entry.maxDischarge.toString(),
-                            onValueChange = { v -> v.toDoubleOrNull()
-                                ?.let { onUpdate(entry.copy(maxDischarge = it)) } },
-                            label = { Text("Max discharge kWh/5min") },
-                            modifier = Modifier.weight(1f), singleLine = true
+                        NumericDoubleField(
+                            value = entry.maxDischarge,
+                            onValueChange = { onUpdate(entry.copy(maxDischarge = it)) },
+                            label = "Max discharge kWh/5min",
+                            modifier = Modifier.weight(1f)
                         )
                     }
                     // BMS: charge model curve (taper at top/bottom of SOC range)
@@ -1311,26 +1315,26 @@ fun WizardBatteryCard(
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.outline)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = entry.cmPercent0.toString(),
-                            onValueChange = { v -> v.toIntOrNull()?.coerceIn(0, 100)
-                                ?.let { onUpdate(entry.copy(cmPercent0 = it)) } },
-                            label = { Text("0–12% SOC") },
-                            modifier = Modifier.weight(1f), singleLine = true
+                        NumericIntField(
+                            value = entry.cmPercent0,
+                            onValueChange = { onUpdate(entry.copy(cmPercent0 = it)) },
+                            label = "0–12% SOC",
+                            modifier = Modifier.weight(1f),
+                            range = 0..100
                         )
-                        OutlinedTextField(
-                            value = entry.cmPercent12.toString(),
-                            onValueChange = { v -> v.toIntOrNull()?.coerceIn(0, 100)
-                                ?.let { onUpdate(entry.copy(cmPercent12 = it)) } },
-                            label = { Text("12–90% SOC") },
-                            modifier = Modifier.weight(1f), singleLine = true
+                        NumericIntField(
+                            value = entry.cmPercent12,
+                            onValueChange = { onUpdate(entry.copy(cmPercent12 = it)) },
+                            label = "12–90% SOC",
+                            modifier = Modifier.weight(1f),
+                            range = 0..100
                         )
-                        OutlinedTextField(
-                            value = entry.cmPercent90.toString(),
-                            onValueChange = { v -> v.toIntOrNull()?.coerceIn(0, 100)
-                                ?.let { onUpdate(entry.copy(cmPercent90 = it)) } },
-                            label = { Text("90–100% SOC") },
-                            modifier = Modifier.weight(1f), singleLine = true
+                        NumericIntField(
+                            value = entry.cmPercent90,
+                            onValueChange = { onUpdate(entry.copy(cmPercent90 = it)) },
+                            label = "90–100% SOC",
+                            modifier = Modifier.weight(1f),
+                            range = 0..100
                         )
                     }
                 }
@@ -1465,12 +1469,12 @@ fun WizardBatteryChargeCard(
                     onSelect = { onUpdate(entry.copy(inverterName = it)) }
                 )
 
-                OutlinedTextField(
-                    value = entry.stopAt.toString(),
-                    onValueChange = { v -> v.toDoubleOrNull()?.coerceIn(0.0, 100.0)
-                        ?.let { onUpdate(entry.copy(stopAt = it)) } },
-                    label = { Text("Target SOC %") },
-                    modifier = Modifier.fillMaxWidth(), singleLine = true,
+                NumericDoubleField(
+                    value = entry.stopAt,
+                    onValueChange = { onUpdate(entry.copy(stopAt = it)) },
+                    label = "Target SOC %",
+                    modifier = Modifier.fillMaxWidth(),
+                    range = 0.0..100.0,
                     supportingText = if (noviceMode) ({
                         Text("Charge stops once the battery reaches this state of charge.")
                     }) else null
@@ -1569,22 +1573,21 @@ fun WizardBatteryDischargeCard(
                 )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = entry.stopAt.toString(),
-                        onValueChange = { v -> v.toDoubleOrNull()?.coerceIn(0.0, 100.0)
-                            ?.let { onUpdate(entry.copy(stopAt = it)) } },
-                        label = { Text("Min SOC %") },
-                        modifier = Modifier.weight(1f), singleLine = true,
+                    NumericDoubleField(
+                        value = entry.stopAt,
+                        onValueChange = { onUpdate(entry.copy(stopAt = it)) },
+                        label = "Min SOC %",
+                        modifier = Modifier.weight(1f),
+                        range = 0.0..100.0,
                         supportingText = if (noviceMode) ({
                             Text("Discharge stops at this SOC.")
                         }) else null
                     )
-                    OutlinedTextField(
-                        value = entry.rate.toString(),
-                        onValueChange = { v -> v.toDoubleOrNull()
-                            ?.let { onUpdate(entry.copy(rate = it)) } },
-                        label = { Text("Rate (kW)") },
-                        modifier = Modifier.weight(1f), singleLine = true,
+                    NumericDoubleField(
+                        value = entry.rate,
+                        onValueChange = { onUpdate(entry.copy(rate = it)) },
+                        label = "Rate (kW)",
+                        modifier = Modifier.weight(1f),
                         supportingText = if (noviceMode) ({
                             Text("Export power to grid.")
                         }) else null
@@ -1666,29 +1669,29 @@ fun WizardHwSystemCard(
                 verticalArrangement = Arrangement.spacedBy(14.dp)) {
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedTextField(
-                        value = entry.capacity.toString(),
-                        onValueChange = { v -> v.toIntOrNull()?.coerceIn(20, 1000)
-                            ?.let { onUpdate(entry.copy(capacity = it)) } },
-                        label = { Text("Tank size (L)") },
-                        modifier = Modifier.weight(1f), singleLine = true,
+                    NumericIntField(
+                        value = entry.capacity,
+                        onValueChange = { onUpdate(entry.copy(capacity = it)) },
+                        label = "Tank size (L)",
+                        modifier = Modifier.weight(1f),
+                        range = 20..1000,
                         supportingText = if (noviceMode) ({ Text("Cylinder volume.") }) else null
                     )
-                    OutlinedTextField(
-                        value = entry.usage.toString(),
-                        onValueChange = { v -> v.toIntOrNull()?.coerceAtLeast(0)
-                            ?.let { onUpdate(entry.copy(usage = it)) } },
-                        label = { Text("Daily use (L)") },
-                        modifier = Modifier.weight(1f), singleLine = true,
+                    NumericIntField(
+                        value = entry.usage,
+                        onValueChange = { onUpdate(entry.copy(usage = it)) },
+                        label = "Daily use (L)",
+                        modifier = Modifier.weight(1f),
+                        range = 0..Int.MAX_VALUE,
                         supportingText = if (noviceMode) ({ Text("Litres drawn per day.") }) else null
                     )
                 }
-                OutlinedTextField(
-                    value = entry.rate.toString(),
-                    onValueChange = { v -> v.toDoubleOrNull()?.coerceAtLeast(0.0)
-                        ?.let { onUpdate(entry.copy(rate = it)) } },
-                    label = { Text("Heater power (kW)") },
-                    modifier = Modifier.fillMaxWidth(), singleLine = true,
+                NumericDoubleField(
+                    value = entry.rate,
+                    onValueChange = { onUpdate(entry.copy(rate = it)) },
+                    label = "Heater power (kW)",
+                    modifier = Modifier.fillMaxWidth(),
+                    range = 0.0..Double.MAX_VALUE,
                     supportingText = if (noviceMode) ({
                         Text("How fast the immersion can put energy into the tank.")
                     }) else null
@@ -1703,27 +1706,27 @@ fun WizardHwSystemCard(
 
                 if (showAdvanced) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = entry.intake.toString(),
-                            onValueChange = { v -> v.toIntOrNull()?.coerceIn(0, 50)
-                                ?.let { onUpdate(entry.copy(intake = it)) } },
-                            label = { Text("Cold intake °C") },
-                            modifier = Modifier.weight(1f), singleLine = true
+                        NumericIntField(
+                            value = entry.intake,
+                            onValueChange = { onUpdate(entry.copy(intake = it)) },
+                            label = "Cold intake °C",
+                            modifier = Modifier.weight(1f),
+                            range = 0..50
                         )
-                        OutlinedTextField(
-                            value = entry.target.toString(),
-                            onValueChange = { v -> v.toIntOrNull()?.coerceIn(30, 90)
-                                ?.let { onUpdate(entry.copy(target = it)) } },
-                            label = { Text("Target °C") },
-                            modifier = Modifier.weight(1f), singleLine = true
+                        NumericIntField(
+                            value = entry.target,
+                            onValueChange = { onUpdate(entry.copy(target = it)) },
+                            label = "Target °C",
+                            modifier = Modifier.weight(1f),
+                            range = 30..90
                         )
                     }
-                    OutlinedTextField(
-                        value = entry.loss.toString(),
-                        onValueChange = { v -> v.toIntOrNull()?.coerceIn(0, 50)
-                            ?.let { onUpdate(entry.copy(loss = it)) } },
-                        label = { Text("Daily heat loss °C") },
-                        modifier = Modifier.fillMaxWidth(), singleLine = true,
+                    NumericIntField(
+                        value = entry.loss,
+                        onValueChange = { onUpdate(entry.copy(loss = it)) },
+                        label = "Daily heat loss °C",
+                        modifier = Modifier.fillMaxWidth(),
+                        range = 0..50,
                         supportingText = { Text("Temperature drop per day with no top-up — depends on tank insulation.") }
                     )
                 }
@@ -1765,25 +1768,23 @@ private fun WizardHwUsageEditor(
         pattern.forEachIndexed { idx, point ->
             Row(verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = point.hour.toString(),
-                    onValueChange = { v ->
-                        v.toIntOrNull()?.coerceIn(0, 23)?.let { h ->
-                            onChange(pattern.toMutableList().also { it[idx] = point.copy(hour = h) })
-                        }
+                NumericIntField(
+                    value = point.hour,
+                    onValueChange = { h ->
+                        onChange(pattern.toMutableList().also { it[idx] = point.copy(hour = h) })
                     },
-                    label = { Text("Hour") },
-                    modifier = Modifier.weight(1f), singleLine = true
+                    label = "Hour",
+                    modifier = Modifier.weight(1f),
+                    range = 0..23
                 )
-                OutlinedTextField(
-                    value = "%.1f".format(point.percent),
-                    onValueChange = { v ->
-                        v.toDoubleOrNull()?.coerceIn(0.0, 100.0)?.let { p ->
-                            onChange(pattern.toMutableList().also { it[idx] = point.copy(percent = p) })
-                        }
+                NumericDoubleField(
+                    value = point.percent,
+                    onValueChange = { p ->
+                        onChange(pattern.toMutableList().also { it[idx] = point.copy(percent = p) })
                     },
-                    label = { Text("% of daily") },
-                    modifier = Modifier.weight(1f), singleLine = true
+                    label = "% of daily",
+                    modifier = Modifier.weight(1f),
+                    range = 0.0..100.0
                 )
                 IconButton(
                     onClick = {
@@ -2258,6 +2259,79 @@ private fun PvSourceDialog(
 fun WizardScheduleLabel(text: String) {
     Text(text = text.uppercase(), style = MaterialTheme.typography.labelSmall,
         color = MaterialTheme.colorScheme.outline)
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Buffered numeric fields — keep a local string buffer so partial /
+   empty input stays in the field while the user is editing. The
+   canonical Int/Double model only updates when the buffer parses.
+   External value changes (e.g., size→rate auto-sync) push back into
+   the buffer iff the buffer's current parse disagrees, so user typing
+   isn't clobbered by their own keystroke producing a model update.
+────────────────────────────────────────────────────────────────── */
+
+@Composable
+fun NumericIntField(
+    value: Int,
+    onValueChange: (Int) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    range: IntRange? = null,
+    supportingText: (@Composable () -> Unit)? = null,
+    isError: Boolean = false
+) {
+    var text by remember { mutableStateOf(value.toString()) }
+    LaunchedEffect(value) {
+        if (text.toIntOrNull() != value) text = value.toString()
+    }
+    OutlinedTextField(
+        value = text,
+        onValueChange = { new ->
+            text = new
+            new.toIntOrNull()?.let { parsed ->
+                val out = range?.let { parsed.coerceIn(it.first, it.last) } ?: parsed
+                if (out != value) onValueChange(out)
+            }
+        },
+        label = { Text(label) },
+        modifier = modifier,
+        singleLine = true,
+        isError = isError,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        supportingText = supportingText
+    )
+}
+
+@Composable
+fun NumericDoubleField(
+    value: Double,
+    onValueChange: (Double) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    range: ClosedFloatingPointRange<Double>? = null,
+    supportingText: (@Composable () -> Unit)? = null,
+    isError: Boolean = false
+) {
+    var text by remember { mutableStateOf(value.toString()) }
+    LaunchedEffect(value) {
+        if (text.toDoubleOrNull() != value) text = value.toString()
+    }
+    OutlinedTextField(
+        value = text,
+        onValueChange = { new ->
+            text = new
+            new.toDoubleOrNull()?.let { parsed ->
+                val out = range?.let { parsed.coerceIn(it.start, it.endInclusive) } ?: parsed
+                if (out != value) onValueChange(out)
+            }
+        },
+        label = { Text(label) },
+        modifier = modifier,
+        singleLine = true,
+        isError = isError,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+        supportingText = supportingText
+    )
 }
 
 @Composable
