@@ -86,7 +86,7 @@ This document breaks down the implementation of the UI2 architecture (detailed i
   - Implement the final save step calling `ToutcRepository.insertScenarioAndReturnID()` or `updateScenario()`.
   - Trigger the background simulation worker (`observerSimulationWorker()` pattern) upon save.
 
-## Phase 6: Directors Tab Implementation (`UI2DirectorsFragment`)
+## Phase 6: Directors Tab Implementation (`UI2DirectorsFra4gment`)
 - [ ] **Task 6.1: Directors Data Binding**
   - Create `UI2DirectorsViewModel` observing `ToutcRepository.getAllPricePlans()`, `getLinkedLoadProfiles()`, `getAllInverterRelations()`, etc.
 - [ ] **Task 6.2: Categorized List UI**

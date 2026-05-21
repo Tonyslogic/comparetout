@@ -38,15 +38,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -111,7 +108,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import java.text.DecimalFormat
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 
 private val StatusGreen = Color(0xFF0B8043)
 private val StatusRed = Color(0xFFD32F2F)
@@ -255,13 +251,13 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 4.dp))
-                    PeriodNavigator(
-                        selectedPeriod   = explorePeriod,
-                        anchorDate       = exploreAnchor,
-                        dataStart        = dsInfo.startDate,
-                        dataEnd          = dsInfo.endDate,
-                        onPeriodSelected = { viewModel.setExplorePeriod(it) },
-                        onNavigate       = { viewModel.navigateExplore(it) }
+                    PeriodSelector(
+                        selectedPeriod = explorePeriod,
+                        anchorDate     = exploreAnchor,
+                        dataStart      = dsInfo.startDate,
+                        dataEnd        = dsInfo.endDate,
+                        onPeriodChange = { p, a, adv -> viewModel.setExplorePeriod(p, a, adv) },
+                        onNavigate     = { fwd, adv -> viewModel.navigateExplore(fwd, adv) }
                     )
                     Spacer(Modifier.height(8.dp))
                     DataSourceExplorePies(
@@ -282,13 +278,13 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     },
                     showEdit = false
                 ) {
-                    PeriodNavigator(
-                        selectedPeriod   = usagePeriod,
-                        anchorDate       = usageAnchor,
-                        dataStart        = dsInfo.startDate,
-                        dataEnd          = dsInfo.endDate,
-                        onPeriodSelected = { viewModel.setUsagePeriod(it) },
-                        onNavigate       = { viewModel.navigateUsage(it) }
+                    PeriodSelector(
+                        selectedPeriod = usagePeriod,
+                        anchorDate     = usageAnchor,
+                        dataStart      = dsInfo.startDate,
+                        dataEnd        = dsInfo.endDate,
+                        onPeriodChange = { p, a, adv -> viewModel.setUsagePeriod(p, a, adv) },
+                        onNavigate     = { fwd, adv -> viewModel.navigateUsage(fwd, adv) }
                     )
                     Spacer(Modifier.height(8.dp))
                     val isEsbn = dsInfo.importerType == ComparisonUIViewModel.Importer.ESBNHDF
@@ -326,13 +322,13 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         },
                         showEdit = false
                     ) {
-                        PeriodNavigator(
-                            selectedPeriod   = pvPeriod,
-                            anchorDate       = pvAnchor,
-                            dataStart        = dsInfo.startDate,
-                            dataEnd          = dsInfo.endDate,
-                            onPeriodSelected = { viewModel.setPvPeriod(it) },
-                            onNavigate       = { viewModel.navigatePv(it) }
+                        PeriodSelector(
+                            selectedPeriod = pvPeriod,
+                            anchorDate     = pvAnchor,
+                            dataStart      = dsInfo.startDate,
+                            dataEnd        = dsInfo.endDate,
+                            onPeriodChange = { p, a, adv -> viewModel.setPvPeriod(p, a, adv) },
+                            onNavigate     = { fwd, adv -> viewModel.navigatePv(fwd, adv) }
                         )
                         Spacer(Modifier.height(8.dp))
                         when {
@@ -359,13 +355,13 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     },
                     showEdit = false
                 ) {
-                    PeriodNavigator(
-                        selectedPeriod   = tariffPeriod,
-                        anchorDate       = tariffAnchor,
-                        dataStart        = dsInfo.startDate,
-                        dataEnd          = dsInfo.endDate,
-                        onPeriodSelected = { viewModel.setTariffPeriod(it) },
-                        onNavigate       = { viewModel.navigateTariff(it) }
+                    PeriodSelector(
+                        selectedPeriod = tariffPeriod,
+                        anchorDate     = tariffAnchor,
+                        dataStart      = dsInfo.startDate,
+                        dataEnd        = dsInfo.endDate,
+                        onPeriodChange = { p, a, adv -> viewModel.setTariffPeriod(p, a, adv) },
+                        onNavigate     = { fwd, adv -> viewModel.navigateTariff(fwd, adv) }
                     )
                     Spacer(Modifier.height(8.dp))
                     DataSourceCostingsTable(
@@ -1099,64 +1095,8 @@ private fun DataSourcePVBarChart(pvData: List<Pair<String, Double>>) {
     }
 }
 
-// ─── Data source period navigation + content ──────────────────────────────
-
-@Composable
-private fun PeriodNavigator(
-    selectedPeriod: DataSourcePeriod,
-    anchorDate: LocalDate,
-    dataStart: String,
-    dataEnd: String,
-    onPeriodSelected: (DataSourcePeriod) -> Unit,
-    onNavigate: (forward: Boolean) -> Unit
-) {
-    val dataStartDate = remember(dataStart) { LocalDate.parse(dataStart) }
-    val dataEndDate   = remember(dataEnd)   { LocalDate.parse(dataEnd) }
-    val showNav = selectedPeriod != DataSourcePeriod.ALL
-    val dateLabel = if (showNav) when (selectedPeriod) {
-        DataSourcePeriod.YESTERDAY -> anchorDate.format(DateTimeFormatter.ofPattern("dd/MM/yy"))
-        DataSourcePeriod.MONTH     -> anchorDate.format(DateTimeFormatter.ofPattern("MMM yy"))
-        DataSourcePeriod.YEAR      -> anchorDate.year.toString()
-        else -> ""
-    } else ""
-    val atStart = showNav && anchorDate <= dataStartDate
-    val atEnd   = showNav && anchorDate >= dataEndDate
-
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        DataSourcePeriod.values().forEach { period ->
-            FilterChip(
-                selected = period == selectedPeriod,
-                onClick = { onPeriodSelected(period) },
-                label = { Text(period.label, style = MaterialTheme.typography.labelSmall) },
-                modifier = Modifier.height(28.dp)
-            )
-            Spacer(Modifier.width(2.dp))
-        }
-        if (showNav) {
-            Spacer(Modifier.width(4.dp))
-            IconButton(
-                onClick = { onNavigate(false) },
-                enabled = !atStart,
-                modifier = Modifier.size(28.dp)
-            ) {
-                Icon(Icons.Default.KeyboardArrowLeft, null, Modifier.size(18.dp))
-            }
-            Text(dateLabel, Modifier.weight(1f),
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.labelSmall)
-            IconButton(
-                onClick = { onNavigate(true) },
-                enabled = !atEnd,
-                modifier = Modifier.size(28.dp)
-            ) {
-                Icon(Icons.Default.KeyboardArrowRight, null, Modifier.size(18.dp))
-            }
-        }
-    }
-}
+// ─── Data source content ──────────────────────────────────────────────────
+// The "D / M / Y / *  < >" selector lives in PeriodSelector.kt.
 
 @Composable
 private fun DataSourceExplorePies(

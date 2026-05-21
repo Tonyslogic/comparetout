@@ -138,52 +138,53 @@ class UI2DashboardViewModel @Inject constructor(
         _activeItem.value = ActiveDashboardItem.DataSource(sysSn, importerType, startDate, endDate)
         val item = ActiveDashboardItem.DataSource(sysSn, importerType, startDate, endDate)
         viewModelScope.launch(Dispatchers.IO) {
-            val sharedTotals = fetchTotals(DataSourcePeriod.ALL, LocalDate.now(), item)
+            val sharedTotals = fetchTotals(DataSourcePeriod.ALL, LocalDate.now(), false, item)
             _exploreTotals.value     = sharedTotals
             _usageTotals.value       = sharedTotals
-            _usageDistribution.value = fetchDistribution(DataSourcePeriod.ALL, LocalDate.now(), item)
-            _tariffCostings.value    = fetchCostings(DataSourcePeriod.ALL, LocalDate.now(), item)
+            _usageDistribution.value = fetchDistribution(DataSourcePeriod.ALL, LocalDate.now(), false, item)
+            _tariffCostings.value    = fetchCostings(DataSourcePeriod.ALL, LocalDate.now(), false, item)
             if (importerType != ComparisonUIViewModel.Importer.ESBNHDF) {
-                _pvChartData.value = fetchPvChartData(DataSourcePeriod.ALL, LocalDate.now(), item)
+                _pvChartData.value = fetchPvChartData(DataSourcePeriod.ALL, LocalDate.now(), false, item)
             } else {
                 _pvChartData.value = emptyList()
             }
         }
     }
 
-    fun setExplorePeriod(period: DataSourcePeriod) {
-        val anchor = LocalDate.now()
+    // The [anchor] is computed by PeriodSelector via transitionAnchor() so the
+    // selection keeps its context across D/M/Y/* changes. [advanced] is supplied
+    // by the enclosing tab/panel/accordion (default Basic when there is none).
+    fun setExplorePeriod(period: DataSourcePeriod, anchor: LocalDate, advanced: Boolean) {
         _explorePeriod.value = period
         _exploreAnchor.value = anchor
         _exploreTotals.value = null
         val item = _activeItem.value as? ActiveDashboardItem.DataSource ?: return
-        viewModelScope.launch(Dispatchers.IO) { _exploreTotals.value = fetchTotals(period, anchor, item) }
+        viewModelScope.launch(Dispatchers.IO) { _exploreTotals.value = fetchTotals(period, anchor, advanced, item) }
     }
 
-    fun navigateExplore(forward: Boolean) {
+    fun navigateExplore(forward: Boolean, advanced: Boolean) {
         val period = _explorePeriod.value
         if (period == DataSourcePeriod.ALL) return
         val item = _activeItem.value as? ActiveDashboardItem.DataSource ?: return
         val anchor = moveAnchor(_exploreAnchor.value, period, forward, item) ?: return
         _exploreAnchor.value = anchor
         _exploreTotals.value = null
-        viewModelScope.launch(Dispatchers.IO) { _exploreTotals.value = fetchTotals(period, anchor, item) }
+        viewModelScope.launch(Dispatchers.IO) { _exploreTotals.value = fetchTotals(period, anchor, advanced, item) }
     }
 
-    fun setUsagePeriod(period: DataSourcePeriod) {
-        val anchor = LocalDate.now()
+    fun setUsagePeriod(period: DataSourcePeriod, anchor: LocalDate, advanced: Boolean) {
         _usagePeriod.value       = period
         _usageAnchor.value       = anchor
         _usageTotals.value       = null
         _usageDistribution.value = null
         val item = _activeItem.value as? ActiveDashboardItem.DataSource ?: return
         viewModelScope.launch(Dispatchers.IO) {
-            _usageTotals.value       = fetchTotals(period, anchor, item)
-            _usageDistribution.value = fetchDistribution(period, anchor, item)
+            _usageTotals.value       = fetchTotals(period, anchor, advanced, item)
+            _usageDistribution.value = fetchDistribution(period, anchor, advanced, item)
         }
     }
 
-    fun navigateUsage(forward: Boolean) {
+    fun navigateUsage(forward: Boolean, advanced: Boolean) {
         val period = _usagePeriod.value
         if (period == DataSourcePeriod.ALL) return
         val item = _activeItem.value as? ActiveDashboardItem.DataSource ?: return
@@ -192,55 +193,54 @@ class UI2DashboardViewModel @Inject constructor(
         _usageTotals.value       = null
         _usageDistribution.value = null
         viewModelScope.launch(Dispatchers.IO) {
-            _usageTotals.value       = fetchTotals(period, anchor, item)
-            _usageDistribution.value = fetchDistribution(period, anchor, item)
+            _usageTotals.value       = fetchTotals(period, anchor, advanced, item)
+            _usageDistribution.value = fetchDistribution(period, anchor, advanced, item)
         }
     }
 
-    fun setTariffPeriod(period: DataSourcePeriod) {
-        val anchor = LocalDate.now()
+    fun setTariffPeriod(period: DataSourcePeriod, anchor: LocalDate, advanced: Boolean) {
         _tariffPeriod.value = period
         _tariffAnchor.value = anchor
         _tariffCostings.value = null
         val item = _activeItem.value as? ActiveDashboardItem.DataSource ?: return
-        viewModelScope.launch(Dispatchers.IO) { _tariffCostings.value = fetchCostings(period, anchor, item) }
+        viewModelScope.launch(Dispatchers.IO) { _tariffCostings.value = fetchCostings(period, anchor, advanced, item) }
     }
 
-    fun navigateTariff(forward: Boolean) {
+    fun navigateTariff(forward: Boolean, advanced: Boolean) {
         val period = _tariffPeriod.value
         if (period == DataSourcePeriod.ALL) return
         val item = _activeItem.value as? ActiveDashboardItem.DataSource ?: return
         val anchor = moveAnchor(_tariffAnchor.value, period, forward, item) ?: return
         _tariffAnchor.value = anchor
         _tariffCostings.value = null
-        viewModelScope.launch(Dispatchers.IO) { _tariffCostings.value = fetchCostings(period, anchor, item) }
+        viewModelScope.launch(Dispatchers.IO) { _tariffCostings.value = fetchCostings(period, anchor, advanced, item) }
     }
 
-    fun setPvPeriod(period: DataSourcePeriod) {
-        val anchor = LocalDate.now()
+    fun setPvPeriod(period: DataSourcePeriod, anchor: LocalDate, advanced: Boolean) {
         _pvPeriod.value    = period
         _pvAnchor.value    = anchor
         _pvChartData.value = null
         val item = _activeItem.value as? ActiveDashboardItem.DataSource ?: return
-        viewModelScope.launch(Dispatchers.IO) { _pvChartData.value = fetchPvChartData(period, anchor, item) }
+        viewModelScope.launch(Dispatchers.IO) { _pvChartData.value = fetchPvChartData(period, anchor, advanced, item) }
     }
 
-    fun navigatePv(forward: Boolean) {
+    fun navigatePv(forward: Boolean, advanced: Boolean) {
         val period = _pvPeriod.value
         if (period == DataSourcePeriod.ALL) return
         val item = _activeItem.value as? ActiveDashboardItem.DataSource ?: return
         val anchor = moveAnchor(_pvAnchor.value, period, forward, item) ?: return
         _pvAnchor.value    = anchor
         _pvChartData.value = null
-        viewModelScope.launch(Dispatchers.IO) { _pvChartData.value = fetchPvChartData(period, anchor, item) }
+        viewModelScope.launch(Dispatchers.IO) { _pvChartData.value = fetchPvChartData(period, anchor, advanced, item) }
     }
 
     private suspend fun fetchPvChartData(
         period: DataSourcePeriod,
         anchor: LocalDate,
+        advanced: Boolean,
         item: ActiveDashboardItem.DataSource
     ): List<Pair<String, Double>> {
-        val (from, to) = anchorDateRange(period, anchor, item.startDate, item.endDate)
+        val (from, to) = anchorDateRange(period, anchor, advanced, item.startDate, item.endDate)
         return when (period) {
             DataSourcePeriod.YESTERDAY -> {
                 repository.getSumHour(item.sysSn, from, to)
@@ -283,14 +283,9 @@ class UI2DashboardViewModel @Inject constructor(
         forward: Boolean,
         item: ActiveDashboardItem.DataSource
     ): LocalDate? {
-        val step = if (forward) 1L else -1L
-        val newAnchor = when (period) {
-            DataSourcePeriod.YESTERDAY -> current.plusDays(step)
-            DataSourcePeriod.MONTH     -> current.plusMonths(step)
-            DataSourcePeriod.YEAR      -> current.plusYears(step)
-            DataSourcePeriod.ALL       -> return null
-        }
-        return newAnchor.coerceIn(
+        if (period == DataSourcePeriod.ALL) return null
+        return stepAnchor(
+            current, period, forward,
             LocalDate.parse(item.startDate, FMT),
             LocalDate.parse(item.endDate, FMT)
         )
@@ -299,9 +294,10 @@ class UI2DashboardViewModel @Inject constructor(
     private suspend fun fetchTotals(
         period: DataSourcePeriod,
         anchor: LocalDate,
+        advanced: Boolean,
         item: ActiveDashboardItem.DataSource
     ): PeriodTotals {
-        val (from, to) = anchorDateRange(period, anchor, item.startDate, item.endDate)
+        val (from, to) = anchorDateRange(period, anchor, advanced, item.startDate, item.endDate)
         val rows = repository.getSumDOY(item.sysSn, from, to)
         return PeriodTotals(
             load        = rows.sumOf { it.load },
@@ -316,9 +312,10 @@ class UI2DashboardViewModel @Inject constructor(
     private suspend fun fetchCostings(
         period: DataSourcePeriod,
         anchor: LocalDate,
+        advanced: Boolean,
         item: ActiveDashboardItem.DataSource
     ): List<DataSourceCostingRow> {
-        val (from, to) = anchorDateRange(period, anchor, item.startDate, item.endDate)
+        val (from, to) = anchorDateRange(period, anchor, advanced, item.startDate, item.endDate)
         val days = LocalDate.parse(to, FMT).toEpochDay() - LocalDate.parse(from, FMT).toEpochDay() + 1
         return computeDataSourceCostings(item.sysSn, from, to, days)
     }
@@ -326,9 +323,10 @@ class UI2DashboardViewModel @Inject constructor(
     private suspend fun fetchDistribution(
         period: DataSourcePeriod,
         anchor: LocalDate,
+        advanced: Boolean,
         item: ActiveDashboardItem.DataSource
     ): UsageDistribution? {
-        val (from, to) = anchorDateRange(period, anchor, item.startDate, item.endDate)
+        val (from, to) = anchorDateRange(period, anchor, advanced, item.startDate, item.endDate)
         val rows = repository.getSelectedAlphaESSData(item.sysSn, from, to)
         if (rows.isEmpty()) return null
         val hourly   = DoubleArray(24)
@@ -348,21 +346,19 @@ class UI2DashboardViewModel @Inject constructor(
         return UsageDistribution(normalize(hourly), normalize(dow), normalize(monthly))
     }
 
+    // Delegates to the shared periodDateRange() in PeriodSelector.kt so the
+    // fetch range and the selector's own label can never drift apart.
     private fun anchorDateRange(
         period: DataSourcePeriod,
         anchor: LocalDate,
+        advanced: Boolean,
         dataStart: String,
         dataEnd: String
-    ): Pair<String, String> = when (period) {
-        DataSourcePeriod.YESTERDAY -> anchor.format(FMT).let { it to it }
-        DataSourcePeriod.MONTH     -> {
-            val start = anchor.withDayOfMonth(1)
-            start.format(FMT) to start.plusMonths(1).minusDays(1).format(FMT)
-        }
-        DataSourcePeriod.YEAR      ->
-            LocalDate.of(anchor.year, 1, 1).format(FMT) to
-            LocalDate.of(anchor.year, 12, 31).format(FMT)
-        DataSourcePeriod.ALL       -> dataStart to dataEnd
+    ): Pair<String, String> {
+        val (from, to) = periodDateRange(
+            period, anchor, advanced,
+            LocalDate.parse(dataStart, FMT), LocalDate.parse(dataEnd, FMT))
+        return from.format(FMT) to to.format(FMT)
     }
 
     private fun computeDataSourceCostings(

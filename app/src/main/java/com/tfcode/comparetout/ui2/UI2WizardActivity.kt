@@ -1197,17 +1197,15 @@ private fun DeriveFromSourceDialog(
     onDismiss: () -> Unit
 ) {
     var selectedSource by remember { mutableStateOf<SourceDateRange?>(null) }
-    var fromDate       by remember { mutableStateOf("") }
-    var toDate         by remember { mutableStateOf("") }
+    // Advanced PeriodSelector state: a D/M/Y trailing window ending on the anchor.
+    var period         by remember { mutableStateOf(DataSourcePeriod.YEAR) }
+    var anchor         by remember { mutableStateOf(LocalDate.now()) }
     var fillGaps       by remember { mutableStateOf(true) }
 
     fun onSourcePicked(src: SourceDateRange) {
         selectedSource = src
-        val finish = LocalDate.parse(src.finishDate)
-        val start  = LocalDate.parse(src.startDate)
-        val from   = finish.minusDays(364).let { if (it < start) start else it }
-        fromDate   = from.toString()
-        toDate     = src.finishDate
+        period = DataSourcePeriod.YEAR
+        anchor = LocalDate.parse(src.finishDate)
     }
 
     AlertDialog(
@@ -1287,24 +1285,22 @@ private fun DeriveFromSourceDialog(
                         }
                     }
 
-                    if (selectedSource != null) {
+                    val src = selectedSource
+                    if (src != null) {
                         item {
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                OutlinedTextField(
-                                    value = fromDate,
-                                    onValueChange = { fromDate = it },
-                                    label = { Text("From (YYYY-MM-DD)") },
-                                    modifier = Modifier.weight(1f),
-                                    singleLine = true
-                                )
-                                OutlinedTextField(
-                                    value = toDate,
-                                    onValueChange = { toDate = it },
-                                    label = { Text("To (YYYY-MM-DD)") },
-                                    modifier = Modifier.weight(1f),
-                                    singleLine = true
-                                )
-                            }
+                            PeriodSelector(
+                                selectedPeriod = period,
+                                anchorDate     = anchor,
+                                dataStart      = src.startDate,
+                                dataEnd        = src.finishDate,
+                                advanced       = true,
+                                onPeriodChange = { p, a, _ -> period = p; anchor = a },
+                                onNavigate     = { fwd, _ ->
+                                    anchor = stepAnchor(anchor, period, fwd,
+                                        LocalDate.parse(src.startDate),
+                                        LocalDate.parse(src.finishDate))
+                                }
+                            )
                         }
                         item {
                             Row(
@@ -1326,17 +1322,20 @@ private fun DeriveFromSourceDialog(
             }
         },
         confirmButton = {
-            val fromParsed = runCatching { LocalDate.parse(fromDate) }.getOrNull()
-            val toParsed   = runCatching { LocalDate.parse(toDate) }.getOrNull()
-            val canDerive  = selectedSource != null && fromParsed != null &&
-                             toParsed != null && !fromParsed.isAfter(toParsed) && !isDeriving
+            val src = selectedSource
             Button(
                 onClick = {
-                    onDerive(selectedSource!!.sysSn, selectedSource!!.importerType,
-                             fromParsed!!, toParsed!!, fillGaps)
-                    onDismiss()
+                    if (src != null) {
+                        val startD  = LocalDate.parse(src.startDate)
+                        val finishD = LocalDate.parse(src.finishDate)
+                        val (rawFrom, rawTo) = periodDateRange(period, anchor, true, startD, finishD)
+                        onDerive(src.sysSn, src.importerType,
+                                 rawFrom.coerceIn(startD, finishD),
+                                 rawTo.coerceIn(startD, finishD), fillGaps)
+                        onDismiss()
+                    }
                 },
-                enabled = canDerive
+                enabled = src != null && !isDeriving
             ) { Text(if (isDeriving) "Deriving…" else "Derive") }
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
