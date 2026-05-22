@@ -1,5 +1,6 @@
 package com.tfcode.comparetout.ui2
 
+import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -26,7 +27,9 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -904,7 +907,11 @@ private fun CostContent(
 ) {
     if (rows.isEmpty()) { EmptyResult(); return }
     val chartData = costData(rows)
-    GraphExplanation(state.mode, CompareWhat.COST, series, chartData, novice)
+    val explanation = if (novice)
+        graphExplanationText(state.mode, CompareWhat.COST, series, chartData) else null
+    var zoomedPie by remember { mutableStateOf<ChartDatum?>(null) }
+
+    GraphExplanation(explanation)
     when (state.mode) {
         CompareMode.TABLE -> {
             val headers = buildList {
@@ -924,10 +931,54 @@ private fun CostContent(
             }
             ResultTable(headers, data, defaultSort = 2)
         }
-        CompareMode.PIE -> ComparePieGrid(chartData, series, MaterialTheme.colorScheme.surfaceVariant)
-        else -> ChartArea(state, "Cost", chartData, series)
+        CompareMode.STACK -> CostStackArea(state.layout, costBars(rows, series), series, explanation)
+        CompareMode.PIE -> ComparePieGrid(chartData, series,
+            MaterialTheme.colorScheme.surfaceVariant, unit = "€", onZoom = { zoomedPie = it })
+        else -> ChartArea(state, "Cost", chartData, series, explanation, "€")
     }
     ResultLegends(state.mode, series, chartData)
+
+    zoomedPie?.let { d ->
+        val hole = MaterialTheme.colorScheme.surfaceVariant
+        ChartPopout(d.title, series, explanation, emptyList(), { zoomedPie = null }) { h ->
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                ComparePieCanvas(d, series, hole, h)
+            }
+        }
+    }
+}
+
+/** Renders the signed cost stack, merged into one chart or split per subject. */
+@Composable
+private fun CostStackArea(
+    layout: CompareLayout, bars: List<CostBar>, series: List<SeriesDef>, explanation: String?
+) {
+    if (layout == CompareLayout.SPLIT && bars.size > 1) {
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            bars.chunked(2).forEach { rowItems ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    rowItems.forEach { bar ->
+                        Surface(
+                            color = MaterialTheme.colorScheme.surface,
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Box(Modifier.padding(8.dp)) {
+                                ZoomableChart(bar.title, series, explanation, listOf(bar.title)) { h ->
+                                    CompareCostStackChart(listOf(bar), "€", h)
+                                }
+                            }
+                        }
+                    }
+                    if (rowItems.size == 1) Spacer(Modifier.weight(1f))
+                }
+            }
+        }
+    } else {
+        ZoomableChart("Cost", series, explanation, bars.map { it.title }) { h ->
+            CompareCostStackChart(bars, "€", h)
+        }
+    }
 }
 
 @Composable
@@ -936,7 +987,11 @@ private fun UsageContent(
 ) {
     if (rows.isEmpty()) { EmptyResult(); return }
     val chartData = usageData(rows)
-    GraphExplanation(state.mode, CompareWhat.USAGE, series, chartData, novice)
+    val explanation = if (novice)
+        graphExplanationText(state.mode, CompareWhat.USAGE, series, chartData) else null
+    var zoomedPie by remember { mutableStateOf<ChartDatum?>(null) }
+
+    GraphExplanation(explanation)
     when (state.mode) {
         CompareMode.TABLE -> {
             val headers = buildList {
@@ -951,26 +1006,33 @@ private fun UsageContent(
             }
             ResultTable(headers, data, defaultSort = 1)
         }
-        CompareMode.PIE -> ComparePieGrid(chartData, series, MaterialTheme.colorScheme.surfaceVariant)
-        else -> ChartArea(state, "Usage", chartData, series)
+        CompareMode.PIE -> ComparePieGrid(chartData, series,
+            MaterialTheme.colorScheme.surfaceVariant, unit = "kWh", onZoom = { zoomedPie = it })
+        else -> ChartArea(state, "Usage", chartData, series, explanation, "kWh")
     }
     ResultLegends(state.mode, series, chartData)
+
+    zoomedPie?.let { d ->
+        val hole = MaterialTheme.colorScheme.surfaceVariant
+        ChartPopout(d.title, series, explanation, emptyList(), { zoomedPie = null }) { h ->
+            Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                ComparePieCanvas(d, series, hole, h)
+            }
+        }
+    }
 }
 
 /**
- * Novice-mode caption explaining what the current graph shows. Names the actual
- * subjects so the user can tell which source / simulation / plan is which — those
- * names are otherwise truncated on the axes or absent altogether.
+ * The novice-mode caption text for the current graph. Names the actual subjects
+ * so the user can tell which source / simulation / plan is which — those names
+ * are otherwise truncated on the axes or absent altogether.
  */
-@Composable
-private fun GraphExplanation(
+private fun graphExplanationText(
     mode: CompareMode,
     metric: CompareWhat,
     series: List<SeriesDef>,
-    data: List<ChartDatum>,
-    novice: Boolean
-) {
-    if (!novice) return
+    data: List<ChartDatum>
+): String {
     val unit = if (metric == CompareWhat.COST) "euro (€)" else "energy (kWh)"
     val seriesNames = if (series.isEmpty()) "the selected series"
         else series.joinToString(", ") { it.label }
@@ -980,7 +1042,7 @@ private fun GraphExplanation(
         data.size <= 5 -> data.joinToString("; ") { it.title }
         else -> data.take(4).joinToString("; ") { it.title } + "; … (${data.size} total)"
     }
-    val text = when (mode) {
+    return when (mode) {
         CompareMode.TABLE ->
             "Each row is a source or simulation priced against a plan. Columns show $seriesNames " +
                 "in $unit — tap a header to sort. Rows: $subjects."
@@ -988,8 +1050,13 @@ private fun GraphExplanation(
             "Grouped bars in $unit. Each group along the bottom is one subject; the coloured bars " +
                 "within it are $seriesNames. Subjects: $subjects."
         CompareMode.STACK ->
-            "Each bar stacks $seriesNames in $unit for one subject — a taller bar means more in " +
-                "total. Subjects: $subjects."
+            if (metric == CompareWhat.COST)
+                "Each bar shows one plan's cost in $unit: buy split into its rate bands plus any " +
+                    "fixed charge stack up from the zero line; sell hangs below it. The marker is " +
+                    "the net — above the line is a cost, below is a credit. Subjects: $subjects."
+            else
+                "Each bar stacks $seriesNames in $unit for one subject — a taller bar means more " +
+                    "in total. Subjects: $subjects."
         CompareMode.LINE ->
             "Each line follows $firstSeries month by month ($unit), one line per subject — see the " +
                 "Sources legend for line colours. Subjects: $subjects."
@@ -1000,6 +1067,12 @@ private fun GraphExplanation(
             "Each pie splits one subject's $unit into $seriesNames; the subject is named beneath " +
                 "its pie. Subjects: $subjects."
     }
+}
+
+/** Inline novice caption card, shown above the graph in the result panel. */
+@Composable
+private fun GraphExplanation(text: String?) {
+    if (text == null) return
     Surface(
         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
         shape = RoundedCornerShape(8.dp),
@@ -1023,7 +1096,22 @@ private fun ResultLegends(mode: CompareMode, series: List<SeriesDef>, data: List
     }
 }
 
-/** Maps each subject to its merged-chart colour. Opens as a pop-out. */
+/** Inline subject → colour list. Used in both the source pop-out and chart pop-outs. */
+@Composable
+private fun SourceLegendList(titles: List<String>) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text("Sources", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+        titles.forEachIndexed { i, t ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(Modifier.size(12.dp).background(compareSubjectColor(i), CircleShape))
+                Spacer(Modifier.width(8.dp))
+                Text(t, style = MaterialTheme.typography.bodySmall)
+            }
+        }
+    }
+}
+
+/** Source legend as a pop-out link — used inline beneath the result panel. */
 @Composable
 private fun SourceLegend(data: List<ChartDatum>) {
     var open by remember { mutableStateOf(false) }
@@ -1038,33 +1126,23 @@ private fun SourceLegend(data: List<ChartDatum>) {
     if (open) {
         Dialog(onDismissRequest = { open = false }) {
             Surface(shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
-                Column(Modifier.padding(16.dp)) {
-                    Text("Sources", style = MaterialTheme.typography.titleSmall)
-                    Spacer(Modifier.height(8.dp))
-                    data.forEachIndexed { i, d ->
-                        Row(
-                            Modifier.padding(vertical = 4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Box(Modifier.size(12.dp).background(compareSubjectColor(i), CircleShape))
-                            Spacer(Modifier.width(8.dp))
-                            Text(d.title, style = MaterialTheme.typography.bodyMedium)
-                        }
-                    }
-                }
+                Box(Modifier.padding(16.dp)) { SourceLegendList(data.map { it.title }) }
             }
         }
     }
 }
 
 @Composable
-private fun ChartArea(state: CompareState, metricLabel: String, data: List<ChartDatum>, series: List<SeriesDef>) {
+private fun ChartArea(
+    state: CompareState, metricLabel: String,
+    data: List<ChartDatum>, series: List<SeriesDef>, explanation: String?, unit: String
+) {
     val render: @Composable (List<ChartDatum>, Dp) -> Unit = { d, h ->
         when (state.mode) {
-            CompareMode.BAR -> CompareBarChart(d, series, h)
-            CompareMode.STACK -> CompareStackChart(d, series, h)
-            CompareMode.LINE -> CompareLineChart(d, series, area = false, height = h)
-            CompareMode.AREA -> CompareLineChart(d, series, area = true, height = h)
+            CompareMode.BAR -> CompareBarChart(d, series, unit, h)
+            CompareMode.STACK -> CompareStackChart(d, series, unit, h)
+            CompareMode.LINE -> CompareLineChart(d, series, area = false, unit = unit, height = h)
+            CompareMode.AREA -> CompareLineChart(d, series, area = true, unit = unit, height = h)
             else -> {}
         }
     }
@@ -1079,7 +1157,9 @@ private fun ChartArea(state: CompareState, metricLabel: String, data: List<Chart
                             modifier = Modifier.weight(1f)
                         ) {
                             Box(Modifier.padding(8.dp)) {
-                                ZoomableChart(d.title) { h -> render(listOf(d), h) }
+                                ZoomableChart(d.title, series, explanation, listOf(d.title)) { h ->
+                                    render(listOf(d), h)
+                                }
                             }
                         }
                     }
@@ -1088,13 +1168,21 @@ private fun ChartArea(state: CompareState, metricLabel: String, data: List<Chart
             }
         }
     } else {
-        ZoomableChart(metricLabel) { h -> render(data, h) }
+        ZoomableChart(metricLabel, series, explanation, data.map { it.title }) { h ->
+            render(data, h)
+        }
     }
 }
 
-/** Wraps a chart so tapping it opens a full-screen pop-out (matches the dashboard pop-outs). */
+/** A chart that opens an orientation-aware pop-out when tapped. */
 @Composable
-private fun ZoomableChart(title: String, chart: @Composable (Dp) -> Unit) {
+private fun ZoomableChart(
+    title: String,
+    series: List<SeriesDef>,
+    explanation: String?,
+    sourceTitles: List<String>,
+    chart: @Composable (Dp) -> Unit
+) {
     var zoomed by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxWidth().clickable { zoomed = true }) {
         Text("$title  ↗", style = MaterialTheme.typography.labelSmall,
@@ -1103,15 +1191,75 @@ private fun ZoomableChart(title: String, chart: @Composable (Dp) -> Unit) {
         chart(170.dp)
     }
     if (zoomed) {
-        val cfg = LocalConfiguration.current
-        val dim = minOf(cfg.screenWidthDp, cfg.screenHeightDp).dp
-        Dialog(onDismissRequest = { zoomed = false },
-            properties = DialogProperties(usePlatformDefaultWidth = false)) {
-            Surface(Modifier.size(dim), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
-                Column(Modifier.padding(16.dp).fillMaxSize()) {
+        ChartPopout(title, series, explanation, sourceTitles, { zoomed = false }, chart)
+    }
+}
+
+/**
+ * Graph pop-out: full screen width × 80% height, click outside to dismiss.
+ * Landscape — graph left, text + legend right. Portrait — text on top, then the
+ * graph, then the legend. Scrolls vertically when content overflows.
+ */
+@Composable
+private fun ChartPopout(
+    title: String,
+    series: List<SeriesDef>,
+    explanation: String?,
+    sourceTitles: List<String>,
+    onDismiss: () -> Unit,
+    chart: @Composable (Dp) -> Unit
+) {
+    val cfg = LocalConfiguration.current
+    val landscape = cfg.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val popW = cfg.screenWidthDp.dp
+    val popH = (cfg.screenHeightDp * 0.8f).dp
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier.width(popW).height(popH),
+            shape = MaterialTheme.shapes.medium,
+            tonalElevation = 8.dp
+        ) {
+            if (landscape) {
+                Row(Modifier.fillMaxSize().padding(16.dp)) {
+                    Box(
+                        modifier = Modifier.weight(1.3f).fillMaxHeight()
+                            .verticalScroll(rememberScrollState()),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        chart((popH.value * 0.74f).dp)
+                    }
+                    Spacer(Modifier.width(16.dp))
+                    Column(
+                        modifier = Modifier.weight(1f).fillMaxHeight()
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
+                        Text(title, style = MaterialTheme.typography.titleSmall)
+                        if (explanation != null) {
+                            Text(explanation, style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        ChartLegend(series)
+                        if (sourceTitles.size > 1) SourceLegendList(sourceTitles)
+                    }
+                }
+            } else {
+                Column(
+                    modifier = Modifier.fillMaxSize().padding(16.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
                     Text(title, style = MaterialTheme.typography.titleSmall)
-                    Spacer(Modifier.height(12.dp))
-                    chart(dim * 0.62f)
+                    if (explanation != null) {
+                        Text(explanation, style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    chart((popH.value * 0.44f).dp)
+                    ChartLegend(series)
+                    if (sourceTitles.size > 1) SourceLegendList(sourceTitles)
                 }
             }
         }
@@ -1303,17 +1451,57 @@ private fun usageValue(r: CompareUsageRow, id: String): Double = when (id) {
     else -> 0.0
 }
 
-private fun costData(rows: List<CompareCostRow>): List<ChartDatum> = rows.map { r ->
-    // A cost datum is one source/simulation × one plan, so the axis label must
-    // carry BOTH — otherwise one source across N plans gives N look-alike bars.
+// A cost datum is one source/simulation × one plan, so the axis label must
+// carry BOTH — otherwise one source across N plans gives N look-alike bars.
+private fun costAxisLabel(r: CompareCostRow): String {
     val supplier = r.planName.substringBefore(" · ")
+    return "${shorten(r.subjectName)}\n${shorten(supplier)}"
+}
+
+private fun costData(rows: List<CompareCostRow>): List<ChartDatum> = rows.map { r ->
     ChartDatum(
-        title = "${r.subjectName}  ·  ${r.planName}",                 // full — for legends/pop-outs
-        shortLabel = "${shorten(r.subjectName)}\n${shorten(supplier)}", // two-line axis label
+        title = "${r.subjectName}  ·  ${r.planName}",   // full — for legends/pop-outs
+        shortLabel = costAxisLabel(r),                  // two-line axis label
         values = mapOf("net" to r.net, "buy" to r.buy, "sell" to r.sell,
             "bonus" to r.bonus, "fixed" to r.fixed),
         monthly = mapOf("net" to r.monthlyNet)
     )
+}
+
+// Cost stack: buy rate bands share one cyan and are told apart by hatch pattern;
+// fixed grey and sell amber are solid.
+private val FIXED_BAND_COLOR = Color(0xFF9E9E9E)
+private val SELL_BAND_COLOR = Color(0xFFF5A623)
+private val BUY_BAND_COLOR = Color(0xFF22B8CE)
+private val BAND_PATTERNS = listOf(
+    BandPattern.SOLID, BandPattern.DIAGONAL, BandPattern.CROSS,
+    BandPattern.HORIZONTAL, BandPattern.VERTICAL
+)
+private fun bandPattern(i: Int): BandPattern = BAND_PATTERNS[i % BAND_PATTERNS.size]
+
+/** Build signed cost bars: buy rate bands + fixed (positive), sell (negative). */
+private fun costBars(rows: List<CompareCostRow>, series: List<SeriesDef>): List<CostBar> {
+    val showBuy = series.any { it.id == "buy" }
+    val showFixed = series.any { it.id == "fixed" }
+    val showSell = series.any { it.id == "sell" }
+    return rows.map { r ->
+        val positives = buildList {
+            if (showBuy) r.buyBands.forEachIndexed { i, b ->
+                if (b > 0.0) add(CostSegment(BUY_BAND_COLOR, b, bandPattern(i)))
+            }
+            if (showFixed && r.fixed > 0.0) add(CostSegment(FIXED_BAND_COLOR, r.fixed))
+        }
+        val negatives = buildList {
+            if (showSell && r.sell > 0.0) add(CostSegment(SELL_BAND_COLOR, r.sell))
+        }
+        CostBar(
+            label = costAxisLabel(r),
+            title = "${r.subjectName}  ·  ${r.planName}",
+            positives = positives,
+            negatives = negatives,
+            net = r.net
+        )
+    }
 }
 
 private fun usageData(rows: List<CompareUsageRow>): List<ChartDatum> = rows.map { r ->

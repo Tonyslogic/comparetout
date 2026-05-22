@@ -5,40 +5,47 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.text.TextMeasurer
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
+import androidx.compose.ui.unit.sp
 import kotlin.math.abs
+import kotlin.math.floor
+import kotlin.math.log10
 import kotlin.math.max
-import kotlin.math.min
+import kotlin.math.pow
+import kotlin.math.roundToInt
 
 // ──────────────────────────────────────────────────────────────────────────
 // Chart renderers for the Compare result panels. Each takes a metric-agnostic
 // list of ChartDatum so the same renderer serves both Cost and Usage views.
+// Every axis chart carries a labelled value scale on the left and its unit.
 // ──────────────────────────────────────────────────────────────────────────
 
 data class SeriesDef(val id: String, val label: String, val color: Color)
@@ -50,23 +57,95 @@ data class ChartDatum(
     val monthly: Map<String, List<Double>>   // seriesId → 12 monthly values
 )
 
+private val Y_AXIS_W = 40.dp   // left margin reserved for the value scale
+
+// ── value-axis helpers ──────────────────────────────────────────────────────
+
+/** Round a maximum up to a "nice" 1 / 2 / 5 × 10ⁿ value so ticks read cleanly. */
+private fun niceCeil(v: Double): Double {
+    if (v <= 0.0) return 1.0
+    val base = 10.0.pow(floor(log10(v)))
+    val n = v / base
+    val nice = when {
+        n <= 1.0 -> 1.0
+        n <= 2.0 -> 2.0
+        n <= 5.0 -> 5.0
+        else -> 10.0
+    }
+    return nice * base
+}
+
+/** Compact axis number — 1.2k, 340, 0.45 … */
+private fun axisNumber(v: Double): String {
+    val a = abs(v)
+    return when {
+        a >= 1_000_000 -> "%.1fM".format(v / 1_000_000)
+        a >= 1_000 -> "%.1fk".format(v / 1_000)
+        a >= 10 -> v.roundToInt().toString()
+        a >= 1 -> "%.1f".format(v)
+        a > 0.0 -> "%.2f".format(v)
+        else -> "0"
+    }
+}
+
+/** Draws gridlines + value labels for a 0..maxV scale, and the unit top-left. */
+private fun DrawScope.drawValueAxis(
+    measurer: TextMeasurer, labelColor: Color, gridColor: Color,
+    maxV: Double, unit: String, plotTop: Float, plotBottom: Float, axisW: Float
+) {
+    val style = TextStyle(color = labelColor, fontSize = 9.sp)
+    val steps = 4
+    for (i in 0..steps) {
+        val frac = i / steps.toFloat()
+        val v = maxV * (1f - frac)
+        val y = plotTop + (plotBottom - plotTop) * frac
+        drawLine(gridColor, Offset(axisW, y), Offset(size.width, y), 1f)
+        val layout = measurer.measure(axisNumber(v), style)
+        drawText(layout, topLeft = Offset(
+            axisW - layout.size.width.toFloat() - 3f,
+            (y - layout.size.height.toFloat() / 2f)
+                .coerceIn(0f, size.height - layout.size.height.toFloat())
+        ))
+    }
+    drawText(measurer.measure(unit, style), topLeft = Offset(1f, 1f))
+}
+
+/** Draws a label at an arbitrary value level (used by the signed cost stack). */
+private fun DrawScope.drawAxisTick(
+    measurer: TextMeasurer, style: TextStyle, gridColor: Color,
+    text: String, y: Float, axisW: Float
+) {
+    drawLine(gridColor, Offset(axisW, y), Offset(size.width, y), 1f)
+    val layout = measurer.measure(text, style)
+    drawText(layout, topLeft = Offset(
+        axisW - layout.size.width.toFloat() - 3f,
+        (y - layout.size.height.toFloat() / 2f)
+            .coerceIn(0f, size.height - layout.size.height.toFloat())
+    ))
+}
+
 // ── grouped bar chart ───────────────────────────────────────────────────────
 @Composable
-fun CompareBarChart(data: List<ChartDatum>, series: List<SeriesDef>, height: Dp = 170.dp) {
+fun CompareBarChart(data: List<ChartDatum>, series: List<SeriesDef>, unit: String, height: Dp = 170.dp) {
     if (data.isEmpty() || series.isEmpty()) return
-    val maxV = max(data.maxOf { d -> series.maxOf { abs(d.values[it.id] ?: 0.0) } }, 1e-6)
+    val maxV = niceCeil(data.maxOf { d -> series.maxOf { abs(d.values[it.id] ?: 0.0) } })
+    val measurer = rememberTextMeasurer()
+    val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
     Column(Modifier.fillMaxWidth()) {
         Canvas(Modifier.fillMaxWidth().height(height)) {
+            val axisW = Y_AXIS_W.toPx()
+            val top = 14f
             val baseline = size.height - 4f
-            drawLine(Color.Gray.copy(alpha = 0.4f), Offset(0f, baseline), Offset(size.width, baseline), 1.5f)
-            val groupW = size.width / data.size
+            drawValueAxis(measurer, labelColor, gridColor, maxV, unit, top, baseline, axisW)
+            val groupW = (size.width - axisW) / data.size
             val barGap = groupW * 0.12f
             val barW = (groupW - barGap * 2) / series.size
             data.forEachIndexed { gi, d ->
                 series.forEachIndexed { si, s ->
                     val v = abs(d.values[s.id] ?: 0.0)
-                    val h = (v / maxV * (baseline - 6f)).toFloat()
-                    val x = gi * groupW + barGap + si * barW
+                    val h = (v / maxV).toFloat() * (baseline - top)
+                    val x = axisW + gi * groupW + barGap + si * barW
                     drawRect(s.color, Offset(x, baseline - h), Size(barW * 0.86f, h))
                 }
             }
@@ -77,22 +156,26 @@ fun CompareBarChart(data: List<ChartDatum>, series: List<SeriesDef>, height: Dp 
 
 // ── stacked bar chart ───────────────────────────────────────────────────────
 @Composable
-fun CompareStackChart(data: List<ChartDatum>, series: List<SeriesDef>, height: Dp = 170.dp) {
+fun CompareStackChart(data: List<ChartDatum>, series: List<SeriesDef>, unit: String, height: Dp = 170.dp) {
     if (data.isEmpty() || series.isEmpty()) return
-    val totals = data.map { d -> series.sumOf { abs(d.values[it.id] ?: 0.0) } }
-    val maxV = max(totals.maxOrNull() ?: 1.0, 1e-6)
+    val maxV = niceCeil(data.maxOf { d -> series.sumOf { abs(d.values[it.id] ?: 0.0) } })
+    val measurer = rememberTextMeasurer()
+    val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
     Column(Modifier.fillMaxWidth()) {
         Canvas(Modifier.fillMaxWidth().height(height)) {
+            val axisW = Y_AXIS_W.toPx()
+            val top = 14f
             val baseline = size.height - 4f
-            drawLine(Color.Gray.copy(alpha = 0.4f), Offset(0f, baseline), Offset(size.width, baseline), 1.5f)
-            val groupW = size.width / data.size
+            drawValueAxis(measurer, labelColor, gridColor, maxV, unit, top, baseline, axisW)
+            val groupW = (size.width - axisW) / data.size
             val barW = groupW * 0.5f
             data.forEachIndexed { gi, d ->
                 var y = baseline
                 series.forEach { s ->
                     val v = abs(d.values[s.id] ?: 0.0)
-                    val h = (v / maxV * (baseline - 6f)).toFloat()
-                    drawRect(s.color, Offset(gi * groupW + (groupW - barW) / 2f, y - h), Size(barW, h))
+                    val h = (v / maxV).toFloat() * (baseline - top)
+                    drawRect(s.color, Offset(axisW + gi * groupW + (groupW - barW) / 2f, y - h), Size(barW, h))
                     y -= h
                 }
             }
@@ -103,7 +186,10 @@ fun CompareStackChart(data: List<ChartDatum>, series: List<SeriesDef>, height: D
 
 // ── line / area chart (monthly) ─────────────────────────────────────────────
 @Composable
-fun CompareLineChart(data: List<ChartDatum>, series: List<SeriesDef>, area: Boolean, height: Dp = 170.dp) {
+fun CompareLineChart(
+    data: List<ChartDatum>, series: List<SeriesDef>, area: Boolean,
+    unit: String, height: Dp = 170.dp
+) {
     if (data.isEmpty() || series.isEmpty()) return
     val metric = series.first()
     val lines = data.mapIndexed { idx, d ->
@@ -111,33 +197,37 @@ fun CompareLineChart(data: List<ChartDatum>, series: List<SeriesDef>, area: Bool
         val color = if (data.size == 1) metric.color else compareSubjectColor(idx)
         pts to color
     }
-    val maxV = max(lines.flatMap { it.first }.maxOfOrNull { abs(it) } ?: 1.0, 1e-6)
+    val maxV = niceCeil(lines.flatMap { it.first }.maxOfOrNull { abs(it) } ?: 1.0)
+    val measurer = rememberTextMeasurer()
+    val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
     Column(Modifier.fillMaxWidth()) {
         Canvas(Modifier.fillMaxWidth().height(height)) {
-            val h = size.height - 18f
-            for (g in 0..3) {
-                val y = h * g / 3f
-                drawLine(Color.Gray.copy(alpha = 0.18f), Offset(0f, y), Offset(size.width, y), 1f)
-            }
+            val axisW = Y_AXIS_W.toPx()
+            val top = 14f
+            val bottom = size.height - 4f
+            drawValueAxis(measurer, labelColor, gridColor, maxV, unit, top, bottom, axisW)
+            val plotW = size.width - axisW
             lines.forEach { (pts, color) ->
                 val path = Path()
                 pts.forEachIndexed { i, v ->
-                    val x = size.width * i / 11f
-                    val y = h * (1f - (abs(v) / maxV).toFloat())
+                    val x = axisW + plotW * i / 11f
+                    val y = top + (bottom - top) * (1f - (abs(v) / maxV).toFloat())
                     if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
                 }
                 if (area) {
                     val fill = Path()
                     fill.addPath(path)
-                    fill.lineTo(size.width, h)
-                    fill.lineTo(0f, h)
+                    fill.lineTo(size.width, bottom)
+                    fill.lineTo(axisW, bottom)
                     fill.close()
                     drawPath(fill, color.copy(alpha = 0.22f))
                 }
-                drawPath(path, color, style = androidx.compose.ui.graphics.drawscope.Stroke(width = 3f))
+                drawPath(path, color, style = Stroke(width = 3f))
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Spacer(Modifier.width(Y_AXIS_W))
             listOf("Jan", "Apr", "Jul", "Oct", "Dec").forEach {
                 Text(it, style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -146,15 +236,184 @@ fun CompareLineChart(data: List<ChartDatum>, series: List<SeriesDef>, area: Bool
     }
 }
 
-// ── pie (small multiples grid, each pie pops out) ───────────────────────────
+// ── cost stacked chart — banded buy + fixed up, sell down, zero line ────────
+
+/** Fill style for a cost segment — buy rate bands share one colour, differ by pattern. */
+enum class BandPattern { SOLID, DIAGONAL, CROSS, HORIZONTAL, VERTICAL }
+
+data class CostSegment(
+    val color: Color,
+    val value: Double,
+    val pattern: BandPattern = BandPattern.SOLID
+)
+
+data class CostBar(
+    val label: String,                  // two-line axis label
+    val title: String,                  // full label
+    val positives: List<CostSegment>,   // buy rate bands, then fixed
+    val negatives: List<CostSegment>,   // sell
+    val net: Double
+)
+
+/**
+ * Signed cost stack: buy split into rate bands plus fixed charges rise above a
+ * zero line; sell hangs below it. A marker per bar shows where the net lands.
+ * Buy bands share one colour and are told apart by hatch pattern.
+ */
 @Composable
-fun ComparePieGrid(data: List<ChartDatum>, series: List<SeriesDef>, holeColor: Color) {
+fun CompareCostStackChart(bars: List<CostBar>, unit: String, height: Dp = 170.dp) {
+    if (bars.isEmpty()) return
+    val maxPos = bars.maxOf { b -> b.positives.sumOf { it.value } }
+    val maxNeg = bars.maxOf { b -> b.negatives.sumOf { it.value } }
+    // include the net markers so they stay on-screen even with no bands selected
+    val posExtent = niceCeil(max(maxPos, bars.maxOf { it.net }.coerceAtLeast(0.0)))
+    val negExtent = max(maxNeg, (-bars.minOf { it.net }).coerceAtLeast(0.0))
+        .let { if (it <= 0.0) 0.0 else niceCeil(it) }
+    val span = max(posExtent + negExtent, 1e-6)
+    val netColor = MaterialTheme.colorScheme.primary
+    val zeroColor = MaterialTheme.colorScheme.onSurface
+    val measurer = rememberTextMeasurer()
+    val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+    Column(Modifier.fillMaxWidth()) {
+        Canvas(Modifier.fillMaxWidth().height(height)) {
+            val axisW = Y_AXIS_W.toPx()
+            val pad = 14f
+            val innerH = size.height - pad * 2
+            val zeroY = pad + innerH * (posExtent / span).toFloat()
+            val axisStyle = TextStyle(color = labelColor, fontSize = 9.sp)
+            // value scale: top, mid-positive, zero, mid-negative, bottom
+            listOf(posExtent, posExtent / 2, 0.0, -negExtent / 2, -negExtent).forEach { v ->
+                val y = zeroY - (v / span).toFloat() * innerH
+                drawAxisTick(measurer, axisStyle, gridColor, axisNumber(v), y, axisW)
+            }
+            drawText(measurer.measure(unit, axisStyle), topLeft = Offset(1f, 1f))
+            val groupW = (size.width - axisW) / bars.size
+            val barW = groupW * 0.5f
+            bars.forEachIndexed { gi, bar ->
+                val x = axisW + gi * groupW + (groupW - barW) / 2f
+                var y = zeroY
+                bar.positives.forEach { seg ->
+                    val h = (seg.value / span).toFloat() * innerH
+                    drawHatchSegment(x, y - h, barW, h, seg.color, seg.pattern)
+                    y -= h
+                }
+                y = zeroY
+                bar.negatives.forEach { seg ->
+                    val h = (seg.value / span).toFloat() * innerH
+                    drawHatchSegment(x, y, barW, h, seg.color, seg.pattern)
+                    y += h
+                }
+                val netY = zeroY - (bar.net / span).toFloat() * innerH
+                drawLine(netColor, Offset(x - 4f, netY), Offset(x + barW + 4f, netY), 3.5f)
+            }
+            drawLine(zeroColor.copy(alpha = 0.7f),
+                Offset(axisW, zeroY), Offset(size.width, zeroY), 2.5f)
+        }
+        AxisLabels(bars.map { it.label })
+    }
+}
+
+/** Draws one stack segment — solid, or a hatch pattern over a translucent fill. */
+private fun DrawScope.drawHatchSegment(
+    x: Float, y: Float, w: Float, h: Float, color: Color, pattern: BandPattern
+) {
+    if (h <= 0f) return
+    if (pattern == BandPattern.SOLID) {
+        drawRect(color, Offset(x, y), Size(w, h))
+        return
+    }
+    drawRect(color.copy(alpha = 0.20f), Offset(x, y), Size(w, h))
+    val gap = 8f
+    val sw = 2f
+    clipRect(x, y, x + w, y + h) {
+        when (pattern) {
+            BandPattern.HORIZONTAL -> {
+                var ly = y
+                while (ly <= y + h) { drawLine(color, Offset(x, ly), Offset(x + w, ly), sw); ly += gap }
+            }
+            BandPattern.VERTICAL -> {
+                var lx = x
+                while (lx <= x + w) { drawLine(color, Offset(lx, y), Offset(lx, y + h), sw); lx += gap }
+            }
+            BandPattern.DIAGONAL -> {
+                var o = -h
+                while (o <= w) {
+                    drawLine(color, Offset(x + o, y), Offset(x + o + h, y + h), sw); o += gap
+                }
+            }
+            BandPattern.CROSS -> {
+                var o = -h
+                while (o <= w) {
+                    drawLine(color, Offset(x + o, y), Offset(x + o + h, y + h), sw)
+                    drawLine(color, Offset(x + o, y + h), Offset(x + o + h, y), sw)
+                    o += gap
+                }
+            }
+            BandPattern.SOLID -> {}
+        }
+    }
+    drawRect(color, Offset(x, y), Size(w, h), style = Stroke(width = 1.5f))
+}
+
+// ── pie (small multiples grid; the host screen owns the pop-out) ────────────
+@Composable
+fun ComparePieGrid(
+    data: List<ChartDatum>,
+    series: List<SeriesDef>,
+    holeColor: Color,
+    unit: String,
+    onZoom: (ChartDatum) -> Unit
+) {
     if (data.isEmpty() || series.isEmpty()) return
+
+    // One or two pies — put the label beside each pie to use the spare width.
+    if (data.size <= 2) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            data.forEach { d ->
+                val total = series.sumOf { abs(d.values[it.id] ?: 0.0) }
+                Row(
+                    modifier = Modifier.fillMaxWidth().clickable { onZoom(d) },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(14.dp)
+                ) {
+                    ComparePieCanvas(d, series, holeColor, 108.dp)
+                    Column(Modifier.weight(1f)) {
+                        Text("${d.title}  ↗", style = MaterialTheme.typography.labelMedium,
+                            maxLines = 2, overflow = TextOverflow.Ellipsis)
+                        Spacer(Modifier.height(2.dp))
+                        Text("${axisNumber(total)} $unit total",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
+        return
+    }
+
+    // Three or more — small-multiples grid with the label beneath each pie.
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         data.chunked(2).forEach { rowItems ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 rowItems.forEach { d ->
-                    Box(Modifier.weight(1f)) { ComparePie(d, series, holeColor) }
+                    val total = series.sumOf { abs(d.values[it.id] ?: 0.0) }
+                    Box(Modifier.weight(1f)) {
+                        Column(
+                            Modifier.clickable { onZoom(d) },
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            ComparePieCanvas(d, series, holeColor, 108.dp)
+                            Spacer(Modifier.height(4.dp))
+                            Text("${d.title}  ↗", style = MaterialTheme.typography.labelSmall,
+                                maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                textAlign = TextAlign.Center)
+                            Text("${axisNumber(total)} $unit total",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center)
+                        }
+                    }
                 }
                 if (rowItems.size == 1) Spacer(Modifier.weight(1f))
             }
@@ -163,41 +422,7 @@ fun ComparePieGrid(data: List<ChartDatum>, series: List<SeriesDef>, holeColor: C
 }
 
 @Composable
-private fun ComparePie(datum: ChartDatum, series: List<SeriesDef>, holeColor: Color) {
-    var zoomed by remember { mutableStateOf(false) }
-    Column(
-        Modifier.clickable { zoomed = true },
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        PieCanvas(datum, series, holeColor, 108.dp)
-        Spacer(Modifier.height(4.dp))
-        Text("${datum.title}  ↗", style = MaterialTheme.typography.labelSmall,
-            maxLines = 1, overflow = TextOverflow.Ellipsis, textAlign = TextAlign.Center)
-    }
-    if (zoomed) {
-        val cfg = LocalConfiguration.current
-        val dim = min(cfg.screenWidthDp, cfg.screenHeightDp).dp
-        Dialog(onDismissRequest = { zoomed = false },
-            properties = DialogProperties(usePlatformDefaultWidth = false)) {
-            Surface(Modifier.size(dim), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
-                Column(
-                    Modifier.padding(16.dp).fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(datum.title, style = MaterialTheme.typography.titleSmall,
-                        textAlign = TextAlign.Center)
-                    Spacer(Modifier.height(12.dp))
-                    PieCanvas(datum, series, holeColor, dim * 0.62f)
-                    Spacer(Modifier.height(12.dp))
-                    ChartLegend(series)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun PieCanvas(datum: ChartDatum, series: List<SeriesDef>, holeColor: Color, diameter: Dp) {
+fun ComparePieCanvas(datum: ChartDatum, series: List<SeriesDef>, holeColor: Color, diameter: Dp) {
     val slices = series.mapNotNull { s ->
         val v = abs(datum.values[s.id] ?: 0.0)
         if (v > 0.0) s.color to v else null
@@ -218,10 +443,11 @@ private fun PieCanvas(datum: ChartDatum, series: List<SeriesDef>, holeColor: Col
     }
 }
 
-/** Coloured-dot series legend, reused by chart panels and pie pop-outs. */
+/** Coloured-dot series legend, reused by chart panels and pop-outs. Wraps to fit. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ChartLegend(series: List<SeriesDef>) {
-    Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         series.forEach { s ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Canvas(Modifier.size(9.dp)) { drawCircle(s.color) }
@@ -233,15 +459,16 @@ fun ChartLegend(series: List<SeriesDef>) {
     }
 }
 
+/** x-axis subject labels — inset by the value-axis width so they sit under the plot. */
 @Composable
 private fun AxisLabels(labels: List<String>) {
     Row(Modifier.fillMaxWidth().padding(top = 4.dp)) {
+        Spacer(Modifier.width(Y_AXIS_W))
         labels.forEach { l ->
             Text(
                 l,
                 modifier = Modifier.weight(1f),
                 textAlign = TextAlign.Center,
-                // cost labels are two lines (source on top, supplier below)
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.labelSmall,

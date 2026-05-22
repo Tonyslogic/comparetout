@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.tfcode.comparetout.ComparisonUIViewModel
 import com.tfcode.comparetout.TOUTCApplication
 import com.tfcode.comparetout.model.ToutcRepository
+import com.tfcode.comparetout.model.costings.SubTotals
 import com.tfcode.comparetout.model.importers.InverterDateRange
 import com.tfcode.comparetout.model.priceplan.PricePlan
 import com.tfcode.comparetout.model.scenario.Scenario
@@ -112,6 +113,7 @@ data class CompareCostRow(
     val sell: Double,
     val fixed: Double,
     val bonus: Double,
+    val buyBands: List<Double>,    // buy cost split by tariff rate band (euro, cheapest first)
     val monthlyNet: List<Double>   // 12 values, for line/area
 )
 
@@ -444,6 +446,7 @@ class UI2CompareViewModel @Inject constructor(
             lookup.setStartDOY(parseOr(from, LocalDate.now()).dayOfYear)
             var buy = 0.0; var sell = 0.0
             val monthly = DoubleArray(12)
+            val subTotals = SubTotals()
             hourly.forEach { row ->
                 val ldt = LocalDateTime.parse(row.dateTime, rowFmt)
                 val dow = ldt.dayOfWeek.value.let { if (it == 7) 0 else it }
@@ -453,7 +456,11 @@ class UI2CompareViewModel @Inject constructor(
                 buy += rowBuy
                 sell += rowSell
                 monthly[ldt.monthValue - 1] += (rowBuy - rowSell) / 100.0
+                subTotals.addToPrice(price, row.buy)
             }
+            // buy cost split by tariff rate band: price × kWh-at-that-price
+            val buyBands = subTotals.getPrices().sorted()
+                .map { p -> p * (subTotals.getSubTotalForPrice(p) ?: 0.0) / 100.0 }
             val fixed = plan.standingCharges * (days / 365.0)
             val coveredMonths = monthly.count { it != 0.0 }.coerceAtLeast(1)
             for (i in monthly.indices) if (monthly[i] != 0.0) monthly[i] += fixed / coveredMonths
@@ -470,6 +477,7 @@ class UI2CompareViewModel @Inject constructor(
                 sell = sell / 100.0,
                 fixed = fixed,
                 bonus = plan.signUpBonus,
+                buyBands = buyBands.ifEmpty { listOf(buy / 100.0) },
                 monthlyNet = monthly.toList()
             )
         }
@@ -508,6 +516,13 @@ class UI2CompareViewModel @Inject constructor(
         return plans.map { plan ->
             val c = costings.firstOrNull { it.pricePlanID == plan.pricePlanIndex }
             val net = (c?.net ?: 0.0) / 100.0
+            val buy = (c?.buy ?: 0.0) / 100.0
+            val st = c?.subTotals
+            val buyBands =
+                if (st != null && st.getPrices().isNotEmpty())
+                    st.getPrices().sorted()
+                        .map { p -> p * (st.getSubTotalForPrice(p) ?: 0.0) / 100.0 }
+                else listOf(buy)
             CompareCostRow(
                 subjectId = simSubjectId(sim.scenarioId),
                 subjectName = sim.name,
@@ -516,10 +531,11 @@ class UI2CompareViewModel @Inject constructor(
                 planName = "${plan.supplier} · ${plan.planName}",
                 available = c != null,
                 net = net,
-                buy = (c?.buy ?: 0.0) / 100.0,
+                buy = buy,
                 sell = (c?.sell ?: 0.0) / 100.0,
                 fixed = plan.standingCharges,
                 bonus = plan.signUpBonus,
+                buyBands = buyBands,
                 monthlyNet = List(12) { net / 12.0 }
             )
         }
