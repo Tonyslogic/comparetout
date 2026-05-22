@@ -960,7 +960,7 @@ fun WizardPanelCard(
                                     Modifier.size(16.dp), tint = Color.Unspecified)
                             }
                         )
-                        if (pvSources.isNotEmpty() && !noviceMode) {
+                        if (pvSources.isNotEmpty() && showAdvanced) {
                             FilterChip(
                                 selected = entry.pvDataSource == PanelDataSource.SOURCE,
                                 onClick = { onUpdate(entry.copy(pvDataSource = PanelDataSource.SOURCE)) },
@@ -1044,14 +1044,18 @@ fun WizardPanelCard(
                             PvSourceDialog(
                                 sources      = pvSources,
                                 currentSysSn = entry.pvSourceSysSn,
-                                currentFrom  = entry.pvSourceFrom,
-                                currentTo    = entry.pvSourceTo,
-                                onApply      = { src, from, to ->
-                                    onUpdate(entry.copy(
-                                        pvSourceSysSn = src.sysSn,
-                                        pvSourceFrom  = from,
-                                        pvSourceTo    = to
-                                    ))
+                                onApply      = { src ->
+                                    // A newly-chosen source resets to its full date
+                                    // range; the advanced date picker narrows it.
+                                    onUpdate(
+                                        if (src.sysSn != entry.pvSourceSysSn)
+                                            entry.copy(
+                                                pvSourceSysSn = src.sysSn,
+                                                pvSourceFrom  = src.startDate,
+                                                pvSourceTo    = src.finishDate
+                                            )
+                                        else entry.copy(pvSourceSysSn = src.sysSn)
+                                    )
                                 },
                                 onDismiss    = { showSourceDialog = false }
                             )
@@ -1063,6 +1067,50 @@ fun WizardPanelCard(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             if (showAdvanced) {
+                                // Date range — moved out of the source dialog so it
+                                // sits inline with the other advanced source controls.
+                                val pvSrc = pvSources.firstOrNull { it.sysSn == entry.pvSourceSysSn }
+                                if (pvSrc != null) {
+                                    var pvPeriod by remember(entry.pvSourceSysSn) {
+                                        mutableStateOf(DataSourcePeriod.ALL)
+                                    }
+                                    var pvAnchor by remember(entry.pvSourceSysSn) {
+                                        mutableStateOf(
+                                            runCatching { LocalDate.parse(entry.pvSourceTo) }.getOrNull()
+                                                ?: runCatching { LocalDate.parse(pvSrc.finishDate) }.getOrNull()
+                                                ?: LocalDate.now()
+                                        )
+                                    }
+                                    fun applyPvRange(p: DataSourcePeriod, a: LocalDate) {
+                                        val startD  = LocalDate.parse(pvSrc.startDate)
+                                        val finishD = LocalDate.parse(pvSrc.finishDate)
+                                        val (rawFrom, rawTo) = periodDateRange(p, a, true, startD, finishD)
+                                        onUpdate(entry.copy(
+                                            pvSourceFrom = rawFrom.coerceIn(startD, finishD).toString(),
+                                            pvSourceTo   = rawTo.coerceIn(startD, finishD).toString()
+                                        ))
+                                    }
+                                    WizardScheduleLabel("Source date range")
+                                    PeriodSelector(
+                                        selectedPeriod = pvPeriod,
+                                        anchorDate     = pvAnchor,
+                                        dataStart      = pvSrc.startDate,
+                                        dataEnd        = pvSrc.finishDate,
+                                        advanced       = true,
+                                        onPeriodChange = { p, a, _ ->
+                                            pvPeriod = p; pvAnchor = a; applyPvRange(p, a)
+                                        },
+                                        onNavigate     = { fwd, _ ->
+                                            val a = stepAnchor(pvAnchor, pvPeriod, fwd,
+                                                LocalDate.parse(pvSrc.startDate),
+                                                LocalDate.parse(pvSrc.finishDate))
+                                            pvAnchor = a; applyPvRange(pvPeriod, a)
+                                        }
+                                    )
+                                    Text("${entry.pvSourceFrom} → ${entry.pvSourceTo}",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                                 val stringKwp = entry.panelCount * entry.panelkWp / 1000.0
                                 val displayedKwp = if (entry.pvSourceKwp > 0.0) entry.pvSourceKwp else stringKwp
                                 NumericDoubleField(
@@ -2141,30 +2189,12 @@ private fun styleWizardDistBarChart(chart: BarChart, labelColor: Int, gridColor:
 private fun PvSourceDialog(
     sources: List<SourceDateRange>,
     currentSysSn: String,
-    currentFrom: String,
-    currentTo: String,
-    onApply: (SourceDateRange, String, String) -> Unit,
+    onApply: (SourceDateRange) -> Unit,
     onDismiss: () -> Unit
 ) {
     var selectedSource by remember(currentSysSn) {
         mutableStateOf(sources.firstOrNull { it.sysSn == currentSysSn })
     }
-    // Advanced PeriodSelector state: a D/M/Y trailing window ending on the anchor.
-    var period by remember { mutableStateOf(DataSourcePeriod.YEAR) }
-    var anchor by remember {
-        mutableStateOf(
-            runCatching { LocalDate.parse(currentTo) }.getOrNull()
-                ?: selectedSource?.let { LocalDate.parse(it.finishDate) }
-                ?: LocalDate.now()
-        )
-    }
-
-    fun pickSource(src: SourceDateRange) {
-        selectedSource = src
-        period = DataSourcePeriod.YEAR
-        anchor = LocalDate.parse(src.finishDate)
-    }
-
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Select PV source") },
@@ -2191,7 +2221,7 @@ private fun PvSourceDialog(
                                 else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
                                 RoundedCornerShape(8.dp)
                             )
-                            .clickable { pickSource(src) }
+                            .clickable { selectedSource = src }
                             .padding(horizontal = 12.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -2216,40 +2246,12 @@ private fun PvSourceDialog(
                         )
                     }
                 }
-                val src = selectedSource
-                if (src != null) {
-                    item {
-                        PeriodSelector(
-                            selectedPeriod = period,
-                            anchorDate     = anchor,
-                            dataStart      = src.startDate,
-                            dataEnd        = src.finishDate,
-                            advanced       = true,
-                            onPeriodChange = { p, a, _ -> period = p; anchor = a },
-                            onNavigate     = { fwd, _ ->
-                                anchor = stepAnchor(anchor, period, fwd,
-                                    LocalDate.parse(src.startDate),
-                                    LocalDate.parse(src.finishDate))
-                            }
-                        )
-                    }
-                }
             }
         },
         confirmButton = {
             val src = selectedSource
             Button(
-                onClick = {
-                    if (src != null) {
-                        val startD  = LocalDate.parse(src.startDate)
-                        val finishD = LocalDate.parse(src.finishDate)
-                        val (rawFrom, rawTo) = periodDateRange(period, anchor, true, startD, finishD)
-                        onApply(src,
-                            rawFrom.coerceIn(startD, finishD).toString(),
-                            rawTo.coerceIn(startD, finishD).toString())
-                        onDismiss()
-                    }
-                },
+                onClick = { if (src != null) { onApply(src); onDismiss() } },
                 enabled = src != null
             ) { Text("Apply") }
         },

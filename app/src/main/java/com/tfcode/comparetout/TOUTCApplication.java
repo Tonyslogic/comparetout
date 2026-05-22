@@ -253,6 +253,26 @@ public class TOUTCApplication extends Application {
     }
 
     /**
+     * Read a string value previously stored with putStringValueIntoDataStore().
+     *
+     * Blocks on the asynchronous DataStore using RxJava, returning an empty
+     * string when the key is absent or the read fails.
+     *
+     * @param key the preference key to read
+     * @return the stored string value, or "" if not present
+     */
+    public String getStringValueFromDataStore(String key) {
+        Preferences.Key<String> PREF_KEY = PreferencesKeys.stringKey(key);
+        return dataStore.data().firstOrError()
+                .map(prefs -> {
+                    String value = prefs.get(PREF_KEY);
+                    return value == null ? "" : value;
+                })
+                .onErrorReturnItem("")
+                .blockingGet();
+    }
+
+    /**
      * Get the application's DataStore instance for reactive preference access.
      * 
      * @return the RxDataStore instance for reading and writing application preferences
