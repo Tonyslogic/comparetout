@@ -29,7 +29,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Menu
@@ -40,7 +39,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -152,21 +150,20 @@ fun ScenariosScreen(
                     }
                 }
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(onClick = {
-                context.startActivity(Intent(context, UI2WizardActivity::class.java))
-            }) {
-                Icon(Icons.Default.Add, contentDescription = "New simulation")
-            }
         }
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             LazyColumn {
-                if (simItems.isNotEmpty()) {
-                    stickyHeader(key = "header_simulations") {
-                        SectionHeader("Scenarios")
-                    }
+                // Scenarios section is always shown — the title's "+ Create new" action
+                // is the only entry point for building a scenario (no FAB any more).
+                stickyHeader(key = "header_simulations") {
+                    SectionHeader("Scenarios", action = SectionAction("+ Create new") {
+                        context.startActivity(Intent(context, UI2WizardActivity::class.java))
+                    })
+                }
+                if (simItems.isEmpty()) {
+                    item(key = "empty_simulations") { EmptySectionRow("No scenarios yet — tap “+ Create new”.") }
+                } else {
                     items(simItems, key = { it.scenario.scenarioIndex }) { item ->
                         SimulationCard(
                             item = item,
@@ -182,10 +179,16 @@ fun ScenariosScreen(
                     }
                 }
 
-                if (dataSourceItems.isNotEmpty()) {
-                    stickyHeader(key = "header_datasources") {
-                        SectionHeader("Sources")
+                // Sources are imported via the legacy data-source management screens,
+                // so this section is read-only here — no add action.
+                stickyHeader(key = "header_datasources") {
+                    SectionHeader("Sources")
+                }
+                if (dataSourceItems.isEmpty()) {
+                    item(key = "empty_datasources") {
+                        EmptySectionRow("No data sources imported. Import via Menu → Data Source Management.")
                     }
+                } else {
                     items(dataSourceItems, key = { it.sysSn }) { item ->
                         DataSourceCard(
                             item = item,
@@ -246,19 +249,42 @@ fun ScenariosScreen(
     }
 }
 
+/** Optional trailing action rendered on the right of a [SectionHeader]. */
+private data class SectionAction(val label: String, val onClick: () -> Unit)
+
 @Composable
-private fun SectionHeader(title: String) {
+private fun SectionHeader(title: String, action: SectionAction? = null) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
         modifier = Modifier.fillMaxWidth()
     ) {
-        Text(
-            title,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                title,
+                modifier = Modifier.weight(1f).padding(vertical = 4.dp),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (action != null) {
+                TextButton(onClick = action.onClick) {
+                    Text(action.label, style = MaterialTheme.typography.labelLarge)
+                }
+            }
+        }
     }
+}
+
+@Composable
+private fun EmptySectionRow(text: String) {
+    Text(
+        text,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
 }
 
 @Composable

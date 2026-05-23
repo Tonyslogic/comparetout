@@ -89,11 +89,11 @@ import java.text.DecimalFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Compare tab â€” recreated from the toutc-compare handoff design.
+// ──────────────────────────────────────────────────────────────────────────
+// Compare tab — recreated from the toutc-compare handoff design.
 // Five accordion sections (What · Sources · Filter · Timeframe · Display)
 // feed one or two real result panels.
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ──────────────────────────────────────────────────────────────────────────
 
 private val USAGE_IDS = UI2CompareViewModel.USAGE_SERIES.map { it.first }.toSet()
 
@@ -133,7 +133,7 @@ fun CompareScreen(
     var sheet by remember { mutableStateOf<String?>(null) }
     var showDrawer by remember { mutableStateOf(false) }
 
-    // Subjects currently selected â€” drives the per-subject timeframe pickers.
+    // Subjects currently selected — drives the per-subject timeframe pickers.
     val selectedSubjects: List<Pair<String, String>> = remember(state.sources, state.sims, sources, sims) {
         sources.filter { it.sysSn in state.sources }
             .map { sourceSubjectId(it.sysSn) to it.sysSn } +
@@ -247,9 +247,9 @@ fun CompareScreen(
     }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ──────────────────────────────────────────────────────────────────────────
 // Accordion card
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ──────────────────────────────────────────────────────────────────────────
 @Composable
 private fun AccordionCard(
     title: String,
@@ -306,7 +306,7 @@ private fun SmallCaps(text: String) {
     )
 }
 
-/** Italic explanatory caption â€” shown only in novice mode. */
+/** Italic explanatory caption — shown only in novice mode. */
 @Composable
 private fun HelpText(text: String, novice: Boolean) {
     if (novice) {
@@ -316,13 +316,13 @@ private fun HelpText(text: String, novice: Boolean) {
     }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ──────────────────────────────────────────────────────────────────────────
 // What
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ──────────────────────────────────────────────────────────────────────────
 @Composable
 private fun WhatSection(state: CompareState, vm: UI2CompareViewModel, novice: Boolean) {
     val opts = listOf(
-        Triple(CompareWhat.COST, "Cost", "Compare â‚¬ across plans & scenarios"),
+        Triple(CompareWhat.COST, "Cost", "Compare € across plans & scenarios"),
         Triple(CompareWhat.USAGE, "Usage", "Compare kWh flows across scenarios"),
         Triple(CompareWhat.BOTH, "Combined", "Side-by-side cost & usage")
     )
@@ -351,9 +351,9 @@ private fun WhatSection(state: CompareState, vm: UI2CompareViewModel, novice: Bo
     }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ──────────────────────────────────────────────────────────────────────────
 // Sources
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ──────────────────────────────────────────────────────────────────────────
 @Composable
 private fun SourcesSection(
     state: CompareState,
@@ -383,7 +383,7 @@ private fun SourcesSection(
                 append("$sourceCount source"); if (sourceCount != 1) append("s")
                 append(" + $simCount sim"); if (simCount != 1) append("s")
                 if (state.what != CompareWhat.USAGE) {
-                    append(" Ã— $planCount plan"); if (planCount != 1) append("s")
+                    append(" × $planCount plan"); if (planCount != 1) append("s")
                 }
                 append("  =  $total result"); if (total != 1) append("s")
             },
@@ -422,9 +422,9 @@ private fun SelectRow(title: String, count: Int, onTap: () -> Unit) {
     }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ──────────────────────────────────────────────────────────────────────────
 // Filter
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ──────────────────────────────────────────────────────────────────────────
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun FilterSection(state: CompareState, vm: UI2CompareViewModel) {
@@ -466,9 +466,9 @@ private fun FilterSection(state: CompareState, vm: UI2CompareViewModel) {
     }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Timeframe â€” Basic/Advanced tab, sync toggle, per-subject ranges
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ──────────────────────────────────────────────────────────────────────────
+// Timeframe — Basic/Advanced tab, sync toggle, per-subject ranges
+// ──────────────────────────────────────────────────────────────────────────
 @Composable
 private fun TimeframeSection(
     state: CompareState,
@@ -575,11 +575,11 @@ private fun RangePicker(
     }
     val hint = when (gran) {
         null -> "Pick D / M / Y / * to set this range"
-        DataSourcePeriod.ALL -> "All time â€” every reading on file"
+        DataSourcePeriod.ALL -> "All time — every reading on file"
         else -> {
             val (f, t) = periodDateRange(gran, anchor, advanced,
                 anchor.minusYears(60), anchor.plusYears(60))
-            "$f â†’ $t"
+            "$f → $t"
         }
     }
     HelpText(hint, novice || gran == null)
@@ -606,13 +606,13 @@ private fun rangeLabel(gran: DataSourcePeriod, anchor: LocalDate, advanced: Bool
     else -> {
         val (f, t) = periodDateRange(gran, anchor, advanced,
             anchor.minusYears(60), anchor.plusYears(60))
-        "${f.format(SPAN_FMT)} â€“ ${t.format(SPAN_FMT)}"
+        "${f.format(SPAN_FMT)} – ${t.format(SPAN_FMT)}"
     }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ──────────────────────────────────────────────────────────────────────────
 // Display
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ──────────────────────────────────────────────────────────────────────────
 private fun compareModeIcon(m: CompareMode): ImageVector = when (m) {
     CompareMode.TABLE -> Icons.Default.TableChart
     CompareMode.BAR   -> Icons.Default.BarChart
@@ -737,7 +737,7 @@ private fun DisplaySection(state: CompareState, vm: UI2CompareViewModel, novice:
     HelpText(
         when {
             state.mode == CompareMode.TABLE -> "Tap a column header to sort. Tap again to reverse."
-            state.mode == CompareMode.PIE -> "Pie is always small-multiples â€” one pie per subject."
+            state.mode == CompareMode.PIE -> "Pie is always small-multiples — one pie per subject."
             state.layout == CompareLayout.SPLIT -> "Each subject gets its own chart."
             else -> "All subjects share one chart for direct comparison."
         },
@@ -745,9 +745,9 @@ private fun DisplaySection(state: CompareState, vm: UI2CompareViewModel, novice:
     )
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ──────────────────────────────────────────────────────────────────────────
 // Select sheet
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ──────────────────────────────────────────────────────────────────────────
 @Composable
 private fun SelectSheet(
     kind: String,
@@ -808,7 +808,7 @@ private fun SelectSheet(
             }
             OutlinedTextField(
                 value = query, onValueChange = { query = it },
-                placeholder = { Text("Searchâ€¦") },
+                placeholder = { Text("Search…") },
                 leadingIcon = { Icon(Icons.Default.Search, null) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)
@@ -880,9 +880,9 @@ private data class SheetSpec(
     val clear: () -> Unit
 )
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ──────────────────────────────────────────────────────────────────────────
 // Result panel
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ──────────────────────────────────────────────────────────────────────────
 @Composable
 private fun ResultPanel(
     state: CompareState,
@@ -950,7 +950,7 @@ private fun CostContent(
                     add(Cell(r.planName, 0.0))
                     series.forEach { s ->
                         val v = costValue(r, s.id)
-                        add(Cell(if (r.available) moneyFmt.format(v) else "â€”", v,
+                        add(Cell(if (r.available) moneyFmt.format(v) else "—", v,
                             if (s.id == "net") netColor(v) else null))
                     }
                 }
@@ -961,15 +961,15 @@ private fun CostContent(
         CompareMode.PIE -> {
             val pies = costPies(rows, series)
             ComparePieGrid(pies, MaterialTheme.colorScheme.surfaceVariant,
-                unit = "â‚¬", onZoom = { zoomedPie = it })
+                unit = "€", onZoom = { zoomedPie = it })
         }
-        else -> ChartArea(state, "Cost", chartData, series, explanation, "â‚¬")
+        else -> ChartArea(state, "Cost", chartData, series, explanation, "€")
     }
     ResultLegends(state.mode, series, chartData)
 
     zoomedPie?.let { d ->
         val hole = MaterialTheme.colorScheme.surfaceVariant
-        ChartPopout(d.title, series, explanation, emptyList(), pieInfo = d to "â‚¬",
+        ChartPopout(d.title, series, explanation, emptyList(), pieInfo = d to "€",
             onDismiss = { zoomedPie = null }) { h ->
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 ComparePieCanvas(d.slices, hole, h)
@@ -995,7 +995,7 @@ private fun CostStackArea(
                         ) {
                             Box(Modifier.padding(8.dp)) {
                                 ZoomableChart(bar.title, series, explanation, listOf(bar.title)) { h ->
-                                    CompareCostStackChart(listOf(bar), "â‚¬", h)
+                                    CompareCostStackChart(listOf(bar), "€", h)
                                 }
                             }
                         }
@@ -1006,7 +1006,7 @@ private fun CostStackArea(
         }
     } else {
         ZoomableChart("Cost", series, explanation, bars.map { it.title }) { h ->
-            CompareCostStackChart(bars, "â‚¬", h)
+            CompareCostStackChart(bars, "€", h)
         }
     }
 }
@@ -1058,7 +1058,7 @@ private fun UsageContent(
 
 /**
  * The novice-mode caption text for the current graph. Names the actual subjects
- * so the user can tell which source / simulation / plan is which â€” those names
+ * so the user can tell which source / simulation / plan is which — those names
  * are otherwise truncated on the axes or absent altogether.
  */
 private fun graphExplanationText(
@@ -1067,19 +1067,19 @@ private fun graphExplanationText(
     series: List<SeriesDef>,
     data: List<ChartDatum>
 ): String {
-    val unit = if (metric == CompareWhat.COST) "euro (â‚¬)" else "energy (kWh)"
+    val unit = if (metric == CompareWhat.COST) "euro (€)" else "energy (kWh)"
     val seriesNames = if (series.isEmpty()) "the selected series"
         else series.joinToString(", ") { it.label }
     val firstSeries = series.firstOrNull()?.label ?: "the first series"
     val subjects = when {
         data.isEmpty() -> "the selected subjects"
         data.size <= 5 -> data.joinToString("; ") { it.title }
-        else -> data.take(4).joinToString("; ") { it.title } + "; â€¦ (${data.size} total)"
+        else -> data.take(4).joinToString("; ") { it.title } + "; … (${data.size} total)"
     }
     return when (mode) {
         CompareMode.TABLE ->
             "Each row is a source or simulation priced against a plan. Columns show $seriesNames " +
-                "in $unit â€” tap a header to sort. Rows: $subjects."
+                "in $unit — tap a header to sort. Rows: $subjects."
         CompareMode.BAR ->
             "Grouped bars in $unit. Each group along the bottom is one subject; the coloured bars " +
                 "within it are $seriesNames. Subjects: $subjects."
@@ -1087,12 +1087,12 @@ private fun graphExplanationText(
             if (metric == CompareWhat.COST)
                 "Each bar shows one plan's cost in $unit: buy split into its rate bands plus any " +
                     "fixed charge stack up from the zero line; sell hangs below it. The marker is " +
-                    "the net â€” above the line is a cost, below is a credit. Subjects: $subjects."
+                    "the net — above the line is a cost, below is a credit. Subjects: $subjects."
             else
-                "Each bar stacks $seriesNames in $unit for one subject â€” a taller bar means more " +
+                "Each bar stacks $seriesNames in $unit for one subject — a taller bar means more " +
                     "in total. Subjects: $subjects."
         CompareMode.LINE ->
-            "Each line follows $firstSeries month by month ($unit), one line per subject â€” see the " +
+            "Each line follows $firstSeries month by month ($unit), one line per subject — see the " +
                 "Sources legend for line colours. Subjects: $subjects."
         CompareMode.AREA ->
             "Filled area showing $firstSeries month by month ($unit), one chart per subject. " +
@@ -1130,7 +1130,7 @@ private fun ResultLegends(mode: CompareMode, series: List<SeriesDef>, data: List
     }
 }
 
-/** Inline subject â†’ colour list. Used in both the source pop-out and chart pop-outs. */
+/** Inline subject → colour list. Used in both the source pop-out and chart pop-outs. */
 @Composable
 private fun SourceLegendList(titles: List<String>) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -1145,7 +1145,7 @@ private fun SourceLegendList(titles: List<String>) {
     }
 }
 
-/** Source legend as a pop-out link â€” used inline beneath the result panel. */
+/** Source legend as a pop-out link — used inline beneath the result panel. */
 @Composable
 private fun SourceLegend(data: List<ChartDatum>) {
     var open by remember { mutableStateOf(false) }
@@ -1155,7 +1155,7 @@ private fun SourceLegend(data: List<ChartDatum>) {
     ) {
         Icon(Icons.Default.List, contentDescription = null, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(4.dp))
-        Text("Sources (${data.size})  â†—", style = MaterialTheme.typography.labelMedium)
+        Text("Sources (${data.size})  ↗", style = MaterialTheme.typography.labelMedium)
     }
     if (open) {
         Dialog(onDismissRequest = { open = false }) {
@@ -1219,7 +1219,7 @@ private fun ZoomableChart(
 ) {
     var zoomed by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxWidth().clickable { zoomed = true }) {
-        Text("$title  â†—", style = MaterialTheme.typography.labelSmall,
+        Text("$title  ↗", style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 2.dp))
         chart(170.dp)
@@ -1231,8 +1231,8 @@ private fun ZoomableChart(
 }
 
 /**
- * Graph pop-out: full screen width Ã— 80% height, click outside to dismiss.
- * Landscape â€” graph left, text + legend right. Portrait â€” text on top, then the
+ * Graph pop-out: full screen width × 80% height, click outside to dismiss.
+ * Landscape — graph left, text + legend right. Portrait — text on top, then the
  * graph, then the legend. Scrolls vertically when content overflows.
  */
 @Composable
@@ -1338,7 +1338,7 @@ private fun EmptyResult() {
         color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
-// â”€â”€ result table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── result table ────────────────────────────────────────────────────────────
 private data class Cell(val text: String, val sort: Double, val color: Color? = null)
 
 @Composable
@@ -1435,9 +1435,9 @@ private fun NotReadyCard(state: CompareState) {
     }
 }
 
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ──────────────────────────────────────────────────────────────────────────
 // Helpers
-// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ──────────────────────────────────────────────────────────────────────────
 private fun whatLabel(w: CompareWhat) = when (w) {
     CompareWhat.COST -> "Cost"; CompareWhat.USAGE -> "Usage"; CompareWhat.BOTH -> "Cost + Usage"
 }
@@ -1512,8 +1512,8 @@ private fun usageValue(r: CompareUsageRow, id: String): Double = when (id) {
     else -> 0.0
 }
 
-// A cost datum is one source/simulation Ã— one plan, so the axis label must
-// carry BOTH â€” otherwise one source across N plans gives N look-alike bars.
+// A cost datum is one source/simulation × one plan, so the axis label must
+// carry BOTH — otherwise one source across N plans gives N look-alike bars.
 private fun costAxisLabel(r: CompareCostRow): String {
     val supplier = r.planName.substringBefore(" · ")
     return "${shorten(r.subjectName)}\n${shorten(supplier)}"
@@ -1521,7 +1521,7 @@ private fun costAxisLabel(r: CompareCostRow): String {
 
 private fun costData(rows: List<CompareCostRow>): List<ChartDatum> = rows.map { r ->
     ChartDatum(
-        title = "${r.subjectName}  ·  ${r.planName}",   // full â€” for legends/pop-outs
+        title = "${r.subjectName}  ·  ${r.planName}",   // full — for legends/pop-outs
         shortLabel = costAxisLabel(r),                  // two-line axis label
         values = mapOf("net" to r.net, "buy" to r.buy, "sell" to r.sell,
             "bonus" to r.bonus, "fixed" to r.fixed),
@@ -1575,10 +1575,10 @@ private fun usageData(rows: List<CompareUsageRow>): List<ChartDatum> = rows.map 
     )
 }
 
-private fun shorten(s: String): String = if (s.length <= 12) s else s.take(11) + "â€¦"
+private fun shorten(s: String): String = if (s.length <= 12) s else s.take(11) + "…"
 
 /**
- * Build pie data for usage â€” one pie per subject, slices are the selected series
+ * Build pie data for usage — one pie per subject, slices are the selected series
  * each in its own colour. No hatching needed (each series already has a distinct hue).
  */
 private fun usagePies(data: List<ChartDatum>, series: List<SeriesDef>): List<ComparePieDatum> =
@@ -1591,10 +1591,10 @@ private fun usagePies(data: List<ChartDatum>, series: List<SeriesDef>): List<Com
     }
 
 /**
- * Build pie data for cost â€” one pie per (subject Ã— plan). Buy is broken into rate
+ * Build pie data for cost — one pie per (subject × plan). Buy is broken into rate
  * bands using the same cyan + hatch-pattern vocabulary as the cost stack; fixed
  * sits alongside in solid grey. Sell is excluded from the pie (it's a credit, and
- * pies don't represent signed values cleanly) â€” table / stack still show it.
+ * pies don't represent signed values cleanly) — table / stack still show it.
  */
 private fun costPies(rows: List<CompareCostRow>, series: List<SeriesDef>): List<ComparePieDatum> {
     val showBuy = series.any { it.id == "buy" }
@@ -1603,7 +1603,13 @@ private fun costPies(rows: List<CompareCostRow>, series: List<SeriesDef>): List<
     return rows.map { r ->
         val slices = buildList {
             if (showBuy) r.buyBands.forEachIndexed { i, b ->
-                if (b > 0.0) add(ComparePieSlice("Buy band ${i + 1}", BUY_BAND_COLOR, b, bandPattern(i)))
+                if (b > 0.0) {
+                    // Show the actual c/kWh rate instead of "Buy band N" — far more
+                    // useful in the pop-out legend where the user is comparing tariffs.
+                    val rate = r.buyBandRates.getOrNull(i)
+                    val label = if (rate != null) "${rateLabel(rate)} c/kWh" else "Band ${i + 1}"
+                    add(ComparePieSlice(label, BUY_BAND_COLOR, b, bandPattern(i)))
+                }
             }
             if (showFixed && r.fixed > 0.0) add(ComparePieSlice("Fixed", FIXED_BAND_COLOR, r.fixed))
             if (showBonus && r.bonus > 0.0) add(ComparePieSlice("Bonus", Color(0xFF4CAF50), r.bonus))
@@ -1611,5 +1617,9 @@ private fun costPies(rows: List<CompareCostRow>, series: List<SeriesDef>): List<
         ComparePieDatum("${r.subjectName}  ·  ${r.planName}", slices)
     }
 }
+
+/** Format a c/kWh rate compactly: integer cents stay integer, others get 2 dp. */
+private fun rateLabel(c: Double): String =
+    if (c == c.toInt().toDouble()) c.toInt().toString() else "%.2f".format(c)
 
 

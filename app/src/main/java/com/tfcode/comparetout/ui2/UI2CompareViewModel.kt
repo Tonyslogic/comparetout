@@ -113,8 +113,9 @@ data class CompareCostRow(
     val sell: Double,
     val fixed: Double,
     val bonus: Double,
-    val buyBands: List<Double>,    // buy cost split by tariff rate band (euro, cheapest first)
-    val monthlyNet: List<Double>   // 12 values, for line/area
+    val buyBands: List<Double>,        // buy cost split by tariff rate band (euro, cheapest first)
+    val buyBandRates: List<Double>,    // the c/kWh rate for each band (same length & order as buyBands)
+    val monthlyNet: List<Double>       // 12 values, for line/area
 )
 
 /** One subject's energy totals over the timeframe. kWh values. */
@@ -458,8 +459,11 @@ class UI2CompareViewModel @Inject constructor(
                 monthly[ldt.monthValue - 1] += (rowBuy - rowSell) / 100.0
                 subTotals.addToPrice(price, row.buy)
             }
-            // buy cost split by tariff rate band: price × kWh-at-that-price
-            val buyBands = subTotals.getPrices().sorted()
+            // buy cost split by tariff rate band: price × kWh-at-that-price.
+            // Keep the cheapest-first ordering of bands AND the matching rate list
+            // (c/kWh) so the pie labels can show the rate that produced each slice.
+            val sortedRates = subTotals.getPrices().sorted()
+            val buyBands = sortedRates
                 .map { p -> p * (subTotals.getSubTotalForPrice(p) ?: 0.0) / 100.0 }
             val fixed = plan.standingCharges * (days / 365.0)
             val coveredMonths = monthly.count { it != 0.0 }.coerceAtLeast(1)
@@ -478,6 +482,7 @@ class UI2CompareViewModel @Inject constructor(
                 fixed = fixed,
                 bonus = plan.signUpBonus,
                 buyBands = buyBands.ifEmpty { listOf(buy / 100.0) },
+                buyBandRates = sortedRates.ifEmpty { emptyList() },
                 monthlyNet = monthly.toList()
             )
         }
@@ -518,10 +523,11 @@ class UI2CompareViewModel @Inject constructor(
             val net = (c?.net ?: 0.0) / 100.0
             val buy = (c?.buy ?: 0.0) / 100.0
             val st = c?.subTotals
+            val sortedRates = if (st != null && st.getPrices().isNotEmpty())
+                st.getPrices().sorted() else emptyList()
             val buyBands =
-                if (st != null && st.getPrices().isNotEmpty())
-                    st.getPrices().sorted()
-                        .map { p -> p * (st.getSubTotalForPrice(p) ?: 0.0) / 100.0 }
+                if (sortedRates.isNotEmpty())
+                    sortedRates.map { p -> p * (st!!.getSubTotalForPrice(p) ?: 0.0) / 100.0 }
                 else listOf(buy)
             CompareCostRow(
                 subjectId = simSubjectId(sim.scenarioId),
@@ -536,6 +542,7 @@ class UI2CompareViewModel @Inject constructor(
                 fixed = plan.standingCharges,
                 bonus = plan.signUpBonus,
                 buyBands = buyBands,
+                buyBandRates = sortedRates,
                 monthlyNet = List(12) { net / 12.0 }
             )
         }
