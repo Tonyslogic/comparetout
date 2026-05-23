@@ -433,11 +433,11 @@ fun ComparePieGrid(
                 ) {
                     ComparePieCanvas(d.slices, holeColor, 108.dp)
                     Column(Modifier.weight(1f)) {
-                        Text("${d.title}  ↗", style = MaterialTheme.typography.labelMedium,
+                        Text("${d.title}  ↗", style = MaterialTheme.typography.bodyMedium,
                             maxLines = 2, overflow = TextOverflow.Ellipsis)
                         Spacer(Modifier.height(2.dp))
                         Text("${axisNumber(d.total)} $unit total",
-                            style = MaterialTheme.typography.labelSmall,
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -458,11 +458,11 @@ fun ComparePieGrid(
                         ) {
                             ComparePieCanvas(d.slices, holeColor, 108.dp)
                             Spacer(Modifier.height(4.dp))
-                            Text("${d.title}  ↗", style = MaterialTheme.typography.labelSmall,
+                            Text("${d.title}  ↗", style = MaterialTheme.typography.bodySmall,
                                 maxLines = 1, overflow = TextOverflow.Ellipsis,
                                 textAlign = TextAlign.Center)
                             Text("${axisNumber(d.total)} $unit total",
-                                style = MaterialTheme.typography.labelSmall,
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center)
                         }
@@ -504,18 +504,21 @@ private fun DrawScope.drawHatchArc(
         return
     }
     // Translucent fill so the eye reads the colour through the hatch.
-    drawArc(color.copy(alpha = 0.20f), startAngleDeg, sweepAngleDeg, useCenter = true,
+    drawArc(color.copy(alpha = 0.22f), startAngleDeg, sweepAngleDeg, useCenter = true,
         topLeft = Offset.Zero, size = size)
-    // Build wedge path and clip the hatch family to it.
+    // Build a proper wedge: centre → first arc point → arc → close (back to centre).
+    // (moveTo + addArc starts a new subpath, which would clip a chord-closed arc
+    // segment rather than a wedge — use arcTo so the line from the centre joins.)
     val cx = size.width / 2f
     val cy = size.height / 2f
     val r = size.minDimension / 2f
     val wedge = Path().apply {
         moveTo(cx, cy)
-        addArc(Rect(Offset(0f, 0f), size), startAngleDeg, sweepAngleDeg)
+        arcTo(Rect(Offset.Zero, size), startAngleDeg, sweepAngleDeg, forceMoveTo = false)
         close()
     }
-    val gap = 8f; val sw = 2f
+    val gap = 10f
+    val sw = 2.2f
     clipPath(wedge) {
         when (pattern) {
             BandPattern.HORIZONTAL -> {
@@ -553,15 +556,15 @@ private fun DrawScope.drawHatchArc(
 @Composable
 fun PieValueLegend(slices: List<ComparePieSlice>, unit: String) {
     val total = slices.sumOf { abs(it.value) }.coerceAtLeast(1e-9)
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)) {
         slices.forEach { sl ->
             Row(verticalAlignment = Alignment.CenterVertically) {
                 PieSwatch(sl.color, sl.pattern)
-                Spacer(Modifier.width(6.dp))
+                Spacer(Modifier.width(8.dp))
                 Text(
                     "${sl.label} · ${axisNumber(sl.value)} $unit (${"%.0f%%".format(100 * abs(sl.value) / total)})",
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurface
                 )
             }
@@ -571,12 +574,12 @@ fun PieValueLegend(slices: List<ComparePieSlice>, unit: String) {
 
 @Composable
 private fun PieSwatch(color: Color, pattern: BandPattern) {
-    Canvas(Modifier.size(12.dp)) {
+    Canvas(Modifier.size(14.dp)) {
         if (pattern == BandPattern.SOLID) {
             drawRect(color)
             return@Canvas
         }
-        drawRect(color.copy(alpha = 0.20f))
+        drawRect(color.copy(alpha = 0.22f))
         val gap = 4f; val sw = 1.2f
         clipRect {
             when (pattern) {

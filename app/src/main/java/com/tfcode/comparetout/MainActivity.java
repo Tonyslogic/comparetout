@@ -140,6 +140,10 @@ public class MainActivity extends InsetRespectingActivity {
     private boolean mFirstLaunch = true;
     private boolean mFirstLaunchDialogRendered = false;
     private boolean mUseUI2 = false;
+    // Captured by loadSettingsFromDataStore; consumed by maybeStartUi2 after the
+    // disclaimer flow (if any) has completed. Possible values: "true" / "false" /
+    // "" (never set — first launch / older version pre-UI2) / "error".
+    private volatile String mUi2Status = "error";
 
     /**
      * Load user preferences from the encrypted DataStore.
@@ -158,27 +162,43 @@ public class MainActivity extends InsetRespectingActivity {
             String ret =  value.blockingGet();
             System.out.println("Got a value from the dataStore:" + ret);
             if (ret.equals("False")) {
-//                mMainHandler.post(() -> showDisclaimers(application));
                 mFirstLaunch = false;
             }
 
             Preferences.Key<String> UseUI2 = PreferencesKeys.stringKey("use_ui2");
-            // Use sentinel default — distinguishes "never set" (null) from "explicitly false".
+            // Sentinel default distinguishes "never set" (null) from "explicitly false".
             Single<String> ui2Value = application.getDataStore()
                     .data().firstOrError()
                     .map(prefs -> {
                         String v = prefs.get(UseUI2);
                         return v == null ? "" : v;
                     }).onErrorReturnItem("error");
-            String ui2Ret = ui2Value.blockingGet();
-            if ("true".equals(ui2Ret)) {
-                mMainHandler.post(this::switchToUI2);
-            } else if ("".equals(ui2Ret)) {
-                // First launch — explain legacy fallback, then opt into UI2 by default
-                mMainHandler.post(this::showUI2OnboardingDialog);
+            mUi2Status = ui2Value.blockingGet();
+
+            // If the user has already seen the disclaimers, skip straight to the UI2
+            // decision now. Otherwise the disclaimer flow (triggered when the ViewPager
+            // first lands on a page) will call maybeStartUi2() once the user has tapped
+            // OK — sequencing both dialogs so only one is visible at a time.
+            if (!mFirstLaunch) {
+                mMainHandler.post(this::maybeStartUi2);
             }
-            // "false" or "error" → stay on legacy
         }).start();
+    }
+
+    /**
+     * Decide whether to switch into UI2, show the "new look" onboarding dialog, or
+     * stay on legacy — based on the value cached by {@link #loadSettingsFromDataStore()}.
+     * Called either directly (returning user) or after the disclaimer is dismissed
+     * (first launch / upgrade), never both — keeps dialogs strictly sequential.
+     */
+    private void maybeStartUi2() {
+        String status = mUi2Status;
+        if ("true".equals(status)) {
+            switchToUI2();
+        } else if ("".equals(status)) {
+            showUI2OnboardingDialog();
+        }
+        // "false" or "error" → stay on legacy
     }
 
     private void switchToUI2() {
@@ -233,7 +253,10 @@ public class MainActivity extends InsetRespectingActivity {
                         boolean x = application.putStringValueIntoDataStore(FIRST_USE, "False");
                         boolean y = application.putStringValueIntoDataStore("Test", "True");
                         mFirstLaunch = false;
-                        if (x != y && !y) System.out.println("Something is wrong with the properties");})
+                        if (x != y && !y) System.out.println("Something is wrong with the properties");
+                        // Disclaimer dismissed — now (and only now) decide UI2 vs legacy.
+                        maybeStartUi2();
+                })
                 .show();
     }
 
@@ -350,6 +373,11 @@ public class MainActivity extends InsetRespectingActivity {
 //                .penaltyDeath()
                 .build());
         super.onCreate(savedInstanceState);
+        // Initialise the main-thread handler before any background work that may post to it.
+        // loadSettingsFromDataStore() spawns a thread that can call mMainHandler.post() the
+        // moment the DataStore replies — if mMainHandler is still null we crash with NPE on
+        // the very first launch after install/update (when "use_ui2" hasn't been written yet).
+        mMainHandler = new Handler(Looper.getMainLooper());
         applyInsetsToView(R.id.tab_layout, EdgeInsets.Edge.TOP);
         applyInsetsToView(R.id.view_pager, EdgeInsets.Edge.RIGHT, EdgeInsets.Edge.BOTTOM);
         applyInsetsToGuidelines(0, R.id.bottom_inset_guideline, 0, R.id.right_inset_guideline );
