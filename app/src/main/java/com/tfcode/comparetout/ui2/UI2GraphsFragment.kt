@@ -38,6 +38,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
@@ -148,9 +149,26 @@ class UI2GraphsFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
+        val onSwitchLegacy: () -> Unit = {
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                val app = requireActivity().application as com.tfcode.comparetout.TOUTCApplication
+                app.putStringValueIntoDataStore("use_ui2", "false")
+                val intent = android.content.Intent(requireContext(), com.tfcode.comparetout.MainActivity::class.java)
+                intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+                requireActivity().startActivity(intent)
+            }
+        }
         return ComposeView(requireContext()).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
-            setContent { UI2Theme { GraphsScreen(viewModel, onBack = { findNavController().popBackStack() }) } }
+            setContent {
+                UI2Theme {
+                    GraphsScreen(
+                        viewModel,
+                        onBack = { findNavController().popBackStack() },
+                        onSwitchLegacy = onSwitchLegacy
+                    )
+                }
+            }
         }
     }
 
@@ -179,11 +197,17 @@ class UI2GraphsFragment : Fragment() {
 // ─── Root screen ──────────────────────────────────────────────────────────
 
 @Composable
-fun GraphsScreen(viewModel: UI2GraphsViewModel, onBack: () -> Unit) {
+fun GraphsScreen(
+    viewModel: UI2GraphsViewModel,
+    onBack: () -> Unit,
+    onSwitchLegacy: () -> Unit = {}
+) {
     val state by viewModel.state.collectAsState()
     var showPanel    by remember { mutableStateOf(false) }
     var showLinePop  by remember { mutableStateOf(false) }
     var showDatePick by remember { mutableStateOf(false) }
+    var showDrawer   by remember { mutableStateOf(false) }
+    val (showHints, toggleShowHints) = rememberShowHints()
 
     Scaffold(
         topBar = {
@@ -192,7 +216,11 @@ fun GraphsScreen(viewModel: UI2GraphsViewModel, onBack: () -> Unit) {
                 navigationIcon = {
                     IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Back") }
                 },
-                actions = { }
+                actions = {
+                    IconButton(onClick = { showDrawer = true }) {
+                        Icon(Icons.Default.Menu, contentDescription = "Menu")
+                    }
+                }
             )
         }
     ) { paddingValues ->
@@ -250,6 +278,28 @@ fun GraphsScreen(viewModel: UI2GraphsViewModel, onBack: () -> Unit) {
                 }
                 FloatingActionButton(onClick = { showPanel = true }) {
                     Icon(painterResource(R.drawable.ic_baseline_settings_24), "Chart settings", Modifier.size(24.dp))
+                }
+            }
+
+            // Global app-menu drawer (right side). Scrim + slide-in panel.
+            AnimatedVisibility(visible = showDrawer, enter = fadeIn(tween(180)),
+                exit = fadeOut(tween(180))) {
+                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f))
+                    .clickable { showDrawer = false })
+            }
+            AnimatedVisibility(
+                visible = showDrawer,
+                enter = slideInHorizontally(tween(220)) { it },
+                exit = slideOutHorizontally(tween(220)) { it },
+                modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight().width(280.dp)
+            ) {
+                Surface(tonalElevation = 8.dp, shadowElevation = 8.dp, modifier = Modifier.fillMaxSize()) {
+                    UI2DrawerContent(
+                        showHints = showHints,
+                        onShowHintsChange = { if (it != showHints) toggleShowHints() },
+                        onSwitchLegacy = { showDrawer = false; onSwitchLegacy() },
+                        onClose = { showDrawer = false }
+                    )
                 }
             }
         }

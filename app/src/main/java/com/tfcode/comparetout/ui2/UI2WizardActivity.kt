@@ -13,6 +13,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import com.google.android.gms.location.LocationServices
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -21,6 +26,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -47,7 +53,7 @@ import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -57,8 +63,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
@@ -246,7 +250,7 @@ private fun WizardScreen(
         }
     }
 
-    var menuOpen by remember { mutableStateOf(false) }
+    var showDrawer by remember { mutableStateOf(false) }
     val title = when {
         viewModel.isEditMode && builder.scenarioName.isNotBlank() ->
             "Edit scenario · ${builder.scenarioName}"
@@ -298,26 +302,8 @@ private fun WizardScreen(
                     }
                 },
                 actions = {
-                    Box {
-                        IconButton(onClick = { menuOpen = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "Options")
-                        }
-                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                            DropdownMenuItem(
-                                text = {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Text("Novice mode", modifier = Modifier.weight(1f))
-                                        Switch(checked = noviceMode,
-                                            onCheckedChange = { viewModel.toggleNoviceMode() })
-                                    }
-                                },
-                                onClick = { viewModel.toggleNoviceMode() }
-                            )
-                        }
+                    IconButton(onClick = { showDrawer = true }) {
+                        Icon(Icons.Default.Menu, contentDescription = "Menu")
                     }
                 }
             )
@@ -340,7 +326,8 @@ private fun WizardScreen(
             lastScrollValue = current
         }
 
-        Column(modifier = Modifier.fillMaxSize().padding(padding)) {
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+        Column(modifier = Modifier.fillMaxSize()) {
             // Fixed: progress strip + action buttons (collapses on scroll up)
             AnimatedVisibility(visible = headerVisible) {
                 Column(
@@ -631,6 +618,35 @@ private fun WizardScreen(
 
             Spacer(Modifier.height(24.dp))
             }
+        }
+
+        // Global app-menu drawer (right side).
+        AnimatedVisibility(visible = showDrawer, enter = fadeIn(tween(180)),
+            exit = fadeOut(tween(180))) {
+            Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f))
+                .clickable { showDrawer = false })
+        }
+        AnimatedVisibility(
+            visible = showDrawer,
+            enter = slideInHorizontally(tween(220)) { it },
+            exit = slideOutHorizontally(tween(220)) { it },
+            modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight().width(280.dp)
+        ) {
+            Surface(tonalElevation = 8.dp, shadowElevation = 8.dp, modifier = Modifier.fillMaxSize()) {
+                UI2DrawerContent(
+                    showHints = noviceMode,
+                    onShowHintsChange = { if (it != noviceMode) viewModel.toggleNoviceMode() },
+                    onSwitchLegacy = {
+                        showDrawer = false
+                        // The wizard is launched from the UI2 navigation host; closing the
+                        // wizard returns to that host where the actual UI2 → Legacy swap
+                        // happens via the bottom-nav screens.
+                        onClose()
+                    },
+                    onClose = { showDrawer = false }
+                )
+            }
+        }
         }
     }
 }

@@ -137,6 +137,7 @@ fun ScenariosScreen(
     val context = LocalContext.current
     var showDeleteDialog by remember { mutableStateOf<UI2SimulationsViewModel.SimListItem.Simulation?>(null) }
     var showDrawer by remember { mutableStateOf(false) }
+    val (showHints, toggleShowHints) = rememberShowHints()
 
     val simItems = remember(items) { items.filterIsInstance<UI2SimulationsViewModel.SimListItem.Simulation>() }
     val dataSourceItems = remember(items) { items.filterIsInstance<UI2SimulationsViewModel.SimListItem.DataSource>() }
@@ -145,7 +146,7 @@ fun ScenariosScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Scenarios") },
-                navigationIcon = {
+                actions = {
                     IconButton(onClick = { showDrawer = true }) {
                         Icon(Icons.Default.Menu, contentDescription = "Menu")
                     }
@@ -208,15 +209,17 @@ fun ScenariosScreen(
                 )
             }
 
-            // Left drawer
+            // Right-side drawer (the global app menu)
             AnimatedVisibility(
                 visible = showDrawer,
-                enter = slideInHorizontally(tween(220)) { -it },
-                exit = slideOutHorizontally(tween(220)) { -it },
-                modifier = Modifier.align(Alignment.CenterStart).fillMaxHeight().width(280.dp)
+                enter = slideInHorizontally(tween(220)) { it },
+                exit = slideOutHorizontally(tween(220)) { it },
+                modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight().width(280.dp)
             ) {
                 Surface(tonalElevation = 8.dp, shadowElevation = 8.dp, modifier = Modifier.fillMaxSize()) {
                     UI2DrawerContent(
+                        showHints = showHints,
+                        onShowHintsChange = { if (it != showHints) toggleShowHints() },
                         onSwitchLegacy = { showDrawer = false; onSwitchLegacy() },
                         onClose = { showDrawer = false }
                     )

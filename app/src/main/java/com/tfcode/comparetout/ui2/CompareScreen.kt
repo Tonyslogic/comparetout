@@ -32,6 +32,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.DateRange
@@ -41,11 +42,15 @@ import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.ShowChart
+import androidx.compose.material.icons.filled.TableChart
+import androidx.compose.material.icons.filled.Timeline
+import androidx.compose.material.icons.filled.ViewModule
+import androidx.compose.material.icons.outlined.StackedBarChart
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -84,11 +89,11 @@ import java.text.DecimalFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
-// ──────────────────────────────────────────────────────────────────────────
-// Compare tab — recreated from the toutc-compare handoff design.
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Compare tab â€” recreated from the toutc-compare handoff design.
 // Five accordion sections (What · Sources · Filter · Timeframe · Display)
 // feed one or two real result panels.
-// ──────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 private val USAGE_IDS = UI2CompareViewModel.USAGE_SERIES.map { it.first }.toSet()
 
@@ -127,10 +132,8 @@ fun CompareScreen(
     var open by remember { mutableStateOf<String?>(null) }
     var sheet by remember { mutableStateOf<String?>(null) }
     var showDrawer by remember { mutableStateOf(false) }
-    var menuOpen by remember { mutableStateOf(false) }
-    var showSetup by remember { mutableStateOf(true) }
 
-    // Subjects currently selected — drives the per-subject timeframe pickers.
+    // Subjects currently selected â€” drives the per-subject timeframe pickers.
     val selectedSubjects: List<Pair<String, String>> = remember(state.sources, state.sims, sources, sims) {
         sources.filter { it.sysSn in state.sources }
             .map { sourceSubjectId(it.sysSn) to it.sysSn } +
@@ -142,30 +145,9 @@ fun CompareScreen(
         topBar = {
             TopAppBar(
                 title = { Text("Compare") },
-                navigationIcon = {
+                actions = {
                     IconButton(onClick = { showDrawer = true }) {
                         Icon(Icons.Default.Menu, contentDescription = "Menu")
-                    }
-                },
-                actions = {
-                    Box {
-                        IconButton(onClick = { menuOpen = true }) {
-                            Icon(Icons.Default.MoreVert, contentDescription = "Options")
-                        }
-                        DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                            DropdownMenuItem(
-                                text = {
-                                    MenuToggleRow("Novice mode", noviceMode) { viewModel.toggleNoviceMode() }
-                                },
-                                onClick = { viewModel.toggleNoviceMode() }
-                            )
-                            DropdownMenuItem(
-                                text = {
-                                    MenuToggleRow("Setup sections", showSetup) { showSetup = !showSetup }
-                                },
-                                onClick = { showSetup = !showSetup }
-                            )
-                        }
                     }
                 }
             )
@@ -177,45 +159,43 @@ fun CompareScreen(
                 verticalArrangement = Arrangement.spacedBy(10.dp),
                 contentPadding = PaddingValues(vertical = 12.dp)
             ) {
-                if (showSetup) {
-                    item {
-                        AccordionCard("What to compare", whatLabel(state.what), true,
-                            open == "what", { open = if (open == "what") null else "what" }) {
-                            WhatSection(state, viewModel, noviceMode)
-                        }
+                item {
+                    AccordionCard("What to compare", whatLabel(state.what), true,
+                        open == "what", { open = if (open == "what") null else "what" }) {
+                        WhatSection(state, viewModel, noviceMode)
                     }
-                    item {
-                        AccordionCard("Sources", scopeSubtitle(state), subjectsReady(state),
-                            open == "sources", { open = if (open == "sources") null else "sources" }) {
-                            SourcesSection(state, viewModel,
-                                state.sources.size, state.sims.size, state.plans.size,
-                                noviceMode) { sheet = it }
-                        }
+                }
+                item {
+                    AccordionCard("Sources", scopeSubtitle(state), subjectsReady(state),
+                        open == "sources", { open = if (open == "sources") null else "sources" }) {
+                        SourcesSection(state, viewModel,
+                            state.sources.size, state.sims.size, state.plans.size,
+                            noviceMode) { sheet = it }
                     }
-                    item {
-                        AccordionCard("Filter", filterSubtitle(state), state.series.isNotEmpty(),
-                            open == "filter", { open = if (open == "filter") null else "filter" }) {
-                            FilterSection(state, viewModel)
-                        }
+                }
+                item {
+                    AccordionCard("Filter", filterSubtitle(state), state.series.isNotEmpty(),
+                        open == "filter", { open = if (open == "filter") null else "filter" }) {
+                        FilterSection(state, viewModel)
                     }
-                    item {
-                        AccordionCard("Timeframe", timeSubtitle(state),
-                            viewModel.timeframeReady(state),
-                            open == "time", { open = if (open == "time") null else "time" }) {
-                            TimeframeSection(state, viewModel, noviceMode, selectedSubjects)
-                        }
+                }
+                item {
+                    AccordionCard("Timeframe", timeSubtitle(state),
+                        viewModel.timeframeReady(state),
+                        open == "time", { open = if (open == "time") null else "time" }) {
+                        TimeframeSection(state, viewModel, noviceMode, selectedSubjects)
                     }
-                    item {
-                        AccordionCard("Display", displaySubtitle(state), true,
-                            open == "display", { open = if (open == "display") null else "display" }) {
-                            DisplaySection(state, viewModel, noviceMode)
-                        }
+                }
+                item {
+                    AccordionCard("Display", displaySubtitle(state), true,
+                        open == "display", { open = if (open == "display") null else "display" }) {
+                        DisplaySection(state, viewModel, noviceMode)
                     }
                 }
 
                 val ready = isConfigReady(state, viewModel)
                 if (!ready) {
-                    item { NotReadyCard(state, showSetup) { showSetup = true } }
+                    item { NotReadyCard(state) }
                 } else {
                     val metrics = when (state.what) {
                         CompareWhat.BOTH  -> listOf(CompareWhat.COST, CompareWhat.USAGE)
@@ -230,9 +210,7 @@ fun CompareScreen(
                         }
                     } else {
                         items(metrics, key = { it.name }) { metric ->
-                            ResultPanel(state, metric, results!!, noviceMode,
-                                accordionsHidden = !showSetup,
-                                onShowSetup = { showSetup = true })
+                            ResultPanel(state, metric, results!!, noviceMode)
                         }
                     }
                 }
@@ -252,12 +230,14 @@ fun CompareScreen(
             }
             AnimatedVisibility(
                 visible = showDrawer,
-                enter = slideInHorizontally(tween(220)) { -it },
-                exit = slideOutHorizontally(tween(220)) { -it },
-                modifier = Modifier.align(Alignment.CenterStart).fillMaxHeight().width(280.dp)
+                enter = slideInHorizontally(tween(220)) { it },
+                exit = slideOutHorizontally(tween(220)) { it },
+                modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight().width(280.dp)
             ) {
                 Surface(tonalElevation = 8.dp, shadowElevation = 8.dp, modifier = Modifier.fillMaxSize()) {
                     UI2DrawerContent(
+                        showHints = noviceMode,
+                        onShowHintsChange = { if (it != noviceMode) viewModel.toggleNoviceMode() },
                         onSwitchLegacy = { showDrawer = false; onSwitchLegacy() },
                         onClose = { showDrawer = false }
                     )
@@ -267,21 +247,9 @@ fun CompareScreen(
     }
 }
 
-@Composable
-private fun MenuToggleRow(label: String, checked: Boolean, onToggle: () -> Unit) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Text(label, modifier = Modifier.weight(1f))
-        Switch(checked = checked, onCheckedChange = { onToggle() })
-    }
-}
-
-// ──────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Accordion card
-// ──────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 @Composable
 private fun AccordionCard(
     title: String,
@@ -338,7 +306,7 @@ private fun SmallCaps(text: String) {
     )
 }
 
-/** Italic explanatory caption — shown only in novice mode. */
+/** Italic explanatory caption â€” shown only in novice mode. */
 @Composable
 private fun HelpText(text: String, novice: Boolean) {
     if (novice) {
@@ -348,13 +316,13 @@ private fun HelpText(text: String, novice: Boolean) {
     }
 }
 
-// ──────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // What
-// ──────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 @Composable
 private fun WhatSection(state: CompareState, vm: UI2CompareViewModel, novice: Boolean) {
     val opts = listOf(
-        Triple(CompareWhat.COST, "Cost", "Compare € across plans & scenarios"),
+        Triple(CompareWhat.COST, "Cost", "Compare â‚¬ across plans & scenarios"),
         Triple(CompareWhat.USAGE, "Usage", "Compare kWh flows across scenarios"),
         Triple(CompareWhat.BOTH, "Combined", "Side-by-side cost & usage")
     )
@@ -383,9 +351,9 @@ private fun WhatSection(state: CompareState, vm: UI2CompareViewModel, novice: Bo
     }
 }
 
-// ──────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Sources
-// ──────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 @Composable
 private fun SourcesSection(
     state: CompareState,
@@ -415,7 +383,7 @@ private fun SourcesSection(
                 append("$sourceCount source"); if (sourceCount != 1) append("s")
                 append(" + $simCount sim"); if (simCount != 1) append("s")
                 if (state.what != CompareWhat.USAGE) {
-                    append(" × $planCount plan"); if (planCount != 1) append("s")
+                    append(" Ã— $planCount plan"); if (planCount != 1) append("s")
                 }
                 append("  =  $total result"); if (total != 1) append("s")
             },
@@ -454,9 +422,9 @@ private fun SelectRow(title: String, count: Int, onTap: () -> Unit) {
     }
 }
 
-// ──────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Filter
-// ──────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun FilterSection(state: CompareState, vm: UI2CompareViewModel) {
@@ -498,9 +466,9 @@ private fun FilterSection(state: CompareState, vm: UI2CompareViewModel) {
     }
 }
 
-// ──────────────────────────────────────────────────────────────────────────
-// Timeframe — Basic/Advanced tab, sync toggle, per-subject ranges
-// ──────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Timeframe â€” Basic/Advanced tab, sync toggle, per-subject ranges
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 @Composable
 private fun TimeframeSection(
     state: CompareState,
@@ -607,11 +575,11 @@ private fun RangePicker(
     }
     val hint = when (gran) {
         null -> "Pick D / M / Y / * to set this range"
-        DataSourcePeriod.ALL -> "All time — every reading on file"
+        DataSourcePeriod.ALL -> "All time â€” every reading on file"
         else -> {
             val (f, t) = periodDateRange(gran, anchor, advanced,
                 anchor.minusYears(60), anchor.plusYears(60))
-            "$f → $t"
+            "$f â†’ $t"
         }
     }
     HelpText(hint, novice || gran == null)
@@ -638,36 +606,86 @@ private fun rangeLabel(gran: DataSourcePeriod, anchor: LocalDate, advanced: Bool
     else -> {
         val (f, t) = periodDateRange(gran, anchor, advanced,
             anchor.minusYears(60), anchor.plusYears(60))
-        "${f.format(SPAN_FMT)} – ${t.format(SPAN_FMT)}"
+        "${f.format(SPAN_FMT)} â€“ ${t.format(SPAN_FMT)}"
     }
 }
 
-// ──────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Display
-// ──────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+private fun compareModeIcon(m: CompareMode): ImageVector = when (m) {
+    CompareMode.TABLE -> Icons.Default.TableChart
+    CompareMode.BAR   -> Icons.Default.BarChart
+    CompareMode.STACK -> Icons.Outlined.StackedBarChart
+    CompareMode.LINE  -> Icons.Default.ShowChart
+    CompareMode.AREA  -> Icons.Default.Timeline
+    CompareMode.PIE   -> Icons.Default.PieChart
+}
+
+private fun compareLayoutIcon(l: CompareLayout): ImageVector = when (l) {
+    CompareLayout.MERGED -> Icons.Default.ShowChart
+    CompareLayout.SPLIT  -> Icons.Default.ViewModule
+}
+
 @Composable
 private fun DisplaySection(state: CompareState, vm: UI2CompareViewModel, novice: Boolean) {
     SmallCaps("Chart style")
-    CompareMode.values().toList().chunked(3).forEach { row ->
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            row.forEach { mode ->
+    if (novice) {
+        // Novice: icons + text, 3 per row so labels stay readable.
+        CompareMode.values().toList().chunked(3).forEach { row ->
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { mode ->
+                    val active = state.mode == mode
+                    Surface(
+                        color = if (active) MaterialTheme.colorScheme.primaryContainer
+                                else MaterialTheme.colorScheme.surface,
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.weight(1f).padding(vertical = 4.dp)
+                            .then(if (active) Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp)) else Modifier)
+                            .clickable { vm.update { it.copy(mode = mode) } }
+                    ) {
+                        Row(
+                            Modifier.fillMaxWidth().padding(vertical = 10.dp, horizontal = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Icon(compareModeIcon(mode), contentDescription = null,
+                                modifier = Modifier.size(18.dp),
+                                tint = if (active) MaterialTheme.colorScheme.primary
+                                       else MaterialTheme.colorScheme.onSurface)
+                            Spacer(Modifier.width(6.dp))
+                            Text(mode.label, style = MaterialTheme.typography.bodySmall,
+                                maxLines = 1, overflow = TextOverflow.Ellipsis,
+                                color = if (active) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurface)
+                        }
+                    }
+                }
+                repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
+            }
+        }
+    } else {
+        // Compact: one row of icon-only chips so the picker doesn't dominate.
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            CompareMode.values().forEach { mode ->
                 val active = state.mode == mode
                 Surface(
                     color = if (active) MaterialTheme.colorScheme.primaryContainer
                             else MaterialTheme.colorScheme.surface,
                     shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.weight(1f).padding(vertical = 4.dp)
+                    modifier = Modifier.weight(1f)
                         .then(if (active) Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp)) else Modifier)
                         .clickable { vm.update { it.copy(mode = mode) } }
                 ) {
-                    Text(mode.label, Modifier.padding(vertical = 12.dp),
-                        textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (active) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onSurface)
+                    Box(Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center) {
+                        Icon(compareModeIcon(mode), contentDescription = mode.label,
+                            modifier = Modifier.size(20.dp),
+                            tint = if (active) MaterialTheme.colorScheme.primary
+                                   else MaterialTheme.colorScheme.onSurface)
+                    }
                 }
             }
-            repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
         }
     }
     val layoutable = state.mode in listOf(CompareMode.BAR, CompareMode.STACK, CompareMode.LINE, CompareMode.AREA)
@@ -687,15 +705,29 @@ private fun DisplaySection(state: CompareState, vm: UI2CompareViewModel, novice:
                         .then(if (active) Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp)) else Modifier)
                         .clickable { vm.update { it.copy(layout = lo) } }
                 ) {
-                    Column(Modifier.padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(txt.first, style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
-                            color = if (active) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onSurface)
-                        if (novice) {
+                    if (novice) {
+                        Column(Modifier.padding(10.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(compareLayoutIcon(lo), null, modifier = Modifier.size(16.dp),
+                                    tint = if (active) MaterialTheme.colorScheme.primary
+                                           else MaterialTheme.colorScheme.onSurface)
+                                Spacer(Modifier.width(6.dp))
+                                Text(txt.first, style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    color = if (active) MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.onSurface)
+                            }
                             Text(txt.second, style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center)
+                        }
+                    } else {
+                        Box(Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                            contentAlignment = Alignment.Center) {
+                            Icon(compareLayoutIcon(lo), contentDescription = txt.first,
+                                modifier = Modifier.size(20.dp),
+                                tint = if (active) MaterialTheme.colorScheme.primary
+                                       else MaterialTheme.colorScheme.onSurface)
                         }
                     }
                 }
@@ -705,7 +737,7 @@ private fun DisplaySection(state: CompareState, vm: UI2CompareViewModel, novice:
     HelpText(
         when {
             state.mode == CompareMode.TABLE -> "Tap a column header to sort. Tap again to reverse."
-            state.mode == CompareMode.PIE -> "Pie is always small-multiples — one pie per subject."
+            state.mode == CompareMode.PIE -> "Pie is always small-multiples â€” one pie per subject."
             state.layout == CompareLayout.SPLIT -> "Each subject gets its own chart."
             else -> "All subjects share one chart for direct comparison."
         },
@@ -713,9 +745,9 @@ private fun DisplaySection(state: CompareState, vm: UI2CompareViewModel, novice:
     )
 }
 
-// ──────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Select sheet
-// ──────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 @Composable
 private fun SelectSheet(
     kind: String,
@@ -776,7 +808,7 @@ private fun SelectSheet(
             }
             OutlinedTextField(
                 value = query, onValueChange = { query = it },
-                placeholder = { Text("Search…") },
+                placeholder = { Text("Searchâ€¦") },
                 leadingIcon = { Icon(Icons.Default.Search, null) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)
@@ -848,17 +880,15 @@ private data class SheetSpec(
     val clear: () -> Unit
 )
 
-// ──────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Result panel
-// ──────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 @Composable
 private fun ResultPanel(
     state: CompareState,
     metric: CompareWhat,
     results: CompareResults,
-    novice: Boolean,
-    accordionsHidden: Boolean,
-    onShowSetup: () -> Unit
+    novice: Boolean
 ) {
     val primary = MaterialTheme.colorScheme.primary
     val isCost = metric == CompareWhat.COST
@@ -882,10 +912,6 @@ private fun ResultPanel(
                 Spacer(Modifier.width(6.dp))
                 Text("· ${state.mode.label}", style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.weight(1f))
-                if (accordionsHidden) {
-                    TextButton(onClick = onShowSetup) { Text("Setup") }
-                }
             }
             Spacer(Modifier.height(10.dp))
             if (series.isEmpty()) {
@@ -909,7 +935,7 @@ private fun CostContent(
     val chartData = costData(rows)
     val explanation = if (novice)
         graphExplanationText(state.mode, CompareWhat.COST, series, chartData) else null
-    var zoomedPie by remember { mutableStateOf<ChartDatum?>(null) }
+    var zoomedPie by remember { mutableStateOf<ComparePieDatum?>(null) }
 
     GraphExplanation(explanation)
     when (state.mode) {
@@ -924,7 +950,7 @@ private fun CostContent(
                     add(Cell(r.planName, 0.0))
                     series.forEach { s ->
                         val v = costValue(r, s.id)
-                        add(Cell(if (r.available) moneyFmt.format(v) else "—", v,
+                        add(Cell(if (r.available) moneyFmt.format(v) else "â€”", v,
                             if (s.id == "net") netColor(v) else null))
                     }
                 }
@@ -932,17 +958,21 @@ private fun CostContent(
             ResultTable(headers, data, defaultSort = 2)
         }
         CompareMode.STACK -> CostStackArea(state.layout, costBars(rows, series), series, explanation)
-        CompareMode.PIE -> ComparePieGrid(chartData, series,
-            MaterialTheme.colorScheme.surfaceVariant, unit = "€", onZoom = { zoomedPie = it })
-        else -> ChartArea(state, "Cost", chartData, series, explanation, "€")
+        CompareMode.PIE -> {
+            val pies = costPies(rows, series)
+            ComparePieGrid(pies, MaterialTheme.colorScheme.surfaceVariant,
+                unit = "â‚¬", onZoom = { zoomedPie = it })
+        }
+        else -> ChartArea(state, "Cost", chartData, series, explanation, "â‚¬")
     }
     ResultLegends(state.mode, series, chartData)
 
     zoomedPie?.let { d ->
         val hole = MaterialTheme.colorScheme.surfaceVariant
-        ChartPopout(d.title, series, explanation, emptyList(), { zoomedPie = null }) { h ->
+        ChartPopout(d.title, series, explanation, emptyList(), pieInfo = d to "â‚¬",
+            onDismiss = { zoomedPie = null }) { h ->
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                ComparePieCanvas(d, series, hole, h)
+                ComparePieCanvas(d.slices, hole, h)
             }
         }
     }
@@ -965,7 +995,7 @@ private fun CostStackArea(
                         ) {
                             Box(Modifier.padding(8.dp)) {
                                 ZoomableChart(bar.title, series, explanation, listOf(bar.title)) { h ->
-                                    CompareCostStackChart(listOf(bar), "€", h)
+                                    CompareCostStackChart(listOf(bar), "â‚¬", h)
                                 }
                             }
                         }
@@ -976,7 +1006,7 @@ private fun CostStackArea(
         }
     } else {
         ZoomableChart("Cost", series, explanation, bars.map { it.title }) { h ->
-            CompareCostStackChart(bars, "€", h)
+            CompareCostStackChart(bars, "â‚¬", h)
         }
     }
 }
@@ -989,7 +1019,7 @@ private fun UsageContent(
     val chartData = usageData(rows)
     val explanation = if (novice)
         graphExplanationText(state.mode, CompareWhat.USAGE, series, chartData) else null
-    var zoomedPie by remember { mutableStateOf<ChartDatum?>(null) }
+    var zoomedPie by remember { mutableStateOf<ComparePieDatum?>(null) }
 
     GraphExplanation(explanation)
     when (state.mode) {
@@ -1006,17 +1036,21 @@ private fun UsageContent(
             }
             ResultTable(headers, data, defaultSort = 1)
         }
-        CompareMode.PIE -> ComparePieGrid(chartData, series,
-            MaterialTheme.colorScheme.surfaceVariant, unit = "kWh", onZoom = { zoomedPie = it })
+        CompareMode.PIE -> {
+            val pies = usagePies(chartData, series)
+            ComparePieGrid(pies, MaterialTheme.colorScheme.surfaceVariant,
+                unit = "kWh", onZoom = { zoomedPie = it })
+        }
         else -> ChartArea(state, "Usage", chartData, series, explanation, "kWh")
     }
     ResultLegends(state.mode, series, chartData)
 
     zoomedPie?.let { d ->
         val hole = MaterialTheme.colorScheme.surfaceVariant
-        ChartPopout(d.title, series, explanation, emptyList(), { zoomedPie = null }) { h ->
+        ChartPopout(d.title, series, explanation, emptyList(), pieInfo = d to "kWh",
+            onDismiss = { zoomedPie = null }) { h ->
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-                ComparePieCanvas(d, series, hole, h)
+                ComparePieCanvas(d.slices, hole, h)
             }
         }
     }
@@ -1024,7 +1058,7 @@ private fun UsageContent(
 
 /**
  * The novice-mode caption text for the current graph. Names the actual subjects
- * so the user can tell which source / simulation / plan is which — those names
+ * so the user can tell which source / simulation / plan is which â€” those names
  * are otherwise truncated on the axes or absent altogether.
  */
 private fun graphExplanationText(
@@ -1033,19 +1067,19 @@ private fun graphExplanationText(
     series: List<SeriesDef>,
     data: List<ChartDatum>
 ): String {
-    val unit = if (metric == CompareWhat.COST) "euro (€)" else "energy (kWh)"
+    val unit = if (metric == CompareWhat.COST) "euro (â‚¬)" else "energy (kWh)"
     val seriesNames = if (series.isEmpty()) "the selected series"
         else series.joinToString(", ") { it.label }
     val firstSeries = series.firstOrNull()?.label ?: "the first series"
     val subjects = when {
         data.isEmpty() -> "the selected subjects"
         data.size <= 5 -> data.joinToString("; ") { it.title }
-        else -> data.take(4).joinToString("; ") { it.title } + "; … (${data.size} total)"
+        else -> data.take(4).joinToString("; ") { it.title } + "; â€¦ (${data.size} total)"
     }
     return when (mode) {
         CompareMode.TABLE ->
             "Each row is a source or simulation priced against a plan. Columns show $seriesNames " +
-                "in $unit — tap a header to sort. Rows: $subjects."
+                "in $unit â€” tap a header to sort. Rows: $subjects."
         CompareMode.BAR ->
             "Grouped bars in $unit. Each group along the bottom is one subject; the coloured bars " +
                 "within it are $seriesNames. Subjects: $subjects."
@@ -1053,12 +1087,12 @@ private fun graphExplanationText(
             if (metric == CompareWhat.COST)
                 "Each bar shows one plan's cost in $unit: buy split into its rate bands plus any " +
                     "fixed charge stack up from the zero line; sell hangs below it. The marker is " +
-                    "the net — above the line is a cost, below is a credit. Subjects: $subjects."
+                    "the net â€” above the line is a cost, below is a credit. Subjects: $subjects."
             else
-                "Each bar stacks $seriesNames in $unit for one subject — a taller bar means more " +
+                "Each bar stacks $seriesNames in $unit for one subject â€” a taller bar means more " +
                     "in total. Subjects: $subjects."
         CompareMode.LINE ->
-            "Each line follows $firstSeries month by month ($unit), one line per subject — see the " +
+            "Each line follows $firstSeries month by month ($unit), one line per subject â€” see the " +
                 "Sources legend for line colours. Subjects: $subjects."
         CompareMode.AREA ->
             "Filled area showing $firstSeries month by month ($unit), one chart per subject. " +
@@ -1096,7 +1130,7 @@ private fun ResultLegends(mode: CompareMode, series: List<SeriesDef>, data: List
     }
 }
 
-/** Inline subject → colour list. Used in both the source pop-out and chart pop-outs. */
+/** Inline subject â†’ colour list. Used in both the source pop-out and chart pop-outs. */
 @Composable
 private fun SourceLegendList(titles: List<String>) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -1111,7 +1145,7 @@ private fun SourceLegendList(titles: List<String>) {
     }
 }
 
-/** Source legend as a pop-out link — used inline beneath the result panel. */
+/** Source legend as a pop-out link â€” used inline beneath the result panel. */
 @Composable
 private fun SourceLegend(data: List<ChartDatum>) {
     var open by remember { mutableStateOf(false) }
@@ -1121,7 +1155,7 @@ private fun SourceLegend(data: List<ChartDatum>) {
     ) {
         Icon(Icons.Default.List, contentDescription = null, modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(4.dp))
-        Text("Sources (${data.size})  ↗", style = MaterialTheme.typography.labelMedium)
+        Text("Sources (${data.size})  â†—", style = MaterialTheme.typography.labelMedium)
     }
     if (open) {
         Dialog(onDismissRequest = { open = false }) {
@@ -1185,19 +1219,20 @@ private fun ZoomableChart(
 ) {
     var zoomed by remember { mutableStateOf(false) }
     Column(Modifier.fillMaxWidth().clickable { zoomed = true }) {
-        Text("$title  ↗", style = MaterialTheme.typography.labelSmall,
+        Text("$title  â†—", style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(bottom = 2.dp))
         chart(170.dp)
     }
     if (zoomed) {
-        ChartPopout(title, series, explanation, sourceTitles, { zoomed = false }, chart)
+        ChartPopout(title, series, explanation, sourceTitles,
+            onDismiss = { zoomed = false }, chart = chart)
     }
 }
 
 /**
- * Graph pop-out: full screen width × 80% height, click outside to dismiss.
- * Landscape — graph left, text + legend right. Portrait — text on top, then the
+ * Graph pop-out: full screen width Ã— 80% height, click outside to dismiss.
+ * Landscape â€” graph left, text + legend right. Portrait â€” text on top, then the
  * graph, then the legend. Scrolls vertically when content overflows.
  */
 @Composable
@@ -1207,6 +1242,7 @@ private fun ChartPopout(
     explanation: String?,
     sourceTitles: List<String>,
     onDismiss: () -> Unit,
+    pieInfo: Pair<ComparePieDatum, String>? = null,
     chart: @Composable (Dp) -> Unit
 ) {
     val cfg = LocalConfiguration.current
@@ -1222,6 +1258,30 @@ private fun ChartPopout(
             shape = MaterialTheme.shapes.medium,
             tonalElevation = 8.dp
         ) {
+            @Composable
+            fun InfoColumn() {
+                Text(title, style = MaterialTheme.typography.titleSmall)
+                if (pieInfo != null) {
+                    val (datum, unit) = pieInfo
+                    Text(
+                        "Total · ${axisNumber(datum.total)} $unit",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                if (explanation != null) {
+                    Text(explanation, style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (pieInfo != null) {
+                    val (datum, unit) = pieInfo
+                    PieValueLegend(datum.slices, unit)
+                } else {
+                    ChartLegend(series)
+                }
+                if (sourceTitles.size > 1) SourceLegendList(sourceTitles)
+            }
+
             if (landscape) {
                 Row(Modifier.fillMaxSize().padding(16.dp)) {
                     Box(
@@ -1236,15 +1296,7 @@ private fun ChartPopout(
                         modifier = Modifier.weight(1f).fillMaxHeight()
                             .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
-                    ) {
-                        Text(title, style = MaterialTheme.typography.titleSmall)
-                        if (explanation != null) {
-                            Text(explanation, style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                        ChartLegend(series)
-                        if (sourceTitles.size > 1) SourceLegendList(sourceTitles)
-                    }
+                    ) { InfoColumn() }
                 }
             } else {
                 Column(
@@ -1253,12 +1305,25 @@ private fun ChartPopout(
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     Text(title, style = MaterialTheme.typography.titleSmall)
+                    if (pieInfo != null) {
+                        val (datum, unit) = pieInfo
+                        Text(
+                            "Total · ${axisNumber(datum.total)} $unit",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
                     if (explanation != null) {
                         Text(explanation, style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     chart((popH.value * 0.44f).dp)
-                    ChartLegend(series)
+                    if (pieInfo != null) {
+                        val (datum, unit) = pieInfo
+                        PieValueLegend(datum.slices, unit)
+                    } else {
+                        ChartLegend(series)
+                    }
                     if (sourceTitles.size > 1) SourceLegendList(sourceTitles)
                 }
             }
@@ -1273,7 +1338,7 @@ private fun EmptyResult() {
         color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
-// ── result table ────────────────────────────────────────────────────────────
+// â”€â”€ result table â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 private data class Cell(val text: String, val sort: Double, val color: Color? = null)
 
 @Composable
@@ -1344,7 +1409,7 @@ private fun ResultTable(
 }
 
 @Composable
-private fun NotReadyCard(state: CompareState, setupVisible: Boolean, onShowSetup: () -> Unit) {
+private fun NotReadyCard(state: CompareState) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
         shape = RoundedCornerShape(14.dp),
@@ -1366,17 +1431,13 @@ private fun NotReadyCard(state: CompareState, setupVisible: Boolean, onShowSetup
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
-            if (!setupVisible) {
-                Spacer(Modifier.height(12.dp))
-                TextButton(onClick = onShowSetup) { Text("Show comparison setup") }
-            }
         }
     }
 }
 
-// ──────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Helpers
-// ──────────────────────────────────────────────────────────────────────────
+// â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 private fun whatLabel(w: CompareWhat) = when (w) {
     CompareWhat.COST -> "Cost"; CompareWhat.USAGE -> "Usage"; CompareWhat.BOTH -> "Cost + Usage"
 }
@@ -1451,8 +1512,8 @@ private fun usageValue(r: CompareUsageRow, id: String): Double = when (id) {
     else -> 0.0
 }
 
-// A cost datum is one source/simulation × one plan, so the axis label must
-// carry BOTH — otherwise one source across N plans gives N look-alike bars.
+// A cost datum is one source/simulation Ã— one plan, so the axis label must
+// carry BOTH â€” otherwise one source across N plans gives N look-alike bars.
 private fun costAxisLabel(r: CompareCostRow): String {
     val supplier = r.planName.substringBefore(" · ")
     return "${shorten(r.subjectName)}\n${shorten(supplier)}"
@@ -1460,7 +1521,7 @@ private fun costAxisLabel(r: CompareCostRow): String {
 
 private fun costData(rows: List<CompareCostRow>): List<ChartDatum> = rows.map { r ->
     ChartDatum(
-        title = "${r.subjectName}  ·  ${r.planName}",   // full — for legends/pop-outs
+        title = "${r.subjectName}  ·  ${r.planName}",   // full â€” for legends/pop-outs
         shortLabel = costAxisLabel(r),                  // two-line axis label
         values = mapOf("net" to r.net, "buy" to r.buy, "sell" to r.sell,
             "bonus" to r.bonus, "fixed" to r.fixed),
@@ -1514,4 +1575,41 @@ private fun usageData(rows: List<CompareUsageRow>): List<ChartDatum> = rows.map 
     )
 }
 
-private fun shorten(s: String): String = if (s.length <= 12) s else s.take(11) + "…"
+private fun shorten(s: String): String = if (s.length <= 12) s else s.take(11) + "â€¦"
+
+/**
+ * Build pie data for usage â€” one pie per subject, slices are the selected series
+ * each in its own colour. No hatching needed (each series already has a distinct hue).
+ */
+private fun usagePies(data: List<ChartDatum>, series: List<SeriesDef>): List<ComparePieDatum> =
+    data.map { d ->
+        val slices = series.mapNotNull { s ->
+            val v = (d.values[s.id] ?: 0.0)
+            if (v != 0.0) ComparePieSlice(s.label, s.color, v) else null
+        }
+        ComparePieDatum(d.title, slices)
+    }
+
+/**
+ * Build pie data for cost â€” one pie per (subject Ã— plan). Buy is broken into rate
+ * bands using the same cyan + hatch-pattern vocabulary as the cost stack; fixed
+ * sits alongside in solid grey. Sell is excluded from the pie (it's a credit, and
+ * pies don't represent signed values cleanly) â€” table / stack still show it.
+ */
+private fun costPies(rows: List<CompareCostRow>, series: List<SeriesDef>): List<ComparePieDatum> {
+    val showBuy = series.any { it.id == "buy" }
+    val showFixed = series.any { it.id == "fixed" }
+    val showBonus = series.any { it.id == "bonus" }
+    return rows.map { r ->
+        val slices = buildList {
+            if (showBuy) r.buyBands.forEachIndexed { i, b ->
+                if (b > 0.0) add(ComparePieSlice("Buy band ${i + 1}", BUY_BAND_COLOR, b, bandPattern(i)))
+            }
+            if (showFixed && r.fixed > 0.0) add(ComparePieSlice("Fixed", FIXED_BAND_COLOR, r.fixed))
+            if (showBonus && r.bonus > 0.0) add(ComparePieSlice("Bonus", Color(0xFF4CAF50), r.bonus))
+        }
+        ComparePieDatum("${r.subjectName}  ·  ${r.planName}", slices)
+    }
+}
+
+

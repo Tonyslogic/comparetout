@@ -23,8 +23,10 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
@@ -76,7 +78,7 @@ private fun niceCeil(v: Double): Double {
 }
 
 /** Compact axis number — 1.2k, 340, 0.45 … */
-private fun axisNumber(v: Double): String {
+fun axisNumber(v: Double): String {
     val a = abs(v)
     return when {
         a >= 1_000_000 -> "%.1fM".format(v / 1_000_000)
@@ -185,19 +187,56 @@ fun CompareStackChart(data: List<ChartDatum>, series: List<SeriesDef>, unit: Str
 }
 
 // ── line / area chart (monthly) ─────────────────────────────────────────────
+
+/** One rendered line: 12 monthly points, a colour, a human label for the legend. */
+data class CompareLine(val points: List<Double>, val color: Color, val label: String)
+
+/**
+ * Build every (subject × series) combination that actually has monthly data.
+ * - 1 subject × N series      → colour by series
+ * - N subjects × 1 series     → colour by subject
+ * - N subjects × M series     → blend (subject colour × series alpha intensity)
+ * Series that no subject has data for get omitted entirely.
+ */
+fun buildCompareLines(data: List<ChartDatum>, series: List<SeriesDef>): List<CompareLine> {
+    if (data.isEmpty() || series.isEmpty()) return emptyList()
+    val singleSubject = data.size == 1
+    val singleSeries  = series.size == 1
+    val lines = mutableListOf<CompareLine>()
+    data.forEachIndexed { di, d ->
+        series.forEachIndexed { si, s ->
+            val pts = d.monthly[s.id] ?: return@forEachIndexed
+            if (pts.all { it == 0.0 } && !d.monthly.containsKey(s.id)) return@forEachIndexed
+            val color = when {
+                singleSubject -> s.color
+                singleSeries  -> compareSubjectColor(di)
+                else -> {
+                    val subjectC = compareSubjectColor(di)
+                    val alpha = 0.55f + 0.45f * (1f - si / max(1f, (series.size - 1).toFloat()))
+                    subjectC.copy(alpha = alpha)
+                }
+            }
+            val label = when {
+                singleSubject -> s.label
+                singleSeries  -> d.title
+                else -> "${shortenLabel(d.title)} · ${s.label}"
+            }
+            lines += CompareLine(pts, color, label)
+        }
+    }
+    return lines
+}
+
+private fun shortenLabel(s: String): String = if (s.length <= 18) s else s.take(17) + "…"
+
 @Composable
 fun CompareLineChart(
     data: List<ChartDatum>, series: List<SeriesDef>, area: Boolean,
     unit: String, height: Dp = 170.dp
 ) {
-    if (data.isEmpty() || series.isEmpty()) return
-    val metric = series.first()
-    val lines = data.mapIndexed { idx, d ->
-        val pts = d.monthly[metric.id] ?: List(12) { 0.0 }
-        val color = if (data.size == 1) metric.color else compareSubjectColor(idx)
-        pts to color
-    }
-    val maxV = niceCeil(lines.flatMap { it.first }.maxOfOrNull { abs(it) } ?: 1.0)
+    val lines = buildCompareLines(data, series)
+    if (lines.isEmpty()) return
+    val maxV = niceCeil(lines.flatMap { it.points }.maxOfOrNull { abs(it) } ?: 1.0)
     val measurer = rememberTextMeasurer()
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
     val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
@@ -208,9 +247,9 @@ fun CompareLineChart(
             val bottom = size.height - 4f
             drawValueAxis(measurer, labelColor, gridColor, maxV, unit, top, bottom, axisW)
             val plotW = size.width - axisW
-            lines.forEach { (pts, color) ->
+            lines.forEach { line ->
                 val path = Path()
-                pts.forEachIndexed { i, v ->
+                line.points.forEachIndexed { i, v ->
                     val x = axisW + plotW * i / 11f
                     val y = top + (bottom - top) * (1f - (abs(v) / maxV).toFloat())
                     if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
@@ -221,9 +260,9 @@ fun CompareLineChart(
                     fill.lineTo(size.width, bottom)
                     fill.lineTo(axisW, bottom)
                     fill.close()
-                    drawPath(fill, color.copy(alpha = 0.22f))
+                    drawPath(fill, line.color.copy(alpha = 0.22f))
                 }
-                drawPath(path, color, style = Stroke(width = 3f))
+                drawPath(path, line.color, style = Stroke(width = 3f))
             }
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -357,32 +396,47 @@ private fun DrawScope.drawHatchSegment(
 }
 
 // ── pie (small multiples grid; the host screen owns the pop-out) ────────────
+
+/** One pie slice — colour + value + label, optionally hatched for cost rate bands. */
+data class ComparePieSlice(
+    val label: String,
+    val color: Color,
+    val value: Double,
+    val pattern: BandPattern = BandPattern.SOLID
+)
+
+/** A single pie's worth of data, paired with its title and per-slice breakdown. */
+data class ComparePieDatum(
+    val title: String,
+    val slices: List<ComparePieSlice>
+) {
+    val total: Double get() = slices.sumOf { abs(it.value) }
+}
+
 @Composable
 fun ComparePieGrid(
-    data: List<ChartDatum>,
-    series: List<SeriesDef>,
+    data: List<ComparePieDatum>,
     holeColor: Color,
     unit: String,
-    onZoom: (ChartDatum) -> Unit
+    onZoom: (ComparePieDatum) -> Unit
 ) {
-    if (data.isEmpty() || series.isEmpty()) return
+    if (data.isEmpty()) return
 
     // One or two pies — put the label beside each pie to use the spare width.
     if (data.size <= 2) {
         Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
             data.forEach { d ->
-                val total = series.sumOf { abs(d.values[it.id] ?: 0.0) }
                 Row(
                     modifier = Modifier.fillMaxWidth().clickable { onZoom(d) },
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(14.dp)
                 ) {
-                    ComparePieCanvas(d, series, holeColor, 108.dp)
+                    ComparePieCanvas(d.slices, holeColor, 108.dp)
                     Column(Modifier.weight(1f)) {
                         Text("${d.title}  ↗", style = MaterialTheme.typography.labelMedium,
                             maxLines = 2, overflow = TextOverflow.Ellipsis)
                         Spacer(Modifier.height(2.dp))
-                        Text("${axisNumber(total)} $unit total",
+                        Text("${axisNumber(d.total)} $unit total",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -397,18 +451,17 @@ fun ComparePieGrid(
         data.chunked(2).forEach { rowItems ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 rowItems.forEach { d ->
-                    val total = series.sumOf { abs(d.values[it.id] ?: 0.0) }
                     Box(Modifier.weight(1f)) {
                         Column(
                             Modifier.clickable { onZoom(d) },
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
-                            ComparePieCanvas(d, series, holeColor, 108.dp)
+                            ComparePieCanvas(d.slices, holeColor, 108.dp)
                             Spacer(Modifier.height(4.dp))
                             Text("${d.title}  ↗", style = MaterialTheme.typography.labelSmall,
                                 maxLines = 1, overflow = TextOverflow.Ellipsis,
                                 textAlign = TextAlign.Center)
-                            Text("${axisNumber(total)} $unit total",
+                            Text("${axisNumber(d.total)} $unit total",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center)
@@ -421,25 +474,138 @@ fun ComparePieGrid(
     }
 }
 
+/** Pie canvas. Hatched slices use the same band-pattern vocabulary as the cost stack. */
 @Composable
-fun ComparePieCanvas(datum: ChartDatum, series: List<SeriesDef>, holeColor: Color, diameter: Dp) {
-    val slices = series.mapNotNull { s ->
-        val v = abs(datum.values[s.id] ?: 0.0)
-        if (v > 0.0) s.color to v else null
-    }
-    val sum = slices.sumOf { it.second }
+fun ComparePieCanvas(slices: List<ComparePieSlice>, holeColor: Color, diameter: Dp) {
+    val sum = slices.sumOf { abs(it.value) }
     Canvas(Modifier.size(diameter)) {
         if (sum <= 0.0) {
             drawCircle(Color.Gray.copy(alpha = 0.25f))
             return@Canvas
         }
         var start = -90f
-        slices.forEach { (color, v) ->
-            val sweep = (v / sum * 360.0).toFloat()
-            drawArc(color, start, sweep, useCenter = true, topLeft = Offset.Zero, size = size)
+        slices.forEach { sl ->
+            val sweep = (abs(sl.value) / sum * 360.0).toFloat()
+            drawHatchArc(start, sweep, sl.color, sl.pattern)
             start += sweep
         }
         drawCircle(color = holeColor, radius = size.minDimension * 0.27f)
+    }
+}
+
+/** Draws a wedge — solid, or a tinted fill overlaid with hatch lines clipped to it. */
+private fun DrawScope.drawHatchArc(
+    startAngleDeg: Float, sweepAngleDeg: Float, color: Color, pattern: BandPattern
+) {
+    if (sweepAngleDeg <= 0f) return
+    if (pattern == BandPattern.SOLID) {
+        drawArc(color, startAngleDeg, sweepAngleDeg, useCenter = true,
+            topLeft = Offset.Zero, size = size)
+        return
+    }
+    // Translucent fill so the eye reads the colour through the hatch.
+    drawArc(color.copy(alpha = 0.20f), startAngleDeg, sweepAngleDeg, useCenter = true,
+        topLeft = Offset.Zero, size = size)
+    // Build wedge path and clip the hatch family to it.
+    val cx = size.width / 2f
+    val cy = size.height / 2f
+    val r = size.minDimension / 2f
+    val wedge = Path().apply {
+        moveTo(cx, cy)
+        addArc(Rect(Offset(0f, 0f), size), startAngleDeg, sweepAngleDeg)
+        close()
+    }
+    val gap = 8f; val sw = 2f
+    clipPath(wedge) {
+        when (pattern) {
+            BandPattern.HORIZONTAL -> {
+                var y = cy - r
+                while (y <= cy + r) { drawLine(color, Offset(cx - r, y), Offset(cx + r, y), sw); y += gap }
+            }
+            BandPattern.VERTICAL -> {
+                var x = cx - r
+                while (x <= cx + r) { drawLine(color, Offset(x, cy - r), Offset(x, cy + r), sw); x += gap }
+            }
+            BandPattern.DIAGONAL -> {
+                var o = -2 * r
+                while (o <= 2 * r) {
+                    drawLine(color, Offset(cx - r + o, cy - r), Offset(cx + r + o, cy + r), sw); o += gap
+                }
+            }
+            BandPattern.CROSS -> {
+                var o = -2 * r
+                while (o <= 2 * r) {
+                    drawLine(color, Offset(cx - r + o, cy - r), Offset(cx + r + o, cy + r), sw)
+                    drawLine(color, Offset(cx - r + o, cy + r), Offset(cx + r + o, cy - r), sw)
+                    o += gap
+                }
+            }
+            BandPattern.SOLID -> {}
+        }
+    }
+    // Outline so adjacent same-colour wedges remain visible.
+    drawArc(color, startAngleDeg, sweepAngleDeg, useCenter = true,
+        topLeft = Offset.Zero, size = size, style = Stroke(width = 1.5f))
+}
+
+/** Per-slice legend with values — used in the pie pop-out. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun PieValueLegend(slices: List<ComparePieSlice>, unit: String) {
+    val total = slices.sumOf { abs(it.value) }.coerceAtLeast(1e-9)
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        slices.forEach { sl ->
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                PieSwatch(sl.color, sl.pattern)
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    "${sl.label} · ${axisNumber(sl.value)} $unit (${"%.0f%%".format(100 * abs(sl.value) / total)})",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun PieSwatch(color: Color, pattern: BandPattern) {
+    Canvas(Modifier.size(12.dp)) {
+        if (pattern == BandPattern.SOLID) {
+            drawRect(color)
+            return@Canvas
+        }
+        drawRect(color.copy(alpha = 0.20f))
+        val gap = 4f; val sw = 1.2f
+        clipRect {
+            when (pattern) {
+                BandPattern.HORIZONTAL -> {
+                    var y = 0f
+                    while (y <= size.height) { drawLine(color, Offset(0f, y), Offset(size.width, y), sw); y += gap }
+                }
+                BandPattern.VERTICAL -> {
+                    var x = 0f
+                    while (x <= size.width) { drawLine(color, Offset(x, 0f), Offset(x, size.height), sw); x += gap }
+                }
+                BandPattern.DIAGONAL -> {
+                    var o = -size.height
+                    while (o <= size.width) {
+                        drawLine(color, Offset(o, 0f), Offset(o + size.height, size.height), sw); o += gap
+                    }
+                }
+                BandPattern.CROSS -> {
+                    var o = -size.height
+                    while (o <= size.width) {
+                        drawLine(color, Offset(o, 0f), Offset(o + size.height, size.height), sw)
+                        drawLine(color, Offset(o, size.height), Offset(o + size.height, 0f), sw)
+                        o += gap
+                    }
+                }
+                BandPattern.SOLID -> {}
+            }
+        }
+        drawRect(color, style = Stroke(width = 1f))
     }
 }
 

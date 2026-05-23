@@ -186,6 +186,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
     val tariffAnchor   by viewModel.tariffAnchor.observeAsState(LocalDate.now())
     val tariffCostings by viewModel.tariffCostings.observeAsState(null)
     var showDrawer by remember { mutableStateOf(false) }
+    val (showHints, toggleShowHints) = rememberShowHints()
     val df = remember { DecimalFormat("#,##0.00") }
     val kwhDf = remember { DecimalFormat("#,##0.0") }
 
@@ -205,9 +206,6 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    IconButton(onClick = { showDrawer = true }) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menu")
-                    }
                     val title = dashboardData?.dataSourceInfo?.run { "$sysSn  ·  $displayTypeName" }
                         ?: dashboardData?.scenarioComponents?.scenario?.scenarioName
                         ?: "Select a Simulation"
@@ -216,6 +214,9 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         style = MaterialTheme.typography.headlineSmall,
                         modifier = Modifier.weight(1f).padding(start = 4.dp)
                     )
+                    IconButton(onClick = { showDrawer = true }) {
+                        Icon(Icons.Default.Menu, contentDescription = "Menu")
+                    }
                 }
 
             val pvPeriod    by viewModel.pvPeriod.observeAsState(DataSourcePeriod.ALL)
@@ -695,15 +696,17 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     .clickable { showDrawer = false })
             }
 
-            // Left drawer
+            // Right-side drawer (the global app menu)
             AnimatedVisibility(
                 visible = showDrawer,
-                enter = slideInHorizontally(tween(220)) { -it },
-                exit = slideOutHorizontally(tween(220)) { -it },
-                modifier = Modifier.align(Alignment.CenterStart).fillMaxHeight().width(280.dp)
+                enter = slideInHorizontally(tween(220)) { it },
+                exit = slideOutHorizontally(tween(220)) { it },
+                modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight().width(280.dp)
             ) {
                 Surface(tonalElevation = 8.dp, shadowElevation = 8.dp, modifier = Modifier.fillMaxSize()) {
                     UI2DrawerContent(
+                        showHints = showHints,
+                        onShowHintsChange = { if (it != showHints) toggleShowHints() },
                         onSwitchLegacy = { showDrawer = false; onSwitchLegacy() },
                         onClose = { showDrawer = false }
                     )
