@@ -74,14 +74,6 @@
             </PendingDiffInfo>
           </value>
         </entry>
-        <entry key="$PROJECT_DIR$/app/src/main/java/com/tfcode/comparetout/ui2/UI2DashboardViewModel.kt">
-          <value>
-            <PendingDiffInfo>
-              <option name="filePath" value="$PROJECT_DIR$/app/src/main/java/com/tfcode/comparetout/ui2/UI2DashboardViewModel.kt" />
-              <option name="updatedContent" value="package com.tfcode.comparetout.ui2&#10;&#10;import androidx.lifecycle.ViewModel&#10;import androidx.lifecycle.asLiveData&#10;import androidx.lifecycle.viewModelScope&#10;import com.tfcode.comparetout.model.ToutcRepository&#10;import dagger.hilt.android.lifecycle.HiltViewModel&#10;import kotlinx.coroutines.ExperimentalCoroutinesApi&#10;import kotlinx.coroutines.flow.MutableStateFlow&#10;import kotlinx.coroutines.flow.flatMapLatest&#10;import kotlinx.coroutines.flow.map&#10;import kotlinx.coroutines.launch&#10;import javax.inject.Inject&#10;&#10;@OptIn(ExperimentalCoroutinesApi::class)&#10;@HiltViewModel&#10;class UI2DashboardViewModel @Inject constructor(&#10;    private val repository: ToutcRepository,&#10;    private val sharedViewModel: UI2SharedViewModel&#10;) : ViewModel() {&#10;&#10;    val activeSimulationId = sharedViewModel.activeSimulationId&#10;&#10;    val dashboardData = activeSimulationId.flatMapLatest { id -&gt;&#10;        if (id == null) {&#10;            MutableStateFlow(DashboardData(null, null, null))&#10;        } else {&#10;            MutableStateFlow(id)&#10;                .map { scenarioId -&gt;&#10;                    val scenarioComponents = repository.getScenarioComponentsForScenarioID(scenarioId)&#10;                    val bestCosting = repository.getBestCostingForScenario(scenarioId)&#10;                    val simKPIs = repository.getSimKPIsForScenario(scenarioId)&#10;                    DashboardData(scenarioComponents, bestCosting, simKPIs)&#10;                }&#10;        }&#10;    }.asLiveData()&#10;}&#10;&#10;data class DashboardData(&#10;    val scenarioComponents: com.tfcode.comparetout.model.scenario.ScenarioComponents?,&#10;    val bestCosting: com.tfcode.comparetout.model.costings.Costings?,&#10;    val simKPIs: com.tfcode.comparetout.model.scenario.SimKPIs?&#10;)&#10;" />
-            </PendingDiffInfo>
-          </value>
-        </entry>
         <entry key="$PROJECT_DIR$/app/src/main/java/com/tfcode/comparetout/ui2/UI2DirectorsFragment.kt">
           <value>
             <PendingDiffInfo>

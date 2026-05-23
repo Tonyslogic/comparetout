@@ -185,6 +185,15 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
     val tariffPeriod   by viewModel.tariffPeriod.observeAsState(DataSourcePeriod.ALL)
     val tariffAnchor   by viewModel.tariffAnchor.observeAsState(LocalDate.now())
     val tariffCostings by viewModel.tariffCostings.observeAsState(null)
+    val kpiPeriod      by viewModel.kpiPeriod.observeAsState(DataSourcePeriod.MONTH)
+    val kpiAnchor      by viewModel.kpiAnchor.observeAsState(LocalDate.now())
+    val kpiMonthFilter by viewModel.kpiMonthFilter.observeAsState(LocalDate.now().monthValue)
+    val kpiSummary     by viewModel.kpiSummary.observeAsState(null)
+    val kpiMonths      by viewModel.kpiMonths.observeAsState(null)
+    val scenarioTariffPeriod   by viewModel.scenarioTariffPeriod.observeAsState(DataSourcePeriod.ALL)
+    val scenarioTariffAnchor   by viewModel.scenarioTariffAnchor.observeAsState(LocalDate.now())
+    val scenarioTariffCostings by viewModel.scenarioTariffCostings.observeAsState(null)
+    val dataBounds             by viewModel.dataBounds.observeAsState(null)
     var showDrawer by remember { mutableStateOf(false) }
     val (showHints, toggleShowHints) = rememberShowHints()
     val df = remember { DecimalFormat("#,##0.00") }
@@ -226,6 +235,35 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
             val dsInfo = dashboardData?.dataSourceInfo
             if (dsInfo != null) {
                 // ── Data source mode ──────────────────────────────────────────
+                // Tariff Plan first — pricing is the most-asked-after answer
+                // when a real meter is selected.
+                ExpandableCard(
+                    title = "Tariff Plan",
+                    leadingIcon = {
+                        Icon(painterResource(R.drawable.ic_baseline_euro_symbol_24), null,
+                            Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
+                    },
+                    trailingContent = { _ ->
+                        if (tariffCostings != null)
+                            Icon(painterResource(R.drawable.tick), null, Modifier.size(18.dp), tint = Color.Unspecified)
+                    },
+                    showEdit = false
+                ) {
+                    PeriodSelector(
+                        selectedPeriod = tariffPeriod,
+                        anchorDate     = tariffAnchor,
+                        dataStart      = dsInfo.startDate,
+                        dataEnd        = dsInfo.endDate,
+                        onPeriodChange = { p, a, adv -> viewModel.setTariffPeriod(p, a, adv) },
+                        onNavigate     = { fwd, adv -> viewModel.navigateTariff(fwd, adv) }
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    DataSourceCostingsTable(
+                        costings = tariffCostings,
+                        df       = df
+                    )
+                }
+
                 ExpandableCard(
                     title = "Explore data",
                     leadingIcon = {
@@ -264,6 +302,23 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     DataSourceExplorePies(
                         importerType = dsInfo.importerType,
                         periodTotals = exploreTotals
+                    )
+                }
+
+                // KPI accordion — only meaningful for sources that record PV + load.
+                // ESBN is import/export only, so the self-* KPIs would be nonsense.
+                if (dsInfo.importerType != ComparisonUIViewModel.Importer.ESBNHDF) {
+                    KpiAccordion(
+                        period = kpiPeriod,
+                        anchor = kpiAnchor,
+                        monthFilter = kpiMonthFilter,
+                        summary = kpiSummary,
+                        months = kpiMonths,
+                        bounds = dataBounds,
+                        onPeriodChange = { p, a -> viewModel.setKpiPeriod(p, a) },
+                        onNavigate = { fwd -> viewModel.navigateKpi(fwd) },
+                        onMonthFilterChange = { viewModel.setKpiMonthFilter(it) },
+                        df = df
                     )
                 }
 
@@ -344,32 +399,6 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     }
                 }
 
-                ExpandableCard(
-                    title = "Tariff Plan",
-                    leadingIcon = {
-                        Icon(painterResource(R.drawable.ic_baseline_euro_symbol_24), null,
-                            Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
-                    },
-                    trailingContent = { _ ->
-                        if (tariffCostings != null)
-                            Icon(painterResource(R.drawable.tick), null, Modifier.size(18.dp), tint = Color.Unspecified)
-                    },
-                    showEdit = false
-                ) {
-                    PeriodSelector(
-                        selectedPeriod = tariffPeriod,
-                        anchorDate     = tariffAnchor,
-                        dataStart      = dsInfo.startDate,
-                        dataEnd        = dsInfo.endDate,
-                        onPeriodChange = { p, a, adv -> viewModel.setTariffPeriod(p, a, adv) },
-                        onNavigate     = { fwd, adv -> viewModel.navigateTariff(fwd, adv) }
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    DataSourceCostingsTable(
-                        costings = tariffCostings,
-                        df       = df
-                    )
-                }
             } else {
                 // ── Simulation mode ───────────────────────────────────────────
                 dashboardData?.bestCosting?.let { costing ->
@@ -390,7 +419,61 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     val ctx = LocalContext.current
                     val scenarioId = sc.scenario?.scenarioIndex ?: -1L
 
-                    // 1. Explore data
+                    // 1. Tariff Plan — moved to the top per the redesign, with a
+                    //    period picker so the user can dial in monthly / yearly
+                    //    costings instead of just the simulation's annual total.
+                    ExpandableCard(
+                        title = "Tariff Plan",
+                        leadingIcon = {
+                            Icon(painterResource(R.drawable.ic_baseline_euro_symbol_24), null,
+                                Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
+                        },
+                        trailingContent = { _ ->
+                            if (costing != null) {
+                                Icon(painterResource(R.drawable.tick), null, Modifier.size(18.dp), tint = Color.Unspecified)
+                            }
+                        }
+                    ) {
+                        // Use the simulation's actual date range (typically year
+                        // 2001) so the picker doesn't extend out to 1976 just
+                        // because today's date is the cosmetic centre.
+                        val bnd = dataBounds
+                        val cosStart = (bnd?.first ?: scenarioTariffAnchor).toString()
+                        val cosEnd   = (bnd?.second ?: scenarioTariffAnchor).toString()
+                        PeriodSelector(
+                            selectedPeriod = scenarioTariffPeriod,
+                            anchorDate     = scenarioTariffAnchor,
+                            dataStart      = cosStart,
+                            dataEnd        = cosEnd,
+                            advanced       = false,
+                            onPeriodChange = { p, a, _ -> viewModel.setScenarioTariffPeriod(p, a) },
+                            onNavigate     = { fwd, _ -> viewModel.navigateScenarioTariff(fwd) }
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        val periodRows = scenarioTariffCostings
+                        val allCostings = dashboardData?.allCostings ?: emptyList()
+                        if (scenarioTariffPeriod == DataSourcePeriod.ALL && periodRows == null
+                            && allCostings.isNotEmpty()) {
+                            // First render: fall back to the precomputed annual costing.
+                            AllCostingsTable(
+                                costings = allCostings,
+                                planStandingCharges = dashboardData?.planStandingCharges ?: emptyMap(),
+                                simDays = dashboardData?.simDays ?: 365L,
+                                df = df
+                            )
+                        } else if (periodRows == null) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        } else if (periodRows.isEmpty()) {
+                            Text("No simulation results yet")
+                        } else {
+                            DataSourceCostingsTable(
+                                costings = periodRows,
+                                df       = df
+                            )
+                        }
+                    }
+
+                    // 2. Explore data
                     ExpandableCard(
                         title = "Explore data",
                         leadingIcon = {
@@ -425,7 +508,21 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         else SimulationPieCharts(kpis = kpis)
                     }
 
-                    // 2. Visual overview
+                    // 3. KPI — same style/content as ImportKeyStatsFragment.
+                    KpiAccordion(
+                        period = kpiPeriod,
+                        anchor = kpiAnchor,
+                        monthFilter = kpiMonthFilter,
+                        summary = kpiSummary,
+                        months = kpiMonths,
+                        bounds = dataBounds,
+                        onPeriodChange = { p, a -> viewModel.setKpiPeriod(p, a) },
+                        onNavigate = { fwd -> viewModel.navigateKpi(fwd) },
+                        onMonthFilterChange = { viewModel.setKpiMonthFilter(it) },
+                        df = df
+                    )
+
+                    // 4. Visual overview
                     ExpandableCard(
                         title = "Visual overview",
                         leadingIcon = {
@@ -439,7 +536,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         TopologyLegend()
                     }
 
-                    // 3. Usage Data
+                    // 5. Usage Data
                     ExpandableCard(
                         title = "Usage Data",
                         leadingIcon = {
@@ -470,7 +567,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         }
                     }
 
-                    // 3. Inverter
+                    // 6. Inverter
                     ExpandableCard(
                         title = "Inverter",
                         leadingIcon = {
@@ -496,7 +593,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         }
                     }
 
-                    // 4. PV System
+                    // 7. PV System
                     ExpandableCard(
                         title = "PV System",
                         leadingIcon = {
@@ -531,7 +628,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         }
                     }
 
-                    // 5. Battery
+                    // 8. Battery
                     ExpandableCard(
                         title = "Battery",
                         leadingIcon = {
@@ -568,7 +665,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         }
                     }
 
-                    // 6. Hot Water
+                    // 9. Hot Water
                     ExpandableCard(
                         title = "Hot Water",
                         leadingIcon = {
@@ -608,7 +705,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         }
                     }
 
-                    // 7. EV
+                    // 10. EV
                     ExpandableCard(
                         title = "EV",
                         leadingIcon = {
@@ -660,31 +757,8 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         }
                     }
 
-                    // 8. Tariff Plan
-                    ExpandableCard(
-                        title = "Tariff Plan",
-                        leadingIcon = {
-                            Icon(painterResource(R.drawable.ic_baseline_euro_symbol_24), null,
-                                Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
-                        },
-                        trailingContent = { _ ->
-                            if (costing != null) {
-                                Icon(painterResource(R.drawable.tick), null, Modifier.size(18.dp), tint = Color.Unspecified)
-                            }
-                        }
-                    ) {
-                        val allCostings = dashboardData?.allCostings ?: emptyList()
-                        if (allCostings.isEmpty()) {
-                            Text("No simulation results yet")
-                        } else {
-                            AllCostingsTable(
-                                costings = allCostings,
-                                planStandingCharges = dashboardData?.planStandingCharges ?: emptyMap(),
-                                simDays = dashboardData?.simDays ?: 365L,
-                                df = df
-                            )
-                        }
-                    }
+                    // 8. (Tariff Plan moved to the top of the scenario list — pricing is
+                    //     the headline answer once a scenario has been simulated.)
                 }
             }
         }   // end Column
@@ -1873,5 +1947,154 @@ private fun LegendItem(iconRes: Int, label: String) {
         Text(label,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+// ──────────────────────────────────────────────────────────────────────────
+// KPI accordion — same data set the legacy ImportKeyStatsFragment shows
+// (self-consumption / sufficiency / max-self-sufficiency, PV total, feed total
+// + per-month best/worst/average). The range picker drives the summary; the
+// 12-button J/F/M/A/… row filters the monthly table.
+// ──────────────────────────────────────────────────────────────────────────
+@Composable
+private fun KpiAccordion(
+    period: DataSourcePeriod,
+    anchor: java.time.LocalDate,
+    monthFilter: Int,
+    summary: KpiSummary?,
+    months: List<KpiMonthRow>?,
+    bounds: Pair<java.time.LocalDate, java.time.LocalDate>?,
+    onPeriodChange: (DataSourcePeriod, java.time.LocalDate) -> Unit,
+    onNavigate: (forward: Boolean) -> Unit,
+    onMonthFilterChange: (Int) -> Unit,
+    df: DecimalFormat
+) {
+    ExpandableCard(
+        title = "KPIs",
+        leadingIcon = {
+            Icon(painterResource(R.drawable.barchart), null, Modifier.size(24.dp),
+                tint = MaterialTheme.colorScheme.onSurface)
+        },
+        trailingContent = { _ ->
+            if (summary != null)
+                Icon(painterResource(R.drawable.tick), null, Modifier.size(18.dp), tint = Color.Unspecified)
+        },
+        showEdit = false
+    ) {
+        // Use the simulation / source's actual data bounds so the chevron
+        // navigation stops at the real data edges and the picker doesn't show
+        // anchors decades before any data exists (the old 1976 issue).
+        val cosmeticStart = (bounds?.first ?: anchor).toString()
+        val cosmeticEnd   = (bounds?.second ?: anchor).toString()
+        PeriodSelector(
+            selectedPeriod = period,
+            anchorDate     = anchor,
+            dataStart      = cosmeticStart,
+            dataEnd        = cosmeticEnd,
+            advanced       = false,
+            onPeriodChange = { p, a, _ -> onPeriodChange(p, a) },
+            onNavigate     = { fwd, _ -> onNavigate(fwd) }
+        )
+        Spacer(Modifier.height(8.dp))
+
+        // Month filter: 13 buttons — ALL + J F M A M J J A S O N D.
+        MonthFilterRow(monthFilter, onMonthFilterChange)
+        Spacer(Modifier.height(8.dp))
+
+        // KPI summary table — same five rows the legacy fragment shows.
+        when (summary) {
+            null -> CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+            else -> KpiSummaryTable(summary, df)
+        }
+
+        // Monthly key stats — filtered by the chip row above.
+        Spacer(Modifier.height(10.dp))
+        when (val rows = months) {
+            null -> {}
+            else -> {
+                val filtered = if (monthFilter == 0) rows
+                               else rows.filter { it.monthNumber == monthFilter }
+                KpiMonthsTable(filtered, df)
+            }
+        }
+    }
+}
+
+@Composable
+private fun MonthFilterRow(selected: Int, onChange: (Int) -> Unit) {
+    val labels = listOf("*", "J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
+    Row(modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+        labels.forEachIndexed { idx, label ->
+            val isOn = idx == selected
+            Surface(
+                color = if (isOn) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                        else MaterialTheme.colorScheme.surfaceVariant,
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp),
+                modifier = Modifier.weight(1f).height(32.dp)
+                    .clickable { onChange(idx) }
+            ) {
+                Box(contentAlignment = Alignment.Center,
+                    modifier = Modifier.fillMaxSize()) {
+                    Text(label, style = MaterialTheme.typography.labelMedium,
+                        color = if (isOn) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun KpiSummaryTable(summary: KpiSummary, df: DecimalFormat) {
+    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        KpiRow("Self consumption",  "(PV − Feed) / PV", df.format(summary.selfConsumption) + "%")
+        KpiRow("Self sufficiency",  "(PV − Feed) / Load", df.format(summary.selfSufficiency) + "%")
+        KpiRow("Max self sufficiency", "PV / Load",      df.format(summary.maxSelfSufficiency) + "%")
+        KpiRow("Generation (kWh)",  "PV",   df.format(summary.pv))
+        KpiRow("Feed (kWh)",        "Feed", df.format(summary.feed))
+    }
+}
+
+@Composable
+private fun KpiRow(label: String, sub: String, value: String) {
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(label, style = MaterialTheme.typography.bodyMedium)
+            Text(sub, style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Text(value, style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary)
+    }
+}
+
+@Composable
+private fun KpiMonthsTable(rows: List<KpiMonthRow>, df: DecimalFormat) {
+    Column {
+        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+            Text("YY-MM",   style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
+            Text("PV Tot",  style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
+            Text("Best",    style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1.4f))
+            Text("Worst",   style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1.4f))
+            Text("Avg",     style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
+        }
+        if (rows.isEmpty()) {
+            Text("No data for the selected filter.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(vertical = 6.dp))
+        } else rows.forEach { row ->
+            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
+                Text(row.monthLabel,  style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                Text(df.format(row.pvTotal), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                // best/worst arrive as "<value> on <dd>" — keep the DB string intact so
+                // the user sees which day produced it (legacy KPI fragment behaviour).
+                Text(row.best,    style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1.4f))
+                Text(row.worst,   style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1.4f))
+                Text(df.format(row.average), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+            }
+        }
     }
 }

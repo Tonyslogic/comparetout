@@ -51,6 +51,35 @@ data class DataSourceCostingRow(
     val subTotals: SubTotals?
 )
 
+/**
+ * Headline KPI numbers for the selected period — mirrors the legacy
+ * ImportKeyStatsFragment "Self consumption / sufficiency" table.
+ */
+data class KpiSummary(
+    val selfConsumption: Double,    // (PV − Feed) / PV × 100
+    val selfSufficiency: Double,    // (PV − Feed) / Load × 100
+    val maxSelfSufficiency: Double, // PV / Load × 100
+    val pv: Double,                 // kWh
+    val feed: Double,               // kWh
+    val load: Double                // kWh — for "% covered" context, not shown directly
+) {
+    companion object {
+        val Empty = KpiSummary(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
+    }
+}
+
+/** One row in the monthly key-stats table — best / worst / average PV for a month. */
+data class KpiMonthRow(
+    val monthLabel: String,    // "YY-MM"
+    val monthNumber: Int,      // 1..12 (for the J/F/M/… filter)
+    val pvTotal: Double,
+    // The DB renders these as "<value> on <dd>" — keep the full string so the
+    // user can see which day of the month was best/worst.
+    val best: String,
+    val worst: String,
+    val average: Double
+)
+
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class UI2DashboardViewModel @Inject constructor(
@@ -110,9 +139,67 @@ class UI2DashboardViewModel @Inject constructor(
     val tariffAnchor   = _tariffAnchor.asLiveData()
     val tariffCostings = _tariffCostings.asLiveData()
 
+    // ── Scenario Tariff Plan accordion (period-filterable annual costing) ────
+    // Default to ALL — the whole simulation year, matching the legacy
+    // dashboard's behaviour. The user can dial in a month / year via the picker.
+    private val _scenarioTariffPeriod   = MutableStateFlow(DataSourcePeriod.ALL)
+    private val _scenarioTariffAnchor   = MutableStateFlow(LocalDate.now())
+    private val _scenarioTariffCostings = MutableStateFlow<List<DataSourceCostingRow>?>(null)
+    val scenarioTariffPeriod   = _scenarioTariffPeriod.asLiveData()
+    val scenarioTariffAnchor   = _scenarioTariffAnchor.asLiveData()
+    val scenarioTariffCostings = _scenarioTariffCostings.asLiveData()
+
+    // ── Bounds of the underlying data — used by both KPI and scenario Tariff
+    // pickers as their cosmetic min/max for chevron-clamping. Resolved on
+    // setActive*, then read by the dashboard.
+    private val _dataBounds = MutableStateFlow<Pair<LocalDate, LocalDate>?>(null)
+    val dataBounds = _dataBounds.asLiveData()
+
+    // ── KPI accordion ─────────────────────────────────────────────────────────
+    // Defaults: MONTH @ current month for the range picker, current month for
+    // the J/F/M/A/… filter — matches what the user asked for.
+    private val _kpiPeriod      = MutableStateFlow(DataSourcePeriod.MONTH)
+    private val _kpiAnchor      = MutableStateFlow(LocalDate.now())
+    private val _kpiMonthFilter = MutableStateFlow(LocalDate.now().monthValue)  // 0=all, 1..12
+    private val _kpiSummary     = MutableStateFlow<KpiSummary?>(null)
+    private val _kpiMonths      = MutableStateFlow<List<KpiMonthRow>?>(null)
+    val kpiPeriod      = _kpiPeriod.asLiveData()
+    val kpiAnchor      = _kpiAnchor.asLiveData()
+    val kpiMonthFilter = _kpiMonthFilter.asLiveData()
+    val kpiSummary     = _kpiSummary.asLiveData()
+    val kpiMonths      = _kpiMonths.asLiveData()
+
     fun setActiveSimulationId(id: Long) {
         Log.d("UI2", "UI2DashboardViewModel.setActiveSimulationId($id)")
         _activeItem.value = ActiveDashboardItem.Simulation(id)
+        _dataBounds.value = null
+        // The actual sim year is read from the DB on the IO thread below; until
+        // then null out the pickers' data so the UI shows a spinner rather than
+        // a stale anchor.
+        _kpiSummary.value = null
+        _kpiMonths.value = null
+        _scenarioTariffPeriod.value = DataSourcePeriod.ALL
+        _scenarioTariffCostings.value = null
+        viewModelScope.launch(Dispatchers.IO) {
+            val bounds = kpiSourceDateRange()
+            val baseYear = bounds?.first?.year ?: 2001
+            val now = LocalDate.now()
+            // Anchor inside the sim's year — keep the current month so the user
+            // lands on a familiar slice of the year, and clamp the day so months
+            // shorter than today's day-of-month (e.g. Feb) don't throw.
+            val month = now.monthValue
+            val day = now.dayOfMonth.coerceAtMost(28)
+            val simAnchor = LocalDate.of(baseYear, month, day)
+            withContext(Dispatchers.Main) {
+                _dataBounds.value = bounds
+                _kpiPeriod.value = DataSourcePeriod.MONTH
+                _kpiAnchor.value = simAnchor
+                _kpiMonthFilter.value = month
+                _scenarioTariffAnchor.value = simAnchor
+            }
+            recomputeKpis()
+            recomputeScenarioTariff()
+        }
     }
 
     fun setActiveDataSource(
@@ -135,7 +222,11 @@ class UI2DashboardViewModel @Inject constructor(
         _pvPeriod.value    = DataSourcePeriod.ALL
         _pvAnchor.value    = LocalDate.now()
         _pvChartData.value = null
+        resetKpiDefaults()
         _activeItem.value = ActiveDashboardItem.DataSource(sysSn, importerType, startDate, endDate)
+        _dataBounds.value = runCatching {
+            LocalDate.parse(startDate, FMT) to LocalDate.parse(endDate, FMT)
+        }.getOrNull()
         val item = ActiveDashboardItem.DataSource(sysSn, importerType, startDate, endDate)
         viewModelScope.launch(Dispatchers.IO) {
             val sharedTotals = fetchTotals(DataSourcePeriod.ALL, LocalDate.now(), false, item)
@@ -148,6 +239,61 @@ class UI2DashboardViewModel @Inject constructor(
             } else {
                 _pvChartData.value = emptyList()
             }
+            recomputeKpis()
+        }
+    }
+
+    private fun resetKpiDefaults() {
+        _kpiPeriod.value = DataSourcePeriod.MONTH
+        _kpiAnchor.value = LocalDate.now()
+        _kpiMonthFilter.value = LocalDate.now().monthValue
+        _kpiSummary.value = null
+        _kpiMonths.value = null
+    }
+
+    // ── KPI accordion: setters ────────────────────────────────────────────────
+    fun setKpiPeriod(period: DataSourcePeriod, anchor: LocalDate) {
+        _kpiPeriod.value = period
+        _kpiAnchor.value = anchor
+        _kpiSummary.value = null
+        _kpiMonths.value = null
+        viewModelScope.launch(Dispatchers.IO) { recomputeKpis() }
+    }
+
+    fun navigateKpi(forward: Boolean) {
+        val period = _kpiPeriod.value
+        if (period == DataSourcePeriod.ALL) return
+        _kpiSummary.value = null
+        _kpiMonths.value = null
+        viewModelScope.launch(Dispatchers.IO) {
+            val (start, end) = kpiSourceDateRange() ?: return@launch
+            val anchor = stepAnchor(_kpiAnchor.value, period, forward, start, end)
+            withContext(Dispatchers.Main) { _kpiAnchor.value = anchor }
+            recomputeKpis()
+        }
+    }
+
+    fun setKpiMonthFilter(m: Int) {
+        _kpiMonthFilter.value = m
+    }
+
+    // ── Scenario Tariff Plan setters ─────────────────────────────────────────
+    fun setScenarioTariffPeriod(period: DataSourcePeriod, anchor: LocalDate) {
+        _scenarioTariffPeriod.value = period
+        _scenarioTariffAnchor.value = anchor
+        _scenarioTariffCostings.value = null
+        viewModelScope.launch(Dispatchers.IO) { recomputeScenarioTariff() }
+    }
+
+    fun navigateScenarioTariff(forward: Boolean) {
+        val period = _scenarioTariffPeriod.value
+        if (period == DataSourcePeriod.ALL) return
+        _scenarioTariffCostings.value = null
+        viewModelScope.launch(Dispatchers.IO) {
+            val (start, end) = kpiSourceDateRange() ?: return@launch
+            val anchor = stepAnchor(_scenarioTariffAnchor.value, period, forward, start, end)
+            withContext(Dispatchers.Main) { _scenarioTariffAnchor.value = anchor }
+            recomputeScenarioTariff()
         }
     }
 
@@ -455,6 +601,200 @@ class UI2DashboardViewModel @Inject constructor(
             null -> MutableStateFlow(DashboardData(null, null, null))
         }
     }.asLiveData()
+
+    // ── KPI computation ───────────────────────────────────────────────────────
+
+    /**
+     * Resolve the underlying data's full [start..end] date span for the active
+     * item — needed both to clamp the anchor and to bound the period picker.
+     */
+    private suspend fun kpiSourceDateRange(): Pair<LocalDate, LocalDate>? {
+        val item = _activeItem.value ?: return null
+        return when (item) {
+            is ActiveDashboardItem.DataSource -> withContext(Dispatchers.IO) {
+                LocalDate.parse(item.startDate, FMT) to LocalDate.parse(item.endDate, FMT)
+            }
+            is ActiveDashboardItem.Simulation -> withContext(Dispatchers.IO) {
+                val r = repository.getSimDateRanges(item.id.toString()) ?: return@withContext null
+                LocalDate.parse(r.startDate, FMT) to LocalDate.parse(r.finishDate, FMT)
+            }
+        }
+    }
+
+    /**
+     * Recompute the KPI summary + monthly table for the current period / anchor.
+     * Caller must already be on the IO dispatcher.
+     */
+    private suspend fun recomputeKpis() {
+        val item = _activeItem.value ?: return
+        val bounds = kpiSourceDateRange() ?: run {
+            _kpiSummary.value = KpiSummary.Empty
+            _kpiMonths.value = emptyList()
+            return
+        }
+        val (from, to) = periodDateRange(
+            _kpiPeriod.value, _kpiAnchor.value, advanced = false, bounds.first, bounds.second
+        )
+        val fromStr = from.format(FMT)
+        val toStr = to.format(FMT)
+
+        when (item) {
+            is ActiveDashboardItem.DataSource -> {
+                if (item.importerType == ComparisonUIViewModel.Importer.ESBNHDF) {
+                    // ESBN has no PV / load — KPIs would be nonsense.
+                    _kpiSummary.value = null
+                    _kpiMonths.value = null
+                    return
+                }
+                val k = repository.getKPIs(fromStr, toStr, item.sysSn)
+                _kpiSummary.value = if (k == null) KpiSummary.Empty else KpiSummary(
+                    selfConsumption    = (k.selfConsumption    ?: 0.0).coerceFiniteOr0(),
+                    selfSufficiency    = (k.selfSufficiency    ?: 0.0).coerceFiniteOr0(),
+                    maxSelfSufficiency = (k.maxSelfSufficiency ?: 0.0).coerceFiniteOr0(),
+                    pv                 = k.pv   ?: 0.0,
+                    feed               = k.feed ?: 0.0,
+                    load               = 0.0
+                )
+                // Whole-source key stats: same query the legacy import fragment runs.
+                val stats = when (item.importerType) {
+                    ComparisonUIViewModel.Importer.ALPHAESS        ->
+                        repository.getKeyStats(item.startDate, item.endDate, item.sysSn)
+                    ComparisonUIViewModel.Importer.HOME_ASSISTANT  ->
+                        repository.getHAKeyStats(item.startDate, item.endDate, item.sysSn)
+                    else -> emptyList()
+                }
+                _kpiMonths.value = stats.orEmpty().mapNotNull { row ->
+                    val label = row.month ?: return@mapNotNull null   // "YY-MM"
+                    val mNum = label.substringAfter('-', "").toIntOrNull() ?: return@mapNotNull null
+                    KpiMonthRow(
+                        monthLabel = label,
+                        monthNumber = mNum,
+                        pvTotal = row.total.parseLeadingDouble(),
+                        best    = row.best.orEmpty(),     // "<value> on <dd>" from DB
+                        worst   = row.worst.orEmpty(),    // "<value> on <dd>" from DB
+                        average = row.average.parseLeadingDouble()
+                    )
+                }
+            }
+            is ActiveDashboardItem.Simulation -> {
+                // Sim data is daily — aggregate per-day rows ourselves so the same
+                // KPIs work whether the user picked Day / Month / Year / All.
+                val rows = repository.getSimSumDOY(item.id.toString(), fromStr, toStr)
+                val pv = rows.sumOf { it.pv }
+                val feed = rows.sumOf { it.feed }
+                val load = rows.sumOf { it.load }
+                _kpiSummary.value = KpiSummary(
+                    selfConsumption    = if (pv > 0) ((pv - feed) / pv) * 100 else 0.0,
+                    selfSufficiency    = if (load > 0) ((load - rows.sumOf { it.buy }) / load) * 100 else 0.0,
+                    maxSelfSufficiency = if (load > 0) (pv / load) * 100 else 0.0,
+                    pv = pv, feed = feed, load = load
+                )
+                // The monthly table is uncoupled from the range picker — always
+                // build it from the full simulation span so the J/F/M/A/… filter
+                // can show every month the sim covers, not just the period slice.
+                val fullRows = repository.getSimSumDOY(
+                    item.id.toString(),
+                    bounds.first.format(FMT),
+                    bounds.second.format(FMT)
+                )
+                _kpiMonths.value = buildMonthRowsFromDoy(fullRows, bounds.first.year)
+            }
+        }
+    }
+
+    /** Group day-of-year rows by calendar month → KpiMonthRow (best/worst/avg). */
+    private fun buildMonthRowsFromDoy(
+        rows: List<IntervalRow>, baseYear: Int
+    ): List<KpiMonthRow> {
+        // The interval string is the day-of-year for sumDOY. Roll back to a real
+        // date in [baseYear] so we can format a "YY-MM" label, and remember which
+        // day of the month produced the best/worst value.
+        data class Sample(val day: Int, val pv: Double)
+        val byMonth = mutableMapOf<Int, MutableList<Sample>>()
+        for (r in rows) {
+            val doy = r.interval.toIntOrNull() ?: continue
+            val d = runCatching { LocalDate.ofYearDay(baseYear, doy) }.getOrNull() ?: continue
+            byMonth.getOrPut(d.monthValue) { mutableListOf() }.add(Sample(d.dayOfMonth, r.pv))
+        }
+        val yy = "%02d".format(baseYear % 100)
+        return byMonth.toSortedMap().map { (month, samples) ->
+            val bestSample  = samples.maxByOrNull { it.pv }
+            val worstSample = samples.minByOrNull { it.pv }
+            val totalPv = samples.sumOf { it.pv }
+            KpiMonthRow(
+                monthLabel = "$yy-${"%02d".format(month)}",
+                monthNumber = month,
+                pvTotal = totalPv,
+                best    = bestSample?.let { "%.2f on %02d".format(it.pv, it.day) } ?: "—",
+                worst   = worstSample?.let { "%.2f on %02d".format(it.pv, it.day) } ?: "—",
+                average = if (samples.isEmpty()) 0.0 else totalPv / samples.size
+            )
+        }
+    }
+
+    /**
+     * Recompute the scenario Tariff Plan costings for the current period / anchor.
+     * Aggregates the simulation's per-hour buy/feed totals across the chosen
+     * window and applies each price plan's RateLookup at a representative day
+     * inside the period. That's close enough for a dashboard widget and is
+     * orders of magnitude cheaper than re-running the costing worker.
+     */
+    private suspend fun recomputeScenarioTariff() = withContext(Dispatchers.IO) {
+        val item = _activeItem.value as? ActiveDashboardItem.Simulation ?: run {
+            _scenarioTariffCostings.value = null; return@withContext
+        }
+        val bounds = kpiSourceDateRange() ?: run {
+            _scenarioTariffCostings.value = emptyList(); return@withContext
+        }
+        val (from, to) = periodDateRange(
+            _scenarioTariffPeriod.value, _scenarioTariffAnchor.value, advanced = false,
+            bounds.first, bounds.second
+        )
+        val fromStr = from.format(FMT)
+        val toStr   = to.format(FMT)
+        val days = (to.toEpochDay() - from.toEpochDay() + 1).coerceAtLeast(1)
+        val midDay = from.plusDays(days / 2)
+
+        val hourRows = repository.getSimSumHour(item.id.toString(), fromStr, toStr)
+        val plans    = repository.getAllPricePlansNow().orEmpty()
+
+        val rows = plans.map { plan ->
+            val dayRates  = repository.getAllDayRatesForPricePlanID(plan.pricePlanIndex)
+            val lookup    = RateLookup(plan, dayRates)
+            lookup.setStartDOY(midDay.dayOfYear)
+            val subTotals = SubTotals()
+            var buy = 0.0
+            var sell = 0.0
+            hourRows.forEach { row ->
+                val h = row.interval.toIntOrNull() ?: return@forEach
+                val mod = h * 60
+                val dow = midDay.dayOfWeek.value.let { if (it == 7) 0 else it }
+                val rate = lookup.getRate(midDay.dayOfYear, mod, dow, row.buy)
+                buy  += rate * row.buy
+                sell += plan.feed * row.feed
+                subTotals.addToPrice(rate, row.buy)
+            }
+            val fixed = plan.standingCharges * (days / 365.0)
+            DataSourceCostingRow(
+                planName    = "${plan.supplier} · ${plan.planName}",
+                pricePlanId = plan.pricePlanIndex,
+                net         = (buy - sell) / 100.0 + fixed,
+                buy         = buy / 100.0,
+                sell        = sell / 100.0,
+                fixed       = fixed,
+                subTotals   = subTotals
+            )
+        }.sortedBy { it.net }
+        _scenarioTariffCostings.value = rows
+    }
+
+    private fun Double.coerceFiniteOr0(): Double = if (this.isFinite()) this else 0.0
+    private fun String?.parseLeadingDouble(): Double {
+        if (this == null) return 0.0
+        // legacy "value on dd" → take the leading numeric portion
+        val s = this.takeWhile { it.isDigit() || it == '.' || it == '-' }
+        return s.toDoubleOrNull() ?: 0.0
+    }
 }
 
 data class DashboardDataSourceInfo(
