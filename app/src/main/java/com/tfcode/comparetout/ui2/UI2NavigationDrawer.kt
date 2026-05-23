@@ -99,14 +99,17 @@ fun UI2DrawerContent(
         HorizontalDivider()
         ShowHintsRow(showHints, onShowHintsChange)
         HorizontalDivider()
+        // Data — supplier plans & meter sources live together.
         UI2DrawerItem(R.drawable.ic_baseline_euro_symbol_24,  "Supplier Plans") {
             onClose()
             context.startActivity(
                 android.content.Intent(context, UI2PricePlanListActivity::class.java))
         }
+        UI2DrawerItem(R.drawable.ic_baseline_call_split_24,   "Data Source Management", onClose)
+        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        // Preferences — global formatting choices.
         UI2DrawerItem(R.drawable.ic_baseline_settings_24,     "Units",                  onClose)
         UI2DrawerItem(R.drawable.ic_baseline_access_time_24,  "Timezone",               onClose)
-        UI2DrawerItem(R.drawable.ic_baseline_call_split_24,   "Data Source Management", onClose)
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
         UI2DrawerItem(R.drawable.ic_baseline_settings_24,     "Switch to Legacy UI",    onSwitchLegacy)
     }
