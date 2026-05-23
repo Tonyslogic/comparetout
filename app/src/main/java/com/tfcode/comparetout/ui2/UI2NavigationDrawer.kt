@@ -87,6 +87,7 @@ fun UI2DrawerContent(
     onSwitchLegacy: () -> Unit,
     onClose: () -> Unit
 ) {
+    val context = LocalContext.current
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 4.dp),
@@ -98,7 +99,11 @@ fun UI2DrawerContent(
         HorizontalDivider()
         ShowHintsRow(showHints, onShowHintsChange)
         HorizontalDivider()
-        UI2DrawerItem(R.drawable.ic_baseline_euro_symbol_24,  "Supplier Plans",         onClose)
+        UI2DrawerItem(R.drawable.ic_baseline_euro_symbol_24,  "Supplier Plans") {
+            onClose()
+            context.startActivity(
+                android.content.Intent(context, UI2PricePlanListActivity::class.java))
+        }
         UI2DrawerItem(R.drawable.ic_baseline_settings_24,     "Units",                  onClose)
         UI2DrawerItem(R.drawable.ic_baseline_access_time_24,  "Timezone",               onClose)
         UI2DrawerItem(R.drawable.ic_baseline_call_split_24,   "Data Source Management", onClose)
