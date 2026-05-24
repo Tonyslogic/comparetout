@@ -113,7 +113,11 @@ fun UI2DrawerContent(
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
         // Preferences — global formatting choices.
         UI2DrawerItem(R.drawable.ic_baseline_settings_24,     "Units",                  onClose)
-        UI2DrawerItem(R.drawable.ic_baseline_access_time_24,  "Timezone",               onClose)
+        UI2DrawerItem(R.drawable.ic_baseline_access_time_24,  "Timezone") {
+            onClose()
+            context.startActivity(
+                android.content.Intent(context, UI2TimezoneActivity::class.java))
+        }
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
         UI2DrawerItem(R.drawable.ic_baseline_settings_24,     "Switch to Legacy UI",    onSwitchLegacy)
     }
