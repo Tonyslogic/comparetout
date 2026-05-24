@@ -610,7 +610,7 @@ class UI2DashboardViewModel @Inject constructor(
     // ── KPI computation ───────────────────────────────────────────────────────
 
     /**
-     * Resolve the underlying data's full [start..end] date span for the active
+     * Resolve the underlying data's full [start to end] date span for the active
      * item — needed both to clamp the anchor and to bound the period picker.
      */
     private suspend fun kpiSourceDateRange(): Pair<LocalDate, LocalDate>? {

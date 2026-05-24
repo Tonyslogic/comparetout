@@ -105,7 +105,11 @@ fun UI2DrawerContent(
             context.startActivity(
                 android.content.Intent(context, UI2PricePlanListActivity::class.java))
         }
-        UI2DrawerItem(R.drawable.ic_baseline_call_split_24,   "Data Source Management", onClose)
+        UI2DrawerItem(R.drawable.ic_baseline_call_split_24,   "Data Source Management") {
+            onClose()
+            context.startActivity(
+                android.content.Intent(context, UI2DataSourceManagementActivity::class.java))
+        }
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
         // Preferences — global formatting choices.
         UI2DrawerItem(R.drawable.ic_baseline_settings_24,     "Units",                  onClose)
