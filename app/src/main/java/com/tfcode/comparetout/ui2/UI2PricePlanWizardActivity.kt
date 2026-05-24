@@ -4,6 +4,11 @@ import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -16,6 +21,7 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -35,6 +41,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
@@ -119,8 +126,10 @@ private fun PricePlanWizardScreen(
     val expandedDayRates by viewModel.expandedDayRates.observeAsState(emptySet())
     val saveResult by viewModel.saveResult.observeAsState(PricePlanSaveResult.Idle)
     val issues = remember(builder) { validate(builder) }
+    val (showHints, toggleShowHints) = rememberShowHints()
 
     var confirmDiscard by remember { mutableStateOf(false) }
+    var showDrawer by remember { mutableStateOf(false) }
 
     LaunchedEffect(saveResult) {
         if (saveResult == PricePlanSaveResult.Saved) onClose()
@@ -141,6 +150,11 @@ private fun PricePlanWizardScreen(
                 navigationIcon = {
                     IconButton(onClick = { confirmDiscard = true }) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showDrawer = true }) {
+                        Icon(Icons.Default.Menu, contentDescription = "Menu")
                     }
                 }
             )
@@ -211,10 +225,32 @@ private fun PricePlanWizardScreen(
                                 isExpanded = expanded.contains("rates"),
                                 onToggle = { viewModel.toggleSection("rates") }
                             ) {
-                                DayRatesSection(builder, expandedDayRates, issues, viewModel)
+                                DayRatesSection(builder, expandedDayRates, issues, viewModel, showHints)
                             }
                         }
                     }
+                }
+            }
+
+            // Scrim + right-side drawer (same as every other UI2 screen).
+            AnimatedVisibility(visible = showDrawer, enter = fadeIn(tween(180)),
+                exit = fadeOut(tween(180))) {
+                Box(Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.4f))
+                    .clickable { showDrawer = false })
+            }
+            AnimatedVisibility(
+                visible = showDrawer,
+                enter = slideInHorizontally(tween(220)) { it },
+                exit = slideOutHorizontally(tween(220)) { it },
+                modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight().width(280.dp)
+            ) {
+                Surface(tonalElevation = 8.dp, shadowElevation = 8.dp, modifier = Modifier.fillMaxSize()) {
+                    UI2DrawerContent(
+                        showHints = showHints,
+                        onShowHintsChange = { if (it != showHints) toggleShowHints() },
+                        onSwitchLegacy = { showDrawer = false; onClose() },
+                        onClose = { showDrawer = false }
+                    )
                 }
             }
         }
@@ -449,17 +485,20 @@ private fun DayRatesSection(
     builder: PricePlanBuilder,
     expanded: Set<Long>,
     issues: PlanIssues,
-    vm: UI2PricePlanViewModel
+    vm: UI2PricePlanViewModel,
+    showHints: Boolean
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(
-            "Each day rate covers a date window and a set of weekdays. Add costs " +
-                "(c/kWh) and assign time ranges to each — together they must cover " +
-                "the full 24-hour day. Across all day rates, the dates must tile " +
-                "the calendar year and every weekday must be covered.",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        if (showHints) {
+            Text(
+                "Each day rate covers a date window and a set of weekdays. Add costs " +
+                    "(c/kWh) and assign time ranges to each — together they must cover " +
+                    "the full 24-hour day. Across all day rates, the dates must tile " +
+                    "the calendar year and every weekday must be covered.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
         if (issues.dateRangeOverlap) {
             InlineIssue("Date ranges overlap. Trim one of the start/end dates so each calendar day belongs to exactly one day-rate.")
         }

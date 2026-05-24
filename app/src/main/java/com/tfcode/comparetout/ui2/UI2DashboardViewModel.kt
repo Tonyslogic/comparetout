@@ -83,11 +83,16 @@ data class KpiMonthRow(
 @OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class UI2DashboardViewModel @Inject constructor(
-    private val repository: ToutcRepository
+    private val repository: ToutcRepository,
+    favouritePlanStore: FavouritePlanStore
 ) : ViewModel() {
+
+    /** Plan-id the user has marked as their current supplier plan, or null. */
+    val favouritePlanId = favouritePlanStore.id.asLiveData()
 
     init {
         Log.d("UI2", "UI2DashboardViewModel created")
+        viewModelScope.launch(Dispatchers.IO) { favouritePlanStore.ensureLoaded() }
     }
 
     sealed class ActiveDashboardItem {

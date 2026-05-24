@@ -3,6 +3,7 @@ package com.tfcode.comparetout.ui2
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.asFlow
+import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.model.priceplan.DayRate
@@ -17,7 +18,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 // ──────────────────────────────────────────────────────────────────────────
-// UI2 supplier-plan list — read-only view + actions (delete, toggle active).
+// UI2 supplier-plan list — read-only view + actions (delete, favourite).
 // The list is sourced from getAllPricePlans() LiveData so it reacts to any
 // changes made by the wizard or by data imports.
 // ──────────────────────────────────────────────────────────────────────────
@@ -33,14 +34,14 @@ data class PricePlanListRow(
     val signUpBonus: Double,
     val rateCount: Int,
     val deemedExport: Boolean,
-    val active: Boolean,
     val lastUpdate: String
 )
 
 @HiltViewModel
 class UI2PricePlanListViewModel @Inject constructor(
     application: Application,
-    private val repository: ToutcRepository
+    private val repository: ToutcRepository,
+    private val favouriteStore: FavouritePlanStore
 ) : AndroidViewModel(application) {
 
     private val _rows = MutableStateFlow<List<PricePlanListRow>>(emptyList())
@@ -48,10 +49,14 @@ class UI2PricePlanListViewModel @Inject constructor(
         viewModelScope, SharingStarted.Eagerly, emptyList()
     )
 
+    val favouriteId = favouriteStore.id.asLiveData()
+
     init {
+        viewModelScope.launch(Dispatchers.IO) { favouriteStore.ensureLoaded() }
         viewModelScope.launch(Dispatchers.Main) {
             repository.getAllPricePlans().asFlow().collect { map: Map<PricePlan, List<DayRate>>? ->
-                _rows.value = (map ?: emptyMap()).entries.map { (plan, drs) ->
+                val entries = map ?: emptyMap()
+                _rows.value = entries.entries.map { (plan, drs) ->
                     PricePlanListRow(
                         planId = plan.pricePlanIndex,
                         supplier = plan.supplier,
@@ -62,17 +67,26 @@ class UI2PricePlanListViewModel @Inject constructor(
                         signUpBonus = plan.signUpBonus,
                         rateCount = drs.size,
                         deemedExport = plan.isDeemedExport,
-                        active = plan.isActive,
                         lastUpdate = plan.lastUpdate
                     )
                 }.sortedWith(compareBy({ it.supplier.lowercase() }, { it.planName.lowercase() }))
+                // Drop the favourite if the plan it points to has been deleted.
+                favouriteStore.reconcile(entries.keys.map { it.pricePlanIndex })
             }
         }
+    }
+
+    fun toggleFavourite(planId: Long) {
+        favouriteStore.setFavourite(if (favouriteStore.id.value == planId) null else planId)
     }
 
     fun delete(planId: Long) {
         viewModelScope.launch(Dispatchers.IO) {
             repository.deletePricePlan(planId.toInt())
+            // The reconcile in the rows-collect coroutine will clear the favourite
+            // automatically next time the LiveData emits, but do it eagerly so the
+            // UI doesn't show a star next to a row that's about to vanish.
+            if (favouriteStore.id.value == planId) favouriteStore.setFavourite(null)
         }
     }
 }

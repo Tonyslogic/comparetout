@@ -39,6 +39,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.Card
@@ -194,6 +195,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
     val scenarioTariffAnchor   by viewModel.scenarioTariffAnchor.observeAsState(LocalDate.now())
     val scenarioTariffCostings by viewModel.scenarioTariffCostings.observeAsState(null)
     val dataBounds             by viewModel.dataBounds.observeAsState(null)
+    val favouritePlanId        by viewModel.favouritePlanId.observeAsState(null)
     var showDrawer by remember { mutableStateOf(false) }
     val (showHints, toggleShowHints) = rememberShowHints()
     val df = remember { DecimalFormat("#,##0.00") }
@@ -260,7 +262,8 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     Spacer(Modifier.height(8.dp))
                     DataSourceCostingsTable(
                         costings = tariffCostings,
-                        df       = df
+                        df       = df,
+                        favouritePlanId = favouritePlanId
                     )
                 }
 
@@ -459,7 +462,8 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                                 costings = allCostings,
                                 planStandingCharges = dashboardData?.planStandingCharges ?: emptyMap(),
                                 simDays = dashboardData?.simDays ?: 365L,
-                                df = df
+                                df = df,
+                                favouritePlanId = favouritePlanId
                             )
                         } else if (periodRows == null) {
                             CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
@@ -468,7 +472,8 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         } else {
                             DataSourceCostingsTable(
                                 costings = periodRows,
-                                df       = df
+                                df       = df,
+                                favouritePlanId = favouritePlanId
                             )
                         }
                     }
@@ -1027,7 +1032,8 @@ private fun AllCostingsTable(
     costings: List<Costings>,
     planStandingCharges: Map<Long, Double>,
     simDays: Long,
-    df: DecimalFormat
+    df: DecimalFormat,
+    favouritePlanId: Long? = null
 ) {
     var zoomedCosting by remember { mutableStateOf<Costings?>(null) }
     val cfg = LocalConfiguration.current
@@ -1050,18 +1056,29 @@ private fun AllCostingsTable(
     costings.forEachIndexed { idx, c ->
         val fixed = (planStandingCharges[c.pricePlanID] ?: 0.0) * (simDays / 365.0)
         val isBest = idx == 0
+        val isFav = favouritePlanId != null && favouritePlanId == c.pricePlanID
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { zoomedCosting = c }
                 .background(
-                    if (isBest) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                    else Color.Transparent
+                    when {
+                        isFav -> MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                        isBest -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                        else -> Color.Transparent
+                    }
                 )
                 .padding(vertical = 3.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(c.fullPlanName ?: "", Modifier.weight(2.5f),
+            if (isFav) {
+                Icon(Icons.Default.Star, contentDescription = "Your current plan",
+                    modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(4.dp))
+            }
+            Text(c.fullPlanName ?: "",
+                Modifier.weight(if (isFav) 2.3f else 2.5f),
                 style = MaterialTheme.typography.bodySmall, maxLines = 1,
                 overflow = TextOverflow.Ellipsis)
             Text(df.format(c.net / 100.0), Modifier.weight(1f), textAlign = TextAlign.End,
@@ -1252,7 +1269,8 @@ private fun DataSourceExplorePies(
 @Composable
 private fun DataSourceCostingsTable(
     costings: List<DataSourceCostingRow>?,
-    df: DecimalFormat
+    df: DecimalFormat,
+    favouritePlanId: Long? = null
 ) {
     if (costings == null) {
         CircularProgressIndicator(modifier = Modifier.padding(4.dp).size(20.dp), strokeWidth = 2.dp)
@@ -1285,18 +1303,28 @@ private fun DataSourceCostingsTable(
 
     costings.forEachIndexed { idx, row ->
         val isBest = idx == 0
+        val isFav = favouritePlanId != null && favouritePlanId == row.pricePlanId
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { zoomedRow = row }
                 .background(
-                    if (isBest) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                    else Color.Transparent
+                    when {
+                        isFav -> MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                        isBest -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                        else -> Color.Transparent
+                    }
                 )
                 .padding(vertical = 3.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text(row.planName, Modifier.weight(2.5f),
+            if (isFav) {
+                Icon(Icons.Default.Star, contentDescription = "Your current plan",
+                    modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.primary)
+                Spacer(Modifier.width(4.dp))
+            }
+            Text(row.planName, Modifier.weight(if (isFav) 2.3f else 2.5f),
                 style = MaterialTheme.typography.bodySmall, maxLines = 1,
                 overflow = TextOverflow.Ellipsis)
             Text(df.format(row.net / 100.0), Modifier.weight(1f), textAlign = TextAlign.End,
