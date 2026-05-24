@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.tfcode.comparetout.ComparisonUIViewModel
 import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.model.importers.InverterDateRange
+import com.tfcode.comparetout.model.json.JsonTools
 import com.tfcode.comparetout.model.scenario.Scenario
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -17,6 +18,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
@@ -136,5 +138,19 @@ class UI2SimulationsViewModel @Inject constructor(
             repository.deleteScenario(scenarioId)
             _enrichments.update { it - scenarioId.toLong() }
         }
+    }
+
+    /**
+     * Build the JSON payload for a single scenario, ready for sharing. We pull
+     * the full export bundle from the repository (same path used by legacy bulk
+     * export and re-import) and filter to the one scenario — preserving the
+     * standard top-level JSON list shape so the shared file can be re-imported
+     * by either UI without special handling.
+     */
+    suspend fun buildScenarioJson(scenarioId: Long): String? = withContext(Dispatchers.IO) {
+        val all = repository.getAllScenariosForExport() ?: return@withContext null
+        val pick = all.filter { it.scenario.scenarioIndex == scenarioId }
+        if (pick.isEmpty()) return@withContext null
+        JsonTools.createScenarioList(pick)
     }
 }

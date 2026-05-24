@@ -37,6 +37,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.AlertDialog
@@ -58,6 +59,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -68,6 +70,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import java.text.DecimalFormat
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -106,6 +109,7 @@ private fun PricePlanListScreen(
     val (showHints, toggleShowHints) = rememberShowHints()
     var pendingDelete by remember { mutableStateOf<PricePlanListRow?>(null) }
     var showDrawer by remember { mutableStateOf(false) }
+    val shareScope = rememberCoroutineScope()
 
     val openWizard: (Long?) -> Unit = { planId ->
         val intent = Intent(context, UI2PricePlanWizardActivity::class.java)
@@ -163,7 +167,22 @@ private fun PricePlanListScreen(
                             showHints = showHints,
                             onEdit = { openWizard(row.planId) },
                             onDelete = { pendingDelete = row },
-                            onToggleFavourite = { viewModel.toggleFavourite(row.planId) }
+                            onToggleFavourite = { viewModel.toggleFavourite(row.planId) },
+                            onShare = {
+                                // Serialise on IO, fire the share intent on Main. The
+                                // chooser is launched from the Activity context so any
+                                // downstream lifecycle is handled by the system.
+                                shareScope.launch {
+                                    val json = viewModel.buildPlanJson(row.planId)
+                                    if (!json.isNullOrEmpty()) {
+                                        context.shareText(
+                                            payload = json,
+                                            format = ShareFormat.JSON,
+                                            subject = "${row.supplier} — ${row.planName}"
+                                        )
+                                    }
+                                }
+                            }
                         )
                     }
                 }
@@ -283,7 +302,8 @@ private fun PricePlanAccordion(
     showHints: Boolean,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
-    onToggleFavourite: () -> Unit
+    onToggleFavourite: () -> Unit,
+    onShare: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
     val borderColor = if (isFavourite)
@@ -387,47 +407,51 @@ private fun PricePlanAccordion(
                         )
                     }
 
-                    // Action buttons
+                    // Action buttons — icon-only to keep four affordances comfortably
+                    // visible on narrow screens. Each icon doubles as the
+                    // contentDescription so a long-press / a11y still names it,
+                    // and the legend below labels them when Show hints is on.
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        OutlinedButton(
+                        ActionIconButton(
+                            icon = if (isFavourite) Icons.Default.Star else Icons.Outlined.StarBorder,
+                            label = if (isFavourite) "Current plan" else "Mark as my plan",
+                            tint = MaterialTheme.colorScheme.primary,
                             onClick = onToggleFavourite,
                             modifier = Modifier.weight(1f)
+                        )
+                        ActionIconButton(
+                            icon = Icons.Default.Edit, label = "Edit",
+                            onClick = onEdit, modifier = Modifier.weight(1f)
+                        )
+                        ActionIconButton(
+                            icon = Icons.Default.Share, label = "Share",
+                            onClick = onShare, modifier = Modifier.weight(1f)
+                        )
+                        ActionIconButton(
+                            icon = Icons.Default.Delete, label = "Delete",
+                            tint = MaterialTheme.colorScheme.error,
+                            onClick = onDelete, modifier = Modifier.weight(1f)
+                        )
+                    }
+
+                    // Legend — only rendered when Show hints is on. Mirrors the
+                    // action row layout so each label sits underneath its icon.
+                    if (showHints) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Icon(
-                                imageVector = if (isFavourite) Icons.Default.Star
-                                              else Icons.Outlined.StarBorder,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.primary
+                            ActionLegendCell(
+                                if (isFavourite) "Current" else "My plan",
+                                modifier = Modifier.weight(1f)
                             )
-                            Spacer(Modifier.width(4.dp))
-                            Text(
-                                "My plan",
-                                style = MaterialTheme.typography.labelLarge
-                            )
-                        }
-                        OutlinedButton(
-                            onClick = onEdit,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(Icons.Default.Edit, contentDescription = null,
-                                modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp))
-                            Text("Edit")
-                        }
-                        OutlinedButton(
-                            onClick = onDelete,
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            Icon(Icons.Default.Delete, contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = MaterialTheme.colorScheme.error)
-                            Spacer(Modifier.width(4.dp))
-                            Text("Delete", color = MaterialTheme.colorScheme.error)
+                            ActionLegendCell("Edit", modifier = Modifier.weight(1f))
+                            ActionLegendCell("Share", modifier = Modifier.weight(1f))
+                            ActionLegendCell("Delete", modifier = Modifier.weight(1f))
                         }
                     }
 
@@ -462,6 +486,42 @@ private fun SpecCell(label: String, value: String, modifier: Modifier = Modifier
                 maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
     }
+}
+
+/** Icon-only OutlinedButton with no inner padding — the icon is the affordance,
+ *  the legend row below provides the textual label when Show hints is on.
+ *  `label` is used as the accessibility `contentDescription`. */
+@Composable
+private fun ActionIconButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    tint: Color = MaterialTheme.colorScheme.onSurface
+) {
+    OutlinedButton(
+        onClick = onClick,
+        modifier = modifier,
+        contentPadding = PaddingValues(horizontal = 0.dp, vertical = 6.dp)
+    ) {
+        Icon(icon, contentDescription = label,
+            modifier = Modifier.size(18.dp), tint = tint)
+    }
+}
+
+/** A single centred caption beneath the action row, used only when Show hints
+ *  is on. Width-aligned with its button via the caller's `weight(1f)`. */
+@Composable
+private fun ActionLegendCell(label: String, modifier: Modifier = Modifier) {
+    Text(
+        label,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = modifier
+    )
 }
 
 @Composable

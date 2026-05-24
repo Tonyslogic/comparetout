@@ -47,6 +47,7 @@ import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material.icons.filled.Timeline
@@ -81,6 +82,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -131,10 +133,14 @@ fun CompareScreen(
     val results by viewModel.results.observeAsState(null)
     val computing by viewModel.computing.observeAsState(false)
     val noviceMode by viewModel.noviceMode.observeAsState(true)
+    val context = LocalContext.current
 
     var open by remember { mutableStateOf<String?>(null) }
     var sheet by remember { mutableStateOf<String?>(null) }
     var showDrawer by remember { mutableStateOf(false) }
+    // When non-null, the format dialog is shown. The metric drives which
+    // serialiser the dialog calls on confirmation.
+    var shareMetric by remember { mutableStateOf<CompareWhat?>(null) }
 
     // Subjects currently selected — drives the per-subject timeframe pickers.
     // Slot-aware so duplicates show up as distinct rows ("My SN", "My SN #2").
@@ -217,7 +223,13 @@ fun CompareScreen(
                         }
                     } else {
                         items(metrics, key = { it.name }) { metric ->
-                            ResultPanel(state, metric, results!!, noviceMode)
+                            ResultPanel(
+                                state = state,
+                                metric = metric,
+                                results = results!!,
+                                novice = noviceMode,
+                                onShare = { shareMetric = metric }
+                            )
                         }
                     }
                 }
@@ -225,6 +237,35 @@ fun CompareScreen(
 
             sheet?.let { kind ->
                 SelectSheet(kind, state, viewModel, sources, sims, plans) { sheet = null }
+            }
+
+            shareMetric?.let { metric ->
+                // CSV first — the legacy format people already pipe into Excel —
+                // JSON for round-tripping the full row including monthly arrays.
+                ShareFormatDialog(
+                    title = if (metric == CompareWhat.COST) "Share cost results"
+                            else "Share usage results",
+                    formats = listOf(ShareFormat.CSV, ShareFormat.JSON),
+                    initial = ShareFormat.CSV,
+                    onPick = { format ->
+                        val payload = when (metric to format) {
+                            CompareWhat.COST  to ShareFormat.CSV  -> viewModel.costResultsCsv()
+                            CompareWhat.COST  to ShareFormat.JSON -> viewModel.costResultsJson()
+                            CompareWhat.USAGE to ShareFormat.CSV  -> viewModel.usageResultsCsv()
+                            CompareWhat.USAGE to ShareFormat.JSON -> viewModel.usageResultsJson()
+                            else -> null
+                        }
+                        if (!payload.isNullOrEmpty()) {
+                            context.shareText(
+                                payload = payload,
+                                format = format,
+                                subject = if (metric == CompareWhat.COST) "Compare — cost results"
+                                          else "Compare — usage results"
+                            )
+                        }
+                    },
+                    onDismiss = { shareMetric = null }
+                )
             }
 
             AnimatedVisibility(
@@ -994,7 +1035,8 @@ private fun ResultPanel(
     state: CompareState,
     metric: CompareWhat,
     results: CompareResults,
-    novice: Boolean
+    novice: Boolean,
+    onShare: () -> Unit
 ) {
     val primary = MaterialTheme.colorScheme.primary
     val isCost = metric == CompareWhat.COST
@@ -1004,6 +1046,9 @@ private fun ResultPanel(
         ids.mapNotNull { id -> defs.firstOrNull { it.first == id } }
             .map { SeriesDef(it.first, it.second, seriesColor(it.first, primary)) }
     }
+    // Share is only useful once there is a table to export — empty result
+    // panels suppress the button to avoid offering a no-op action.
+    val rowsCount = if (isCost) results.cost.size else results.usage.size
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
         shape = RoundedCornerShape(14.dp),
@@ -1018,6 +1063,15 @@ private fun ResultPanel(
                 Spacer(Modifier.width(6.dp))
                 Text("· ${state.mode.label}", style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.weight(1f))
+                if (rowsCount > 0) {
+                    TextButton(onClick = onShare, contentPadding = PaddingValues(horizontal = 8.dp)) {
+                        Icon(Icons.Default.Share, contentDescription = null,
+                            modifier = Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Share", style = MaterialTheme.typography.labelLarge)
+                    }
+                }
             }
             Spacer(Modifier.height(10.dp))
             if (series.isEmpty()) {

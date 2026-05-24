@@ -33,6 +33,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -54,6 +55,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -136,6 +138,7 @@ fun ScenariosScreen(
     var showDeleteDialog by remember { mutableStateOf<UI2SimulationsViewModel.SimListItem.Simulation?>(null) }
     var showDrawer by remember { mutableStateOf(false) }
     val (showHints, toggleShowHints) = rememberShowHints()
+    val shareScope = rememberCoroutineScope()
 
     val simItems = remember(items) { items.filterIsInstance<UI2SimulationsViewModel.SimListItem.Simulation>() }
     val dataSourceItems = remember(items) { items.filterIsInstance<UI2SimulationsViewModel.SimListItem.DataSource>() }
@@ -174,6 +177,18 @@ fun ScenariosScreen(
                                     Intent(context, UI2WizardActivity::class.java)
                                         .putExtra("ScenarioID", item.scenario.scenarioIndex)
                                 )
+                            },
+                            onShare = {
+                                shareScope.launch {
+                                    val json = viewModel.buildScenarioJson(item.scenario.scenarioIndex)
+                                    if (!json.isNullOrEmpty()) {
+                                        context.shareText(
+                                            payload = json,
+                                            format = ShareFormat.JSON,
+                                            subject = "Scenario: ${item.scenario.scenarioName}"
+                                        )
+                                    }
+                                }
                             }
                         )
                     }
@@ -292,7 +307,8 @@ private fun SimulationCard(
     item: UI2SimulationsViewModel.SimListItem.Simulation,
     onView: () -> Unit,
     onDelete: () -> Unit,
-    onEdit: () -> Unit
+    onEdit: () -> Unit,
+    onShare: () -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     val scenario = item.scenario
@@ -344,6 +360,11 @@ private fun SimulationCard(
                             text = { Text("Edit") },
                             leadingIcon = { Icon(Icons.Default.Edit, null) },
                             onClick = { menuExpanded = false; onEdit() }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Share") },
+                            leadingIcon = { Icon(Icons.Default.Share, null) },
+                            onClick = { menuExpanded = false; onShare() }
                         )
                         DropdownMenuItem(
                             text = { Text("Delete") },

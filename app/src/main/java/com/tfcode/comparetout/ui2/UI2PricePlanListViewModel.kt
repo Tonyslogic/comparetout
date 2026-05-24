@@ -6,6 +6,7 @@ import androidx.lifecycle.asFlow
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import com.tfcode.comparetout.model.ToutcRepository
+import com.tfcode.comparetout.model.json.JsonTools
 import com.tfcode.comparetout.model.priceplan.DayRate
 import com.tfcode.comparetout.model.priceplan.PricePlan
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -88,5 +90,18 @@ class UI2PricePlanListViewModel @Inject constructor(
             // UI doesn't show a star next to a row that's about to vanish.
             if (favouriteStore.id.value == planId) favouriteStore.setFavourite(null)
         }
+    }
+
+    /**
+     * Build the JSON payload for a single plan, ready for sharing. The map is
+     * built with one entry so it round-trips through the standard
+     * `JsonTools.createPricePlanJson` path used by legacy imports — meaning a
+     * shared file can be re-imported by either UI without special handling.
+     */
+    suspend fun buildPlanJson(planId: Long): String? = withContext(Dispatchers.IO) {
+        val all = repository.getAllPricePlansForExport() ?: return@withContext null
+        val entry = all.entries.firstOrNull { it.key.pricePlanIndex == planId }
+            ?: return@withContext null
+        JsonTools.createPricePlanJson(mapOf(entry.key to entry.value))
     }
 }

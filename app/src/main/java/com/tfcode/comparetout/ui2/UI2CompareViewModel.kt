@@ -764,6 +764,95 @@ class UI2CompareViewModel @Inject constructor(
             "feed" to feed.toList(), "pv" to pv.toList()
         )
     }
+
+    // ── share / export ──────────────────────────────────────────────────────
+    //
+    // Whatever the user currently sees in the result panel — selection, plans,
+    // timeframe — is what gets serialised. The two metrics are kept separate so
+    // BOTH-mode can offer per-panel Share buttons that export only the panel's
+    // own table.
+
+    /** Serialise the current cost panel to CSV (RFC 4180 quoting). */
+    fun costResultsCsv(): String? {
+        val rows = _results.value?.cost ?: return null
+        if (rows.isEmpty()) return null
+        val sb = StringBuilder("Subject,Plan,Available,Net,Buy,Sell,Fixed,Bonus\n")
+        rows.forEach { r ->
+            sb.append(csvField(r.subjectName)).append(',')
+              .append(csvField(r.planName)).append(',')
+              .append(if (r.available) "yes" else "no").append(',')
+              .append(money(r.net)).append(',')
+              .append(money(r.buy)).append(',')
+              .append(money(r.sell)).append(',')
+              .append(money(r.fixed)).append(',')
+              .append(money(r.bonus)).append('\n')
+        }
+        return sb.toString()
+    }
+
+    /** Serialise the current usage panel to CSV. */
+    fun usageResultsCsv(): String? {
+        val rows = _results.value?.usage ?: return null
+        if (rows.isEmpty()) return null
+        val sb = StringBuilder(
+            "Subject,Load (kWh),Buy (kWh),Feed (kWh),PV (kWh)," +
+            "PV->Load (kWh),Battery->Load (kWh),Grid->Battery (kWh)\n"
+        )
+        rows.forEach { r ->
+            sb.append(csvField(r.subjectName)).append(',')
+              .append(kwh(r.load)).append(',')
+              .append(kwh(r.buy)).append(',')
+              .append(kwh(r.feed)).append(',')
+              .append(kwh(r.pv)).append(',')
+              .append(kwh(r.pv2load)).append(',')
+              .append(kwh(r.bat2load)).append(',')
+              .append(kwh(r.grid2bat)).append('\n')
+        }
+        return sb.toString()
+    }
+
+    /** Serialise the current cost panel to a JSON array. */
+    fun costResultsJson(): String? {
+        val rows = _results.value?.cost ?: return null
+        if (rows.isEmpty()) return null
+        val arr = JSONArray()
+        rows.forEach { r ->
+            arr.put(JSONObject().apply {
+                put("subject", r.subjectName)
+                put("plan", r.planName)
+                put("available", r.available)
+                put("net", r.net); put("buy", r.buy); put("sell", r.sell)
+                put("fixed", r.fixed); put("bonus", r.bonus)
+                put("monthlyNet", JSONArray(r.monthlyNet))
+            })
+        }
+        return arr.toString(2)
+    }
+
+    /** Serialise the current usage panel to a JSON array. */
+    fun usageResultsJson(): String? {
+        val rows = _results.value?.usage ?: return null
+        if (rows.isEmpty()) return null
+        val arr = JSONArray()
+        rows.forEach { r ->
+            arr.put(JSONObject().apply {
+                put("subject", r.subjectName)
+                put("load", r.load); put("buy", r.buy)
+                put("feed", r.feed); put("pv", r.pv)
+                put("pv2load", r.pv2load); put("bat2load", r.bat2load)
+                put("grid2bat", r.grid2bat)
+            })
+        }
+        return arr.toString(2)
+    }
+
+    private fun csvField(s: String): String {
+        // Quote if it contains a quote, comma, or line break; embedded quotes are doubled.
+        val needsQuoting = s.any { it == '"' || it == ',' || it == '\n' || it == '\r' }
+        return if (needsQuoting) "\"" + s.replace("\"", "\"\"") + "\"" else s
+    }
+    private fun money(v: Double) = String.format(java.util.Locale.US, "%.2f", v)
+    private fun kwh(v: Double)   = String.format(java.util.Locale.US, "%.3f", v)
 }
 
 // ──────────────────────────────────────────────────────────────────────────
