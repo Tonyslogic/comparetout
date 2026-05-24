@@ -32,9 +32,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowLeft
@@ -134,11 +137,15 @@ fun CompareScreen(
     var showDrawer by remember { mutableStateOf(false) }
 
     // Subjects currently selected — drives the per-subject timeframe pickers.
+    // Slot-aware so duplicates show up as distinct rows ("My SN", "My SN #2").
     val selectedSubjects: List<Pair<String, String>> = remember(state.sources, state.sims, sources, sims) {
-        sources.filter { it.sysSn in state.sources }
-            .map { sourceSubjectId(it.sysSn) to it.sysSn } +
-        sims.filter { it.scenarioId in state.sims }
-            .map { simSubjectId(it.scenarioId) to it.name }
+        val srcByKey = sources.associateBy { it.sysSn }
+        val simByKey = sims.associateBy { it.scenarioId }
+        val src = buildSourceSlots(state.sources) { sn -> srcByKey[sn]?.sysSn ?: sn }
+            .map { it.subjectId to it.displayName }
+        val sim = buildSimSlots(state.sims) { id -> simByKey[id]?.name ?: "Sim #$id" }
+            .map { it.subjectId to it.displayName }
+        src + sim
     }
 
     Scaffold(
@@ -370,6 +377,64 @@ private fun SourcesSection(
         SelectRow("Supplier plans", planCount) { onOpenSheet("plans") }
     }
     Spacer(Modifier.height(8.dp))
+
+    // Selected-subjects strip — primary path for duplicating a source/sim so
+    // the user can compare it against itself at different timeframes. Lives
+    // here (not just in the Timeframe accordion) because in sync mode the
+    // per-subject pickers are hidden, but the user still needs to manage
+    // duplicates.
+    val sources = vm.sourceItems.collectAsState().value
+    val sims    = vm.simItems.collectAsState().value
+    val slots = remember(state.sources, state.sims, sources, sims) {
+        val srcByKey = sources.associateBy { it.sysSn }
+        val simByKey = sims.associateBy { it.scenarioId }
+        buildSourceSlots(state.sources) { sn -> srcByKey[sn]?.sysSn ?: sn }
+            .map { Triple(it.subjectId, it.displayName, it.occurrence > 0) } +
+        buildSimSlots(state.sims) { id -> simByKey[id]?.name ?: "Sim #$id" }
+            .map { Triple(it.subjectId, it.displayName, it.occurrence > 0) }
+    }
+    if (slots.isNotEmpty()) {
+        Text("Selected subjects",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        slots.forEach { (id, name, isDup) ->
+            Surface(
+                color = if (isDup) MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)
+                        else MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(8.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)
+            ) {
+                Row(
+                    Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(name,
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.bodyMedium,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    TextButton(onClick = { vm.duplicateSubject(id) }) {
+                        Icon(Icons.Default.ContentCopy, null, Modifier.size(14.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Duplicate", style = MaterialTheme.typography.labelMedium)
+                    }
+                    IconButton(onClick = { vm.removeSubjectSlot(id) }) {
+                        Icon(Icons.Default.Close, contentDescription = "Remove",
+                            tint = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.size(16.dp))
+                    }
+                }
+            }
+        }
+        if (novice) {
+            HelpText(
+                "Duplicate a source or simulation to compare it against itself " +
+                    "over different timeframes. Set the Timeframe to “Per subject” " +
+                    "to give each copy its own range.", true
+            )
+        }
+        Spacer(Modifier.height(6.dp))
+    }
+
     val subjects = sourceCount + simCount
     val planFactor = if (state.what == CompareWhat.USAGE) 1 else planCount
     val total = subjects * planFactor
@@ -523,7 +588,28 @@ private fun TimeframeSection(
         selectedSubjects.forEachIndexed { idx, (id, name) ->
             if (idx > 0) Spacer(Modifier.height(12.dp))
             val sr = state.perSubjectRanges[id] ?: SubjectRange(state.globalGran, state.globalAnchor)
-            RangePicker(name, sr.gran, sr.anchor, state.advanced, novice,
+            // Header row above each picker so the user can clone / remove
+            // *this specific* slot. "Duplicate" seeds the new slot with the
+            // current range so the user only has to change the timeframe to
+            // make the comparison useful.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(name,
+                    modifier = Modifier.weight(1f),
+                    style = MaterialTheme.typography.titleSmall,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                TextButton(onClick = { vm.duplicateSubject(id) }) {
+                    Icon(Icons.Default.Add, contentDescription = null,
+                        modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Duplicate")
+                }
+                IconButton(onClick = { vm.removeSubjectSlot(id) }) {
+                    Icon(Icons.Default.Close, contentDescription = "Remove",
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.size(18.dp))
+                }
+            }
+            RangePicker("", sr.gran, sr.anchor, state.advanced, novice,
                 onGran = { g ->
                     vm.update {
                         it.copy(perSubjectRanges = it.perSubjectRanges + (id to SubjectRange(g, sr.anchor)))
@@ -765,16 +851,36 @@ private fun SelectSheet(
             "sources" -> SheetSpec(
                 "Data sources", "Real meter installs to include",
                 sources.map { listOf(it.sysSn, it.sysSn, it.typeName, (it.sysSn in state.sources).toString()) },
-                { id -> viewModel.update { val s = it.sources; it.copy(sources = if (id in s) s - id else s + id) } },
-                { viewModel.update { it.copy(sources = sources.map { s -> s.sysSn }.toSet()) } },
-                { viewModel.update { it.copy(sources = emptySet()) } }
+                // Toggle: first tap adds an instance, second tap removes
+                // *every* instance (including duplicates) so the sheet's
+                // check-box semantics stay intuitive. Duplicates are managed
+                // from the Sources accordion / per-subject timeframe view.
+                { id -> viewModel.update {
+                    val s = it.sources
+                    it.copy(sources = if (id in s) s.filter { sn -> sn != id } else s + id)
+                } },
+                { viewModel.update { st ->
+                    // "Select all" → ensure every catalogue entry has at least one slot,
+                    // preserving any duplicates the user already created.
+                    val have = st.sources.toSet()
+                    val toAdd = sources.map { it.sysSn }.filter { it !in have }
+                    st.copy(sources = st.sources + toAdd)
+                } },
+                { viewModel.update { it.copy(sources = emptyList()) } }
             )
             "sims" -> SheetSpec(
                 "Simulations", "Saved scenarios to include",
                 sims.map { listOf(it.scenarioId.toString(), it.name, "Scenario", (it.scenarioId in state.sims).toString()) },
-                { id -> viewModel.update { val s = it.sims; val v = id.toLong(); it.copy(sims = if (v in s) s - v else s + v) } },
-                { viewModel.update { it.copy(sims = sims.map { s -> s.scenarioId }.toSet()) } },
-                { viewModel.update { it.copy(sims = emptySet()) } }
+                { id -> viewModel.update {
+                    val s = it.sims; val v = id.toLong()
+                    it.copy(sims = if (v in s) s.filter { x -> x != v } else s + v)
+                } },
+                { viewModel.update { st ->
+                    val have = st.sims.toSet()
+                    val toAdd = sims.map { it.scenarioId }.filter { it !in have }
+                    st.copy(sims = st.sims + toAdd)
+                } },
+                { viewModel.update { it.copy(sims = emptyList()) } }
             )
             else -> SheetSpec(
                 "Supplier plans", "Tariffs to price the energy flows against",
