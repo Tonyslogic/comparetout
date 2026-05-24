@@ -51,6 +51,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
@@ -101,9 +102,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.tfcode.comparetout.ComparisonUIViewModel
+import com.tfcode.comparetout.model.json.scenario.ScenarioJsonFile
 import com.tfcode.comparetout.model.scenario.PanelPVSummary
 import com.tfcode.comparetout.model.scenario.Scenario
 import dagger.hilt.android.AndroidEntryPoint
+import com.google.gson.Gson
+import com.google.gson.JsonSyntaxException
+import com.google.gson.reflect.TypeToken
 import java.time.LocalDate
 import kotlinx.coroutines.delay
 import androidx.work.WorkInfo
@@ -251,6 +256,10 @@ private fun WizardScreen(
     }
 
     var showDrawer by remember { mutableStateOf(false) }
+    // Per-accordion JSON import — null when no sheet is open. Each section's
+    // "Import…" button writes its scope here; the sheet is rendered at scaffold
+    // level so it floats over whichever accordion is expanded.
+    var importScope by remember { mutableStateOf<WizardImportScope?>(null) }
     val title = when {
         viewModel.isEditMode && builder.scenarioName.isNotBlank() ->
             "Edit scenario · ${builder.scenarioName}"
@@ -384,7 +393,8 @@ private fun WizardScreen(
                     allScenarios = allScenarios,
                     onUpdate = { viewModel.updateBuilder(it) },
                     onLoadForCopy = { viewModel.loadForCopy(it) },
-                    onLoadForLink = { viewModel.loadForLink(it) }
+                    onLoadForLink = { viewModel.loadForLink(it) },
+                    onLoadFromJson = { viewModel.loadFromJson(it) }
                 )
             }
 
@@ -419,7 +429,8 @@ private fun WizardScreen(
                     onInitHandCraft = { viewModel.initHandCraft() },
                     onDeriveFromSource = { sysSn, importer, from, to, fillGaps ->
                         viewModel.deriveLoadProfileFromSource(sysSn, importer, from, to, fillGaps)
-                    }
+                    },
+                    onImport = { importScope = WizardImportScope.USAGE }
                 )
             }
 
@@ -448,7 +459,8 @@ private fun WizardScreen(
                     noviceMode = noviceMode,
                     onAdd = { viewModel.addInverterEntry() },
                     onRemove = { viewModel.removeInverterEntry(it) },
-                    onUpdate = { id, fn -> viewModel.updateInverterEntry(id, fn) }
+                    onUpdate = { id, fn -> viewModel.updateInverterEntry(id, fn) },
+                    onImport = { importScope = WizardImportScope.INVERTERS }
                 )
             }
 
@@ -484,7 +496,8 @@ private fun WizardScreen(
                     onRequestLocation = { id -> viewModel.requestLocation(id) },
                     onCheckPvgisParams = { id, lat, lon, az, sl ->
                         viewModel.checkPvgisParams(id, lat, lon, az, sl)
-                    }
+                    },
+                    onImport = { importScope = WizardImportScope.PV }
                 )
             }
 
@@ -529,7 +542,8 @@ private fun WizardScreen(
                     onUpdateCharge = { id, fn -> viewModel.updateBatteryChargeEntry(id, fn) },
                     onAddDischarge = { viewModel.addBatteryDischargeEntry() },
                     onRemoveDischarge = { viewModel.removeBatteryDischargeEntry(it) },
-                    onUpdateDischarge = { id, fn -> viewModel.updateBatteryDischargeEntry(id, fn) }
+                    onUpdateDischarge = { id, fn -> viewModel.updateBatteryDischargeEntry(id, fn) },
+                    onImport = { importScope = WizardImportScope.BATTERY }
                 )
             }
 
@@ -575,7 +589,8 @@ private fun WizardScreen(
                     onAddSchedule = { viewModel.addHwSchedule() },
                     onRemoveSchedule = { viewModel.removeHwSchedule(it) },
                     onUpdateSchedule = { id, fn -> viewModel.updateHwSchedule(id, fn) },
-                    onUpdateDivert = { viewModel.updateHwDivert(it) }
+                    onUpdateDivert = { viewModel.updateHwDivert(it) },
+                    onImport = { importScope = WizardImportScope.HW }
                 )
             }
 
@@ -612,7 +627,8 @@ private fun WizardScreen(
                     onUpdate = { id, fn -> viewModel.updateEvEntry(id, fn) },
                     onAddDivert = { viewModel.addEvDivertEntry() },
                     onRemoveDivert = { viewModel.removeEvDivertEntry(it) },
-                    onUpdateDivert = { id, fn -> viewModel.updateEvDivertEntry(id, fn) }
+                    onUpdateDivert = { id, fn -> viewModel.updateEvDivertEntry(id, fn) },
+                    onImport = { importScope = WizardImportScope.EV }
                 )
             }
 
@@ -648,8 +664,23 @@ private fun WizardScreen(
             }
         }
         }
+
+        // Per-accordion JSON import sheet — dispatches on the active scope so
+        // each scope gets a parser sized to just its slice of the scenario.
+        importScope?.let { scope ->
+            WizardImportSheet(
+                scope = scope,
+                onDismiss = { importScope = null },
+                onApplied = { importScope = null },
+                viewModel = viewModel
+            )
+        }
     }
 }
+
+/** Each per-accordion Import button writes one of these into the wizard's
+ *  scaffold state to open the matching sheet. */
+private enum class WizardImportScope { USAGE, INVERTERS, PV, BATTERY, HW, EV }
 
 /* ──────────────────────────────────────────────────────────────────
    Progress strip
@@ -827,11 +858,17 @@ private fun StartSectionContent(
     allScenarios: List<Scenario>,
     onUpdate: ((WizardBuilder) -> WizardBuilder) -> Unit,
     onLoadForCopy: (Long) -> Unit,
-    onLoadForLink: (Long) -> Unit
+    onLoadForLink: (Long) -> Unit,
+    onLoadFromJson: (ScenarioJsonFile) -> Unit
 ) {
     var showCopyPicker    by remember { mutableStateOf(false) }
     var showLinkPicker    by remember { mutableStateOf(false) }
     var showScratchConfirm by remember { mutableStateOf(false) }
+    // IMPORT mode opens the shared UI2ImportSheet. If the file contains
+    // multiple scenarios the user picks one from a small follow-up dialog;
+    // a single-scenario file applies immediately.
+    var showImportSheet by remember { mutableStateOf(false) }
+    var importPicker by remember { mutableStateOf<List<ScenarioJsonFile>?>(null) }
 
     if (showCopyPicker) {
         ScenarioPickerDialog(
@@ -866,15 +903,67 @@ private fun StartSectionContent(
         )
     }
 
+    if (showImportSheet) {
+        UI2ImportSheet(
+            title = "Import scenario from JSON",
+            hint = "Accepts the JSON shape produced by the Share button on a scenario, " +
+                    "or a single scenario from a bulk export. The accordions will be pre-filled — " +
+                    "you can edit anything before saving.",
+            applyLabel = "Load into wizard",
+            parse = ::parseScenarioImportJson,
+            onApply = { list ->
+                showImportSheet = false
+                if (list.size == 1) onLoadFromJson(list.first())
+                else importPicker = list
+            },
+            onDismiss = { showImportSheet = false }
+        )
+    }
+
+    importPicker?.let { list ->
+        AlertDialog(
+            onDismissRequest = { importPicker = null },
+            title = { Text("Multiple scenarios") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        "This file contains ${list.size} scenarios. Pick the one to load into " +
+                            "the wizard. (To import them all into the library instead, use the " +
+                            "drawer's Import / Export screen.)",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    list.forEachIndexed { idx, file ->
+                        OutlinedButton(
+                            onClick = {
+                                importPicker = null
+                                onLoadFromJson(file)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                "${idx + 1}. ${file.name ?: "(unnamed)"}",
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { importPicker = null }) { Text("Cancel") }
+            }
+        )
+    }
+
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (noviceMode) {
-            Text("Every simulation starts from one of three places. Pick what fits.",
+            Text("Every simulation starts from one of four places. Pick what fits.",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
             listOf(
-                Triple(ScenarioMode.NEW,  "From scratch",   "Start with empty sections and build up."),
-                Triple(ScenarioMode.COPY, "Copy existing",  "Duplicate a saved simulation, then edit freely."),
-                Triple(ScenarioMode.LINK, "Link existing",  "Re-use components from a saved simulation.")
+                Triple(ScenarioMode.NEW,    "From scratch",   "Start with empty sections and build up."),
+                Triple(ScenarioMode.COPY,   "Copy existing",  "Duplicate a saved simulation, then edit freely."),
+                Triple(ScenarioMode.LINK,   "Link existing",  "Re-use components from a saved simulation."),
+                Triple(ScenarioMode.IMPORT, "Import JSON",    "Paste or pick a scenario JSON file to pre-fill every section.")
             ).forEach { (mode, modeTitle, desc) ->
                 val selected = builder.scenarioMode == mode
                 Column(
@@ -891,6 +980,7 @@ private fun StartSectionContent(
                                 ScenarioMode.NEW -> { if (builder.scenarioMode != ScenarioMode.NEW) showScratchConfirm = true }
                                 ScenarioMode.COPY -> showCopyPicker = true
                                 ScenarioMode.LINK -> showLinkPicker = true
+                                ScenarioMode.IMPORT -> showImportSheet = true
                             }
                         }
                         .padding(12.dp)
@@ -921,6 +1011,12 @@ private fun StartSectionContent(
                     onClick = { showLinkPicker = true },
                     label = { Text("Link") },
                     leadingIcon = { Icon(Icons.Default.Link, null, Modifier.size(16.dp)) }
+                )
+                FilterChip(
+                    selected = builder.scenarioMode == ScenarioMode.IMPORT,
+                    onClick = { showImportSheet = true },
+                    label = { Text("Import") },
+                    leadingIcon = { Icon(Icons.Default.FileUpload, null, Modifier.size(16.dp)) }
                 )
             }
         }
@@ -979,7 +1075,8 @@ private fun UsageDataSectionContent(
     onLoadProfileForCopy: (Long) -> Unit,
     onLoadProfileForLink: (Long) -> Unit,
     onInitHandCraft: () -> Unit,
-    onDeriveFromSource: (String, ComparisonUIViewModel.Importer, LocalDate, LocalDate, Boolean) -> Unit
+    onDeriveFromSource: (String, ComparisonUIViewModel.Importer, LocalDate, LocalDate, Boolean) -> Unit,
+    onImport: () -> Unit
 ) {
     var advancedTab          by remember { mutableIntStateOf(0) }
     var showCopyProfilePicker by remember { mutableStateOf(false) }
@@ -1197,6 +1294,11 @@ private fun UsageDataSectionContent(
                 modifier = Modifier.fillMaxWidth(), singleLine = true,
                 supportingText = if (noviceMode) ({ Text("Highest single-hour export — set by your contract.") }) else null
             )
+            OutlinedButton(onClick = onImport, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Import load profile (JSON)")
+            }
         }
     }
 }
@@ -1539,7 +1641,8 @@ private fun BatterySectionContent(
     onUpdateCharge: (String, (WizardBatteryChargeEntry) -> WizardBatteryChargeEntry) -> Unit,
     onAddDischarge: () -> Unit,
     onRemoveDischarge: (String) -> Unit,
-    onUpdateDischarge: (String, (WizardBatteryDischargeEntry) -> WizardBatteryDischargeEntry) -> Unit
+    onUpdateDischarge: (String, (WizardBatteryDischargeEntry) -> WizardBatteryDischargeEntry) -> Unit,
+    onImport: () -> Unit
 ) {
     var expandedBatteryId by remember { mutableStateOf<String?>(null) }
     var expandedChargeId by remember { mutableStateOf<String?>(null) }
@@ -1732,6 +1835,11 @@ private fun BatterySectionContent(
             Spacer(Modifier.width(4.dp))
             Text("Add discharge window")
         }
+        OutlinedButton(onClick = onImport, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(4.dp))
+            Text("Import battery setup (JSON)")
+        }
     }
 }
 
@@ -1751,7 +1859,8 @@ private fun HwSectionContent(
     onAddSchedule: () -> Unit,
     onRemoveSchedule: (String) -> Unit,
     onUpdateSchedule: (String, (WizardHwScheduleEntry) -> WizardHwScheduleEntry) -> Unit,
-    onUpdateDivert: ((WizardHwDivertEntry) -> WizardHwDivertEntry) -> Unit
+    onUpdateDivert: ((WizardHwDivertEntry) -> WizardHwDivertEntry) -> Unit,
+    onImport: () -> Unit
 ) {
     var systemExpanded by remember { mutableStateOf(false) }
     var expandedScheduleIndex by remember { mutableIntStateOf(-1) }
@@ -1904,6 +2013,12 @@ private fun HwSectionContent(
                 color = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.padding(vertical = 4.dp))
         }
+
+        OutlinedButton(onClick = onImport, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(4.dp))
+            Text("Import hot-water setup (JSON)")
+        }
     }
 }
 
@@ -1921,7 +2036,8 @@ private fun EvSectionContent(
     onUpdate: (String, (WizardEvEntry) -> WizardEvEntry) -> Unit,
     onAddDivert: () -> Unit,
     onRemoveDivert: (String) -> Unit,
-    onUpdateDivert: (String, (WizardEvDivertEntry) -> WizardEvDivertEntry) -> Unit
+    onUpdateDivert: (String, (WizardEvDivertEntry) -> WizardEvDivertEntry) -> Unit,
+    onImport: () -> Unit
 ) {
     var expandedEntryId by remember { mutableStateOf<String?>(null) }
     var expandedDivertId by remember { mutableStateOf<String?>(null) }
@@ -2020,6 +2136,11 @@ private fun EvSectionContent(
             Spacer(Modifier.width(4.dp))
             Text("Add divert window")
         }
+        OutlinedButton(onClick = onImport, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(4.dp))
+            Text("Import EV setup (JSON)")
+        }
     }
 }
 
@@ -2033,7 +2154,8 @@ private fun InverterSectionContent(
     noviceMode: Boolean,
     onAdd: () -> Unit,
     onRemove: (String) -> Unit,
-    onUpdate: (String, (WizardInverterEntry) -> WizardInverterEntry) -> Unit
+    onUpdate: (String, (WizardInverterEntry) -> WizardInverterEntry) -> Unit,
+    onImport: () -> Unit
 ) {
     var expandedEntryId by remember { mutableStateOf<String?>(null) }
 
@@ -2076,10 +2198,17 @@ private fun InverterSectionContent(
             }
         }
 
-        FilledTonalButton(onClick = onAdd, modifier = Modifier.fillMaxWidth()) {
-            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(4.dp))
-            Text("Add inverter")
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            FilledTonalButton(onClick = onAdd, modifier = Modifier.weight(1f)) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Add inverter")
+            }
+            OutlinedButton(onClick = onImport, modifier = Modifier.weight(1f)) {
+                Icon(Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Import JSON")
+            }
         }
     }
 }
@@ -2100,7 +2229,8 @@ private fun PVSystemSectionContent(
     onRemove: (String) -> Unit,
     onUpdate: (String, (WizardPanelEntry) -> WizardPanelEntry) -> Unit,
     onRequestLocation: (String) -> Unit,
-    onCheckPvgisParams: (String, Double, Double, Int, Int) -> Unit = { _, _, _, _, _ -> }
+    onCheckPvgisParams: (String, Double, Double, Int, Int) -> Unit = { _, _, _, _, _ -> },
+    onImport: () -> Unit
 ) {
     var expandedEntryId by remember { mutableStateOf<String?>(null) }
     var advancedTab     by remember { mutableIntStateOf(0) }
@@ -2159,10 +2289,17 @@ private fun PVSystemSectionContent(
             }
         }
 
-        FilledTonalButton(onClick = onAdd, modifier = Modifier.fillMaxWidth()) {
-            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(4.dp))
-            Text("Add panel string")
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            FilledTonalButton(onClick = onAdd, modifier = Modifier.weight(1f)) {
+                Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Add string")
+            }
+            OutlinedButton(onClick = onImport, modifier = Modifier.weight(1f)) {
+                Icon(Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Import JSON")
+            }
         }
     }
 }
@@ -2298,4 +2435,261 @@ private fun WizardFooter(
         }
         }
     }
+}
+
+/**
+ * Per-accordion import sheet. Each [scope] selects the parser and apply
+ * lambda. Every parser also accepts a *whole* [ScenarioJsonFile] paste and
+ * slices the relevant keys — so a single scenario JSON can feed any accordion
+ * one at a time.
+ */
+@Composable
+private fun WizardImportSheet(
+    scope: WizardImportScope,
+    onDismiss: () -> Unit,
+    onApplied: () -> Unit,
+    viewModel: UI2WizardViewModel
+) {
+    when (scope) {
+        WizardImportScope.USAGE -> UI2ImportSheet(
+            title = "Import load profile",
+            hint = "Accepts a load-profile JSON or a whole scenario JSON. " +
+                    "Annual usage and all distributions will be replaced.",
+            parse = ::parseLoadProfileImport,
+            onApply = { viewModel.replaceLoadProfileFromJson(it); onApplied() },
+            onDismiss = onDismiss
+        )
+        WizardImportScope.INVERTERS -> UI2ImportSheet(
+            title = "Import inverters",
+            hint = "Replaces the current inverter list. Accepts an inverter JSON " +
+                    "array or a whole scenario JSON.",
+            parse = ::parseInvertersImport,
+            onApply = { viewModel.replaceInvertersFromJson(it); onApplied() },
+            onDismiss = onDismiss
+        )
+        WizardImportScope.PV -> UI2ImportSheet(
+            title = "Import PV panel strings",
+            hint = "Replaces the current panel-string list. Accepts a panel JSON " +
+                    "array or a whole scenario JSON.",
+            parse = ::parsePanelsImport,
+            onApply = { viewModel.replacePanelsFromJson(it); onApplied() },
+            onDismiss = onDismiss
+        )
+        WizardImportScope.BATTERY -> UI2ImportSheet(
+            title = "Import battery setup",
+            hint = "Replaces batteries, charge and discharge schedules together — " +
+                    "schedules reference inverter and battery names. Accepts a " +
+                    "battery slice or a whole scenario JSON.",
+            parse = ::parseBatteryImport,
+            onApply = {
+                viewModel.replaceBatteryGroupFromJson(it.batteries, it.loadShifts, it.discharges)
+                onApplied()
+            },
+            onDismiss = onDismiss
+        )
+        WizardImportScope.HW -> UI2ImportSheet(
+            title = "Import hot-water setup",
+            hint = "Replaces hot-water system, schedules and divert. Accepts a hot-water " +
+                    "slice or a whole scenario JSON.",
+            parse = ::parseHwImport,
+            onApply = {
+                viewModel.replaceHwGroupFromJson(it.system, it.schedules, it.divert)
+                onApplied()
+            },
+            onDismiss = onDismiss
+        )
+        WizardImportScope.EV -> UI2ImportSheet(
+            title = "Import EV setup",
+            hint = "Replaces EV charge schedules and diverts. Accepts an EV " +
+                    "slice or a whole scenario JSON.",
+            parse = ::parseEvImport,
+            onApply = {
+                viewModel.replaceEvGroupFromJson(it.charges, it.diverts, it.legacyDivert)
+                onApplied()
+            },
+            onDismiss = onDismiss
+        )
+    }
+}
+
+/**
+ * Try to deserialise [text] as either [target] directly, or as a whole
+ * [ScenarioJsonFile] from which [extract] pulls the relevant slice. Returns
+ * null if both attempts fail. Both routes are wrapped in their own
+ * `runCatching` so a JSON shape that decodes into one but not the other still
+ * succeeds.
+ */
+private inline fun <reified Target, R> tryParseSliceOrScenario(
+    text: String,
+    extract: (ScenarioJsonFile) -> R?,
+    decodeTarget: (String) -> Target?,
+    convertTarget: (Target) -> R?
+): R? {
+    runCatching {
+        decodeTarget(text)?.let { convertTarget(it) }
+    }.getOrNull()?.let { return it }
+    runCatching {
+        Gson().fromJson(text, ScenarioJsonFile::class.java)?.let(extract)
+    }.getOrNull()?.let { return it }
+    return null
+}
+
+private fun parseLoadProfileImport(text: String): ParsedPreview<com.tfcode.comparetout.model.json.scenario.LoadProfileJson> = try {
+    val gson = Gson()
+    val lp = tryParseSliceOrScenario(
+        text,
+        extract = { it.loadProfile },
+        decodeTarget = { gson.fromJson(it, com.tfcode.comparetout.model.json.scenario.LoadProfileJson::class.java) },
+        convertTarget = { it.takeIf { lp -> lp.annualUsage != null || lp.hourlyDistribution != null } }
+    )
+    if (lp == null) ParsedPreview.Err("Couldn't find a load profile in the JSON.")
+    else ParsedPreview.Ok(lp,
+        "Parsed load profile · ${lp.annualUsage ?: 0.0} kWh/yr · base ${lp.hourlyBaseLoad ?: 0.0}")
+} catch (e: Throwable) {
+    ParsedPreview.Err(e.message ?: "Parse failed")
+}
+
+private fun parseInvertersImport(text: String): ParsedPreview<List<com.tfcode.comparetout.model.json.scenario.InverterJson>> = try {
+    val gson = Gson()
+    val listType = object : TypeToken<List<com.tfcode.comparetout.model.json.scenario.InverterJson>>() {}.type
+    val raw = tryParseSliceOrScenario(
+        text,
+        extract = { it.inverters?.toList() },
+        decodeTarget = { gson.fromJson<List<com.tfcode.comparetout.model.json.scenario.InverterJson>?>(it, listType) },
+        convertTarget = { it.takeIf { l -> l.isNotEmpty() } }
+    )
+    if (raw.isNullOrEmpty()) ParsedPreview.Err("No inverters found in the JSON.")
+    else ParsedPreview.Ok(raw, "Parsed ${raw.size} inverter${if (raw.size == 1) "" else "s"}")
+} catch (e: Throwable) {
+    ParsedPreview.Err(e.message ?: "Parse failed")
+}
+
+private fun parsePanelsImport(text: String): ParsedPreview<List<com.tfcode.comparetout.model.json.scenario.PanelJson>> = try {
+    val gson = Gson()
+    val listType = object : TypeToken<List<com.tfcode.comparetout.model.json.scenario.PanelJson>>() {}.type
+    val raw = tryParseSliceOrScenario(
+        text,
+        extract = { it.panels?.toList() },
+        decodeTarget = { gson.fromJson<List<com.tfcode.comparetout.model.json.scenario.PanelJson>?>(it, listType) },
+        convertTarget = { it.takeIf { l -> l.isNotEmpty() } }
+    )
+    if (raw.isNullOrEmpty()) ParsedPreview.Err("No PV panel strings found in the JSON.")
+    else ParsedPreview.Ok(raw, "Parsed ${raw.size} panel string${if (raw.size == 1) "" else "s"}")
+} catch (e: Throwable) {
+    ParsedPreview.Err(e.message ?: "Parse failed")
+}
+
+/** Carries the three battery-related lists together since they cross-reference. */
+private data class BatteryImportSlice(
+    val batteries: List<com.tfcode.comparetout.model.json.scenario.BatteryJson>?,
+    val loadShifts: List<com.tfcode.comparetout.model.json.scenario.LoadShiftJson>?,
+    val discharges: List<com.tfcode.comparetout.model.json.scenario.DischargeToGridJson>?
+)
+
+private fun parseBatteryImport(text: String): ParsedPreview<BatteryImportSlice> = try {
+    val scenario = runCatching { Gson().fromJson(text, ScenarioJsonFile::class.java) }.getOrNull()
+    val slice = scenario?.let {
+        BatteryImportSlice(it.batteries?.toList(), it.loadShifts?.toList(), it.dischargeToGrids?.toList())
+    }
+    if (slice == null || (slice.batteries.isNullOrEmpty()
+            && slice.loadShifts.isNullOrEmpty()
+            && slice.discharges.isNullOrEmpty())) {
+        ParsedPreview.Err("No battery setup found in the JSON. " +
+                "Expected a scenario JSON or an object with \"Batteries\"/\"LoadShift\"/\"DischargeToGrid\".")
+    } else {
+        val battCount = slice.batteries?.size ?: 0
+        val shiftCount = slice.loadShifts?.size ?: 0
+        val dischCount = slice.discharges?.size ?: 0
+        ParsedPreview.Ok(slice,
+            "Parsed $battCount batter${if (battCount == 1) "y" else "ies"} · " +
+                "$shiftCount charge · $dischCount discharge schedules")
+    }
+} catch (e: Throwable) {
+    ParsedPreview.Err(e.message ?: "Parse failed")
+}
+
+private data class HwImportSlice(
+    val system: com.tfcode.comparetout.model.json.scenario.HWSystemJson?,
+    val schedules: List<com.tfcode.comparetout.model.json.scenario.HWScheduleJson>?,
+    val divert: com.tfcode.comparetout.model.json.scenario.HWDivertJson?
+)
+
+private fun parseHwImport(text: String): ParsedPreview<HwImportSlice> = try {
+    val scenario = runCatching { Gson().fromJson(text, ScenarioJsonFile::class.java) }.getOrNull()
+    val slice = scenario?.let {
+        HwImportSlice(it.hwSystem, it.hwSchedules?.toList(), it.hwDivert)
+    }
+    if (slice == null || (slice.system == null && slice.schedules.isNullOrEmpty() && slice.divert == null)) {
+        ParsedPreview.Err("No hot-water setup found in the JSON. " +
+                "Expected a scenario JSON or an object with \"HWSystem\"/\"HWSchedule\"/\"HWDivert\".")
+    } else {
+        val schedCount = slice.schedules?.size ?: 0
+        ParsedPreview.Ok(slice,
+            "Parsed " + (if (slice.system != null) "hot-water system · " else "") +
+                "$schedCount schedule${if (schedCount == 1) "" else "s"}" +
+                (if (slice.divert?.active == true) " · divert active" else ""))
+    }
+} catch (e: Throwable) {
+    ParsedPreview.Err(e.message ?: "Parse failed")
+}
+
+private data class EvImportSlice(
+    val charges: List<com.tfcode.comparetout.model.json.scenario.EVChargeJson>?,
+    val diverts: List<com.tfcode.comparetout.model.json.scenario.EVDivertJson>?,
+    val legacyDivert: com.tfcode.comparetout.model.json.scenario.EVDivertJson?
+)
+
+private fun parseEvImport(text: String): ParsedPreview<EvImportSlice> = try {
+    val scenario = runCatching { Gson().fromJson(text, ScenarioJsonFile::class.java) }.getOrNull()
+    val slice = scenario?.let {
+        EvImportSlice(it.evCharges?.toList(), it.evDiverts?.toList(), it.evDivert)
+    }
+    if (slice == null || (slice.charges.isNullOrEmpty() && slice.diverts.isNullOrEmpty() && slice.legacyDivert == null)) {
+        ParsedPreview.Err("No EV setup found in the JSON. " +
+                "Expected a scenario JSON or an object with \"EVCharge\"/\"EVDivert\"/\"EVDiverts\".")
+    } else {
+        val chargeCount = slice.charges?.size ?: 0
+        val divertCount = (slice.diverts?.size ?: 0) + (if (slice.legacyDivert != null) 1 else 0)
+        ParsedPreview.Ok(slice,
+            "Parsed $chargeCount EV schedule${if (chargeCount == 1) "" else "s"} · " +
+                "$divertCount divert${if (divertCount == 1) "" else "s"}")
+    }
+} catch (e: Throwable) {
+    ParsedPreview.Err(e.message ?: "Parse failed")
+}
+
+/**
+ * Parse text that the user pasted (or file content read) into a list of
+ * scenarios. Accepts both the bulk-export shape (`[…]`) and the single-object
+ * shape produced by Phase A's per-scenario Share button (`{…}`). Returns a
+ * [ParsedPreview.Err] for malformed input — the sheet renders it in red.
+ */
+private fun parseScenarioImportJson(text: String): ParsedPreview<List<ScenarioJsonFile>> = try {
+    val gson = Gson()
+    val trimmed = text.trimStart()
+    val raw: List<ScenarioJsonFile>? = if (trimmed.startsWith("[")) {
+        val type = object : TypeToken<List<ScenarioJsonFile>>() {}.type
+        gson.fromJson<List<ScenarioJsonFile>?>(text, type)
+    } else {
+        gson.fromJson(text, ScenarioJsonFile::class.java)?.let { listOf(it) }
+    }
+    val valid = (raw ?: emptyList()).filter { !it.name.isNullOrBlank() }
+    if (valid.isEmpty()) ParsedPreview.Err("No scenarios found in the JSON.")
+    else ParsedPreview.Ok(
+        valid,
+        when (valid.size) {
+            1 -> {
+                val s = valid.first()
+                val inv = s.inverters?.size ?: 0
+                val panel = s.panels?.size ?: 0
+                val batt = s.batteries?.size ?: 0
+                "Parsed \"${s.name}\" · $inv inverters · $panel panels · $batt batteries"
+            }
+            else -> "Parsed ${valid.size} scenarios — you'll pick one to load"
+        }
+    )
+} catch (e: JsonSyntaxException) {
+    ParsedPreview.Err(e.message ?: "Malformed JSON")
+} catch (e: Throwable) {
+    ParsedPreview.Err(e.message ?: "Parse failed")
 }

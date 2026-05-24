@@ -41,7 +41,7 @@
             android:exported="false"
             android:theme="@style/Theme.comparetout.UI2" />
         <activity
-            android:name=".ui2.UI2BackupExportActivity"
+            android:name=".ui2.UI2ImportExportActivity"
             android:exported="false"
             android:theme="@style/Theme.comparetout.UI2" />
         <activity

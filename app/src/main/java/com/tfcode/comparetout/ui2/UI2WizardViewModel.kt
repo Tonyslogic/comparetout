@@ -34,6 +34,8 @@ import com.tfcode.comparetout.model.scenario.MonthHolder
 import com.tfcode.comparetout.model.scenario.MonthlyDist
 import com.tfcode.comparetout.model.scenario.Scenario
 import com.tfcode.comparetout.model.scenario.ScenarioComponents
+import com.tfcode.comparetout.model.json.JsonTools
+import com.tfcode.comparetout.model.json.scenario.ScenarioJsonFile
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -45,7 +47,7 @@ import java.util.ArrayList
 import java.util.UUID
 import javax.inject.Inject
 
-enum class ScenarioMode { NEW, COPY, LINK }
+enum class ScenarioMode { NEW, COPY, LINK, IMPORT }
 enum class LoadSource { SOURCE, SLP, COPY_PROFILE, HAND, LINKED }
 
 data class SourceDateRange(
@@ -692,8 +694,54 @@ class UI2WizardViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Load a parsed [ScenarioJsonFile] into the builder for IMPORT mode (no DB
+     * write). The JSON is converted to the same [ScenarioComponents] shape the
+     * COPY/LINK paths consume so the rest of the wizard is none the wiser.
+     *
+     * `basedOnId = 0` marks the builder as having no parent scenario — Save
+     * will create a fresh row, identical in semantics to a COPY of a deleted
+     * source. If the imported file has the same name as an existing scenario
+     * the user-typed `scenarioName` is appended with " (imported)" so we never
+     * silently clobber.
+     */
+    fun loadFromJson(file: ScenarioJsonFile) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _isLoading.value = true
+            val components = runCatching {
+                JsonTools.createScenarioComponentList(arrayListOf(file))
+            }.getOrNull()?.firstOrNull()
+            if (components != null) {
+                val prevName = _builder.value.scenarioName
+                applyComponentsToBuilder(components, fromId = 0L, isLinked = false, keepName = false)
+                // Keep IMPORT in the mode chip; preserve any name the user
+                // already typed (mirrors COPY's prevName handling).
+                val name = if (prevName.isNotBlank()) prevName else _builder.value.scenarioName
+                _builder.value = _builder.value.copy(
+                    scenarioMode = ScenarioMode.IMPORT,
+                    scenarioName = name
+                )
+            }
+            _isLoading.value = false
+        }
+    }
+
     private fun populateBuilderFrom(fromId: Long, isLinked: Boolean, keepName: Boolean) {
         val c = repository.getScenarioComponentsForScenarioID(fromId)
+        applyComponentsToBuilder(c, fromId, isLinked, keepName)
+    }
+
+    /**
+     * Shared between [populateBuilderFrom] (DB-sourced) and [loadFromJson]
+     * (JSON-sourced). Pulls every component list off the [c] bundle and maps
+     * it into Wizard*Entry rows.
+     */
+    private fun applyComponentsToBuilder(
+        c: ScenarioComponents,
+        fromId: Long,
+        isLinked: Boolean,
+        keepName: Boolean
+    ) {
         val lp = c.loadProfile
         val name = if (keepName) _builder.value.scenarioName
         else c.scenario?.scenarioName ?: ""
@@ -743,6 +791,112 @@ class UI2WizardViewModel @Inject constructor(
 
     fun updateBuilder(transform: (WizardBuilder) -> WizardBuilder) {
         _builder.value = transform(_builder.value)
+    }
+
+    // ── per-accordion JSON import (Phase D3) ────────────────────────────────
+    //
+    // Each setter is the inverse of the per-section export the user can do
+    // from a saved scenario — replace the in-progress draft slice with the
+    // contents of a parsed JSON fragment. None of these write to the DB; the
+    // user is still inside the wizard and Save handles persistence.
+
+    fun replaceLoadProfileFromJson(json: com.tfcode.comparetout.model.json.scenario.LoadProfileJson) {
+        // createLoadProfile NPEs if dayOfWeekDistribution or monthlyDistribution
+        // is missing; guard runCatching mirrors the legacy importers' tolerance
+        // of partial JSON.
+        val lp = runCatching { JsonTools.createLoadProfile(json) }.getOrNull() ?: return
+        updateBuilder { b ->
+            b.copy(
+                annualUsage = lp.annualUsage?.toString() ?: b.annualUsage,
+                hourlyBaseLoad = lp.hourlyBaseLoad?.toString() ?: b.hourlyBaseLoad,
+                gridImportMax = lp.gridImportMax?.toString() ?: b.gridImportMax,
+                gridExportMax = lp.gridExportMax?.toString() ?: b.gridExportMax,
+                loadProfileHourly = lp.hourlyDist?.dist ?: b.loadProfileHourly,
+                loadProfileDaily = lp.dowDist?.dowDist ?: b.loadProfileDaily,
+                loadProfileMonthly = lp.monthlyDist?.monthlyDist ?: b.loadProfileMonthly,
+                distributionSource = lp.distributionSource ?: ""
+            )
+        }
+    }
+
+    fun replaceInvertersFromJson(
+        list: List<com.tfcode.comparetout.model.json.scenario.InverterJson>
+    ) {
+        val domain = JsonTools.createInverterList(ArrayList(list))
+        updateBuilder { b ->
+            b.copy(inverterEntries = domain.map { it.toWizardInverterEntry() })
+        }
+    }
+
+    fun replacePanelsFromJson(
+        list: List<com.tfcode.comparetout.model.json.scenario.PanelJson>
+    ) {
+        val domain = JsonTools.createPanelList(ArrayList(list))
+        updateBuilder { b ->
+            b.copy(panelEntries = domain.map { it.toWizardPanelEntry() })
+        }
+    }
+
+    /**
+     * Battery import is compound: the three cross-referencing draft slices
+     * (batteries, charge schedules, discharge schedules) are replaced together
+     * because the schedules reference battery/inverter names. Passing only one
+     * of them would leave dangling references.
+     */
+    fun replaceBatteryGroupFromJson(
+        batteries: List<com.tfcode.comparetout.model.json.scenario.BatteryJson>?,
+        loadShifts: List<com.tfcode.comparetout.model.json.scenario.LoadShiftJson>?,
+        discharges: List<com.tfcode.comparetout.model.json.scenario.DischargeToGridJson>?
+    ) {
+        val battDomain = JsonTools.createBatteryList(ArrayList(batteries ?: emptyList()))
+        val shiftDomain = JsonTools.createLoadShiftList(ArrayList(loadShifts ?: emptyList()))
+        val dischDomain = JsonTools.createDischargeList(ArrayList(discharges ?: emptyList()))
+        updateBuilder { b ->
+            b.copy(
+                batteryEntries = battDomain.map { it.toWizardBatteryEntry() },
+                batteryChargeEntries = shiftDomain.map { it.toWizardBatteryChargeEntry() },
+                batteryDischargeEntries = dischDomain.map { it.toWizardBatteryDischargeEntry() }
+            )
+        }
+    }
+
+    fun replaceHwGroupFromJson(
+        system: com.tfcode.comparetout.model.json.scenario.HWSystemJson?,
+        schedules: List<com.tfcode.comparetout.model.json.scenario.HWScheduleJson>?,
+        divert: com.tfcode.comparetout.model.json.scenario.HWDivertJson?
+    ) {
+        val systemDomain = system?.let { JsonTools.createHWSystem(it) }
+        val schedDomain = JsonTools.createHWScheduleList(ArrayList(schedules ?: emptyList()))
+        val divertDomain = divert?.let { JsonTools.createHWDivert(it) }
+        updateBuilder { b ->
+            b.copy(
+                hwSystem = systemDomain?.toWizardHwSystemEntry(),
+                hwSchedules = schedDomain
+                    .distinctBy { it.hwScheduleIndex }
+                    .map { it.toWizardHwScheduleEntry() },
+                hwDivert = divertDomain?.toWizardHwDivertEntry() ?: WizardHwDivertEntry()
+            )
+        }
+    }
+
+    fun replaceEvGroupFromJson(
+        charges: List<com.tfcode.comparetout.model.json.scenario.EVChargeJson>?,
+        diverts: List<com.tfcode.comparetout.model.json.scenario.EVDivertJson>?,
+        legacyDivert: com.tfcode.comparetout.model.json.scenario.EVDivertJson?
+    ) {
+        val chargeDomain = JsonTools.createEVChargeList(ArrayList(charges ?: emptyList()))
+        // EVDivertList accepts both the new list shape ("EVDiverts") and the
+        // legacy single-object shape ("EVDivert") — same as legacy imports.
+        val divertDomain = JsonTools.createEVDivertList(
+            ArrayList(diverts ?: emptyList()),
+            legacyDivert
+        )
+        updateBuilder { b ->
+            b.copy(
+                evEntries = chargeDomain.map { it.toWizardEvEntry() },
+                evDivertEntries = divertDomain.map { it.toWizardEvDivertEntry() }
+            )
+        }
     }
 
     fun addEvEntry() = updateBuilder { it.copy(evEntries = it.evEntries + WizardEvEntry()) }

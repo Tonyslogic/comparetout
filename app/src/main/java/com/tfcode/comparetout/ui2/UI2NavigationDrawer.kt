@@ -110,10 +110,10 @@ fun UI2DrawerContent(
             context.startActivity(
                 android.content.Intent(context, UI2DataSourceManagementActivity::class.java))
         }
-        UI2DrawerItem(R.drawable.ic_baseline_download_24,     "Backup & Export") {
+        UI2DrawerItem(R.drawable.ic_baseline_download_24,     "Import / Export") {
             onClose()
             context.startActivity(
-                android.content.Intent(context, UI2BackupExportActivity::class.java))
+                android.content.Intent(context, UI2ImportExportActivity::class.java))
         }
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
         // Preferences — global formatting choices.
