@@ -621,7 +621,9 @@ class UI2DashboardViewModel @Inject constructor(
             }
             is ActiveDashboardItem.Simulation -> withContext(Dispatchers.IO) {
                 val r = repository.getSimDateRanges(item.id.toString()) ?: return@withContext null
-                LocalDate.parse(r.startDate, FMT) to LocalDate.parse(r.finishDate, FMT)
+                val s = r.startDate ?: return@withContext null
+                val f = r.finishDate ?: return@withContext null
+                runCatching { LocalDate.parse(s, FMT) to LocalDate.parse(f, FMT) }.getOrNull()
             }
         }
     }
