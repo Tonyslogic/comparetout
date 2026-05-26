@@ -861,10 +861,47 @@ private fun DisplaySection(state: CompareState, vm: UI2CompareViewModel, novice:
             }
         }
     }
+    // X-axis granularity matters for line/area always, and for bar when the
+    // bucketed renderer kicks in (single subject, or merged with ≤2 series).
+    if (state.mode == CompareMode.LINE || state.mode == CompareMode.AREA || state.mode == CompareMode.BAR) {
+        SmallCaps("Axis (x)")
+        val scales = listOf(CompareAxisScale.AUTO) + CompareAxisScale.CONCRETE
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            scales.forEach { sc ->
+                val active = state.displayScale == sc
+                Surface(
+                    color = if (active) MaterialTheme.colorScheme.primaryContainer
+                            else MaterialTheme.colorScheme.surface,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.weight(1f)
+                        .then(if (active) Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp)) else Modifier)
+                        .clickable { vm.update { it.copy(displayScale = sc) } }
+                ) {
+                    Box(Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center) {
+                        Text(sc.short,
+                            style = MaterialTheme.typography.bodySmall,
+                            maxLines = 1,
+                            color = if (active) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurface)
+                    }
+                }
+            }
+        }
+    }
     HelpText(
         when {
             state.mode == CompareMode.TABLE -> "Tap a column header to sort. Tap again to reverse."
             state.mode == CompareMode.PIE -> "Pie is always small-multiples — one pie per subject."
+            (state.mode == CompareMode.LINE || state.mode == CompareMode.AREA) &&
+                state.displayScale == CompareAxisScale.AUTO ->
+                "Axis granularity picked from each subject's timeframe — short ranges get Day, long ranges get Month or Year."
+            state.mode == CompareMode.LINE || state.mode == CompareMode.AREA ->
+                "Each subject's chart uses the chosen ${state.displayScale.label.lowercase()} buckets."
+            state.mode == CompareMode.BAR && state.displayScale == CompareAxisScale.AUTO ->
+                "Bar axis: bucketed when split, or merged with ≤ 2 series; otherwise one bar per subject (totals)."
+            state.mode == CompareMode.BAR ->
+                "Bar in ${state.displayScale.label.lowercase()} buckets when split, or merged with ≤ 2 series; otherwise totals."
             state.layout == CompareLayout.SPLIT -> "Each subject gets its own chart."
             else -> "All subjects share one chart for direct comparison."
         },
@@ -1641,7 +1678,10 @@ private fun granWord(gran: DataSourcePeriod, anchor: LocalDate) = when (gran) {
 
 private fun displaySubtitle(s: CompareState): String {
     val layoutable = s.mode in listOf(CompareMode.BAR, CompareMode.STACK, CompareMode.LINE, CompareMode.AREA)
-    return s.mode.label + if (layoutable) " · ${if (s.layout == CompareLayout.MERGED) "merged" else "split"}" else ""
+    val axisable = s.mode == CompareMode.LINE || s.mode == CompareMode.AREA || s.mode == CompareMode.BAR
+    return s.mode.label +
+        (if (layoutable) " · ${if (s.layout == CompareLayout.MERGED) "merged" else "split"}" else "") +
+        (if (axisable) " · axis ${s.displayScale.label.lowercase()}" else "")
 }
 
 private fun isConfigReady(s: CompareState, vm: UI2CompareViewModel): Boolean {
@@ -1685,7 +1725,8 @@ private fun costData(rows: List<CompareCostRow>): List<ChartDatum> = rows.map { 
         shortLabel = costAxisLabel(r),                  // two-line axis label
         values = mapOf("net" to r.net, "buy" to r.buy, "sell" to r.sell,
             "bonus" to r.bonus, "fixed" to r.fixed),
-        monthly = mapOf("net" to r.monthlyNet)
+        axisLabels = r.timeline.axisLabels,
+        seriesValues = r.timeline.seriesValues          // keyed "net" only
     )
 }
 
@@ -1731,7 +1772,8 @@ private fun usageData(rows: List<CompareUsageRow>): List<ChartDatum> = rows.map 
         shortLabel = shorten(r.subjectName),
         values = mapOf("load" to r.load, "buy" to r.buy, "feed" to r.feed, "pv" to r.pv,
             "pv2load" to r.pv2load, "bat2load" to r.bat2load, "grid2bat" to r.grid2bat),
-        monthly = r.monthly
+        axisLabels = r.timeline.axisLabels,
+        seriesValues = r.timeline.seriesValues
     )
 }
 

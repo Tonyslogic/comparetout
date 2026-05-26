@@ -37,6 +37,33 @@ import javax.inject.Inject
 private const val COMPARE_STATE_KEY = "ui2_compare_state"
 private const val NOVICE_MODE_KEY = "wizard_novice_mode"   // shared app-wide novice flag
 
+/**
+ * Granularity of the x-axis for line/area charts. AUTO derives a concrete scale
+ * from the chosen timeframe span at compute time. The legacy "always 12 months"
+ * behaviour corresponds to MONTH.
+ */
+enum class CompareAxisScale(val short: String, val label: String) {
+    AUTO("Auto",  "Auto"),
+    HOUR("Hr",    "Hour"),
+    DAY("Day",    "Day"),
+    DOW("DoW",    "Day of week"),
+    MONTH("Mo",   "Month"),
+    YEAR("Yr",    "Year");
+
+    companion object {
+        /** Concrete scales (excludes AUTO) — for the picker chip row. */
+        val CONCRETE = listOf(HOUR, DAY, DOW, MONTH, YEAR)
+
+        /** Resolve AUTO to a concrete scale given the timeframe span. */
+        fun resolveAuto(daysInclusive: Long): CompareAxisScale = when {
+            daysInclusive <= 2          -> HOUR
+            daysInclusive <= 45         -> DAY
+            daysInclusive <= 24L * 30   -> MONTH
+            else                        -> YEAR
+        }
+    }
+}
+
 // ──────────────────────────────────────────────────────────────────────────
 // The Compare tab — compares "subjects" (real data sources and/or saved
 // simulations) priced against supplier plans, over a chosen timeframe.
@@ -102,8 +129,23 @@ data class CompareState(
     val perSubjectRanges: Map<String, SubjectRange> = emptyMap(),  // subjectId → range (un-synced)
     // display
     val mode: CompareMode = CompareMode.TABLE,
-    val layout: CompareLayout = CompareLayout.MERGED
+    val layout: CompareLayout = CompareLayout.MERGED,
+    val displayScale: CompareAxisScale = CompareAxisScale.AUTO
 )
+
+/**
+ * Bucketed time series for line/area charts — N axis labels paired with one or
+ * more series of N values each. Pre-G2 the only bucketing is calendar months
+ * (12 buckets, Jan..Dec). G2 generalises this to Hour/Day/Week/Month/Year.
+ */
+data class BucketSeries(
+    val axisLabels: List<String>,
+    val seriesValues: Map<String, List<Double>>
+) {
+    companion object {
+        val EMPTY = BucketSeries(emptyList(), emptyMap())
+    }
+}
 
 /** One priced (subject × plan) result. Money values are in euro. */
 data class CompareCostRow(
@@ -120,7 +162,7 @@ data class CompareCostRow(
     val bonus: Double,
     val buyBands: List<Double>,        // buy cost split by tariff rate band (euro, cheapest first)
     val buyBandRates: List<Double>,    // the c/kWh rate for each band (same length & order as buyBands)
-    val monthlyNet: List<Double>       // 12 values, for line/area
+    val timeline: BucketSeries         // bucketed net costs for line/area (series id "net")
 )
 
 /** One subject's energy totals over the timeframe. kWh values. */
@@ -135,7 +177,7 @@ data class CompareUsageRow(
     val pv2load: Double,
     val bat2load: Double,
     val grid2bat: Double,
-    val monthly: Map<String, List<Double>>   // series id → 12 monthly values
+    val timeline: BucketSeries         // bucketed usage for line/area (one series per metric id)
 )
 
 data class CompareResults(
@@ -195,6 +237,9 @@ class UI2CompareViewModel @Inject constructor(
             "load" to "Load", "buy" to "Buy", "feed" to "Feed", "pv" to "PV",
             "pv2load" to "PV → Load", "bat2load" to "Battery → Load",
             "grid2bat" to "Grid → Battery"
+        )
+        val MONTH_LABELS = listOf(
+            "Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"
         )
     }
 
@@ -534,7 +579,8 @@ class UI2CompareViewModel @Inject constructor(
         // the cache.
         s.sources, s.sims, s.plans.sorted(),
         s.advanced, s.sync, s.globalGran, s.globalAnchor,
-        s.perSubjectRanges.toSortedMap().toString()
+        s.perSubjectRanges.toSortedMap().toString(),
+        s.displayScale
     ).joinToString("|")
 
     private fun recompute(s: CompareState) {
@@ -577,14 +623,23 @@ class UI2CompareViewModel @Inject constructor(
         for (slot in srcSlots) {
             val src = sourcesByKey[slot.sysSn] ?: continue
             val (gran, anchor) = resolveRange(s, slot.subjectId) ?: continue
-            if (wantUsage) usageRows += sourceUsage(src, gran, anchor, s.advanced, slot.subjectId, slot.displayName)
-            if (wantCost)  costRows  += sourceCosts(src, gran, anchor, s.advanced, plans, slot.subjectId, slot.displayName)
+            // Resolve the chart axis scale per subject — AUTO picks from this
+            // subject's own timeframe so two subjects with different ranges can
+            // legitimately get different scales (e.g. 2 months → Day, 3 yrs → Month).
+            val scale = if (s.displayScale == CompareAxisScale.AUTO)
+                CompareAxisScale.resolveAuto(subjectSpanDays(src, gran, anchor, s.advanced))
+            else s.displayScale
+            if (wantUsage) usageRows += sourceUsage(src, gran, anchor, s.advanced, scale, slot.subjectId, slot.displayName)
+            if (wantCost)  costRows  += sourceCosts(src, gran, anchor, s.advanced, scale, plans, slot.subjectId, slot.displayName)
         }
         for (slot in simSlots) {
             val sim = simsByKey[slot.scenarioId] ?: continue
             val (gran, anchor) = resolveRange(s, slot.subjectId) ?: continue
-            if (wantUsage) usageRows += simUsage(sim, gran, anchor, s.advanced, slot.subjectId, slot.displayName)
-            if (wantCost)  costRows  += simCosts(sim, plans, slot.subjectId, slot.displayName)
+            val scale = if (s.displayScale == CompareAxisScale.AUTO)
+                CompareAxisScale.resolveAuto(simSpanDays(sim, gran, anchor, s.advanced))
+            else s.displayScale
+            if (wantUsage) usageRows += simUsage(sim, gran, anchor, s.advanced, scale, slot.subjectId, slot.displayName)
+            if (wantCost)  costRows  += simCosts(sim, gran, anchor, s.advanced, scale, plans, slot.subjectId, slot.displayName)
         }
         return CompareResults(cost = costRows.sortedBy { it.net }, usage = usageRows)
     }
@@ -600,6 +655,27 @@ class UI2CompareViewModel @Inject constructor(
                to.coerceIn(dataStart, dataEnd).format(dateFmt)
     }
 
+    /** Inclusive span in days for a subject's resolved timeframe — fuel for AUTO. */
+    private fun subjectSpanDays(
+        src: CompareSourceItem, gran: DataSourcePeriod, anchor: LocalDate, advanced: Boolean
+    ): Long {
+        val (from, to) = dateRange(gran, anchor, advanced, src.startDate, src.finishDate)
+        return parseOr(to, LocalDate.now()).toEpochDay() -
+               parseOr(from, LocalDate.now()).toEpochDay() + 1
+    }
+
+    private fun simSpanDays(
+        sim: CompareSimItem, gran: DataSourcePeriod, anchor: LocalDate, advanced: Boolean
+    ): Long {
+        val dr = repository.getSimDateRanges(sim.scenarioId.toString())
+        val (from, to) = dateRange(
+            gran, anchor, advanced,
+            dr?.startDate ?: "2001-01-01", dr?.finishDate ?: "2001-12-31"
+        )
+        return parseOr(to, LocalDate.now()).toEpochDay() -
+               parseOr(from, LocalDate.now()).toEpochDay() + 1
+    }
+
     private fun parseOr(s: String, fallback: LocalDate): LocalDate =
         runCatching { LocalDate.parse(s, dateFmt) }.getOrDefault(fallback)
 
@@ -607,11 +683,13 @@ class UI2CompareViewModel @Inject constructor(
 
     private fun sourceUsage(
         src: CompareSourceItem, gran: DataSourcePeriod, anchor: LocalDate, advanced: Boolean,
+        scale: CompareAxisScale,
         subjectId: String, subjectName: String
     ): CompareUsageRow {
         val (from, to) = dateRange(gran, anchor, advanced, src.startDate, src.finishDate)
+        // Totals always come from DOY (one row per day) — independent of axis scale.
         val rows = repository.getSumDOY(src.sysSn, from, to)
-        val monthlyRows = repository.getSumMonth(src.sysSn, from, to)
+        val tlRows = fetchSourceTimelineRows(src.sysSn, from, to, scale)
         return CompareUsageRow(
             subjectId = subjectId,
             subjectName = subjectName,
@@ -623,23 +701,27 @@ class UI2CompareViewModel @Inject constructor(
             pv2load = rows.sumOf { it.pv2load },
             bat2load = rows.sumOf { it.bat2load },
             grid2bat = rows.sumOf { it.grid2bat },
-            monthly = monthlyBuckets(monthlyRows)
+            timeline = bucketize(tlRows, scale)
         )
     }
 
     private fun sourceCosts(
         src: CompareSourceItem, gran: DataSourcePeriod, anchor: LocalDate, advanced: Boolean,
+        scale: CompareAxisScale,
         plans: List<PricePlan>, subjectId: String, subjectName: String
     ): List<CompareCostRow> {
         val (from, to) = dateRange(gran, anchor, advanced, src.startDate, src.finishDate)
         val hourly = repository.getSelectedAlphaESSData(src.sysSn, from, to)
-        val days = parseOr(to, LocalDate.now()).toEpochDay() - parseOr(from, LocalDate.now()).toEpochDay() + 1
+        val fromD = parseOr(from, LocalDate.now())
+        val toD = parseOr(to, LocalDate.now())
+        val days = toD.toEpochDay() - fromD.toEpochDay() + 1
+        val axis = costBucketAxis(scale, fromD, toD)
         return plans.map { plan ->
             val dayRates = repository.getAllDayRatesForPricePlanID(plan.pricePlanIndex)
             val lookup = RateLookup(plan, dayRates)
-            lookup.setStartDOY(parseOr(from, LocalDate.now()).dayOfYear)
+            lookup.setStartDOY(fromD.dayOfYear)
             var buy = 0.0; var sell = 0.0
-            val monthly = DoubleArray(12)
+            val bucketed = DoubleArray(axis.labels.size.coerceAtLeast(1))
             val subTotals = SubTotals()
             hourly.forEach { row ->
                 val ldt = LocalDateTime.parse(row.dateTime, rowFmt)
@@ -649,7 +731,8 @@ class UI2CompareViewModel @Inject constructor(
                 val rowSell = plan.feed * row.feed
                 buy += rowBuy
                 sell += rowSell
-                monthly[ldt.monthValue - 1] += (rowBuy - rowSell) / 100.0
+                val idx = axis.indexOf(ldt)
+                if (idx in bucketed.indices) bucketed[idx] += (rowBuy - rowSell) / 100.0
                 subTotals.addToPrice(price, row.buy)
             }
             // buy cost split by tariff rate band: price × kWh-at-that-price.
@@ -659,8 +742,10 @@ class UI2CompareViewModel @Inject constructor(
             val buyBands = sortedRates
                 .map { p -> p * (subTotals.getSubTotalForPrice(p) ?: 0.0) / 100.0 }
             val fixed = plan.standingCharges * (days / 365.0)
-            val coveredMonths = monthly.count { it != 0.0 }.coerceAtLeast(1)
-            for (i in monthly.indices) if (monthly[i] != 0.0) monthly[i] += fixed / coveredMonths
+            // Spread the fixed charge across the buckets that actually hold variable
+            // cost, so the line doesn't show a flat artificial offset in empty buckets.
+            val coveredBuckets = bucketed.count { it != 0.0 }.coerceAtLeast(1)
+            for (i in bucketed.indices) if (bucketed[i] != 0.0) bucketed[i] += fixed / coveredBuckets
             val net = (buy - sell) / 100.0 + fixed
             CompareCostRow(
                 subjectId = subjectId,
@@ -676,7 +761,7 @@ class UI2CompareViewModel @Inject constructor(
                 bonus = plan.signUpBonus,
                 buyBands = buyBands.ifEmpty { listOf(buy / 100.0) },
                 buyBandRates = sortedRates.ifEmpty { emptyList() },
-                monthlyNet = monthly.toList()
+                timeline = BucketSeries(axis.labels, mapOf("net" to bucketed.toList()))
             )
         }
     }
@@ -685,6 +770,7 @@ class UI2CompareViewModel @Inject constructor(
 
     private fun simUsage(
         sim: CompareSimItem, gran: DataSourcePeriod, anchor: LocalDate, advanced: Boolean,
+        scale: CompareAxisScale,
         subjectId: String, subjectName: String
     ): CompareUsageRow {
         val dr = repository.getSimDateRanges(sim.scenarioId.toString())
@@ -693,7 +779,7 @@ class UI2CompareViewModel @Inject constructor(
             dr?.startDate ?: "2001-01-01", dr?.finishDate ?: "2001-12-31"
         )
         val rows = repository.getSimSumDOY(sim.scenarioId.toString(), from, to)
-        val monthlyRows = repository.getSimSumMonth(sim.scenarioId.toString(), from, to)
+        val tlRows = fetchSimTimelineRows(sim.scenarioId.toString(), from, to, scale)
         return CompareUsageRow(
             subjectId = subjectId,
             subjectName = subjectName,
@@ -705,15 +791,25 @@ class UI2CompareViewModel @Inject constructor(
             pv2load = rows.sumOf { it.pv2load },
             bat2load = rows.sumOf { it.bat2load },
             grid2bat = rows.sumOf { it.grid2bat },
-            monthly = monthlyBuckets(monthlyRows)
+            timeline = bucketize(tlRows, scale)
         )
     }
 
     private fun simCosts(
-        sim: CompareSimItem, plans: List<PricePlan>,
-        subjectId: String, subjectName: String
+        sim: CompareSimItem, gran: DataSourcePeriod, anchor: LocalDate, advanced: Boolean,
+        scale: CompareAxisScale,
+        plans: List<PricePlan>, subjectId: String, subjectName: String
     ): List<CompareCostRow> {
         // Simulations carry pre-computed annual costings (CostingWorker output).
+        // The chart timeline is a smear (no per-bucket sim repricing yet) across
+        // however many buckets the chosen axis scale has for this timeframe.
+        val dr = repository.getSimDateRanges(sim.scenarioId.toString())
+        val (from, to) = dateRange(
+            gran, anchor, advanced,
+            dr?.startDate ?: "2001-01-01", dr?.finishDate ?: "2001-12-31"
+        )
+        val axis = costBucketAxis(scale, parseOr(from, LocalDate.now()), parseOr(to, LocalDate.now()))
+        val n = axis.labels.size.coerceAtLeast(1)
         val costings = repository.getAllCostingsForScenario(sim.scenarioId)
         return plans.map { plan ->
             val c = costings.firstOrNull { it.pricePlanID == plan.pricePlanIndex }
@@ -740,28 +836,179 @@ class UI2CompareViewModel @Inject constructor(
                 bonus = plan.signUpBonus,
                 buyBands = buyBands,
                 buyBandRates = sortedRates,
-                monthlyNet = List(12) { net / 12.0 }
+                timeline = BucketSeries(axis.labels, mapOf("net" to List(n) { net / n }))
             )
         }
     }
 
-    /** Bucket "yyyyMM" interval rows into 12 calendar-month slots. */
-    private fun monthlyBuckets(
-        rows: List<com.tfcode.comparetout.model.importers.IntervalRow>
-    ): Map<String, List<Double>> {
-        val load = DoubleArray(12); val buy = DoubleArray(12)
-        val feed = DoubleArray(12); val pv = DoubleArray(12)
+    // ── bucketing helpers ───────────────────────────────────────────────────
+
+    /**
+     * One bucket axis for the cost (client-aggregated, walks hourly rows).
+     * [labels] is the human-readable list shown on the chart; [indexOf] maps a
+     * LocalDateTime to a bucket index or -1 if out of range.
+     */
+    private data class CostBucketAxis(
+        val labels: List<String>,
+        val indexOf: (LocalDateTime) -> Int
+    )
+
+    private val DOW_LABELS = listOf("Sun","Mon","Tue","Wed","Thu","Fri","Sat")
+
+    private fun costBucketAxis(
+        scale: CompareAxisScale, from: LocalDate, to: LocalDate
+    ): CostBucketAxis = when (scale) {
+        // AUTO must be resolved upstream; fall back to MONTH defensively.
+        CompareAxisScale.AUTO  -> costBucketAxis(CompareAxisScale.MONTH, from, to)
+        CompareAxisScale.HOUR  -> CostBucketAxis(
+            labels  = (0..23).map { "%02d".format(it) },
+            indexOf = { ldt -> ldt.hour }
+        )
+        CompareAxisScale.DAY   -> {
+            val days = mutableListOf<LocalDate>()
+            var d = from; while (!d.isAfter(to)) { days += d; d = d.plusDays(1) }
+            val keyToIdx = days.withIndex().associate { (i, dt) -> dt to i }
+            val dayFmt = DateTimeFormatter.ofPattern("MMM d")
+            CostBucketAxis(
+                labels  = days.map { it.format(dayFmt) },
+                indexOf = { ldt -> keyToIdx[ldt.toLocalDate()] ?: -1 }
+            )
+        }
+        CompareAxisScale.DOW   -> CostBucketAxis(
+            labels  = DOW_LABELS,
+            indexOf = { ldt -> ldt.dayOfWeek.value.let { if (it == 7) 0 else it } }
+        )
+        CompareAxisScale.MONTH -> {
+            val months = mutableListOf<java.time.YearMonth>()
+            var m = java.time.YearMonth.from(from); val endM = java.time.YearMonth.from(to)
+            while (!m.isAfter(endM)) { months += m; m = m.plusMonths(1) }
+            val keyToIdx = months.withIndex().associate { (i, mm) -> mm to i }
+            CostBucketAxis(
+                labels  = months.map { "${MONTH_LABELS[it.monthValue - 1]} ${"%02d".format(it.year % 100)}" },
+                indexOf = { ldt -> keyToIdx[java.time.YearMonth.from(ldt)] ?: -1 }
+            )
+        }
+        CompareAxisScale.YEAR  -> {
+            val years = (from.year..to.year).toList()
+            val keyToIdx = years.withIndex().associate { (i, y) -> y to i }
+            CostBucketAxis(
+                labels  = years.map { it.toString() },
+                indexOf = { ldt -> keyToIdx[ldt.year] ?: -1 }
+            )
+        }
+    }
+
+    /** Pick the right DAO method for the source-usage timeline at [scale]. */
+    private fun fetchSourceTimelineRows(
+        sysSn: String, from: String, to: String, scale: CompareAxisScale
+    ): List<com.tfcode.comparetout.model.importers.IntervalRow> = when (scale) {
+        CompareAxisScale.AUTO  -> repository.getSumMonth(sysSn, from, to)
+        CompareAxisScale.HOUR  -> repository.getSumHour(sysSn, from, to)
+        CompareAxisScale.DAY   -> repository.getSumDOY(sysSn, from, to)
+        CompareAxisScale.DOW   -> repository.getSumDOW(sysSn, from, to)
+        CompareAxisScale.MONTH -> repository.getSumMonth(sysSn, from, to)
+        CompareAxisScale.YEAR  -> repository.getSumYear(sysSn, from, to)
+    }
+
+    private fun fetchSimTimelineRows(
+        idStr: String, from: String, to: String, scale: CompareAxisScale
+    ): List<com.tfcode.comparetout.model.importers.IntervalRow> = when (scale) {
+        CompareAxisScale.AUTO  -> repository.getSimSumMonth(idStr, from, to)
+        CompareAxisScale.HOUR  -> repository.getSimSumHour(idStr, from, to)
+        CompareAxisScale.DAY   -> repository.getSimSumDOY(idStr, from, to)
+        CompareAxisScale.DOW   -> repository.getSimSumDOW(idStr, from, to)
+        CompareAxisScale.MONTH -> repository.getSimSumMonth(idStr, from, to)
+        CompareAxisScale.YEAR  -> repository.getSimSumYear(idStr, from, to)
+    }
+
+    /**
+     * Build a BucketSeries from already-grouped IntervalRow data. The DAO has
+     * varied the `interval` column's shape per scale (HOUR: 0..23, DAY: DOY
+     * 1..366, DOW: 0..6, MONTH: "yyyyMM", YEAR: "yyyy"); this folds those into
+     * a uniform (axisLabels, seriesValues) pair.
+     */
+    private fun bucketize(
+        rows: List<com.tfcode.comparetout.model.importers.IntervalRow>,
+        scale: CompareAxisScale
+    ): BucketSeries {
+        if (rows.isEmpty()) return BucketSeries.EMPTY
+        return when (scale) {
+            CompareAxisScale.AUTO  -> bucketize(rows, CompareAxisScale.MONTH)
+            CompareAxisScale.HOUR  -> bucketizeFixed(rows, 24,
+                labels = (0..23).map { "%02d".format(it) }) { it.trim().toIntOrNull() }
+            CompareAxisScale.DOW   -> bucketizeFixed(rows, 7,
+                labels = DOW_LABELS) { it.trim().toIntOrNull() }
+            CompareAxisScale.DAY   -> bucketizeSparse(rows) { it }            // DOY label
+            CompareAxisScale.MONTH -> bucketizeSparse(rows) { key ->
+                // DAO emits "yyyyMM"; render as "MMM yy".
+                if (key.length == 6) {
+                    val y = key.substring(2, 4)
+                    val m = key.substring(4).toIntOrNull()
+                    if (m != null && m in 1..12) "${MONTH_LABELS[m - 1]} $y" else key
+                } else key
+            }
+            CompareAxisScale.YEAR  -> bucketizeSparse(rows) { it }            // year label
+        }
+    }
+
+    /**
+     * Aggregate into a fixed-size axis (HOUR=24, DOW=7) where [keyToIndex]
+     * pulls the bucket index from the interval column.
+     */
+    private fun bucketizeFixed(
+        rows: List<com.tfcode.comparetout.model.importers.IntervalRow>,
+        n: Int, labels: List<String>,
+        keyToIndex: (String) -> Int?
+    ): BucketSeries {
+        val load = DoubleArray(n); val buy = DoubleArray(n)
+        val feed = DoubleArray(n); val pv = DoubleArray(n)
         rows.forEach { row ->
-            val s = row.interval ?: return@forEach
-            val month = if (s.length == 6)
-                s.substring(4).toIntOrNull()?.takeIf { it in 1..12 } else null
-            val idx = (month ?: return@forEach) - 1
+            val key = row.interval ?: return@forEach
+            val idx = keyToIndex(key) ?: return@forEach
+            if (idx !in 0 until n) return@forEach
             load[idx] += row.load; buy[idx] += row.buy
             feed[idx] += row.feed; pv[idx] += row.pv
         }
-        return mapOf(
-            "load" to load.toList(), "buy" to buy.toList(),
-            "feed" to feed.toList(), "pv" to pv.toList()
+        return BucketSeries(
+            axisLabels = labels,
+            seriesValues = mapOf(
+                "load" to load.toList(), "buy" to buy.toList(),
+                "feed" to feed.toList(), "pv" to pv.toList()
+            )
+        )
+    }
+
+    /**
+     * Aggregate into a sparse axis — one bucket per distinct interval key seen
+     * in [rows], preserving the DAO's already-sorted order. [keyToLabel] maps
+     * the raw interval string to its display label.
+     */
+    private fun bucketizeSparse(
+        rows: List<com.tfcode.comparetout.model.importers.IntervalRow>,
+        keyToLabel: (String) -> String
+    ): BucketSeries {
+        val keys = mutableListOf<String>()
+        val indexByKey = HashMap<String, Int>()
+        val load = mutableListOf<Double>(); val buy = mutableListOf<Double>()
+        val feed = mutableListOf<Double>(); val pv = mutableListOf<Double>()
+        rows.forEach { row ->
+            val key = row.interval?.trim()?.ifEmpty { null } ?: return@forEach
+            val idx = indexByKey.getOrPut(key) {
+                keys += key
+                load += 0.0; buy += 0.0; feed += 0.0; pv += 0.0
+                keys.size - 1
+            }
+            load[idx] = load[idx] + row.load
+            buy[idx]  = buy[idx]  + row.buy
+            feed[idx] = feed[idx] + row.feed
+            pv[idx]   = pv[idx]   + row.pv
+        }
+        return BucketSeries(
+            axisLabels = keys.map(keyToLabel),
+            seriesValues = mapOf(
+                "load" to load.toList(), "buy" to buy.toList(),
+                "feed" to feed.toList(), "pv" to pv.toList()
+            )
         )
     }
 
@@ -823,7 +1070,7 @@ class UI2CompareViewModel @Inject constructor(
                 put("available", r.available)
                 put("net", r.net); put("buy", r.buy); put("sell", r.sell)
                 put("fixed", r.fixed); put("bonus", r.bonus)
-                put("monthlyNet", JSONArray(r.monthlyNet))
+                put("monthlyNet", JSONArray(r.timeline.seriesValues["net"] ?: emptyList<Double>()))
             })
         }
         return arr.toString(2)
@@ -879,6 +1126,7 @@ private fun encodeState(s: CompareState): String = JSONObject().apply {
     })
     put("mode", s.mode.name)
     put("layout", s.layout.name)
+    put("displayScale", s.displayScale.name)
 }.toString()
 
 private fun decodeState(json: String): CompareState? {
@@ -931,7 +1179,9 @@ private fun decodeState(json: String): CompareState? {
             globalAnchor = dateOf(o.optString("globalAnchor"), LocalDate.now()),
             perSubjectRanges = perSubject,
             mode = runCatching { CompareMode.valueOf(o.getString("mode")) }.getOrDefault(CompareMode.TABLE),
-            layout = runCatching { CompareLayout.valueOf(o.getString("layout")) }.getOrDefault(CompareLayout.MERGED)
+            layout = runCatching { CompareLayout.valueOf(o.getString("layout")) }.getOrDefault(CompareLayout.MERGED),
+            displayScale = runCatching { CompareAxisScale.valueOf(o.getString("displayScale")) }
+                .getOrDefault(CompareAxisScale.AUTO)
         )
     }.getOrNull()
 }

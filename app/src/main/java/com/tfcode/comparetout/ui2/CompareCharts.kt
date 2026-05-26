@@ -53,10 +53,11 @@ import kotlin.math.roundToInt
 data class SeriesDef(val id: String, val label: String, val color: Color)
 
 data class ChartDatum(
-    val title: String,                       // full subject (+ plan) label
-    val shortLabel: String,                  // compact axis label
-    val values: Map<String, Double>,         // seriesId → total
-    val monthly: Map<String, List<Double>>   // seriesId → 12 monthly values
+    val title: String,                          // full subject (+ plan) label
+    val shortLabel: String,                     // compact axis label
+    val values: Map<String, Double>,            // seriesId → total
+    val axisLabels: List<String>,               // bucket labels for line/area (N entries)
+    val seriesValues: Map<String, List<Double>> // seriesId → N values, parallel to axisLabels
 )
 
 private val Y_AXIS_W = 40.dp   // left margin reserved for the value scale
@@ -130,6 +131,25 @@ private fun DrawScope.drawAxisTick(
 @Composable
 fun CompareBarChart(data: List<ChartDatum>, series: List<SeriesDef>, unit: String, height: Dp = 170.dp) {
     if (data.isEmpty() || series.isEmpty()) return
+    // Bucketed path: one panel with N bucket groups, each group has the
+    // (subject × series) bars. Entered when there's a non-trivial timeline
+    // and either a single subject (split-layout case) or a merged multi-
+    // subject view that stays readable: ≤2 series and aligned bucket counts
+    // across subjects.
+    val firstN = data.firstOrNull()?.axisLabels?.size ?: 0
+    val sameN = firstN > 1 && data.all { it.axisLabels.size == firstN }
+    val bucketed = sameN && (data.size == 1 || series.size <= 2)
+    if (bucketed) {
+        renderBucketedBars(data, series, unit, height)
+        return
+    }
+    renderTotalsBars(data, series, unit, height)
+}
+
+@Composable
+private fun renderTotalsBars(
+    data: List<ChartDatum>, series: List<SeriesDef>, unit: String, height: Dp
+) {
     val maxV = niceCeil(data.maxOf { d -> series.maxOf { abs(d.values[it.id] ?: 0.0) } })
     val measurer = rememberTextMeasurer()
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -153,6 +173,80 @@ fun CompareBarChart(data: List<ChartDatum>, series: List<SeriesDef>, unit: Strin
             }
         }
         AxisLabels(data.map { it.shortLabel })
+    }
+}
+
+/**
+ * Bucketed bar renderer: one panel, N bucket groups across the x-axis, each
+ * group holds (data.size × series.size) bars. Colour story mirrors the line
+ * chart's [buildCompareLines]:
+ *   1 subject × N series  → series colours
+ *   N subjects × 1 series → subject palette via [compareSubjectColor]
+ *   N subjects × M series → subject hue × series-indexed alpha
+ * Tick labels are sampled from the longest subject's axisLabels.
+ */
+@Composable
+private fun renderBucketedBars(
+    data: List<ChartDatum>, series: List<SeriesDef>, unit: String, height: Dp
+) {
+    val singleSubject = data.size == 1
+    val singleSeries = series.size == 1
+    val tickSource = data.maxByOrNull { it.axisLabels.size } ?: data.first()
+    val n = tickSource.axisLabels.size
+    if (n <= 0) return
+    val maxV = niceCeil(
+        data.flatMap { d ->
+            series.flatMap { s -> d.seriesValues[s.id] ?: emptyList() }
+        }.maxOfOrNull { abs(it) } ?: 1.0
+    )
+    val measurer = rememberTextMeasurer()
+    val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+    val ticks = sampleTickLabels(tickSource.axisLabels)
+    Column(Modifier.fillMaxWidth()) {
+        Canvas(Modifier.fillMaxWidth().height(height)) {
+            val axisW = Y_AXIS_W.toPx()
+            val top = 14f
+            val baseline = size.height - 4f
+            drawValueAxis(measurer, labelColor, gridColor, maxV, unit, top, baseline, axisW)
+            val plotW = size.width - axisW
+            val groupW = plotW / n
+            val gap = groupW * 0.12f
+            val barsPerGroup = data.size * series.size
+            val barW = (groupW - gap * 2f) / barsPerGroup.coerceAtLeast(1)
+            for (bi in 0 until n) {
+                var slot = 0
+                data.forEachIndexed { di, d ->
+                    series.forEachIndexed { si, s ->
+                        val pts = d.seriesValues[s.id] ?: return@forEachIndexed
+                        val v = abs(pts.getOrNull(bi) ?: 0.0)
+                        val h = (v / maxV).toFloat() * (baseline - top)
+                        val color = when {
+                            singleSubject -> s.color
+                            singleSeries -> compareSubjectColor(di)
+                            else -> {
+                                val subjectC = compareSubjectColor(di)
+                                val alpha = 0.55f + 0.45f *
+                                    (1f - si / max(1f, (series.size - 1).toFloat()))
+                                subjectC.copy(alpha = alpha)
+                            }
+                        }
+                        val x = axisW + bi * groupW + gap + slot * barW
+                        drawRect(color, Offset(x, baseline - h),
+                            Size(barW * 0.86f, h))
+                        slot++
+                    }
+                }
+            }
+        }
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Spacer(Modifier.width(Y_AXIS_W))
+            ticks.forEach {
+                Text(it, style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1)
+            }
+        }
     }
 }
 
@@ -186,13 +280,22 @@ fun CompareStackChart(data: List<ChartDatum>, series: List<SeriesDef>, unit: Str
     }
 }
 
-// ── line / area chart (monthly) ─────────────────────────────────────────────
-
-/** One rendered line: 12 monthly points, a colour, a human label for the legend. */
-data class CompareLine(val points: List<Double>, val color: Color, val label: String)
+// ── line / area chart ──────────────────────────────────────────────────────
 
 /**
- * Build every (subject × series) combination that actually has monthly data.
+ * One rendered line: N bucket points (parallel to [axisLabels]), a colour, and
+ * a human label for the legend. Lines in the same chart may have different
+ * bucket counts when sync=off lets each subject resolve AUTO independently.
+ */
+data class CompareLine(
+    val points: List<Double>,
+    val axisLabels: List<String>,
+    val color: Color,
+    val label: String
+)
+
+/**
+ * Build every (subject × series) combination that actually has bucketed data.
  * - 1 subject × N series      → colour by series
  * - N subjects × 1 series     → colour by subject
  * - N subjects × M series     → blend (subject colour × series alpha intensity)
@@ -205,8 +308,8 @@ fun buildCompareLines(data: List<ChartDatum>, series: List<SeriesDef>): List<Com
     val lines = mutableListOf<CompareLine>()
     data.forEachIndexed { di, d ->
         series.forEachIndexed { si, s ->
-            val pts = d.monthly[s.id] ?: return@forEachIndexed
-            if (pts.all { it == 0.0 } && !d.monthly.containsKey(s.id)) return@forEachIndexed
+            val pts = d.seriesValues[s.id] ?: return@forEachIndexed
+            if (pts.all { it == 0.0 } && !d.seriesValues.containsKey(s.id)) return@forEachIndexed
             val color = when {
                 singleSubject -> s.color
                 singleSeries  -> compareSubjectColor(di)
@@ -221,13 +324,26 @@ fun buildCompareLines(data: List<ChartDatum>, series: List<SeriesDef>): List<Com
                 singleSeries  -> d.title
                 else -> "${shortenLabel(d.title)} · ${s.label}"
             }
-            lines += CompareLine(pts, color, label)
+            lines += CompareLine(pts, d.axisLabels, color, label)
         }
     }
     return lines
 }
 
 private fun shortenLabel(s: String): String = if (s.length <= 18) s else s.take(17) + "…"
+
+/**
+ * Sample [labels] down to at most [target] entries, evenly spaced. Keeps the
+ * first and last entries so the user always sees both ends of the range.
+ * Used by the line chart's tick row — 30 day-labels can't fit on screen.
+ */
+private fun sampleTickLabels(labels: List<String>, target: Int = 6): List<String> {
+    if (labels.isEmpty()) return emptyList()
+    if (labels.size <= target) return labels
+    val n = target.coerceAtLeast(2)
+    val step = (labels.size - 1).toDouble() / (n - 1)
+    return (0 until n).map { labels[(it * step).toInt().coerceAtMost(labels.lastIndex)] }
+}
 
 @Composable
 fun CompareLineChart(
@@ -240,6 +356,10 @@ fun CompareLineChart(
     val measurer = rememberTextMeasurer()
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
     val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+    // Tick labels come from the longest line (most buckets) so the densest
+    // axis wins — shorter lines stay readable, denser lines aren't truncated.
+    val tickSource = lines.maxByOrNull { it.axisLabels.size } ?: lines.first()
+    val ticks = sampleTickLabels(tickSource.axisLabels)
     Column(Modifier.fillMaxWidth()) {
         Canvas(Modifier.fillMaxWidth().height(height)) {
             val axisW = Y_AXIS_W.toPx()
@@ -248,9 +368,13 @@ fun CompareLineChart(
             drawValueAxis(measurer, labelColor, gridColor, maxV, unit, top, bottom, axisW)
             val plotW = size.width - axisW
             lines.forEach { line ->
+                val n = line.points.size
+                if (n == 0) return@forEach
+                val denom = (n - 1).coerceAtLeast(1).toFloat()
                 val path = Path()
                 line.points.forEachIndexed { i, v ->
-                    val x = axisW + plotW * i / 11f
+                    val x = if (n == 1) axisW + plotW / 2f
+                            else axisW + plotW * i / denom
                     val y = top + (bottom - top) * (1f - (abs(v) / maxV).toFloat())
                     if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
                 }
@@ -267,9 +391,10 @@ fun CompareLineChart(
         }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Spacer(Modifier.width(Y_AXIS_W))
-            listOf("Jan", "Apr", "Jul", "Oct", "Dec").forEach {
+            ticks.forEach {
                 Text(it, style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1)
             }
         }
     }
