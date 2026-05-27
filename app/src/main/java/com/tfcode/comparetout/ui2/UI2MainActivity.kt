@@ -4,9 +4,11 @@ import android.os.Bundle
 import android.util.Log
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import com.google.android.material.behavior.HideBottomViewOnScrollBehavior
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.tfcode.comparetout.R
 import dagger.hilt.android.AndroidEntryPoint
@@ -46,7 +48,21 @@ class UI2MainActivity : AppCompatActivity() {
                 }
                 controller.addOnDestinationChangedListener { _, dest, _ ->
                     Log.d("UI2", "NavController destination changed: ${dest.label}")
-                    bottomNav.visibility = if (dest.id == R.id.ui2GraphsFragment) View.GONE else View.VISIBLE
+                    val shouldShow = dest.id != R.id.ui2GraphsFragment
+                    bottomNav.visibility = if (shouldShow) View.VISIBLE else View.GONE
+                    // The HideBottomViewOnScrollBehavior hides the bar by
+                    // translating it offscreen rather than toggling visibility.
+                    // After navigating to a new destination, also tell the
+                    // behavior to slide the bar back up — otherwise a list
+                    // that scrolled the bar away leaves it stranded below the
+                    // screen even though visibility says VISIBLE, and the
+                    // next screen has no scroll content to bring it back.
+                    if (shouldShow) {
+                        val params = bottomNav.layoutParams as? CoordinatorLayout.LayoutParams
+                        @Suppress("UNCHECKED_CAST")
+                        val behavior = params?.behavior as? HideBottomViewOnScrollBehavior<View>
+                        behavior?.slideUp(bottomNav)
+                    }
                     if (bottomNav.selectedItemId != dest.id) {
                         bottomNav.selectedItemId = dest.id
                     }
