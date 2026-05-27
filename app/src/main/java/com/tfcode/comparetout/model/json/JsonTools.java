@@ -207,8 +207,19 @@ public class JsonTools {
                     drj.days = (ArrayList<Integer>) dr.getDays().ints;
                     drj.hours = (ArrayList<Double>) dr.getHours().doubles;
                     drj.minuteRange = new ArrayList<>();
-                    for (RangeRate mrr : dr.getMinuteRateRange().getRates()) {
-                        drj.minuteRange.add(new MinuteRangeCostJson(mrr.getBegin(), mrr.getEnd(),mrr.getPrice()));
+                    if (!(null == dr.getMinuteRateRange()) && !dr.getMinuteRateRange().getRates().isEmpty()) {
+                        for (RangeRate mrr : dr.getMinuteRateRange().getRates()) {
+                            drj.minuteRange.add(new MinuteRangeCostJson(mrr.getBegin(), mrr.getEnd(),mrr.getPrice()));
+                        }
+                    }
+                    else {
+                        // Same hours-fallback as the single-plan exporter so a
+                        // bulk export of a plan with no MinuteRateRange survives
+                        // round-tripping back into the wizard.
+                        MinuteRateRange synth = MinuteRateRange.fromHours(dr.getHours());
+                        for (RangeRate rr : synth.getRates()) {
+                            drj.minuteRange.add(new MinuteRangeCostJson(rr.getBegin(), rr.getEnd(), rr.getPrice()));
+                        }
                     }
                     drj.dbID = dr.getDayRateIndex();
                     dayRateJsons.add(drj);
@@ -261,8 +272,14 @@ public class JsonTools {
                 }
             }
             else {
-                for (int i = 0; i < 25; i++) {
-                    drj.minuteRange.add(new MinuteRangeCostJson(i * 60, (i + 1) * 60, drj.hours.get(i)));
+                // Synthesize a minuteRange from the hourly snapshot. Use
+                // MinuteRateRange.fromHours so adjacent same-price hours are
+                // merged and every range stays within [0, 1440] — the earlier
+                // hand-rolled loop emitted 25 raw hour-buckets, the last one
+                // running past midnight to 1500.
+                MinuteRateRange synth = MinuteRateRange.fromHours(dr.getHours());
+                for (RangeRate rr : synth.getRates()) {
+                    drj.minuteRange.add(new MinuteRangeCostJson(rr.getBegin(), rr.getEnd(), rr.getPrice()));
                 }
             }
             drj.dbID = dr.getDayRateIndex();
