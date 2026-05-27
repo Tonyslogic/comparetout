@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -86,6 +87,10 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.google.gson.Gson
+import com.google.gson.JsonSyntaxException
+import com.google.gson.reflect.TypeToken
+import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile
 import dagger.hilt.android.AndroidEntryPoint
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -134,6 +139,9 @@ private fun PricePlanWizardScreen(
 
     var confirmDiscard by remember { mutableStateOf(false) }
     var showDrawer by remember { mutableStateOf(false) }
+    var showImportSheet by remember { mutableStateOf(false) }
+    var importPicker by remember { mutableStateOf<List<PricePlanJsonFile>?>(null) }
+    var confirmImportOverwrite by remember { mutableStateOf<PricePlanJsonFile?>(null) }
 
     LaunchedEffect(saveResult) {
         if (saveResult == PricePlanSaveResult.Saved) onClose()
@@ -186,6 +194,8 @@ private fun PricePlanWizardScreen(
                         onRun = { viewModel.save(runCosting = true) },
                         onClose = { confirmDiscard = true }
                     )
+                    Spacer(Modifier.height(6.dp))
+                    ImportFromJsonRow(onClick = { showImportSheet = true })
                     Spacer(Modifier.height(8.dp))
                     LazyColumn(
                         modifier = Modifier.fillMaxSize(),
@@ -286,6 +296,157 @@ private fun PricePlanWizardScreen(
             }
         )
     }
+
+    if (showImportSheet) {
+        UI2ImportSheet(
+            title = "Import supplier-plan JSON",
+            hint = "Accepts the JSON shape produced by the Share button on a plan, " +
+                    "or a single plan from a bulk export. The wizard will be " +
+                    "pre-filled — you can edit anything before saving.",
+            applyLabel = "Load into wizard",
+            parse = ::parsePricePlanImportJson,
+            onApply = { list ->
+                showImportSheet = false
+                when {
+                    list.isEmpty() -> Unit
+                    list.size == 1 -> {
+                        val one = list.first()
+                        // In edit mode, overwriting an existing plan's data is
+                        // destructive enough to deserve a confirmation step.
+                        // In create mode, just load.
+                        if (viewModel.isEditMode) confirmImportOverwrite = one
+                        else viewModel.loadFromJson(one)
+                    }
+                    else -> importPicker = list
+                }
+            },
+            onDismiss = { showImportSheet = false }
+        )
+    }
+
+    importPicker?.let { list ->
+        AlertDialog(
+            onDismissRequest = { importPicker = null },
+            title = { Text("Multiple supplier plans") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(
+                        "This file contains ${list.size} plans. Pick the one to load " +
+                            "into the wizard. (To import them all into the library " +
+                            "instead, use the drawer's Import / Export screen.)",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    list.forEachIndexed { idx, file ->
+                        OutlinedButton(
+                            onClick = {
+                                importPicker = null
+                                if (viewModel.isEditMode) confirmImportOverwrite = file
+                                else viewModel.loadFromJson(file)
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            val supplier = file.supplier.orEmpty().ifBlank { "?" }
+                            val plan = file.plan.orEmpty().ifBlank { "(unnamed)" }
+                            Text(
+                                "${idx + 1}. $supplier · $plan",
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { importPicker = null }) { Text("Cancel") }
+            }
+        )
+    }
+
+    confirmImportOverwrite?.let { file ->
+        AlertDialog(
+            onDismissRequest = { confirmImportOverwrite = null },
+            title = { Text("Replace this plan's data?") },
+            text = {
+                Text(
+                    "The current details, charges and day-rates will be replaced " +
+                        "with the contents of the JSON. The plan will still save " +
+                        "back to the same row when you tap Save.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    viewModel.loadFromJson(file)
+                    confirmImportOverwrite = null
+                }) { Text("Replace") }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmImportOverwrite = null }) { Text("Cancel") }
+            }
+        )
+    }
+}
+
+/** Compact one-line affordance to open the JSON import sheet from the wizard. */
+@Composable
+private fun ImportFromJsonRow(onClick: () -> Unit) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        shape = RoundedCornerShape(10.dp),
+        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick)
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Icon(
+                Icons.Default.FileUpload, contentDescription = null,
+                tint = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.size(18.dp)
+            )
+            Column(Modifier.weight(1f)) {
+                Text("Import from JSON",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.SemiBold)
+                Text(
+                    "Pre-fill the wizard from a shared plan or bulk-export file.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Parse a clipboard / file payload into a list of [PricePlanJsonFile]. Accepts
+ * either a JSON array (bulk-export shape) or a single object (per-plan share
+ * shape from the Share button). Mirrors the parser in UI2ImportExportActivity.
+ */
+private fun parsePricePlanImportJson(text: String): ParsedPreview<List<PricePlanJsonFile>> = try {
+    val gson = Gson()
+    val trimmed = text.trimStart()
+    val raw: List<PricePlanJsonFile>? = if (trimmed.startsWith("[")) {
+        val type = object : TypeToken<List<PricePlanJsonFile>>() {}.type
+        gson.fromJson<List<PricePlanJsonFile>?>(text, type)
+    } else {
+        gson.fromJson(text, PricePlanJsonFile::class.java)?.let { listOf(it) }
+    }
+    val list = raw ?: emptyList()
+    val valid = list.filter { !it.plan.isNullOrBlank() }
+    if (valid.isEmpty()) ParsedPreview.Err("No supplier plans found in the JSON.")
+    else ParsedPreview.Ok(
+        valid,
+        when (valid.size) {
+            1 -> "Parsed 1 plan: ${valid.first().supplier ?: "?"} · ${valid.first().plan}"
+            else -> "Parsed ${valid.size} supplier plans — pick one to load"
+        }
+    )
+} catch (e: JsonSyntaxException) {
+    ParsedPreview.Err(e.message ?: "Malformed JSON")
+} catch (e: Throwable) {
+    ParsedPreview.Err(e.message ?: "Parse failed")
 }
 
 private fun dayRatesSubtitle(b: PricePlanBuilder, i: PlanIssues): String {

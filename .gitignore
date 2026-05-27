@@ -10,6 +10,7 @@
 /.idea/deploymentTargetDropDown.xml
 /.idea/migrations.xml
 /.idea/inspectionProfiles/Project_Default.xml
+/.idea/copilotDiffState.xml
 .DS_Store
 /build
 /captures

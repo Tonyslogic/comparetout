@@ -8,6 +8,8 @@ import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import com.tfcode.comparetout.model.IntHolder
 import com.tfcode.comparetout.model.ToutcRepository
+import com.tfcode.comparetout.model.json.JsonTools
+import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile
 import com.tfcode.comparetout.model.priceplan.DayRate
 import com.tfcode.comparetout.model.priceplan.DoubleHolder
 import com.tfcode.comparetout.model.priceplan.MinuteRateRange
@@ -210,6 +212,69 @@ class UI2PricePlanViewModel @Inject constructor(
     fun acknowledgeSaveResult() {
         _saveResult.value = PricePlanSaveResult.Idle
     }
+
+    /**
+     * Replace the wizard's plan/charges/day-rates with the contents of a
+     * parsed PricePlanJsonFile. The DB ids (pricePlanId, dayRate ids) are
+     * intentionally NOT touched in edit mode — so importing into an existing
+     * plan overwrites its rates but keeps it pointing at the same row, while
+     * importing into a new plan inherits whatever JSON named it.
+     */
+    fun loadFromJson(json: PricePlanJsonFile) {
+        val parsedPlan = JsonTools.createPricePlan(json)
+        // Build day-rate builders directly from the JSON so that the source's
+        // precedence between minuteRange and hours is preserved verbatim:
+        //   - If the JSON specifies a minuteRange (non-null), use it as the
+        //     single source of truth — ignore the hours field entirely.
+        //   - Only fall back to MinuteRateRange.fromHours(hours) when the JSON
+        //     has no minuteRange at all (legacy exports pre-dating it).
+        // Day-rate ids are reset to local negatives so saving never collides
+        // with the source plan's DB rows.
+        val dayRateBuilders = json.rates.orEmpty().map { drj ->
+            val bands: List<RateBand> = when {
+                drj.minuteRange != null -> drj.minuteRange.map {
+                    RateBand(it.startMinute, it.endMinute, it.cost)
+                }
+                drj.hours != null -> {
+                    val dh = DoubleHolder().apply { doubles = drj.hours }
+                    MinuteRateRange.fromHours(dh).rates.map {
+                        RateBand(it.begin, it.end, it.price)
+                    }
+                }
+                else -> emptyList()
+            }.ifEmpty { listOf(RateBand(0, 1440, 10.0)) }
+            DayRateBuilder(
+                id = DayRateBuilder.nextLocalId(),
+                startDate = drj.startDate ?: "01/01",
+                endDate = drj.endDate ?: "12/31",
+                daysOfWeek = drj.days?.toSet() ?: setOf(0, 1, 2, 3, 4, 5, 6),
+                bands = bands
+            )
+        }.ifEmpty { listOf(DayRateBuilder()) }
+        _builder.update { current ->
+            PricePlanBuilder(
+                // Keep the existing DB binding so re-importing into an Edit
+                // session updates the same row instead of creating a new one.
+                pricePlanId = current.pricePlanId,
+                supplier = parsedPlan.supplier ?: "",
+                planName = parsedPlan.planName ?: "",
+                reference = parsedPlan.reference ?: "<REFERENCE>",
+                feed = parsedPlan.feed,
+                standingCharges = parsedPlan.standingCharges,
+                signUpBonus = parsedPlan.signUpBonus,
+                deemedExport = parsedPlan.isDeemedExport,
+                lastUpdate = parsedPlan.lastUpdate ?: "",
+                dayRates = dayRateBuilders,
+                restrictions = parsedPlan.restrictions
+            )
+        }
+        // Expand the day-rates accordion so the user immediately sees what
+        // was loaded; default-collapse it otherwise feels like the import
+        // silently did nothing.
+        _expandedSections.value = _expandedSections.value + "rates"
+        _expandedDayRates.value =
+            setOfNotNull(_builder.value.dayRates.firstOrNull()?.id)
+    }
 }
 
 // ── validation ──────────────────────────────────────────────────────────────
@@ -336,10 +401,16 @@ private fun PricePlan.toBuilder(rates: List<DayRate>): PricePlanBuilder = PriceP
 )
 
 private fun DayRate.toBuilder(): DayRateBuilder {
-    val ranges = minuteRateRange.rates
+    // Prefer the minute-precision rate range. Legacy plans (and plans saved by
+    // the broken pre-fix UI2 wizard) may have an empty MinuteRateRange but a
+    // populated hourly snapshot — fall back to it the same way RateLookup does
+    // so the wizard reflects the real rates instead of a default 24h 10c band.
+    val effective = if (minuteRateRange?.rates?.isNotEmpty() == true) minuteRateRange
+                    else MinuteRateRange.fromHours(hours)
+    val bands = effective.rates
         .sortedBy { it.begin }
         .map { RateBand(it.begin, it.end, it.price) }
-    val bands = ranges.ifEmpty { listOf(RateBand(0, 1440, 10.0)) }
+        .ifEmpty { listOf(RateBand(0, 1440, 10.0)) }
     return DayRateBuilder(
         id = if (dayRateIndex > 0L) dayRateIndex else DayRateBuilder.nextLocalId(),
         startDate = startDate,
@@ -374,9 +445,12 @@ private fun PricePlanBuilder.toEntities(): Pair<PricePlan, List<DayRate>> {
             days = IntHolder().also { h -> h.ints = dr.daysOfWeek.sorted().toMutableList() }
             // Build MinuteRateRange directly from the band list — minute precision
             // round-trips here, so a 06:00–06:30 dynamic-pricing slot survives Save.
+            // NB: use add(), not insert(). insert()'s for-loop body never executes
+            // when mRates is empty, so the very first band would be dropped on the
+            // floor and the saved plan would end up with zero rates.
             val mrr = MinuteRateRange()
             for (b in dr.bands.sortedBy { it.beginMinute }) {
-                mrr.insert(b.beginMinute, b.endMinute, b.price)
+                mrr.add(b.beginMinute, b.endMinute, b.price)
             }
             minuteRateRange = mrr
             // `hours` is now legacy book-keeping only. Derive 25 hourly snapshots so
