@@ -136,10 +136,7 @@ fun CompareBarChart(data: List<ChartDatum>, series: List<SeriesDef>, unit: Strin
     // and either a single subject (split-layout case) or a merged multi-
     // subject view that stays readable: ≤2 series and aligned bucket counts
     // across subjects.
-    val firstN = data.firstOrNull()?.axisLabels?.size ?: 0
-    val sameN = firstN > 1 && data.all { it.axisLabels.size == firstN }
-    val bucketed = sameN && (data.size == 1 || series.size <= 2)
-    if (bucketed) {
+    if (barIsBucketed(data, series)) {
         renderBucketedBars(data, series, unit, height)
         return
     }
@@ -189,8 +186,7 @@ private fun renderTotalsBars(
 private fun renderBucketedBars(
     data: List<ChartDatum>, series: List<SeriesDef>, unit: String, height: Dp
 ) {
-    val singleSubject = data.size == 1
-    val singleSeries = series.size == 1
+    val colorMode = compareColorMode(data.size, series.size)
     val tickSource = data.maxByOrNull { it.axisLabels.size } ?: data.first()
     val n = tickSource.axisLabels.size
     if (n <= 0) return
@@ -221,16 +217,7 @@ private fun renderBucketedBars(
                         val pts = d.seriesValues[s.id] ?: return@forEachIndexed
                         val v = abs(pts.getOrNull(bi) ?: 0.0)
                         val h = (v / maxV).toFloat() * (baseline - top)
-                        val color = when {
-                            singleSubject -> s.color
-                            singleSeries -> compareSubjectColor(di)
-                            else -> {
-                                val subjectC = compareSubjectColor(di)
-                                val alpha = 0.55f + 0.45f *
-                                    (1f - si / max(1f, (series.size - 1).toFloat()))
-                                subjectC.copy(alpha = alpha)
-                            }
-                        }
+                        val color = compareEncodedColor(colorMode, di, s, si, series.size)
                         val x = axisW + bi * groupW + gap + slot * barW
                         drawRect(color, Offset(x, baseline - h),
                             Size(barW * 0.86f, h))
@@ -303,26 +290,17 @@ data class CompareLine(
  */
 fun buildCompareLines(data: List<ChartDatum>, series: List<SeriesDef>): List<CompareLine> {
     if (data.isEmpty() || series.isEmpty()) return emptyList()
-    val singleSubject = data.size == 1
-    val singleSeries  = series.size == 1
+    val mode = compareColorMode(data.size, series.size)
     val lines = mutableListOf<CompareLine>()
     data.forEachIndexed { di, d ->
         series.forEachIndexed { si, s ->
             val pts = d.seriesValues[s.id] ?: return@forEachIndexed
             if (pts.all { it == 0.0 } && !d.seriesValues.containsKey(s.id)) return@forEachIndexed
-            val color = when {
-                singleSubject -> s.color
-                singleSeries  -> compareSubjectColor(di)
-                else -> {
-                    val subjectC = compareSubjectColor(di)
-                    val alpha = 0.55f + 0.45f * (1f - si / max(1f, (series.size - 1).toFloat()))
-                    subjectC.copy(alpha = alpha)
-                }
-            }
-            val label = when {
-                singleSubject -> s.label
-                singleSeries  -> d.title
-                else -> "${shortenLabel(d.title)} · ${s.label}"
+            val color = compareEncodedColor(mode, di, s, si, series.size)
+            val label = when (mode) {
+                CompareColorMode.SERIES  -> s.label
+                CompareColorMode.SUBJECT -> d.title
+                CompareColorMode.BLEND   -> "${shortenLabel(d.title)} · ${s.label}"
             }
             lines += CompareLine(pts, d.axisLabels, color, label)
         }
@@ -737,16 +715,20 @@ private fun PieSwatch(color: Color, pattern: BandPattern) {
     }
 }
 
-/** Coloured-dot series legend, reused by chart panels and pop-outs. Wraps to fit. */
+/** Coloured-dot legend over arbitrary (colour, label) entries. Wraps to fit. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun ChartLegend(series: List<SeriesDef>) {
-    FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-        series.forEach { s ->
+fun CompareEntryLegend(entries: List<Pair<Color, String>>) {
+    if (entries.isEmpty()) return
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        entries.forEach { (color, label) ->
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Canvas(Modifier.size(9.dp)) { drawCircle(s.color) }
+                Canvas(Modifier.size(9.dp)) { drawCircle(color) }
                 Spacer(Modifier.size(4.dp))
-                Text(s.label, style = MaterialTheme.typography.labelSmall,
+                Text(label, style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
@@ -780,3 +762,58 @@ private val SUBJECT_PALETTE = listOf(
 
 /** Stable colour for the n-th subject in a merged chart / the source legend. */
 fun compareSubjectColor(i: Int): Color = SUBJECT_PALETTE[(if (i < 0) 0 else i) % SUBJECT_PALETTE.size]
+
+// ── colour encoding — single source of truth for chart + legend ─────────────
+// A merged chart can encode data by SERIES (one subject, many series),
+// by SUBJECT (many subjects, one series), or BLEND (many × many: subject hue
+// with series-indexed alpha). The renderers and the legend builder both consult
+// these so a legend swatch can never disagree with what's drawn.
+
+enum class CompareColorMode { SERIES, SUBJECT, BLEND }
+
+fun compareColorMode(subjectCount: Int, seriesCount: Int): CompareColorMode = when {
+    subjectCount <= 1 -> CompareColorMode.SERIES
+    seriesCount <= 1  -> CompareColorMode.SUBJECT
+    else              -> CompareColorMode.BLEND
+}
+
+fun compareEncodedColor(
+    mode: CompareColorMode, subjectIndex: Int, series: SeriesDef,
+    seriesIndex: Int, seriesCount: Int
+): Color = when (mode) {
+    CompareColorMode.SERIES  -> series.color
+    CompareColorMode.SUBJECT -> compareSubjectColor(subjectIndex)
+    CompareColorMode.BLEND   -> compareSubjectColor(subjectIndex).copy(
+        alpha = 0.55f + 0.45f * (1f - seriesIndex / max(1f, (seriesCount - 1).toFloat())))
+}
+
+/**
+ * Legend entries (colour + label) matching exactly what [buildCompareLines] and
+ * the bucketed-bar renderer draw, so a merged chart's legend always agrees with
+ * the lines/bars on screen.
+ */
+fun compareLegendEntries(
+    data: List<ChartDatum>, series: List<SeriesDef>
+): List<Pair<Color, String>> {
+    if (data.isEmpty() || series.isEmpty()) return emptyList()
+    return when (compareColorMode(data.size, series.size)) {
+        CompareColorMode.SERIES  -> series.map { it.color to it.label }
+        CompareColorMode.SUBJECT -> data.mapIndexed { i, d -> compareSubjectColor(i) to d.title }
+        CompareColorMode.BLEND   -> data.flatMapIndexed { di, d ->
+            series.mapIndexed { si, s ->
+                compareEncodedColor(CompareColorMode.BLEND, di, s, si, series.size) to
+                    "${shortenLabel(d.title)} · ${s.label}"
+            }
+        }
+    }
+}
+
+/**
+ * Whether [CompareBarChart] uses the per-bucket renderer (coloured like the line
+ * chart) rather than one totals bar per subject (always series-coloured).
+ */
+fun barIsBucketed(data: List<ChartDatum>, series: List<SeriesDef>): Boolean {
+    val firstN = data.firstOrNull()?.axisLabels?.size ?: 0
+    val sameN = firstN > 1 && data.all { it.axisLabels.size == firstN }
+    return sameN && (data.size == 1 || series.size <= 2)
+}
