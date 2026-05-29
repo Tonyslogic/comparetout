@@ -114,7 +114,9 @@ private fun seriesColor(id: String, primary: Color): Color = when (id.removePref
     "bonus"    -> Color(0xFF4CAF50)
     "fixed"    -> Color(0xFF9E9E9E)
     "load"     -> Color(0xFF3B82F6)
-    "pv"       -> Color(0xFFEF5350)
+    // Solar generation as gold — red read as import/cost (and clashed with the
+    // subject palette's red); pv2load keeps green for "solar actually used".
+    "pv"       -> Color(0xFFFBC02D)
     "pv2load"  -> Color(0xFF66BB6A)
     "bat2load" -> Color(0xFF26A69A)
     "grid2bat" -> Color(0xFF7E57C2)
@@ -1172,11 +1174,11 @@ private fun CostContent(
         }
         else -> ChartArea(state, "Cost", chartData, series, explanation, "€")
     }
-    ResultLegends(state.mode, series, chartData)
+    ResultLegends(state, series, chartData)
 
     zoomedPie?.let { d ->
         val hole = MaterialTheme.colorScheme.surfaceVariant
-        ChartPopout(d.title, series, explanation, emptyList(), pieInfo = d to "€",
+        ChartPopout(d.title, emptyList(), explanation, pieInfo = d to "€",
             onDismiss = { zoomedPie = null }) { h ->
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 ComparePieCanvas(d.slices, hole, h)
@@ -1201,7 +1203,7 @@ private fun CostStackArea(
                             modifier = Modifier.weight(1f)
                         ) {
                             Box(Modifier.padding(8.dp)) {
-                                ZoomableChart(bar.title, series, explanation, listOf(bar.title)) { h ->
+                                ZoomableChart(bar.title, series.map { it.color to it.label }, explanation) { h ->
                                     CompareCostStackChart(listOf(bar), "€", h)
                                 }
                             }
@@ -1212,7 +1214,7 @@ private fun CostStackArea(
             }
         }
     } else {
-        ZoomableChart("Cost", series, explanation, bars.map { it.title }) { h ->
+        ZoomableChart("Cost", series.map { it.color to it.label }, explanation) { h ->
             CompareCostStackChart(bars, "€", h)
         }
     }
@@ -1250,11 +1252,11 @@ private fun UsageContent(
         }
         else -> ChartArea(state, "Usage", chartData, series, explanation, "kWh")
     }
-    ResultLegends(state.mode, series, chartData)
+    ResultLegends(state, series, chartData)
 
     zoomedPie?.let { d ->
         val hole = MaterialTheme.colorScheme.surfaceVariant
-        ChartPopout(d.title, series, explanation, emptyList(), pieInfo = d to "kWh",
+        ChartPopout(d.title, emptyList(), explanation, pieInfo = d to "kWh",
             onDismiss = { zoomedPie = null }) { h ->
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 ComparePieCanvas(d.slices, hole, h)
@@ -1325,50 +1327,44 @@ private fun GraphExplanation(text: String?) {
     }
 }
 
-/** Series legend (every chart) plus a source legend pop-out (multi-subject charts). */
+/**
+ * Legend beneath the result panel — driven by the same colour encoding the
+ * chart uses, so a swatch can never disagree with the line/bar it labels.
+ */
 @Composable
-private fun ResultLegends(mode: CompareMode, series: List<SeriesDef>, data: List<ChartDatum>) {
-    if (mode == CompareMode.TABLE) return
+private fun ResultLegends(state: CompareState, series: List<SeriesDef>, data: List<ChartDatum>) {
+    if (state.mode == CompareMode.TABLE) return
+    val entries = resultLegendEntries(state, series, data)
+    if (entries.isEmpty()) return
     Spacer(Modifier.height(10.dp))
-    ChartLegend(series)
-    if (mode != CompareMode.PIE && data.size > 1) {
-        Spacer(Modifier.height(4.dp))
-        SourceLegend(data)
-    }
+    CompareEntryLegend(entries)
 }
 
-/** Inline subject → colour list. Used in both the source pop-out and chart pop-outs. */
-@Composable
-private fun SourceLegendList(titles: List<String>) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text("Sources", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-        titles.forEachIndexed { i, t ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(12.dp).background(compareSubjectColor(i), CircleShape))
-                Spacer(Modifier.width(8.dp))
-                Text(t, style = MaterialTheme.typography.bodySmall)
-            }
+/**
+ * The (colour, label) legend entries that match what the panel actually draws:
+ *  - TABLE          → none
+ *  - PIE / STACK    → series (slices / stack bands are series-coloured)
+ *  - split layout   → series (each chart is one subject, series-coloured)
+ *  - single subject → series
+ *  - merged BAR totals (not bucketed) → series
+ *  - merged LINE / AREA / bucketed BAR → subject or subject×series (blend)
+ */
+private fun resultLegendEntries(
+    state: CompareState, series: List<SeriesDef>, data: List<ChartDatum>
+): List<Pair<Color, String>> {
+    val seriesEntries = series.map { it.color to it.label }
+    val perSubjectCharts = state.layout == CompareLayout.SPLIT && data.size > 1
+    return when (state.mode) {
+        CompareMode.TABLE -> emptyList()
+        CompareMode.PIE, CompareMode.STACK -> seriesEntries
+        CompareMode.BAR -> when {
+            perSubjectCharts || data.size <= 1 -> seriesEntries
+            barIsBucketed(data, series) -> compareLegendEntries(data, series)
+            else -> seriesEntries   // one totals bar per subject — series-coloured
         }
-    }
-}
-
-/** Source legend as a pop-out link — used inline beneath the result panel. */
-@Composable
-private fun SourceLegend(data: List<ChartDatum>) {
-    var open by remember { mutableStateOf(false) }
-    TextButton(
-        onClick = { open = true },
-        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
-    ) {
-        Icon(Icons.Default.List, contentDescription = null, modifier = Modifier.size(16.dp))
-        Spacer(Modifier.width(4.dp))
-        Text("Sources (${data.size})  ↗", style = MaterialTheme.typography.labelMedium)
-    }
-    if (open) {
-        Dialog(onDismissRequest = { open = false }) {
-            Surface(shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
-                Box(Modifier.padding(16.dp)) { SourceLegendList(data.map { it.title }) }
-            }
+        CompareMode.LINE, CompareMode.AREA -> when {
+            perSubjectCharts || data.size <= 1 -> seriesEntries
+            else -> compareLegendEntries(data, series)
         }
     }
 }
@@ -1398,7 +1394,7 @@ private fun ChartArea(
                             modifier = Modifier.weight(1f)
                         ) {
                             Box(Modifier.padding(8.dp)) {
-                                ZoomableChart(d.title, series, explanation, listOf(d.title)) { h ->
+                                ZoomableChart(d.title, series.map { it.color to it.label }, explanation) { h ->
                                     render(listOf(d), h)
                                 }
                             }
@@ -1409,7 +1405,7 @@ private fun ChartArea(
             }
         }
     } else {
-        ZoomableChart(metricLabel, series, explanation, data.map { it.title }) { h ->
+        ZoomableChart(metricLabel, resultLegendEntries(state, series, data), explanation) { h ->
             render(data, h)
         }
     }
@@ -1419,9 +1415,8 @@ private fun ChartArea(
 @Composable
 private fun ZoomableChart(
     title: String,
-    series: List<SeriesDef>,
+    legend: List<Pair<Color, String>>,
     explanation: String?,
-    sourceTitles: List<String>,
     chart: @Composable (Dp) -> Unit
 ) {
     var zoomed by remember { mutableStateOf(false) }
@@ -1432,7 +1427,7 @@ private fun ZoomableChart(
         chart(170.dp)
     }
     if (zoomed) {
-        ChartPopout(title, series, explanation, sourceTitles,
+        ChartPopout(title, legend, explanation,
             onDismiss = { zoomed = false }, chart = chart)
     }
 }
@@ -1445,9 +1440,8 @@ private fun ZoomableChart(
 @Composable
 private fun ChartPopout(
     title: String,
-    series: List<SeriesDef>,
+    legend: List<Pair<Color, String>>,
     explanation: String?,
-    sourceTitles: List<String>,
     onDismiss: () -> Unit,
     pieInfo: Pair<ComparePieDatum, String>? = null,
     chart: @Composable (Dp) -> Unit
@@ -1484,9 +1478,8 @@ private fun ChartPopout(
                     val (datum, unit) = pieInfo
                     PieValueLegend(datum.slices, unit)
                 } else {
-                    ChartLegend(series)
+                    CompareEntryLegend(legend)
                 }
-                if (sourceTitles.size > 1) SourceLegendList(sourceTitles)
             }
 
             if (landscape) {
@@ -1529,9 +1522,8 @@ private fun ChartPopout(
                         val (datum, unit) = pieInfo
                         PieValueLegend(datum.slices, unit)
                     } else {
-                        ChartLegend(series)
+                        CompareEntryLegend(legend)
                     }
-                    if (sourceTitles.size > 1) SourceLegendList(sourceTitles)
                 }
             }
         }
