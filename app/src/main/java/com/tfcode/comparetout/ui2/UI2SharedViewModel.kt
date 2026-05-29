@@ -3,6 +3,7 @@ package com.tfcode.comparetout.ui2
 import android.content.Context
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.asFlow
 import androidx.lifecycle.viewModelScope
 import com.tfcode.comparetout.ComparisonUIViewModel
 import com.tfcode.comparetout.TOUTCApplication
@@ -13,6 +14,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -89,6 +91,35 @@ class UI2SharedViewModel @Inject constructor(
                 _activeSelection.value = ActiveSelection.DataSource(sysSn, importer, start, end)
             } else {
                 stored[1].toLongOrNull()?.let { _activeSelection.value = ActiveSelection.Simulation(it) }
+            }
+        }
+
+        // Keep an active data-source selection's date range current. The range
+        // is captured when a source is picked, but a later fetch (manual,
+        // daily, or notification-driven) extends the data — the InverterDateRange
+        // table then emits and we refresh the selection so the dashboard and
+        // graphs, which both observe activeSelection, recompute over the full
+        // window instead of the stale range they were opened with.
+        viewModelScope.launch {
+            combine(
+                repository.getLiveDateRanges().asFlow(),
+                repository.getESBNLiveDateRanges().asFlow(),
+                repository.getHALiveDateRanges().asFlow()
+            ) { alpha, esbn, ha ->
+                // sysSn -> (start, finish). Match the Simulations list's dedup
+                // priority: alpha wins over esbn over ha for a shared sysSn.
+                buildMap<String, Pair<String?, String?>> {
+                    ha.orEmpty().forEach   { put(it.sysSn, it.startDate to it.finishDate) }
+                    esbn.orEmpty().forEach { put(it.sysSn, it.startDate to it.finishDate) }
+                    alpha.orEmpty().forEach { put(it.sysSn, it.startDate to it.finishDate) }
+                }
+            }.collect { ranges ->
+                val sel = _activeSelection.value as? ActiveSelection.DataSource ?: return@collect
+                val (start, finish) = ranges[sel.sysSn] ?: return@collect
+                if (start.isNullOrBlank() || finish.isNullOrBlank()) return@collect
+                if (start != sel.startDate || finish != sel.endDate) {
+                    setActiveDataSource(sel.sysSn, sel.importerType, start, finish)
+                }
             }
         }
     }

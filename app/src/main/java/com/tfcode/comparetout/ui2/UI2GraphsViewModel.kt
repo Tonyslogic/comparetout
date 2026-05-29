@@ -168,7 +168,12 @@ class UI2GraphsViewModel @Inject constructor(
         startDate: String,
         endDate: String
     ) {
-        if (_state.value.dataSysSn == sysSn && _state.value.importerType == importerType && !_state.value.isLoading) return
+        // Re-initialise when the source OR its available date range changes —
+        // a fetch that extends the data must pull the graphs onto the new
+        // window rather than short-circuiting on a same-SN check.
+        if (_state.value.dataSysSn == sysSn && _state.value.importerType == importerType &&
+            _state.value.dataStartDate == startDate && _state.value.dataEndDate == endDate &&
+            !_state.value.isLoading) return
         Log.d("UI2Graphs", "initializeDataSource($sysSn, $importerType)")
         val initFilters = if (importerType == ComparisonUIViewModel.Importer.ESBNHDF) ESBN_FILTERS else CORE_FILTERS
         _state.update { it.copy(dataSysSn = sysSn, importerType = importerType, scenarioId = 0L,
