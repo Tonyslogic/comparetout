@@ -22,6 +22,7 @@
         <activity
             android:name=".ui2.UI2MainActivity"
             android:exported="false"
+            android:launchMode="singleTop"
             android:theme="@style/Theme.comparetout.UI2" >
         </activity>
         <activity

@@ -45,11 +45,13 @@ import androidx.work.WorkerParameters;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.TOUTCApplication;
 import com.tfcode.comparetout.importers.esbn.responses.ESBNException;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
+import com.tfcode.comparetout.ui2.UI2NotificationLaunch;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -70,6 +72,8 @@ public class ESBNImportWorker extends Worker {
     private final NotificationManager mNotificationManager;
     private static final int mNotificationId = 3;
     private boolean mStopped = false;
+    private boolean mUseUI2 = false;
+    private String mSelectedSysSn = null;
 
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -106,6 +110,8 @@ public class ESBNImportWorker extends Worker {
         String systemSN = inputData.getString(KEY_SYSTEM_SN);
         String uriString = inputData.getString(KEY_URI);
         Uri fileUri = Uri.parse(uriString);
+        mSelectedSysSn = systemSN;
+        mUseUI2 = UI2NotificationLaunch.isUI2Enabled(getApplicationContext());
 
         // Mark the Worker as important
         String progress = "Importing energy";
@@ -189,6 +195,10 @@ public class ESBNImportWorker extends Worker {
         }
         mToutcRepository.addTransformedData(normalizedEntityList);
 
+        // The MPRN may only be known after parsing the file — refresh the
+        // cached SN so the completion notification deep-links to the right
+        // source under UI2.
+        mSelectedSysSn = systemSN;
         progress = "All done importing " + systemSN;
         setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
         String finalProgress1 = progress;
@@ -211,11 +221,9 @@ public class ESBNImportWorker extends Worker {
         PendingIntent intent = WorkManager.getInstance(context)
                 .createCancelPendingIntent(getId());
 
-        Intent importESBNActivity = new Intent(context, ImportESBNActivity.class);
-        TaskStackBuilder stackBuilder = TaskStackBuilder.create(context);
-        stackBuilder.addNextIntentWithParentStack(importESBNActivity);
-        PendingIntent activityPendingIntent = stackBuilder.getPendingIntent(0,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent activityPendingIntent = UI2NotificationLaunch.contentIntent(
+                context, mUseUI2, ComparisonUIViewModel.Importer.ESBNHDF,
+                mSelectedSysSn, ImportESBNActivity.class);
 
         return new NotificationCompat.Builder(context, id)
                 .setContentTitle(title)

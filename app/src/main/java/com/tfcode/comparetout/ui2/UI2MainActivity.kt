@@ -1,8 +1,10 @@
 package com.tfcode.comparetout.ui2
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.View
+import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.ViewCompat
@@ -10,11 +12,14 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import com.google.android.material.behavior.HideBottomViewOnScrollBehavior
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.tfcode.comparetout.ComparisonUIViewModel
 import com.tfcode.comparetout.R
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
 class UI2MainActivity : AppCompatActivity() {
+
+    private val sharedViewModel: UI2SharedViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -70,5 +75,37 @@ class UI2MainActivity : AppCompatActivity() {
             }
         }
         navController.addOnDestinationChangedListener(setupNavListener)
+
+        // Launched from an importer notification? Pre-select that source.
+        handleSourceSelectionIntent(intent, bottomNav)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_nav_view)
+        handleSourceSelectionIntent(intent, bottomNav)
+    }
+
+    /**
+     * When an importer notification launches the app with a source in its
+     * extras, switch to the dashboard tab and ask the shared VM to select
+     * that data source. The extras are cleared after handling so a later
+     * config-change / re-create doesn't re-trigger the selection.
+     */
+    private fun handleSourceSelectionIntent(intent: Intent?, bottomNav: BottomNavigationView) {
+        val sysSn = intent?.getStringExtra(UI2NotificationLaunch.EXTRA_DS_SYSSN) ?: return
+        val importerName = intent.getStringExtra(UI2NotificationLaunch.EXTRA_DS_IMPORTER) ?: return
+        val importer = runCatching {
+            ComparisonUIViewModel.Importer.valueOf(importerName)
+        }.getOrNull() ?: return
+
+        Log.d("UI2", "handleSourceSelectionIntent sysSn=$sysSn importer=$importer")
+        bottomNav.selectedItemId = R.id.ui2DashboardFragment
+        sharedViewModel.selectDataSourceBySn(sysSn, importer)
+
+        // Consume the extras so they don't fire again on recreate.
+        intent.removeExtra(UI2NotificationLaunch.EXTRA_DS_SYSSN)
+        intent.removeExtra(UI2NotificationLaunch.EXTRA_DS_IMPORTER)
     }
 }

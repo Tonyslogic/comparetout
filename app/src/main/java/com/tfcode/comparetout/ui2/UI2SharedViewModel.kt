@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tfcode.comparetout.ComparisonUIViewModel
 import com.tfcode.comparetout.TOUTCApplication
+import com.tfcode.comparetout.model.ToutcRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -15,6 +16,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 private const val KEY_ACTIVE_TYPE        = "active_type"           // "sim" | "ds"
@@ -26,7 +28,8 @@ private const val KEY_ACTIVE_DS_END      = "active_ds_end"
 
 @HiltViewModel
 class UI2SharedViewModel @Inject constructor(
-    @ApplicationContext private val context: Context
+    @ApplicationContext private val context: Context,
+    private val repository: ToutcRepository
 ) : ViewModel() {
 
     sealed class ActiveSelection {
@@ -42,6 +45,11 @@ class UI2SharedViewModel @Inject constructor(
 
     private val _activeSelection = MutableStateFlow<ActiveSelection>(ActiveSelection.None)
     val activeSelection = _activeSelection.asStateFlow()
+
+    // True once an explicit selection has been requested this session (e.g.
+    // launched from an importer notification). Guards the async init restore
+    // below from racing in and overwriting it with the last-persisted value.
+    @Volatile private var explicitSelectionRequested = false
 
     // Convenience for code that only cares about simulation ID
     val activeSimulationId = _activeSelection
@@ -66,6 +74,9 @@ class UI2SharedViewModel @Inject constructor(
                 }
                 .onErrorReturnItem(List(6) { "" })
                 .blockingGet()
+
+            // A notification-driven selection beat us here — don't clobber it.
+            if (explicitSelectionRequested) return@launch
 
             if (stored[0] == "ds") {
                 val sysSn    = stored[2]
@@ -105,6 +116,26 @@ class UI2SharedViewModel @Inject constructor(
             app.putStringValueIntoDataStore(KEY_ACTIVE_DS_IMPORTER, importerType.name)
             app.putStringValueIntoDataStore(KEY_ACTIVE_DS_START,    startDate)
             app.putStringValueIntoDataStore(KEY_ACTIVE_DS_END,      endDate)
+        }
+    }
+
+    /**
+     * Select a data source given only its SN + importer — the entry point used
+     * when an importer notification launches the app. The data's date span is
+     * resolved from the DB so the dashboard can land directly on that source;
+     * if there's no data yet, the selection is left untouched rather than
+     * pointing the dashboard at an empty range.
+     */
+    fun selectDataSourceBySn(sysSn: String, importerType: ComparisonUIViewModel.Importer) {
+        explicitSelectionRequested = true
+        viewModelScope.launch(Dispatchers.IO) {
+            val range = runCatching { repository.getDateRange(sysSn) }.getOrNull()
+            val start = range?.startDate
+            val end = range?.finishDate
+            if (start.isNullOrBlank() || end.isNullOrBlank()) return@launch
+            withContext(Dispatchers.Main) {
+                setActiveDataSource(sysSn, importerType, start, end)
+            }
         }
     }
 }

@@ -41,8 +41,10 @@ import androidx.work.WorkerParameters;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.TOUTCApplication;
+import com.tfcode.comparetout.ui2.UI2NotificationLaunch;
 import com.tfcode.comparetout.importers.homeassistant.messages.HAMessage;
 import com.tfcode.comparetout.importers.homeassistant.messages.StatsForPeriodRequest;
 import com.tfcode.comparetout.importers.homeassistant.messages.authorization.AuthInvalid;
@@ -92,6 +94,9 @@ public class HACatchupWorker extends Worker {
     private final NotificationManager mNotificationManager;
     private static final int mNotificationId = 4;
     private boolean mStopped = false;
+    private boolean mUseUI2 = false;
+    // HA data is stored under a single synthetic SN (see calculateAndAddLoad).
+    private static final String HA_SYS_SN = "HomeAssistant";
     public HACatchupWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
         mContext = context;
@@ -123,6 +128,7 @@ public class HACatchupWorker extends Worker {
         }
         String sensors = inputData.getString(KEY_SENSORS);
         mEnergySensors = new Gson().fromJson(sensors, new TypeToken<EnergySensors>(){}.getType());
+        mUseUI2 = UI2NotificationLaunch.isUI2Enabled(getApplicationContext());
 
         // Mark the Worker as important
         LocalDate current = LocalDate.parse(startDate, INPUT_DATE_FORMAT);
@@ -315,11 +321,9 @@ public class HACatchupWorker extends Worker {
         PendingIntent intent = WorkManager.getInstance(context)
                 .createCancelPendingIntent(getId());
 
-        Intent importESBNActivity = new Intent(context, ImportHomeAssistantActivity.class);
-        TaskStackBuilder stackBuilder = TaskStackBuilder.create(context);
-        stackBuilder.addNextIntentWithParentStack(importESBNActivity);
-        PendingIntent activityPendingIntent = stackBuilder.getPendingIntent(0,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent activityPendingIntent = UI2NotificationLaunch.contentIntent(
+                context, mUseUI2, ComparisonUIViewModel.Importer.HOME_ASSISTANT,
+                HA_SYS_SN, ImportHomeAssistantActivity.class);
 
         return new NotificationCompat.Builder(context, id)
                 .setContentTitle(title)

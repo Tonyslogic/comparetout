@@ -36,10 +36,12 @@ import androidx.work.WorkManager;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
+import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.importers.alphaess.responses.GetOneDayEnergyResponse;
 import com.tfcode.comparetout.importers.alphaess.responses.GetOneDayPowerResponse;
 import com.tfcode.comparetout.model.ToutcRepository;
+import com.tfcode.comparetout.ui2.UI2NotificationLaunch;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawEnergy;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawPower;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
@@ -56,6 +58,8 @@ public class CatchUpWorker extends Worker {
     private final NotificationManager mNotificationManager;
     private static final int mNotificationId = 2;
     private boolean mStopped = false;
+    private boolean mUseUI2 = false;
+    private String mSelectedSysSn = null;
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
@@ -92,6 +96,8 @@ public class CatchUpWorker extends Worker {
         String startDate = inputData.getString(KEY_START_DATE);
         String systemSN = inputData.getString(KEY_SYSTEM_SN);
         mOpenAlphaESSClient.setSerial(systemSN);
+        mSelectedSysSn = systemSN;
+        mUseUI2 = UI2NotificationLaunch.isUI2Enabled(getApplicationContext());
 
         LocalDate current = LocalDate.parse(startDate, DATE_FORMAT);
         LocalDate end = LocalDate.now();
@@ -175,11 +181,9 @@ public class CatchUpWorker extends Worker {
         PendingIntent intent = WorkManager.getInstance(context)
                 .createCancelPendingIntent(getId());
 
-        Intent importAlphaActivity = new Intent(context, ImportAlphaActivity.class);
-        TaskStackBuilder stackBuilder = TaskStackBuilder.create(context);
-        stackBuilder.addNextIntentWithParentStack(importAlphaActivity);
-        PendingIntent activityPendingIntent = stackBuilder.getPendingIntent(0,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent activityPendingIntent = UI2NotificationLaunch.contentIntent(
+                context, mUseUI2, ComparisonUIViewModel.Importer.ALPHAESS,
+                mSelectedSysSn, ImportAlphaActivity.class);
 
         return new NotificationCompat.Builder(context, id)
                 .setContentTitle(title)

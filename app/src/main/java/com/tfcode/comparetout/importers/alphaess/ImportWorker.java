@@ -39,10 +39,12 @@ import androidx.work.WorkerParameters;
 
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonReader;
+import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.importers.alphaess.responses.GetOneDayEnergyResponse;
 import com.tfcode.comparetout.importers.alphaess.responses.GetOneDayPowerResponse;
 import com.tfcode.comparetout.model.ToutcRepository;
+import com.tfcode.comparetout.ui2.UI2NotificationLaunch;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawEnergy;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawPower;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
@@ -61,6 +63,11 @@ public class ImportWorker extends Worker {
     private final NotificationManager mNotificationManager;
     private static final int mNotificationId = 2;
     private boolean mStopped = false;
+    // Cached on the worker thread so the (main-thread) notification builder
+    // never blocks on the DataStore read. Drives whether the notification
+    // tap opens the UI2 dashboard (source pre-selected) or the legacy screen.
+    private boolean mUseUI2 = false;
+    private String mSelectedSysSn = null;
 
 
     public static final String KEY_SYSTEM_SN = "KEY_SYSTEM_SN";
@@ -93,6 +100,8 @@ public class ImportWorker extends Worker {
         String systemSN = inputData.getString(KEY_SYSTEM_SN);
         String uriString = inputData.getString(KEY_URI);
         Uri fileUri = Uri.parse(uriString);
+        mSelectedSysSn = systemSN;
+        mUseUI2 = UI2NotificationLaunch.isUI2Enabled(getApplicationContext());
 
         // Mark the Worker as important
         String progress = "Importing energy";
@@ -224,11 +233,9 @@ public class ImportWorker extends Worker {
         PendingIntent intent = WorkManager.getInstance(context)
                 .createCancelPendingIntent(getId());
 
-        Intent importAlphaActivity = new Intent(context, ImportAlphaActivity.class);
-        TaskStackBuilder stackBuilder = TaskStackBuilder.create(context);
-        stackBuilder.addNextIntentWithParentStack(importAlphaActivity);
-        PendingIntent activityPendingIntent = stackBuilder.getPendingIntent(0,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent activityPendingIntent = UI2NotificationLaunch.contentIntent(
+                context, mUseUI2, ComparisonUIViewModel.Importer.ALPHAESS,
+                mSelectedSysSn, ImportAlphaActivity.class);
 
         return new NotificationCompat.Builder(context, id)
                 .setContentTitle(title)
