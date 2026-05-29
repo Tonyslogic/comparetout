@@ -117,6 +117,126 @@ import java.time.LocalDate
 
 private val StatusGreen = Color(0xFF0B8043)
 private val StatusRed = Color(0xFFD32F2F)
+private val StatusAmber = Color(0xFFF9A825)
+
+// ── Simulation readiness ────────────────────────────────────────────────────
+// A scenario's dashboard is only fully meaningful once it has usage data, PV
+// data for its panels, and a completed costing run. Until then the individual
+// accordions show a red triangle / a missing sun — easy to miss. We collect the
+// outstanding reasons into one "Needs attention" accordion at the top so the
+// user sees *why* the dashboard looks incomplete and how to fix it.
+
+private enum class IssueSeverity { WARNING, INFO }
+
+private data class SimReadinessIssue(
+    val title: String,
+    val hint: String,
+    val severity: IssueSeverity,
+    val wizardSection: String? = null   // non-null → row taps through to the wizard
+)
+
+private fun simReadinessIssues(
+    hasLoadProfile: Boolean,
+    hasPanels: Boolean,
+    hasPanelData: Boolean,
+    resultsReady: Boolean
+): List<SimReadinessIssue> {
+    val issues = mutableListOf<SimReadinessIssue>()
+    if (!hasLoadProfile) {
+        issues += SimReadinessIssue(
+            title = "No usage data linked",
+            hint = "Add a load profile in the Usage Data step so the simulation has consumption to model.",
+            severity = IssueSeverity.WARNING,
+            wizardSection = "load"
+        )
+    }
+    if (hasPanels && !hasPanelData) {
+        issues += SimReadinessIssue(
+            title = "Solar data not generated yet",
+            hint = "Solar yield is fetched per panel from its location. Open PV System to generate it, " +
+                "or wait if a simulation is already running.",
+            severity = IssueSeverity.WARNING,
+            wizardSection = "pv"
+        )
+    }
+    if (!resultsReady) {
+        issues += SimReadinessIssue(
+            title = "Results aren't ready yet",
+            hint = "Costs and charts appear once the simulation finishes calculating. " +
+                "It runs automatically after you edit a simulation or its tariffs.",
+            severity = IssueSeverity.INFO
+        )
+    }
+    return issues
+}
+
+@Composable
+private fun SimulationStatusAccordion(
+    issues: List<SimReadinessIssue>,
+    onFix: (String) -> Unit
+) {
+    if (issues.isEmpty()) return
+    val anyWarning = issues.any { it.severity == IssueSeverity.WARNING }
+    ExpandableCard(
+        title = "Needs attention",
+        initiallyExpanded = true,
+        leadingIcon = {
+            Icon(
+                painterResource(R.drawable.ic_baseline_warning_24), null,
+                Modifier.size(24.dp),
+                tint = if (anyWarning) StatusAmber else MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        },
+        trailingContent = { _ ->
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = (if (anyWarning) StatusAmber else MaterialTheme.colorScheme.onSurfaceVariant)
+                    .copy(alpha = 0.15f)
+            ) {
+                Text(
+                    issues.size.toString(),
+                    style = MaterialTheme.typography.labelMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (anyWarning) StatusAmber else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                )
+            }
+        },
+        showEdit = false
+    ) {
+        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            issues.forEach { issue ->
+                val tint = if (issue.severity == IssueSeverity.WARNING) StatusAmber
+                           else MaterialTheme.colorScheme.onSurfaceVariant
+                val iconRes = if (issue.severity == IssueSeverity.WARNING)
+                    R.drawable.ic_baseline_warning_24 else R.drawable.ic_baseline_info_24
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .then(
+                            if (issue.wizardSection != null)
+                                Modifier.clickable { onFix(issue.wizardSection) }
+                            else Modifier
+                        ),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Icon(painterResource(iconRes), null, Modifier.size(18.dp), tint = tint)
+                    Column(Modifier.weight(1f)) {
+                        Text(issue.title, style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold)
+                        Text(issue.hint, style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (issue.wizardSection != null) {
+                            Text("Tap to open the wizard",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.primary)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
 @AndroidEntryPoint
 class UI2DashboardFragment : Fragment() {
@@ -430,6 +550,26 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     val ctx = LocalContext.current
                     val scenarioId = sc.scenario?.scenarioIndex ?: -1L
 
+                    // 0. Needs attention — only rendered while the simulation is
+                    //    incomplete. Collects the reasons the dashboard looks
+                    //    half-empty (no usage data / PV data not generated /
+                    //    results still calculating) into one place with fixes.
+                    val readiness = simReadinessIssues(
+                        hasLoadProfile = sc.loadProfile != null,
+                        hasPanels      = sc.panels.orEmpty().isNotEmpty(),
+                        hasPanelData   = dashboardData?.hasPanelData == true,
+                        resultsReady   = kpis != null && costing != null
+                    )
+                    SimulationStatusAccordion(readiness) { section ->
+                        if (scenarioId != -1L) {
+                            ctx.startActivity(
+                                Intent(ctx, UI2WizardActivity::class.java)
+                                    .putExtra("ScenarioID", scenarioId)
+                                    .putExtra("WizardSection", section)
+                            )
+                        }
+                    }
+
                     // 1. Tariff Plan — moved to the top per the redesign, with a
                     //    period picker so the user can dial in monthly / yearly
                     //    costings instead of just the simulation's annual total.
@@ -517,8 +657,27 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         },
                         showEdit = false
                     ) {
-                        if (kpis == null) Text("No simulation results yet")
-                        else SimulationPieCharts(kpis = kpis)
+                        val pvMissing = sc.panels.orEmpty().isNotEmpty() &&
+                            dashboardData?.hasPanelData != true
+                        when {
+                            kpis == null -> Text(
+                                "Results aren't ready yet — the breakdown appears here once the " +
+                                    "simulation finishes calculating. See \"Needs attention\" above for what's outstanding.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            else -> {
+                                if (pvMissing) {
+                                    Text(
+                                        "Solar data is still being generated, so these figures may be incomplete.",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = StatusAmber,
+                                        modifier = Modifier.padding(bottom = 8.dp)
+                                    )
+                                }
+                                SimulationPieCharts(kpis = kpis)
+                            }
+                        }
                     }
 
                     // 3. KPI — same style/content as ImportKeyStatsFragment.
@@ -613,12 +772,22 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                             Icon(painterResource(R.drawable.solarpanel), null, Modifier.size(24.dp), tint = Color.Unspecified)
                         },
                         trailingContent = { _ ->
+                            val panelsConfigured = sc.panels.orEmpty().isNotEmpty()
+                            val pvDataReady = dashboardData?.hasPanelData == true
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (sc.panels.isNotEmpty() && dashboardData?.hasPanelData == true) {
-                                    Icon(painterResource(R.drawable.ic_baseline_wb_sunny_36), null,
-                                        Modifier.size(18.dp), tint = StatusGreen)
-                                }
-                                if (sc.panels.isNotEmpty()) {
+                                if (panelsConfigured) {
+                                    if (pvDataReady) {
+                                        // Sun = solar yield generated and ready.
+                                        Icon(painterResource(R.drawable.ic_baseline_wb_sunny_36),
+                                            "Solar data ready", Modifier.size(18.dp), tint = StatusGreen)
+                                    } else {
+                                        // Cloud = panels exist but their solar data
+                                        // hasn't been generated yet — a clearer "no sun
+                                        // (yet)" signal than simply omitting the sun.
+                                        Icon(painterResource(R.drawable.cloud),
+                                            "Solar data not generated yet", Modifier.size(18.dp),
+                                            tint = StatusAmber)
+                                    }
                                     Icon(painterResource(R.drawable.tick), null, Modifier.size(18.dp), tint = Color.Unspecified)
                                 }
                             }
@@ -632,8 +801,17 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         }) else null
                     ) {
                         if (sc.panels.isEmpty()) Text("No panels configured")
-                        else sc.panels.forEach { p ->
-                            Text("${p.panelName}: ${p.panelCount} × ${p.panelkWp}W, ${p.azimuth}° azimuth, ${p.slope}° slope")
+                        else {
+                            if (dashboardData?.hasPanelData != true) {
+                                Text("Solar data hasn't been generated for these panels yet. " +
+                                    "It's fetched automatically when the simulation runs.",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = StatusAmber,
+                                    modifier = Modifier.padding(bottom = 6.dp))
+                            }
+                            sc.panels.forEach { p ->
+                                Text("${p.panelName}: ${p.panelCount} × ${p.panelkWp}W, ${p.azimuth}° azimuth, ${p.slope}° slope")
+                            }
                         }
                         if (panelSummary.isNotEmpty()) {
                             Spacer(Modifier.height(8.dp))
@@ -1562,10 +1740,11 @@ fun ExpandableCard(
     leadingIcon: (@Composable () -> Unit)? = null,
     trailingContent: (@Composable (expanded: Boolean) -> Unit)? = null,
     showEdit: Boolean = true,
+    initiallyExpanded: Boolean = false,
     onEdit: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(initiallyExpanded) }
 
     Card(
         modifier = Modifier
