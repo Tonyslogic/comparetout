@@ -76,11 +76,7 @@ jobs:
             --device "model=${{ inputs.device }},version=${{ inputs.version }},locale=en,orientation=landscape" \
             --device "model=MediumTablet.arm,version=34,locale=en,orientation=landscape" \
             --device "model=${{ inputs.device }},version=30,locale=en,orientation=portrait" \
-            --test-targets "class com.tfcode.comparetout.SmokeLaunchTest" \
-            --test-targets "class com.tfcode.comparetout.SmokeActivityCoverageTest" \
-            --test-targets "class com.tfcode.comparetout.SmokeRotationTest" \
-            --test-targets "class com.tfcode.comparetout.SmokeImportTest" \
-            --test-targets "class com.tfcode.comparetout.SmokePVGISTest" \
+            --test-targets "class com.tfcode.comparetout.SmokeLaunchTest,class com.tfcode.comparetout.SmokeActivityCoverageTest,class com.tfcode.comparetout.SmokeRotationTest,class com.tfcode.comparetout.model.SmokeImportTest,class com.tfcode.comparetout.SmokePVGISTest" \
             --results-bucket=comparetout-ftl-results \
             --timeout 10m \
             --num-flaky-test-attempts 1
