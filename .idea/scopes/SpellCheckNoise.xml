@@ -1,0 +1,3 @@
+<component name="DependencyValidationManager">
+  <scope name="SpellCheckNoise" pattern="file:.claude//*||file:.github//*||file:app/schemas//*||file:app/src/debug/res/raw//*||file:plans//*||file:analysis_260530//*||file:ai/context//*" />
+</component>
