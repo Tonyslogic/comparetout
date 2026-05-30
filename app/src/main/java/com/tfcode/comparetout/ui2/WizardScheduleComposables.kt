@@ -2361,5 +2361,5 @@ fun fmtDays(days: List<Int>): String {
     if (days.sorted() == (0..4).toList()) return "Weekdays"
     if (days.sorted() == listOf(5, 6)) return "Weekend"
     val names = listOf("Mon","Tue","Wed","Thu","Fri","Sat","Sun")
-    return days.sorted().joinToString { names.getOrElse(it) { it -> it.toString() } }
+    return days.sorted().joinToString { names.getOrElse(it) { idx -> idx.toString() } }
 }

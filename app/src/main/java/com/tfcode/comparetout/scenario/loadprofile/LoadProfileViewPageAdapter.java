@@ -35,7 +35,6 @@ public class LoadProfileViewPageAdapter extends FragmentStateAdapter {
     @Override
     public Fragment createFragment(int position) {
         return switch (position) {
-            case 0 -> loadProfilePropertiesFragment;
             case 1 -> loadProfileDailyDistributionFragment;
             case 2 -> loadProfileMonthlyDistributionFragment;
             case 3 -> loadProfileHourlyDistributionFragment;

@@ -308,8 +308,13 @@ fun validate(b: PricePlanBuilder): PlanIssues {
     while (i <= 365) {
         if (daysCovered[i] == 0) {
             val from = i
-            while (i <= 365 && daysCovered[i] == 0) i++
-            gaps += from..<i
+            // We already know daysCovered[from] == 0; scan forward from from+1
+            // to find the first covered day. This makes the resulting range
+            // from..<to provably non-empty (to >= from+1).
+            var to = from + 1
+            while (to <= 365 && daysCovered[to] == 0) to++
+            gaps += from..<to
+            i = to
         } else i++
     }
 

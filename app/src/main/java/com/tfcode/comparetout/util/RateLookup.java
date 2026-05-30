@@ -227,7 +227,6 @@ public class RateLookup {
             case annual -> 365;
             case monthly -> 30;
             case bimonthly -> 60;
-            default -> 0;
         };
     }
     

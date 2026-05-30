@@ -615,7 +615,6 @@ public class ComparisonUIViewModel extends AndroidViewModel {
             case ESBNHDF -> toutcRepository.getESBNLiveDateRanges();
             case HOME_ASSISTANT -> toutcRepository.getHALiveDateRanges();
             case SIMULATION -> toutcRepository.getScenarioLiveDateRanges();
-            default -> null;
         };
     }
 
@@ -642,7 +641,6 @@ public class ComparisonUIViewModel extends AndroidViewModel {
             case ALPHAESS, ESBNHDF, HOME_ASSISTANT ->
                     toutcRepository.getSumHour(systemSN, from, to);
             case SIMULATION -> toutcRepository.getSimSumHour(systemSN, from, to);
-            default -> null;
         };
     }
 
@@ -650,7 +648,6 @@ public class ComparisonUIViewModel extends AndroidViewModel {
         return switch (importer) {
             case ALPHAESS, ESBNHDF, HOME_ASSISTANT -> toutcRepository.getSumDOY(systemSN, from, to);
             case SIMULATION -> toutcRepository.getSimSumDOY(systemSN, from, to);
-            default -> null;
         };
     }
 
@@ -658,7 +655,6 @@ public class ComparisonUIViewModel extends AndroidViewModel {
         return switch (importer) {
             case ALPHAESS, ESBNHDF, HOME_ASSISTANT -> toutcRepository.getSumDOW(systemSN, from, to);
             case SIMULATION -> toutcRepository.getSimSumDOW(systemSN, from, to);
-            default -> null;
         };
     }
 
@@ -667,7 +663,6 @@ public class ComparisonUIViewModel extends AndroidViewModel {
             case ALPHAESS, ESBNHDF, HOME_ASSISTANT ->
                     toutcRepository.getSumMonth(systemSN, from, to);
             case SIMULATION -> toutcRepository.getSimSumMonth(systemSN, from, to);
-            default -> null;
         };
     }
 
@@ -676,7 +671,6 @@ public class ComparisonUIViewModel extends AndroidViewModel {
             case ALPHAESS, ESBNHDF, HOME_ASSISTANT ->
                     toutcRepository.getSumYear(systemSN, from, to);
             case SIMULATION -> toutcRepository.getSimSumYear(systemSN, from, to);
-            default -> null;
         };
     }
 
@@ -685,7 +679,6 @@ public class ComparisonUIViewModel extends AndroidViewModel {
             case ALPHAESS, ESBNHDF, HOME_ASSISTANT ->
                     toutcRepository.getAvgHour(systemSN, from, to);
             case SIMULATION -> toutcRepository.getSimAvgHour(systemSN, from, to);
-            default -> null;
         };
     }
 
@@ -693,7 +686,6 @@ public class ComparisonUIViewModel extends AndroidViewModel {
         return switch (importer) {
             case ALPHAESS, ESBNHDF, HOME_ASSISTANT -> toutcRepository.getAvgDOY(systemSN, from, to);
             case SIMULATION -> toutcRepository.getSimAvgDOY(systemSN, from, to);
-            default -> null;
         };
     }
 
@@ -701,7 +693,6 @@ public class ComparisonUIViewModel extends AndroidViewModel {
         return switch (importer) {
             case ALPHAESS, ESBNHDF, HOME_ASSISTANT -> toutcRepository.getAvgDOW(systemSN, from, to);
             case SIMULATION -> toutcRepository.getSimAvgDOW(systemSN, from, to);
-            default -> null;
         };
     }
 
@@ -710,7 +701,6 @@ public class ComparisonUIViewModel extends AndroidViewModel {
             case ALPHAESS, ESBNHDF, HOME_ASSISTANT ->
                     toutcRepository.getAvgMonth(systemSN, from, to);
             case SIMULATION -> toutcRepository.getSimAvgMonth(systemSN, from, to);
-            default -> null;
         };
     }
 
@@ -719,7 +709,6 @@ public class ComparisonUIViewModel extends AndroidViewModel {
             case ALPHAESS, ESBNHDF, HOME_ASSISTANT ->
                     toutcRepository.getAvgYear(systemSN, from, to);
             case SIMULATION -> toutcRepository.getSimAvgYear(systemSN, from, to);
-            default -> null;
         };
     }
 
@@ -735,16 +724,14 @@ public class ComparisonUIViewModel extends AndroidViewModel {
         return switch (importer) {
             case ALPHAESS -> toutcRepository.getKeyStats(from, to, systemSN);
             case HOME_ASSISTANT -> toutcRepository.getHAKeyStats(from, to, systemSN);
-            case ESBNHDF -> null;
-            default -> null;
+            case ESBNHDF, SIMULATION -> null;
         };
     }
 
     public KPIRow getKPIs(Importer importer, String from, String to, String systemSN) {
         return switch (importer) {
             case ALPHAESS, HOME_ASSISTANT -> toutcRepository.getKPIs(from, to, systemSN);
-            case ESBNHDF -> null;
-            default -> null;
+            case ESBNHDF, SIMULATION -> null;
         };
     }
 }

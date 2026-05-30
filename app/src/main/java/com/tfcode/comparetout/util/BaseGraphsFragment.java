@@ -841,7 +841,6 @@ public abstract class BaseGraphsFragment extends Fragment {
             case LINE -> mDestinationPicksLine;
             case PIE -> mDestinationPicksPie;
             case TABLE -> mDestinationPicksTable;
-            default -> null;
         };
     }
 
