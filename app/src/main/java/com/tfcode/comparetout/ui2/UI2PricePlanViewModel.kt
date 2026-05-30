@@ -199,7 +199,7 @@ class UI2PricePlanViewModel @Inject constructor(
                 if (runCosting) {
                     withContext(Dispatchers.Main) {
                         com.tfcode.comparetout.SimulatorLauncher
-                            .simulateIfNeeded(getApplication<Application>())
+                            .simulateIfNeeded(getApplication())
                     }
                 }
                 _saveResult.value = PricePlanSaveResult.Saved
@@ -309,7 +309,7 @@ fun validate(b: PricePlanBuilder): PlanIssues {
         if (daysCovered[i] == 0) {
             val from = i
             while (i <= 365 && daysCovered[i] == 0) i++
-            gaps += from..(i - 1)
+            gaps += from..<i
         } else i++
     }
 

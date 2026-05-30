@@ -67,7 +67,7 @@ class UI2SimulationsViewModel @Inject constructor(
         // HA always stores sysSn = "HomeAssistant" (hardcoded in HACatchupWorker), so we
         // detect it by name to avoid misclassifying it as ESBN.
         val seen = mutableSetOf<String>()
-        val dsItems = buildList<SimListItem.DataSource> {
+        val dsItems = buildList {
             alpha.forEach { if (seen.add(it.sysSn)) add(SimListItem.DataSource(it.sysSn, ComparisonUIViewModel.Importer.ALPHAESS,        it.startDate, it.finishDate)) }
             esbn.forEach  { r ->
                 val type = if (r.sysSn == "HomeAssistant") ComparisonUIViewModel.Importer.HOME_ASSISTANT

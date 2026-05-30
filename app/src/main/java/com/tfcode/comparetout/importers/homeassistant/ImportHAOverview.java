@@ -466,7 +466,7 @@ public class ImportHAOverview extends ImportOverviewFragment {
                 // Update system selection state and refresh UI
                 mSerialNumber = "HomeAssistant";
                 mSystemSelected = true;
-                mMainHandler.post(() -> {serialUpdated(mActivity);});
+                mMainHandler.post(() -> serialUpdated(mActivity));
                 mMainHandler.post(mImportHAOverview::updateView);
             }
             mHAClient.stop();

@@ -528,8 +528,8 @@ private fun WizardScreen(
                         append("$batteryCount batter${if (batteryCount > 1) "ies" else "y"}")
                         append("  ·  ")
                         append("${builder.batteryEntries.sumOf { it.batterySize }} kWh")
-                        if (batteryChargeCount > 0) append("  ·  ${batteryChargeCount} charge")
-                        if (batteryDischargeCount > 0) append("  ·  ${batteryDischargeCount} discharge")
+                        if (batteryChargeCount > 0) append("  ·  $batteryChargeCount charge")
+                        if (batteryDischargeCount > 0) append("  ·  $batteryDischargeCount discharge")
                     }
                 } else if (noviceMode) "Battery storage and schedules" else null,
                 isComplete = batteryCount > 0,

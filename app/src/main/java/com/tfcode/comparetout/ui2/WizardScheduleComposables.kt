@@ -316,7 +316,7 @@ private fun HourRangeBar(startHour: Int, endHour: Int) {
             (0..23).forEach { h ->
                 val active = if (startHour == endHour) false
                 else if (startHour < endHour) h in startHour until endHour
-                else h >= startHour || h < endHour
+                else h !in endHour..<startHour
                 Box(modifier = Modifier.weight(1f).height(10.dp).clip(RoundedCornerShape(2.dp))
                     .background(if (active) primary else surface))
             }
@@ -2361,5 +2361,5 @@ fun fmtDays(days: List<Int>): String {
     if (days.sorted() == (0..4).toList()) return "Weekdays"
     if (days.sorted() == listOf(5, 6)) return "Weekend"
     val names = listOf("Mon","Tue","Wed","Thu","Fri","Sat","Sun")
-    return days.sorted().joinToString { names.getOrElse(it) { it.toString() } }
+    return days.sorted().joinToString { names.getOrElse(it) { it -> it.toString() } }
 }

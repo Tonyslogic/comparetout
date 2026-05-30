@@ -213,13 +213,11 @@ public class MainActivity extends InsetRespectingActivity {
                 .setTitle("New look")
                 .setMessage("You're getting the redesigned dashboard by default. The legacy interface is still available — pick \"Use legacy UI\" from the menu at any time.")
                 .setCancelable(false)
-                .setPositiveButton("Continue", (d, w) -> {
-                    new Thread(() -> {
-                        TOUTCApplication app = (TOUTCApplication) getApplication();
-                        app.putStringValueIntoDataStore("use_ui2", "true");
-                        mMainHandler.post(this::switchToUI2);
-                    }).start();
-                })
+                .setPositiveButton("Continue", (d, w) -> new Thread(() -> {
+                    TOUTCApplication app = (TOUTCApplication) getApplication();
+                    app.putStringValueIntoDataStore("use_ui2", "true");
+                    mMainHandler.post(this::switchToUI2);
+                }).start())
                 .show();
     }
 

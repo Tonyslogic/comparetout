@@ -599,7 +599,7 @@ class UI2WizardViewModel @Inject constructor(
     }
 
     // All existing scenarios for the copy/link picker and name-uniqueness check
-    val allScenarios = repository.allScenarios
+    val allScenarios: LiveData<List<Scenario>> = repository.allScenarios
 
     // Combined list of available data sources (AlphaESS + ESBN + HA)
     private val _availableSources = MediatorLiveData<List<SourceDateRange>>()
@@ -715,7 +715,7 @@ class UI2WizardViewModel @Inject constructor(
                 applyComponentsToBuilder(components, fromId = 0L, isLinked = false, keepName = false)
                 // Keep IMPORT in the mode chip; preserve any name the user
                 // already typed (mirrors COPY's prevName handling).
-                val name = if (prevName.isNotBlank()) prevName else _builder.value.scenarioName
+                val name = prevName.ifBlank { _builder.value.scenarioName }
                 _builder.value = _builder.value.copy(
                     scenarioMode = ScenarioMode.IMPORT,
                     scenarioName = name

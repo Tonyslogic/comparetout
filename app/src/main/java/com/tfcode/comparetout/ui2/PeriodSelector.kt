@@ -115,7 +115,7 @@ fun stepAnchor(
 /** A "15 Feb 22 – 14 Feb 23" style label for a selection that spans calendars. */
 private fun spanLabel(from: LocalDate, to: LocalDate): String {
     val start = if (from.year == to.year) from.format(RANGE_FMT_SHORT) else from.format(RANGE_FMT)
-    return "${start} – ${to.format(RANGE_FMT)}"
+    return "$start – ${to.format(RANGE_FMT)}"
 }
 
 /**

@@ -1021,7 +1021,7 @@ private fun DeleteDialog(
                         "system configuration are preserved either way.",
                         style = MaterialTheme.typography.bodyMedium)
                     if (hasRange) {
-                        Text("Available data: ${start} ↔ ${end}",
+                        Text("Available data: $start ↔ $end",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     } else {
@@ -1236,7 +1236,7 @@ private fun FetchStartDialog(
             headline = {
                 Text(
                     when {
-                        picked == null -> "Pick a date · catch-up runs up to ${yesterday}"
+                        picked == null -> "Pick a date · catch-up runs up to $yesterday"
                         picked.isAfter(yesterday) -> "Must be no later than $yesterday"
                         else -> "$picked  →  $yesterday   ·   $days day" +
                                 (if (days == 1) "" else "s")

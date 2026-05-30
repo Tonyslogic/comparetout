@@ -1557,7 +1557,7 @@ private fun ResultTable(
         }
         rows.sortedWith(if (ascending) cmp else cmp.reversed())
     }
-    val weights = headers.mapIndexed { i, _ -> if (i == 0) 1.6f else 1f }
+    val weights = List(headers.size) { i -> if (i == 0) 1.6f else 1f }
 
     Column {
         Row(Modifier.fillMaxWidth()

@@ -281,7 +281,7 @@ object SolarConversionUtils {
             val a = values[i]
             val b = values[i + 1]
             if (a.isNaN() || b.isNaN()) continue
-            if ((a <= target && target <= b) || (b <= target && target <= a)) {
+            if ((target in a..b) || (target in b..a)) {
                 val frac = if (abs(b - a) < EPS) 0.0 else (target - a) / (b - a)
                 return (times[i] + frac * (times[i + 1] - times[i])).toLong()
             }
