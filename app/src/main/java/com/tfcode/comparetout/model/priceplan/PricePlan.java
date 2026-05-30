@@ -300,27 +300,18 @@ public class PricePlan {
     }
 
     public static String getInvalidReason(int reasonCode) {
-        switch (reasonCode) {
-            case INVALID_PLAN_DUPLICATE_DAYS:
-                return "Conflicting days in date ranges";
-            case INVALID_PLAN_MISSING_DAYS:
-                return "At least one date range is missing a day";
-            case INVALID_PLAN_OVERLAPPING_DATE_RANGES:
-                return "Date ranges cannot overlap";
-            case INVALID_PLAN_MISSING_DATES:
-                return "The sum of date ranges does not cover the year";
-            case INVALID_PLAN_BAD_DATE_FORMAT:
-                return "A date range does not follow MM/DD";
-            case INVALID_PLAN_NAME_IN_USE:
-                return "The plan name is used by another plan";
-            case INVALID_PLAN_NO_DAY_RATES:
-                return "The plan must include at least one day rate";
-            case INVALID_PLAN_END_BEFORE_START:
-                return "Day rates must end after start";
-            case INVALID_PLAN_MISSING_MINUTES:
-                return "Each day must have a price for every minute (0-1439)";
-            default:
-                return "Unknown reason for invalidity";
-        }
+        return switch (reasonCode) {
+            case INVALID_PLAN_DUPLICATE_DAYS -> "Conflicting days in date ranges";
+            case INVALID_PLAN_MISSING_DAYS -> "At least one date range is missing a day";
+            case INVALID_PLAN_OVERLAPPING_DATE_RANGES -> "Date ranges cannot overlap";
+            case INVALID_PLAN_MISSING_DATES -> "The sum of date ranges does not cover the year";
+            case INVALID_PLAN_BAD_DATE_FORMAT -> "A date range does not follow MM/DD";
+            case INVALID_PLAN_NAME_IN_USE -> "The plan name is used by another plan";
+            case INVALID_PLAN_NO_DAY_RATES -> "The plan must include at least one day rate";
+            case INVALID_PLAN_END_BEFORE_START -> "Day rates must end after start";
+            case INVALID_PLAN_MISSING_MINUTES ->
+                    "Each day must have a price for every minute (0-1439)";
+            default -> "Unknown reason for invalidity";
+        };
     }
 }

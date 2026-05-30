@@ -223,12 +223,12 @@ public class RateLookup {
      * @return number of days in the restriction period
      */
     private int getDurationForRestriction(Restriction.RestrictionType type) {
-        switch (type) {
-            case annual: return 365;
-            case monthly: return 30;
-            case bimonthly: return 60;
-            default: return 0;
-        }
+        return switch (type) {
+            case annual -> 365;
+            case monthly -> 30;
+            case bimonthly -> 60;
+            default -> 0;
+        };
     }
     
     /**

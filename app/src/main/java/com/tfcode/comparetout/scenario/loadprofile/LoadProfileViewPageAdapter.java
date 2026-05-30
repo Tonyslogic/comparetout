@@ -34,13 +34,13 @@ public class LoadProfileViewPageAdapter extends FragmentStateAdapter {
     @NonNull
     @Override
     public Fragment createFragment(int position) {
-        switch (position) {
-            case 0: return loadProfilePropertiesFragment;
-            case 1: return loadProfileDailyDistributionFragment;
-            case 2: return loadProfileMonthlyDistributionFragment;
-            case 3: return loadProfileHourlyDistributionFragment;
-        }
-        return loadProfilePropertiesFragment;
+        return switch (position) {
+            case 0 -> loadProfilePropertiesFragment;
+            case 1 -> loadProfileDailyDistributionFragment;
+            case 2 -> loadProfileMonthlyDistributionFragment;
+            case 3 -> loadProfileHourlyDistributionFragment;
+            default -> loadProfilePropertiesFragment;
+        };
     }
 
     @Override

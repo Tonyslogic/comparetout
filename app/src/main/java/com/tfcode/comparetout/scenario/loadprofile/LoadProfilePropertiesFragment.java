@@ -233,27 +233,21 @@ public class LoadProfilePropertiesFragment extends Fragment {
                         break;
                     case SourceDialog.SLP:
                         StandardLoadProfileDialog slpDialog = new StandardLoadProfileDialog(thisActivity, newSLP -> {
-                            String loadProfileJsonString = null;
-                            switch (newSLP) {
-                                case StandardLoadProfiles.URBAN_24:
-                                    loadProfileJsonString = StandardLoadProfiles.SLP_24hr_urban;
-                                    break;
-                                case StandardLoadProfiles.RURAL_24:
-                                    loadProfileJsonString = StandardLoadProfiles.SLP_24hr_rural;
-                                    break;
-                                case StandardLoadProfiles.URBAN_NIGHT:
-                                    loadProfileJsonString = StandardLoadProfiles.SLP_NightSaver_urban;
-                                    break;
-                                case StandardLoadProfiles.RURAL_NIGHT:
-                                    loadProfileJsonString = StandardLoadProfiles.SLP_NightSaver_rural;
-                                    break;
-                                case StandardLoadProfiles.URBAN_SMART:
-                                    loadProfileJsonString = StandardLoadProfiles.SLP_Smart_urban;
-                                    break;
-                                case StandardLoadProfiles.RURAL_SMART:
-                                    loadProfileJsonString = StandardLoadProfiles.SLP_Smart_rural;
-                                    break;
-                            }
+                            String loadProfileJsonString = switch (newSLP) {
+                                case StandardLoadProfiles.URBAN_24 ->
+                                        StandardLoadProfiles.SLP_24hr_urban;
+                                case StandardLoadProfiles.RURAL_24 ->
+                                        StandardLoadProfiles.SLP_24hr_rural;
+                                case StandardLoadProfiles.URBAN_NIGHT ->
+                                        StandardLoadProfiles.SLP_NightSaver_urban;
+                                case StandardLoadProfiles.RURAL_NIGHT ->
+                                        StandardLoadProfiles.SLP_NightSaver_rural;
+                                case StandardLoadProfiles.URBAN_SMART ->
+                                        StandardLoadProfiles.SLP_Smart_urban;
+                                case StandardLoadProfiles.RURAL_SMART ->
+                                        StandardLoadProfiles.SLP_Smart_rural;
+                                default -> null;
+                            };
                             if (!(null == loadProfileJsonString)) {
                                 Type type = new TypeToken<LoadProfileJson>() {
                                 }.getType();
