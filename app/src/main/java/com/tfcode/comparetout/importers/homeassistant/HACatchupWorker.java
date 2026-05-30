@@ -84,7 +84,7 @@ public class HACatchupWorker extends Worker {
 
     private final Object lock = new Object();
 
-    Context mContext;
+    final Context mContext;
     Handler mHandler;
     private final ToutcRepository mToutcRepository;
 

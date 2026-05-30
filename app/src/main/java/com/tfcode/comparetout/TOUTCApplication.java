@@ -207,7 +207,7 @@ public class TOUTCApplication extends Application {
      * null or empty values, allowing the application to continue functioning
      * with default behaviors when preference storage is unavailable.
      */
-    Preferences pref_error = new Preferences() {
+    final Preferences pref_error = new Preferences() {
         @Nullable
         @Override
         public <T> T get(@NonNull Key<T> key) {

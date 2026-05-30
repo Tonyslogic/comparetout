@@ -94,7 +94,7 @@ public class ScenarioJsonFileTest {
         return new String(encoded, StandardCharsets.UTF_8);
     }
 
-    String minimalScenario = "[{\"Name\": \"Empty\",\"Inverters\": [{\n" +
+    final String minimalScenario = "[{\"Name\": \"Empty\",\"Inverters\": [{\n" +
             "\t\t\t\"Name\": \"AlphaESS\",\n" +
             "\t\t\t\"MinExcess\": 0.008,\n" +
             "\t\t\t\"MaxInverterLoad\": 5.0,\n" +

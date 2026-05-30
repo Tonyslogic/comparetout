@@ -783,24 +783,24 @@ public class SimulationWorker extends Worker {
      * reason about each inverter's context and constraints at every time step.
      */
     static class InputData {
-        long id;
-        double dc2acLoss;
-        double ac2dcLoss;
-        double dc2dcLoss;
-        double storageLoss;
-        double exportMax;
+        final long id;
+        final double dc2acLoss;
+        final double ac2dcLoss;
+        final double dc2dcLoss;
+        final double storageLoss;
+        final double exportMax;
         List<SimulationInputData> simulationInputData;
         Battery mBattery;
         ChargeFromGrid mChargeFromGrid;
-        ForceDischargeToGrid mForceDischargeToGrid;
+        final ForceDischargeToGrid mForceDischargeToGrid;
 
-        HWSystem mHWSystem;
-        Boolean mHWDivert;
-        List<HWSchedule> mHWSchedules;
+        final HWSystem mHWSystem;
+        final Boolean mHWDivert;
+        final List<HWSchedule> mHWSchedules;
 
-        List<EVCharge> mEVCharges;
-        List<EVDivert> mEVDiverts;
-        Map<Integer, Double> mEVDivertDailyTotals;
+        final List<EVCharge> mEVCharges;
+        final List<EVDivert> mEVDiverts;
+        final Map<Integer, Double> mEVDivertDailyTotals;
 
         // Volatile state members
         double soc = 0d;
@@ -985,8 +985,8 @@ public class SimulationWorker extends Worker {
      */
     public static class ChargeFromGrid {
 
-        List<Boolean> mCFG;
-        List<Double> mStopAt;
+        final List<Boolean> mCFG;
+        final List<Double> mStopAt;
 
         /**
          * Constructs a ChargeFromGrid schedule from load shifts.
@@ -1078,9 +1078,9 @@ public class SimulationWorker extends Worker {
      */
     public static class ForceDischargeToGrid {
 
-        List<Boolean> mD2G;
-        List<Double> mStopAt;
-        List<Double> mRate;
+        final List<Boolean> mD2G;
+        final List<Double> mStopAt;
+        final List<Double> mRate;
 
         /**
          * Constructs a ForceDischargeToGrid schedule from discharge schedules.

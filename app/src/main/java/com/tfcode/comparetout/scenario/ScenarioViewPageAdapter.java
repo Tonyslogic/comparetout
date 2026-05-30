@@ -22,11 +22,11 @@ import androidx.fragment.app.FragmentActivity;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 
 public class ScenarioViewPageAdapter extends FragmentStateAdapter {
-    ScenarioOverview mScenarioOverview = ScenarioOverview.newInstance();
-    ScenarioGraphs mScenarioGraphs = ScenarioGraphs.newInstance();
-    ScenarioDetails mScenarioDetails = ScenarioDetails.newInstance();
-    ScenarioMonthly mScenarioMonthly = ScenarioMonthly.newInstance();
-    ScenarioYear mScenarioYear = ScenarioYear.newInstance();
+    final ScenarioOverview mScenarioOverview = ScenarioOverview.newInstance();
+    final ScenarioGraphs mScenarioGraphs = ScenarioGraphs.newInstance();
+    final ScenarioDetails mScenarioDetails = ScenarioDetails.newInstance();
+    final ScenarioMonthly mScenarioMonthly = ScenarioMonthly.newInstance();
+    final ScenarioYear mScenarioYear = ScenarioYear.newInstance();
     public ScenarioViewPageAdapter(@NonNull FragmentActivity fragmentActivity, int ignoredCount) {
         super(fragmentActivity);
     }

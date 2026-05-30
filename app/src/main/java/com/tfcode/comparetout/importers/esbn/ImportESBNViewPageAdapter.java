@@ -24,9 +24,9 @@ import androidx.viewpager2.adapter.FragmentStateAdapter;
 import com.tfcode.comparetout.util.GraphableActivity;
 
 public class ImportESBNViewPageAdapter extends FragmentStateAdapter  implements GraphableActivity {
-    ImportESBNOverview mESBNOverview = ImportESBNOverview.newInstance();
-    ImportESBNGraphs mESBNGraphs = ImportESBNGraphs.newInstance();
-    ImportESBNGenerateScenario mESBNGenerate = ImportESBNGenerateScenario.newInstance();
+    final ImportESBNOverview mESBNOverview = ImportESBNOverview.newInstance();
+    final ImportESBNGraphs mESBNGraphs = ImportESBNGraphs.newInstance();
+    final ImportESBNGenerateScenario mESBNGenerate = ImportESBNGenerateScenario.newInstance();
 
     public ImportESBNViewPageAdapter(@NonNull FragmentActivity fragmentActivity, int ignoredCount) {
         super(fragmentActivity);

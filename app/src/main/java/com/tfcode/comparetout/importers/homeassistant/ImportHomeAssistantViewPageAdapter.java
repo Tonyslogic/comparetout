@@ -22,10 +22,10 @@ import androidx.fragment.app.FragmentActivity;
 import androidx.viewpager2.adapter.FragmentStateAdapter;
 
 public class ImportHomeAssistantViewPageAdapter extends FragmentStateAdapter {
-    ImportHAOverview mHAOverview = ImportHAOverview.newInstance();
-    ImportHAGraphs mHAGraphs = ImportHAGraphs.newInstance();
-    ImportHAKeyStats mHAKeyStats = ImportHAKeyStats.newInstance();
-    ImportHAGenerateScenario mHAGenerate = ImportHAGenerateScenario.newInstance();
+    final ImportHAOverview mHAOverview = ImportHAOverview.newInstance();
+    final ImportHAGraphs mHAGraphs = ImportHAGraphs.newInstance();
+    final ImportHAKeyStats mHAKeyStats = ImportHAKeyStats.newInstance();
+    final ImportHAGenerateScenario mHAGenerate = ImportHAGenerateScenario.newInstance();
 
     public ImportHomeAssistantViewPageAdapter(@NonNull FragmentActivity fragmentActivity, int ignoredCount) {
         super(fragmentActivity);

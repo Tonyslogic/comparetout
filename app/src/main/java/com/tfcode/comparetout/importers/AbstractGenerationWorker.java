@@ -634,11 +634,11 @@ public abstract class AbstractGenerationWorker extends Worker {
      */
     public static class SystemData {
         /** Peak power output of photovoltaic system in kW */
-        public double popv;
+        public final double popv;
         /** Peak power output of inverter in kW */
-        public double poinv;
+        public final double poinv;
         /** List of surplus battery capacity values for different scenarios */
-        public List<Double> surplusCobat;
+        public final List<Double> surplusCobat;
 
         public SystemData(double popv, double poinv, List<Double> surplusCobat) {
             this.popv = popv;

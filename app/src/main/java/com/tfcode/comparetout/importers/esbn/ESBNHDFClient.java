@@ -84,8 +84,8 @@ public class ESBNHDFClient {
 
     private final OkHttpClient mClient;
     private final OkHttpClient mNoRedirectClient;
-    CookieManager mCM = new CookieManager(null, CookiePolicy.ACCEPT_ALL);
-    CookieFixInterceptor mCFI = new CookieFixInterceptor();
+    final CookieManager mCM = new CookieManager(null, CookiePolicy.ACCEPT_ALL);
+    final CookieFixInterceptor mCFI = new CookieFixInterceptor();
     List<String> getLoginPageResponseCookies;
     List<String> postLoginResponseCookies;
     List<String> getLoginConfirmResponseCookies;
