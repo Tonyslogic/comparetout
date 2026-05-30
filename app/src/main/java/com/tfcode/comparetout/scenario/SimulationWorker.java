@@ -388,7 +388,7 @@ public class SimulationWorker extends Worker {
      * @param row The time step index.
      * @param inputDataMap Map of inverters to their input data and state.
      */
-    private static void processOneRow(long scenarioID, ArrayList<ScenarioSimulationData> outputRows, int row, Map<Inverter, InputData> inputDataMap) {
+    static void processOneRow(long scenarioID, ArrayList<ScenarioSimulationData> outputRows, int row, Map<Inverter, InputData> inputDataMap) {
 
         /*
          * INPUT AND STATE INITIALIZATION
