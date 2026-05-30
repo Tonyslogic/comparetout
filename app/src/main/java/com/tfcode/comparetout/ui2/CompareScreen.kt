@@ -39,16 +39,16 @@ import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.filled.ViewModule
@@ -67,7 +67,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -521,7 +521,7 @@ private fun SelectRow(title: String, count: Int, onTap: () -> Unit) {
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable { onTap() }
     ) {
         Row(Modifier.padding(11.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.List, contentDescription = null, modifier = Modifier.size(22.dp),
+            Icon(Icons.AutoMirrored.Filled.List, contentDescription = null, modifier = Modifier.size(22.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.width(12.dp))
             Text(title, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
@@ -536,7 +536,7 @@ private fun SelectRow(title: String, count: Int, onTap: () -> Unit) {
                     color = if (count > 0) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Icon(Icons.Default.KeyboardArrowRight, contentDescription = null)
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
         }
     }
 }
@@ -595,7 +595,7 @@ private fun TimeframeSection(
     novice: Boolean,
     selectedSubjects: List<Pair<String, String>>
 ) {
-    TabRow(selectedTabIndex = if (state.advanced) 1 else 0) {
+    PrimaryTabRow(selectedTabIndex = if (state.advanced) 1 else 0) {
         Tab(selected = !state.advanced, onClick = { vm.update { it.copy(advanced = false) } },
             text = { Text("Basic") })
         Tab(selected = state.advanced, onClick = { vm.update { it.copy(advanced = true) } },
@@ -702,14 +702,14 @@ private fun RangePicker(
     if (gran != null && gran != DataSourcePeriod.ALL) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { onAnchor(stepAnchorBy(anchor, gran, -1)) }) {
-                Icon(Icons.Default.KeyboardArrowLeft, contentDescription = "Earlier")
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Earlier")
             }
             Text(rangeLabel(gran, anchor, advanced),
                 modifier = Modifier.weight(1f), textAlign = TextAlign.Center,
                 maxLines = 1, overflow = TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.bodyMedium)
             IconButton(onClick = { onAnchor(stepAnchorBy(anchor, gran, 1)) }) {
-                Icon(Icons.Default.KeyboardArrowRight, contentDescription = "Later")
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Later")
             }
         }
     }
@@ -757,13 +757,13 @@ private fun compareModeIcon(m: CompareMode): ImageVector = when (m) {
     CompareMode.TABLE -> Icons.Default.TableChart
     CompareMode.BAR   -> Icons.Default.BarChart
     CompareMode.STACK -> Icons.Outlined.StackedBarChart
-    CompareMode.LINE  -> Icons.Default.ShowChart
+    CompareMode.LINE  -> Icons.AutoMirrored.Filled.ShowChart
     CompareMode.AREA  -> Icons.Default.Timeline
     CompareMode.PIE   -> Icons.Default.PieChart
 }
 
 private fun compareLayoutIcon(l: CompareLayout): ImageVector = when (l) {
-    CompareLayout.MERGED -> Icons.Default.ShowChart
+    CompareLayout.MERGED -> Icons.AutoMirrored.Filled.ShowChart
     CompareLayout.SPLIT  -> Icons.Default.ViewModule
 }
 

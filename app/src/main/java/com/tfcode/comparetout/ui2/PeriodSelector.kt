@@ -7,8 +7,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -184,7 +184,7 @@ fun PeriodSelector(
                 enabled = !atStart,
                 modifier = Modifier.size(28.dp)
             ) {
-                Icon(Icons.Default.KeyboardArrowLeft, null, Modifier.size(18.dp))
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, null, Modifier.size(18.dp))
             }
         }
         Text(dateLabel, Modifier.weight(1f),
@@ -198,7 +198,7 @@ fun PeriodSelector(
                 enabled = !atEnd,
                 modifier = Modifier.size(28.dp)
             ) {
-                Icon(Icons.Default.KeyboardArrowRight, null, Modifier.size(18.dp))
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, Modifier.size(18.dp))
             }
         }
     }

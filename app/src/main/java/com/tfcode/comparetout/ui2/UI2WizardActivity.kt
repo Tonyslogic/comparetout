@@ -75,7 +75,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -104,7 +104,7 @@ import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.Color
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.tfcode.comparetout.ComparisonUIViewModel
 import com.tfcode.comparetout.model.json.scenario.ScenarioJsonFile
 import com.tfcode.comparetout.model.scenario.PanelPVSummary
@@ -1139,7 +1139,7 @@ private fun UsageDataSectionContent(
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        TabRow(selectedTabIndex = advancedTab) {
+        PrimaryTabRow(selectedTabIndex = advancedTab) {
             Tab(selected = advancedTab == 0, onClick = { advancedTab = 0 }, text = { Text("Basic") })
             Tab(selected = advancedTab == 1, onClick = { advancedTab = 1 }, text = { Text("Advanced") })
         }
@@ -1555,7 +1555,7 @@ private fun HandCraftDialog(
                 }
             ) { paddingValues ->
                 Column(modifier = Modifier.padding(paddingValues)) {
-                    TabRow(selectedTabIndex = tab) {
+                    PrimaryTabRow(selectedTabIndex = tab) {
                         Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("Hourly") })
                         Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("Daily") })
                         Tab(selected = tab == 2, onClick = { tab = 2 }, text = { Text("Monthly") })
@@ -1666,7 +1666,7 @@ private fun BatterySectionContent(
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        TabRow(selectedTabIndex = advancedTab) {
+        PrimaryTabRow(selectedTabIndex = advancedTab) {
             Tab(selected = advancedTab == 0, onClick = { advancedTab = 0 }, text = { Text("Basic") })
             Tab(selected = advancedTab == 1, onClick = { advancedTab = 1 }, text = { Text("Advanced") })
         }
@@ -1877,7 +1877,7 @@ private fun HwSectionContent(
     var advancedTab by remember { mutableIntStateOf(0) }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        TabRow(selectedTabIndex = advancedTab) {
+        PrimaryTabRow(selectedTabIndex = advancedTab) {
             Tab(selected = advancedTab == 0, onClick = { advancedTab = 0 }, text = { Text("Basic") })
             Tab(selected = advancedTab == 1, onClick = { advancedTab = 1 }, text = { Text("Advanced") })
         }
@@ -2246,7 +2246,7 @@ private fun PVSystemSectionContent(
     var advancedTab     by remember { mutableIntStateOf(0) }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        TabRow(selectedTabIndex = advancedTab) {
+        PrimaryTabRow(selectedTabIndex = advancedTab) {
             Tab(selected = advancedTab == 0, onClick = { advancedTab = 0 }, text = { Text("Basic") })
             Tab(selected = advancedTab == 1, onClick = { advancedTab = 1 }, text = { Text("Advanced") })
         }
