@@ -64,13 +64,23 @@ jobs:
         with:
           project_id: ${{ vars.GCP_PROJECT_ID }}
 
-      - name: Run smoke test on Firebase Test Lab
+      - name: Run smoke suite on Firebase Test Lab
+        # Runs every Smoke* test class across a 4-device matrix in parallel.
+        # ~6 min wall-clock; quota-free virtual devices.
         run: |
           gcloud firebase test android run \
             --type instrumentation \
             --app app/build/outputs/apk/debug/app-debug.apk \
             --test app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
             --device "model=${{ inputs.device }},version=${{ inputs.version }},locale=en,orientation=portrait" \
+            --device "model=${{ inputs.device }},version=${{ inputs.version }},locale=en,orientation=landscape" \
+            --device "model=MediumTablet.arm,version=34,locale=en,orientation=landscape" \
+            --device "model=${{ inputs.device }},version=30,locale=en,orientation=portrait" \
             --test-targets "class com.tfcode.comparetout.SmokeLaunchTest" \
-            --timeout 5m \
+            --test-targets "class com.tfcode.comparetout.SmokeActivityCoverageTest" \
+            --test-targets "class com.tfcode.comparetout.SmokeRotationTest" \
+            --test-targets "class com.tfcode.comparetout.SmokeImportTest" \
+            --test-targets "class com.tfcode.comparetout.SmokePVGISTest" \
+            --results-bucket=comparetout-ftl-results \
+            --timeout 10m \
             --num-flaky-test-attempts 1
