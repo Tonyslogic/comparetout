@@ -137,14 +137,14 @@ fun CompareBarChart(data: List<ChartDatum>, series: List<SeriesDef>, unit: Strin
     // subject view that stays readable: ≤2 series and aligned bucket counts
     // across subjects.
     if (barIsBucketed(data, series)) {
-        renderBucketedBars(data, series, unit, height)
+        RenderBucketedBars(data, series, unit, height)
         return
     }
-    renderTotalsBars(data, series, unit, height)
+    RenderTotalsBars(data, series, unit, height)
 }
 
 @Composable
-private fun renderTotalsBars(
+private fun RenderTotalsBars(
     data: List<ChartDatum>, series: List<SeriesDef>, unit: String, height: Dp
 ) {
     val maxV = niceCeil(data.maxOf { d -> series.maxOf { abs(d.values[it.id] ?: 0.0) } })
@@ -183,7 +183,7 @@ private fun renderTotalsBars(
  * Tick labels are sampled from the longest subject's axisLabels.
  */
 @Composable
-private fun renderBucketedBars(
+private fun RenderBucketedBars(
     data: List<ChartDatum>, series: List<SeriesDef>, unit: String, height: Dp
 ) {
     val colorMode = compareColorMode(data.size, series.size)

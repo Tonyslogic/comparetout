@@ -64,6 +64,7 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -139,7 +140,7 @@ private val SERIES_COLORS: Map<FilterSeries, Color> = mapOf(
     FilterSeries.BAT_DISCHARGE to Color(0xFFCC6600)
 )
 
-private val DISPLAY_FMT = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.getDefault())
+private val DISPLAY_FMT = DateTimeFormatter.ofPattern("dd MMM yyyy")
 
 // ─── Fragment ──────────────────────────────────────────────────────────────
 
@@ -178,8 +179,8 @@ class UI2GraphsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        lifecycleScope.launch {
-            repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
                 sharedViewModel.activeSelection.collect { sel ->
                     when (sel) {
                         is UI2SharedViewModel.ActiveSelection.Simulation -> {
@@ -782,7 +783,7 @@ private fun PieChartView(state: UI2GraphsViewModel.GraphState) {
         return
     }
 
-    var zoomedIdx by remember(specs) { mutableStateOf(-1) }
+    var zoomedIdx by remember(specs) { mutableIntStateOf(-1) }
     val cfg = LocalConfiguration.current
 
     val cols = 2

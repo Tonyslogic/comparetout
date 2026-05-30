@@ -59,6 +59,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -1034,7 +1035,7 @@ private fun stylePVBarChart(chart: BarChart, labelColor: Int, gridColor: Int) {
 
 @Composable
 fun LoadDistributionCharts(lp: LoadProfile) {
-    var zoomedIdx by remember { mutableStateOf(-1) }
+    var zoomedIdx by remember { mutableIntStateOf(-1) }
 
     val hourlyDist  = remember(lp) { lp.hourlyDist?.dist ?: emptyList<Double>() }
     val dailyDist   = remember(lp) { lp.dowDist?.dowDist ?: emptyList<Double>() }
@@ -1123,7 +1124,7 @@ private fun SimpleDistBarChart(
 
 @Composable
 fun PVSummaryBarChart(panelSummary: List<PanelPVSummary>, panels: List<Panel>) {
-    var zoomedIdx by remember { mutableStateOf(-1) }
+    var zoomedIdx by remember { mutableIntStateOf(-1) }
     val monthLabels = remember { listOf("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec") }
 
     val grouped  = remember(panelSummary) { panelSummary.groupBy { it.panelID } }
@@ -1412,7 +1413,7 @@ private fun DataSourceExplorePies(
         }
     }
 
-    var zoomedChart by remember { mutableStateOf(-1) }
+    var zoomedChart by remember { mutableIntStateOf(-1) }
     val cfg = LocalConfiguration.current
 
     Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
@@ -1572,7 +1573,7 @@ private fun PeriodTotalRow(label: String, value: Double, df: DecimalFormat) {
 
 @Composable
 private fun DataSourceDistributionCharts(distribution: UsageDistribution) {
-    var zoomedIdx by remember { mutableStateOf(-1) }
+    var zoomedIdx by remember { mutableIntStateOf(-1) }
 
     val hourLabels  = remember { (0..23).map { "%02d".format(it) } }
     val dayLabels   = remember { listOf("Sun","Mon","Tue","Wed","Thu","Fri","Sat") }
@@ -1656,7 +1657,7 @@ fun PieLegend(slices: List<PieSlice>) {
 
 @Composable
 fun SimulationPieCharts(kpis: SimKPIs) {
-    var zoomedChart by remember { mutableStateOf(-1) }
+    var zoomedChart by remember { mutableIntStateOf(-1) }
 
     val charts = remember(kpis) {
         listOf(

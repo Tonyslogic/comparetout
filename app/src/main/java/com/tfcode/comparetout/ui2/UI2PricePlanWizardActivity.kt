@@ -72,6 +72,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -992,9 +993,9 @@ private fun TimeRangeDialog(
     onDismiss: () -> Unit,
     onConfirm: (Int, Int) -> Unit
 ) {
-    var stage by remember { mutableStateOf(0) }  // 0 = pick begin, 1 = pick end
-    var beginMin by remember { mutableStateOf(initialBegin) }
-    var endMin by remember { mutableStateOf(initialEnd) }
+    var stage by remember { mutableIntStateOf(0) }  // 0 = pick begin, 1 = pick end
+    var beginMin by remember { mutableIntStateOf(initialBegin) }
+    var endMin by remember { mutableIntStateOf(initialEnd) }
 
     val pickerState = rememberTimePickerState(
         initialHour = if (stage == 0) beginMin / 60 else endMin / 60,

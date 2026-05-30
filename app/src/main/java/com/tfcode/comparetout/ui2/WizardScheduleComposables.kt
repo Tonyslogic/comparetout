@@ -51,6 +51,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -2063,7 +2064,7 @@ fun WizardDistributionCharts(
     val dayLabels   = listOf("Mon","Tue","Wed","Thu","Fri","Sat","Sun")
     val monthLabels = listOf("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
 
-    var zoomedIdx by remember { mutableStateOf(-1) }
+    var zoomedIdx by remember { mutableIntStateOf(-1) }
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (zoomedIdx >= 0) {

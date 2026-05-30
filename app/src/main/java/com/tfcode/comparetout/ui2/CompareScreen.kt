@@ -77,6 +77,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -1546,7 +1547,7 @@ private fun ResultTable(
     rows: List<List<Cell>>,
     defaultSort: Int
 ) {
-    var sortCol by remember { mutableStateOf(defaultSort) }
+    var sortCol by remember { mutableIntStateOf(defaultSort) }
     var ascending by remember { mutableStateOf(true) }
     val sorted = remember(rows, sortCol, ascending) {
         val numeric = headers.getOrNull(sortCol)?.second ?: true
