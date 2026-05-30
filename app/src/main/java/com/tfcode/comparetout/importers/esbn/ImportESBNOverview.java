@@ -190,7 +190,7 @@ public class ImportESBNOverview extends ImportOverviewFragment {
     }
 
     @Override
-    protected void reloadClient(String appId, String appSecret) throws ImportException {
+    protected void reloadClient(String appId, String appSecret) {
         // BUG: This is not working, the API is broken
         // TODO: Fix this when the API is publicly available
     }
