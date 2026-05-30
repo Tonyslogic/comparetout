@@ -100,7 +100,7 @@ public class DataMassager {
         return massaged;
     }
 
-    static class DataPoint {
+    public static class DataPoint {
         final double ppv;
         final double load;
         final double feed;

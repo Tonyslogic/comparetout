@@ -441,12 +441,12 @@ public abstract class BaseGraphsFragment extends Fragment {
                                         mCompareActive = false;
                                     }
                                     else {
+                                        mCompareActive = true;
                                         if ("ESBNHDF".equals(type)) {
                                             mCompareSN = mCompareDisplayName = sysSN;
                                             mCompareType = ComparisonUIViewModel.Importer.ESBNHDF;
                                             mCompareFrom = mFrom;
                                             mCompareTo = mTo;
-                                            mCompareActive = true;
                                         } else {
                                             mCompareSN = String.valueOf(id);
                                             mCompareDisplayName = sysSN;
@@ -457,7 +457,6 @@ public abstract class BaseGraphsFragment extends Fragment {
                                                 mCompareFrom = "2001-01-01";
                                                 mCompareTo = "2001-12-31";
                                             }
-                                            mCompareActive = true;
                                         }
                                     }
                                     LOGGER.info("Selected " + sysSN + ", " + type + " to compare from " + mCompareFrom + ", to " + mCompareTo);

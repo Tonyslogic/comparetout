@@ -40,9 +40,12 @@ public class StatsForPeriodRequest extends HAMessageWithID {
     private final List<String> statistic_ids;
     @SerializedName("period")
     private String period = "hour";
+    // Populated for Gson serialisation; not read locally.
     @SerializedName("units")
+    @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
     private final Map<String, String> units;
     @SerializedName("types")
+    @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
     private final List<String> types;
 
     public StatsForPeriodRequest(List<String> stats) {

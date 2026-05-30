@@ -121,7 +121,7 @@ public class ESBNHDFClient {
 
     public static String readEntriesFromFile(InputStream inputStream, ESBNImportExportEntry processor)
             throws ESBNException {
-        String mprnFromFile = "";
+        String mprnFromFile;
         try (InputStreamReader reader = new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
             CSVReader csvReader = new CSVReader(reader);
             mprnFromFile = processHDF(processor, csvReader);

@@ -271,8 +271,8 @@ public class LoadProfileHourlyDistributionFragment extends Fragment {
                 del.setLayoutParams(planParams);
                 add.setLayoutParams(planParams);
 
-                int end = Math.round(hourlyPercentage.getEnd());
-                int begin = Math.round(hourlyPercentage.getBegin());
+                int end = hourlyPercentage.getEnd();
+                int begin = hourlyPercentage.getBegin();
                 int percentDouble = (int) Math.round(hourlyPercentage.getPercentage()) * (end - begin);
 
                 from.setText(String.format("%d", begin));

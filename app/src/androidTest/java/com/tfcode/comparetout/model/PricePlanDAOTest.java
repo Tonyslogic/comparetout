@@ -105,17 +105,17 @@ public class PricePlanDAOTest {
     public void deleteAll() throws InterruptedException {
         loadTestData();
         Map<PricePlan, List<DayRate>> mpp = LiveDataTestUtil.getValue(pricePlanDAO.loadPricePlans());
-        assertEquals(mpp.size(), 10);
+        assertEquals(10, mpp.size());
         pricePlanDAO.deleteAll();
         mpp = LiveDataTestUtil.getValue(pricePlanDAO.loadPricePlans());
-        assertEquals(mpp.size(), 0);
+        assertEquals(0, mpp.size());
     }
 
     @Test
     public void loadPricePlans() throws InterruptedException {
         loadTestData();
         Map<PricePlan, List<DayRate>> mpp = LiveDataTestUtil.getValue(pricePlanDAO.loadPricePlans());
-        assertEquals(mpp.size(), 10);
+        assertEquals(10, mpp.size());
     }
 
     private void loadTestData() {
@@ -151,7 +151,7 @@ public class PricePlanDAOTest {
             break;
         }
         Map<PricePlan, List<DayRate>> mpp = LiveDataTestUtil.getValue(pricePlanDAO.loadPricePlans());
-        assertEquals(mpp.size(), 11);
+        assertEquals(11, mpp.size());
         assertTrue(mpp.containsKey(p));
     }
 

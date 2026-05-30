@@ -349,6 +349,7 @@ public class ScenarioActivity extends InsetRespectingActivity implements Graphab
         return mEdit;
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean isSimulationInProgress() {
         return mSimulationInProgress;
     }
