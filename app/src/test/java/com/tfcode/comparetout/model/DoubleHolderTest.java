@@ -16,7 +16,7 @@
 
 package com.tfcode.comparetout.model;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import com.tfcode.comparetout.model.priceplan.DoubleHolder;
 

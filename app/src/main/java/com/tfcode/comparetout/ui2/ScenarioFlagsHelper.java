@@ -1,6 +1,7 @@
 package com.tfcode.comparetout.ui2;
 
 import androidx.annotation.Nullable;
+
 import com.tfcode.comparetout.model.scenario.Scenario;
 
 /** Exposes Scenario boolean flags whose names collide with their private backing fields,

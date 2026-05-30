@@ -46,8 +46,8 @@ import com.google.android.material.datepicker.MaterialDatePicker;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
-import com.tfcode.comparetout.util.GraphableActivity;
 import com.tfcode.comparetout.model.importers.InverterDateRange;
+import com.tfcode.comparetout.util.GraphableActivity;
 
 import java.time.Instant;
 import java.time.LocalDate;

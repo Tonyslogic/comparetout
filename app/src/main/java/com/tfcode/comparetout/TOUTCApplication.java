@@ -39,8 +39,8 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 
-import io.reactivex.rxjava3.core.Single;
 import dagger.hilt.android.HiltAndroidApp;
+import io.reactivex.rxjava3.core.Single;
 
 /**
  * Main Application class for the TOUTC (Time of Use Tariff Comparison) application.

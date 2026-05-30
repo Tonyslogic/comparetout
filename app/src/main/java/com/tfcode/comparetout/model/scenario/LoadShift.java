@@ -22,8 +22,6 @@ import androidx.room.PrimaryKey;
 
 import com.tfcode.comparetout.model.IntHolder;
 
-import java.util.Objects;
-
 @Entity(tableName = "loadshift")
 public class LoadShift {
 

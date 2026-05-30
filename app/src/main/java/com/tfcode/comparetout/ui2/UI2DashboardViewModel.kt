@@ -6,10 +6,9 @@ import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import com.tfcode.comparetout.ComparisonUIViewModel
 import com.tfcode.comparetout.model.ToutcRepository
-import com.tfcode.comparetout.model.importers.IntervalRow
 import com.tfcode.comparetout.model.costings.Costings
 import com.tfcode.comparetout.model.costings.SubTotals
-import com.tfcode.comparetout.model.scenario.PanelPVSummary
+import com.tfcode.comparetout.model.importers.IntervalRow
 import com.tfcode.comparetout.model.scenario.ScenarioComponents
 import com.tfcode.comparetout.model.scenario.SimKPIs
 import com.tfcode.comparetout.util.RateLookup

@@ -16,20 +16,6 @@
 
 package com.tfcode.comparetout.importers.esbn;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import com.tfcode.comparetout.importers.TestSecrets;
-import com.tfcode.comparetout.importers.esbn.responses.ESBNException;
-
-import org.junit.BeforeClass;
-import org.junit.Test;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.NavigableMap;
-import java.util.TreeMap;
-
 public class ESBNHDFClientTest {
 
     private static ESBNHDFClient mImport;

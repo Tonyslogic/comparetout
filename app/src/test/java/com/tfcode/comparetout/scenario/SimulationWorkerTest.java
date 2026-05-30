@@ -16,18 +16,16 @@
 
 package com.tfcode.comparetout.scenario;
 
-import static org.junit.Assert.*;
-
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static java.lang.Double.max;
 import static java.lang.Double.min;
 
 import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.ChargeModel;
 import com.tfcode.comparetout.model.scenario.DischargeToGrid;
-import com.tfcode.comparetout.model.scenario.EVCharge;
-import com.tfcode.comparetout.model.scenario.EVDivert;
-import com.tfcode.comparetout.model.scenario.HWSchedule;
-import com.tfcode.comparetout.model.scenario.HWSystem;
 import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.LoadShift;
 import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
@@ -36,7 +34,6 @@ import com.tfcode.comparetout.model.scenario.SimulationInputData;
 import org.junit.Test;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

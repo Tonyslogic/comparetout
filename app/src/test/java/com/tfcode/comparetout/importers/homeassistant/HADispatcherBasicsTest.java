@@ -16,8 +16,10 @@
 
 package com.tfcode.comparetout.importers.homeassistant;
 
-import static org.junit.Assert.*;
-
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static java.lang.Thread.sleep;
 
 import com.tfcode.comparetout.importers.TestSecrets;

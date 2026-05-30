@@ -16,9 +16,9 @@
 
 package com.tfcode.comparetout.model.priceplan;
 
-import static org.junit.Assert.*;
-
-import com.tfcode.comparetout.model.priceplan.DayRate;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 
 import org.junit.Before;
 import org.junit.Test;

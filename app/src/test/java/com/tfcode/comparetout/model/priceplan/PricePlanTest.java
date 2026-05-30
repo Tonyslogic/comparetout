@@ -16,8 +16,6 @@
 
 package com.tfcode.comparetout.model.priceplan;
 
-import com.tfcode.comparetout.model.priceplan.PricePlan;
-
 import org.junit.Before;
 import org.junit.Test;
 

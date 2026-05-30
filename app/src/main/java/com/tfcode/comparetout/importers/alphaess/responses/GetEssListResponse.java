@@ -17,6 +17,7 @@
 package com.tfcode.comparetout.importers.alphaess.responses;
 
 import com.google.gson.annotations.SerializedName;
+
 import java.util.List;
 
 public class GetEssListResponse {

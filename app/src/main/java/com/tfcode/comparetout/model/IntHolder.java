@@ -18,8 +18,6 @@ package com.tfcode.comparetout.model;
 
 import androidx.annotation.NonNull;
 
-import com.tfcode.comparetout.model.scenario.MonthHolder;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
