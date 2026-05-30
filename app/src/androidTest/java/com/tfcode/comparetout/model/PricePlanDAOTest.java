@@ -103,17 +103,17 @@ public class PricePlanDAOTest {
     public void deleteAll() throws InterruptedException {
         loadTestData();
         Map<PricePlan, List<DayRate>> mpp = LiveDataTestUtil.getValue(pricePlanDAO.loadPricePlans());
-        assertEquals(mpp.keySet().size(), 10);
+        assertEquals(mpp.size(), 10);
         pricePlanDAO.deleteAll();
         mpp = LiveDataTestUtil.getValue(pricePlanDAO.loadPricePlans());
-        assertEquals(mpp.keySet().size(), 0);
+        assertEquals(mpp.size(), 0);
     }
 
     @Test
     public void loadPricePlans() throws InterruptedException {
         loadTestData();
         Map<PricePlan, List<DayRate>> mpp = LiveDataTestUtil.getValue(pricePlanDAO.loadPricePlans());
-        assertEquals(mpp.keySet().size(), 10);
+        assertEquals(mpp.size(), 10);
     }
 
     private void loadTestData() {
@@ -153,7 +153,7 @@ public class PricePlanDAOTest {
             break;
         }
         Map<PricePlan, List<DayRate>> mpp = LiveDataTestUtil.getValue(pricePlanDAO.loadPricePlans());
-        assertEquals(mpp.keySet().size(), 11);
+        assertEquals(mpp.size(), 11);
         assertTrue(mpp.containsKey(p));
     }
 
@@ -173,7 +173,7 @@ public class PricePlanDAOTest {
     public void deletePricePlan() throws InterruptedException {
         pricePlanDAO.deleteAll();
         Map<PricePlan, List<DayRate>> mpp = LiveDataTestUtil.getValue(pricePlanDAO.loadPricePlans());
-        assertEquals(0, mpp.keySet().size());
+        assertEquals(0, mpp.size());
 
         Type type = new TypeToken<List<PricePlanJsonFile>>() {}.getType();
         List<PricePlanJsonFile> ppList = new Gson().fromJson(testData, type);

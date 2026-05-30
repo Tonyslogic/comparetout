@@ -519,7 +519,7 @@ class UI2DashboardViewModel @Inject constructor(
         days: Long
     ): List<DataSourceCostingRow> {
         val hourlyData = repository.getSelectedAlphaESSData(sysSn, from, to)
-        val plans      = repository.getAllPricePlansNow()
+        val plans      = repository.allPricePlansNow
 
         return plans.map { plan ->
             val dayRates  = repository.getAllDayRatesForPricePlanID(plan.pricePlanIndex)
@@ -567,7 +567,7 @@ class UI2DashboardViewModel @Inject constructor(
             }
     }
 
-    val panelPVSummary = repository.getPanelDataSummary()
+    val panelPVSummary = repository.panelDataSummary
 
     val dashboardData = _activeItem.flatMapLatest { item ->
         when (item) {
@@ -580,7 +580,7 @@ class UI2DashboardViewModel @Inject constructor(
                     val simKPIs            = repository.getSimKPIsForScenario(id)
                     val hasPanelData       = repository.checkForMissingPanelData(id)
                     val allCostings        = repository.getAllCostingsForScenario(id)
-                    val plans              = repository.getAllPricePlansNow()
+                    val plans              = repository.allPricePlansNow
                     val planChargesMap     = plans.associate { it.pricePlanIndex to it.standingCharges }
                     val dateRange          = repository.getSimDateRanges(id.toString())
                     val simDays = runCatching {
@@ -763,7 +763,7 @@ class UI2DashboardViewModel @Inject constructor(
         val midDay = from.plusDays(days / 2)
 
         val hourRows = repository.getSimSumHour(item.id.toString(), fromStr, toStr)
-        val plans    = repository.getAllPricePlansNow().orEmpty()
+        val plans    = repository.allPricePlansNow.orEmpty()
 
         val rows = plans.map { plan ->
             val dayRates  = repository.getAllDayRatesForPricePlanID(plan.pricePlanIndex)

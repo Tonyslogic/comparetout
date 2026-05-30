@@ -595,20 +595,13 @@ public abstract class AbstractGenerationWorker extends Worker {
 
     /**
      * Data holder for scenario creation results.
-     * 
+     * <p>
      * This private static class encapsulates the results of scenario creation,
      * providing both the final unique scenario name and the database ID assigned
      * to the scenario. This information is needed throughout the generation process
      * to associate generated components with the correct scenario.
      */
-    private static class ScenarionKeys {
-        public final String finalScenarioName;
-        public final long assignedScenarioID;
-
-        public ScenarionKeys(String finalScenarioName, long assignedScenarioID) {
-            this.finalScenarioName = finalScenarioName;
-            this.assignedScenarioID = assignedScenarioID;
-        }
+        private record ScenarionKeys(String finalScenarioName, long assignedScenarioID) {
     }
 
     /**

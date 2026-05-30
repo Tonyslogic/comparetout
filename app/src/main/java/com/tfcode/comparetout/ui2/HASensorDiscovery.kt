@@ -55,7 +55,7 @@ suspend fun discoverHASensors(host: String, token: String): HADiscoveryResult =
         // Custom auth_ok handler — kick off the energy/get_prefs request.
         dispatcher.registerHandler("auth_ok", object : MessageHandler<HAMessage> {
             override fun handleMessage(message: HAMessage) {
-                dispatcher.setAuthorized(true)
+                dispatcher.isAuthorized = true
                 val resultHandler = object : MessageHandler<EnergyPrefsResult> {
                     override fun handleMessage(m: HAMessage) {
                         val result = m as EnergyPrefsResult
@@ -99,7 +99,7 @@ suspend fun discoverHASensors(host: String, token: String): HADiscoveryResult =
 
         dispatcher.registerHandler("auth_invalid", object : MessageHandler<HAMessage> {
             override fun handleMessage(message: HAMessage) {
-                dispatcher.setAuthorized(false)
+                dispatcher.isAuthorized = false
                 finish(HADiscoveryResult(null, "Invalid credentials"))
             }
             override fun getMessageClass(): Class<out HAMessage> = AuthInvalid::class.java

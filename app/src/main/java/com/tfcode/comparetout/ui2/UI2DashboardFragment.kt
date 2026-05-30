@@ -1290,7 +1290,7 @@ private fun AllCostingsTable(
         val c = zoomedCosting!!
         val slices = remember(c) {
             val st = c.subTotals ?: return@remember emptyList<PieSlice>()
-            st.getPrices().sortedBy { it }.mapIndexed { i, price ->
+            st.prices.sortedBy { it }.mapIndexed { i, price ->
                 val kwh = st.getSubTotalForPrice(price) ?: 0.0
                 PieSlice("%.1fc".format(price), kwh, TARIFF_PIE_COLORS[i % TARIFF_PIE_COLORS.size])
             }.filter { it.value > 0 }
@@ -1536,7 +1536,7 @@ private fun DataSourceCostingsTable(
         val r = zoomedRow!!
         val slices = remember(r) {
             val st = r.subTotals ?: return@remember emptyList<PieSlice>()
-            st.getPrices().sortedBy { it }.mapIndexed { i, price ->
+            st.prices.sortedBy { it }.mapIndexed { i, price ->
                 val kwh = st.getSubTotalForPrice(price) ?: 0.0
                 PieSlice("%.1fc".format(price), kwh, TARIFF_PIE_COLORS[i % TARIFF_PIE_COLORS.size])
             }.filter { it.value > 0 }
@@ -2176,12 +2176,12 @@ private fun LegendItem(iconRes: Int, label: String) {
 @Composable
 private fun KpiAccordion(
     period: DataSourcePeriod,
-    anchor: java.time.LocalDate,
+    anchor: LocalDate,
     monthFilter: Int,
     summary: KpiSummary?,
     months: List<KpiMonthRow>?,
-    bounds: Pair<java.time.LocalDate, java.time.LocalDate>?,
-    onPeriodChange: (DataSourcePeriod, java.time.LocalDate) -> Unit,
+    bounds: Pair<LocalDate, LocalDate>?,
+    onPeriodChange: (DataSourcePeriod, LocalDate) -> Unit,
     onNavigate: (forward: Boolean) -> Unit,
     onMonthFilterChange: (Int) -> Unit,
     df: DecimalFormat

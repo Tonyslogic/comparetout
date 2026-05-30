@@ -181,41 +181,41 @@ class UI2DirectorViewModel @Inject constructor(
                 }.getOrDefault("") != "false"
         }
         viewModelScope.launch(Dispatchers.Main) {
-            repository.getAllPanelRelations().asFlow().collect { _panelRel.value = it ?: emptyList() }
+            repository.allPanelRelations.asFlow().collect { _panelRel.value = it ?: emptyList() }
         }
         viewModelScope.launch(Dispatchers.Main) {
-            repository.getAllBatteryRelations().asFlow().collect { _batteryRel.value = it ?: emptyList() }
+            repository.allBatteryRelations.asFlow().collect { _batteryRel.value = it ?: emptyList() }
         }
         viewModelScope.launch(Dispatchers.Main) {
-            repository.getAllInverterRelations().asFlow().collect { _inverterRel.value = it ?: emptyList() }
+            repository.allInverterRelations.asFlow().collect { _inverterRel.value = it ?: emptyList() }
         }
         viewModelScope.launch(Dispatchers.Main) {
-            repository.getAllEVChargeRelations().asFlow().collect { _evChargeRel.value = it ?: emptyList() }
+            repository.allEVChargeRelations.asFlow().collect { _evChargeRel.value = it ?: emptyList() }
         }
         viewModelScope.launch(Dispatchers.Main) {
-            repository.getAllEVDivertRelations().asFlow().collect { _evDivertRel.value = it ?: emptyList() }
+            repository.allEVDivertRelations.asFlow().collect { _evDivertRel.value = it ?: emptyList() }
         }
         viewModelScope.launch(Dispatchers.Main) {
-            repository.getAllHWSystemRelations().asFlow().collect { _hwRel.value = it ?: emptyList() }
+            repository.allHWSystemRelations.asFlow().collect { _hwRel.value = it ?: emptyList() }
         }
         viewModelScope.launch(Dispatchers.Main) {
-            repository.getAllHWScheduleRelations().asFlow().collect { _hwSchedRel.value = it ?: emptyList() }
+            repository.allHWScheduleRelations.asFlow().collect { _hwSchedRel.value = it ?: emptyList() }
         }
         viewModelScope.launch(Dispatchers.Main) {
-            repository.getAllLoadShiftRelations().asFlow().collect { _loadShiftRel.value = it ?: emptyList() }
+            repository.allLoadShiftRelations.asFlow().collect { _loadShiftRel.value = it ?: emptyList() }
         }
         viewModelScope.launch(Dispatchers.Main) {
-            repository.getAllDischargeRelations().asFlow().collect { _dischargeRel.value = it ?: emptyList() }
+            repository.allDischargeRelations.asFlow().collect { _dischargeRel.value = it ?: emptyList() }
         }
         viewModelScope.launch(Dispatchers.Main) {
-            repository.getAllScenarios().asFlow().collect { _scenarios.value = it ?: emptyList() }
+            repository.allScenarios.asFlow().collect { _scenarios.value = it ?: emptyList() }
         }
         viewModelScope.launch(Dispatchers.Main) {
-            combine(_panelRel, _batteryRel, _inverterRel, _evChargeRel, _evDivertRel) { _, _, _, _, _ -> Unit }
+            combine(_panelRel, _batteryRel, _inverterRel, _evChargeRel, _evDivertRel) { _, _, _, _, _ -> }
                 .collect { rebuild() }
         }
         viewModelScope.launch(Dispatchers.Main) {
-            combine(_hwRel, _hwSchedRel, _loadShiftRel, _dischargeRel) { _, _, _, _ -> Unit }
+            combine(_hwRel, _hwSchedRel, _loadShiftRel, _dischargeRel) { _, _, _, _ -> }
                 .collect { rebuild() }
         }
         viewModelScope.launch(Dispatchers.Main) {

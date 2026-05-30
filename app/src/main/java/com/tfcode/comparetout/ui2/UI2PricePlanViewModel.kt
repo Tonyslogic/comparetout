@@ -138,7 +138,7 @@ class UI2PricePlanViewModel @Inject constructor(
 
     private fun loadExisting() {
         viewModelScope.launch(Dispatchers.IO) {
-            val plans = repository.getAllPricePlansNow().orEmpty()
+            val plans = repository.allPricePlansNow.orEmpty()
             val plan = plans.firstOrNull { it.pricePlanIndex == pricePlanId }
             val rates = if (plan != null) repository.getAllDayRatesForPricePlanID(pricePlanId) else emptyList()
             if (plan != null) {

@@ -132,12 +132,12 @@ class UI2ImportExportViewModel @Inject constructor(
     // ── export (unchanged from Phase C-lite) ────────────────────────────────
 
     suspend fun allPlansJson(): String? = withContext(Dispatchers.IO) {
-        val map = repository.getAllPricePlansForExport() ?: return@withContext null
+        val map = repository.allPricePlansForExport ?: return@withContext null
         if (map.isEmpty()) null else JsonTools.createPricePlanJson(map)
     }
 
     suspend fun allScenariosJson(): String? = withContext(Dispatchers.IO) {
-        val list = repository.getAllScenariosForExport() ?: return@withContext null
+        val list = repository.allScenariosForExport ?: return@withContext null
         if (list.isEmpty()) null else JsonTools.createScenarioList(list)
     }
 
@@ -158,7 +158,7 @@ class UI2ImportExportViewModel @Inject constructor(
         // clobber path actually overwrote, without dragging that count out of
         // the DAO layer.
         val existingNames: Set<String> =
-            repository.getAllPricePlansNow()?.map { it.planName }?.toSet().orEmpty()
+            repository.allPricePlansNow?.map { it.planName }?.toSet().orEmpty()
         list.forEach { pp ->
             val plan = JsonTools.createPricePlan(pp)
             val drs = ArrayList<DayRate>()
@@ -178,7 +178,7 @@ class UI2ImportExportViewModel @Inject constructor(
         var replaced = 0
         var added = 0
         val existingNames: Set<String> =
-            repository.getAllScenariosForExport()
+            repository.allScenariosForExport
                 ?.map { it.scenario.scenarioName }?.toSet().orEmpty()
         val components = JsonTools.createScenarioComponentList(ArrayList(list))
         components.forEach { sc ->

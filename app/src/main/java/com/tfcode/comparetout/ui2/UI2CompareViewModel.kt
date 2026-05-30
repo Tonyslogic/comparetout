@@ -315,23 +315,23 @@ class UI2CompareViewModel @Inject constructor(
             }
         }
         viewModelScope.launch(Dispatchers.Main) {
-            repository.getAllScenarios().asFlow().collect { _scenarios.value = it ?: emptyList() }
+            repository.allScenarios.asFlow().collect { _scenarios.value = it ?: emptyList() }
         }
         viewModelScope.launch(Dispatchers.Main) {
-            repository.getLiveDateRanges().asFlow().collect { _alphaSources.value = it ?: emptyList() }
+            repository.liveDateRanges.asFlow().collect { _alphaSources.value = it ?: emptyList() }
         }
         viewModelScope.launch(Dispatchers.Main) {
-            repository.getESBNLiveDateRanges().asFlow().collect { _esbnSources.value = it ?: emptyList() }
+            repository.esbnLiveDateRanges.asFlow().collect { _esbnSources.value = it ?: emptyList() }
         }
         viewModelScope.launch(Dispatchers.Main) {
-            repository.getHALiveDateRanges().asFlow().collect { _haSources.value = it ?: emptyList() }
+            repository.haLiveDateRanges.asFlow().collect { _haSources.value = it ?: emptyList() }
         }
         viewModelScope.launch(Dispatchers.IO) {
-            _plans.value = repository.getAllPricePlansNow() ?: emptyList()
+            _plans.value = repository.allPricePlansNow ?: emptyList()
         }
         // Recompute whenever the selectable catalogue changes.
         viewModelScope.launch(Dispatchers.Main) {
-            combine(sourceItems, simItems, planItems) { _, _, _ -> Unit }.collect {
+            combine(sourceItems, simItems, planItems) { _, _, _ -> }.collect {
                 lastComputeKey = null
                 recompute(_state.value)
             }
@@ -738,7 +738,7 @@ class UI2CompareViewModel @Inject constructor(
             // buy cost split by tariff rate band: price × kWh-at-that-price.
             // Keep the cheapest-first ordering of bands AND the matching rate list
             // (c/kWh) so the pie labels can show the rate that produced each slice.
-            val sortedRates = subTotals.getPrices().sorted()
+            val sortedRates = subTotals.prices.sorted()
             val buyBands = sortedRates
                 .map { p -> p * (subTotals.getSubTotalForPrice(p) ?: 0.0) / 100.0 }
             val fixed = plan.standingCharges * (days / 365.0)
@@ -816,8 +816,8 @@ class UI2CompareViewModel @Inject constructor(
             val net = (c?.net ?: 0.0) / 100.0
             val buy = (c?.buy ?: 0.0) / 100.0
             val st = c?.subTotals
-            val sortedRates = if (st != null && st.getPrices().isNotEmpty())
-                st.getPrices().sorted() else emptyList()
+            val sortedRates = if (st != null && st.prices.isNotEmpty())
+                st.prices.sorted() else emptyList()
             val buyBands =
                 if (sortedRates.isNotEmpty())
                     sortedRates.map { p -> p * (st!!.getSubTotalForPrice(p) ?: 0.0) / 100.0 }

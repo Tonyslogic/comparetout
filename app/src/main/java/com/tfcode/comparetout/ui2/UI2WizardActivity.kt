@@ -1,4 +1,4 @@
-@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@file:OptIn(ExperimentalLayoutApi::class)
 @file:Suppress("MissingPermission")
 
 package com.tfcode.comparetout.ui2

@@ -81,7 +81,7 @@ public class EVScheduleFragment extends Fragment {
         mMainHandler = new Handler(Looper.getMainLooper());
 
         // The activity may not be created, so these calls wait for the activity creation to complete
-        ((EVScheduleActivity) requireActivity()).getLifecycle().addObserver((LifecycleEventObserver) (source, event) -> {
+        requireActivity().getLifecycle().addObserver((LifecycleEventObserver) (source, event) -> {
             if ((event.getTargetState() ==  Lifecycle.State.CREATED ) && !(null == getActivity()) ) {
                 mEVChargesFromActivity = ((EVScheduleActivity) requireActivity()).getEVCharges(mEVChargeIndex);
                 mEdit = ((EVScheduleActivity) requireActivity()).getEdit();

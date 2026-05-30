@@ -68,13 +68,13 @@ class PVGISDirectFetchWorker(
                         shift = true
                     }
                     val row = PanelData()
-                    row.setPanelID(panelID)
-                    row.setDate(active.format(dateFormat))
-                    row.setMinute(active.format(minFormat))
-                    row.setMod(active.hour * 60 + active.minute)
-                    row.setDow(active.dayOfWeek.value)
-                    row.setDo2001(active.dayOfYear)
-                    row.setPv((pp.gi / 12.0 / MAGIC_NUMBER) * panel.panelCount * panel.panelkWp)
+                    row.panelID = panelID
+                    row.date = active.format(dateFormat)
+                    row.minute = active.format(minFormat)
+                    row.mod = active.hour * 60 + active.minute
+                    row.dow = active.dayOfWeek.value
+                    row.do2001 = active.dayOfYear
+                    row.pv = (pp.gi / 12.0 / MAGIC_NUMBER) * panel.panelCount * panel.panelkWp
                     panelDataList.add(row)
                     if (shift) { active = active.minusYears(1); shift = false }
                     active = active.plusMinutes(5)

@@ -109,16 +109,16 @@ class PanelSourceFetchWorker(
             val dateFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd")
             samples.filter { it.pv > 0 }.forEach { row ->
                 val pd = PanelData()
-                pd.setPanelID(panelId)
-                pd.setDate(row.date)
-                pd.setMinute(row.minute)
+                pd.panelID = panelId
+                pd.date = row.date
+                pd.minute = row.minute
                 val parts = row.minute.split(":")
-                pd.setMod((parts.getOrNull(0)?.toIntOrNull() ?: 0) * 60 +
-                          (parts.getOrNull(1)?.toIntOrNull() ?: 0))
+                pd.mod = (parts.getOrNull(0)?.toIntOrNull() ?: 0) * 60 +
+                        (parts.getOrNull(1)?.toIntOrNull() ?: 0)
                 val date = LocalDate.parse(row.date, dateFmt)
-                pd.setDow(date.dayOfWeek.value)
-                pd.setDo2001(date.dayOfYear)
-                pd.setPv(row.pv)
+                pd.dow = date.dayOfWeek.value
+                pd.do2001 = date.dayOfYear
+                pd.pv = row.pv
                 out.add(pd)
             }
             if (out.isNotEmpty()) repo.savePanelData(out)

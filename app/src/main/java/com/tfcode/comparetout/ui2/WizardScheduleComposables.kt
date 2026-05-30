@@ -848,7 +848,7 @@ fun WizardPanelCard(
                         label = "Long",
                         modifier = Modifier.weight(1f)
                     )
-                    androidx.compose.material3.IconButton(onClick = onRequestLocation) {
+                    IconButton(onClick = onRequestLocation) {
                         Icon(Icons.Default.MyLocation, contentDescription = "Use GPS",
                             tint = MaterialTheme.colorScheme.primary)
                     }

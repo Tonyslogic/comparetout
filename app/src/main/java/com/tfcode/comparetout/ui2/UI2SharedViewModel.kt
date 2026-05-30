@@ -61,7 +61,7 @@ class UI2SharedViewModel @Inject constructor(
     init {
         viewModelScope.launch(Dispatchers.IO) {
             val app = context.applicationContext as TOUTCApplication
-            val stored = app.getDataStore()
+            val stored = app.dataStore
                 .data()
                 .firstOrError()
                 .map { prefs ->
@@ -102,9 +102,9 @@ class UI2SharedViewModel @Inject constructor(
         // window instead of the stale range they were opened with.
         viewModelScope.launch {
             combine(
-                repository.getLiveDateRanges().asFlow(),
-                repository.getESBNLiveDateRanges().asFlow(),
-                repository.getHALiveDateRanges().asFlow()
+                repository.liveDateRanges.asFlow(),
+                repository.esbnLiveDateRanges.asFlow(),
+                repository.haLiveDateRanges.asFlow()
             ) { alpha, esbn, ha ->
                 // sysSn -> (start, finish). Match the Simulations list's dedup
                 // priority: alpha wins over esbn over ha for a shared sysSn.

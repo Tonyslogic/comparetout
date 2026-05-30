@@ -56,7 +56,7 @@ class UI2PricePlanListViewModel @Inject constructor(
     init {
         viewModelScope.launch(Dispatchers.IO) { favouriteStore.ensureLoaded() }
         viewModelScope.launch(Dispatchers.Main) {
-            repository.getAllPricePlans().asFlow().collect { map: Map<PricePlan, List<DayRate>>? ->
+            repository.allPricePlans.asFlow().collect { map: Map<PricePlan, List<DayRate>>? ->
                 val entries = map ?: emptyMap()
                 _rows.value = entries.entries.map { (plan, drs) ->
                     PricePlanListRow(
@@ -99,7 +99,7 @@ class UI2PricePlanListViewModel @Inject constructor(
      * shared file can be re-imported by either UI without special handling.
      */
     suspend fun buildPlanJson(planId: Long): String? = withContext(Dispatchers.IO) {
-        val all = repository.getAllPricePlansForExport() ?: return@withContext null
+        val all = repository.allPricePlansForExport ?: return@withContext null
         val entry = all.entries.firstOrNull { it.key.pricePlanIndex == planId }
             ?: return@withContext null
         JsonTools.createPricePlanJson(mapOf(entry.key to entry.value))

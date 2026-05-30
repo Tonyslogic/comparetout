@@ -91,7 +91,7 @@ public class BatteryChargingFragment extends Fragment {
         mMainHandler = new Handler(Looper.getMainLooper());
 
         // The activity may not be created, so these calls wait for the activity creation to complete
-        ((BatteryChargingActivity) requireActivity()).getLifecycle().addObserver((LifecycleEventObserver) (source, event) -> {
+        requireActivity().getLifecycle().addObserver((LifecycleEventObserver) (source, event) -> {
             if ((event.getTargetState() ==  Lifecycle.State.CREATED ) && !(null == getActivity()) ) {
                 mScenarioID = ((BatteryChargingActivity) requireActivity()).getScenarioID();
                 mLoadShiftsFromActivity = ((BatteryChargingActivity) requireActivity()).getLoadShifts(mBatteryScheduleIndex);

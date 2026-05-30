@@ -174,7 +174,7 @@ public class HACatchupWorker extends Worker {
                 mToutcRepository.addTransformedData(dbRows);
                 updateBatteryCapacities(result);
                 Long anyDate = null;
-                if (!pivotedResult.keySet().isEmpty()) {
+                if (!pivotedResult.isEmpty()) {
                     anyDate = pivotedResult.keySet().iterator().next();
                 }
 

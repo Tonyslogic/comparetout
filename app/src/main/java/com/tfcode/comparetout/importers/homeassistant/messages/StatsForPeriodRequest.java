@@ -37,13 +37,13 @@ public class StatsForPeriodRequest extends HAMessageWithID {
     @SerializedName("end_time")
     private String end_time;
     @SerializedName("statistic_ids")
-    private List<String> statistic_ids;
+    private final List<String> statistic_ids;
     @SerializedName("period")
     private String period = "hour";
     @SerializedName("units")
-    private Map<String, String> units;
+    private final Map<String, String> units;
     @SerializedName("types")
-    private List<String> types;
+    private final List<String> types;
 
     public StatsForPeriodRequest(List<String> stats) {
         setType("recorder/statistics_during_period");
