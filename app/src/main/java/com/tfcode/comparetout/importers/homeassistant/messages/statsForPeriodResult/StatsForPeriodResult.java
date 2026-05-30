@@ -73,16 +73,20 @@ public class StatsForPeriodResult extends HAMessageWithID {
                 Long date = sensorData.getStart();
                 double change = sensorData.getChange();
 
-                Map<String, Double> sensorChanges = pivotedResult.getOrDefault(date, new HashMap<>());
+                Map<String, Double> sensorChanges =
+                        pivotedResult.computeIfAbsent(date, k -> new HashMap<>());
                 sensorChanges.put(sensorName, change);
-
-                pivotedResult.put(date, sensorChanges);
             }
         }
         return pivotedResult;
     }
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private final DateTimeFormatter MIN_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
+
+    private static double doubleOrZero(Map<String, Double> m, String k) {
+        Double v = m.get(k);
+        return v == null ? 0.0 : v;
+    }
 
     /**
      * Calculate and add the load to the pivoted result.
@@ -102,16 +106,16 @@ public class StatsForPeriodResult extends HAMessageWithID {
             Map<String, Double> sensorChanges = entry.getValue();
             double solarGen = 0D;
             for (String sensor: energySensors.solarGeneration) {
-                solarGen += sensorChanges.getOrDefault(sensor, 0.0);
+                solarGen += doubleOrZero(sensorChanges, sensor);
             }
 
             double discharge = 0D;
             double charge = 0D;
             int batteryIndex = 0;
             for (BatterySensor battery : energySensors.batteries) {
-                double l_discharge = sensorChanges.getOrDefault(battery.batteryDischarging, 0.0);
+                double l_discharge = doubleOrZero(sensorChanges, battery.batteryDischarging);
                 discharge += l_discharge;
-                double l_charge = sensorChanges.getOrDefault(battery.batteryCharging, 0.0);
+                double l_charge = doubleOrZero(sensorChanges, battery.batteryCharging);
                 charge += l_charge;
                 // Assume the battery charge rate is 0.5C
                 if ( batteryIndex >= estimatedBatteryCapacity.size() ) estimatedBatteryCapacity.add(0.0);
@@ -122,11 +126,11 @@ public class StatsForPeriodResult extends HAMessageWithID {
             }
             double gridExport = 0D;
             for (String sensor : energySensors.gridExports) {
-                gridExport += sensorChanges.getOrDefault(sensor, 0.0);
+                gridExport += doubleOrZero(sensorChanges, sensor);
             }
             double gridImport = 0D;
             for (String sensor : energySensors.gridImports) {
-                gridImport += sensorChanges.getOrDefault(sensor, 0.0);
+                gridImport += doubleOrZero(sensorChanges, sensor);
             }
             double load = solarGen + (discharge - charge) + (gridImport - gridExport);
             if (load < 0) load = 0;

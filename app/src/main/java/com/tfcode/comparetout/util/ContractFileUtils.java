@@ -93,16 +93,10 @@ public class ContractFileUtils {
         String[] projection = { DocumentsContract.Document.COLUMN_DISPLAY_NAME };
 
         // Query the Uri using ContentResolver
-        Cursor cursor = context.getContentResolver().query(fileUri, projection, null, null, null);
-
-        if (cursor != null) {
-            try {
-                if (cursor.moveToFirst()) {
-                    // Get the DISPLAY_NAME column's value (which is the filename)
-                    displayName = cursor.getString(cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DISPLAY_NAME));
-                }
-            } finally {
-                cursor.close();
+        try (Cursor cursor = context.getContentResolver().query(fileUri, projection, null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                // Get the DISPLAY_NAME column's value (which is the filename)
+                displayName = cursor.getString(cursor.getColumnIndexOrThrow(DocumentsContract.Document.COLUMN_DISPLAY_NAME));
             }
         }
 

@@ -151,7 +151,7 @@ fun DirectorScreen(
                     when {
                         atTop -> actionBarVisible = true
                         deltaIdx > 0 || (deltaIdx == 0 && deltaOff >  SCROLL_THRESHOLD) -> actionBarVisible = false
-                        deltaIdx < 0 || (deltaIdx == 0 && deltaOff < -SCROLL_THRESHOLD) -> actionBarVisible = true
+                        deltaIdx < 0 || deltaOff < -SCROLL_THRESHOLD -> actionBarVisible = true
                     }
                     lastIndex = idx
                     lastOffset = off

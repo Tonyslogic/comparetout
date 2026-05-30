@@ -68,8 +68,9 @@ public class OpenAlphaESSClient {
         String responseBody = "";
         try {
             response = call.execute();
-            assert response.body() != null;
-            responseBody = response.body().string();
+            try (ResponseBody body = response.body()) {
+                if (body != null) responseBody = body.string();
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -105,8 +106,9 @@ public class OpenAlphaESSClient {
         String responseBody = "";
         try {
             response = call.execute();
-            assert response.body() != null;
-            responseBody = response.body().string();
+            try (ResponseBody body = response.body()) {
+                if (body != null) responseBody = body.string();
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -143,8 +145,9 @@ public class OpenAlphaESSClient {
         String responseBody = "";
         try {
             response = call.execute();
-            assert response.body() != null;
-            responseBody = response.body().string();
+            try (ResponseBody body = response.body()) {
+                if (body != null) responseBody = body.string();
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -39,6 +39,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.widget.PopupMenu;
 import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.viewpager2.widget.ViewPager2;
 import androidx.webkit.WebViewAssetLoader;
@@ -143,11 +144,13 @@ public class ComparisonFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        if (mVisibleColCount <= 5 && !(null == getActivity()))
-            getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
-        else if (!(null == getActivity()))
-            getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-        mOrientation = getActivity().getResources().getConfiguration().orientation;
+        FragmentActivity activity = getActivity();
+        if (activity == null) return;
+        if (mVisibleColCount <= 5)
+            activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+        else
+            activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+        mOrientation = activity.getResources().getConfiguration().orientation;
     }
 
     @Override
@@ -315,12 +318,12 @@ public class ComparisonFragment extends Fragment {
                 item.setActionView(new View(getActivity()));
                 item.setOnActionExpandListener(new MenuItem.OnActionExpandListener() {
                     @Override
-                    public boolean onMenuItemActionExpand(MenuItem item) {
+                    public boolean onMenuItemActionExpand(@NonNull MenuItem item) {
                         return false;
                     }
 
                     @Override
-                    public boolean onMenuItemActionCollapse(MenuItem item) {
+                    public boolean onMenuItemActionCollapse(@NonNull MenuItem item) {
                         return false;
                     }
                 });

@@ -492,7 +492,7 @@ private fun DrawScope.drawHatchSegment(
                     o += gap
                 }
             }
-            BandPattern.SOLID -> {}
+            else -> {}
         }
     }
     drawRect(color, Offset(x, y), Size(w, h), style = Stroke(width = 1.5f))
@@ -646,7 +646,7 @@ private fun DrawScope.drawHatchArc(
                     o += gap
                 }
             }
-            BandPattern.SOLID -> {}
+            else -> {}
         }
     }
     // Outline so adjacent same-colour wedges remain visible.
@@ -708,7 +708,7 @@ private fun PieSwatch(color: Color, pattern: BandPattern) {
                         o += gap
                     }
                 }
-                BandPattern.SOLID -> {}
+                else -> {}
             }
         }
         drawRect(color, style = Stroke(width = 1f))

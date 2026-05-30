@@ -44,7 +44,6 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -54,6 +53,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 public class ESBNHDFClient {
 
@@ -165,8 +165,9 @@ public class ESBNHDFClient {
                 throw new ESBNException("Failed to get a list of mprns");
             }
             String mprnPageHtml = "";
-            if (!(null == mprnPageResponse.body())) {
-                mprnPageHtml = Objects.requireNonNull(mprnPageResponse.body()).string();
+            ResponseBody mprnBody = mprnPageResponse.body();
+            if (mprnBody != null) {
+                mprnPageHtml = mprnBody.string();
             }
             mprnPageResponse.close();
 
@@ -178,7 +179,9 @@ public class ESBNHDFClient {
             // Loop through the selected card-body elements
             for (Element cardBody : mprnCardBodies) {
                 // Extract and print the MPRN value
-                Element mprnElement = cardBody.parent().select("p#display-data").first();
+                Element parent = cardBody.parent();
+                if (parent == null) continue;
+                Element mprnElement = parent.select("p#display-data").first();
                 if (mprnElement != null) {
                     String mprnValue = mprnElement.text();
                     ret.add(mprnValue);
@@ -240,12 +243,13 @@ public class ESBNHDFClient {
                 System.out.println("HDF Download failed, " + fetchHDFResponse.code());
                 throw new ESBNException("Consider using file or try again later, " + fetchHDFResponse.code());
             }
-            if (null == fetchHDFResponse.body()) {
+            ResponseBody fetchHDFBody = fetchHDFResponse.body();
+            if (fetchHDFBody == null) {
                 System.out.println("Failed to fetch HDF");
                 mLoggedIn = false;
                 throw new ESBNException("No body. Consider using file or try again later.");
             }
-            else try (InputStream inputStream = Objects.requireNonNull(fetchHDFResponse.body()).byteStream();
+            else try (InputStream inputStream = fetchHDFBody.byteStream();
                       InputStreamReader reader = new InputStreamReader(inputStream);
                       BufferedReader bufferedReader = new BufferedReader(reader)) {
 
@@ -313,8 +317,9 @@ public class ESBNHDFClient {
 
                 Response fetchHDFDataResponse = mClient.newCall(fetchHDFDataRequest).execute();
                 String fetchRangeJSON;
-                if (!(null == fetchHDFDataResponse.body())) {
-                    fetchRangeJSON = Objects.requireNonNull(fetchHDFDataResponse.body()).string();
+                ResponseBody fetchHDFDataBody = fetchHDFDataResponse.body();
+                if (fetchHDFDataBody != null) {
+                    fetchRangeJSON = fetchHDFDataBody.string();
                     FetchRangeResponse fetchRangeResponse = new Gson().fromJson(fetchRangeJSON, FetchRangeResponse.class);
                     for (FetchRangeResponse.ImportItem item : fetchRangeResponse.imports) {
                         LocalDateTime readTime =
@@ -412,8 +417,9 @@ public class ESBNHDFClient {
             if (confirmLoginResponse.isSuccessful()) {
                 // Parse the HTML content using Jsoup
                 String htmlContent;
-                if (!(null == confirmLoginResponse.body())) {
-                    htmlContent = Objects.requireNonNull(confirmLoginResponse.body()).string();
+                ResponseBody confirmLoginBody = confirmLoginResponse.body();
+                if (confirmLoginBody != null) {
+                    htmlContent = confirmLoginBody.string();
                 }
                 else throw new ESBNException("Can't find needed data after login. Consider using file.");
                 Document document = Jsoup.parse(htmlContent);
@@ -462,8 +468,9 @@ public class ESBNHDFClient {
         if (loginResponse.code() != 200) throw new ESBNException("Failed to login. Try again later");
 
         String loginResponseHtml;
-        if (!(null == loginResponse.body())) {
-            loginResponseHtml = Objects.requireNonNull(loginResponse.body()).string();
+        ResponseBody loginBody = loginResponse.body();
+        if (loginBody != null) {
+            loginResponseHtml = loginBody.string();
         }
         else throw new ESBNException("Unable to confirm the login. Consider using file");
         loginResponse.close();
@@ -499,8 +506,9 @@ public class ESBNHDFClient {
             printOutDebug("GET login page code: ", loginPageResponse, loginPageRequest);
 
             String loginPageHtml;
-            if (!(null == loginPageResponse.body())) {
-                loginPageHtml = Objects.requireNonNull(loginPageResponse.body()).string();
+            ResponseBody loginPageBody = loginPageResponse.body();
+            if (loginPageBody != null) {
+                loginPageHtml = loginPageBody.string();
             }
             else throw new ESBNException("Failed to get the ESBN login page. Consider using file");
             loginPageResponse.close();
