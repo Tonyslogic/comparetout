@@ -79,7 +79,7 @@ jobs:
             --test-targets "class com.tfcode.comparetout.SmokeLaunchTest" \
             --test-targets "class com.tfcode.comparetout.SmokeActivityCoverageTest" \
             --test-targets "class com.tfcode.comparetout.SmokeRotationTest" \
-            --test-targets "class com.tfcode.comparetout.SmokeImportTest" \
+            --test-targets "class com.tfcode.comparetout.model.SmokeImportTest" \
             --test-targets "class com.tfcode.comparetout.SmokePVGISTest" \
             --results-bucket=comparetout-ftl-results \
             --timeout 10m \

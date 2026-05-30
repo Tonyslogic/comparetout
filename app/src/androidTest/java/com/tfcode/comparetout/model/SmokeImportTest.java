@@ -14,7 +14,7 @@
  *    limitations under the License.
  */
 
-package com.tfcode.comparetout;
+package com.tfcode.comparetout.model;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -30,9 +30,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.tfcode.comparetout.model.LiveDataTestUtil;
-import com.tfcode.comparetout.model.PricePlanDAO;
-import com.tfcode.comparetout.model.ToutcDB;
 import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.json.priceplan.DayRateJson;
 import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
