@@ -7,12 +7,12 @@ plugins {
 
 android {
     namespace 'com.tfcode.comparetout'
-    compileSdkVersion 36
+    compileSdkVersion 37
 
     defaultConfig {
         applicationId "com.tfcode.comparetout.test"
         minSdk 28
-        targetSdk 36
+        targetSdk 37
         versionCode 59
         versionName "1.58"
 
