@@ -65,12 +65,12 @@ import java.util.Objects;
 
 /**
  * Fragment providing comprehensive cost comparison visualization and analysis.
- * 
+ * <p>
  * This fragment serves as the primary interface for viewing and analyzing energy cost
  * calculations across different scenarios and price plans. It presents complex financial
  * data through multiple visualization methods including sortable tables, pie charts,
  * and detailed breakdowns of cost components.
- * 
+ * <p>
  * Key features:
  * - Dynamic table with sortable columns for different cost metrics
  * - Configurable column visibility to focus on specific cost components
@@ -78,19 +78,19 @@ import java.util.Objects;
  * - Responsive layout adaptation based on device orientation
  * - Export capabilities for analysis results
  * - Integrated help system with context-sensitive assistance
- * 
+ * <p>
  * The fragment manages complex UI state including:
  * - Sort preferences across different cost metrics (net, buy, sell, etc.)
  * - Column visibility settings for customized data presentation
  * - Orientation-aware layout management for optimal data display
  * - Popup window management for charts and help content
- * 
+ * <p>
  * Data presentation modes:
  * - Tabular comparison of all scenario/plan combinations
  * - Pie chart visualizations for cost breakdown analysis
  * - Filtering and sorting capabilities for focused analysis
  * - Cost component visibility toggles (buy/sell/net/bonuses/fixed)
- * 
+ * <p>
  * The fragment implements reactive data binding with the ViewModel to ensure
  * real-time updates when underlying cost calculations change, providing users
  * with immediate feedback as they modify scenarios or price plans.

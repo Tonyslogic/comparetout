@@ -27,13 +27,13 @@ import com.tfcode.comparetout.TOUTCApplication;
 
 /**
  * Bridges the legacy importer notifications to the UI2 surface.
- *
+ * <p>
  * Reactive notifications (the "fetch done" notifications each importer worker
  * posts) launch an activity with context — which system/source just imported.
  * The legacy target is one of the per-source Import* activities. When the user
  * has switched to UI2 ({@code use_ui2 == "true"}), the same tap should instead
  * land on the UI2 dashboard with that source pre-selected.
- *
+ * <p>
  * The worker reads the flag once on its background thread (the DataStore read
  * blocks) and hands the cached value here so the notification-building path —
  * which runs on the main looper — never blocks on I/O.

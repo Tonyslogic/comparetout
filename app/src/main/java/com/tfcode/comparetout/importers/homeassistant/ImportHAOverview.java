@@ -63,12 +63,12 @@ import io.reactivex.rxjava3.core.Single;
 
 /**
  * Import overview fragment for Home Assistant integration.
- * 
+ * <p>
  * This class manages the connection to Home Assistant and handles energy sensor data retrieval.
  * It extends ImportOverviewFragment to provide a consistent interface for importing energy data
  * from Home Assistant installations. The class facilitates user authentication, sensor discovery,
  * and background data synchronization through worker tasks.
- * 
+ * <p>
  * Key responsibilities:
  * - Authenticate with Home Assistant WebSocket API
  * - Discover and configure energy sensors (solar, battery, grid)  
@@ -89,7 +89,7 @@ public class ImportHAOverview extends ImportOverviewFragment {
 
     /**
      * Factory method to create new instance of ImportHAOverview fragment.
-     * 
+     * <p>
      * This method follows the Android Fragment pattern of using static factory methods
      * rather than constructors to ensure proper initialization. The self-reference is
      * stored to enable callback operations from inner classes.
@@ -104,7 +104,7 @@ public class ImportHAOverview extends ImportOverviewFragment {
 
     /**
      * Removes stored preferences and resets battery capacity for a given serial number.
-     * 
+     * <p>
      * This method is called during cleanup operations when a system is being removed
      * or reset. It specifically resets the estimated battery capacity to prevent
      * stale data from affecting new configurations.
@@ -125,12 +125,12 @@ public class ImportHAOverview extends ImportOverviewFragment {
 
     /**
      * Loads system list and energy sensor configuration from persistent storage.
-     * 
+     * <p>
      * This method initializes the fragment state by retrieving previously stored
      * Home Assistant system configuration and sensor definitions. It handles both
      * the system identification (defaulting to "HomeAssistant") and the detailed
      * sensor mappings required for energy data collection.
-     * 
+     * <p>
      * The method performs two main operations:
      * 1. Load system list - establishes the connection to Home Assistant
      * 2. Load sensor configuration - retrieves previously discovered energy sensors
@@ -179,7 +179,7 @@ public class ImportHAOverview extends ImportOverviewFragment {
 
     /**
      * Constructor for ImportHAOverview fragment.
-     * 
+     * <p>
      * Initializes the fragment with Home Assistant-specific configuration values.
      * These constants define the keys used for storing credentials, system information,
      * and other persistent data in the application's data store. The constructor
@@ -198,7 +198,7 @@ public class ImportHAOverview extends ImportOverviewFragment {
 
     /**
      * Configures the credential dialog prompts for Home Assistant connection.
-     * 
+     * <p>
      * This method customizes the credential input dialog to show appropriate
      * prompts for Home Assistant connection (host URL and access token).
      * It provides a default host format to guide users in entering the correct
@@ -216,7 +216,7 @@ public class ImportHAOverview extends ImportOverviewFragment {
 
     /**
      * Creates the system selection row for the Home Assistant interface.
-     * 
+     * <p>
      * This method builds the UI row that allows users to view and select
      * Home Assistant energy sensors. The button is only enabled when credentials
      * are valid and systems are available. The status text shows the current
@@ -244,7 +244,7 @@ public class ImportHAOverview extends ImportOverviewFragment {
 
     /**
      * Displays the discovered energy sensors in a dialog for user review.
-     * 
+     * <p>
      * This method formats the energy sensor configuration as pretty-printed JSON
      * and presents it to the user in a dialog. Upon confirmation, it sets the
      * system as selected and triggers UI updates. This allows users to review
@@ -268,11 +268,11 @@ public class ImportHAOverview extends ImportOverviewFragment {
 
     /**
      * Initiates background workers for Home Assistant data collection.
-     * 
+     * <p>
      * This method sets up two types of workers:
      * 1. Catchup worker - performs initial historical data import from the specified start date
      * 2. Daily worker - schedules recurring daily imports to keep data current
-     * 
+     * <p>
      * The workers are configured with the necessary credentials and sensor information
      * to autonomously collect energy data from Home Assistant. The daily worker is
      * scheduled to run during off-peak hours (1-2 AM) to minimize impact.
@@ -329,7 +329,7 @@ public class ImportHAOverview extends ImportOverviewFragment {
 
     /**
      * Establishes connection to Home Assistant WebSocket API for credential validation.
-     * 
+     * <p>
      * This method creates a new HADispatcher instance to handle WebSocket communication
      * with Home Assistant. It registers handlers for authentication responses and
      * initiates the connection process. The method is called during credential
@@ -352,13 +352,13 @@ public class ImportHAOverview extends ImportOverviewFragment {
     }
     /**
      * Handles the energy preferences result from Home Assistant.
-     * 
+     * <p>
      * This inner class processes the response from Home Assistant's energy preferences API
      * to discover and configure energy sensors. It parses the energy sources (solar, battery, grid)
      * and creates appropriate sensor mappings for data collection. The class is responsible for
      * transforming Home Assistant's energy configuration into the application's internal
      * sensor representation.
-     * 
+     * <p>
      * Key responsibilities:
      * - Parse energy source configuration from Home Assistant
      * - Create sensor mappings for solar generation, battery, and grid interactions
@@ -378,7 +378,7 @@ public class ImportHAOverview extends ImportOverviewFragment {
 
         /**
          * Constructs energy sensor configuration from discovered sensor IDs.
-         * 
+         * <p>
          * This method creates an EnergySensors object that contains all the
          * sensor identifiers discovered during the energy preferences query.
          * This configuration is used by background workers to know which
@@ -408,12 +408,12 @@ public class ImportHAOverview extends ImportOverviewFragment {
 
         /**
          * Processes the energy preferences result message from Home Assistant.
-         * 
+         * <p>
          * This method parses the energy configuration response and categorizes each
          * energy source by type (solar, battery, grid). It creates appropriate sensor
          * mappings for data collection and stores the configuration for future use.
          * Upon successful processing, it updates the UI to reflect the discovered sensors.
-         * 
+         * <p>
          * The method handles three types of energy sources:
          * - Solar: Maps energy generation sensors
          * - Battery: Maps both charging and discharging sensors  
@@ -480,7 +480,7 @@ public class ImportHAOverview extends ImportOverviewFragment {
 
     /**
      * Handles successful authentication with Home Assistant.
-     * 
+     * <p>
      * This inner class processes the "auth_ok" message received after successful
      * authentication with Home Assistant's WebSocket API. Upon receiving this message,
      * it stores the validated credentials and initiates the energy preferences query
@@ -507,7 +507,7 @@ public class ImportHAOverview extends ImportOverviewFragment {
 
         /**
          * Processes successful authentication and initiates energy sensor discovery.
-         * 
+         * <p>
          * This method is called when Home Assistant confirms successful authentication.
          * It updates the client's authorization state, stores the validated credentials,
          * and sends an energy preferences request to discover available energy sensors.
@@ -539,7 +539,7 @@ public class ImportHAOverview extends ImportOverviewFragment {
 
     /**
      * Handles authentication failure with Home Assistant.
-     * 
+     * <p>
      * This inner class processes the "auth_invalid" message received when 
      * authentication with Home Assistant's WebSocket API fails. This typically
      * occurs when the provided access token is invalid, expired, or lacks
@@ -560,7 +560,7 @@ public class ImportHAOverview extends ImportOverviewFragment {
 
         /**
          * Processes authentication failure and performs cleanup.
-         * 
+         * <p>
          * This method is called when Home Assistant rejects the authentication attempt.
          * It marks the client as unauthorized, stops any ongoing fetch operations,
          * and properly closes the WebSocket connection. This ensures the application

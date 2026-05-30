@@ -66,12 +66,12 @@ import java.util.Map;
 
 /**
  * Primary ViewModel for managing UI state and data operations across the TOUTC application.
- * 
+ * <p>
  * This AndroidViewModel serves as the central data management layer, coordinating between
  * the user interface and the underlying repository/database systems. It provides reactive
  * data streams using LiveData to ensure UI components stay synchronized with data changes,
  * while encapsulating complex business logic and data transformation operations.
- * 
+ * <p>
  * Key responsibilities:
  * - Price plan management (creation, updates, deletion, activation status)
  * - Energy system scenario management with component relationships
@@ -79,16 +79,16 @@ import java.util.Map;
  * - Data import/export operations for various energy system formats
  * - UI state management for comparison and analysis views
  * - Background work coordination for long-running calculations
- * 
+ * <p>
  * The ViewModel follows Android Architecture Components best practices by:
  * - Surviving configuration changes to maintain UI state
  * - Providing reactive data streams through LiveData
  * - Separating UI logic from data access logic
  * - Managing the lifecycle of data operations
- * 
+ * <p>
  * Data flow architecture:
  * UI Components → ViewModel → Repository → Database/DAOs
- * 
+ * <p>
  * The class handles complex energy system data relationships including many-to-many
  * associations between scenarios and components (inverters, batteries, panels, etc.),
  * ensuring data integrity while providing efficient access patterns for UI consumption.
@@ -100,7 +100,7 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     /**
      * Initialize the ViewModel with repository access and reactive data streams.
-     * 
+     * <p>
      * Sets up the core data connections and initializes LiveData streams that
      * UI components will observe for automatic updates when underlying data changes.
      * 
@@ -123,7 +123,7 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     /**
      * Insert a new price plan with its rate structure.
-     * 
+     * <p>
      * Creates a new electricity tariff definition in the database with the option
      * to overwrite existing plans. Automatically triggers cost calculation cleanup
      * to ensure calculation results remain consistent with available plans.
@@ -139,7 +139,7 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     /**
      * Delete a price plan and all associated data.
-     * 
+     * <p>
      * Removes the price plan definition and all dependent cost calculations
      * to maintain database integrity and prevent orphaned calculation results.
      * 
@@ -162,7 +162,7 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     /**
      * Update an existing price plan with new rate information.
-     * 
+     * <p>
      * Modifies the price plan definition and clears associated cost calculations
      * since rate changes invalidate previous calculation results.
      * 

@@ -218,7 +218,7 @@ public class SimulationWorkerAdvancedTest {
     /**
      * Tests processOneRow with various inverter loss configurations.
      * Verifies AC/DC conversion losses are properly applied to energy calculations.
-     * 
+     * <p>
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
      * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */
@@ -265,7 +265,7 @@ public class SimulationWorkerAdvancedTest {
     /**
      * Tests processOneRow with maximum inverter load limitations.
      * Verifies that inverter capacity constraints are properly enforced.
-     * 
+     * <p>
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
      * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */
@@ -424,7 +424,7 @@ public class SimulationWorkerAdvancedTest {
     /**
      * Tests processOneRow with minimum excess threshold and battery charging.
      * Verifies that small PV excess below threshold doesn't trigger battery charging.
-     * 
+     * <p>
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
      * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */

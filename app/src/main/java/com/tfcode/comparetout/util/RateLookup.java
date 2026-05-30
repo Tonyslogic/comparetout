@@ -34,24 +34,24 @@ import java.util.TreeMap;
 
 /**
  * Efficient rate lookup utility for complex time-of-use electricity pricing calculations.
- * 
+ * <p>
  * This class provides high-performance electricity rate lookups that account for multiple
  * pricing variables including time of day, day of week, seasonal variations, and usage
  * restrictions. It pre-processes price plan data into optimized lookup structures to
  * minimize calculation overhead during cost analysis operations.
- * 
+ * <p>
  * Key capabilities:
  * - Time-based rate lookups with minute-level precision
  * - Seasonal date range handling with day-of-year calculations
  * - Day-of-week specific pricing (weekday vs weekend rates)
  * - Usage tier restrictions (monthly/annual allowances)
  * - Secondary rate application when limits are exceeded
- * 
+ * <p>
  * The lookup system uses NavigableMap structures for efficient range queries,
  * allowing O(log n) time complexity for rate retrievals. This is critical for
  * performance when processing large simulation datasets containing thousands
  * of energy usage data points.
- * 
+ * <p>
  * Rate restrictions are tracked across calculation periods to properly apply
  * tiered pricing schemes where rates change based on cumulative usage within
  * monthly or annual periods. The class handles period rollovers and maintains
@@ -78,12 +78,12 @@ public class RateLookup {
 
     /**
      * Initialize the rate lookup system from price plan data.
-     * 
+     * <p>
      * Processes the price plan and day rate information to build optimized
      * lookup structures. This includes parsing date ranges, organizing rates
      * by day of week, handling legacy hour-based rates, and setting up
      * usage restriction tracking for tiered pricing schemes.
-     * 
+     * <p>
      * The constructor performs several optimization steps:
      * - Converts date strings to day-of-year integers for efficient comparison
      * - Builds NavigableMap structures for O(log n) lookups
@@ -141,7 +141,7 @@ public class RateLookup {
 
     /**
      * Get the electricity rate for a specific time and usage amount.
-     * 
+     * <p>
      * This is the main public interface for rate lookups. It combines base rate
      * calculation with usage restriction logic to determine the final applicable
      * rate. The method handles complex pricing schemes including tiered rates
@@ -164,7 +164,7 @@ public class RateLookup {
 
     /**
      * Retrieve the base electricity rate before applying usage restrictions.
-     * 
+     * <p>
      * Uses the optimized lookup structure to find the appropriate rate based
      * on temporal factors only. The method performs efficient range queries
      * using NavigableMap.floorEntry() to find the most recent applicable
@@ -189,7 +189,7 @@ public class RateLookup {
 
     /**
      * Apply usage-based restrictions and tier adjustments to the base rate.
-     * 
+     * <p>
      * Handles complex tiered pricing schemes where rates change based on
      * cumulative usage within specific periods (monthly, annual, etc.).
      * Updates usage tracking counters and applies secondary rates when
@@ -233,7 +233,7 @@ public class RateLookup {
     
     /**
      * Update period tracking for usage-based restrictions.
-     * 
+     * <p>
      * Monitors billing period boundaries and resets usage counters when
      * new periods begin. Handles year boundaries and custom start dates
      * to ensure accurate tier calculations across different billing cycles.
@@ -266,7 +266,7 @@ public class RateLookup {
 
     /**
      * Update cumulative usage tracking for tiered rate calculations.
-     * 
+     * <p>
      * Maintains running totals of energy consumption for each rate that has
      * usage-based restrictions. These totals are used to determine when
      * usage thresholds are exceeded and secondary rates should apply.

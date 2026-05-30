@@ -25,17 +25,17 @@ import java.util.stream.Collectors;
 
 /**
  * Container class for managing collections of integer values.
- * 
+ * <p>
  * This class provides a wrapper around a list of integers with additional
  * functionality for day-of-week scheduling and time-based configurations.
  * It is primarily used in pricing and scheduling contexts where specific
  * integer sets need to be maintained and compared.
- * 
+ * <p>
  * The class initializes with a default set of values (0-6) representing
  * days of the week, making it suitable for schedule definitions. It provides
  * safe access methods and equality comparison that considers content rather
  * than order.
- * 
+ * <p>
  * Key features:
  * - Defensive copying to prevent external modification
  * - Order-independent equality comparison  
@@ -48,7 +48,7 @@ public class IntHolder {
 
     /**
      * Default constructor initializing with day-of-week values.
-     * 
+     * <p>
      * Creates an IntHolder with integer values 0-6, representing the seven
      * days of the week. This default initialization makes the class immediately
      * useful for scheduling applications without requiring explicit setup.
@@ -60,7 +60,7 @@ public class IntHolder {
 
     /**
      * Returns a defensive copy of the integer list.
-     * 
+     * <p>
      * This method provides safe access to the internal integer list by
      * returning a copy rather than the original list. This prevents
      * external code from inadvertently modifying the internal state
@@ -74,7 +74,7 @@ public class IntHolder {
 
     /**
      * Returns a string representation of the integer list.
-     * 
+     * <p>
      * Creates a comma-separated string representation of all integers
      * enclosed in brackets, suitable for debugging, logging, and display
      * purposes. The format matches standard array notation.
@@ -88,7 +88,7 @@ public class IntHolder {
 
     /**
      * Compares this IntHolder with another object for equality.
-     * 
+     * <p>
      * Two IntHolder objects are considered equal if they contain the same
      * integer values, regardless of order. This order-independent comparison
      * is achieved by sorting both lists before comparison, making it suitable

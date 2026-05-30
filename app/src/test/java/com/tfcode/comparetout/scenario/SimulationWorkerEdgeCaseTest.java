@@ -56,7 +56,7 @@ public class SimulationWorkerEdgeCaseTest {
     /**
      * Tests processOneRow behavior with null battery configuration.
      * Verifies system operates correctly without battery storage components.
-     * 
+     * <p>
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
      * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */
@@ -122,7 +122,7 @@ public class SimulationWorkerEdgeCaseTest {
     /**
      * Tests system behavior with extremely high PV generation values.
      * Verifies numerical stability and proper handling of unrealistic PV inputs.
-     * 
+     * <p>
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
      * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */
@@ -171,7 +171,7 @@ public class SimulationWorkerEdgeCaseTest {
     /**
      * Tests system behavior with extremely high load demand values.
      * Verifies numerical stability and proper handling of unrealistic load inputs.
-     * 
+     * <p>
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
      * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */
@@ -219,7 +219,7 @@ public class SimulationWorkerEdgeCaseTest {
     /**
      * Tests system behavior with very small PV and load values.
      * Verifies precision handling and proper calculation of minimal energy flows.
-     * 
+     * <p>
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
      * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */

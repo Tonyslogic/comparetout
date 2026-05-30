@@ -18,12 +18,12 @@ package com.tfcode.comparetout.importers.alphaess;
 
 /**
  * Enumeration defining calculation methods for data aggregation.
- * 
+ * <p>
  * This enum specifies the available mathematical operations for aggregating
  * time-series energy data during import and processing operations. Different
  * calculation types are appropriate for different types of energy measurements
  * and analysis requirements.
- * 
+ * <p>
  * The enum provides a cycling mechanism to allow users to toggle between
  * calculation types in user interface components.
  */
@@ -35,7 +35,7 @@ public enum CalculationType {
 
     /**
      * Returns the next calculation type in the enumeration cycle.
-     * 
+     * <p>
      * This method enables cycling through calculation types in user interfaces,
      * allowing users to toggle between SUM and AVG calculations. When called
      * on the last enum value, it wraps around to the first value.

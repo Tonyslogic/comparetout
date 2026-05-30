@@ -44,7 +44,7 @@ public class SimulationWorkerTest {
      * Tests basic simulation with one inverter, one battery, and always-active load shift.
      * Verifies PV excess feeds to grid, battery stays full when CFG is enabled, and
      * discharge behavior when discharge threshold is lowered.
-     * 
+     * <p>
      * SIMULATION ASSUMPTION: Test operates on second row (index 1) to avoid first-row
      * initialization artifacts where SOC gets overwritten to discharge stop value.
      */
@@ -175,7 +175,7 @@ public class SimulationWorkerTest {
     /**
      * Tests simulation with two inverters sharing one battery.
      * Verifies proper load distribution and battery management across multiple inverters.
-     * 
+     * <p>
      * SIMULATION ASSUMPTION: Test operates on second row (index 1) to avoid first-row
      * initialization artifacts where SOC gets overwritten to discharge stop value.
      */
@@ -239,7 +239,7 @@ public class SimulationWorkerTest {
     /**
      * Tests simulation with two separate batteries in the system.
      * Verifies independent battery operation and proper charge/discharge distribution.
-     * 
+     * <p>
      * SIMULATION ASSUMPTION: Test operates on second row (index 1) to avoid first-row
      * initialization artifacts where SOC gets overwritten to discharge stop value.
      */
@@ -362,7 +362,7 @@ public class SimulationWorkerTest {
     /**
      * Tests basic single battery operation with various charge/discharge scenarios.
      * Validates SOC management and energy flow calculations.
-     * 
+     * <p>
      * SIMULATION ASSUMPTION: Test operates on second row (index 1) to avoid first-row
      * initialization artifacts where SOC gets overwritten to discharge stop value.
      */
@@ -842,7 +842,7 @@ public class SimulationWorkerTest {
     /**
      * Tests simulation behavior when no battery is present in the system.
      * Verifies direct PV-to-grid feed and load-from-grid scenarios without battery storage.
-     * 
+     * <p>
      * SIMULATION ASSUMPTION: Test operates on second row (index 1) to avoid first-row
      * initialization artifacts where SOC gets overwritten to discharge stop value.
      */
@@ -892,7 +892,7 @@ public class SimulationWorkerTest {
     /**
      * Tests simulation scenario where load demand exceeds PV generation.
      * Verifies proper grid purchase calculation and battery discharge behavior.
-     * 
+     * <p>
      * SIMULATION ASSUMPTION: Test operates on second row (index 1) to avoid first-row
      * initialization artifacts where SOC gets overwritten to discharge stop value.
      */
@@ -941,7 +941,7 @@ public class SimulationWorkerTest {
     /**
      * Tests minimum excess threshold functionality in the inverter.
      * Verifies that PV excess below minimum threshold doesn't trigger battery charging.
-     * 
+     * <p>
      * SIMULATION ASSUMPTION: Test operates on second row (index 1) to avoid first-row
      * initialization artifacts where SOC gets overwritten to discharge stop value.
      */

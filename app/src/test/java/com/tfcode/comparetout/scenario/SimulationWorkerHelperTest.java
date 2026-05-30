@@ -61,7 +61,7 @@ public class SimulationWorkerHelperTest {
     /**
      * Tests battery charging logic with a single battery configuration.
      * Verifies proper SOC increase and capacity handling during PV excess periods.
-     * 
+     * <p>
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
      * Test operates on second row (index 1) to avoid first-row initialization artifacts
      * where SOC gets overwritten to discharge stop value.
@@ -108,7 +108,7 @@ public class SimulationWorkerHelperTest {
     /**
      * Tests battery charging logic with multiple batteries in the system.
      * Verifies proper charge distribution and individual battery SOC management.
-     * 
+     * <p>
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
      * Test operates on second row (index 1) to avoid first-row initialization artifacts
      * where SOC gets overwritten to discharge stop value. Each InputData object must have
@@ -172,7 +172,7 @@ public class SimulationWorkerHelperTest {
     /**
      * Tests battery discharge logic with a single battery configuration.
      * Verifies proper SOC reduction and discharge threshold behavior during shortage periods.
-     * 
+     * <p>
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
      * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */
@@ -220,7 +220,7 @@ public class SimulationWorkerHelperTest {
     /**
      * Tests battery discharge logic with multiple batteries in the system.
      * Verifies proper discharge distribution and coordinated battery management.
-     * 
+     * <p>
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
      * Test operates on second row (index 1) to avoid first-row initialization artifacts
      * where SOC gets overwritten to discharge stop value. Each InputData object must have
@@ -285,7 +285,7 @@ public class SimulationWorkerHelperTest {
     /**
      * Tests Charge From Grid (CFG) functionality when batteries need charging.
      * Verifies grid-to-battery charging during load shifting periods.
-     * 
+     * <p>
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
      * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */
@@ -340,7 +340,7 @@ public class SimulationWorkerHelperTest {
     /**
      * Tests behavior when battery reaches discharge stop threshold.
      * Verifies that battery discharge ceases at configured minimum SOC level.
-     * 
+     * <p>
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
      * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */
@@ -380,7 +380,7 @@ public class SimulationWorkerHelperTest {
     /**
      * Tests behavior when battery is fully charged (100% SOC).
      * Verifies that battery cannot accept additional charge when at maximum capacity.
-     * 
+     * <p>
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
      * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */
@@ -426,7 +426,7 @@ public class SimulationWorkerHelperTest {
     /**
      * Tests scenario with zero PV generation and high load demand.
      * Verifies system behavior during periods with no solar generation.
-     * 
+     * <p>
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
      * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */
@@ -476,7 +476,7 @@ public class SimulationWorkerHelperTest {
     /**
      * Tests balanced scenario where PV generation exactly matches load demand after DC to AC conversion losses.
      * Verifies system behavior when there's no excess or shortage of energy after accounting for inverter efficiency.
-     * 
+     * <p>
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
      * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */

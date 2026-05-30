@@ -36,17 +36,17 @@ import java.util.Map;
 
 /**
  * Data Access Object for managing electricity price plans and their associated day rates.
- * 
+ * <p>
  * This DAO handles the complex relationship between PricePlans and DayRates tables,
  * where each price plan can have multiple day rates (different pricing for different
  * days of the week or time periods). The class provides comprehensive CRUD operations
  * with transactional integrity to ensure data consistency.
- * 
+ * <p>
  * Key relationships managed:
  * - PricePlans (1) -> DayRates (Many) via pricePlanIndex/pricePlanId foreign key
  * - Plans are uniquely identified by supplier + planName combination
  * - Day rates inherit the parent plan's ID when inserted
- * 
+ * <p>
  * Complex operations supported:
  * - Transactional plan creation with associated day rates
  * - Bulk updates maintaining referential integrity
@@ -73,11 +73,11 @@ public abstract class PricePlanDAO {
 
     /**
      * Atomically create a price plan with its associated day rates.
-     * 
+     * <p>
      * This transactional method ensures data integrity when creating complex
      * price structures. If clobber is true, any existing plan with the same
      * supplier+planName combination is deleted first.
-     * 
+     * <p>
      * Process:
      * 1. Check for existing plan if clobber requested
      * 2. Insert new price plan record
@@ -115,9 +115,9 @@ public abstract class PricePlanDAO {
 
     /**
      * Find a price plan ID by its unique supplier+planName combination.
-     * 
+     * <p>
      * Query: SELECT pricePlanIndex FROM PricePlans WHERE supplier || planName = :planSupplierName
-     * 
+     * <p>
      * This concatenates supplier and planName fields to create a unique identifier
      * for price plan lookup. The concatenation approach allows flexible matching
      * while maintaining uniqueness constraints.
@@ -153,14 +153,14 @@ public abstract class PricePlanDAO {
 
     /**
      * Load all price plans with their associated day rates for reactive UI binding.
-     * 
+     * <p>
      * Query: SELECT * FROM PricePlans JOIN DayRates ON PricePlans.pricePlanIndex = DayRates.pricePlanId 
      *        ORDER BY PricePlans.supplier ASC, PricePlans.planName ASC
-     * 
+     * <p>
      * This complex query performs an INNER JOIN to associate each price plan with its
      * day rates, creating a Map<PricePlan, List<DayRate>> result. The Room framework
      * automatically groups the joined results by the parent entity (PricePlan).
-     * 
+     * <p>
      * Ordering is alphabetical by supplier first, then plan name for consistent
      * presentation in the UI.
      * 
@@ -226,16 +226,16 @@ public abstract class PricePlanDAO {
 
     /**
      * Update a price plan and its day rates atomically.
-     * 
+     * <p>
      * This complex transactional method handles both new plan creation and
      * existing plan updates. For updates, it performs differential synchronization:
-     * 
+     * <p>
      * Process for updates:
      * 1. Get current day rates for the plan
      * 2. Compare existing IDs with updated IDs
      * 3. Delete day rates that are no longer present
      * 4. Update/insert the remaining day rates
-     * 
+     * <p>
      * This approach ensures that removed day rates are properly deleted while
      * preserving unchanged rates and adding new ones.
      * 
@@ -300,10 +300,10 @@ public abstract class PricePlanDAO {
 
     /**
      * Export all price plans with their day rates for data export functionality.
-     * 
+     * <p>
      * Query: SELECT * FROM PricePlans JOIN DayRates ON PricePlans.pricePlanIndex = DayRates.pricePlanId 
      *        ORDER BY PricePlans.supplier ASC, PricePlans.planName ASC
-     * 
+     * <p>
      * Similar to loadPricePlans() but returns immediate results rather than LiveData,
      * making it suitable for export operations that need to run on background threads.
      * 

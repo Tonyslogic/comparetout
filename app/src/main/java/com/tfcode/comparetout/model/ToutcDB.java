@@ -90,12 +90,12 @@ import java.util.concurrent.Executors;
 
 /**
  * Room database configuration for the TOUTC application.
- * 
+ * <p>
  * This abstract class defines the central database structure using Android's Room
  * persistence library, managing all energy system data, user scenarios, pricing
  * information, and calculation results. The database uses a comprehensive entity
  * model that captures the complex relationships between energy system components.
- * 
+ * <p>
  * Key entity categories:
  * - Price Plans: Electricity tariffs, rates, and billing structures
  * - Scenarios: User-defined energy system configurations
@@ -104,12 +104,12 @@ import java.util.concurrent.Executors;
  * - Simulation Data: Time-series energy flow calculations
  * - Cost Analysis: Financial calculations and comparison results
  * - Import Data: Raw and processed data from external energy systems
- * 
+ * <p>
  * The database employs automatic migrations to handle schema evolution gracefully,
  * ensuring user data is preserved across application updates. A dedicated thread
  * pool provides efficient concurrent access for database operations while
  * maintaining data integrity through Room's built-in synchronization.
- * 
+ * <p>
  * Database access is coordinated through specialized DAO (Data Access Object)
  * interfaces that encapsulate query logic and provide type-safe database operations
  * with LiveData support for reactive UI updates.
@@ -151,7 +151,7 @@ public abstract class ToutcDB extends RoomDatabase {
 
     /**
      * Get the singleton database instance with thread-safe initialization.
-     * 
+     * <p>
      * Uses double-checked locking pattern to ensure thread-safe singleton
      * creation while avoiding synchronization overhead after initialization.
      * The database is configured with a dedicated thread pool for write

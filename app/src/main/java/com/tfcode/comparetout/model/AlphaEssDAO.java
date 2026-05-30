@@ -40,27 +40,27 @@ import java.util.List;
 
 /**
  * Data Access Object for managing AlphaESS solar inverter system data.
- * 
+ * <p>
  * This DAO handles three main types of AlphaESS data with complex time-based aggregations:
- * 
+ * <p>
  * 1. **Raw Energy Data**: Daily energy totals from the AlphaESS API
  *    - Daily PV generation, battery charge/discharge, grid import/export
  *    - Used for high-level energy accounting and KPI calculations
- * 
+ * <p>
  * 2. **Raw Power Data**: High-frequency power measurements (5-minute intervals)
  *    - Real-time power flows for detailed analysis
  *    - Used for battery modeling and charge pattern analysis
- * 
+ * <p>
  * 3. **Transformed Data**: Processed 5-minute interval data 
  *    - Normalized format for cost calculations and scenario modeling
  *    - Derived from raw data with additional calculated fields
- * 
+ * <p>
  * Key Aggregation Patterns:
  * - Time-based grouping: hour, day-of-year, day-of-week, month, year
  * - SUM aggregations for energy totals (kWh calculations)  
  * - AVG aggregations for typical usage patterns
  * - Complex date/time manipulation using SQLite strftime functions
- * 
+ * <p>
  * The DAO supports:
  * - Data import and synchronization with AlphaESS cloud
  * - Time-series analysis for energy pattern identification
@@ -147,14 +147,14 @@ public abstract class AlphaEssDAO {
 
     /**
      * Aggregate energy data by hour of day across a date range.
-     * 
+     * <p>
      * Query breakdown:
      * - SUM(pv/load/feed/buy) AS PV/LOAD/FEED/BUY: Total energy by category
      * - TOTAL(CASE WHEN charge > 0 THEN charge ELSE 0 END): Sum positive battery charging
      * - ABS(TOTAL(CASE WHEN charge < 0 THEN charge ELSE 0 END)): Sum absolute discharge values
      * - cast(strftime('%H', minute) as INTEGER): Extract hour (0-23) from time string
      * - GROUP BY INTERVAL: Aggregate all data points for each hour
-     * 
+     * <p>
      * This creates 24 rows (one per hour) showing typical energy flows throughout the day.
      * Used for identifying peak generation/consumption periods and optimizing battery schedules.
      * 
@@ -172,7 +172,7 @@ public abstract class AlphaEssDAO {
 
     /**
      * Aggregate energy data by day of year (1-365/366).
-     * 
+     * <p>
      * Query uses strftime('%j', date) to extract the day of year number.
      * This creates daily totals across the specified date range, useful for:
      * - Identifying seasonal patterns
@@ -214,15 +214,15 @@ public abstract class AlphaEssDAO {
 
     /**
      * Calculate average hourly energy patterns across multiple days.
-     * 
+     * <p>
      * This complex nested query:
      * 1. Inner query: Groups data by year + day-of-year + hour to get daily hourly totals
      * 2. Outer query: Averages these daily totals by hour to find typical hourly patterns
-     * 
+     * <p>
      * Query structure:
      * - Inner: GROUP BY year, day-of-year, hour -> daily hourly totals
      * - Outer: GROUP BY hour, AVG() -> average patterns by hour
-     * 
+     * <p>
      * This reveals typical energy flow patterns by hour of day, smoothing out
      * day-to-day variations to show underlying consumption/generation patterns.
      * Essential for battery scheduling optimization.
@@ -302,27 +302,27 @@ public abstract class AlphaEssDAO {
 
     /**
      * Generate comprehensive monthly statistics showing best/worst/average performance.
-     * 
+     * <p>
      * This highly complex multi-table query creates a monthly summary with:
      * - Total PV generation per month
      * - Best single day performance (with date)
      * - Worst single day performance (with date)  
      * - Monthly average performance
-     * 
+     * <p>
      * Query structure breakdown:
      * 1. Main query (main): Groups by month, calculates totals, best day, average
      *    - substr(theDate, 3, 5): Extract MM-DD from YYYY-MM-DD date
      *    - SUM(energypv): Total monthly PV generation
      *    - MAX(energypv): Best single day in month
      *    - AVG(energypv): Monthly average daily generation
-     * 
+     * <p>
      * 2. Worst subquery (worst): Finds minimum daily generation per month
      *    - MIN(energypv): Worst single day in month
      *    - Uses same month grouping as main query
-     * 
+     * <p>
      * 3. JOIN condition: WHERE worst.bMonth = main.Month
      *    - Combines best/worst data for each month
-     * 
+     * <p>
      * Result format: Month, Total_kWh, "Best_kWh on DD", "Worst_kWh on DD", Average_kWh
      * 
      * @param from Start date for analysis (YYYY-MM-DD)
@@ -389,22 +389,22 @@ public abstract class AlphaEssDAO {
 
     /**
      * Calculate key performance indicators for the solar system.
-     * 
+     * <p>
      * This query calculates essential solar system metrics:
-     * 
+     * <p>
      * KPI Calculations:
      * - SC (Self Consumption): ((PV - Export) / PV) * 100
      *   Percentage of generated solar power used directly vs exported
-     * 
+     * <p>
      * - SS (Self Sufficiency): ((PV - Export) / Load) * 100  
      *   Percentage of electricity needs met by solar vs grid import
-     * 
+     * <p>
      * - MSS (Max Self Sufficiency): (PV / Load) * 100
      *   Theoretical maximum self-sufficiency if all PV could be used
-     * 
+     * <p>
      * - PV: Total solar generation (rounded to 2 decimal places)
      * - FEED: Total grid export (rounded to 2 decimal places)
-     * 
+     * <p>
      * These metrics are fundamental for:
      * - System performance evaluation
      * - Battery sizing decisions  

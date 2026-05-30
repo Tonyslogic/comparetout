@@ -28,12 +28,12 @@ import androidx.room.PrimaryKey;
 
 /**
  * Entity representing a complete energy system scenario configuration.
- * 
+ * <p>
  * This Room entity defines a comprehensive energy system scenario that models
  * real-world residential or commercial energy setups. Each scenario can include
  * various combinations of energy system components, with boolean flags indicating
  * which components are present and active in the particular configuration.
- * 
+ * <p>
  * Supported energy system components:
  * - Inverters: Solar inverters and their specifications
  * - Batteries: Energy storage systems with charge/discharge profiles
@@ -44,16 +44,16 @@ import androidx.room.PrimaryKey;
  * - EV Charging: Electric vehicle charging profiles and scheduling
  * - Grid Discharge: Battery-to-grid energy trading scenarios
  * - Import/Export Data: Integration with real energy system data
- * 
+ * <p>
  * The scenario entity serves as the central coordination point for complex
  * energy system simulations, with each scenario maintaining references to
  * its constituent components through many-to-many relationship tables.
- * 
+ * <p>
  * Database relationships:
  * - One-to-many with various Scenario2Component junction tables
  * - Referenced by ScenarioSimulationData for calculation results
  * - Used in Costings calculations for financial analysis
- * 
+ * <p>
  * The active flag allows scenarios to be temporarily disabled without deletion,
  * supporting workflow management and scenario comparison studies.
  */
