@@ -72,5 +72,6 @@ jobs:
             --test app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
             --device "model=${{ inputs.device }},version=${{ inputs.version }},locale=en,orientation=portrait" \
             --test-targets "class com.tfcode.comparetout.SmokeLaunchTest" \
+            --results-bucket=comparetout-ftl-results \
             --timeout 5m \
             --num-flaky-test-attempts 1
