@@ -77,6 +77,7 @@ jobs:
             --device "model=MediumTablet.arm,version=34,locale=en,orientation=landscape" \
             --device "model=${{ inputs.device }},version=30,locale=en,orientation=portrait" \
             --test-targets "class com.tfcode.comparetout.SmokeLaunchTest,class com.tfcode.comparetout.SmokeActivityCoverageTest,class com.tfcode.comparetout.SmokeRotationTest,class com.tfcode.comparetout.model.SmokeImportTest,class com.tfcode.comparetout.SmokePVGISTest" \
+            --use-orchestrator \
             --results-bucket=comparetout-ftl-results \
             --timeout 10m \
             --num-flaky-test-attempts 1
