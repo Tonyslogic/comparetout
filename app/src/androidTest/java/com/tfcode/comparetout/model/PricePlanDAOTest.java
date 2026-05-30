@@ -133,10 +133,6 @@ public class PricePlanDAOTest {
         }
     }
 
-//    @Test
-//    public void addNewDayRate() {
-//    }
-
     @Test
     public void addNewPricePlanWithDayRates() throws InterruptedException {
         loadTestData();
@@ -158,14 +154,6 @@ public class PricePlanDAOTest {
         assertEquals(mpp.size(), 11);
         assertTrue(mpp.containsKey(p));
     }
-
-//    @Test
-//    public void clearDayRates() {
-//    }
-//
-//    @Test
-//    public void clearPricePlans() {
-//    }
 
     @Test
     public void loadPricePlan() {
@@ -206,28 +194,6 @@ public class PricePlanDAOTest {
         assertFalse(mpp.containsKey(p));
     }
 
-//    @Test
-//    public void deleteDayRates() throws InterruptedException {
-//        pricePlanDAO.deleteAll();
-//        loadTestData();
-//
-//        Map<PricePlan, List<DayRate>> mpp = LiveDataTestUtil.getValue(pricePlanDAO.loadPricePlans());
-//        PricePlan pp = mpp.keySet().iterator().next();
-//        List<DayRate> drs = mpp.get(pp);
-//        assertEquals(2, drs.size());
-//        DayRate dr = drs.get(0);
-//        pricePlanDAO.deleteDayRates(pp.getId());
-//        mpp = LiveDataTestUtil.getValue(pricePlanDAO.loadPricePlans());
-//        PricePlan ppo = mpp.keySet().iterator().next();
-//        List<DayRate> drs0 = mpp.get(ppo);
-//        assertEquals(0, drs0.size());
-//    }
-
-//    @Test
-//    public void deletePricePlanRow() throws InterruptedException {
-//
-//    }
-
     @Test
     public void delpp() throws InterruptedException {
         pricePlanDAO.deleteAll();
@@ -239,18 +205,6 @@ public class PricePlanDAOTest {
         mpp = LiveDataTestUtil.getValue(pricePlanDAO.loadPricePlans());
         assertFalse(mpp.containsKey(pp));
     }
-
-//    @Test
-//    public void updatePricePlanActiveStatus() {
-//    }
-
-//    @Test
-//    public void updatePricePlan() {
-//    }
-//
-//    @Test
-//    public void updateDayRate() {
-//    }
 
     @Test
     public void updatePricePlanWithDayRates() throws InterruptedException {

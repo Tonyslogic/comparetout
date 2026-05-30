@@ -271,18 +271,6 @@ public class ScenarioDAOTest {
         System.out.println("===================================================================================");
         System.out.println(outString);
         // Cannot rely on json order -- need to remove commas, split and sort, then compare
-//        outString = outString.replaceAll(",","");
-//        String[] outStringArray = outString.split("\n");
-//        Arrays.sort(outStringArray);
-//
-//        // The original also needs to have whitespace removed
-//        String inString = testData.replaceAll("\t", "").replaceAll(",", "");
-//        String[] inStringArray = inString.split("\n");
-//        Arrays.sort(inStringArray);
-//
-//        for (int index = 0; index < outStringArray.length; index++){
-//            assertEquals(inStringArray[index], outStringArray[index]);
-//        }
     }
 
     @Test

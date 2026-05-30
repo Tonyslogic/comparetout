@@ -253,10 +253,6 @@ public class ScenarioDetails extends Fragment {
             updateKPIs();
         };
 //        TODO: Update DatePicker to non deprecated
-//        mDatePickerButton.setOnClickListener(v -> {
-//            LocalDate localDate = LocalDate.ofYearDay(2001, mDayOfYear);
-//            new DatePickerDialog(getActivity(), date, 2001 ,localDate.getMonth().getValue() - 1, localDate.getDayOfMonth()).show();
-//        });
         mDatePickerButton.setOnClickListener(v -> {
             LocalDate localDate = LocalDate.ofYearDay(2001, mDayOfYear);
             int pickerTheme = 0;

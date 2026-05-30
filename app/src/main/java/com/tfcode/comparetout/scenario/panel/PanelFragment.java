@@ -85,22 +85,6 @@ public class PanelFragment extends Fragment {
     private List<PanelPVSummary> mPanelPVSummaries;
     private List<Inverter> mInverters;
 
-//    private final ActivityResultLauncher<Intent> mStartForResult = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
-//            result -> {
-//                if (result.getResultCode() == Activity.RESULT_OK) {
-//                    Intent intent = result.getData();
-//                    // Handle the Intent
-//                    if (!(null == intent)) {
-//                        if (intent.getBooleanExtra("RESULT", false)) {
-//                            new Thread(() -> {
-//                                mViewModel.deleteSimulationDataForPanelID(mPanel.getPanelIndex());
-//                                mViewModel.deleteCostingDataForPanelID(mPanel.getPanelIndex());
-//                            }).start();
-//                        }
-//                    }
-//                }
-//            });
-
 
     public PanelFragment() {
         // Required empty public constructor

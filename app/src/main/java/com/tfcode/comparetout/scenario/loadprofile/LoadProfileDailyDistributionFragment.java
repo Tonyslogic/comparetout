@@ -114,8 +114,6 @@ public class LoadProfileDailyDistributionFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-//        if (!(null == getActivity()))
-//            getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 
     @SuppressLint("DefaultLocale")

@@ -70,9 +70,6 @@ public class StatsForPeriodResult extends HAMessageWithID {
             List<SensorData> sensorDataList = entry.getValue();
 
             for (SensorData sensorData : sensorDataList) {
-//                LocalDateTime date = Instant.ofEpochMilli(sensorData.getStart())
-//                        .atZone(ZoneId.systemDefault())
-//                        .toLocalDateTime();
                 Long date = sensorData.getStart();
                 double change = sensorData.getChange();
 

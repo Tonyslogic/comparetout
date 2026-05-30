@@ -90,18 +90,6 @@ public class ImportESBNOverview extends ImportOverviewFragment {
         super.onViewCreated(view, savedInstanceState);
         Activity activity = getActivity();
         if (!(null == activity)) {
-//            TOUTCApplication application = ((TOUTCApplication) activity.getApplication());
-//            RxDataStore<Preferences> dataStore = application.getDataStore();
-//            SettingsViewModel settingsViewModel = new ViewModelProvider(this, new ViewModelProvider.Factory() {
-//                @NonNull
-//                @Override
-//                public <T extends ViewModel> T create(@NonNull Class<T> modelClass) {
-//                    if (modelClass.isAssignableFrom(SettingsViewModel.class)) {
-//                        return (T) new SettingsViewModel(dataStore);
-//                    }
-//                    throw new IllegalArgumentException("Unknown ViewModel class");
-//                }
-//            }).get(SettingsViewModel.class);
             TOUTCApplication application = ((TOUTCApplication) activity.getApplication());
             RxDataStore<Preferences> dataStore = application.getDataStore();
             SettingsViewModel settingsViewModel = new ViewModelProvider(
@@ -205,16 +193,6 @@ public class ImportESBNOverview extends ImportOverviewFragment {
     protected void reloadClient(String appId, String appSecret) throws ImportException {
         // BUG: This is not working, the API is broken
         // TODO: Fix this when the API is publicly available
-//        ESBNHDFClient mOpenAlphaESSClient = new ESBNHDFClient(appId, appSecret);
-//        List<String> response = mOpenAlphaESSClient.fetchMPRNs();
-//        mSerialNumbers = new ArrayList<>();
-//        mSerialNumbers.addAll(response);
-//        String stringResponse = new Gson().toJson(response);
-//        if (!(null == getActivity()) && !(null == getActivity().getApplication()) ) {
-//            TOUTCApplication application = (TOUTCApplication) getActivity().getApplication();
-//            boolean x = application.putStringValueIntoDataStore(SYSTEM_LIST_KEY, stringResponse);
-//            if (!x) System.out.println("ImportESBNOverview::reLoadSystemList, failed to store list");
-//        }
     }
 
     @Override

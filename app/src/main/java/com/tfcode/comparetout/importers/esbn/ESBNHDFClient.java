@@ -100,9 +100,6 @@ public class ESBNHDFClient {
 
         CookieHandler mCookieHandler = mCM;
 
-//        HttpLoggingInterceptor loggingInterceptor = new HttpLoggingInterceptor();
-//        loggingInterceptor.setLevel(HttpLoggingInterceptor.Level.HEADERS);
-
         mClient = new OkHttpClient.Builder()
                 .cookieJar(new JavaNetCookieJar(mCookieHandler))
                 .addNetworkInterceptor(mCFI)
@@ -536,19 +533,7 @@ public class ESBNHDFClient {
     }
 
     private void printOutDebug(String message, Response loginPageResponse, Request loginPageRequest) {
-//        System.out.println ("=========================================================================");
-//        System.out.println ("=========================================================================");
         System.out.println (message + loginPageResponse.code());
-//        System.out.println(loginPageRequest.url());
-//        List<Cookie> cookies = mClient.cookieJar().loadForRequest(loginPageRequest.url());
-//        cookies.stream().forEach(System.out::println);
-//        System.out.println ("=========================================================================");
-//        for( URI uri : mCM.getCookieStore().getURIs()) {
-//            System.out.println(uri);
-//            mCM.getCookieStore().get(uri).stream().forEach(System.out::println);
-//        }
-//        System.out.println ("-------------------------------------------------------------------------");
-//        mCM.getCookieStore().getCookies().stream().forEach(System.out::println);
     }
 
     private static String extractVariableValue(String scriptContent, String variableName) {

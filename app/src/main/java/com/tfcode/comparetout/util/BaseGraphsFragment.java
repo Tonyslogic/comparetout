@@ -376,10 +376,6 @@ public abstract class BaseGraphsFragment extends Fragment {
                 mGraphData = getGraphData(mSystemSN, mImporterType, mFrom, mTo);
                 if (mCompareActive && !(null == mCompareSN) && !(null == mCompareType)) {
                     mCompareDateRange = mViewModel.getDateRangeForSystem(mCompareType, mCompareSN);
-//                    if (!(null == mCompareDateRange)) {
-//                        mCompareFrom = (mCompareFrom.compareTo(mCompareDateRange.startDate) > 0) ? mCompareFrom : mCompareDateRange.startDate;
-//                        mCompareTo = (mCompareTo.compareTo(mCompareDateRange.finishDate) < 0) ? mCompareTo : mCompareDateRange.finishDate;
-//                    }
                     mCompareGraphData = getGraphData(mCompareSN, mCompareType, mCompareFrom, mCompareTo);
                     LOGGER.info("mCompareGraphData has " +  mCompareGraphData.size() + " entries");
                 }

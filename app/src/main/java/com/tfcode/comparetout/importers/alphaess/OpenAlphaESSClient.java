@@ -205,13 +205,7 @@ public class OpenAlphaESSClient {
         headers.put(timeStampHeader, timeStamp);
         headers.put(signHeader, sign);
         headers.put(connectionHeader, connectionType);
-//        headers.put("Accept", "\"*/*\"");
-//        headers.put("Host", "\"openapi.alphaess.com\"");
-//        headers.put("Accept-Encoding","\"gzip, deflate, br\"");
-//        headers.put("timestamp", timeStamp);
-//        headers.put("Content-Type", "application/json");
 
-//        for (Map.Entry<String, String> entry: headers.entrySet()) System.out.println(entry);
         return headers;
     }
 

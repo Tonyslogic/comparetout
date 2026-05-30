@@ -103,25 +103,7 @@ public class DataMassagerTest {
         Map<Long, FiveMinuteEnergies> fixed = DataMassager.oneDayDataInFiveMinuteIntervals(points);
         assertEquals(288, fixed.size());
 
-//        for (Map.Entry<Long, Pair<Double, Double>> entry : fixed.entrySet()) {
-//            Long key = entry.getKey();
-//            Pair<Double, Double> value = entry.getValue();
-//
-//            SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
-//
-//
-//            System.out.println("Key: " + sdf.format(new Date(key)) + " pv: " + value.first + " l: " + value.second);
-//            System.out.println("Value (pv): " + value.first);
-//            System.out.println("Value (load): " + value.second);
-//            System.out.println("---------------");
-//        }
     }
-
-//    @Test
-//    public void massageAddMidnight() {
-//        List<DataMassager.DataPoint> points = DataMassager.getDataPointsForPowerResponse(powerResponse220911);
-//        checkMassaged(points, energyResponse220911);
-//    }
 
     @Test
     public void massageTestMissing() {

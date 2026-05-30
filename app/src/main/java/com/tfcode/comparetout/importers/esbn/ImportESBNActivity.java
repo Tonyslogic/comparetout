@@ -242,11 +242,6 @@ public class ImportESBNActivity extends InsetRespectingActivity implements Graph
     public boolean onOptionsItemSelected(MenuItem item) {
         int itemID = item.getItemId();
         if (itemID == R.id.load) {
-//            if ((null == mSerialNumber)) {
-//                Snackbar.make(mViewPager.getRootView(), "No system selected", Snackbar.LENGTH_LONG)
-//                        .setAction("Action", null).show();
-//                return true;
-//            }
             mLoadESBNHDFDataFromFile.launch("*/*");
             return (true);
         }
@@ -258,19 +253,6 @@ public class ImportESBNActivity extends InsetRespectingActivity implements Graph
             }
             System.out.println("Export attempt ");
             // start the  worker for the selected serial
-//            Data inputData = new Data.Builder()
-//                    .putString(ExportWorker.KEY_SYSTEM_SN, mSerialNumber)
-//                    .build();
-//            OneTimeWorkRequest exportWorkRequest =
-//                    new OneTimeWorkRequest.Builder(ExportWorker.class)
-//                            .setInputData(inputData)
-//                            .addTag(mSerialNumber + "Export")
-//                            .build();
-//            WorkManager.getInstance(this).pruneWork();
-//            WorkManager
-//                    .getInstance(this)
-//                    .beginUniqueWork(mSerialNumber, ExistingWorkPolicy.APPEND, exportWorkRequest)
-//                    .enqueue();
             return (true);
         }
         if (itemID == R.id.help) {
