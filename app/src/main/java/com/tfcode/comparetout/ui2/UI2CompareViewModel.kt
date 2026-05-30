@@ -853,7 +853,7 @@ class UI2CompareViewModel @Inject constructor(
         val indexOf: (LocalDateTime) -> Int
     )
 
-    private val DOW_LABELS = listOf("Sun","Mon","Tue","Wed","Thu","Fri","Sat")
+    private val DOWLABELS = listOf("Sun","Mon","Tue","Wed","Thu","Fri","Sat")
 
     private fun costBucketAxis(
         scale: CompareAxisScale, from: LocalDate, to: LocalDate
@@ -875,7 +875,7 @@ class UI2CompareViewModel @Inject constructor(
             )
         }
         CompareAxisScale.DOW   -> CostBucketAxis(
-            labels  = DOW_LABELS,
+            labels  = DOWLABELS,
             indexOf = { ldt -> ldt.dayOfWeek.value.let { if (it == 7) 0 else it } }
         )
         CompareAxisScale.MONTH -> {
@@ -937,7 +937,7 @@ class UI2CompareViewModel @Inject constructor(
             CompareAxisScale.HOUR  -> bucketizeFixed(rows, 24,
                 labels = (0..23).map { "%02d".format(it) }) { it.trim().toIntOrNull() }
             CompareAxisScale.DOW   -> bucketizeFixed(rows, 7,
-                labels = DOW_LABELS) { it.trim().toIntOrNull() }
+                labels = DOWLABELS) { it.trim().toIntOrNull() }
             CompareAxisScale.DAY   -> bucketizeSparse(rows) { it }            // DOY label
             CompareAxisScale.MONTH -> bucketizeSparse(rows) { key ->
                 // DAO emits "yyyyMM"; render as "MMM yy".

@@ -106,8 +106,8 @@ class UI2DashboardViewModel @Inject constructor(
         ) : ActiveDashboardItem()
     }
 
-    private val FMT     = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-    private val ROWFMT  = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+    private val timeFormatter     = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    private val dateTimeFormatter  = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
     private val _activeItem = MutableStateFlow<ActiveDashboardItem?>(null)
 
@@ -231,7 +231,7 @@ class UI2DashboardViewModel @Inject constructor(
         resetKpiDefaults()
         _activeItem.value = ActiveDashboardItem.DataSource(sysSn, importerType, startDate, endDate)
         _dataBounds.value = runCatching {
-            LocalDate.parse(startDate, FMT) to LocalDate.parse(endDate, FMT)
+            LocalDate.parse(startDate, timeFormatter) to LocalDate.parse(endDate, timeFormatter)
         }.getOrNull()
         val item = ActiveDashboardItem.DataSource(sysSn, importerType, startDate, endDate)
         viewModelScope.launch(Dispatchers.IO) {
@@ -403,7 +403,7 @@ class UI2DashboardViewModel @Inject constructor(
                     }
             }
             DataSourcePeriod.MONTH -> {
-                val yearForDoy = LocalDate.parse(from, FMT).year
+                val yearForDoy = LocalDate.parse(from, timeFormatter).year
                 repository.getSumDOY(item.sysSn, from, to)
                     .filter { it.pv > 0 }
                     .mapNotNull { row ->
@@ -438,8 +438,8 @@ class UI2DashboardViewModel @Inject constructor(
         if (period == DataSourcePeriod.ALL) return null
         return stepAnchor(
             current, period, forward,
-            LocalDate.parse(item.startDate, FMT),
-            LocalDate.parse(item.endDate, FMT)
+            LocalDate.parse(item.startDate, timeFormatter),
+            LocalDate.parse(item.endDate, timeFormatter)
         )
     }
 
@@ -468,7 +468,7 @@ class UI2DashboardViewModel @Inject constructor(
         item: ActiveDashboardItem.DataSource
     ): List<DataSourceCostingRow> {
         val (from, to) = anchorDateRange(period, anchor, advanced, item.startDate, item.endDate)
-        val days = LocalDate.parse(to, FMT).toEpochDay() - LocalDate.parse(from, FMT).toEpochDay() + 1
+        val days = LocalDate.parse(to, timeFormatter).toEpochDay() - LocalDate.parse(from, timeFormatter).toEpochDay() + 1
         return computeDataSourceCostings(item.sysSn, from, to, days)
     }
 
@@ -485,7 +485,7 @@ class UI2DashboardViewModel @Inject constructor(
         val dow      = DoubleArray(7)
         val monthly  = DoubleArray(12)
         rows.forEach { row ->
-            val ldt = LocalDateTime.parse(row.dateTime, ROWFMT)
+            val ldt = LocalDateTime.parse(row.dateTime, dateTimeFormatter)
             hourly[ldt.hour] += row.buy
             val d = ldt.dayOfWeek.value.let { if (it == 7) 0 else it }
             dow[d] += row.buy
@@ -509,8 +509,8 @@ class UI2DashboardViewModel @Inject constructor(
     ): Pair<String, String> {
         val (from, to) = periodDateRange(
             period, anchor, advanced,
-            LocalDate.parse(dataStart, FMT), LocalDate.parse(dataEnd, FMT))
-        return from.format(FMT) to to.format(FMT)
+            LocalDate.parse(dataStart, timeFormatter), LocalDate.parse(dataEnd, timeFormatter))
+        return from.format(timeFormatter) to to.format(timeFormatter)
     }
 
     private fun computeDataSourceCostings(
@@ -525,13 +525,13 @@ class UI2DashboardViewModel @Inject constructor(
         return plans.map { plan ->
             val dayRates  = repository.getAllDayRatesForPricePlanID(plan.pricePlanIndex)
             val lookup    = RateLookup(plan, dayRates)
-            lookup.setStartDOY(LocalDate.parse(from, FMT).dayOfYear)
+            lookup.setStartDOY(LocalDate.parse(from, timeFormatter).dayOfYear)
 
             val subTotals = SubTotals()
             var buy = 0.0; var sell = 0.0
 
             hourlyData.forEach { row ->
-                val ldt   = LocalDateTime.parse(row.dateTime, ROWFMT)
+                val ldt   = LocalDateTime.parse(row.dateTime, dateTimeFormatter)
                 val doy   = ldt.dayOfYear
                 val mod   = ldt.hour * 60 + ldt.minute
                 val dow   = ldt.dayOfWeek.value.let { if (it == 7) 0 else it } // 7=Sun→0
@@ -618,13 +618,13 @@ class UI2DashboardViewModel @Inject constructor(
         val item = _activeItem.value ?: return null
         return when (item) {
             is ActiveDashboardItem.DataSource -> withContext(Dispatchers.IO) {
-                LocalDate.parse(item.startDate, FMT) to LocalDate.parse(item.endDate, FMT)
+                LocalDate.parse(item.startDate, timeFormatter) to LocalDate.parse(item.endDate, timeFormatter)
             }
             is ActiveDashboardItem.Simulation -> withContext(Dispatchers.IO) {
                 val r = repository.getSimDateRanges(item.id.toString()) ?: return@withContext null
                 val s = r.startDate ?: return@withContext null
                 val f = r.finishDate ?: return@withContext null
-                runCatching { LocalDate.parse(s, FMT) to LocalDate.parse(f, FMT) }.getOrNull()
+                runCatching { LocalDate.parse(s, timeFormatter) to LocalDate.parse(f, timeFormatter) }.getOrNull()
             }
         }
     }
@@ -643,8 +643,8 @@ class UI2DashboardViewModel @Inject constructor(
         val (from, to) = periodDateRange(
             _kpiPeriod.value, _kpiAnchor.value, advanced = false, bounds.first, bounds.second
         )
-        val fromStr = from.format(FMT)
-        val toStr = to.format(FMT)
+        val fromStr = from.format(timeFormatter)
+        val toStr = to.format(timeFormatter)
 
         when (item) {
             is ActiveDashboardItem.DataSource -> {
@@ -702,8 +702,8 @@ class UI2DashboardViewModel @Inject constructor(
                 // can show every month the sim covers, not just the period slice.
                 val fullRows = repository.getSimSumDOY(
                     item.id.toString(),
-                    bounds.first.format(FMT),
-                    bounds.second.format(FMT)
+                    bounds.first.format(timeFormatter),
+                    bounds.second.format(timeFormatter)
                 )
                 _kpiMonths.value = buildMonthRowsFromDoy(fullRows, bounds.first.year)
             }
@@ -758,8 +758,8 @@ class UI2DashboardViewModel @Inject constructor(
             _scenarioTariffPeriod.value, _scenarioTariffAnchor.value, advanced = false,
             bounds.first, bounds.second
         )
-        val fromStr = from.format(FMT)
-        val toStr   = to.format(FMT)
+        val fromStr = from.format(timeFormatter)
+        val toStr   = to.format(timeFormatter)
         val days = (to.toEpochDay() - from.toEpochDay() + 1).coerceAtLeast(1)
         val midDay = from.plusDays(days / 2)
 

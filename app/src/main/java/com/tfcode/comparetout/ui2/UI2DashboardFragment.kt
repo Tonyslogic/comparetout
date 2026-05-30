@@ -2223,11 +2223,11 @@ private fun KpiAccordion(
 
         // Monthly key stats — filtered by the chip row above.
         Spacer(Modifier.height(10.dp))
-        when (val rows = months) {
+        when (months) {
             null -> {}
             else -> {
-                val filtered = if (monthFilter == 0) rows
-                               else rows.filter { it.monthNumber == monthFilter }
+                val filtered = if (monthFilter == 0) months
+                               else months.filter { it.monthNumber == monthFilter }
                 KpiMonthsTable(filtered, df)
             }
         }
