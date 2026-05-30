@@ -717,6 +717,7 @@ fun WizardPanelCard(
     noviceMode: Boolean,
     inverterEntries: List<WizardInverterEntry>,
     availableSources: List<SourceDateRange>,
+    modifier: Modifier = Modifier,
     panelMonthlySummary: List<PanelPVSummary> = emptyList(),
     pvgisParamsHaveData: Boolean = false,
     showAdvanced: Boolean = false,
@@ -725,7 +726,6 @@ fun WizardPanelCard(
     onDelete: () -> Unit,
     onRequestLocation: () -> Unit,
     onCheckPvgisParams: () -> Unit = {},
-    modifier: Modifier = Modifier
 ) {
     // Auto-select inverter when exactly one exists and none is selected
     LaunchedEffect(inverterEntries.size, entry.inverterName) {
@@ -1883,7 +1883,7 @@ private fun HwUsageBar(pattern: List<WizardHwUsePoint>) {
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(1.dp)) {
             (0..23).forEach { h ->
                 val frac = (byHour[h] / max).coerceIn(0.0, 1.0)
-                BoxWithConstraints(modifier = Modifier.weight(1f).height(18.dp)) {
+                Box(modifier = Modifier.weight(1f).height(18.dp)) {
                     Column(modifier = Modifier.fillMaxHeight()) {
                         Spacer(modifier = Modifier.fillMaxHeight((1.0 - frac).toFloat())
                             .clip(RoundedCornerShape(2.dp)).background(Color.Transparent))
@@ -2107,10 +2107,10 @@ private fun WizardDistBarChart(
     title: String,
     values: List<Double>,
     labels: List<String>,
+    modifier: Modifier = Modifier,
     showEveryNthLabel: Int = 1,
     barHeight: Dp = 60.dp,
     onClick: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
 ) {
     val labelColorArgb = MaterialTheme.colorScheme.onSurface.toArgb()
     val gridColorArgb  = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f).toArgb()

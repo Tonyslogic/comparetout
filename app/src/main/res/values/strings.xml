@@ -338,4 +338,5 @@
     <string name="confirm">Confirm</string>
     <string name="dialog_ok">OK</string>
     <string name="dialog_cancel">Cancel</string>
+    <string name="remove_comparison">Remove comparison</string>
 </resources>

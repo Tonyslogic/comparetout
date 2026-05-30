@@ -61,6 +61,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -142,19 +143,20 @@ fun DirectorScreen(
                 var actionBarVisible by remember { mutableStateOf(true) }
                 var lastIndex by remember { mutableIntStateOf(0) }
                 var lastOffset by remember { mutableIntStateOf(0) }
-                LaunchedEffect(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) {
-                    val idx = listState.firstVisibleItemIndex
-                    val off = listState.firstVisibleItemScrollOffset
-                    val atTop = idx == 0 && off == 0
-                    val deltaIdx = idx - lastIndex
-                    val deltaOff = off - lastOffset
-                    when {
-                        atTop -> actionBarVisible = true
-                        deltaIdx > 0 || (deltaIdx == 0 && deltaOff >  SCROLL_THRESHOLD) -> actionBarVisible = false
-                        deltaIdx < 0 || deltaOff < -SCROLL_THRESHOLD -> actionBarVisible = true
-                    }
-                    lastIndex = idx
-                    lastOffset = off
+                LaunchedEffect(listState) {
+                    snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
+                        .collect { (idx, off) ->
+                            val atTop = idx == 0 && off == 0
+                            val deltaIdx = idx - lastIndex
+                            val deltaOff = off - lastOffset
+                            when {
+                                atTop -> actionBarVisible = true
+                                deltaIdx > 0 || (deltaIdx == 0 && deltaOff >  SCROLL_THRESHOLD) -> actionBarVisible = false
+                                deltaIdx < 0 || deltaOff < -SCROLL_THRESHOLD -> actionBarVisible = true
+                            }
+                            lastIndex = idx
+                            lastOffset = off
+                        }
                 }
 
                 Column(Modifier.fillMaxSize()) {

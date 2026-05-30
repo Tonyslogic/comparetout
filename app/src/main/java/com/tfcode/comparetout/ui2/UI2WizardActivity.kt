@@ -87,6 +87,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -334,15 +335,16 @@ private fun WizardScreen(
         val scrollState = rememberScrollState()
         var headerVisible by remember { mutableStateOf(true) }
         var lastScrollValue by remember { mutableIntStateOf(0) }
-        LaunchedEffect(scrollState.value) {
-            val current = scrollState.value
-            val delta = current - lastScrollValue
-            when {
-                current == 0       -> headerVisible = true
-                delta >  THRESHOLD -> headerVisible = false
-                delta < -THRESHOLD -> headerVisible = true
+        LaunchedEffect(scrollState) {
+            snapshotFlow { scrollState.value }.collect { current ->
+                val delta = current - lastScrollValue
+                when {
+                    current == 0       -> headerVisible = true
+                    delta >  THRESHOLD -> headerVisible = false
+                    delta < -THRESHOLD -> headerVisible = true
+                }
+                lastScrollValue = current
             }
-            lastScrollValue = current
         }
 
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {

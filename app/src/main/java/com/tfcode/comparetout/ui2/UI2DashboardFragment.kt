@@ -83,6 +83,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import androidx.core.graphics.toColorInt
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
@@ -1179,7 +1180,7 @@ private fun PVStringBarChart(
 ) {
     val labelColorArgb = MaterialTheme.colorScheme.onSurface.toArgb()
     val gridColorArgb  = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f).toArgb()
-    val barColorArgb   = android.graphics.Color.parseColor("#F44336")
+    val barColorArgb   = "#F44336".toColorInt()
 
     AndroidView(
         factory = { ctx ->
@@ -1321,7 +1322,7 @@ private fun DataSourcePVBarChart(pvData: List<Pair<String, Double>>) {
     val cfg = LocalConfiguration.current
     val labelColorArgb = MaterialTheme.colorScheme.onSurface.toArgb()
     val gridColorArgb  = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f).toArgb()
-    val barColorArgb   = android.graphics.Color.parseColor("#F44336")
+    val barColorArgb   = "#F44336".toColorInt()
     val labels = remember(pvData) { pvData.map { it.first } }
     val values = remember(pvData) { pvData.map { it.second } }
     val total  = remember(pvData) { pvData.sumOf { it.second } }

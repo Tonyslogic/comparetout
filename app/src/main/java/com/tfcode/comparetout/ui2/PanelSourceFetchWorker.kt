@@ -1,6 +1,7 @@
 package com.tfcode.comparetout.ui2
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Application
 import android.content.Context
 import android.content.pm.PackageManager
@@ -59,6 +60,7 @@ class PanelSourceFetchWorker(
             "srcKwp=$sourceKwp tgtKwp=$targetKwp useAz=$useAzimuthFactor srcAz=$sourceAz tgtAz=$targetAz " +
             "lat=$lat lon=$lon tilt=$tilt")
 
+        @SuppressLint("InlinedApi")  // permission string is inlined; runtime check returns DENIED pre-API 33 which is fine
         val hasPostPerm = ActivityCompat.checkSelfPermission(
             applicationContext, Manifest.permission.POST_NOTIFICATIONS
         ) == PackageManager.PERMISSION_GRANTED
