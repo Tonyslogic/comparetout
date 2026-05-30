@@ -226,16 +226,16 @@ class UI2DirectorViewModel @Inject constructor(
     // ── pending-edit / seed API (cached until save) ─────────────────────────
 
     fun queueEdit(subject: DirectorSubject, componentId: Long, scenarioId: Long, op: DirectorEditOp) {
-        _edits.value = _edits.value + (DirectorEditKey(subject, componentId, scenarioId) to op)
+        _edits.value += (DirectorEditKey(subject, componentId, scenarioId) to op)
     }
 
     fun cancelEdit(subject: DirectorSubject, componentId: Long, scenarioId: Long) {
-        _edits.value = _edits.value - DirectorEditKey(subject, componentId, scenarioId)
+        _edits.value -= DirectorEditKey(subject, componentId, scenarioId)
     }
 
     /** Reveal a not-yet-shared component so scenarios can be linked to it. */
     fun seed(subject: DirectorSubject, componentId: Long) {
-        _seeded.value = _seeded.value + DirectorSeedKey(subject, componentId)
+        _seeded.value += DirectorSeedKey(subject, componentId)
     }
 
     fun discardAll() {

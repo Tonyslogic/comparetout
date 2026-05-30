@@ -379,9 +379,9 @@ public class ComparisonFragment extends Fragment {
     private void updateView() {
         mTableLayout.removeAllViews();
 
-        if (!(null == mCostings)  && (mCostings.size() > 0)
-                && !(null == mPricePlans) && (mPricePlans.size() > 0)
-                && !(null == mScenarios) && mScenarios.size() > 0) {
+        if (!(null == mCostings)  && (!mCostings.isEmpty())
+                && !(null == mPricePlans) && (!mPricePlans.isEmpty())
+                && !(null == mScenarios) && !mScenarios.isEmpty()) {
             mTableLayout.setShrinkAllColumns(false);
             mTableLayout.setStretchAllColumns(true);
             mTableLayout.setColumnShrinkable(1, true);

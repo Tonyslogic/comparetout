@@ -60,7 +60,7 @@ public class GenerationWorker extends AbstractGenerationWorker {
         List<AlphaESSTransformedData> expandedRows = new ArrayList<>();
         for (AlphaESSTransformedData dbRow : dbRows) {
             LocalDateTime date = LocalDateTime.parse(dbRow.getDate() + "," + dbRow.getMinute(), DB_FORMAT).minusHours(1);
-            for (int i = 0; i < 60; i = i + 5) {
+            for (int i = 0; i < 60; i += 5) {
                 AlphaESSTransformedData expandedRow = new AlphaESSTransformedData();
                 expandedRow.setSysSn(dbRow.getSysSn());
                 expandedRow.setDate(date.format(DATE_FORMAT));

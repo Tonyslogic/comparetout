@@ -588,7 +588,7 @@ public class SimulationWorker extends Worker {
                         if (maxEVDivert > 0) {
                             divertedToEV = min (feed, maxEVDivert);
                             firstInputData.mEVDivertDailyTotals.put(inputRow.do2001, totalEVDivertedThisDay + divertedToEV);
-                            feed = feed - divertedToEV;
+                            feed -= divertedToEV;
                         }
                     }
                     // else we can ignore this and let the later water divert take it
@@ -596,14 +596,14 @@ public class SimulationWorker extends Worker {
                 else { // Water diversion must happen to reduce the feed
                     if ((!immersionIsOn) && hwDiversionIsOn) {
                         HWSystem.Heat heat = hwSystem.heatWater(inputRow.mod, previousWaterTemp, feed);
-                        feed = feed - heat.kWhUsed;
+                        feed -= heat.kWhUsed;
                         nowWaterTemp = heat.temperature;
                         divertedToWater = heat.kWhUsed;
                         if (feed > evDivert.getMinimum()/12d) { // there may be some feed left fo the EV
                             if (maxEVDivert > 0) {
                                 divertedToEV = min (feed, maxEVDivert);
                                 firstInputData.mEVDivertDailyTotals.put(inputRow.do2001, totalEVDivertedThisDay + divertedToEV);
-                                feed = feed - divertedToEV;
+                                feed -= divertedToEV;
                             }
                         }
                     }
@@ -613,7 +613,7 @@ public class SimulationWorker extends Worker {
         // WATER
         if ((!immersionIsOn) && hwDiversionIsOn) {
             HWSystem.Heat heat = hwSystem.heatWater(inputRow.mod, previousWaterTemp, feed);
-            feed = feed - heat.kWhUsed;
+            feed -= heat.kWhUsed;
             nowWaterTemp = heat.temperature;
             divertedToWater = heat.kWhUsed;
         }
@@ -649,7 +649,7 @@ public class SimulationWorker extends Worker {
                     b2g += discharge;
                     availableExport -= discharge;
                     availableExport = Math.max(0d, availableExport);
-                    feed = feed + b2g;
+                    feed += b2g;
                 }
             }
         }

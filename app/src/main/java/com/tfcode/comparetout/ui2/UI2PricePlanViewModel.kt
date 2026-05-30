@@ -271,7 +271,7 @@ class UI2PricePlanViewModel @Inject constructor(
         // Expand the day-rates accordion so the user immediately sees what
         // was loaded; default-collapse it otherwise feels like the import
         // silently did nothing.
-        _expandedSections.value = _expandedSections.value + "rates"
+        _expandedSections.value += "rates"
         _expandedDayRates.value =
             setOfNotNull(_builder.value.dayRates.firstOrNull()?.id)
     }

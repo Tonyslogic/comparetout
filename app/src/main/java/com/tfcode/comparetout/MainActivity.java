@@ -238,17 +238,25 @@ public class MainActivity extends InsetRespectingActivity {
      */
     private void showDisclaimers(TOUTCApplication application) {
         new MaterialAlertDialogBuilder(this)
-                .setMessage("Solar data is variable. This app uses historical solar data in estimations.\n\n" +
-                        "Solar panels may be shaded. This app makes no attempt to consider shading.\n\n" +
-                        "Price plan accuracy determines calculation accuracy. Check price plan details.\n\n" +
-                        "Price plans do not include Public Services Obligations. Estimates will not include this.\n\n" +
-                        "Price plans do not include rate usage limitations or complex contracts. Estimates will be " +
-                        "wrong where limitations are exceeded or conditions triggered.\n\n" +
-                        "All estimates are based on user input. If the input is bad, the output will be too.\n\n" +
-                        "This app provides the ability to explore possibilities, estimations are not advice (financial or otherwise). " +
-                        "The app is provided as-is, no representation or warranty of any kind, express or implied, regarding " +
-                        "the accuracy, adequacy, validity, reliability, availability, or completeness of any information is made.\n\n" +
-                        "Enjoy!" )
+                .setMessage("""
+                        Solar data is variable. This app uses historical solar data in estimations.
+                        
+                        Solar panels may be shaded. This app makes no attempt to consider shading.
+                        
+                        Price plan accuracy determines calculation accuracy. Check price plan details.
+                        
+                        Price plans do not include Public Services Obligations. Estimates will not include this.
+                        
+                        Price plans do not include rate usage limitations or complex contracts. Estimates will be \
+                        wrong where limitations are exceeded or conditions triggered.
+                        
+                        All estimates are based on user input. If the input is bad, the output will be too.
+                        
+                        This app provides the ability to explore possibilities, estimations are not advice (financial or otherwise). \
+                        The app is provided as-is, no representation or warranty of any kind, express or implied, regarding \
+                        the accuracy, adequacy, validity, reliability, availability, or completeness of any information is made.
+                        
+                        Enjoy!""")
                 .setPositiveButton("Ok", (dialog, which) -> {
                         boolean x = application.putStringValueIntoDataStore(FIRST_USE, "False");
                         boolean y = application.putStringValueIntoDataStore("Test", "True");

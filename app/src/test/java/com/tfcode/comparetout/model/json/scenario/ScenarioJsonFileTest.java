@@ -94,13 +94,14 @@ public class ScenarioJsonFileTest {
         return new String(encoded, StandardCharsets.UTF_8);
     }
 
-    final String minimalScenario = "[{\"Name\": \"Empty\",\"Inverters\": [{\n" +
-            "\t\t\t\"Name\": \"AlphaESS\",\n" +
-            "\t\t\t\"MinExcess\": 0.008,\n" +
-            "\t\t\t\"MaxInverterLoad\": 5.0,\n" +
-            "\t\t\t\"MPPTCount\": 2,\n" +
-            "\t\t\t\"AC2DCLoss\": 5,\n" +
-            "\t\t\t\"DC2ACLoss\": 5,\n" +
-            "\t\t\t\"DC2DCLoss\": 0\n" +
-            "\t\t}]}]";
+    final String minimalScenario = """
+            [{"Name": "Empty","Inverters": [{
+            \t\t\t"Name": "AlphaESS",
+            \t\t\t"MinExcess": 0.008,
+            \t\t\t"MaxInverterLoad": 5.0,
+            \t\t\t"MPPTCount": 2,
+            \t\t\t"AC2DCLoss": 5,
+            \t\t\t"DC2ACLoss": 5,
+            \t\t\t"DC2DCLoss": 0
+            \t\t}]}]""";
 }
