@@ -16,6 +16,8 @@
 
 package com.tfcode.comparetout;
 
+import static org.junit.Assert.assertNotNull;
+
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -56,6 +58,7 @@ public class SmokeActivityCoverageTest {
     @Rule
     public final ErrorCollector errors = new ErrorCollector();
 
+    @SuppressWarnings("unchecked")
     private static final Class<? extends Activity>[] ACTIVITIES = new Class[] {
             // Legacy launcher
             MainActivity.class,
@@ -78,10 +81,11 @@ public class SmokeActivityCoverageTest {
             errors.checkSucceeds(() -> {
                 Intent intent = new Intent(ctx, activityClass);
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                try (ActivityScenario<? extends Activity> ignored =
+                try (ActivityScenario<? extends Activity> scenario =
                              ActivityScenario.launch(intent)) {
-                    // The implicit assertion is "no uncaught exception during onCreate".
+                    // Surviving launch + non-null scenario is the assertion;
                     // try-with-resources tears the activity down cleanly.
+                    assertNotNull("ActivityScenario.launch returned null", scenario);
                 }
                 return null;
             });

@@ -16,6 +16,8 @@
 
 package com.tfcode.comparetout;
 
+import static org.junit.Assert.assertNotNull;
+
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -45,8 +47,10 @@ public class SmokeLaunchTest {
             throw new IllegalStateException(
                     "No launcher activity declared for " + context.getPackageName());
         }
-        try (ActivityScenario<Activity> ignored = ActivityScenario.launch(launchIntent)) {
-            // Closing via try-with-resources tears the activity down cleanly.
+        try (ActivityScenario<Activity> scenario = ActivityScenario.launch(launchIntent)) {
+            // Non-null + no exception during onCreate is the assertion;
+            // try-with-resources tears the activity down cleanly.
+            assertNotNull("ActivityScenario.launch returned null", scenario);
         }
     }
 }

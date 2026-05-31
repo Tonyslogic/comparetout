@@ -16,6 +16,7 @@
 
 package com.tfcode.comparetout;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -91,7 +92,7 @@ public class SmokePVGISTest {
         conn.setReadTimeout(60_000);  // PVGIS can be slow on first hit
         try {
             int code = conn.getResponseCode();
-            assertTrue("expected HTTP 200 from PVGIS, got " + code, code == 200);
+            assertEquals("expected HTTP 200 from PVGIS, got " + code, 200, code);
             try (InputStream in = conn.getInputStream();
                  InputStreamReader r = new InputStreamReader(in, StandardCharsets.UTF_8);
                  BufferedReader br = new BufferedReader(r)) {

@@ -46,6 +46,7 @@ public class SmokeRotationTest {
     @Rule
     public final ErrorCollector errors = new ErrorCollector();
 
+    @SuppressWarnings("unchecked")
     private static final Class<? extends Activity>[] ROTATABLE_ACTIVITIES = new Class[] {
             UI2MainActivity.class,
             UI2PricePlanListActivity.class,
