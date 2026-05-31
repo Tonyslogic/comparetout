@@ -53,11 +53,6 @@ class UI2SharedViewModel @Inject constructor(
     // below from racing in and overwriting it with the last-persisted value.
     @Volatile private var explicitSelectionRequested = false
 
-    // Convenience for code that only cares about simulation ID
-    val activeSimulationId = _activeSelection
-        .map { (it as? ActiveSelection.Simulation)?.id }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
-
     init {
         viewModelScope.launch(Dispatchers.IO) {
             val app = context.applicationContext as TOUTCApplication

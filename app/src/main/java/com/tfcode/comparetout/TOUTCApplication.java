@@ -109,21 +109,6 @@ public class TOUTCApplication extends Application {
     }
 
     /**
-     * Delete the encryption key from the Android Keystore.
-     * <p>
-     * Permanently removes the application's encryption key, effectively
-     * making any previously encrypted data unrecoverable. This is typically
-     * used during application reset or when changing security contexts.
-     * 
-     * @throws Exception if key deletion fails or keystore is inaccessible
-     */
-    public static void deleteKey() throws Exception {
-        KeyStore keyStore = KeyStore.getInstance(ANDROID_KEYSTORE);
-        keyStore.load(null);
-        keyStore.deleteEntry(KEY_ALIAS);
-    }
-
-    /**
      * Encrypt a plaintext string using the application's keystore-backed key.
      * <p>
      * Uses AES encryption in CBC mode with PKCS7 padding to encrypt sensitive

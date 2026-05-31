@@ -366,10 +366,6 @@ public class LoadProfileActivity extends InsetRespectingActivity {
         return mEdit;
     }
 
-    public void setEdit() {
-        mEdit = true;
-    }
-
     public void setSaveNeeded(boolean saveNeeded){
         mUnsavedChanges = saveNeeded;
         if (!mUnsavedChanges) {

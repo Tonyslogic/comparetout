@@ -33,15 +33,7 @@ public class StatsForPeriodResult extends HAMessageWithID {
         return success;
     }
 
-    public void setSuccess(boolean success) {
-        this.success = success;
-    }
-
     public Map<String, List<SensorData>> getResult() {
         return result;
-    }
-
-    public void setResult(Map<String, List<SensorData>> result) {
-        this.result = result;
     }
 }

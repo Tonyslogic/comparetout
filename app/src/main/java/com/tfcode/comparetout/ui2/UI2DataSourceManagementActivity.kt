@@ -228,7 +228,6 @@ private fun DataSourceManagementScreen(
                                 state = ha,
                                 sensors = haSensors,
                                 showHints = showHints,
-                                onSetCredentials = viewModel::discoverHA,
                                 onRediscover = viewModel::discoverHA,
                                 onFetch = viewModel::fetchHA,
                                 onCancel = viewModel::cancelFetch,
@@ -470,7 +469,6 @@ private fun HASection(
     state: SourceState?,
     sensors: HASensorSnapshot?,
     showHints: Boolean,
-    onSetCredentials: (String, String) -> Unit,
     onRediscover: (String, String) -> Unit,
     onFetch: (LocalDateTime) -> Unit,
     onCancel: (String) -> Unit,
@@ -520,7 +518,7 @@ private fun HASection(
         }
     )
 
-    PushToHaToggle(showHints = showHints)
+    PushToHaToggle()
 
     if (showCreds) {
         CredentialDialog(
@@ -665,7 +663,7 @@ private fun SensorList(label: String, sensors: List<String>) {
 }
 
 @Composable
-private fun PushToHaToggle(showHints: Boolean) {
+private fun PushToHaToggle() {
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
         shape = RoundedCornerShape(10.dp),

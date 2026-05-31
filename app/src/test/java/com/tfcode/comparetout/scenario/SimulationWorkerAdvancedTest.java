@@ -85,7 +85,6 @@ public class SimulationWorkerAdvancedTest {
         
         // Create a mock HWSchedule (this might not work without proper setup, but tests the logic)
         List<HWSchedule> schedules = new ArrayList<>();
-        HWSchedule schedule = new HWSchedule();
         // Note: We can't fully test this without setting up the complete HWSchedule object
         // But we can test the dayOfWeek conversion logic
         

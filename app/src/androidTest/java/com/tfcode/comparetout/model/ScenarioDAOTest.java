@@ -106,7 +106,6 @@ public class ScenarioDAOTest {
         assertTrue(scenario1o.isHasLoadProfiles());
 
         LoadProfile loadProfile1o = LiveDataTestUtil.getValue(scenarioDAO.getLoadProfile(scenario1ID));
-        long loadProfile1ID = loadProfile1o.getLoadProfileIndex();
         assertEquals(100.00, loadProfile1o.getAnnualUsage(), 0);
 
         Scenario scenario2 = new Scenario();

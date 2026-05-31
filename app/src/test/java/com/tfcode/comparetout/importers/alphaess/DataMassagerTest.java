@@ -45,18 +45,14 @@ public class DataMassagerTest {
     GetOneDayPowerResponse powerResponseDuplicate = null;
     GetOneDayPowerResponse powerResponseMarDST = null;
     GetOneDayPowerResponse powerResponseOctDST = null;
-    GetOneDayPowerResponse powerResponse220911 = null;
 
     GetOneDayEnergyResponse energyResponse = null;
-    GetOneDayEnergyResponse energyResponse220911 = null;
-    private static final String FILENAME_ODPR_220911 = ".\\src\\test\\java\\com\\tfcode\\comparetout\\importers\\alphaess\\OneDayPowerResponse.220911.json";
     private static final String FILENAME_ODPR_DST_MAR = ".\\src\\test\\java\\com\\tfcode\\comparetout\\importers\\alphaess\\OneDayPowerResponseMarDST.json";
     private static final String FILENAME_ODPR_DST_OCT = ".\\src\\test\\java\\com\\tfcode\\comparetout\\importers\\alphaess\\OneDayPowerResponseOctDST.json";
     private static final String FILENAME_ODPR_DUPL = ".\\src\\test\\java\\com\\tfcode\\comparetout\\importers\\alphaess\\OneDayPowerResponseJan5.json";
     private static final String FILENAME_ODPR_MISSING = ".\\src\\test\\java\\com\\tfcode\\comparetout\\importers\\alphaess\\OneDayPowerResponse.json";
 
     private static final String FILENAME_ODER = ".\\src\\test\\java\\com\\tfcode\\comparetout\\importers\\alphaess\\OneDayEnergyResponse.json";
-    private static final String FILENAME_ODER_290911 = ".\\src\\test\\java\\com\\tfcode\\comparetout\\importers\\alphaess\\OneDayEnergyResponse.220911.json";
 
     @Before
     public void setup() throws FileNotFoundException {
@@ -73,15 +69,9 @@ public class DataMassagerTest {
         br =  new BufferedReader(new FileReader(FILENAME_ODPR_DST_OCT));
         powerResponseOctDST = new Gson().fromJson(br, type);
 
-        br =  new BufferedReader(new FileReader(FILENAME_ODPR_220911));
-        powerResponse220911 = new Gson().fromJson(br, type);
-
-
         BufferedReader br2 = new BufferedReader(new FileReader(FILENAME_ODER));
         Type type2 = new TypeToken<GetOneDayEnergyResponse>() {}.getType();
         energyResponse = new Gson().fromJson(br2, type2);
-        br2 = new BufferedReader(new FileReader(FILENAME_ODER_290911));
-        energyResponse220911 = new Gson().fromJson(br2, type2);
     }
 
     @Test

@@ -39,7 +39,6 @@ import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.TOUTCApplication;
 import com.tfcode.comparetout.importers.CredentialDialog;
-import com.tfcode.comparetout.importers.ImportException;
 import com.tfcode.comparetout.importers.ImportOverviewFragment;
 import com.tfcode.comparetout.util.SettingsViewModel;
 

@@ -65,7 +65,7 @@ public class OpenAlphaESSClientTest {
         String queryDate = "2023-08-24";
         mClient.setSerial("AL2342125067171");
         try {
-            GetOneDayEnergyResponse energy = mClient.getOneDayEnergyBySn(queryDate);
+            mClient.getOneDayEnergyBySn(queryDate);
         } catch (AlphaESSException ae) {
             assertEquals("err.code=6005 err.msg=This appId is not bound to the SN Serial: AL2342125067171" , ae.getMessage());
         }

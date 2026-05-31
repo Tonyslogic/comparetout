@@ -18,6 +18,7 @@ package com.tfcode.comparetout.importers.homeassistant.messages.energyPrefsResul
 
 import com.google.gson.annotations.SerializedName;
 
+@SuppressWarnings("unused")
 public class Flow {
     @SerializedName("stat_energy_from")
     private String statEnergyFrom;

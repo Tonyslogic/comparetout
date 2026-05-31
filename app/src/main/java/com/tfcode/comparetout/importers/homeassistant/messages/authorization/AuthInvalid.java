@@ -19,6 +19,7 @@ package com.tfcode.comparetout.importers.homeassistant.messages.authorization;
 import com.google.gson.annotations.SerializedName;
 import com.tfcode.comparetout.importers.homeassistant.messages.HAMessage;
 
+@SuppressWarnings("unused")
 public class AuthInvalid extends HAMessage {
 
     public AuthInvalid(String message) {

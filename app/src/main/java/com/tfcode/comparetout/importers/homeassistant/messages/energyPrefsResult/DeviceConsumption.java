@@ -18,6 +18,7 @@ package com.tfcode.comparetout.importers.homeassistant.messages.energyPrefsResul
 
 import com.google.gson.annotations.SerializedName;
 
+@SuppressWarnings("unused")
 public class DeviceConsumption {
     @SerializedName("stat_consumption")
     private String statConsumption;

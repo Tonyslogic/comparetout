@@ -139,7 +139,6 @@ public class MainActivity extends InsetRespectingActivity {
 
     private boolean mFirstLaunch = true;
     private boolean mFirstLaunchDialogRendered = false;
-    private boolean mUseUI2 = false;
     // Captured by loadSettingsFromDataStore; consumed by maybeStartUi2 after the
     // disclaimer flow (if any) has completed. Possible values: "true" / "false" /
     // "" (never set — first launch / older version pre-UI2) / "error".
@@ -202,7 +201,6 @@ public class MainActivity extends InsetRespectingActivity {
     }
 
     private void switchToUI2() {
-        mUseUI2 = true;
         Intent intent = new Intent(MainActivity.this, com.tfcode.comparetout.ui2.UI2MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);

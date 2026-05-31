@@ -18,6 +18,7 @@ package com.tfcode.comparetout.importers.esbn.responses;
 
 import com.google.gson.annotations.SerializedName;
 
+@SuppressWarnings("unused")
 public class LoginResponse {
     @SerializedName("status")
     public String status;

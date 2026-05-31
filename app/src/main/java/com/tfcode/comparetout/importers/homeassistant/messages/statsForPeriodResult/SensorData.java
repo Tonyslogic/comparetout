@@ -16,6 +16,7 @@
 
 package com.tfcode.comparetout.importers.homeassistant.messages.statsForPeriodResult;
 
+@SuppressWarnings("unused")
 public class SensorData {
     private long start;
     private long end;

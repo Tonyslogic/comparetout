@@ -45,9 +45,4 @@ public class ScenarioViewPageAdapter extends FragmentStateAdapter {
     public int getItemCount() {
         return 5;
     }
-
-
-    public void setEdit(boolean ed) {
-        mScenarioOverview.setEditMode(ed);
-    }
 }

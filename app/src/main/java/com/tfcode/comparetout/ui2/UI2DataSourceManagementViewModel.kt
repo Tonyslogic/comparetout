@@ -85,9 +85,7 @@ data class FetchStatus(
     val running: Boolean,
     val scheduled: Boolean,
     val progress: String?
-) {
-    companion object { val Idle = FetchStatus(running = false, scheduled = false, progress = null) }
-}
+)
 
 /** Top-level state for one of the three accordions. */
 data class SourceState(

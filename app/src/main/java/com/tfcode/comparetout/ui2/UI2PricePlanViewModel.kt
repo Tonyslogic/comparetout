@@ -99,10 +99,7 @@ data class PricePlanBuilder(
     // Restrictions are not yet editable in UI2 — round-trip the legacy blob so
     // plans created in the legacy editor preserve their tiered-usage caps.
     val restrictions: Restrictions? = null
-) {
-    val isComplete: Boolean
-        get() = supplier.isNotBlank() && planName.isNotBlank() && dayRates.isNotEmpty()
-}
+)
 
 enum class PricePlanSaveResult { Idle, Saving, Saved, Failed }
 
@@ -207,10 +204,6 @@ class UI2PricePlanViewModel @Inject constructor(
                 _saveResult.value = PricePlanSaveResult.Failed
             }
         }
-    }
-
-    fun acknowledgeSaveResult() {
-        _saveResult.value = PricePlanSaveResult.Idle
     }
 
     /**

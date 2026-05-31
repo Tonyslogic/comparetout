@@ -16,17 +16,9 @@
 
 package com.tfcode.comparetout.model.priceplan;
 
-import org.junit.Before;
 import org.junit.Test;
 
 public class PricePlanTest {
-
-    PricePlan testObject;
-
-    @Before
-    public void setUp() {
-        testObject = new PricePlan();
-    }
 
     @Test
     public void testEquals() {

@@ -22,6 +22,7 @@ import com.tfcode.comparetout.importers.homeassistant.messages.HAMessage;
 
 import java.util.logging.Logger;
 
+@SuppressWarnings("unused")
 public class AuthRequiredHandler implements MessageHandler<AuthRequired> {
 
     private final HADispatcher dispatcher;

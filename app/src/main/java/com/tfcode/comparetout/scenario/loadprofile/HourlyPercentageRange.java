@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.NavigableMap;
 import java.util.TreeMap;
 
+@SuppressWarnings("unused")
 public class HourlyPercentageRange {
     private final ArrayList<HourlyPercentage> mRates = new ArrayList<>();
     private final NavigableMap<Integer, Double> mLookup = new TreeMap<>();
