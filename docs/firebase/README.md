@@ -240,6 +240,14 @@ gcloud storage cp -r gs://comparetout-ftl-results/<run-id>/ ./local-artifacts/
 
 ---
 
+## Robo walkthrough — parallel job
+
+The workflow also runs a second job, `robo`, in parallel with the instrumentation `ftl` job. It drives a hand-written Robo script through the app's happy-path: empty-state "Try with sample data" → wait for PVGIS+sim chain → tour the bottom-nav tabs → walk each wizard accordion section. Single-device portrait matrix (the script's purpose is the screenshot path, not cross-device validation — the 4-device instrumentation matrix continues to provide that).
+
+The same `walkthrough.json` is uploaded to Play Console once, after which every internal-testing release runs it as part of its automatic pre-launch report. See [`docs/playstore/robo-scripts.md`](../playstore/robo-scripts.md) for the script's narrative, Play Console upload procedure, and selector-maintenance guide.
+
+---
+
 ## Test coverage
 
 Five smoke-test classes run as a single FTL matrix. Each catches a different class of regression. All live under `app/src/androidTest/java/com/tfcode/comparetout/`.
