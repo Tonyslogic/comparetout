@@ -16,8 +16,15 @@
   ~    limitations under the License.
   -->
 
-<network-security-config>
-    <!-- We need to allow clear traffic for those who don't have SSL setup. -->
+<network-security-config xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="AcceptsUserCertificates,InsecureBaseConfiguration">
+    <!--
+      Cleartext + user-CA trust are required so the importer can reach
+      a self-hosted Home Assistant on the local LAN, which typically
+      uses plain HTTP and/or a user-installed CA. The narrower
+      domain-config approach would require knowing each user's HA hostname
+      in advance, which we don't.
+    -->
     <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <!-- Trust preinstalled CAs -->

@@ -694,7 +694,7 @@ private fun RangePicker(
 ) {
     SmallCaps(label)
     Row(verticalAlignment = Alignment.CenterVertically) {
-        DataSourcePeriod.values().forEach { p ->
+        DataSourcePeriod.entries.forEach { p ->
             FilterChip(
                 selected = gran == p,
                 onClick = { onGran(if (gran == p) null else p) },
@@ -776,7 +776,7 @@ private fun DisplaySection(state: CompareState, vm: UI2CompareViewModel, novice:
     SmallCaps("Chart style")
     if (novice) {
         // Novice: icons + text, 3 per row so labels stay readable.
-        CompareMode.values().toList().chunked(3).forEach { row ->
+        CompareMode.entries.chunked(3).forEach { row ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 row.forEach { mode ->
                     val active = state.mode == mode
@@ -811,7 +811,7 @@ private fun DisplaySection(state: CompareState, vm: UI2CompareViewModel, novice:
     } else {
         // Compact: one row of icon-only chips so the picker doesn't dominate.
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            CompareMode.values().forEach { mode ->
+            CompareMode.entries.forEach { mode ->
                 val active = state.mode == mode
                 Surface(
                     color = if (active) MaterialTheme.colorScheme.primaryContainer

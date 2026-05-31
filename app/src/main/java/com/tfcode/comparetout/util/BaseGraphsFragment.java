@@ -387,28 +387,22 @@ public abstract class BaseGraphsFragment extends Fragment {
     }
 
     private List<IntervalRow> getGraphData(String sysSN, ComparisonUIViewModel.Importer type, String lFrom, String lTo) {
-        List<IntervalRow> graphData = new ArrayList<>();
-        switch (mCalculation) {
-            case SUM:
-                graphData = switch (mDisplayInterval) {
-                    case HOUR -> mViewModel.getSumHour(type, sysSN, lFrom, lTo);
-                    case DOY -> mViewModel.getSumDOY(type, sysSN, lFrom, lTo);
-                    case WEEK -> mViewModel.getSumDOW(type, sysSN, lFrom, lTo);
-                    case MNTH -> mViewModel.getSumMonth(type, sysSN, lFrom, lTo);
-                    case YEAR -> mViewModel.getSumYear(type, sysSN, lFrom, lTo);
-                };
-                break;
-            case AVG:
-                graphData = switch (mDisplayInterval) {
-                    case HOUR -> mViewModel.getAvgHour(type, sysSN, lFrom, lTo);
-                    case DOY -> mViewModel.getAvgDOY(type, sysSN, lFrom, lTo);
-                    case WEEK -> mViewModel.getAvgDOW(type, sysSN, lFrom, lTo);
-                    case MNTH -> mViewModel.getAvgMonth(type, sysSN, lFrom, lTo);
-                    case YEAR -> mViewModel.getAvgYear(type, sysSN, lFrom, lTo);
-                };
-                break;
-        }
-        return graphData;
+        return switch (mCalculation) {
+            case SUM -> switch (mDisplayInterval) {
+                case HOUR -> mViewModel.getSumHour(type, sysSN, lFrom, lTo);
+                case DOY -> mViewModel.getSumDOY(type, sysSN, lFrom, lTo);
+                case WEEK -> mViewModel.getSumDOW(type, sysSN, lFrom, lTo);
+                case MNTH -> mViewModel.getSumMonth(type, sysSN, lFrom, lTo);
+                case YEAR -> mViewModel.getSumYear(type, sysSN, lFrom, lTo);
+            };
+            case AVG -> switch (mDisplayInterval) {
+                case HOUR -> mViewModel.getAvgHour(type, sysSN, lFrom, lTo);
+                case DOY -> mViewModel.getAvgDOY(type, sysSN, lFrom, lTo);
+                case WEEK -> mViewModel.getAvgDOW(type, sysSN, lFrom, lTo);
+                case MNTH -> mViewModel.getAvgMonth(type, sysSN, lFrom, lTo);
+                case YEAR -> mViewModel.getAvgYear(type, sysSN, lFrom, lTo);
+            };
+        };
     }
 
     @Override
@@ -1251,25 +1245,24 @@ public abstract class BaseGraphsFragment extends Fragment {
                 };
                 break;
             case MNTH:
-                switch (mCalculation) {
-                    case SUM: value = interval; break;
-                    case AVG:
-                        value = switch (interval) {
-                            case "01" -> getString(R.string.Jan);
-                            case "02" -> getString(R.string.Feb);
-                            case "03" -> getString(R.string.Mar);
-                            case "04" -> getString(R.string.Apr);
-                            case "05" -> getString(R.string.May);
-                            case "06" -> getString(R.string.Jun);
-                            case "07" -> getString(R.string.Jul);
-                            case "08" -> getString(R.string.Aug);
-                            case "09" -> getString(R.string.Sep);
-                            case "10" -> getString(R.string.Oct);
-                            case "11" -> getString(R.string.Nov);
-                            case "12" -> getString(R.string.Dec);
-                            default -> value;
-                        };
-                }
+                value = switch (mCalculation) {
+                    case SUM -> interval;
+                    case AVG -> switch (interval) {
+                        case "01" -> getString(R.string.Jan);
+                        case "02" -> getString(R.string.Feb);
+                        case "03" -> getString(R.string.Mar);
+                        case "04" -> getString(R.string.Apr);
+                        case "05" -> getString(R.string.May);
+                        case "06" -> getString(R.string.Jun);
+                        case "07" -> getString(R.string.Jul);
+                        case "08" -> getString(R.string.Aug);
+                        case "09" -> getString(R.string.Sep);
+                        case "10" -> getString(R.string.Oct);
+                        case "11" -> getString(R.string.Nov);
+                        case "12" -> getString(R.string.Dec);
+                        default -> value;
+                    };
+                };
                 break;
             case YEAR:
                 value = switch (mCalculation) {

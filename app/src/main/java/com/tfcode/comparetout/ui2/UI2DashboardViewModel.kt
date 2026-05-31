@@ -386,7 +386,7 @@ class UI2DashboardViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) { _pvChartData.value = fetchPvChartData(period, anchor, advanced, item) }
     }
 
-    private suspend fun fetchPvChartData(
+    private fun fetchPvChartData(
         period: DataSourcePeriod,
         anchor: LocalDate,
         advanced: Boolean,
@@ -443,7 +443,7 @@ class UI2DashboardViewModel @Inject constructor(
         )
     }
 
-    private suspend fun fetchTotals(
+    private fun fetchTotals(
         period: DataSourcePeriod,
         anchor: LocalDate,
         advanced: Boolean,
@@ -461,7 +461,7 @@ class UI2DashboardViewModel @Inject constructor(
         )
     }
 
-    private suspend fun fetchCostings(
+    private fun fetchCostings(
         period: DataSourcePeriod,
         anchor: LocalDate,
         advanced: Boolean,
@@ -472,7 +472,7 @@ class UI2DashboardViewModel @Inject constructor(
         return computeDataSourceCostings(item.sysSn, from, to, days)
     }
 
-    private suspend fun fetchDistribution(
+    private fun fetchDistribution(
         period: DataSourcePeriod,
         anchor: LocalDate,
         advanced: Boolean,

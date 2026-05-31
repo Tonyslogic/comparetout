@@ -77,7 +77,7 @@ enum class DirectorSubject(
 
     companion object {
         fun subjectsFor(g: DirectorGroup): List<DirectorSubject> =
-            values().filter { it.group == g }
+            entries.filter { it.group == g }
     }
 }
 

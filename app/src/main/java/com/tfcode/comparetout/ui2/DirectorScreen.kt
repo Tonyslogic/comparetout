@@ -190,7 +190,7 @@ fun DirectorScreen(
                                 )
                             }
                         }
-                        DirectorGroup.values().forEach { group ->
+                        DirectorGroup.entries.forEach { group ->
                     item(key = "group-$group") {
                         GroupAccordion(
                             group = group,
