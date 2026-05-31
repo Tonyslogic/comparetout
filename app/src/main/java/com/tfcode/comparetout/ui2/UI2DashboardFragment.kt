@@ -6,6 +6,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -42,6 +43,7 @@ import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -56,12 +58,14 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -92,6 +96,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
 import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.BarData
@@ -109,6 +115,7 @@ import com.tfcode.comparetout.model.scenario.PanelPVSummary
 import com.tfcode.comparetout.model.scenario.ScenarioComponents
 import com.tfcode.comparetout.model.scenario.SimKPIs
 import dagger.hilt.android.AndroidEntryPoint
+import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -321,6 +328,25 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
     val scenarioTariffCostings by viewModel.scenarioTariffCostings.observeAsState(null)
     val dataBounds             by viewModel.dataBounds.observeAsState(null)
     val favouritePlanId        by viewModel.favouritePlanId.observeAsState(null)
+    // initial=true to avoid the empty-state card flashing on screens that already
+    // have scenarios — once the LiveData emits the real value, this drops to its
+    // proper state. Only matters for ≤1 recompose, but the flash is visible.
+    val hasScenarios           by viewModel.hasScenarios.observeAsState(initial = true)
+    // Re-pull DB-backed dashboard surfaces when the Simulation/Cost work chain
+    // (PVGIS → GenerateLoad → Simulate → Cost, kicked off by the wizard or by
+    // SampleDataLoader) reaches a successful terminal state. Without this the
+    // dashboard would sit on its pre-simulation snapshot — missing panel data,
+    // missing costings — until the user explicitly re-selected the scenario.
+    val context = LocalContext.current
+    val simulationWorkInfos by remember(context) {
+        WorkManager.getInstance(context).getWorkInfosForUniqueWorkLiveData("Simulation")
+    }.observeAsState(emptyList())
+    val simChainFinished = simulationWorkInfos.isNotEmpty() &&
+        simulationWorkInfos.all { it.state.isFinished } &&
+        simulationWorkInfos.any { it.state == WorkInfo.State.SUCCEEDED }
+    LaunchedEffect(simChainFinished, simulationWorkInfos.size) {
+        if (simChainFinished) viewModel.refresh()
+    }
     var showDrawer by remember { mutableStateOf(false) }
     val (showHints, toggleShowHints) = rememberShowHints()
     val df = remember { DecimalFormat("#,##0.00") }
@@ -361,6 +387,20 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
             val pvPeriod    by viewModel.pvPeriod.observeAsState(DataSourcePeriod.ALL)
     val pvAnchor    by viewModel.pvAnchor.observeAsState(LocalDate.now())
     val pvChartData by viewModel.pvChartData.observeAsState(null)
+
+            // First-run / data-deleted empty state. We check `dataSourceInfo`
+            // rather than `dashboardData == null` because after the user
+            // deletes their scenarios, DataStore still points at the now-gone
+            // scenarioId — the Simulation branch of dashboardData's flow still
+            // emits a non-null wrapper with null sub-fields. `dataSourceInfo`
+            // is only set when an actual data source is selected, so this
+            // condition correctly fires for both fresh installs and
+            // post-deletion states. The rest of this Column renders nothing in
+            // both cases (scenarioComponents/dataSourceInfo both null), so
+            // this card sits alone.
+            if (dashboardData?.dataSourceInfo == null && !hasScenarios) {
+                EmptyDashboardSampleCard()
+            }
 
             val dsInfo = dashboardData?.dataSourceInfo
             if (dsInfo != null) {
@@ -2318,6 +2358,58 @@ private fun KpiMonthsTable(rows: List<KpiMonthRow>, df: DecimalFormat) {
                 Text(row.best,    style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1.4f))
                 Text(row.worst,   style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1.4f))
                 Text(df.format(row.average), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+/**
+ * First-run onboarding card shown on the Dashboard when there are no scenarios
+ * and no data source is selected. The button text "Try with sample data" is
+ * the canonical Robo selector — see plans/roboscript/robo-plan.md Phase 4B/4C.
+ */
+@Composable
+private fun EmptyDashboardSampleCard() {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                "Welcome to Eco Power Optimiser",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                "Get started with a sample scenario and two demo tariffs " +
+                    "(24-hour flat + a cheap 02–05 night window). Solar yield " +
+                    "is fetched from PVGIS and the simulation runs in the background.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            Button(onClick = {
+                val loader = EntryPointAccessors
+                    .fromApplication(context.applicationContext, SampleDataLoaderEntryPoint::class.java)
+                    .sampleDataLoader()
+                coroutineScope.launch {
+                    val msg = when (val result = loader.load()) {
+                        is SampleDataLoader.Result.AlreadyLoaded ->
+                            "Sample data already loaded"
+                        is SampleDataLoader.Result.Loaded ->
+                            "Sample loaded · simulation running in background"
+                        is SampleDataLoader.Result.Failed ->
+                            "Couldn't load sample data: ${result.error.message ?: "unknown error"}"
+                    }
+                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                }
+            }) {
+                Text("Try with sample data")
             }
         }
     }

@@ -600,6 +600,10 @@ public abstract class ScenarioDAO {
 
         // Clean up dependent data
         deleteOrphanLoadProfileData();
+        // Prune paneldata rows whose panel was just orphaned above. Without
+        // this, fetched PVGIS rows accumulate in the DB after every scenario
+        // delete. Matches the per-panel deletePanelFromScenario flow.
+        deleteOrphanPanelData();
         deleteSimulationDataForScenarioID(id);
         deleteCostingDataForScenarioID(id);
     }

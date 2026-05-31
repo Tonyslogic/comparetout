@@ -1,0 +1,54 @@
+[
+	{
+		"Supplier": "Sample",
+		"Plan": "Sample · 24-hour flat",
+		"Feed": 13.5,
+		"Standing charges": 75.0,
+		"Bonus cash": 0.0,
+		"Active": true,
+		"DeemedExport": false,
+		"LastUpdate": "2026-05-31",
+		"Reference": "https://github.com/Tonyslogic/comparetout-doc",
+		"Restrictions": {
+			"active": false,
+			"restrictionEntries": []
+		},
+		"Rates": [
+			{
+				"Days": [0, 1, 2, 3, 4, 5, 6],
+				"startDate": "01/01",
+				"endDate": "12/31",
+				"MinuteRange": [
+					{ "startMinute": 0, "endMinute": 1440, "cost": 30.0 }
+				]
+			}
+		]
+	},
+	{
+		"Supplier": "Sample",
+		"Plan": "Sample · Night-Boost 02-05",
+		"Feed": 13.5,
+		"Standing charges": 75.0,
+		"Bonus cash": 0.0,
+		"Active": true,
+		"DeemedExport": false,
+		"LastUpdate": "2026-05-31",
+		"Reference": "https://github.com/Tonyslogic/comparetout-doc",
+		"Restrictions": {
+			"active": false,
+			"restrictionEntries": []
+		},
+		"Rates": [
+			{
+				"Days": [0, 1, 2, 3, 4, 5, 6],
+				"startDate": "01/01",
+				"endDate": "12/31",
+				"MinuteRange": [
+					{ "startMinute": 0,    "endMinute": 120,  "cost": 30.0 },
+					{ "startMinute": 120,  "endMinute": 300,  "cost": 10.0 },
+					{ "startMinute": 300,  "endMinute": 1440, "cost": 30.0 }
+				]
+			}
+		]
+	}
+]

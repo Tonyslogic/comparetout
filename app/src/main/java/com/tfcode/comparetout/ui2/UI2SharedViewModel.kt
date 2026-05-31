@@ -28,7 +28,8 @@ private const val KEY_ACTIVE_DS_END      = "active_ds_end"
 @HiltViewModel
 class UI2SharedViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val repository: ToutcRepository
+    private val repository: ToutcRepository,
+    private val sampleDataLoader: SampleDataLoader
 ) : ViewModel() {
 
     sealed class ActiveSelection {
@@ -84,6 +85,15 @@ class UI2SharedViewModel @Inject constructor(
             } else {
                 stored[1].toLongOrNull()?.let { _activeSelection.value = ActiveSelection.Simulation(it) }
             }
+        }
+
+        // After the sample-data loader seeds a scenario, point the dashboard at
+        // it automatically. SampleDataLoader emits the new scenarioId on its
+        // SharedFlow (replay=0, extraBuffer=1) only on a fresh load — later VM
+        // recreations won't replay, so an explicit user navigation after the
+        // initial seed isn't clobbered.
+        viewModelScope.launch {
+            sampleDataLoader.selectScenario.collect { id -> setActiveSimulationId(id) }
         }
 
         // Keep an active data-source selection's date range current. The range

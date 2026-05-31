@@ -84,6 +84,12 @@ class UI2PricePlanListViewModel @Inject constructor(
 
     fun delete(planId: Long) {
         viewModelScope.launch(Dispatchers.IO) {
+            // Clear costings that reference this plan FIRST. Without this the
+            // costings rows linger as orphans until CostingWorker or
+            // ComparisonUIViewModel runs `pruneCostings()` — the Compare tab
+            // can show ghost rows for a deleted plan in the meantime. Legacy
+            // PricePlanNavFragment did the same explicit pre-delete.
+            repository.deleteRelatedCostings(planId.toInt())
             repository.deletePricePlan(planId.toInt())
             // The reconcile in the rows-collect coroutine will clear the favourite
             // automatically next time the LiveData emits, but do it eagerly so the

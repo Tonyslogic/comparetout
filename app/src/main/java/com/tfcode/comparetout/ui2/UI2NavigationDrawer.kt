@@ -1,5 +1,6 @@
 package com.tfcode.comparetout.ui2
 
+import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,6 +35,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import com.tfcode.comparetout.R
 import com.tfcode.comparetout.TOUTCApplication
+import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -114,6 +117,29 @@ fun UI2DrawerContent(
             onClose()
             context.startActivity(
                 android.content.Intent(context, UI2ImportExportActivity::class.java))
+        }
+        // One-tap onboarding: seed a sample scenario + two demo plans, then kick
+        // off the same PVGIS-fetch + simulation pipeline the wizard would. Idempotent
+        // (subsequent taps are no-ops). Same affordance appears on the empty
+        // Dashboard so a fresh user has a visible entry point too. See
+        // plans/roboscript/robo-plan.md Phase 4B.
+        val coroutineScope = rememberCoroutineScope()
+        UI2DrawerItem(R.drawable.ic_baseline_download_24,     "Try with sample data") {
+            onClose()
+            val loader = EntryPointAccessors
+                .fromApplication(context.applicationContext, SampleDataLoaderEntryPoint::class.java)
+                .sampleDataLoader()
+            coroutineScope.launch {
+                val msg = when (val result = loader.load()) {
+                    is SampleDataLoader.Result.AlreadyLoaded ->
+                        "Sample data already loaded"
+                    is SampleDataLoader.Result.Loaded ->
+                        "Sample loaded · simulation running in background"
+                    is SampleDataLoader.Result.Failed ->
+                        "Couldn't load sample data: ${result.error.message ?: "unknown error"}"
+                }
+                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+            }
         }
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
         // Preferences — global formatting choices.

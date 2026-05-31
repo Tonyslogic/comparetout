@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asLiveData
+import androidx.lifecycle.map
 import androidx.lifecycle.viewModelScope
 import com.tfcode.comparetout.ComparisonUIViewModel
 import com.tfcode.comparetout.model.ToutcRepository
@@ -18,6 +19,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
@@ -91,6 +93,15 @@ class UI2DashboardViewModel @Inject constructor(
     /** Plan-id the user has marked as their current supplier plan, or null. */
     val favouritePlanId = favouritePlanStore.id.asLiveData()
 
+    /**
+     * True iff at least one scenario exists. Drives the Dashboard's first-run
+     * empty-state — see [SampleDataLoader] / plans/roboscript/robo-plan.md
+     * Phase 4B. Backed by the repository's existing LiveData so it stays in
+     * sync without any extra refresh plumbing.
+     */
+    val hasScenarios: LiveData<Boolean> =
+        repository.allScenarios.map { it.orEmpty().isNotEmpty() }
+
     init {
         Log.d("UI2", "UI2DashboardViewModel created")
         viewModelScope.launch(Dispatchers.IO) { favouritePlanStore.ensureLoaded() }
@@ -110,6 +121,17 @@ class UI2DashboardViewModel @Inject constructor(
     private val dateTimeFormatter  = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
     private val _activeItem = MutableStateFlow<ActiveDashboardItem?>(null)
+
+    /**
+     * Bumped each time the dashboard should re-fetch DB-backed data without a
+     * change of active item (e.g. when the Simulation/Cost WorkManager chain
+     * completes in the background). Combined with [_activeItem] in the
+     * [dashboardData] pipeline so flatMapLatest re-runs the IO fetch.
+     *
+     * StateFlow dedup means setting `_activeItem` to the *same* id is a no-op
+     * — which is why an external tick is required. [refresh] increments it.
+     */
+    private val _refreshTick = MutableStateFlow(0)
 
     // ── PV System accordion (data source mode) ───────────────────────────────
     private val _pvPeriod    = MutableStateFlow(DataSourcePeriod.ALL)
@@ -174,6 +196,22 @@ class UI2DashboardViewModel @Inject constructor(
     val kpiMonthFilter = _kpiMonthFilter.asLiveData()
     val kpiSummary     = _kpiSummary.asLiveData()
     val kpiMonths      = _kpiMonths.asLiveData()
+
+    /**
+     * Re-pull all DB-backed dashboard surfaces for the currently-active
+     * scenario. Call this when the background Simulation/Cost WorkManager
+     * chain transitions to all-finished so the dashboard reflects the new
+     * results without forcing the user to re-select the scenario from the
+     * Simulations list.
+     */
+    fun refresh() {
+        if (_activeItem.value == null) return
+        _refreshTick.value = _refreshTick.value + 1
+        viewModelScope.launch(Dispatchers.IO) {
+            recomputeKpis()
+            recomputeScenarioTariff()
+        }
+    }
 
     fun setActiveSimulationId(id: Long) {
         Log.d("UI2", "UI2DashboardViewModel.setActiveSimulationId($id)")
@@ -570,7 +608,8 @@ class UI2DashboardViewModel @Inject constructor(
 
     val panelPVSummary: LiveData<List<PanelPVSummary>> = repository.panelDataSummary
 
-    val dashboardData = _activeItem.flatMapLatest { item ->
+    val dashboardData = combine(_activeItem, _refreshTick) { item, _ -> item }
+        .flatMapLatest { item ->
         when (item) {
             is ActiveDashboardItem.Simulation -> flow {
                 val id = item.id
@@ -782,13 +821,19 @@ class UI2DashboardViewModel @Inject constructor(
                 sell += plan.feed * row.feed
                 subTotals.addToPrice(rate, row.buy)
             }
+            // Unit convention matches fetchCostings() (data-source mode):
+            // net/buy/sell are **cents**, fixed is **euros**. DataSourceCostingsTable
+            // displays them as `row.net / 100.0` etc, so anything in cents renders
+            // in euros after divide. Standing-charge is multiplied by 100 to add
+            // it into the cents-denominated net total.
             val fixed = plan.standingCharges * (days / 365.0)
+            val net = (buy - sell) + (fixed * 100.0)
             DataSourceCostingRow(
                 planName    = "${plan.supplier} · ${plan.planName}",
                 pricePlanId = plan.pricePlanIndex,
-                net         = (buy - sell) / 100.0 + fixed,
-                buy         = buy / 100.0,
-                sell        = sell / 100.0,
+                net         = net,
+                buy         = buy,
+                sell        = sell,
                 fixed       = fixed,
                 subTotals   = subTotals
             )
