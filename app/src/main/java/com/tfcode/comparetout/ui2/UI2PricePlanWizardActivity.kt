@@ -1,3 +1,5 @@
+@file:Suppress("AssignedValueIsNeverRead")
+
 package com.tfcode.comparetout.ui2
 
 import android.os.Bundle

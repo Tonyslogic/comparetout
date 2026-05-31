@@ -1,5 +1,5 @@
 @file:OptIn(ExperimentalLayoutApi::class)
-@file:Suppress("MissingPermission")
+@file:Suppress("MissingPermission", "AssignedValueIsNeverRead")
 
 package com.tfcode.comparetout.ui2
 
