@@ -96,6 +96,8 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -771,7 +773,12 @@ private fun WizardAccordionSection(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Row(
+            // Stable selector for Play Console Robo / FTL automation: each accordion
+            // toggle is matched by `contentDescription="Wizard section: $title"`. Robo
+            // can't see Compose testTags, so this is the canonical way to expose the
+            // toggle. See plans/roboscript/robo-plan.md (Phase 4A).
             modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle)
+                .semantics { contentDescription = "Wizard section: $title" }
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
