@@ -67,11 +67,6 @@ public class PVGISLoader extends Worker {
         mToutcRepository = new ToutcRepository((Application) context);
     }
 
-    @Override
-    public void onStopped(){
-        super.onStopped();
-    }
-
     @NonNull
     @Override
     public Result doWork() {

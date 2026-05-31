@@ -91,14 +91,6 @@ public class SimulationWorker extends Worker {
     }
 
     /**
-     * Called when the worker is stopped. Used for cleanup if needed.
-     */
-    @Override
-    public void onStopped(){
-        super.onStopped();
-    }
-
-    /**
      * Main entry point for the simulation work.
      * Retrieves all scenarios needing simulation, processes each scenario by:
      * - Gathering scenario components and user inputs

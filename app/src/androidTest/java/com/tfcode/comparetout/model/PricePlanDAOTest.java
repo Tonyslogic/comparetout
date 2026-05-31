@@ -156,10 +156,6 @@ public class PricePlanDAOTest {
     }
 
     @Test
-    public void loadPricePlan() {
-    }
-
-    @Test
     public void deletePricePlan() throws InterruptedException {
         pricePlanDAO.deleteAll();
         Map<PricePlan, List<DayRate>> mpp = LiveDataTestUtil.getValue(pricePlanDAO.loadPricePlans());

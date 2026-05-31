@@ -16,7 +16,6 @@
 
 package com.tfcode.comparetout.scenario.inverter;
 
-import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.InputType;
@@ -91,12 +90,6 @@ public class InverterFragment extends Fragment {
         mTableLayout.setShrinkAllColumns(true);
         mTableLayout.setStretchAllColumns(true);
         updateView();
-    }
-
-    @SuppressLint("SourceLockedOrientationActivity")
-    @Override
-    public void onResume() {
-        super.onResume();
     }
 
     public void refreshFocus() {

@@ -16,7 +16,6 @@
 
 package com.tfcode.comparetout.scenario.water;
 
-import android.annotation.SuppressLint;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
@@ -115,12 +114,6 @@ public class WaterScheduleFragment extends Fragment {
         mHWScheduleTimes.setShrinkAllColumns(true);
         mHWScheduleTimes.setStretchAllColumns(true);
         updateView();
-    }
-
-    @SuppressLint("SourceLockedOrientationActivity")
-    @Override
-    public void onResume() {
-        super.onResume();
     }
 
     public void refreshFocus() {

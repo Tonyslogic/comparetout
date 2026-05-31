@@ -16,7 +16,6 @@
 
 package com.tfcode.comparetout.scenario.ev;
 
-import android.annotation.SuppressLint;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
@@ -115,12 +114,6 @@ public class EVScheduleFragment extends Fragment {
         mEVChargeTimes.setShrinkAllColumns(true);
         mEVChargeTimes.setStretchAllColumns(true);
         updateView();
-    }
-
-    @SuppressLint("SourceLockedOrientationActivity")
-    @Override
-    public void onResume() {
-        super.onResume();
     }
 
     public void refreshFocus() {
