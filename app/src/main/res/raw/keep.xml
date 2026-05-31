@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ Copyright (c) 2026. Tony Finnerty
+  ~
+  ~   Licensed under the Apache License, Version 2.0 (the "License");
+  ~    you may not use this file except in compliance with the License.
+  ~    You may obtain a copy of the License at
+  ~
+  ~        http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~    Unless required by applicable law or agreed to in writing, software
+  ~    distributed under the License is distributed on an "AS IS" BASIS,
+  ~    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~    See the License for the specific language governing permissions and
+  ~    limitations under the License.
+  -->
+
+<!--
+  Drawables in this keep list are referenced from HTML help pages in
+  app/src/main/assets/main/data/{alphaess,esbn,ha}/*.html and similar,
+  loaded into WebView via androidx.webkit.WebViewAssetLoader.ResourcesPathHandler
+  using `/res/drawable/<name>.png` URLs. Lint's UnusedResources inspection
+  does not trace WebView HTML refs, so without this file every onboarding
+  screenshot is incorrectly flagged as unused and would be stripped by
+  shrinkResources in release builds.
+
+  Two of these (launcher.png, ic_menu_gallery.png) were briefly deleted in
+  the Phase 3a asset cleanup and had to be restored — this file prevents
+  that mistake from recurring.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="
+        @drawable/alphaessaddsystemi,
+        @drawable/alphaessaddsystemii,
+        @drawable/alphaesscredentials,
+        @drawable/alphaesslogin,
+        @drawable/alphaessregister,
+        @drawable/average,
+        @drawable/bar,
+        @drawable/batterypng,
+        @drawable/comparepie,
+        @drawable/data_range,
+        @drawable/deleteconfirm,
+        @drawable/esbn_banner,
+        @drawable/esbn_consumption,
+        @drawable/esbn_sign_in,
+        @drawable/evpng,
+        @drawable/filter,
+        @drawable/generate_actions,
+        @drawable/ha_gen_token,
+        @drawable/ha_gen_token_i,
+        @drawable/ha_gen_token_ii,
+        @drawable/ha_gen_token_iii,
+        @drawable/ha_gen_token_iv,
+        @drawable/housetickpng,
+        @drawable/ic_menu_gallery,
+        @drawable/inverterpng,
+        @drawable/launcher,
+        @drawable/line,
+        @drawable/next,
+        @drawable/panelpng,
+        @drawable/pie,
+        @drawable/prev,
+        @drawable/range,
+        @drawable/setcredentialsdialog,
+        @drawable/sum,
+        @drawable/tablepng,
+        @drawable/usage_areas,
+        @drawable/waterpng,
+        @drawable/whichfile,
+        @drawable/whichtab" />
+</content>
+</invoke>
