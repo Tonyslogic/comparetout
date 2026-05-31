@@ -78,7 +78,8 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.res.painterResource
@@ -782,7 +783,8 @@ private fun PieChartView(state: UI2GraphsViewModel.GraphState) {
     }
 
     var zoomedIdx by remember(specs) { mutableIntStateOf(-1) }
-    val cfg = LocalConfiguration.current
+    val containerSize = LocalWindowInfo.current.containerSize
+    val density = LocalDensity.current
 
     val cols = 2
     val rows = (specs.size + cols - 1) / cols
@@ -815,7 +817,7 @@ private fun PieChartView(state: UI2GraphsViewModel.GraphState) {
 
     if (zoomedIdx in specs.indices) {
         val spec = specs[zoomedIdx]
-        val size = minOf(cfg.screenWidthDp, cfg.screenHeightDp).dp * 0.9f
+        val size = with(density) { (minOf(containerSize.width, containerSize.height) * 0.9f).toDp() }
         Dialog(onDismissRequest = { zoomedIdx = -1 }) {
             Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
                 Column(

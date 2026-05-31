@@ -71,8 +71,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.res.painterResource
@@ -1051,7 +1052,8 @@ fun LoadDistributionCharts(lp: LoadProfile) {
         )
     }
 
-    val cfg = LocalConfiguration.current
+    val containerSize = LocalWindowInfo.current.containerSize
+    val density = LocalDensity.current
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         charts.forEachIndexed { idx, (title, dist, labels) ->
@@ -1068,7 +1070,7 @@ fun LoadDistributionCharts(lp: LoadProfile) {
 
     if (zoomedIdx >= 0) {
         val (title, dist, labels) = charts[zoomedIdx]
-        val size = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 1.0f).dp
+        val size = with(density) { (minOf(containerSize.width, containerSize.height) * 1.0f).toDp() }
         Dialog(onDismissRequest = { zoomedIdx = -1 },
             properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
@@ -1130,7 +1132,8 @@ fun PVSummaryBarChart(panelSummary: List<PanelPVSummary>, panels: List<Panel>) {
     val scenarioPanelIds = remember(panels) { panels.map { it.panelIndex }.toSet() }
     val panelIds = remember(grouped, scenarioPanelIds) { grouped.keys.filter { it in scenarioPanelIds }.sorted() }
 
-    val cfg = LocalConfiguration.current
+    val containerSize = LocalWindowInfo.current.containerSize
+    val density = LocalDensity.current
 
     Text("PV Monthly Generation (kWh)", style = MaterialTheme.typography.labelSmall,
         modifier = Modifier.padding(bottom = 4.dp))
@@ -1154,7 +1157,7 @@ fun PVSummaryBarChart(panelSummary: List<PanelPVSummary>, panels: List<Panel>) {
         val name     = panels.firstOrNull { it.panelIndex == panelId }?.panelName ?: "Panel $panelId"
         val monthMap = grouped[panelId]?.associate { (it.month.toIntOrNull() ?: 1) to it.tot } ?: emptyMap()
         val dist     = (1..12).map { m -> monthMap[m] ?: 0.0 }
-        val size     = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 1.0f).dp
+        val size     = with(density) { (minOf(containerSize.width, containerSize.height) * 1.0f).toDp() }
         Dialog(onDismissRequest = { zoomedIdx = -1 },
             properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
@@ -1222,7 +1225,8 @@ private fun AllCostingsTable(
     favouritePlanId: Long? = null
 ) {
     var zoomedCosting by remember { mutableStateOf<Costings?>(null) }
-    val cfg = LocalConfiguration.current
+    val containerSize = LocalWindowInfo.current.containerSize
+    val density = LocalDensity.current
 
     // Header row
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
@@ -1293,7 +1297,7 @@ private fun AllCostingsTable(
                 PieSlice("%.1fc".format(price), kwh, TARIFF_PIE_COLORS[i % TARIFF_PIE_COLORS.size])
             }.filter { it.value > 0 }
         }
-        val size = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.9f).dp
+        val size = with(density) { (minOf(containerSize.width, containerSize.height) * 0.9f).toDp() }
         Dialog(onDismissRequest = { zoomedCosting = null },
             properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
@@ -1319,7 +1323,8 @@ private fun AllCostingsTable(
 @Composable
 private fun DataSourcePVBarChart(pvData: List<Pair<String, Double>>) {
     var zoomed by remember { mutableStateOf(false) }
-    val cfg = LocalConfiguration.current
+    val containerSize = LocalWindowInfo.current.containerSize
+    val density = LocalDensity.current
     val labelColorArgb = MaterialTheme.colorScheme.onSurface.toArgb()
     val gridColorArgb  = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f).toArgb()
     val barColorArgb   = "#F44336".toColorInt()
@@ -1347,7 +1352,7 @@ private fun DataSourcePVBarChart(pvData: List<Pair<String, Double>>) {
         )
     }
     if (zoomed) {
-        val size = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 1.0f).dp
+        val size = with(density) { (minOf(containerSize.width, containerSize.height) * 1.0f).toDp() }
         Dialog(onDismissRequest = { zoomed = false },
             properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
@@ -1412,7 +1417,8 @@ private fun DataSourceExplorePies(
     }
 
     var zoomedChart by remember { mutableIntStateOf(-1) }
-    val cfg = LocalConfiguration.current
+    val containerSize = LocalWindowInfo.current.containerSize
+    val density = LocalDensity.current
 
     Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
         charts.forEachIndexed { idx, (title, slices) ->
@@ -1432,7 +1438,7 @@ private fun DataSourceExplorePies(
     if (zoomedChart >= 0) {
         val (title, slices) = charts[zoomedChart]
         val visible = slices.filter { it.value > 0 }
-        val size = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.9f).dp
+        val size = with(density) { (minOf(containerSize.width, containerSize.height) * 0.9f).toDp() }
         Dialog(onDismissRequest = { zoomedChart = -1 },
             properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
@@ -1470,7 +1476,8 @@ private fun DataSourceCostingsTable(
     }
 
     var zoomedRow by remember { mutableStateOf<DataSourceCostingRow?>(null) }
-    val cfg = LocalConfiguration.current
+    val containerSize = LocalWindowInfo.current.containerSize
+    val density = LocalDensity.current
 
     // Header
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
@@ -1539,7 +1546,7 @@ private fun DataSourceCostingsTable(
                 PieSlice("%.1fc".format(price), kwh, TARIFF_PIE_COLORS[i % TARIFF_PIE_COLORS.size])
             }.filter { it.value > 0 }
         }
-        val size = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.9f).dp
+        val size = with(density) { (minOf(containerSize.width, containerSize.height) * 0.9f).toDp() }
         Dialog(onDismissRequest = { zoomedRow = null },
             properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
@@ -1585,7 +1592,8 @@ private fun DataSourceDistributionCharts(distribution: UsageDistribution) {
         )
     }
 
-    val cfg = LocalConfiguration.current
+    val containerSize = LocalWindowInfo.current.containerSize
+    val density = LocalDensity.current
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         charts.forEachIndexed { idx, (title, dist, labels) ->
@@ -1602,7 +1610,7 @@ private fun DataSourceDistributionCharts(distribution: UsageDistribution) {
 
     if (zoomedIdx >= 0) {
         val (title, dist, labels) = charts[zoomedIdx]
-        val size = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 1.0f).dp
+        val size = with(density) { (minOf(containerSize.width, containerSize.height) * 1.0f).toDp() }
         Dialog(onDismissRequest = { zoomedIdx = -1 },
             properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
@@ -1682,7 +1690,8 @@ fun SimulationPieCharts(kpis: SimKPIs) {
         )
     }
 
-    val cfg = LocalConfiguration.current
+    val containerSize = LocalWindowInfo.current.containerSize
+    val density = LocalDensity.current
 
     Column(modifier = Modifier.padding(top = 4.dp)) {
         for (row in 0 until 2) {
@@ -1713,7 +1722,7 @@ fun SimulationPieCharts(kpis: SimKPIs) {
     if (zoomedChart >= 0) {
         val (title, slices) = charts[zoomedChart]
         val visible = slices.filter { it.value > 0 }
-        val size = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.9f).dp
+        val size = with(density) { (minOf(containerSize.width, containerSize.height) * 0.9f).toDp() }
         Dialog(onDismissRequest = { zoomedChart = -1 },
             properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
