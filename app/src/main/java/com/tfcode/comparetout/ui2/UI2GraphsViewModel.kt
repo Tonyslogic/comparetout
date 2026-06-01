@@ -46,7 +46,7 @@ class UI2GraphsViewModel @Inject constructor(
     }
 
     enum class GraphType(val label: String) {
-        BAR("Bar"), LINE("Line"), PIE("Pie"), TABLE("Table"), SANKEY("Sankey")
+        BAR("Bar"), LINE("Line"), AREA("Area"), PIE("Pie"), TABLE("Table"), SANKEY("Sankey")
     }
 
     enum class FilterSeries(val displayName: String) {

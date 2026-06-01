@@ -32,11 +32,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.CallSplit
+import androidx.compose.material.icons.automirrored.filled.ShowChart
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.PieChart
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.TableChart
+import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
@@ -250,6 +258,14 @@ fun GraphsScreen(
                         ChartArea(state)
                     }
                 }
+                // Persistent bottom bar — chart-type tiles + a menu tile that opens
+                // the same Chart Settings slide-out the old FAB drove. Replaces the
+                // two FABs that used to hide chart content.
+                GraphsBottomBar(
+                    currentType = state.graphType,
+                    onTypeChange = viewModel::setGraphType,
+                    onMenuClick = { showPanel = true }
+                )
             }
 
             // Scrim
@@ -272,23 +288,11 @@ fun GraphsScreen(
             ) {
                 Surface(tonalElevation = 8.dp, shadowElevation = 8.dp,
                     modifier = Modifier.fillMaxSize()) {
-                    SettingsPanel(state, viewModel, onClose = { showPanel = false })
-                }
-            }
-
-            // FABs — battery/water (conditional) to the left, settings always on the right
-            Row(
-                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (state.showLineFab) {
-                    FloatingActionButton(onClick = { showLinePop = true }) {
-                        Icon(painterResource(R.drawable.barchart), "SOC/Water Temp", Modifier.size(24.dp))
-                    }
-                }
-                FloatingActionButton(onClick = { showPanel = true }) {
-                    Icon(painterResource(R.drawable.ic_baseline_settings_24), "Chart settings", Modifier.size(24.dp))
+                    SettingsPanel(
+                        state, viewModel,
+                        onClose = { showPanel = false },
+                        onShowLinePopup = { showLinePop = true }
+                    )
                 }
             }
 
@@ -426,7 +430,8 @@ private fun DateNavRow(
 private fun SettingsPanel(
     state: UI2GraphsViewModel.GraphState,
     viewModel: UI2GraphsViewModel,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    onShowLinePopup: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier.fillMaxSize()
@@ -441,20 +446,20 @@ private fun SettingsPanel(
         }
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-        // Graph type
-        PanelSection("Graph Type") {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                GraphType.entries.forEach { type ->
-                    FilterChip(
-                        selected = state.graphType == type,
-                        onClick  = { viewModel.setGraphType(type) },
-                        label    = { Text(type.label) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+        // Battery SOC + water-temp popup trigger — was a separate FAB before;
+        // now lives at the top of the settings panel and only when the line popup
+        // is actually applicable (sim single-day with battery/HW).
+        if (state.showLineFab) {
+            TextButton(
+                onClick = { onClose(); onShowLinePopup() },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.AutoMirrored.Filled.ShowChart, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Battery SOC & Water Temp…")
             }
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
         }
-        Spacer(Modifier.height(12.dp))
 
         // Display scale
         PanelSection("Display Scale") {
@@ -515,6 +520,82 @@ private fun PanelSection(title: String, content: @Composable () -> Unit) {
     content()
 }
 
+// ─── Bottom bar (chart-type tiles + settings menu tile) ───────────────────
+//
+// Visual pattern mirrors CompareScreen.DisplaySection's compact mode — a
+// row of equally-weighted Surface tiles with rounded corners, primary
+// container background and a 1.5dp primary border when active. Replaces
+// the old Chart Settings + line-popup FABs that used to float over chart
+// content.
+
+private val GRAPHS_BOTTOM_BAR_TILES: List<Pair<GraphType, androidx.compose.ui.graphics.vector.ImageVector>> = listOf(
+    GraphType.BAR    to Icons.Default.BarChart,
+    GraphType.LINE   to Icons.AutoMirrored.Filled.ShowChart,
+    GraphType.AREA   to Icons.Default.Timeline,
+    GraphType.PIE    to Icons.Default.PieChart,
+    GraphType.TABLE  to Icons.Default.TableChart,
+    GraphType.SANKEY to Icons.AutoMirrored.Filled.CallSplit
+)
+
+@Composable
+private fun GraphsBottomBar(
+    currentType: GraphType,
+    onTypeChange: (GraphType) -> Unit,
+    onMenuClick: () -> Unit
+) {
+    val shape = RoundedCornerShape(10.dp)
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        GRAPHS_BOTTOM_BAR_TILES.forEach { (type, icon) ->
+            val active = currentType == type
+            BottomBarTile(
+                icon = icon,
+                contentDescription = type.label,
+                active = active,
+                shape = shape,
+                modifier = Modifier.weight(1f),
+                onClick = { onTypeChange(type) }
+            )
+        }
+        BottomBarTile(
+            icon = Icons.Default.Settings,
+            contentDescription = "Chart settings",
+            active = false,
+            shape = shape,
+            modifier = Modifier.weight(1f),
+            onClick = onMenuClick
+        )
+    }
+}
+
+@Composable
+private fun BottomBarTile(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    active: Boolean,
+    shape: androidx.compose.ui.graphics.Shape,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Surface(
+        color = if (active) MaterialTheme.colorScheme.primaryContainer
+                else MaterialTheme.colorScheme.surface,
+        shape = shape,
+        modifier = modifier
+            .then(if (active) Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, shape) else Modifier)
+            .clickable(onClick = onClick)
+    ) {
+        Box(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = contentDescription, modifier = Modifier.size(20.dp))
+        }
+    }
+}
+
 // ─── Chart area dispatcher ─────────────────────────────────────────────────
 
 @Composable
@@ -522,6 +603,7 @@ private fun ChartArea(state: UI2GraphsViewModel.GraphState) {
     when (state.graphType) {
         GraphType.BAR    -> BarChartView(state)
         GraphType.LINE   -> LineChartView(state)
+        GraphType.AREA   -> AreaChartView(state)
         GraphType.PIE    -> PieChartView(state)
         GraphType.TABLE  -> TableView(state)
         GraphType.SANKEY -> SankeyView(state)
@@ -677,10 +759,23 @@ private fun BarChartView(state: UI2GraphsViewModel.GraphState) {
     )
 }
 
-// ─── LINE chart ────────────────────────────────────────────────────────────
+// ─── LINE / AREA charts ────────────────────────────────────────────────────
+//
+// LINE and AREA share the same MPAndroidChart wiring; AREA just sets
+// setDrawFilled(true) on each dataset so the region below the curve is
+// filled with the series colour at low alpha. Single helper, two thin
+// public composables.
 
 @Composable
-private fun LineChartView(state: UI2GraphsViewModel.GraphState) {
+private fun LineChartView(state: UI2GraphsViewModel.GraphState) =
+    LineOrAreaChartView(state, filled = false)
+
+@Composable
+private fun AreaChartView(state: UI2GraphsViewModel.GraphState) =
+    LineOrAreaChartView(state, filled = true)
+
+@Composable
+private fun LineOrAreaChartView(state: UI2GraphsViewModel.GraphState, filled: Boolean) {
     val labelColor = MaterialTheme.colorScheme.onSurface.toArgb()
     val gridColor  = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f).toArgb()
     val points = remember(state.intervalData, state.singleDayBarData, state.displayScale) {
@@ -705,16 +800,22 @@ private fun LineChartView(state: UI2GraphsViewModel.GraphState) {
                 override fun getFormattedValue(v: Float) = labels.getOrElse(v.toInt()) { "" }
             }
             val datasets: List<ILineDataSet> = activeSeries.map { series ->
+                val seriesArgb = (SERIES_COLORS[series] ?: Color.Gray).toArgb()
                 LineDataSet(
                     points.mapIndexed { i, pt -> Entry(i.toFloat(), pt.values[series]?.toFloat() ?: 0f) },
                     series.displayName
                 ).apply {
-                    color = (SERIES_COLORS[series] ?: Color.Gray).toArgb()
+                    color = seriesArgb
                     setDrawCircles(false)
                     lineWidth = 1.5f
                     setDrawValues(false)
                     mode = LineDataSet.Mode.CUBIC_BEZIER
                     valueTextColor = labelColor
+                    if (filled) {
+                        setDrawFilled(true)
+                        fillColor = seriesArgb
+                        fillAlpha = 80
+                    }
                 }
             }
             chart.data = LineData(datasets)
