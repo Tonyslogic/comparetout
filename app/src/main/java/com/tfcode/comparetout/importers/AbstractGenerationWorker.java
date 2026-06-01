@@ -96,7 +96,12 @@ public abstract class AbstractGenerationWorker extends Worker {
     public static final String PROGRESS = "PROGRESS";
     public static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     public static final DateTimeFormatter MIN_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
-    private static final int mNotificationId = 2;
+    // Distinct notification slot from the importer workers — see
+    // plans/eventual-bouncing-hare.md. Shared across alphaess and
+    // homeassistant scenario-generation subclasses; they aren't expected
+    // to run concurrently with each other but routinely do run alongside
+    // an import / catch-up worker.
+    private static final int mNotificationId = 11;
     protected final ToutcRepository mToutcRepository;
     protected NotificationManager mNotificationManager;
     private boolean mStopped = false;

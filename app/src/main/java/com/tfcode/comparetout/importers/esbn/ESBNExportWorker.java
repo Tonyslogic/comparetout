@@ -64,7 +64,10 @@ import java.util.List;
 public class ESBNExportWorker extends Worker {
 
     private static final String TAG = "ESBNExportWorker";
-    private static final int NOTIFICATION_ID = 4;
+    // Distinct notification slot per worker class — see
+    // plans/eventual-bouncing-hare.md. Previously colliding with
+    // HACatchupWorker (both 4).
+    private static final int NOTIFICATION_ID = 10;
 
     public static final String KEY_SYSTEM_SN = "KEY_SYSTEM_SN";
     public static final String KEY_FOLDER = "KEY_FOLDER";

@@ -24,8 +24,6 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
-import android.os.Handler;
-import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
@@ -54,10 +52,14 @@ public class CatchUpWorker extends Worker {
 
     private final ToutcRepository mToutcRepository;
     private final NotificationManager mNotificationManager;
-    private static final int mNotificationId = 2;
+    // Distinct notification slot per worker class — see
+    // plans/eventual-bouncing-hare.md.
+    private static final int mNotificationId = 6;
     private boolean mStopped = false;
     private boolean mUseUI2 = false;
     private String mSelectedSysSn = null;
+    private long mLastNotifyAt = 0L;
+    private static final long MIN_NOTIFY_INTERVAL_MS = 250L;
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
@@ -86,7 +88,6 @@ public class CatchUpWorker extends Worker {
     @Override
     public Result doWork() {
         System.out.println("CatchUpWorker:doWork invoked ");
-        Handler mHandler = new Handler(Looper.getMainLooper());
         Data inputData = getInputData();
         OpenAlphaESSClient mOpenAlphaESSClient = new OpenAlphaESSClient(
                 inputData.getString(KEY_APP_ID),
@@ -100,8 +101,7 @@ public class CatchUpWorker extends Worker {
         LocalDate current = LocalDate.parse(startDate, DATE_FORMAT);
         LocalDate end = LocalDate.now();
 
-        // Mark the Worker as important
-        setProgressAsync(new Data.Builder().putString(PROGRESS, current.toString()).build());
+        publishProgress(current.toString(), true);
         while (current.isBefore(end) && !mStopped) {
             if (mToutcRepository.checkSysSnForDataOnDate(systemSN, current.format(DATE_FORMAT))) {
                 System.out.println("CatchUpWorker skipping " + current);
@@ -156,15 +156,28 @@ public class CatchUpWorker extends Worker {
             }
 
             System.out.println("CatchUpWorker finished with " + current);
-            setProgressAsync(new Data.Builder().putString(PROGRESS, current.toString()).build());
-            LocalDate finalCurrent = current;
-            mHandler.post(() -> mNotificationManager
-                    .notify(mNotificationId, getNotification("Done catching up with " + finalCurrent)));
+            publishProgress("Done catching up with " + current, false);
             current = current.plusDays(1);
         }
         if (mStopped) mNotificationManager.cancel(mNotificationId);
 
         return Result.success();
+    }
+
+    /**
+     * Publish the worker's progress to WorkManager + the notification
+     * shade. NotificationManager.notify is thread-safe, so no main-thread
+     * hop is required (the earlier handler.post approach raced the worker's
+     * own completion). [force]=true bypasses the in-loop throttle and is
+     * used for the first/last updates so terminal state always lands.
+     */
+    private void publishProgress(@NonNull String progress, boolean force) {
+        setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
+        long now = System.currentTimeMillis();
+        if (force || now - mLastNotifyAt > MIN_NOTIFY_INTERVAL_MS) {
+            mLastNotifyAt = now;
+            mNotificationManager.notify(mNotificationId, getNotification(progress));
+        }
     }
 
     @NonNull

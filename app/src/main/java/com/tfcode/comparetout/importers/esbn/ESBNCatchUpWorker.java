@@ -24,8 +24,6 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Pair;
 
 import androidx.annotation.NonNull;
@@ -55,13 +53,17 @@ public class ESBNCatchUpWorker extends Worker {
 
     private final ToutcRepository mToutcRepository;
     private final NotificationManager mNotificationManager;
-    private static final int mNotificationId = 3;
+    // Distinct notification slot per worker class — see
+    // plans/eventual-bouncing-hare.md.
+    private static final int mNotificationId = 8;
     private boolean mStopped = false;
     // Mirrors the other importer workers: cached on the worker thread and
     // consumed by getNotification() so the notification's content-intent
     // routes through UI2NotificationLaunch when the user has opted in.
     private boolean mUseUI2 = false;
     private String mSelectedSysSn = null;
+    private long mLastNotifyAt = 0L;
+    private static final long MIN_NOTIFY_INTERVAL_MS = 250L;
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private final DateTimeFormatter MIN_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
@@ -91,7 +93,6 @@ public class ESBNCatchUpWorker extends Worker {
     @Override
     public Result doWork() {
         System.out.println("ESBNCatchUpWorker:doWork invoked ");
-        Handler mHandler = new Handler(Looper.getMainLooper());
         Data inputData = getInputData();
         ESBNHDFClient esbnHDFClient = new ESBNHDFClient(
                 inputData.getString(KEY_APP_ID),
@@ -105,10 +106,7 @@ public class ESBNCatchUpWorker extends Worker {
 
         LocalDate current = LocalDate.parse(startDate, DATE_FORMAT);
 
-        // Mark the Worker as important
-//        String progress = "Starting Fetch";
-        setProgressAsync(new Data.Builder().putString(PROGRESS, current.toString()).build());
-        mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification("Starting Fetch", true)));
+        publishProgress("Starting Fetch", true, true);
 
         // Do some work
         Map<LocalDateTime, Pair<Double, Double>> timeAlignedEntries = new HashMap<>();
@@ -169,7 +167,7 @@ public class ESBNCatchUpWorker extends Worker {
             } catch (ESBNException e) {
                 e.printStackTrace();
                 String finalProgress = e.getMessage() == null ? "Failed for unknown reason. Consider files" : e.getMessage();
-                mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress, false)));
+                publishProgress(finalProgress, true, false);
                 return Result.success();
             }
         }
@@ -200,14 +198,29 @@ public class ESBNCatchUpWorker extends Worker {
         }
         mToutcRepository.addTransformedData(normalizedEntityList);
 
-        final String progressEnd = "All done importing " + systemSN;
-        setProgressAsync(new Data.Builder().putString(PROGRESS, progressEnd).build());
-        mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(progressEnd, true)));
-
+        publishProgress("All done importing " + systemSN, true, true);
 
         if (mStopped) mNotificationManager.cancel(mNotificationId);
 
         return Result.success();
+    }
+
+    /**
+     * Publish the worker's progress to WorkManager + the notification
+     * shade. NotificationManager.notify is thread-safe, so no main-thread
+     * hop is required (the earlier handler.post approach raced the worker's
+     * own completion). [force]=true bypasses the in-loop throttle and is
+     * used for the first/last updates so terminal state always lands.
+     * [autoCancel] is forwarded to getNotification — error notifications
+     * use false so the user can still see them after taps elsewhere.
+     */
+    private void publishProgress(@NonNull String progress, boolean force, boolean autoCancel) {
+        setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
+        long now = System.currentTimeMillis();
+        if (force || now - mLastNotifyAt > MIN_NOTIFY_INTERVAL_MS) {
+            mLastNotifyAt = now;
+            mNotificationManager.notify(mNotificationId, getNotification(progress, autoCancel));
+        }
     }
 
     @NonNull

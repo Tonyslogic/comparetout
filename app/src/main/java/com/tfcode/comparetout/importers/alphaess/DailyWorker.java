@@ -24,8 +24,6 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
-import android.os.Handler;
-import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
@@ -53,10 +51,14 @@ public class DailyWorker extends Worker {
 
     private final ToutcRepository mToutcRepository;
     private final NotificationManager mNotificationManager;
-    private static final int mNotificationId = 2;
+    // Distinct notification slot per worker class — see
+    // plans/eventual-bouncing-hare.md.
+    private static final int mNotificationId = 7;
     private boolean mStopped = false;
     private boolean mUseUI2 = false;
     private String mSelectedSysSn = null;
+    private long mLastNotifyAt = 0L;
+    private static final long MIN_NOTIFY_INTERVAL_MS = 250L;
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
@@ -85,10 +87,9 @@ public class DailyWorker extends Worker {
     @Override
     public Result doWork() {
         System.out.println("DailyWorker:doWork invoked ");
-        Handler mHandler = new Handler(Looper.getMainLooper());
         Data inputData = getInputData();
         OpenAlphaESSClient mOpenAlphaESSClient = new OpenAlphaESSClient(
-                inputData.getString(KEY_APP_ID), 
+                inputData.getString(KEY_APP_ID),
                 inputData.getString(KEY_APP_SECRET));
         String systemSN = inputData.getString(KEY_SYSTEM_SN);
         mOpenAlphaESSClient.setSerial(systemSN);
@@ -104,9 +105,7 @@ public class DailyWorker extends Worker {
             // Rumor has it that the 1st call to getOneDay* fails
             if (!fetchOK) fetchFromOpenAlphaESS(mOpenAlphaESSClient, systemSN, yesterday);
             System.out.println("DailyWorker finished with " + yesterday);
-            setProgressAsync(new Data.Builder().putString(PROGRESS, yesterday.toString()).build());
-            final String progress = "Done catching up with " + yesterday;
-            mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(progress)));
+            publishProgress("Done catching up with " + yesterday, true);
 
         } catch (AlphaESSException e) {
             // check to see if we are exceeding limits and retry
@@ -117,9 +116,7 @@ public class DailyWorker extends Worker {
             else {
                 String errorCode = "UNKNOWN";
                 if (!(null == e.getMessage())) errorCode = e.getMessage().substring(0, 12);
-                setProgressAsync(new Data.Builder().putString(PROGRESS, yesterday.toString()).build());
-                final String errorMessage = "Unable to fetch " + yesterday + ", " + errorCode;
-                mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(errorMessage)));
+                publishProgress("Unable to fetch " + yesterday + ", " + errorCode, true);
                 return Result.failure();
             }
 
@@ -131,8 +128,7 @@ public class DailyWorker extends Worker {
     private boolean fetchFromOpenAlphaESS(OpenAlphaESSClient mOpenAlphaESSClient, String systemSN, LocalDate yesterday) throws AlphaESSException {
         boolean ret = false;
         System.out.println("DailyWorker fetching data for " + yesterday);
-        // Mark the Worker as important
-        setProgressAsync(new Data.Builder().putString(PROGRESS, yesterday.toString()).build());
+        publishProgress(yesterday.toString(), true);
 
         // Get the data from AlphaESS (a) power, (b) energy
         GetOneDayPowerResponse oneDayPowerBySn = mOpenAlphaESSClient.getOneDayPowerBySn(yesterday.format(DATE_FORMAT));
@@ -166,6 +162,22 @@ public class DailyWorker extends Worker {
             System.out.println("DailyWorker got null data for " + yesterday);
         }
         return ret;
+    }
+
+    /**
+     * Publish the worker's progress to WorkManager + the notification
+     * shade. NotificationManager.notify is thread-safe, so no main-thread
+     * hop is required (the earlier handler.post approach raced the worker's
+     * own completion). [force]=true bypasses the in-loop throttle and is
+     * used for the first/last updates so terminal state always lands.
+     */
+    private void publishProgress(@NonNull String progress, boolean force) {
+        setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
+        long now = System.currentTimeMillis();
+        if (force || now - mLastNotifyAt > MIN_NOTIFY_INTERVAL_MS) {
+            mLastNotifyAt = now;
+            mNotificationManager.notify(mNotificationId, getNotification(progress));
+        }
     }
 
     @NonNull

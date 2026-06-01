@@ -59,7 +59,10 @@ public class ExportWorker extends Worker {
 
     private final ToutcRepository mToutcRepository;
     private final NotificationManager mNotificationManager;
-    private static final int mNotificationId = 2;
+    // Distinct notification slot per worker class — see
+    // plans/eventual-bouncing-hare.md. Before this refactor every AlphaESS
+    // worker used slot 2 and stomped on each other when concurrent.
+    private static final int mNotificationId = 5;
     private boolean mStopped = false;
     private final Context mContext;
     // Same cached-flag pattern the other importer workers use so the
