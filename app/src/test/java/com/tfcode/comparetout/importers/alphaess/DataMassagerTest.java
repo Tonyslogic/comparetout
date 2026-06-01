@@ -47,12 +47,12 @@ public class DataMassagerTest {
     GetOneDayPowerResponse powerResponseOctDST = null;
 
     GetOneDayEnergyResponse energyResponse = null;
-    private static final String FILENAME_ODPR_DST_MAR = ".\\src\\test\\java\\com\\tfcode\\comparetout\\importers\\alphaess\\OneDayPowerResponseMarDST.json";
-    private static final String FILENAME_ODPR_DST_OCT = ".\\src\\test\\java\\com\\tfcode\\comparetout\\importers\\alphaess\\OneDayPowerResponseOctDST.json";
-    private static final String FILENAME_ODPR_DUPL = ".\\src\\test\\java\\com\\tfcode\\comparetout\\importers\\alphaess\\OneDayPowerResponseJan5.json";
-    private static final String FILENAME_ODPR_MISSING = ".\\src\\test\\java\\com\\tfcode\\comparetout\\importers\\alphaess\\OneDayPowerResponse.json";
+    private static final String FILENAME_ODPR_DST_MAR = "./src/test/java/com/tfcode/comparetout/importers/alphaess/OneDayPowerResponseMarDST.json";
+    private static final String FILENAME_ODPR_DST_OCT = "./src/test/java/com/tfcode/comparetout/importers/alphaess/OneDayPowerResponseOctDST.json";
+    private static final String FILENAME_ODPR_DUPL = "./src/test/java/com/tfcode/comparetout/importers/alphaess/OneDayPowerResponseJan5.json";
+    private static final String FILENAME_ODPR_MISSING = "./src/test/java/com/tfcode/comparetout/importers/alphaess/OneDayPowerResponse.json";
 
-    private static final String FILENAME_ODER = ".\\src\\test\\java\\com\\tfcode\\comparetout\\importers\\alphaess\\OneDayEnergyResponse.json";
+    private static final String FILENAME_ODER = "./src/test/java/com/tfcode/comparetout/importers/alphaess/OneDayEnergyResponse.json";
 
     @Before
     public void setup() throws FileNotFoundException {
