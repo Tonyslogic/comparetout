@@ -615,7 +615,10 @@ private fun ChartArea(state: UI2GraphsViewModel.GraphState) {
 data class ChartPoint(val label: String, val values: Map<FilterSeries, Double>)
 
 private fun buildChartPoints(state: UI2GraphsViewModel.GraphState): List<ChartPoint> {
-    return if (state.isSingleDay && state.displayScale == DisplayScale.HOUR) {
+    // Sim single-day at HOUR scale populates singleDayBarData; AlphaESS / data-source
+    // mode always flows through intervalData (even on single-day HOUR), so route by
+    // which list actually has data, not by mode/scale.
+    return if (state.singleDayBarData.isNotEmpty()) {
         state.singleDayBarData.map { row ->
             ChartPoint(
                 label = "%02d:00".format(row.hour),
@@ -1011,8 +1014,7 @@ private data class SankeyFlow(val from: String, val to: String, val value: Doubl
 
 @Composable
 private fun SankeyView(state: UI2GraphsViewModel.GraphState) {
-    val hasData = state.intervalData.isNotEmpty() ||
-            (state.isSingleDay && state.displayScale == DisplayScale.HOUR && state.singleDayBarData.isNotEmpty())
+    val hasData = state.intervalData.isNotEmpty() || state.singleDayBarData.isNotEmpty()
     if (!hasData) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("No data") }
         return
@@ -1022,8 +1024,8 @@ private fun SankeyView(state: UI2GraphsViewModel.GraphState) {
     var pv2bat = 0.0; var pv2load = 0.0; var bat2load = 0.0; var grid2bat = 0.0
     var evSchedule = 0.0; var evDivert = 0.0; var hwSchedule = 0.0; var hwDivert = 0.0; var bat2grid = 0.0
 
-    if (state.isSingleDay && state.displayScale == DisplayScale.HOUR) {
-        // Sum hourly bar data for a single day
+    if (state.singleDayBarData.isNotEmpty()) {
+        // Sum hourly bar data for a single simulation day
         state.singleDayBarData.forEach { row ->
             pv += row.pv; feed += row.feed; buy += row.buy
             pv2bat += row.pv2Battery; pv2load += row.pv2Load; bat2load += row.battery2Load

@@ -58,6 +58,7 @@ import androidx.compose.material.icons.outlined.StackedBarChart
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -554,6 +555,15 @@ private fun FilterSection(state: CompareState, vm: UI2CompareViewModel) {
     val primary = MaterialTheme.colorScheme.primary
     @Composable
     fun chips(defs: List<Pair<String, String>>, prefix: String) {
+        // Default FilterChip uses secondaryContainer for the selected fill, which
+        // is too close to surface in many themes — selected vs unselected was hard
+        // to tell apart. Lift selected to primaryContainer + a 1.5dp primary
+        // border, matching the active-state visual on BottomBarTile / DisplaySection.
+        val chipColors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer
+        )
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             defs.forEach { (rawId, label) ->
                 val id = prefix + rawId
@@ -566,7 +576,14 @@ private fun FilterSection(state: CompareState, vm: UI2CompareViewModel) {
                     label = { Text(label) },
                     leadingIcon = {
                         Box(Modifier.size(10.dp).background(seriesColor(rawId, primary), CircleShape))
-                    }
+                    },
+                    colors = chipColors,
+                    border = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = on,
+                        selectedBorderColor = MaterialTheme.colorScheme.primary,
+                        selectedBorderWidth = 1.5.dp
+                    )
                 )
             }
         }
