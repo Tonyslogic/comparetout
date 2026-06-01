@@ -396,11 +396,16 @@ private fun DateNavRow(
         runCatching { LocalDate.parse(state.to, UI2GraphsViewModel.FMT).format(DISPLAY_FMT) }
             .getOrElse { state.to }
     }
+    // Chevrons get a wider hit area (height unchanged so the chart isn't
+    // squeezed). The narrow default kept catching the date-picker target.
+    val chevronModifier = Modifier.size(width = 72.dp, height = 48.dp)
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(onClick = { viewModel.stepBack() }) { Text("◀", fontSize = 18.sp) }
+        IconButton(onClick = { viewModel.stepBack() }, modifier = chevronModifier) {
+            Text("◀", fontSize = 18.sp)
+        }
         TextButton(onClick = onDateClick, modifier = Modifier.weight(1f)) {
             Text(
                 text = if (state.from == state.to) fromDisplay else "$fromDisplay – $toDisplay",
@@ -408,7 +413,9 @@ private fun DateNavRow(
                 textAlign = TextAlign.Center
             )
         }
-        IconButton(onClick = { viewModel.stepForward() }) { Text("▶", fontSize = 18.sp) }
+        IconButton(onClick = { viewModel.stepForward() }, modifier = chevronModifier) {
+            Text("▶", fontSize = 18.sp)
+        }
     }
 }
 
@@ -1146,25 +1153,52 @@ private fun DateRangePickerDialog(
     val fmt = UI2GraphsViewModel.FMT
     val initFrom = runCatching { LocalDate.parse(state.from, fmt) }.getOrElse { LocalDate.now().minusMonths(1) }
     val initTo   = runCatching { LocalDate.parse(state.to,   fmt) }.getOrElse { LocalDate.now() }
+    val dataStart = runCatching { LocalDate.parse(state.dataStartDate, fmt) }.getOrNull()
+    val dataEnd   = runCatching { LocalDate.parse(state.dataEndDate,   fmt) }.getOrNull()
 
     val selectableDates = remember(state.dataStartDate, state.dataEndDate) {
-        val startMs = runCatching { LocalDate.parse(state.dataStartDate, fmt).toEpochDay() * 86_400_000L }
-            .getOrElse { Long.MIN_VALUE }
-        val endMs = runCatching { LocalDate.parse(state.dataEndDate, fmt).toEpochDay() * 86_400_000L }
-            .getOrElse { Long.MAX_VALUE }
-        val startYr = runCatching { LocalDate.parse(state.dataStartDate, fmt).year }.getOrElse { 0 }
-        val endYr   = runCatching { LocalDate.parse(state.dataEndDate, fmt).year }.getOrElse { 9999 }
+        val startMs = dataStart?.let { it.toEpochDay() * 86_400_000L } ?: Long.MIN_VALUE
+        val endMs   = dataEnd?.let   { it.toEpochDay() * 86_400_000L } ?: Long.MAX_VALUE
+        val startYr = dataStart?.year ?: 0
+        val endYr   = dataEnd?.year   ?: 9999
         object : SelectableDates {
             override fun isSelectableDate(utcTimeMillis: Long) = utcTimeMillis in startMs..endMs
             override fun isSelectableYear(year: Int) = year in startYr..endYr
         }
     }
 
+    // Land on today's month if it overlaps the data range; otherwise the last
+    // month with data. Without this, M3 scrolls to the start of selection (or
+    // the start of the year range) — five years of data deep is annoying.
+    val displayMonth = remember(dataStart, dataEnd) {
+        val today = LocalDate.now()
+        when {
+            dataStart != null && dataEnd != null &&
+                !today.isBefore(dataStart.withDayOfMonth(1)) && !today.isAfter(dataEnd) -> today
+            dataEnd != null -> dataEnd
+            else -> today
+        }.withDayOfMonth(1)
+    }
+
     val pickerState = rememberDateRangePickerState(
         initialSelectedStartDateMillis = initFrom.toEpochDay() * 86_400_000L,
         initialSelectedEndDateMillis   = initTo.toEpochDay()   * 86_400_000L,
+        initialDisplayedMonthMillis    = displayMonth.toEpochDay() * 86_400_000L,
         selectableDates = selectableDates
     )
+
+    val pickedStart = pickerState.selectedStartDateMillis
+        ?.let { LocalDate.ofEpochDay(it / 86_400_000L) }
+    val pickedEnd = pickerState.selectedEndDateMillis
+        ?.let { LocalDate.ofEpochDay(it / 86_400_000L) }
+    val okLabel = when {
+        pickedStart != null && pickedEnd != null -> {
+            val days = (pickedEnd.toEpochDay() - pickedStart.toEpochDay()).toInt() + 1
+            "OK · $days day" + if (days == 1) "" else "s"
+        }
+        pickedStart != null -> "OK · 1 day"
+        else -> "OK"
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -1179,14 +1213,21 @@ private fun DateRangePickerDialog(
             DateRangePicker(state = pickerState, modifier = Modifier.height(480.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 TextButton(onClick = onDismiss) { Text("Cancel") }
-                TextButton(onClick = {
-                    val f = pickerState.selectedStartDateMillis
-                    val t = pickerState.selectedEndDateMillis
-                    if (f != null && t != null) onConfirm(
-                        LocalDate.ofEpochDay(f / 86_400_000L).format(fmt),
-                        LocalDate.ofEpochDay(t / 86_400_000L).format(fmt)
-                    ) else onDismiss()
-                }) { Text("OK") }
+                TextButton(
+                    onClick = {
+                        // Tap-one-date + OK is a single-day selection: M3's
+                        // DateRangePicker won't let the user tap the same day
+                        // twice to set start == end, so we synthesise it here.
+                        when {
+                            pickedStart != null && pickedEnd != null ->
+                                onConfirm(pickedStart.format(fmt), pickedEnd.format(fmt))
+                            pickedStart != null ->
+                                onConfirm(pickedStart.format(fmt), pickedStart.format(fmt))
+                            else -> onDismiss()
+                        }
+                    },
+                    enabled = pickedStart != null
+                ) { Text(okLabel) }
             }
         }
     }
