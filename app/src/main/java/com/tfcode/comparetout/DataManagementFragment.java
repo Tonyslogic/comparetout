@@ -95,9 +95,8 @@ public class DataManagementFragment extends Fragment {
         mHelpWindow = new PopupWindow(mPopupView, width, height, focusable);
 
         // Inflate the layout for this fragment
-        View view = inflater.inflate(R.layout.fragment_data_management, container, false);
-//        applyInsetsToView(R.id.tab_layout, EdgeInsets.Edge.TOP);
-        return view;
+        //        applyInsetsToView(R.id.tab_layout, EdgeInsets.Edge.TOP);
+        return inflater.inflate(R.layout.fragment_data_management, container, false);
     }
 
     @Override

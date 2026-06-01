@@ -20,10 +20,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
@@ -64,16 +64,29 @@ private val Y_AXIS_W = 40.dp   // left margin reserved for the value scale
 
 // ── value-axis helpers ──────────────────────────────────────────────────────
 
-/** Round a maximum up to a "nice" 1 / 2 / 5 × 10ⁿ value so ticks read cleanly. */
+/**
+ * Round a maximum up to a "nice" mantissa × 10ⁿ value so ticks read cleanly.
+ * The step set is finer than the classic 1/2/5 sequence so the headroom above
+ * the tallest bar stays modest (≤ ~25% in the worst case). This matters most
+ * in SPLIT layout, where every panel uses the largest subject's ceiling — the
+ * coarse 1/2/5 set made 110 round up to 200, leaving half the panel empty.
+ */
 private fun niceCeil(v: Double): Double {
     if (v <= 0.0) return 1.0
     val base = 10.0.pow(floor(log10(v)))
     val n = v / base
     val nice = when {
         n <= 1.0 -> 1.0
+        n <= 1.2 -> 1.2
+        n <= 1.5 -> 1.5
         n <= 2.0 -> 2.0
+        n <= 2.5 -> 2.5
+        n <= 3.0 -> 3.0
+        n <= 4.0 -> 4.0
         n <= 5.0 -> 5.0
-        else -> 10.0
+        n <= 6.0 -> 6.0
+        n <= 8.0 -> 8.0
+        else     -> 10.0
     }
     return nice * base
 }
@@ -91,17 +104,32 @@ fun axisNumber(v: Double): String {
     }
 }
 
-/** Draws gridlines + value labels for a 0..maxV scale, and the unit top-left. */
+/**
+ * Draws gridlines + value labels for a value scale, and the unit top-left.
+ *
+ * Default is a positive-only `0..posExtent` ladder (4 even steps). When
+ * [negExtent] > 0, the axis becomes signed: ticks at `+posExtent`, `+posExtent/2`,
+ * `0`, `-negExtent/2`, `-negExtent`, with zero placed where the renderer's
+ * baseline sits. Callers that need to draw bars/lines below zero share the
+ * same `zeroY` formula: `plotTop + plotH * (posExtent / (posExtent+negExtent))`.
+ */
 private fun DrawScope.drawValueAxis(
     measurer: TextMeasurer, labelColor: Color, gridColor: Color,
-    maxV: Double, unit: String, plotTop: Float, plotBottom: Float, axisW: Float
+    posExtent: Double, unit: String, plotTop: Float, plotBottom: Float, axisW: Float,
+    negExtent: Double = 0.0
 ) {
     val style = TextStyle(color = labelColor, fontSize = 9.sp)
-    val steps = 4
-    for (i in 0..steps) {
-        val frac = i / steps.toFloat()
-        val v = maxV * (1f - frac)
-        val y = plotTop + (plotBottom - plotTop) * frac
+    val span = max(posExtent + negExtent, 1e-6)
+    val plotH = plotBottom - plotTop
+    val zeroY = plotTop + plotH * (posExtent / span).toFloat()
+    val ticks = if (negExtent > 0.0) {
+        listOf(posExtent, posExtent / 2, 0.0, -negExtent / 2, -negExtent)
+    } else {
+        val steps = 4
+        (0..steps).map { i -> posExtent * (1.0 - i / steps.toDouble()) }
+    }
+    ticks.forEach { v ->
+        val y = zeroY - (v / span).toFloat() * plotH
         drawLine(gridColor, Offset(axisW, y), Offset(size.width, y), 1f)
         val layout = measurer.measure(axisNumber(v), style)
         drawText(layout, topLeft = Offset(
@@ -128,8 +156,16 @@ private fun DrawScope.drawAxisTick(
 }
 
 // ── grouped bar chart ───────────────────────────────────────────────────────
+// [yMax] / [yMin] override the y-axis ceiling/floor (raw, pre-niceCeil) derived
+// from the chart's own [data]. SPLIT layout passes the precomputed global
+// extents so every panel shares a scale. When the data (or the override) spans
+// negative values, the chart draws around a zero baseline rather than folding
+// signs with abs() — essential for "net cost" comparisons where credits exist.
 @Composable
-fun CompareBarChart(data: List<ChartDatum>, series: List<SeriesDef>, unit: String, height: Dp = 170.dp) {
+fun CompareBarChart(
+    data: List<ChartDatum>, series: List<SeriesDef>, unit: String,
+    height: Dp = 170.dp, yMax: Double? = null, yMin: Double? = null
+) {
     if (data.isEmpty() || series.isEmpty()) return
     // Bucketed path: one panel with N bucket groups, each group has the
     // (subject × series) bars. Entered when there's a non-trivial timeline
@@ -137,35 +173,50 @@ fun CompareBarChart(data: List<ChartDatum>, series: List<SeriesDef>, unit: Strin
     // subject view that stays readable: ≤2 series and aligned bucket counts
     // across subjects.
     if (barIsBucketed(data, series)) {
-        renderBucketedBars(data, series, unit, height)
+        RenderBucketedBars(data, series, unit, height, yMax, yMin)
         return
     }
-    renderTotalsBars(data, series, unit, height)
+    RenderTotalsBars(data, series, unit, height, yMax, yMin)
 }
 
 @Composable
-private fun renderTotalsBars(
-    data: List<ChartDatum>, series: List<SeriesDef>, unit: String, height: Dp
+private fun RenderTotalsBars(
+    data: List<ChartDatum>, series: List<SeriesDef>, unit: String, height: Dp,
+    yMax: Double? = null, yMin: Double? = null
 ) {
-    val maxV = niceCeil(data.maxOf { d -> series.maxOf { abs(d.values[it.id] ?: 0.0) } })
+    val dataMax = data.maxOf { d -> series.maxOf { d.values[it.id] ?: 0.0 } }
+    val dataMin = data.minOf { d -> series.minOf { d.values[it.id] ?: 0.0 } }
+    val rawPos = (yMax ?: dataMax).coerceAtLeast(0.0)
+    val rawNeg = -(yMin ?: dataMin).coerceAtMost(0.0)
+    val posExtent = if (rawPos > 0.0) niceCeil(rawPos) else if (rawNeg > 0.0) 0.0 else 1.0
+    val negExtent = if (rawNeg > 0.0) niceCeil(rawNeg) else 0.0
+    val span = max(posExtent + negExtent, 1e-6)
     val measurer = rememberTextMeasurer()
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
     val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+    val zeroLineColor = MaterialTheme.colorScheme.onSurface
     Column(Modifier.fillMaxWidth()) {
         Canvas(Modifier.fillMaxWidth().height(height)) {
             val axisW = Y_AXIS_W.toPx()
             val top = 14f
             val baseline = size.height - 4f
-            drawValueAxis(measurer, labelColor, gridColor, maxV, unit, top, baseline, axisW)
+            val plotH = baseline - top
+            val zeroY = top + plotH * (posExtent / span).toFloat()
+            drawValueAxis(measurer, labelColor, gridColor, posExtent, unit, top, baseline, axisW, negExtent)
+            if (negExtent > 0.0) {
+                drawLine(zeroLineColor.copy(alpha = 0.7f),
+                    Offset(axisW, zeroY), Offset(size.width, zeroY), 2f)
+            }
             val groupW = (size.width - axisW) / data.size
             val barGap = groupW * 0.12f
             val barW = (groupW - barGap * 2) / series.size
             data.forEachIndexed { gi, d ->
                 series.forEachIndexed { si, s ->
-                    val v = abs(d.values[s.id] ?: 0.0)
-                    val h = (v / maxV).toFloat() * (baseline - top)
+                    val v = d.values[s.id] ?: 0.0
+                    val h = (abs(v) / span).toFloat() * plotH
                     val x = axisW + gi * groupW + barGap + si * barW
-                    drawRect(s.color, Offset(x, baseline - h), Size(barW * 0.86f, h))
+                    val y = if (v >= 0.0) zeroY - h else zeroY
+                    drawRect(s.color, Offset(x, y), Size(barW * 0.86f, h))
                 }
             }
         }
@@ -183,28 +234,41 @@ private fun renderTotalsBars(
  * Tick labels are sampled from the longest subject's axisLabels.
  */
 @Composable
-private fun renderBucketedBars(
-    data: List<ChartDatum>, series: List<SeriesDef>, unit: String, height: Dp
+private fun RenderBucketedBars(
+    data: List<ChartDatum>, series: List<SeriesDef>, unit: String, height: Dp,
+    yMax: Double? = null, yMin: Double? = null
 ) {
     val colorMode = compareColorMode(data.size, series.size)
     val tickSource = data.maxByOrNull { it.axisLabels.size } ?: data.first()
     val n = tickSource.axisLabels.size
     if (n <= 0) return
-    val maxV = niceCeil(
-        data.flatMap { d ->
-            series.flatMap { s -> d.seriesValues[s.id] ?: emptyList() }
-        }.maxOfOrNull { abs(it) } ?: 1.0
-    )
+    val allVals = data.flatMap { d ->
+        series.flatMap { s -> d.seriesValues[s.id] ?: emptyList() }
+    }
+    val dataMax = allVals.maxOrNull() ?: 1.0
+    val dataMin = allVals.minOrNull() ?: 0.0
+    val rawPos = (yMax ?: dataMax).coerceAtLeast(0.0)
+    val rawNeg = -(yMin ?: dataMin).coerceAtMost(0.0)
+    val posExtent = if (rawPos > 0.0) niceCeil(rawPos) else if (rawNeg > 0.0) 0.0 else 1.0
+    val negExtent = if (rawNeg > 0.0) niceCeil(rawNeg) else 0.0
+    val span = max(posExtent + negExtent, 1e-6)
     val measurer = rememberTextMeasurer()
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
     val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+    val zeroLineColor = MaterialTheme.colorScheme.onSurface
     val ticks = sampleTickLabels(tickSource.axisLabels)
     Column(Modifier.fillMaxWidth()) {
         Canvas(Modifier.fillMaxWidth().height(height)) {
             val axisW = Y_AXIS_W.toPx()
             val top = 14f
             val baseline = size.height - 4f
-            drawValueAxis(measurer, labelColor, gridColor, maxV, unit, top, baseline, axisW)
+            val plotH = baseline - top
+            val zeroY = top + plotH * (posExtent / span).toFloat()
+            drawValueAxis(measurer, labelColor, gridColor, posExtent, unit, top, baseline, axisW, negExtent)
+            if (negExtent > 0.0) {
+                drawLine(zeroLineColor.copy(alpha = 0.7f),
+                    Offset(axisW, zeroY), Offset(size.width, zeroY), 2f)
+            }
             val plotW = size.width - axisW
             val groupW = plotW / n
             val gap = groupW * 0.12f
@@ -215,12 +279,12 @@ private fun renderBucketedBars(
                 data.forEachIndexed { di, d ->
                     series.forEachIndexed { si, s ->
                         val pts = d.seriesValues[s.id] ?: return@forEachIndexed
-                        val v = abs(pts.getOrNull(bi) ?: 0.0)
-                        val h = (v / maxV).toFloat() * (baseline - top)
+                        val v = pts.getOrNull(bi) ?: 0.0
+                        val h = (abs(v) / span).toFloat() * plotH
                         val color = compareEncodedColor(colorMode, di, s, si, series.size)
                         val x = axisW + bi * groupW + gap + slot * barW
-                        drawRect(color, Offset(x, baseline - h),
-                            Size(barW * 0.86f, h))
+                        val y = if (v >= 0.0) zeroY - h else zeroY
+                        drawRect(color, Offset(x, y), Size(barW * 0.86f, h))
                         slot++
                     }
                 }
@@ -239,9 +303,12 @@ private fun renderBucketedBars(
 
 // ── stacked bar chart ───────────────────────────────────────────────────────
 @Composable
-fun CompareStackChart(data: List<ChartDatum>, series: List<SeriesDef>, unit: String, height: Dp = 170.dp) {
+fun CompareStackChart(
+    data: List<ChartDatum>, series: List<SeriesDef>, unit: String,
+    height: Dp = 170.dp, yMax: Double? = null
+) {
     if (data.isEmpty() || series.isEmpty()) return
-    val maxV = niceCeil(data.maxOf { d -> series.sumOf { abs(d.values[it.id] ?: 0.0) } })
+    val maxV = niceCeil(yMax ?: data.maxOf { d -> series.sumOf { abs(d.values[it.id] ?: 0.0) } })
     val measurer = rememberTextMeasurer()
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
     val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
@@ -326,14 +393,22 @@ private fun sampleTickLabels(labels: List<String>, target: Int = 6): List<String
 @Composable
 fun CompareLineChart(
     data: List<ChartDatum>, series: List<SeriesDef>, area: Boolean,
-    unit: String, height: Dp = 170.dp
+    unit: String, height: Dp = 170.dp, yMax: Double? = null, yMin: Double? = null
 ) {
     val lines = buildCompareLines(data, series)
     if (lines.isEmpty()) return
-    val maxV = niceCeil(lines.flatMap { it.points }.maxOfOrNull { abs(it) } ?: 1.0)
+    val allPts = lines.flatMap { it.points }
+    val dataMax = allPts.maxOrNull() ?: 1.0
+    val dataMin = allPts.minOrNull() ?: 0.0
+    val rawPos = (yMax ?: dataMax).coerceAtLeast(0.0)
+    val rawNeg = -(yMin ?: dataMin).coerceAtMost(0.0)
+    val posExtent = if (rawPos > 0.0) niceCeil(rawPos) else if (rawNeg > 0.0) 0.0 else 1.0
+    val negExtent = if (rawNeg > 0.0) niceCeil(rawNeg) else 0.0
+    val span = max(posExtent + negExtent, 1e-6)
     val measurer = rememberTextMeasurer()
     val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
     val gridColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f)
+    val zeroLineColor = MaterialTheme.colorScheme.onSurface
     // Tick labels come from the longest line (most buckets) so the densest
     // axis wins — shorter lines stay readable, denser lines aren't truncated.
     val tickSource = lines.maxByOrNull { it.axisLabels.size } ?: lines.first()
@@ -343,7 +418,13 @@ fun CompareLineChart(
             val axisW = Y_AXIS_W.toPx()
             val top = 14f
             val bottom = size.height - 4f
-            drawValueAxis(measurer, labelColor, gridColor, maxV, unit, top, bottom, axisW)
+            val plotH = bottom - top
+            val zeroY = top + plotH * (posExtent / span).toFloat()
+            drawValueAxis(measurer, labelColor, gridColor, posExtent, unit, top, bottom, axisW, negExtent)
+            if (negExtent > 0.0) {
+                drawLine(zeroLineColor.copy(alpha = 0.7f),
+                    Offset(axisW, zeroY), Offset(size.width, zeroY), 2f)
+            }
             val plotW = size.width - axisW
             lines.forEach { line ->
                 val n = line.points.size
@@ -353,14 +434,16 @@ fun CompareLineChart(
                 line.points.forEachIndexed { i, v ->
                     val x = if (n == 1) axisW + plotW / 2f
                             else axisW + plotW * i / denom
-                    val y = top + (bottom - top) * (1f - (abs(v) / maxV).toFloat())
+                    val y = zeroY - (v / span).toFloat() * plotH
                     if (i == 0) path.moveTo(x, y) else path.lineTo(x, y)
                 }
                 if (area) {
+                    // Fill between the line and the zero baseline (which may sit
+                    // inside the plot when the data spans negatives).
                     val fill = Path()
                     fill.addPath(path)
-                    fill.lineTo(size.width, bottom)
-                    fill.lineTo(axisW, bottom)
+                    fill.lineTo(size.width, zeroY)
+                    fill.lineTo(axisW, zeroY)
                     fill.close()
                     drawPath(fill, line.color.copy(alpha = 0.22f))
                 }
@@ -403,15 +486,18 @@ data class CostBar(
  * Buy bands share one colour and are told apart by hatch pattern.
  */
 @Composable
-fun CompareCostStackChart(bars: List<CostBar>, unit: String, height: Dp = 170.dp) {
+fun CompareCostStackChart(
+    bars: List<CostBar>, unit: String, height: Dp = 170.dp,
+    posExtent: Double? = null, negExtent: Double? = null
+) {
     if (bars.isEmpty()) return
     val maxPos = bars.maxOf { b -> b.positives.sumOf { it.value } }
     val maxNeg = bars.maxOf { b -> b.negatives.sumOf { it.value } }
     // include the net markers so they stay on-screen even with no bands selected
-    val posExtent = niceCeil(max(maxPos, bars.maxOf { it.net }.coerceAtLeast(0.0)))
-    val negExtent = max(maxNeg, (-bars.minOf { it.net }).coerceAtLeast(0.0))
+    val pos = posExtent ?: niceCeil(max(maxPos, bars.maxOf { it.net }.coerceAtLeast(0.0)))
+    val neg = negExtent ?: max(maxNeg, (-bars.minOf { it.net }).coerceAtLeast(0.0))
         .let { if (it <= 0.0) 0.0 else niceCeil(it) }
-    val span = max(posExtent + negExtent, 1e-6)
+    val span = max(pos + neg, 1e-6)
     val netColor = MaterialTheme.colorScheme.primary
     val zeroColor = MaterialTheme.colorScheme.onSurface
     val measurer = rememberTextMeasurer()
@@ -422,10 +508,10 @@ fun CompareCostStackChart(bars: List<CostBar>, unit: String, height: Dp = 170.dp
             val axisW = Y_AXIS_W.toPx()
             val pad = 14f
             val innerH = size.height - pad * 2
-            val zeroY = pad + innerH * (posExtent / span).toFloat()
+            val zeroY = pad + innerH * (pos / span).toFloat()
             val axisStyle = TextStyle(color = labelColor, fontSize = 9.sp)
             // value scale: top, mid-positive, zero, mid-negative, bottom
-            listOf(posExtent, posExtent / 2, 0.0, -negExtent / 2, -negExtent).forEach { v ->
+            listOf(pos, pos / 2, 0.0, -neg / 2, -neg).forEach { v ->
                 val y = zeroY - (v / span).toFloat() * innerH
                 drawAxisTick(measurer, axisStyle, gridColor, axisNumber(v), y, axisW)
             }
@@ -492,7 +578,7 @@ private fun DrawScope.drawHatchSegment(
                     o += gap
                 }
             }
-            BandPattern.SOLID -> {}
+            else -> {}
         }
     }
     drawRect(color, Offset(x, y), Size(w, h), style = Stroke(width = 1.5f))
@@ -646,7 +732,7 @@ private fun DrawScope.drawHatchArc(
                     o += gap
                 }
             }
-            BandPattern.SOLID -> {}
+            else -> {}
         }
     }
     // Outline so adjacent same-colour wedges remain visible.
@@ -708,7 +794,7 @@ private fun PieSwatch(color: Color, pattern: BandPattern) {
                         o += gap
                     }
                 }
-                BandPattern.SOLID -> {}
+                else -> {}
             }
         }
         drawRect(color, style = Stroke(width = 1f))
@@ -816,4 +902,47 @@ fun barIsBucketed(data: List<ChartDatum>, series: List<SeriesDef>): Boolean {
     val firstN = data.firstOrNull()?.axisLabels?.size ?: 0
     val sameN = firstN > 1 && data.all { it.axisLabels.size == firstN }
     return sameN && (data.size == 1 || series.size <= 2)
+}
+
+// ── shared-axis helpers (used by SPLIT layout to align y-scales) ────────────
+// Bar/line return the raw signed range (posMax, negMin) the chart would compute
+// from its own data; the renderer applies niceCeil. Stack stays positive-only
+// because the chart itself is positive-only (cost STACK goes to CompareCostStackChart).
+
+fun compareBarYRange(data: List<ChartDatum>, series: List<SeriesDef>): Pair<Double, Double> {
+    if (data.isEmpty() || series.isEmpty()) return 1.0 to 0.0
+    // In split, each panel calls the renderer with a single subject. Mirror that
+    // when deciding which path's range applies, so the override matches what
+    // each panel actually plots.
+    val bucketed = data.all { barIsBucketed(listOf(it), series) }
+    return if (bucketed) {
+        val vals = data.flatMap { d -> series.mapNotNull { d.seriesValues[it.id] }.flatten() }
+        (vals.maxOrNull() ?: 1.0) to (vals.minOrNull() ?: 0.0)
+    } else {
+        val hi = data.maxOf { d -> series.maxOf { d.values[it.id] ?: 0.0 } }
+        val lo = data.minOf { d -> series.minOf { d.values[it.id] ?: 0.0 } }
+        hi to lo
+    }
+}
+
+fun compareStackYMax(data: List<ChartDatum>, series: List<SeriesDef>): Double {
+    if (data.isEmpty() || series.isEmpty()) return 1.0
+    return data.maxOf { d -> series.sumOf { abs(d.values[it.id] ?: 0.0) } }
+}
+
+fun compareLineYRange(data: List<ChartDatum>, series: List<SeriesDef>): Pair<Double, Double> {
+    val lines = buildCompareLines(data, series)
+    val pts = lines.flatMap { it.points }
+    return (pts.maxOrNull() ?: 1.0) to (pts.minOrNull() ?: 0.0)
+}
+
+/** niceCeil'd positive and negative extents the cost stack would use across [bars]. */
+fun compareCostStackExtents(bars: List<CostBar>): Pair<Double, Double> {
+    if (bars.isEmpty()) return 0.0 to 0.0
+    val maxPos = bars.maxOf { b -> b.positives.sumOf { it.value } }
+    val maxNeg = bars.maxOf { b -> b.negatives.sumOf { it.value } }
+    val pos = niceCeil(max(maxPos, bars.maxOf { it.net }.coerceAtLeast(0.0)))
+    val neg = max(maxNeg, (-bars.minOf { it.net }).coerceAtLeast(0.0))
+        .let { if (it <= 0.0) 0.0 else niceCeil(it) }
+    return pos to neg
 }

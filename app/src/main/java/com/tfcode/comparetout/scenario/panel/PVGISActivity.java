@@ -57,7 +57,6 @@ import androidx.appcompat.app.ActionBar;
 import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.core.content.ContextCompat;
-
 import androidx.lifecycle.ViewModelProvider;
 import androidx.webkit.WebViewAssetLoader;
 import androidx.work.WorkInfo;

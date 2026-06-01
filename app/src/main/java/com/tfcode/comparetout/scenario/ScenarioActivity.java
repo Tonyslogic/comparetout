@@ -21,8 +21,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Color;
-import android.graphics.PorterDuffColorFilter;
 import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -53,10 +53,10 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
-import com.tfcode.comparetout.util.EdgeInsets;
-import com.tfcode.comparetout.util.GraphableActivity;
 import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
+import com.tfcode.comparetout.util.EdgeInsets;
+import com.tfcode.comparetout.util.GraphableActivity;
 import com.tfcode.comparetout.util.InsetRespectingActivity;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
@@ -349,6 +349,7 @@ public class ScenarioActivity extends InsetRespectingActivity implements Graphab
         return mEdit;
     }
 
+    @SuppressWarnings("BooleanMethodIsAlwaysInverted")
     public boolean isSimulationInProgress() {
         return mSimulationInProgress;
     }

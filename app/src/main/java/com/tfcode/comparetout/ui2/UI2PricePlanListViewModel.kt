@@ -56,7 +56,7 @@ class UI2PricePlanListViewModel @Inject constructor(
     init {
         viewModelScope.launch(Dispatchers.IO) { favouriteStore.ensureLoaded() }
         viewModelScope.launch(Dispatchers.Main) {
-            repository.getAllPricePlans().asFlow().collect { map: Map<PricePlan, List<DayRate>>? ->
+            repository.allPricePlans.asFlow().collect { map: Map<PricePlan, List<DayRate>>? ->
                 val entries = map ?: emptyMap()
                 _rows.value = entries.entries.map { (plan, drs) ->
                     PricePlanListRow(
@@ -84,6 +84,12 @@ class UI2PricePlanListViewModel @Inject constructor(
 
     fun delete(planId: Long) {
         viewModelScope.launch(Dispatchers.IO) {
+            // Clear costings that reference this plan FIRST. Without this the
+            // costings rows linger as orphans until CostingWorker or
+            // ComparisonUIViewModel runs `pruneCostings()` — the Compare tab
+            // can show ghost rows for a deleted plan in the meantime. Legacy
+            // PricePlanNavFragment did the same explicit pre-delete.
+            repository.deleteRelatedCostings(planId.toInt())
             repository.deletePricePlan(planId.toInt())
             // The reconcile in the rows-collect coroutine will clear the favourite
             // automatically next time the LiveData emits, but do it eagerly so the
@@ -99,7 +105,7 @@ class UI2PricePlanListViewModel @Inject constructor(
      * shared file can be re-imported by either UI without special handling.
      */
     suspend fun buildPlanJson(planId: Long): String? = withContext(Dispatchers.IO) {
-        val all = repository.getAllPricePlansForExport() ?: return@withContext null
+        val all = repository.allPricePlansForExport ?: return@withContext null
         val entry = all.entries.firstOrNull { it.key.pricePlanIndex == planId }
             ?: return@withContext null
         JsonTools.createPricePlanJson(mapOf(entry.key to entry.value))

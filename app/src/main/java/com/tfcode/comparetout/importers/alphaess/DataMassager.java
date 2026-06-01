@@ -100,12 +100,12 @@ public class DataMassager {
         return massaged;
     }
 
-    static class DataPoint {
-        double ppv;
-        double load;
-        double feed;
-        double buy;
-        long timestamp; // Assuming timestamps are in milliseconds
+    public static class DataPoint {
+        final double ppv;
+        final double load;
+        final double feed;
+        final double buy;
+        final long timestamp; // Assuming timestamps are in milliseconds
 
         public DataPoint(double ppv, double load, double feed, double buy, long timestamp) {
             this.ppv = ppv;

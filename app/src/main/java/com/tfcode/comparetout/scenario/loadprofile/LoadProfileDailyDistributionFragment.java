@@ -110,14 +110,6 @@ public class LoadProfileDailyDistributionFragment extends Fragment {
         if (!(null == mBarChart) && !(null == mLoadProfile)) updateView();
     }
 
-    @SuppressLint("SourceLockedOrientationActivity")
-    @Override
-    public void onResume() {
-        super.onResume();
-//        if (!(null == getActivity()))
-//            getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
-    }
-
     @SuppressLint("DefaultLocale")
     private void updateView() {
         if (!mEdit) {

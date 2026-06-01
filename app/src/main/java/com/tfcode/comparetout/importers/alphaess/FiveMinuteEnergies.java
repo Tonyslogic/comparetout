@@ -17,11 +17,11 @@
 package com.tfcode.comparetout.importers.alphaess;
 
 public class FiveMinuteEnergies {
-    public Double pv;
-    public Double load;
-    public Double feed;
-    public Double buy;
-    public Double charge;
+    public final Double pv;
+    public final Double load;
+    public final Double feed;
+    public final Double buy;
+    public final Double charge;
 
     public FiveMinuteEnergies(Double pv, Double load, Double feed, Double buy) {
         this.pv = (pv.isNaN()) ? 0d : pv;

@@ -1,3 +1,5 @@
+@file:Suppress("AssignedValueIsNeverRead")
+
 package com.tfcode.comparetout.ui2
 
 import android.content.res.Configuration
@@ -29,9 +31,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Check
@@ -40,20 +46,15 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.PieChart
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material.icons.filled.TableChart
 import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material.icons.filled.ViewModule
 import androidx.compose.material.icons.outlined.StackedBarChart
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -62,12 +63,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -77,16 +78,20 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -520,7 +525,7 @@ private fun SelectRow(title: String, count: Int, onTap: () -> Unit) {
         modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable { onTap() }
     ) {
         Row(Modifier.padding(11.dp), verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.List, contentDescription = null, modifier = Modifier.size(22.dp),
+            Icon(Icons.AutoMirrored.Filled.List, contentDescription = null, modifier = Modifier.size(22.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.width(12.dp))
             Text(title, Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
@@ -535,7 +540,7 @@ private fun SelectRow(title: String, count: Int, onTap: () -> Unit) {
                     color = if (count > 0) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            Icon(Icons.Default.KeyboardArrowRight, contentDescription = null)
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null)
         }
     }
 }
@@ -594,7 +599,7 @@ private fun TimeframeSection(
     novice: Boolean,
     selectedSubjects: List<Pair<String, String>>
 ) {
-    TabRow(selectedTabIndex = if (state.advanced) 1 else 0) {
+    PrimaryTabRow(selectedTabIndex = if (state.advanced) 1 else 0) {
         Tab(selected = !state.advanced, onClick = { vm.update { it.copy(advanced = false) } },
             text = { Text("Basic") })
         Tab(selected = state.advanced, onClick = { vm.update { it.copy(advanced = true) } },
@@ -689,7 +694,7 @@ private fun RangePicker(
 ) {
     SmallCaps(label)
     Row(verticalAlignment = Alignment.CenterVertically) {
-        DataSourcePeriod.values().forEach { p ->
+        DataSourcePeriod.entries.forEach { p ->
             FilterChip(
                 selected = gran == p,
                 onClick = { onGran(if (gran == p) null else p) },
@@ -701,14 +706,14 @@ private fun RangePicker(
     if (gran != null && gran != DataSourcePeriod.ALL) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { onAnchor(stepAnchorBy(anchor, gran, -1)) }) {
-                Icon(Icons.Default.KeyboardArrowLeft, contentDescription = "Earlier")
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Earlier")
             }
             Text(rangeLabel(gran, anchor, advanced),
                 modifier = Modifier.weight(1f), textAlign = TextAlign.Center,
                 maxLines = 1, overflow = TextOverflow.Ellipsis,
                 style = MaterialTheme.typography.bodyMedium)
             IconButton(onClick = { onAnchor(stepAnchorBy(anchor, gran, 1)) }) {
-                Icon(Icons.Default.KeyboardArrowRight, contentDescription = "Later")
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Later")
             }
         }
     }
@@ -756,13 +761,13 @@ private fun compareModeIcon(m: CompareMode): ImageVector = when (m) {
     CompareMode.TABLE -> Icons.Default.TableChart
     CompareMode.BAR   -> Icons.Default.BarChart
     CompareMode.STACK -> Icons.Outlined.StackedBarChart
-    CompareMode.LINE  -> Icons.Default.ShowChart
+    CompareMode.LINE  -> Icons.AutoMirrored.Filled.ShowChart
     CompareMode.AREA  -> Icons.Default.Timeline
     CompareMode.PIE   -> Icons.Default.PieChart
 }
 
 private fun compareLayoutIcon(l: CompareLayout): ImageVector = when (l) {
-    CompareLayout.MERGED -> Icons.Default.ShowChart
+    CompareLayout.MERGED -> Icons.AutoMirrored.Filled.ShowChart
     CompareLayout.SPLIT  -> Icons.Default.ViewModule
 }
 
@@ -771,7 +776,7 @@ private fun DisplaySection(state: CompareState, vm: UI2CompareViewModel, novice:
     SmallCaps("Chart style")
     if (novice) {
         // Novice: icons + text, 3 per row so labels stay readable.
-        CompareMode.values().toList().chunked(3).forEach { row ->
+        CompareMode.entries.chunked(3).forEach { row ->
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 row.forEach { mode ->
                     val active = state.mode == mode
@@ -806,7 +811,7 @@ private fun DisplaySection(state: CompareState, vm: UI2CompareViewModel, novice:
     } else {
         // Compact: one row of icon-only chips so the picker doesn't dominate.
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            CompareMode.values().forEach { mode ->
+            CompareMode.entries.forEach { mode ->
                 val active = state.mode == mode
                 Surface(
                     color = if (active) MaterialTheme.colorScheme.primaryContainer
@@ -1193,6 +1198,8 @@ private fun CostStackArea(
     layout: CompareLayout, bars: List<CostBar>, series: List<SeriesDef>, explanation: String?
 ) {
     if (layout == CompareLayout.SPLIT && bars.size > 1) {
+        // Share the signed y-axis (positive + negative extent) across panels.
+        val (sharedPos, sharedNeg) = compareCostStackExtents(bars)
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             bars.chunked(2).forEach { rowItems ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1204,7 +1211,10 @@ private fun CostStackArea(
                         ) {
                             Box(Modifier.padding(8.dp)) {
                                 ZoomableChart(bar.title, series.map { it.color to it.label }, explanation) { h ->
-                                    CompareCostStackChart(listOf(bar), "€", h)
+                                    CompareCostStackChart(
+                                        listOf(bar), "€", h,
+                                        posExtent = sharedPos, negExtent = sharedNeg
+                                    )
                                 }
                             }
                         }
@@ -1374,12 +1384,32 @@ private fun ChartArea(
     state: CompareState, metricLabel: String,
     data: List<ChartDatum>, series: List<SeriesDef>, explanation: String?, unit: String
 ) {
+    // In SPLIT layout, every panel must share the same y-axis (both ceiling
+    // and floor) so a taller subject — or a credit-bearing one — can be
+    // compared at a glance. Compute once across the full data set; charts
+    // apply niceCeil themselves.
+    val splitting = state.layout == CompareLayout.SPLIT && data.size > 1
+    val sharedBarRange = if (splitting && state.mode == CompareMode.BAR)
+        compareBarYRange(data, series) else null
+    val sharedLineRange = if (splitting && (state.mode == CompareMode.LINE || state.mode == CompareMode.AREA))
+        compareLineYRange(data, series) else null
+    val sharedStackMax = if (splitting && state.mode == CompareMode.STACK)
+        compareStackYMax(data, series) else null
     val render: @Composable (List<ChartDatum>, Dp) -> Unit = { d, h ->
         when (state.mode) {
-            CompareMode.BAR -> CompareBarChart(d, series, unit, h)
-            CompareMode.STACK -> CompareStackChart(d, series, unit, h)
-            CompareMode.LINE -> CompareLineChart(d, series, area = false, unit = unit, height = h)
-            CompareMode.AREA -> CompareLineChart(d, series, area = true, unit = unit, height = h)
+            CompareMode.BAR -> CompareBarChart(
+                d, series, unit, h,
+                yMax = sharedBarRange?.first, yMin = sharedBarRange?.second
+            )
+            CompareMode.STACK -> CompareStackChart(d, series, unit, h, yMax = sharedStackMax)
+            CompareMode.LINE -> CompareLineChart(
+                d, series, area = false, unit = unit, height = h,
+                yMax = sharedLineRange?.first, yMin = sharedLineRange?.second
+            )
+            CompareMode.AREA -> CompareLineChart(
+                d, series, area = true, unit = unit, height = h,
+                yMax = sharedLineRange?.first, yMin = sharedLineRange?.second
+            )
             else -> {}
         }
     }
@@ -1448,8 +1478,10 @@ private fun ChartPopout(
 ) {
     val cfg = LocalConfiguration.current
     val landscape = cfg.orientation == Configuration.ORIENTATION_LANDSCAPE
-    val popW = cfg.screenWidthDp.dp
-    val popH = (cfg.screenHeightDp * 0.8f).dp
+    val containerSize = LocalWindowInfo.current.containerSize
+    val density = LocalDensity.current
+    val popW = with(density) { containerSize.width.toDp() }
+    val popH = with(density) { (containerSize.height * 0.8f).toDp() }
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -1546,7 +1578,7 @@ private fun ResultTable(
     rows: List<List<Cell>>,
     defaultSort: Int
 ) {
-    var sortCol by remember { mutableStateOf(defaultSort) }
+    var sortCol by remember { mutableIntStateOf(defaultSort) }
     var ascending by remember { mutableStateOf(true) }
     val sorted = remember(rows, sortCol, ascending) {
         val numeric = headers.getOrNull(sortCol)?.second ?: true
@@ -1556,7 +1588,7 @@ private fun ResultTable(
         }
         rows.sortedWith(if (ascending) cmp else cmp.reversed())
     }
-    val weights = headers.mapIndexed { i, _ -> if (i == 0) 1.6f else 1f }
+    val weights = List(headers.size) { i -> if (i == 0) 1.6f else 1f }
 
     Column {
         Row(Modifier.fillMaxWidth()

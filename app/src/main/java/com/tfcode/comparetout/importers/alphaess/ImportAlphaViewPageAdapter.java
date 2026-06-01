@@ -24,10 +24,10 @@ import androidx.viewpager2.adapter.FragmentStateAdapter;
 import com.tfcode.comparetout.util.GraphableActivity;
 
 public class ImportAlphaViewPageAdapter  extends FragmentStateAdapter  implements GraphableActivity {
-    ImportAlphaOverview mAlphaOverview = ImportAlphaOverview.newInstance();
-    ImportAlphaGraphs mAlphaGraphs = ImportAlphaGraphs.newInstance();
-    ImportAlphaKeyStats mAlphaKeys = ImportAlphaKeyStats.newInstance();
-    ImportAlphaGenerateScenario mAlphaGenerate = ImportAlphaGenerateScenario.newInstance();
+    final ImportAlphaOverview mAlphaOverview = ImportAlphaOverview.newInstance();
+    final ImportAlphaGraphs mAlphaGraphs = ImportAlphaGraphs.newInstance();
+    final ImportAlphaKeyStats mAlphaKeys = ImportAlphaKeyStats.newInstance();
+    final ImportAlphaGenerateScenario mAlphaGenerate = ImportAlphaGenerateScenario.newInstance();
 
     public ImportAlphaViewPageAdapter(@NonNull FragmentActivity fragmentActivity, int ignoredCount) {
         super(fragmentActivity);

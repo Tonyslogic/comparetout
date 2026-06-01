@@ -24,9 +24,7 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.app.TaskStackBuilder;
 import android.content.Context;
-import android.content.Intent;
 import android.os.Handler;
 import android.os.Looper;
 
@@ -44,7 +42,6 @@ import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.TOUTCApplication;
-import com.tfcode.comparetout.ui2.UI2NotificationLaunch;
 import com.tfcode.comparetout.importers.homeassistant.messages.HAMessage;
 import com.tfcode.comparetout.importers.homeassistant.messages.StatsForPeriodRequest;
 import com.tfcode.comparetout.importers.homeassistant.messages.authorization.AuthInvalid;
@@ -52,6 +49,7 @@ import com.tfcode.comparetout.importers.homeassistant.messages.authorization.Aut
 import com.tfcode.comparetout.importers.homeassistant.messages.statsForPeriodResult.StatsForPeriodResult;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
+import com.tfcode.comparetout.ui2.UI2NotificationLaunch;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -86,7 +84,7 @@ public class HACatchupWorker extends Worker {
 
     private final Object lock = new Object();
 
-    Context mContext;
+    final Context mContext;
     Handler mHandler;
     private final ToutcRepository mToutcRepository;
 
@@ -174,7 +172,7 @@ public class HACatchupWorker extends Worker {
                 mToutcRepository.addTransformedData(dbRows);
                 updateBatteryCapacities(result);
                 Long anyDate = null;
-                if (!pivotedResult.keySet().isEmpty()) {
+                if (!pivotedResult.isEmpty()) {
                     anyDate = pivotedResult.keySet().iterator().next();
                 }
 

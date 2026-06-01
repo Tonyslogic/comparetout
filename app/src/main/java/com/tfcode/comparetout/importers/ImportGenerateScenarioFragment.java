@@ -147,9 +147,12 @@ public abstract class ImportGenerateScenarioFragment extends Fragment {
             mFrom = savedInstanceState.getString(FROM);
             mTo = savedInstanceState.getString(TO);
             mDatesOK = savedInstanceState.getBoolean(OK_DATES);
-            mStringPanelCount = Arrays.stream(savedInstanceState.getString(PANEL_COUNTS).split(","))
-                    .map(Integer::parseInt)
-                    .collect(Collectors.toList());
+            String panelCountsCsv = savedInstanceState.getString(PANEL_COUNTS);
+            mStringPanelCount = panelCountsCsv == null
+                    ? new ArrayList<>()
+                    : Arrays.stream(panelCountsCsv.split(","))
+                            .map(Integer::parseInt)
+                            .collect(Collectors.toList());
         }
         if (null == mSystemSN)
             mSystemSN = ((GraphableActivity) requireActivity()).getSelectedSystemSN();

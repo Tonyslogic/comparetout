@@ -16,7 +16,7 @@
 
 package com.tfcode.comparetout.model.json;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -28,7 +28,6 @@ import org.junit.Test;
 
 import java.io.IOException;
 import java.lang.reflect.Type;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;

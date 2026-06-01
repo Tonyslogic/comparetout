@@ -39,23 +39,23 @@ import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.IvParameterSpec;
 
-import io.reactivex.rxjava3.core.Single;
 import dagger.hilt.android.HiltAndroidApp;
+import io.reactivex.rxjava3.core.Single;
 
 /**
  * Main Application class for the TOUTC (Time of Use Tariff Comparison) application.
- * 
+ * <p>
  * This class extends Android's Application class and serves as the global application context,
  * providing essential services for the entire application lifecycle. It manages secure data
  * storage using Android DataStore with RxJava for reactive operations, and implements
  * hardware-backed encryption using the Android Keystore system for sensitive data protection.
- * 
+ * <p>
  * Key responsibilities:
  * - Initialize the application-wide DataStore for persistent settings
  * - Provide secure encryption/decryption services for sensitive data like API keys
  * - Manage application-level constants and shared resources
  * - Coordinate between the Android Keystore system and application data storage
- * 
+ * <p>
  * The encryption functionality uses AES-256 with CBC mode and PKCS7 padding, with keys
  * stored in the Android hardware security module when available, providing protection
  * against key extraction even on rooted devices.
@@ -71,7 +71,7 @@ public class TOUTCApplication extends Application {
 
     /**
      * Initialize the application and set up core services.
-     * 
+     * <p>
      * Creates the RxDataStore instance for reactive preference management.
      * This DataStore provides thread-safe, asynchronous storage for application
      * settings and user preferences using Protocol Buffers serialization.
@@ -84,7 +84,7 @@ public class TOUTCApplication extends Application {
 
     /**
      * Generate a new AES encryption key in the Android Keystore.
-     * 
+     * <p>
      * Creates a hardware-backed AES key with 256-bit strength using CBC mode
      * and PKCS7 padding. The key is stored in the Android Keystore system,
      * which provides hardware-level security on supported devices by storing
@@ -109,28 +109,13 @@ public class TOUTCApplication extends Application {
     }
 
     /**
-     * Delete the encryption key from the Android Keystore.
-     * 
-     * Permanently removes the application's encryption key, effectively
-     * making any previously encrypted data unrecoverable. This is typically
-     * used during application reset or when changing security contexts.
-     * 
-     * @throws Exception if key deletion fails or keystore is inaccessible
-     */
-    public static void deleteKey() throws Exception {
-        KeyStore keyStore = KeyStore.getInstance(ANDROID_KEYSTORE);
-        keyStore.load(null);
-        keyStore.deleteEntry(KEY_ALIAS);
-    }
-
-    /**
      * Encrypt a plaintext string using the application's keystore-backed key.
-     * 
+     * <p>
      * Uses AES encryption in CBC mode with PKCS7 padding to encrypt sensitive
      * data such as API keys or tokens. The initialization vector (IV) is
      * automatically generated and prepended to the encrypted data to ensure
      * that identical plaintexts produce different ciphertexts.
-     * 
+     * <p>
      * The method automatically generates a new key if one doesn't exist,
      * ensuring transparent key management for the application.
      * 
@@ -166,7 +151,7 @@ public class TOUTCApplication extends Application {
 
     /**
      * Decrypt a previously encrypted string using the application's keystore key.
-     * 
+     * <p>
      * Decrypts Base64-encoded data that was encrypted with encryptString().
      * The method extracts the initialization vector from the beginning of
      * the encrypted data and uses it to properly decrypt the remainder.
@@ -201,13 +186,13 @@ public class TOUTCApplication extends Application {
 
     /**
      * Error fallback Preferences instance for DataStore operations.
-     * 
+     * <p>
      * This instance is returned when DataStore operations fail, providing
      * a safe fallback that prevents application crashes. All methods return
      * null or empty values, allowing the application to continue functioning
      * with default behaviors when preference storage is unavailable.
      */
-    Preferences pref_error = new Preferences() {
+    final Preferences pref_error = new Preferences() {
         @Nullable
         @Override
         public <T> T get(@NonNull Key<T> key) {
@@ -228,7 +213,7 @@ public class TOUTCApplication extends Application {
 
     /**
      * Store a string value in the DataStore with error handling.
-     * 
+     * <p>
      * Provides a synchronous interface to the asynchronous DataStore system
      * for simple string value storage. Uses RxJava's blocking operations
      * to wait for the update completion while providing error recovery
@@ -254,7 +239,7 @@ public class TOUTCApplication extends Application {
 
     /**
      * Read a string value previously stored with putStringValueIntoDataStore().
-     *
+     * <p>
      * Blocks on the asynchronous DataStore using RxJava, returning an empty
      * string when the key is absent or the read fails.
      *

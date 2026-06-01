@@ -23,19 +23,20 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
+@SuppressWarnings("unused")
 public class RepairStatForTimeRequest extends HAMessageWithID {
 
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
     private static final ZoneId zoneId = ZoneId.systemDefault();
 
     @SerializedName("statistic_id")
-    private String statistic_id;
+    private final String statistic_id;
     @SerializedName("start_time")
-    private String start_time;
+    private final String start_time;
     @SerializedName("adjustment")
-    private double adjustment;
+    private final double adjustment;
     @SerializedName("adjustment_unit_of_measurement")
-    private String adjustment_unit_of_measurement = "kWh";
+    private final String adjustment_unit_of_measurement = "kWh";
 
     public RepairStatForTimeRequest(String stat, LocalDateTime time, double adjustment) {
         setType("recorder/recorder/adjust_sum_statistics");

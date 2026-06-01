@@ -1,5 +1,5 @@
-@file:OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
-@file:Suppress("MissingPermission")
+@file:OptIn(ExperimentalLayoutApi::class)
+@file:Suppress("MissingPermission", "AssignedValueIsNeverRead")
 
 package com.tfcode.comparetout.ui2
 
@@ -10,8 +10,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.ContextCompat
-import com.google.android.gms.location.LocationServices
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -24,6 +22,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -39,54 +39,47 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.ContentCopy
-import androidx.compose.material.icons.filled.FileUpload
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Slider
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.PrimaryTabRow
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import com.tfcode.comparetout.R
-import com.tfcode.comparetout.scenario.loadprofile.StandardLoadProfiles
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
@@ -94,29 +87,39 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
-import com.tfcode.comparetout.SimulatorLauncher
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.Color
-import androidx.hilt.navigation.compose.hiltViewModel
-import com.tfcode.comparetout.ComparisonUIViewModel
-import com.tfcode.comparetout.model.json.scenario.ScenarioJsonFile
-import com.tfcode.comparetout.model.scenario.PanelPVSummary
-import com.tfcode.comparetout.model.scenario.Scenario
-import dagger.hilt.android.AndroidEntryPoint
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.core.content.ContextCompat
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
+import com.google.android.gms.location.LocationServices
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import com.google.gson.reflect.TypeToken
-import java.time.LocalDate
+import com.tfcode.comparetout.ComparisonUIViewModel
+import com.tfcode.comparetout.R
+import com.tfcode.comparetout.SimulatorLauncher
+import com.tfcode.comparetout.model.json.scenario.ScenarioJsonFile
+import com.tfcode.comparetout.model.scenario.PanelPVSummary
+import com.tfcode.comparetout.model.scenario.Scenario
+import com.tfcode.comparetout.scenario.loadprofile.StandardLoadProfiles
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
-import androidx.work.WorkInfo
-import androidx.work.WorkManager
+import java.time.LocalDate
 
 // Pixels of scroll delta before the collapsing header toggles — small enough to feel
 // responsive, large enough to ignore fingertip wobble.
@@ -334,15 +337,16 @@ private fun WizardScreen(
         val scrollState = rememberScrollState()
         var headerVisible by remember { mutableStateOf(true) }
         var lastScrollValue by remember { mutableIntStateOf(0) }
-        LaunchedEffect(scrollState.value) {
-            val current = scrollState.value
-            val delta = current - lastScrollValue
-            when {
-                current == 0       -> headerVisible = true
-                delta >  THRESHOLD -> headerVisible = false
-                delta < -THRESHOLD -> headerVisible = true
+        LaunchedEffect(scrollState) {
+            snapshotFlow { scrollState.value }.collect { current ->
+                val delta = current - lastScrollValue
+                when {
+                    current == 0       -> headerVisible = true
+                    delta >  THRESHOLD -> headerVisible = false
+                    delta < -THRESHOLD -> headerVisible = true
+                }
+                lastScrollValue = current
             }
-            lastScrollValue = current
         }
 
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
@@ -528,8 +532,8 @@ private fun WizardScreen(
                         append("$batteryCount batter${if (batteryCount > 1) "ies" else "y"}")
                         append("  ·  ")
                         append("${builder.batteryEntries.sumOf { it.batterySize }} kWh")
-                        if (batteryChargeCount > 0) append("  ·  ${batteryChargeCount} charge")
-                        if (batteryDischargeCount > 0) append("  ·  ${batteryDischargeCount} discharge")
+                        if (batteryChargeCount > 0) append("  ·  $batteryChargeCount charge")
+                        if (batteryDischargeCount > 0) append("  ·  $batteryDischargeCount discharge")
                     }
                 } else if (noviceMode) "Battery storage and schedules" else null,
                 isComplete = batteryCount > 0,
@@ -769,7 +773,12 @@ private fun WizardAccordionSection(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
     ) {
         Row(
+            // Stable selector for Play Console Robo / FTL automation: each accordion
+            // toggle is matched by `contentDescription="Wizard section: $title"`. Robo
+            // can't see Compose testTags, so this is the canonical way to expose the
+            // toggle. See plans/roboscript/robo-plan.md (Phase 4A).
             modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle)
+                .semantics { contentDescription = "Wizard section: $title" }
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -1139,7 +1148,7 @@ private fun UsageDataSectionContent(
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        TabRow(selectedTabIndex = advancedTab) {
+        PrimaryTabRow(selectedTabIndex = advancedTab) {
             Tab(selected = advancedTab == 0, onClick = { advancedTab = 0 }, text = { Text("Basic") })
             Tab(selected = advancedTab == 1, onClick = { advancedTab = 1 }, text = { Text("Advanced") })
         }
@@ -1555,7 +1564,7 @@ private fun HandCraftDialog(
                 }
             ) { paddingValues ->
                 Column(modifier = Modifier.padding(paddingValues)) {
-                    TabRow(selectedTabIndex = tab) {
+                    PrimaryTabRow(selectedTabIndex = tab) {
                         Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("Hourly") })
                         Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("Daily") })
                         Tab(selected = tab == 2, onClick = { tab = 2 }, text = { Text("Monthly") })
@@ -1666,7 +1675,7 @@ private fun BatterySectionContent(
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        TabRow(selectedTabIndex = advancedTab) {
+        PrimaryTabRow(selectedTabIndex = advancedTab) {
             Tab(selected = advancedTab == 0, onClick = { advancedTab = 0 }, text = { Text("Basic") })
             Tab(selected = advancedTab == 1, onClick = { advancedTab = 1 }, text = { Text("Advanced") })
         }
@@ -1877,7 +1886,7 @@ private fun HwSectionContent(
     var advancedTab by remember { mutableIntStateOf(0) }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        TabRow(selectedTabIndex = advancedTab) {
+        PrimaryTabRow(selectedTabIndex = advancedTab) {
             Tab(selected = advancedTab == 0, onClick = { advancedTab = 0 }, text = { Text("Basic") })
             Tab(selected = advancedTab == 1, onClick = { advancedTab = 1 }, text = { Text("Advanced") })
         }
@@ -2246,7 +2255,7 @@ private fun PVSystemSectionContent(
     var advancedTab     by remember { mutableIntStateOf(0) }
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        TabRow(selectedTabIndex = advancedTab) {
+        PrimaryTabRow(selectedTabIndex = advancedTab) {
             Tab(selected = advancedTab == 0, onClick = { advancedTab = 0 }, text = { Text("Basic") })
             Tab(selected = advancedTab == 1, onClick = { advancedTab = 1 }, text = { Text("Advanced") })
         }

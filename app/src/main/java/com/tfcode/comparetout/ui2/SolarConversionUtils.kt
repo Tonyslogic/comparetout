@@ -6,14 +6,12 @@ import java.time.LocalDateTime
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
-import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.asin
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.exp
 import kotlin.math.max
-import kotlin.math.min
 import kotlin.math.sin
 
 /**
@@ -178,9 +176,9 @@ object SolarConversionUtils {
         // Days since J2000.0 (UTC).
         val d = utc.toEpochMilli() / 86_400_000.0 + 2440587.5 - 2451545.0
 
-        val L = (280.460 + 0.9856474 * d).mod(360.0)
+        val l = (280.460 + 0.9856474 * d).mod(360.0)
         val g = Math.toRadians((357.528 + 0.9856003 * d).mod(360.0))
-        val lambda = Math.toRadians(L + 1.915 * sin(g) + 0.020 * sin(2 * g))
+        val lambda = Math.toRadians(l + 1.915 * sin(g) + 0.020 * sin(2 * g))
         val eps = Math.toRadians(23.439 - 0.0000004 * d)
         val alpha = atan2(cos(eps) * sin(lambda), cos(lambda))
         val delta = asin(sin(eps) * sin(lambda))
@@ -189,13 +187,13 @@ object SolarConversionUtils {
         val utcHour = (utcSec.mod(86400.0)) / 3600.0
         val gmst = (6.697375 + 0.0657098242 * d + utcHour).mod(24.0)
         val lmst = (gmst + lon / 15.0).mod(24.0)
-        val H = Math.toRadians(15.0 * lmst) - alpha
+        val h = Math.toRadians(15.0 * lmst) - alpha
 
         val latRad = Math.toRadians(lat)
-        val elev = asin(sin(delta) * sin(latRad) + cos(delta) * cos(latRad) * cos(H))
+        val elev = asin(sin(delta) * sin(latRad) + cos(delta) * cos(latRad) * cos(h))
         val az = atan2(
-            -cos(delta) * sin(H),
-            sin(delta) * cos(latRad) - cos(delta) * sin(latRad) * cos(H)
+            -cos(delta) * sin(h),
+            sin(delta) * cos(latRad) - cos(delta) * sin(latRad) * cos(h)
         )
         return SunPosition(
             elevationDeg = Math.toDegrees(elev),
@@ -283,7 +281,7 @@ object SolarConversionUtils {
             val a = values[i]
             val b = values[i + 1]
             if (a.isNaN() || b.isNaN()) continue
-            if ((a <= target && target <= b) || (b <= target && target <= a)) {
+            if ((target in a..b) || (target in b..a)) {
                 val frac = if (abs(b - a) < EPS) 0.0 else (target - a) / (b - a)
                 return (times[i] + frac * (times[i + 1] - times[i])).toLong()
             }

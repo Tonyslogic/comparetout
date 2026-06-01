@@ -19,6 +19,7 @@ package com.tfcode.comparetout.importers.homeassistant.messages.energyPrefsResul
 import com.google.gson.annotations.SerializedName;
 import com.tfcode.comparetout.importers.homeassistant.messages.HAMessageWithID;
 
+@SuppressWarnings("unused")
 public class EnergyPrefsResult extends HAMessageWithID {
     @SerializedName("success")
     private boolean success;

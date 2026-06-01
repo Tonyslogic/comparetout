@@ -16,14 +16,18 @@
 
 package com.tfcode.comparetout.importers.homeassistant;
 
-import static org.junit.Assert.*;
-
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assume.assumeFalse;
 import static java.lang.Thread.sleep;
 
 import com.tfcode.comparetout.importers.TestSecrets;
 import com.tfcode.comparetout.importers.homeassistant.messages.EnergyPrefsRequest;
 import com.tfcode.comparetout.importers.homeassistant.messages.StatsForPeriodRequest;
 
+import org.junit.Before;
 import org.junit.Test;
 
 import java.time.LocalDateTime;
@@ -32,6 +36,13 @@ import java.util.List;
 
 public class HADispatcherBasicsTest {
     private static final String HA_URL = "http://" + TestSecrets.HA_IP + ":8123/api/websocket";
+
+    @Before
+    public void skipInCI() {
+        assumeFalse(
+                "Skipping HomeAssistant integration test in CI: requires a reachable HA instance",
+                "true".equals(System.getenv("CI")));
+    }
 
     @Test
     public void testHADispatcherBadToken() throws InterruptedException {

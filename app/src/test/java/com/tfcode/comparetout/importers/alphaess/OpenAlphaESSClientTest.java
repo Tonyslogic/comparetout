@@ -18,6 +18,7 @@ package com.tfcode.comparetout.importers.alphaess;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assume.assumeFalse;
 
 import com.tfcode.comparetout.importers.TestSecrets;
 import com.tfcode.comparetout.importers.alphaess.responses.GetOneDayEnergyResponse;
@@ -32,6 +33,9 @@ public class OpenAlphaESSClientTest {
 
     @Before
     public void setup() {
+        assumeFalse(
+                "Skipping AlphaESS integration test in CI: requires real credentials",
+                "true".equals(System.getenv("CI")));
         mClient = new OpenAlphaESSClient(
                 TestSecrets.APPID,
                 TestSecrets.SECRET);
@@ -61,7 +65,7 @@ public class OpenAlphaESSClientTest {
         String queryDate = "2023-08-24";
         mClient.setSerial("AL2342125067171");
         try {
-            GetOneDayEnergyResponse energy = mClient.getOneDayEnergyBySn(queryDate);
+            mClient.getOneDayEnergyBySn(queryDate);
         } catch (AlphaESSException ae) {
             assertEquals("err.code=6005 err.msg=This appId is not bound to the SN Serial: AL2342125067171" , ae.getMessage());
         }

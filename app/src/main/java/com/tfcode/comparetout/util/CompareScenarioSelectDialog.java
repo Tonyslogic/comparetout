@@ -101,7 +101,7 @@ public class CompareScenarioSelectDialog extends Dialog  {
         {
             TableRow tableRow = new TableRow(getContext());
             MaterialButton button = new MaterialButton(getContext());
-            button.setText("Remove comparison");
+            button.setText(R.string.remove_comparison);
             button.setOnClickListener(v -> {
                 mScenarioSelectDialogListener.scenarioSelected("None", null, 0L);
                 dismiss();

@@ -22,10 +22,10 @@ import androidx.viewpager2.adapter.FragmentStateAdapter;
 
 public class LoadProfileViewPageAdapter extends FragmentStateAdapter {
 
-    LoadProfilePropertiesFragment loadProfilePropertiesFragment = LoadProfilePropertiesFragment.newInstance();
-    LoadProfileDailyDistributionFragment loadProfileDailyDistributionFragment = LoadProfileDailyDistributionFragment.newInstance();
-    LoadProfileHourlyDistributionFragment loadProfileHourlyDistributionFragment = LoadProfileHourlyDistributionFragment.newInstance();
-    LoadProfileMonthlyDistributionFragment loadProfileMonthlyDistributionFragment = LoadProfileMonthlyDistributionFragment.newInstance();
+    final LoadProfilePropertiesFragment loadProfilePropertiesFragment = LoadProfilePropertiesFragment.newInstance();
+    final LoadProfileDailyDistributionFragment loadProfileDailyDistributionFragment = LoadProfileDailyDistributionFragment.newInstance();
+    final LoadProfileHourlyDistributionFragment loadProfileHourlyDistributionFragment = LoadProfileHourlyDistributionFragment.newInstance();
+    final LoadProfileMonthlyDistributionFragment loadProfileMonthlyDistributionFragment = LoadProfileMonthlyDistributionFragment.newInstance();
 
     public LoadProfileViewPageAdapter(LoadProfileActivity loadProfileActivity, int ignoredI) {
         super(loadProfileActivity);
@@ -34,13 +34,12 @@ public class LoadProfileViewPageAdapter extends FragmentStateAdapter {
     @NonNull
     @Override
     public Fragment createFragment(int position) {
-        switch (position) {
-            case 0: return loadProfilePropertiesFragment;
-            case 1: return loadProfileDailyDistributionFragment;
-            case 2: return loadProfileMonthlyDistributionFragment;
-            case 3: return loadProfileHourlyDistributionFragment;
-        }
-        return loadProfilePropertiesFragment;
+        return switch (position) {
+            case 1 -> loadProfileDailyDistributionFragment;
+            case 2 -> loadProfileMonthlyDistributionFragment;
+            case 3 -> loadProfileHourlyDistributionFragment;
+            default -> loadProfilePropertiesFragment;
+        };
     }
 
     @Override

@@ -91,14 +91,6 @@ public class SimulationWorker extends Worker {
     }
 
     /**
-     * Called when the worker is stopped. Used for cleanup if needed.
-     */
-    @Override
-    public void onStopped(){
-        super.onStopped();
-    }
-
-    /**
      * Main entry point for the simulation work.
      * Retrieves all scenarios needing simulation, processes each scenario by:
      * - Gathering scenario components and user inputs
@@ -388,7 +380,7 @@ public class SimulationWorker extends Worker {
      * @param row The time step index.
      * @param inputDataMap Map of inverters to their input data and state.
      */
-    public static void processOneRow(long scenarioID, ArrayList<ScenarioSimulationData> outputRows, int row, Map<Inverter, InputData> inputDataMap) {
+    static void processOneRow(long scenarioID, ArrayList<ScenarioSimulationData> outputRows, int row, Map<Inverter, InputData> inputDataMap) {
 
         /*
          * INPUT AND STATE INITIALIZATION
@@ -588,7 +580,7 @@ public class SimulationWorker extends Worker {
                         if (maxEVDivert > 0) {
                             divertedToEV = min (feed, maxEVDivert);
                             firstInputData.mEVDivertDailyTotals.put(inputRow.do2001, totalEVDivertedThisDay + divertedToEV);
-                            feed = feed - divertedToEV;
+                            feed -= divertedToEV;
                         }
                     }
                     // else we can ignore this and let the later water divert take it
@@ -596,14 +588,14 @@ public class SimulationWorker extends Worker {
                 else { // Water diversion must happen to reduce the feed
                     if ((!immersionIsOn) && hwDiversionIsOn) {
                         HWSystem.Heat heat = hwSystem.heatWater(inputRow.mod, previousWaterTemp, feed);
-                        feed = feed - heat.kWhUsed;
+                        feed -= heat.kWhUsed;
                         nowWaterTemp = heat.temperature;
                         divertedToWater = heat.kWhUsed;
                         if (feed > evDivert.getMinimum()/12d) { // there may be some feed left fo the EV
                             if (maxEVDivert > 0) {
                                 divertedToEV = min (feed, maxEVDivert);
                                 firstInputData.mEVDivertDailyTotals.put(inputRow.do2001, totalEVDivertedThisDay + divertedToEV);
-                                feed = feed - divertedToEV;
+                                feed -= divertedToEV;
                             }
                         }
                     }
@@ -613,7 +605,7 @@ public class SimulationWorker extends Worker {
         // WATER
         if ((!immersionIsOn) && hwDiversionIsOn) {
             HWSystem.Heat heat = hwSystem.heatWater(inputRow.mod, previousWaterTemp, feed);
-            feed = feed - heat.kWhUsed;
+            feed -= heat.kWhUsed;
             nowWaterTemp = heat.temperature;
             divertedToWater = heat.kWhUsed;
         }
@@ -649,7 +641,7 @@ public class SimulationWorker extends Worker {
                     b2g += discharge;
                     availableExport -= discharge;
                     availableExport = Math.max(0d, availableExport);
-                    feed = feed + b2g;
+                    feed += b2g;
                 }
             }
         }
@@ -783,24 +775,24 @@ public class SimulationWorker extends Worker {
      * reason about each inverter's context and constraints at every time step.
      */
     static class InputData {
-        long id;
-        double dc2acLoss;
-        double ac2dcLoss;
-        double dc2dcLoss;
-        double storageLoss;
-        double exportMax;
+        final long id;
+        final double dc2acLoss;
+        final double ac2dcLoss;
+        final double dc2dcLoss;
+        final double storageLoss;
+        final double exportMax;
         List<SimulationInputData> simulationInputData;
         Battery mBattery;
         ChargeFromGrid mChargeFromGrid;
-        ForceDischargeToGrid mForceDischargeToGrid;
+        final ForceDischargeToGrid mForceDischargeToGrid;
 
-        HWSystem mHWSystem;
-        Boolean mHWDivert;
-        List<HWSchedule> mHWSchedules;
+        final HWSystem mHWSystem;
+        final Boolean mHWDivert;
+        final List<HWSchedule> mHWSchedules;
 
-        List<EVCharge> mEVCharges;
-        List<EVDivert> mEVDiverts;
-        Map<Integer, Double> mEVDivertDailyTotals;
+        final List<EVCharge> mEVCharges;
+        final List<EVDivert> mEVDiverts;
+        final Map<Integer, Double> mEVDivertDailyTotals;
 
         // Volatile state members
         double soc = 0d;
@@ -985,8 +977,8 @@ public class SimulationWorker extends Worker {
      */
     public static class ChargeFromGrid {
 
-        List<Boolean> mCFG;
-        List<Double> mStopAt;
+        final List<Boolean> mCFG;
+        final List<Double> mStopAt;
 
         /**
          * Constructs a ChargeFromGrid schedule from load shifts.
@@ -1078,9 +1070,9 @@ public class SimulationWorker extends Worker {
      */
     public static class ForceDischargeToGrid {
 
-        List<Boolean> mD2G;
-        List<Double> mStopAt;
-        List<Double> mRate;
+        final List<Boolean> mD2G;
+        final List<Double> mStopAt;
+        final List<Double> mRate;
 
         /**
          * Constructs a ForceDischargeToGrid schedule from discharge schedules.

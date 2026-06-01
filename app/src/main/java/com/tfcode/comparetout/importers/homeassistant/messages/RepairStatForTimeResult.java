@@ -19,6 +19,7 @@ package com.tfcode.comparetout.importers.homeassistant.messages;
 import com.google.gson.annotations.SerializedName;
 import com.tfcode.comparetout.importers.homeassistant.messages.energyPrefsResult.Result;
 
+@SuppressWarnings("unused")
 public class RepairStatForTimeResult extends HAMessageWithID {
     @SerializedName("success")
     private boolean success;

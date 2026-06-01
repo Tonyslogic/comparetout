@@ -16,22 +16,18 @@
 
 package com.tfcode.comparetout.model.json.scenario;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-import com.tfcode.comparetout.model.json.JsonTools;
-import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Type;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -98,13 +94,14 @@ public class ScenarioJsonFileTest {
         return new String(encoded, StandardCharsets.UTF_8);
     }
 
-    String minimalScenario = "[{\"Name\": \"Empty\",\"Inverters\": [{\n" +
-            "\t\t\t\"Name\": \"AlphaESS\",\n" +
-            "\t\t\t\"MinExcess\": 0.008,\n" +
-            "\t\t\t\"MaxInverterLoad\": 5.0,\n" +
-            "\t\t\t\"MPPTCount\": 2,\n" +
-            "\t\t\t\"AC2DCLoss\": 5,\n" +
-            "\t\t\t\"DC2ACLoss\": 5,\n" +
-            "\t\t\t\"DC2DCLoss\": 0\n" +
-            "\t\t}]}]";
+    final String minimalScenario = """
+            [{"Name": "Empty","Inverters": [{
+            \t\t\t"Name": "AlphaESS",
+            \t\t\t"MinExcess": 0.008,
+            \t\t\t"MaxInverterLoad": 5.0,
+            \t\t\t"MPPTCount": 2,
+            \t\t\t"AC2DCLoss": 5,
+            \t\t\t"DC2ACLoss": 5,
+            \t\t\t"DC2DCLoss": 0
+            \t\t}]}]""";
 }

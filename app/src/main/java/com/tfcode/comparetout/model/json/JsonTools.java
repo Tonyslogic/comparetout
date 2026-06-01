@@ -23,42 +23,16 @@ import androidx.annotation.NonNull;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
+import com.tfcode.comparetout.model.IntHolder;
+import com.tfcode.comparetout.model.json.priceplan.DayRateJson;
 import com.tfcode.comparetout.model.json.priceplan.MinuteRangeCostJson;
+import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
 import com.tfcode.comparetout.model.json.priceplan.RestrictionEntryJson;
 import com.tfcode.comparetout.model.json.priceplan.RestrictionJson;
-import com.tfcode.comparetout.model.json.scenario.DischargeToGridJson;
-import com.tfcode.comparetout.model.priceplan.MinuteRateRange;
-import com.tfcode.comparetout.model.priceplan.RangeRate;
-import com.tfcode.comparetout.model.priceplan.Restriction;
-import com.tfcode.comparetout.model.priceplan.Restrictions;
-import com.tfcode.comparetout.model.scenario.Battery;
-import com.tfcode.comparetout.model.scenario.ChargeModel;
-import com.tfcode.comparetout.model.scenario.DOWDist;
-import com.tfcode.comparetout.model.priceplan.DayRate;
-import com.tfcode.comparetout.model.priceplan.DoubleHolder;
-import com.tfcode.comparetout.model.scenario.DischargeToGrid;
-import com.tfcode.comparetout.model.scenario.EVCharge;
-import com.tfcode.comparetout.model.scenario.EVDivert;
-import com.tfcode.comparetout.model.scenario.HWDivert;
-import com.tfcode.comparetout.model.scenario.HWSchedule;
-import com.tfcode.comparetout.model.scenario.HWSystem;
-import com.tfcode.comparetout.model.scenario.HWUse;
-import com.tfcode.comparetout.model.scenario.HourlyDist;
-import com.tfcode.comparetout.model.IntHolder;
-import com.tfcode.comparetout.model.scenario.Inverter;
-import com.tfcode.comparetout.model.scenario.LoadProfile;
-import com.tfcode.comparetout.model.scenario.LoadShift;
-import com.tfcode.comparetout.model.scenario.MonthHolder;
-import com.tfcode.comparetout.model.scenario.MonthlyDist;
-import com.tfcode.comparetout.model.scenario.Panel;
-import com.tfcode.comparetout.model.priceplan.PricePlan;
-import com.tfcode.comparetout.model.scenario.Scenario;
-import com.tfcode.comparetout.model.scenario.ScenarioComponents;
-import com.tfcode.comparetout.model.json.priceplan.DayRateJson;
-import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
 import com.tfcode.comparetout.model.json.scenario.BatteryJson;
 import com.tfcode.comparetout.model.json.scenario.ChargeModelJson;
 import com.tfcode.comparetout.model.json.scenario.DOWDistribution;
+import com.tfcode.comparetout.model.json.scenario.DischargeToGridJson;
 import com.tfcode.comparetout.model.json.scenario.EVChargeJson;
 import com.tfcode.comparetout.model.json.scenario.EVDivertJson;
 import com.tfcode.comparetout.model.json.scenario.HWDivertJson;
@@ -70,6 +44,32 @@ import com.tfcode.comparetout.model.json.scenario.LoadShiftJson;
 import com.tfcode.comparetout.model.json.scenario.MonthlyDistribution;
 import com.tfcode.comparetout.model.json.scenario.PanelJson;
 import com.tfcode.comparetout.model.json.scenario.ScenarioJsonFile;
+import com.tfcode.comparetout.model.priceplan.DayRate;
+import com.tfcode.comparetout.model.priceplan.DoubleHolder;
+import com.tfcode.comparetout.model.priceplan.MinuteRateRange;
+import com.tfcode.comparetout.model.priceplan.PricePlan;
+import com.tfcode.comparetout.model.priceplan.RangeRate;
+import com.tfcode.comparetout.model.priceplan.Restriction;
+import com.tfcode.comparetout.model.priceplan.Restrictions;
+import com.tfcode.comparetout.model.scenario.Battery;
+import com.tfcode.comparetout.model.scenario.ChargeModel;
+import com.tfcode.comparetout.model.scenario.DOWDist;
+import com.tfcode.comparetout.model.scenario.DischargeToGrid;
+import com.tfcode.comparetout.model.scenario.EVCharge;
+import com.tfcode.comparetout.model.scenario.EVDivert;
+import com.tfcode.comparetout.model.scenario.HWDivert;
+import com.tfcode.comparetout.model.scenario.HWSchedule;
+import com.tfcode.comparetout.model.scenario.HWSystem;
+import com.tfcode.comparetout.model.scenario.HWUse;
+import com.tfcode.comparetout.model.scenario.HourlyDist;
+import com.tfcode.comparetout.model.scenario.Inverter;
+import com.tfcode.comparetout.model.scenario.LoadProfile;
+import com.tfcode.comparetout.model.scenario.LoadShift;
+import com.tfcode.comparetout.model.scenario.MonthHolder;
+import com.tfcode.comparetout.model.scenario.MonthlyDist;
+import com.tfcode.comparetout.model.scenario.Panel;
+import com.tfcode.comparetout.model.scenario.Scenario;
+import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -78,19 +78,19 @@ import java.util.Map;
 
 /**
  * Utility class for JSON serialization and deserialization operations.
- * 
+ * <p>
  * This class provides a comprehensive set of static methods for converting between
  * JSON representations and domain model objects. It serves as the central hub for
  * all JSON operations within the application, handling both import and export
  * scenarios for configuration data.
- * 
+ * <p>
  * The class supports bidirectional conversion for:
  * - Price plans and rate schedules
  * - Energy system scenarios and components  
  * - Hardware configurations (inverters, batteries, panels)
  * - Load profiles and energy consumption patterns
  * - System schedules and operational constraints
- * 
+ * <p>
  * Key design principles:
  * - All methods are static for utility access
  * - Null safety is maintained throughout conversion processes
@@ -105,12 +105,12 @@ public class JsonTools {
 
     /**
      * Creates a PricePlan domain object from JSON representation.
-     * 
+     * <p>
      * This method converts a PricePlanJsonFile (typically loaded from persistent storage
      * or external configuration) into a fully populated PricePlan domain object.
      * It handles complex nested structures including rate schedules, restrictions,
      * and pricing configurations while providing sensible defaults for missing values.
-     * 
+     * <p>
      * The conversion process includes:
      * - Basic plan properties (name, currency, fixed charges)
      * - Rate ranges with minute-level granularity
@@ -149,7 +149,7 @@ public class JsonTools {
 
     /**
      * Creates a DayRate domain object from JSON representation.
-     * 
+     * <p>
      * This method transforms day rate configuration from JSON format into the
      * internal DayRate domain object. Day rates define time-of-use pricing
      * schedules that vary by time of day and day of week. The method provides
@@ -187,7 +187,7 @@ public class JsonTools {
 
     /**
      * Serializes multiple price plans to JSON string format.
-     * 
+     * <p>
      * This method converts a map of price plans and their associated day rates
      * into a JSON string suitable for storage or export. The resulting JSON
      * maintains the hierarchical structure needed for later deserialization

@@ -1,14 +1,16 @@
 package com.tfcode.comparetout.ui2
 
 import android.util.Log
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asLiveData
+import androidx.lifecycle.map
 import androidx.lifecycle.viewModelScope
 import com.tfcode.comparetout.ComparisonUIViewModel
 import com.tfcode.comparetout.model.ToutcRepository
-import com.tfcode.comparetout.model.importers.IntervalRow
 import com.tfcode.comparetout.model.costings.Costings
 import com.tfcode.comparetout.model.costings.SubTotals
+import com.tfcode.comparetout.model.importers.IntervalRow
 import com.tfcode.comparetout.model.scenario.PanelPVSummary
 import com.tfcode.comparetout.model.scenario.ScenarioComponents
 import com.tfcode.comparetout.model.scenario.SimKPIs
@@ -17,6 +19,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
@@ -90,6 +93,15 @@ class UI2DashboardViewModel @Inject constructor(
     /** Plan-id the user has marked as their current supplier plan, or null. */
     val favouritePlanId = favouritePlanStore.id.asLiveData()
 
+    /**
+     * True iff at least one scenario exists. Drives the Dashboard's first-run
+     * empty-state — see [SampleDataLoader] / plans/roboscript/robo-plan.md
+     * Phase 4B. Backed by the repository's existing LiveData so it stays in
+     * sync without any extra refresh plumbing.
+     */
+    val hasScenarios: LiveData<Boolean> =
+        repository.allScenarios.map { it.orEmpty().isNotEmpty() }
+
     init {
         Log.d("UI2", "UI2DashboardViewModel created")
         viewModelScope.launch(Dispatchers.IO) { favouritePlanStore.ensureLoaded() }
@@ -105,10 +117,21 @@ class UI2DashboardViewModel @Inject constructor(
         ) : ActiveDashboardItem()
     }
 
-    private val FMT     = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-    private val ROWFMT  = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+    private val timeFormatter     = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    private val dateTimeFormatter  = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
     private val _activeItem = MutableStateFlow<ActiveDashboardItem?>(null)
+
+    /**
+     * Bumped each time the dashboard should re-fetch DB-backed data without a
+     * change of active item (e.g. when the Simulation/Cost WorkManager chain
+     * completes in the background). Combined with [_activeItem] in the
+     * [dashboardData] pipeline so flatMapLatest re-runs the IO fetch.
+     *
+     * StateFlow dedup means setting `_activeItem` to the *same* id is a no-op
+     * — which is why an external tick is required. [refresh] increments it.
+     */
+    private val _refreshTick = MutableStateFlow(0)
 
     // ── PV System accordion (data source mode) ───────────────────────────────
     private val _pvPeriod    = MutableStateFlow(DataSourcePeriod.ALL)
@@ -174,6 +197,22 @@ class UI2DashboardViewModel @Inject constructor(
     val kpiSummary     = _kpiSummary.asLiveData()
     val kpiMonths      = _kpiMonths.asLiveData()
 
+    /**
+     * Re-pull all DB-backed dashboard surfaces for the currently-active
+     * scenario. Call this when the background Simulation/Cost WorkManager
+     * chain transitions to all-finished so the dashboard reflects the new
+     * results without forcing the user to re-select the scenario from the
+     * Simulations list.
+     */
+    fun refresh() {
+        if (_activeItem.value == null) return
+        _refreshTick.value = _refreshTick.value + 1
+        viewModelScope.launch(Dispatchers.IO) {
+            recomputeKpis()
+            recomputeScenarioTariff()
+        }
+    }
+
     fun setActiveSimulationId(id: Long) {
         Log.d("UI2", "UI2DashboardViewModel.setActiveSimulationId($id)")
         _activeItem.value = ActiveDashboardItem.Simulation(id)
@@ -230,7 +269,7 @@ class UI2DashboardViewModel @Inject constructor(
         resetKpiDefaults()
         _activeItem.value = ActiveDashboardItem.DataSource(sysSn, importerType, startDate, endDate)
         _dataBounds.value = runCatching {
-            LocalDate.parse(startDate, FMT) to LocalDate.parse(endDate, FMT)
+            LocalDate.parse(startDate, timeFormatter) to LocalDate.parse(endDate, timeFormatter)
         }.getOrNull()
         val item = ActiveDashboardItem.DataSource(sysSn, importerType, startDate, endDate)
         viewModelScope.launch(Dispatchers.IO) {
@@ -385,7 +424,7 @@ class UI2DashboardViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) { _pvChartData.value = fetchPvChartData(period, anchor, advanced, item) }
     }
 
-    private suspend fun fetchPvChartData(
+    private fun fetchPvChartData(
         period: DataSourcePeriod,
         anchor: LocalDate,
         advanced: Boolean,
@@ -402,7 +441,7 @@ class UI2DashboardViewModel @Inject constructor(
                     }
             }
             DataSourcePeriod.MONTH -> {
-                val yearForDoy = LocalDate.parse(from, FMT).year
+                val yearForDoy = LocalDate.parse(from, timeFormatter).year
                 repository.getSumDOY(item.sysSn, from, to)
                     .filter { it.pv > 0 }
                     .mapNotNull { row ->
@@ -437,12 +476,12 @@ class UI2DashboardViewModel @Inject constructor(
         if (period == DataSourcePeriod.ALL) return null
         return stepAnchor(
             current, period, forward,
-            LocalDate.parse(item.startDate, FMT),
-            LocalDate.parse(item.endDate, FMT)
+            LocalDate.parse(item.startDate, timeFormatter),
+            LocalDate.parse(item.endDate, timeFormatter)
         )
     }
 
-    private suspend fun fetchTotals(
+    private fun fetchTotals(
         period: DataSourcePeriod,
         anchor: LocalDate,
         advanced: Boolean,
@@ -460,18 +499,18 @@ class UI2DashboardViewModel @Inject constructor(
         )
     }
 
-    private suspend fun fetchCostings(
+    private fun fetchCostings(
         period: DataSourcePeriod,
         anchor: LocalDate,
         advanced: Boolean,
         item: ActiveDashboardItem.DataSource
     ): List<DataSourceCostingRow> {
         val (from, to) = anchorDateRange(period, anchor, advanced, item.startDate, item.endDate)
-        val days = LocalDate.parse(to, FMT).toEpochDay() - LocalDate.parse(from, FMT).toEpochDay() + 1
+        val days = LocalDate.parse(to, timeFormatter).toEpochDay() - LocalDate.parse(from, timeFormatter).toEpochDay() + 1
         return computeDataSourceCostings(item.sysSn, from, to, days)
     }
 
-    private suspend fun fetchDistribution(
+    private fun fetchDistribution(
         period: DataSourcePeriod,
         anchor: LocalDate,
         advanced: Boolean,
@@ -484,7 +523,7 @@ class UI2DashboardViewModel @Inject constructor(
         val dow      = DoubleArray(7)
         val monthly  = DoubleArray(12)
         rows.forEach { row ->
-            val ldt = LocalDateTime.parse(row.dateTime, ROWFMT)
+            val ldt = LocalDateTime.parse(row.dateTime, dateTimeFormatter)
             hourly[ldt.hour] += row.buy
             val d = ldt.dayOfWeek.value.let { if (it == 7) 0 else it }
             dow[d] += row.buy
@@ -508,8 +547,8 @@ class UI2DashboardViewModel @Inject constructor(
     ): Pair<String, String> {
         val (from, to) = periodDateRange(
             period, anchor, advanced,
-            LocalDate.parse(dataStart, FMT), LocalDate.parse(dataEnd, FMT))
-        return from.format(FMT) to to.format(FMT)
+            LocalDate.parse(dataStart, timeFormatter), LocalDate.parse(dataEnd, timeFormatter))
+        return from.format(timeFormatter) to to.format(timeFormatter)
     }
 
     private fun computeDataSourceCostings(
@@ -519,18 +558,18 @@ class UI2DashboardViewModel @Inject constructor(
         days: Long
     ): List<DataSourceCostingRow> {
         val hourlyData = repository.getSelectedAlphaESSData(sysSn, from, to)
-        val plans      = repository.getAllPricePlansNow()
+        val plans      = repository.allPricePlansNow
 
         return plans.map { plan ->
             val dayRates  = repository.getAllDayRatesForPricePlanID(plan.pricePlanIndex)
             val lookup    = RateLookup(plan, dayRates)
-            lookup.setStartDOY(LocalDate.parse(from, FMT).dayOfYear)
+            lookup.setStartDOY(LocalDate.parse(from, timeFormatter).dayOfYear)
 
             val subTotals = SubTotals()
             var buy = 0.0; var sell = 0.0
 
             hourlyData.forEach { row ->
-                val ldt   = LocalDateTime.parse(row.dateTime, ROWFMT)
+                val ldt   = LocalDateTime.parse(row.dateTime, dateTimeFormatter)
                 val doy   = ldt.dayOfYear
                 val mod   = ldt.hour * 60 + ldt.minute
                 val dow   = ldt.dayOfWeek.value.let { if (it == 7) 0 else it } // 7=Sun→0
@@ -567,9 +606,10 @@ class UI2DashboardViewModel @Inject constructor(
             }
     }
 
-    val panelPVSummary = repository.getPanelDataSummary()
+    val panelPVSummary: LiveData<List<PanelPVSummary>> = repository.panelDataSummary
 
-    val dashboardData = _activeItem.flatMapLatest { item ->
+    val dashboardData = combine(_activeItem, _refreshTick) { item, _ -> item }
+        .flatMapLatest { item ->
         when (item) {
             is ActiveDashboardItem.Simulation -> flow {
                 val id = item.id
@@ -580,7 +620,7 @@ class UI2DashboardViewModel @Inject constructor(
                     val simKPIs            = repository.getSimKPIsForScenario(id)
                     val hasPanelData       = repository.checkForMissingPanelData(id)
                     val allCostings        = repository.getAllCostingsForScenario(id)
-                    val plans              = repository.getAllPricePlansNow()
+                    val plans              = repository.allPricePlansNow
                     val planChargesMap     = plans.associate { it.pricePlanIndex to it.standingCharges }
                     val dateRange          = repository.getSimDateRanges(id.toString())
                     val simDays = runCatching {
@@ -617,13 +657,13 @@ class UI2DashboardViewModel @Inject constructor(
         val item = _activeItem.value ?: return null
         return when (item) {
             is ActiveDashboardItem.DataSource -> withContext(Dispatchers.IO) {
-                LocalDate.parse(item.startDate, FMT) to LocalDate.parse(item.endDate, FMT)
+                LocalDate.parse(item.startDate, timeFormatter) to LocalDate.parse(item.endDate, timeFormatter)
             }
             is ActiveDashboardItem.Simulation -> withContext(Dispatchers.IO) {
                 val r = repository.getSimDateRanges(item.id.toString()) ?: return@withContext null
                 val s = r.startDate ?: return@withContext null
                 val f = r.finishDate ?: return@withContext null
-                runCatching { LocalDate.parse(s, FMT) to LocalDate.parse(f, FMT) }.getOrNull()
+                runCatching { LocalDate.parse(s, timeFormatter) to LocalDate.parse(f, timeFormatter) }.getOrNull()
             }
         }
     }
@@ -642,8 +682,8 @@ class UI2DashboardViewModel @Inject constructor(
         val (from, to) = periodDateRange(
             _kpiPeriod.value, _kpiAnchor.value, advanced = false, bounds.first, bounds.second
         )
-        val fromStr = from.format(FMT)
-        val toStr = to.format(FMT)
+        val fromStr = from.format(timeFormatter)
+        val toStr = to.format(timeFormatter)
 
         when (item) {
             is ActiveDashboardItem.DataSource -> {
@@ -701,8 +741,8 @@ class UI2DashboardViewModel @Inject constructor(
                 // can show every month the sim covers, not just the period slice.
                 val fullRows = repository.getSimSumDOY(
                     item.id.toString(),
-                    bounds.first.format(FMT),
-                    bounds.second.format(FMT)
+                    bounds.first.format(timeFormatter),
+                    bounds.second.format(timeFormatter)
                 )
                 _kpiMonths.value = buildMonthRowsFromDoy(fullRows, bounds.first.year)
             }
@@ -757,13 +797,13 @@ class UI2DashboardViewModel @Inject constructor(
             _scenarioTariffPeriod.value, _scenarioTariffAnchor.value, advanced = false,
             bounds.first, bounds.second
         )
-        val fromStr = from.format(FMT)
-        val toStr   = to.format(FMT)
+        val fromStr = from.format(timeFormatter)
+        val toStr   = to.format(timeFormatter)
         val days = (to.toEpochDay() - from.toEpochDay() + 1).coerceAtLeast(1)
         val midDay = from.plusDays(days / 2)
 
         val hourRows = repository.getSimSumHour(item.id.toString(), fromStr, toStr)
-        val plans    = repository.getAllPricePlansNow().orEmpty()
+        val plans    = repository.allPricePlansNow.orEmpty()
 
         val rows = plans.map { plan ->
             val dayRates  = repository.getAllDayRatesForPricePlanID(plan.pricePlanIndex)
@@ -781,13 +821,19 @@ class UI2DashboardViewModel @Inject constructor(
                 sell += plan.feed * row.feed
                 subTotals.addToPrice(rate, row.buy)
             }
+            // Unit convention matches fetchCostings() (data-source mode):
+            // net/buy/sell are **cents**, fixed is **euros**. DataSourceCostingsTable
+            // displays them as `row.net / 100.0` etc, so anything in cents renders
+            // in euros after divide. Standing-charge is multiplied by 100 to add
+            // it into the cents-denominated net total.
             val fixed = plan.standingCharges * (days / 365.0)
+            val net = (buy - sell) + (fixed * 100.0)
             DataSourceCostingRow(
                 planName    = "${plan.supplier} · ${plan.planName}",
                 pricePlanId = plan.pricePlanIndex,
-                net         = (buy - sell) / 100.0 + fixed,
-                buy         = buy / 100.0,
-                sell        = sell / 100.0,
+                net         = net,
+                buy         = buy,
+                sell        = sell,
                 fixed       = fixed,
                 subTotals   = subTotals
             )

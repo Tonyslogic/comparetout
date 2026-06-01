@@ -1,3 +1,5 @@
+@file:Suppress("AssignedValueIsNeverRead")
+
 package com.tfcode.comparetout.ui2
 
 import android.os.Bundle
@@ -65,13 +67,14 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.material3.rememberTimePickerState
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -86,7 +89,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import com.google.gson.reflect.TypeToken
@@ -992,9 +995,9 @@ private fun TimeRangeDialog(
     onDismiss: () -> Unit,
     onConfirm: (Int, Int) -> Unit
 ) {
-    var stage by remember { mutableStateOf(0) }  // 0 = pick begin, 1 = pick end
-    var beginMin by remember { mutableStateOf(initialBegin) }
-    var endMin by remember { mutableStateOf(initialEnd) }
+    var stage by remember { mutableIntStateOf(0) }  // 0 = pick begin, 1 = pick end
+    var beginMin by remember { mutableIntStateOf(initialBegin) }
+    var endMin by remember { mutableIntStateOf(initialEnd) }
 
     val pickerState = rememberTimePickerState(
         initialHour = if (stage == 0) beginMin / 60 else endMin / 60,

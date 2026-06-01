@@ -139,7 +139,6 @@ public class MainActivity extends InsetRespectingActivity {
 
     private boolean mFirstLaunch = true;
     private boolean mFirstLaunchDialogRendered = false;
-    private boolean mUseUI2 = false;
     // Captured by loadSettingsFromDataStore; consumed by maybeStartUi2 after the
     // disclaimer flow (if any) has completed. Possible values: "true" / "false" /
     // "" (never set — first launch / older version pre-UI2) / "error".
@@ -202,7 +201,6 @@ public class MainActivity extends InsetRespectingActivity {
     }
 
     private void switchToUI2() {
-        mUseUI2 = true;
         Intent intent = new Intent(MainActivity.this, com.tfcode.comparetout.ui2.UI2MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
         startActivity(intent);
@@ -213,13 +211,11 @@ public class MainActivity extends InsetRespectingActivity {
                 .setTitle("New look")
                 .setMessage("You're getting the redesigned dashboard by default. The legacy interface is still available — pick \"Use legacy UI\" from the menu at any time.")
                 .setCancelable(false)
-                .setPositiveButton("Continue", (d, w) -> {
-                    new Thread(() -> {
-                        TOUTCApplication app = (TOUTCApplication) getApplication();
-                        app.putStringValueIntoDataStore("use_ui2", "true");
-                        mMainHandler.post(this::switchToUI2);
-                    }).start();
-                })
+                .setPositiveButton("Continue", (d, w) -> new Thread(() -> {
+                    TOUTCApplication app = (TOUTCApplication) getApplication();
+                    app.putStringValueIntoDataStore("use_ui2", "true");
+                    mMainHandler.post(this::switchToUI2);
+                }).start())
                 .show();
     }
 
@@ -238,17 +234,25 @@ public class MainActivity extends InsetRespectingActivity {
      */
     private void showDisclaimers(TOUTCApplication application) {
         new MaterialAlertDialogBuilder(this)
-                .setMessage("Solar data is variable. This app uses historical solar data in estimations.\n\n" +
-                        "Solar panels may be shaded. This app makes no attempt to consider shading.\n\n" +
-                        "Price plan accuracy determines calculation accuracy. Check price plan details.\n\n" +
-                        "Price plans do not include Public Services Obligations. Estimates will not include this.\n\n" +
-                        "Price plans do not include rate usage limitations or complex contracts. Estimates will be " +
-                        "wrong where limitations are exceeded or conditions triggered.\n\n" +
-                        "All estimates are based on user input. If the input is bad, the output will be too.\n\n" +
-                        "This app provides the ability to explore possibilities, estimations are not advice (financial or otherwise). " +
-                        "The app is provided as-is, no representation or warranty of any kind, express or implied, regarding " +
-                        "the accuracy, adequacy, validity, reliability, availability, or completeness of any information is made.\n\n" +
-                        "Enjoy!" )
+                .setMessage("""
+                        Solar data is variable. This app uses historical solar data in estimations.
+                        
+                        Solar panels may be shaded. This app makes no attempt to consider shading.
+                        
+                        Price plan accuracy determines calculation accuracy. Check price plan details.
+                        
+                        Price plans do not include Public Services Obligations. Estimates will not include this.
+                        
+                        Price plans do not include rate usage limitations or complex contracts. Estimates will be \
+                        wrong where limitations are exceeded or conditions triggered.
+                        
+                        All estimates are based on user input. If the input is bad, the output will be too.
+                        
+                        This app provides the ability to explore possibilities, estimations are not advice (financial or otherwise). \
+                        The app is provided as-is, no representation or warranty of any kind, express or implied, regarding \
+                        the accuracy, adequacy, validity, reliability, availability, or completeness of any information is made.
+                        
+                        Enjoy!""")
                 .setPositiveButton("Ok", (dialog, which) -> {
                         boolean x = application.putStringValueIntoDataStore(FIRST_USE, "False");
                         boolean y = application.putStringValueIntoDataStore("Test", "True");

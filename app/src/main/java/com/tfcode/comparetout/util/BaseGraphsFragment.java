@@ -376,10 +376,6 @@ public abstract class BaseGraphsFragment extends Fragment {
                 mGraphData = getGraphData(mSystemSN, mImporterType, mFrom, mTo);
                 if (mCompareActive && !(null == mCompareSN) && !(null == mCompareType)) {
                     mCompareDateRange = mViewModel.getDateRangeForSystem(mCompareType, mCompareSN);
-//                    if (!(null == mCompareDateRange)) {
-//                        mCompareFrom = (mCompareFrom.compareTo(mCompareDateRange.startDate) > 0) ? mCompareFrom : mCompareDateRange.startDate;
-//                        mCompareTo = (mCompareTo.compareTo(mCompareDateRange.finishDate) < 0) ? mCompareTo : mCompareDateRange.finishDate;
-//                    }
                     mCompareGraphData = getGraphData(mCompareSN, mCompareType, mCompareFrom, mCompareTo);
                     LOGGER.info("mCompareGraphData has " +  mCompareGraphData.size() + " entries");
                 }
@@ -391,48 +387,22 @@ public abstract class BaseGraphsFragment extends Fragment {
     }
 
     private List<IntervalRow> getGraphData(String sysSN, ComparisonUIViewModel.Importer type, String lFrom, String lTo) {
-        List<IntervalRow> graphData = new ArrayList<>();
-        switch (mCalculation) {
-            case SUM:
-                switch (mDisplayInterval) {
-                    case HOUR:
-                        graphData = mViewModel.getSumHour(type, sysSN, lFrom, lTo);
-                        break;
-                    case DOY:
-                        graphData = mViewModel.getSumDOY(type, sysSN, lFrom, lTo);
-                        break;
-                    case WEEK:
-                        graphData = mViewModel.getSumDOW(type, sysSN, lFrom, lTo);
-                        break;
-                    case MNTH:
-                        graphData = mViewModel.getSumMonth(type, sysSN, lFrom, lTo);
-                        break;
-                    case YEAR:
-                        graphData = mViewModel.getSumYear(type, sysSN, lFrom, lTo);
-                        break;
-                }
-                break;
-            case AVG:
-                switch (mDisplayInterval) {
-                    case HOUR:
-                        graphData = mViewModel.getAvgHour(type, sysSN, lFrom, lTo);
-                        break;
-                    case DOY:
-                        graphData = mViewModel.getAvgDOY(type, sysSN, lFrom, lTo);
-                        break;
-                    case WEEK:
-                        graphData = mViewModel.getAvgDOW(type, sysSN, lFrom, lTo);
-                        break;
-                    case MNTH:
-                        graphData = mViewModel.getAvgMonth(type, sysSN, lFrom, lTo);
-                        break;
-                    case YEAR:
-                        graphData = mViewModel.getAvgYear(type, sysSN, lFrom, lTo);
-                        break;
-                }
-                break;
-        }
-        return graphData;
+        return switch (mCalculation) {
+            case SUM -> switch (mDisplayInterval) {
+                case HOUR -> mViewModel.getSumHour(type, sysSN, lFrom, lTo);
+                case DOY -> mViewModel.getSumDOY(type, sysSN, lFrom, lTo);
+                case WEEK -> mViewModel.getSumDOW(type, sysSN, lFrom, lTo);
+                case MNTH -> mViewModel.getSumMonth(type, sysSN, lFrom, lTo);
+                case YEAR -> mViewModel.getSumYear(type, sysSN, lFrom, lTo);
+            };
+            case AVG -> switch (mDisplayInterval) {
+                case HOUR -> mViewModel.getAvgHour(type, sysSN, lFrom, lTo);
+                case DOY -> mViewModel.getAvgDOY(type, sysSN, lFrom, lTo);
+                case WEEK -> mViewModel.getAvgDOW(type, sysSN, lFrom, lTo);
+                case MNTH -> mViewModel.getAvgMonth(type, sysSN, lFrom, lTo);
+                case YEAR -> mViewModel.getAvgYear(type, sysSN, lFrom, lTo);
+            };
+        };
     }
 
     @Override
@@ -465,12 +435,12 @@ public abstract class BaseGraphsFragment extends Fragment {
                                         mCompareActive = false;
                                     }
                                     else {
+                                        mCompareActive = true;
                                         if ("ESBNHDF".equals(type)) {
                                             mCompareSN = mCompareDisplayName = sysSN;
                                             mCompareType = ComparisonUIViewModel.Importer.ESBNHDF;
                                             mCompareFrom = mFrom;
                                             mCompareTo = mTo;
-                                            mCompareActive = true;
                                         } else {
                                             mCompareSN = String.valueOf(id);
                                             mCompareDisplayName = sysSN;
@@ -481,7 +451,6 @@ public abstract class BaseGraphsFragment extends Fragment {
                                                 mCompareFrom = "2001-01-01";
                                                 mCompareTo = "2001-12-31";
                                             }
-                                            mCompareActive = true;
                                         }
                                     }
                                     LOGGER.info("Selected " + sysSN + ", " + type + " to compare from " + mCompareFrom + ", to " + mCompareTo);
@@ -861,18 +830,12 @@ public abstract class BaseGraphsFragment extends Fragment {
     }
 
     private TextView getDestinationText() {
-        switch (mChartView) {
-            case BAR:
-                return mDestinationPicksBar;
-            case LINE:
-                return mDestinationPicksLine;
-            case PIE:
-                return mDestinationPicksPie;
-            case TABLE:
-                return mDestinationPicksTable;
-            default:
-                return null;
-        }
+        return switch (mChartView) {
+            case BAR -> mDestinationPicksBar;
+            case LINE -> mDestinationPicksLine;
+            case PIE -> mDestinationPicksPie;
+            case TABLE -> mDestinationPicksTable;
+        };
     }
 
     @SuppressLint("SetTextI18n")
@@ -1212,24 +1175,14 @@ public abstract class BaseGraphsFragment extends Fragment {
             mTableChart.removeAllViews();
             mTableChart.setStretchAllColumns(true);
             TableRow titleRow = new TableRow(activity);
-            String displayInterval = getString(R.string.hour);
-            switch (mDisplayInterval) {
-                case HOUR:
-                    displayInterval = getString(R.string.hour);
-                    break;
-                case DOY:
-                    displayInterval = getString(R.string.DOY);
-                    break;
-                case WEEK:
-                    displayInterval = getString(R.string.Week);
-                    break;
-                case MNTH:
-                    displayInterval = getString(R.string.monthly);
-                    break;
-                case YEAR:
-                    displayInterval = getString(R.string.annually);
-                    break;
-            }
+            getString(R.string.hour);
+            String displayInterval = switch (mDisplayInterval) {
+                case HOUR -> getString(R.string.hour);
+                case DOY -> getString(R.string.DOY);
+                case WEEK -> getString(R.string.Week);
+                case MNTH -> getString(R.string.monthly);
+                case YEAR -> getString(R.string.annually);
+            };
             titleRow.addView(getTableChartTitleHeader(displayInterval, activity));
             if (mShowLoad) titleRow.addView(getTableChartTitleHeader(getString(R.string.load) + "(kWh)", activity));
             if (mShowPV) titleRow.addView(getTableChartTitleHeader(getString(R.string.pv) + "(kWh)", activity));
@@ -1280,41 +1233,42 @@ public abstract class BaseGraphsFragment extends Fragment {
             case HOUR:
             case DOY: value = interval; break;
             case WEEK:
-                switch (interval) {
-                    case "0": value = getString(R.string.Sun); break;
-                    case "1": value = getString(R.string.Mon); break;
-                    case "2": value = getString(R.string.Tue); break;
-                    case "3": value = getString(R.string.Wed); break;
-                    case "4": value = getString(R.string.Thu); break;
-                    case "5": value = getString(R.string.Fri); break;
-                    case "6": value = getString(R.string.Sat); break;
-                }
+                value = switch (interval) {
+                    case "0" -> getString(R.string.Sun);
+                    case "1" -> getString(R.string.Mon);
+                    case "2" -> getString(R.string.Tue);
+                    case "3" -> getString(R.string.Wed);
+                    case "4" -> getString(R.string.Thu);
+                    case "5" -> getString(R.string.Fri);
+                    case "6" -> getString(R.string.Sat);
+                    default -> value;
+                };
                 break;
             case MNTH:
-                switch (mCalculation) {
-                    case SUM: value = interval; break;
-                    case AVG:
-                        switch (interval) {
-                            case "01": value = getString(R.string.Jan); break;
-                            case "02": value = getString(R.string.Feb); break;
-                            case "03": value = getString(R.string.Mar); break;
-                            case "04": value = getString(R.string.Apr); break;
-                            case "05": value = getString(R.string.May); break;
-                            case "06": value = getString(R.string.Jun); break;
-                            case "07": value = getString(R.string.Jul); break;
-                            case "08": value = getString(R.string.Aug); break;
-                            case "09": value = getString(R.string.Sep); break;
-                            case "10": value = getString(R.string.Oct); break;
-                            case "11": value = getString(R.string.Nov); break;
-                            case "12": value = getString(R.string.Dec); break;
-                        }
-                }
+                value = switch (mCalculation) {
+                    case SUM -> interval;
+                    case AVG -> switch (interval) {
+                        case "01" -> getString(R.string.Jan);
+                        case "02" -> getString(R.string.Feb);
+                        case "03" -> getString(R.string.Mar);
+                        case "04" -> getString(R.string.Apr);
+                        case "05" -> getString(R.string.May);
+                        case "06" -> getString(R.string.Jun);
+                        case "07" -> getString(R.string.Jul);
+                        case "08" -> getString(R.string.Aug);
+                        case "09" -> getString(R.string.Sep);
+                        case "10" -> getString(R.string.Oct);
+                        case "11" -> getString(R.string.Nov);
+                        case "12" -> getString(R.string.Dec);
+                        default -> value;
+                    };
+                };
                 break;
             case YEAR:
-                switch (mCalculation) {
-                    case SUM: value = interval; break;
-                    case AVG: value = "All";
-                }
+                value = switch (mCalculation) {
+                    case SUM -> interval;
+                    case AVG -> "All";
+                };
                 break;
         }
         MaterialTextView materialTextView = new MaterialTextView(activity);

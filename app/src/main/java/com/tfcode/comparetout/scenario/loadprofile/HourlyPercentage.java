@@ -16,6 +16,7 @@
 
 package com.tfcode.comparetout.scenario.loadprofile;
 
+@SuppressWarnings("unused")
 public class HourlyPercentage {
     private int mBegin;
     private int mEnd;

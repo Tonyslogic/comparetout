@@ -60,19 +60,19 @@ import java.util.stream.Collectors;
 
 /**
  * Abstract base class for generation data processing workers.
- * 
+ * <p>
  * This class provides the foundation for background workers that generate synthetic
  * energy system data based on real-world measurements. It implements the Android
  * WorkManager Worker interface to perform long-running data generation tasks
  * in the background, with progress notifications and cancellation support.
- * 
+ * <p>
  * The worker generates several types of energy system components:
  * - Load profiles from historical consumption data
  * - Inverter configurations based on system specifications  
  * - Solar panel generation data with realistic power curves
  * - Battery system data including charge/discharge patterns
  * - Battery scheduling information for optimal operation
- * 
+ * <p>
  * Subclasses must implement the abstract methods to provide system-specific
  * data retrieval and generation logic. The class handles the overall workflow
  * and common operations like scenario creation, notification management, and
@@ -103,7 +103,7 @@ public abstract class AbstractGenerationWorker extends Worker {
 
     /**
      * Constructor for AbstractGenerationWorker.
-     * 
+     * <p>
      * Initializes the worker with necessary dependencies for data generation and
      * user notification. Creates the notification channel for progress updates
      * and sets up the repository for data persistence operations.
@@ -121,7 +121,7 @@ public abstract class AbstractGenerationWorker extends Worker {
 
     /**
      * Handles worker cancellation by setting the stopped flag.
-     * 
+     * <p>
      * This method is called by the WorkManager when the worker is stopped
      * or cancelled. It sets an internal flag that can be checked during
      * long-running operations to enable graceful cancellation.
@@ -134,7 +134,7 @@ public abstract class AbstractGenerationWorker extends Worker {
 
     /**
      * Main worker execution method that orchestrates the generation process.
-     * 
+     * <p>
      * This method performs the complete energy system data generation workflow:
      * 1. Extracts input parameters from the work request
      * 2. Creates a new scenario to contain the generated data
@@ -142,7 +142,7 @@ public abstract class AbstractGenerationWorker extends Worker {
      * 4. Creates inverter specifications based on system parameters
      * 5. Generates solar panel data with realistic generation curves
      * 6. Creates battery system data and charging schedules
-     * 
+     * <p>
      * The method is designed to handle partial generation based on input flags,
      * allowing selective generation of specific components. Progress is reported
      * throughout the process via notifications.
@@ -240,7 +240,7 @@ public abstract class AbstractGenerationWorker extends Worker {
 
     /**
      * Creates a new scenario with a unique name for the generated data.
-     * 
+     * <p>
      * This method ensures that each generation run creates a distinctly named scenario
      * to avoid conflicts with existing scenarios. It appends a numeric suffix if the
      * base system serial number is already in use as a scenario name.
@@ -273,12 +273,12 @@ public abstract class AbstractGenerationWorker extends Worker {
 
     /**
      * Generates a load profile from historical consumption data.
-     * 
+     * <p>
      * This method creates a load profile by analyzing historical consumption patterns
      * and generating statistical distributions for different time periods (hourly, daily,
      * monthly). The load profile serves as the foundation for energy consumption modeling
      * in the generated scenario.
-     * 
+     * <p>
      * Key components:
      * - Hourly distribution: Shows consumption patterns throughout the day
      * - Daily distribution: Shows consumption patterns across days of the week  
@@ -432,12 +432,12 @@ public abstract class AbstractGenerationWorker extends Worker {
 
     /**
      * Generates panel data with realistic solar generation patterns.
-     * 
+     * <p>
      * This method creates synthetic solar panel generation data by scaling actual
      * historical PV generation data according to the string size and total panel
      * count. It generates data points for every 5-minute interval throughout a
      * full year (2001 reference year) to provide comprehensive generation modeling.
-     * 
+     * <p>
      * The method handles missing data gracefully by setting PV output to zero
      * when no historical data is available for a given time period.
      * 
@@ -524,7 +524,7 @@ public abstract class AbstractGenerationWorker extends Worker {
 
     /**
      * Reports progress to the user via notifications and work manager.
-     * 
+     * <p>
      * This method provides dual progress reporting: updating the WorkManager
      * progress state for programmatic monitoring and displaying a user notification
      * showing the current operation status.
@@ -538,7 +538,7 @@ public abstract class AbstractGenerationWorker extends Worker {
 
     /**
      * Creates a notification for progress reporting.
-     * 
+     * <p>
      * This method builds an ongoing notification that shows the current generation
      * progress to the user. The notification includes a cancel action that allows
      * users to stop the generation process if needed. The notification is designed
@@ -573,7 +573,7 @@ public abstract class AbstractGenerationWorker extends Worker {
 
     /**
      * Creates the Android notification channel for progress updates.
-     * 
+     * <p>
      * This method initializes the notification channel required for displaying
      * progress notifications on Android 8.0+ devices. The channel is configured
      * with default importance to provide visible but non-intrusive notifications
@@ -595,25 +595,18 @@ public abstract class AbstractGenerationWorker extends Worker {
 
     /**
      * Data holder for scenario creation results.
-     * 
+     * <p>
      * This private static class encapsulates the results of scenario creation,
      * providing both the final unique scenario name and the database ID assigned
      * to the scenario. This information is needed throughout the generation process
      * to associate generated components with the correct scenario.
      */
-    private static class ScenarionKeys {
-        public final String finalScenarioName;
-        public final long assignedScenarioID;
-
-        public ScenarionKeys(String finalScenarioName, long assignedScenarioID) {
-            this.finalScenarioName = finalScenarioName;
-            this.assignedScenarioID = assignedScenarioID;
-        }
+        private record ScenarionKeys(String finalScenarioName, long assignedScenarioID) {
     }
 
     /**
      * Data holder for solar panel string configuration.
-     * 
+     * <p>
      * This private static class represents a specific solar panel string within
      * a multi-string solar installation. It links the physical string size
      * (number of panels) with the database identifier for the panel configuration.
@@ -631,21 +624,21 @@ public abstract class AbstractGenerationWorker extends Worker {
 
     /**
      * Data container for energy system specifications.
-     * 
+     * <p>
      * This public static class holds the core electrical specifications of an energy
      * system that are used throughout the generation process. These values define
      * the system's capabilities and are used to scale generated data appropriately.
-     * 
+     * <p>
      * The class is public to allow access from subclasses that need to retrieve
      * and populate system-specific data from external sources.
      */
     public static class SystemData {
         /** Peak power output of photovoltaic system in kW */
-        public double popv;
+        public final double popv;
         /** Peak power output of inverter in kW */
-        public double poinv;
+        public final double poinv;
         /** List of surplus battery capacity values for different scenarios */
-        public List<Double> surplusCobat;
+        public final List<Double> surplusCobat;
 
         public SystemData(double popv, double poinv, List<Double> surplusCobat) {
             this.popv = popv;

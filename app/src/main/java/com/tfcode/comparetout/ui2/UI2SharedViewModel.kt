@@ -12,11 +12,8 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
@@ -31,7 +28,8 @@ private const val KEY_ACTIVE_DS_END      = "active_ds_end"
 @HiltViewModel
 class UI2SharedViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val repository: ToutcRepository
+    private val repository: ToutcRepository,
+    private val sampleDataLoader: SampleDataLoader
 ) : ViewModel() {
 
     sealed class ActiveSelection {
@@ -53,15 +51,10 @@ class UI2SharedViewModel @Inject constructor(
     // below from racing in and overwriting it with the last-persisted value.
     @Volatile private var explicitSelectionRequested = false
 
-    // Convenience for code that only cares about simulation ID
-    val activeSimulationId = _activeSelection
-        .map { (it as? ActiveSelection.Simulation)?.id }
-        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
-
     init {
         viewModelScope.launch(Dispatchers.IO) {
             val app = context.applicationContext as TOUTCApplication
-            val stored = app.getDataStore()
+            val stored = app.dataStore
                 .data()
                 .firstOrError()
                 .map { prefs ->
@@ -94,6 +87,15 @@ class UI2SharedViewModel @Inject constructor(
             }
         }
 
+        // After the sample-data loader seeds a scenario, point the dashboard at
+        // it automatically. SampleDataLoader emits the new scenarioId on its
+        // SharedFlow (replay=0, extraBuffer=1) only on a fresh load — later VM
+        // recreations won't replay, so an explicit user navigation after the
+        // initial seed isn't clobbered.
+        viewModelScope.launch {
+            sampleDataLoader.selectScenario.collect { id -> setActiveSimulationId(id) }
+        }
+
         // Keep an active data-source selection's date range current. The range
         // is captured when a source is picked, but a later fetch (manual,
         // daily, or notification-driven) extends the data — the InverterDateRange
@@ -102,9 +104,9 @@ class UI2SharedViewModel @Inject constructor(
         // window instead of the stale range they were opened with.
         viewModelScope.launch {
             combine(
-                repository.getLiveDateRanges().asFlow(),
-                repository.getESBNLiveDateRanges().asFlow(),
-                repository.getHALiveDateRanges().asFlow()
+                repository.liveDateRanges.asFlow(),
+                repository.esbnLiveDateRanges.asFlow(),
+                repository.haLiveDateRanges.asFlow()
             ) { alpha, esbn, ha ->
                 // sysSn -> (start, finish). Match the Simulations list's dedup
                 // priority: alpha wins over esbn over ha for a shared sysSn.

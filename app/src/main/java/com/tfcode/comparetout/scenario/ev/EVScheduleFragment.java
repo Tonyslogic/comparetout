@@ -16,7 +16,6 @@
 
 package com.tfcode.comparetout.scenario.ev;
 
-import android.annotation.SuppressLint;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
@@ -81,7 +80,7 @@ public class EVScheduleFragment extends Fragment {
         mMainHandler = new Handler(Looper.getMainLooper());
 
         // The activity may not be created, so these calls wait for the activity creation to complete
-        ((EVScheduleActivity) requireActivity()).getLifecycle().addObserver((LifecycleEventObserver) (source, event) -> {
+        requireActivity().getLifecycle().addObserver((LifecycleEventObserver) (source, event) -> {
             if ((event.getTargetState() ==  Lifecycle.State.CREATED ) && !(null == getActivity()) ) {
                 mEVChargesFromActivity = ((EVScheduleActivity) requireActivity()).getEVCharges(mEVChargeIndex);
                 mEdit = ((EVScheduleActivity) requireActivity()).getEdit();
@@ -115,14 +114,6 @@ public class EVScheduleFragment extends Fragment {
         mEVChargeTimes.setShrinkAllColumns(true);
         mEVChargeTimes.setStretchAllColumns(true);
         updateView();
-    }
-
-    @SuppressLint("SourceLockedOrientationActivity")
-    @Override
-    public void onResume() {
-        super.onResume();
-//        if (!(null == getActivity()))
-//            getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 
     public void refreshFocus() {

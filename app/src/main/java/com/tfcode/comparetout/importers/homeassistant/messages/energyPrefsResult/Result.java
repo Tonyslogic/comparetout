@@ -20,6 +20,7 @@ import com.google.gson.annotations.SerializedName;
 
 import java.util.List;
 
+@SuppressWarnings("unused")
 public class Result {
     @SerializedName("energy_sources")
     private List<EnergySource> energySources;

@@ -12,6 +12,10 @@ Internal test version V1.58
 
 Read more on the [documentation site](https://github.com/Tonyslogic/comparetout-doc)
 
+V1.59
+
+* UI2 stability
+
 V1.58
 
 * UI2

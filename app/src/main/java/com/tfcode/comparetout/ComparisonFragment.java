@@ -21,15 +21,6 @@ import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.os.Bundle;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
-import androidx.appcompat.widget.PopupMenu;
-import androidx.fragment.app.Fragment;
-import androidx.lifecycle.ViewModelProvider;
-import androidx.viewpager2.widget.ViewPager2;
-import androidx.webkit.WebViewAssetLoader;
-
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -43,6 +34,15 @@ import android.widget.PopupWindow;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.widget.PopupMenu;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentActivity;
+import androidx.lifecycle.ViewModelProvider;
+import androidx.viewpager2.widget.ViewPager2;
+import androidx.webkit.WebViewAssetLoader;
 
 import com.github.mikephil.charting.charts.PieChart;
 import com.github.mikephil.charting.data.PieData;
@@ -66,12 +66,12 @@ import java.util.Objects;
 
 /**
  * Fragment providing comprehensive cost comparison visualization and analysis.
- * 
+ * <p>
  * This fragment serves as the primary interface for viewing and analyzing energy cost
  * calculations across different scenarios and price plans. It presents complex financial
  * data through multiple visualization methods including sortable tables, pie charts,
  * and detailed breakdowns of cost components.
- * 
+ * <p>
  * Key features:
  * - Dynamic table with sortable columns for different cost metrics
  * - Configurable column visibility to focus on specific cost components
@@ -79,19 +79,19 @@ import java.util.Objects;
  * - Responsive layout adaptation based on device orientation
  * - Export capabilities for analysis results
  * - Integrated help system with context-sensitive assistance
- * 
+ * <p>
  * The fragment manages complex UI state including:
  * - Sort preferences across different cost metrics (net, buy, sell, etc.)
  * - Column visibility settings for customized data presentation
  * - Orientation-aware layout management for optimal data display
  * - Popup window management for charts and help content
- * 
+ * <p>
  * Data presentation modes:
  * - Tabular comparison of all scenario/plan combinations
  * - Pie chart visualizations for cost breakdown analysis
  * - Filtering and sorting capabilities for focused analysis
  * - Cost component visibility toggles (buy/sell/net/bonuses/fixed)
- * 
+ * <p>
  * The fragment implements reactive data binding with the ViewModel to ensure
  * real-time updates when underlying cost calculations change, providing users
  * with immediate feedback as they modify scenarios or price plans.
@@ -144,11 +144,13 @@ public class ComparisonFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        if (mVisibleColCount <= 5 && !(null == getActivity()))
-            getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
-        else if (!(null == getActivity()))
-            getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
-        mOrientation = getActivity().getResources().getConfiguration().orientation;
+        FragmentActivity activity = getActivity();
+        if (activity == null) return;
+        if (mVisibleColCount <= 5)
+            activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);
+        else
+            activity.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+        mOrientation = activity.getResources().getConfiguration().orientation;
     }
 
     @Override
@@ -243,16 +245,16 @@ public class ComparisonFragment extends Fragment {
                 (tab, position) -> tab.setText(tabTitles[position])
         ).attach();
 
-        ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.USAGE_FRAGMENT)).setOnLongClickListener(v -> {
+        ((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.USAGE_FRAGMENT).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/main/scenarionav/tab.html");
             return true;});
-        ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.COSTS_FRAGMENT)).setOnLongClickListener(v -> {
+        ((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.COSTS_FRAGMENT).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/main/plannav/tab.html");
             return true;});
-        ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.COMPARE_FRAGMENT)).setOnLongClickListener(v -> {
+        ((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.COMPARE_FRAGMENT).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/main/compare/tab.html");
             return true;});
-        ((View)((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.DATA_MANAGEMENT_FRAGMENT)).setOnLongClickListener(v -> {
+        ((LinearLayout)tabLayout.getChildAt(0)).getChildAt(MainActivity.DATA_MANAGEMENT_FRAGMENT).setOnLongClickListener(v -> {
             showHelp("https://appassets.androidplatform.net/assets/main/datatab/tab.html");
             return true;});
     }
@@ -316,12 +318,12 @@ public class ComparisonFragment extends Fragment {
                 item.setActionView(new View(getActivity()));
                 item.setOnActionExpandListener(new MenuItem.OnActionExpandListener() {
                     @Override
-                    public boolean onMenuItemActionExpand(MenuItem item) {
+                    public boolean onMenuItemActionExpand(@NonNull MenuItem item) {
                         return false;
                     }
 
                     @Override
-                    public boolean onMenuItemActionCollapse(MenuItem item) {
+                    public boolean onMenuItemActionCollapse(@NonNull MenuItem item) {
                         return false;
                     }
                 });
@@ -380,9 +382,9 @@ public class ComparisonFragment extends Fragment {
     private void updateView() {
         mTableLayout.removeAllViews();
 
-        if (!(null == mCostings)  && (mCostings.size() > 0)
-                && !(null == mPricePlans) && (mPricePlans.size() > 0)
-                && !(null == mScenarios) && mScenarios.size() > 0) {
+        if (!(null == mCostings)  && (!mCostings.isEmpty())
+                && !(null == mPricePlans) && (!mPricePlans.isEmpty())
+                && !(null == mScenarios) && !mScenarios.isEmpty()) {
             mTableLayout.setShrinkAllColumns(false);
             mTableLayout.setStretchAllColumns(true);
             mTableLayout.setColumnShrinkable(1, true);
@@ -591,11 +593,11 @@ public class ComparisonFragment extends Fragment {
     private void showHelp(String url) {
         if (mOrientation == Configuration.ORIENTATION_PORTRAIT) {
             mHelpWindow.setHeight((int) (requireActivity().getWindow().getDecorView().getHeight()*0.6));
-            mHelpWindow.setWidth((int) (requireActivity().getWindow().getDecorView().getWidth()));
+            mHelpWindow.setWidth(requireActivity().getWindow().getDecorView().getWidth());
         }
         else {
             mHelpWindow.setWidth((int) (requireActivity().getWindow().getDecorView().getWidth() * 0.6));
-            mHelpWindow.setHeight((int) (requireActivity().getWindow().getDecorView().getHeight()));
+            mHelpWindow.setHeight(requireActivity().getWindow().getDecorView().getHeight());
         }
         mHelpWindow.showAtLocation(mTableLayout, Gravity.CENTER, 0, 0);
         WebView webView = mPopupHelpView.findViewById(R.id.helpWebView);

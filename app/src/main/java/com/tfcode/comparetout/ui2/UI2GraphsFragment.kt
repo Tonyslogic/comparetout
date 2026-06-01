@@ -2,7 +2,6 @@
 
 package com.tfcode.comparetout.ui2
 
-import android.graphics.Color as AndroidColor
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
@@ -23,7 +22,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -36,7 +34,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.BottomSheetDefaults
@@ -58,12 +56,13 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -78,10 +77,11 @@ import androidx.compose.ui.graphics.drawscope.Fill
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.platform.ComposeView
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -117,7 +117,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.util.Locale
+import android.graphics.Color as AndroidColor
 
 // ─── Colors ────────────────────────────────────────────────────────────────
 
@@ -139,7 +139,7 @@ private val SERIES_COLORS: Map<FilterSeries, Color> = mapOf(
     FilterSeries.BAT_DISCHARGE to Color(0xFFCC6600)
 )
 
-private val DISPLAY_FMT = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.getDefault())
+private val DISPLAY_FMT = DateTimeFormatter.ofPattern("dd MMM yyyy")
 
 // ─── Fragment ──────────────────────────────────────────────────────────────
 
@@ -178,8 +178,8 @@ class UI2GraphsFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        lifecycleScope.launch {
-            repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(androidx.lifecycle.Lifecycle.State.STARTED) {
                 sharedViewModel.activeSelection.collect { sel ->
                     when (sel) {
                         is UI2SharedViewModel.ActiveSelection.Simulation -> {
@@ -223,7 +223,7 @@ fun GraphsScreen(
             TopAppBar(
                 title = { Text(state.scenarioName, maxLines = 1) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.Default.ArrowBack, "Back") }
+                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
                 },
                 actions = {
                     IconButton(onClick = { showDrawer = true }) {
@@ -396,11 +396,16 @@ private fun DateNavRow(
         runCatching { LocalDate.parse(state.to, UI2GraphsViewModel.FMT).format(DISPLAY_FMT) }
             .getOrElse { state.to }
     }
+    // Chevrons get a wider hit area (height unchanged so the chart isn't
+    // squeezed). The narrow default kept catching the date-picker target.
+    val chevronModifier = Modifier.size(width = 72.dp, height = 48.dp)
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconButton(onClick = { viewModel.stepBack() }) { Text("◀", fontSize = 18.sp) }
+        IconButton(onClick = { viewModel.stepBack() }, modifier = chevronModifier) {
+            Text("◀", fontSize = 18.sp)
+        }
         TextButton(onClick = onDateClick, modifier = Modifier.weight(1f)) {
             Text(
                 text = if (state.from == state.to) fromDisplay else "$fromDisplay – $toDisplay",
@@ -408,7 +413,9 @@ private fun DateNavRow(
                 textAlign = TextAlign.Center
             )
         }
-        IconButton(onClick = { viewModel.stepForward() }) { Text("▶", fontSize = 18.sp) }
+        IconButton(onClick = { viewModel.stepForward() }, modifier = chevronModifier) {
+            Text("▶", fontSize = 18.sp)
+        }
     }
 }
 
@@ -782,8 +789,9 @@ private fun PieChartView(state: UI2GraphsViewModel.GraphState) {
         return
     }
 
-    var zoomedIdx by remember(specs) { mutableStateOf(-1) }
-    val cfg = LocalConfiguration.current
+    var zoomedIdx by remember(specs) { mutableIntStateOf(-1) }
+    val containerSize = LocalWindowInfo.current.containerSize
+    val density = LocalDensity.current
 
     val cols = 2
     val rows = (specs.size + cols - 1) / cols
@@ -816,7 +824,7 @@ private fun PieChartView(state: UI2GraphsViewModel.GraphState) {
 
     if (zoomedIdx in specs.indices) {
         val spec = specs[zoomedIdx]
-        val size = minOf(cfg.screenWidthDp, cfg.screenHeightDp).dp * 0.9f
+        val size = with(density) { (minOf(containerSize.width, containerSize.height) * 0.9f).toDp() }
         Dialog(onDismissRequest = { zoomedIdx = -1 }) {
             Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
                 Column(
@@ -1145,25 +1153,52 @@ private fun DateRangePickerDialog(
     val fmt = UI2GraphsViewModel.FMT
     val initFrom = runCatching { LocalDate.parse(state.from, fmt) }.getOrElse { LocalDate.now().minusMonths(1) }
     val initTo   = runCatching { LocalDate.parse(state.to,   fmt) }.getOrElse { LocalDate.now() }
+    val dataStart = runCatching { LocalDate.parse(state.dataStartDate, fmt) }.getOrNull()
+    val dataEnd   = runCatching { LocalDate.parse(state.dataEndDate,   fmt) }.getOrNull()
 
     val selectableDates = remember(state.dataStartDate, state.dataEndDate) {
-        val startMs = runCatching { LocalDate.parse(state.dataStartDate, fmt).toEpochDay() * 86_400_000L }
-            .getOrElse { Long.MIN_VALUE }
-        val endMs = runCatching { LocalDate.parse(state.dataEndDate, fmt).toEpochDay() * 86_400_000L }
-            .getOrElse { Long.MAX_VALUE }
-        val startYr = runCatching { LocalDate.parse(state.dataStartDate, fmt).year }.getOrElse { 0 }
-        val endYr   = runCatching { LocalDate.parse(state.dataEndDate, fmt).year }.getOrElse { 9999 }
+        val startMs = dataStart?.let { it.toEpochDay() * 86_400_000L } ?: Long.MIN_VALUE
+        val endMs   = dataEnd?.let   { it.toEpochDay() * 86_400_000L } ?: Long.MAX_VALUE
+        val startYr = dataStart?.year ?: 0
+        val endYr   = dataEnd?.year   ?: 9999
         object : SelectableDates {
             override fun isSelectableDate(utcTimeMillis: Long) = utcTimeMillis in startMs..endMs
             override fun isSelectableYear(year: Int) = year in startYr..endYr
         }
     }
 
+    // Land on today's month if it overlaps the data range; otherwise the last
+    // month with data. Without this, M3 scrolls to the start of selection (or
+    // the start of the year range) — five years of data deep is annoying.
+    val displayMonth = remember(dataStart, dataEnd) {
+        val today = LocalDate.now()
+        when {
+            dataStart != null && dataEnd != null &&
+                !today.isBefore(dataStart.withDayOfMonth(1)) && !today.isAfter(dataEnd) -> today
+            dataEnd != null -> dataEnd
+            else -> today
+        }.withDayOfMonth(1)
+    }
+
     val pickerState = rememberDateRangePickerState(
         initialSelectedStartDateMillis = initFrom.toEpochDay() * 86_400_000L,
         initialSelectedEndDateMillis   = initTo.toEpochDay()   * 86_400_000L,
+        initialDisplayedMonthMillis    = displayMonth.toEpochDay() * 86_400_000L,
         selectableDates = selectableDates
     )
+
+    val pickedStart = pickerState.selectedStartDateMillis
+        ?.let { LocalDate.ofEpochDay(it / 86_400_000L) }
+    val pickedEnd = pickerState.selectedEndDateMillis
+        ?.let { LocalDate.ofEpochDay(it / 86_400_000L) }
+    val okLabel = when {
+        pickedStart != null && pickedEnd != null -> {
+            val days = (pickedEnd.toEpochDay() - pickedStart.toEpochDay()).toInt() + 1
+            "OK · $days day" + if (days == 1) "" else "s"
+        }
+        pickedStart != null -> "OK · 1 day"
+        else -> "OK"
+    }
 
     Dialog(
         onDismissRequest = onDismiss,
@@ -1178,14 +1213,21 @@ private fun DateRangePickerDialog(
             DateRangePicker(state = pickerState, modifier = Modifier.height(480.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 TextButton(onClick = onDismiss) { Text("Cancel") }
-                TextButton(onClick = {
-                    val f = pickerState.selectedStartDateMillis
-                    val t = pickerState.selectedEndDateMillis
-                    if (f != null && t != null) onConfirm(
-                        LocalDate.ofEpochDay(f / 86_400_000L).format(fmt),
-                        LocalDate.ofEpochDay(t / 86_400_000L).format(fmt)
-                    ) else onDismiss()
-                }) { Text("OK") }
+                TextButton(
+                    onClick = {
+                        // Tap-one-date + OK is a single-day selection: M3's
+                        // DateRangePicker won't let the user tap the same day
+                        // twice to set start == end, so we synthesise it here.
+                        when {
+                            pickedStart != null && pickedEnd != null ->
+                                onConfirm(pickedStart.format(fmt), pickedEnd.format(fmt))
+                            pickedStart != null ->
+                                onConfirm(pickedStart.format(fmt), pickedStart.format(fmt))
+                            else -> onDismiss()
+                        }
+                    },
+                    enabled = pickedStart != null
+                ) { Text(okLabel) }
             }
         }
     }

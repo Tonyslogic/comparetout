@@ -18,6 +18,7 @@ package com.tfcode.comparetout.importers.alphaess.responses;
 
 import com.google.gson.annotations.SerializedName;
 
+@SuppressWarnings("unused")
 public class GetOneDayEnergyResponse {
     @SerializedName("code")
     public int code;

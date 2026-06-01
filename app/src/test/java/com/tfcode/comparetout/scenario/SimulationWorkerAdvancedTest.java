@@ -16,15 +16,17 @@
 
 package com.tfcode.comparetout.scenario;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.ChargeModel;
 import com.tfcode.comparetout.model.scenario.DischargeToGrid;
-import com.tfcode.comparetout.model.scenario.EVCharge;
-import com.tfcode.comparetout.model.scenario.EVDivert;
 import com.tfcode.comparetout.model.scenario.HWSchedule;
-import com.tfcode.comparetout.model.scenario.HWSystem;
 import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.LoadShift;
 import com.tfcode.comparetout.model.scenario.SimulationInputData;
@@ -83,7 +85,6 @@ public class SimulationWorkerAdvancedTest {
         
         // Create a mock HWSchedule (this might not work without proper setup, but tests the logic)
         List<HWSchedule> schedules = new ArrayList<>();
-        HWSchedule schedule = new HWSchedule();
         // Note: We can't fully test this without setting up the complete HWSchedule object
         // But we can test the dayOfWeek conversion logic
         
@@ -216,7 +217,7 @@ public class SimulationWorkerAdvancedTest {
     /**
      * Tests processOneRow with various inverter loss configurations.
      * Verifies AC/DC conversion losses are properly applied to energy calculations.
-     * 
+     * <p>
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
      * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */
@@ -263,7 +264,7 @@ public class SimulationWorkerAdvancedTest {
     /**
      * Tests processOneRow with maximum inverter load limitations.
      * Verifies that inverter capacity constraints are properly enforced.
-     * 
+     * <p>
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
      * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */
@@ -422,7 +423,7 @@ public class SimulationWorkerAdvancedTest {
     /**
      * Tests processOneRow with minimum excess threshold and battery charging.
      * Verifies that small PV excess below threshold doesn't trigger battery charging.
-     * 
+     * <p>
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
      * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
      */

@@ -1,3 +1,5 @@
+@file:Suppress("AssignedValueIsNeverRead")
+
 package com.tfcode.comparetout.ui2
 
 import android.content.Intent
@@ -9,7 +11,6 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -62,12 +63,13 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -143,19 +145,20 @@ fun DirectorScreen(
                 var actionBarVisible by remember { mutableStateOf(true) }
                 var lastIndex by remember { mutableIntStateOf(0) }
                 var lastOffset by remember { mutableIntStateOf(0) }
-                LaunchedEffect(listState.firstVisibleItemIndex, listState.firstVisibleItemScrollOffset) {
-                    val idx = listState.firstVisibleItemIndex
-                    val off = listState.firstVisibleItemScrollOffset
-                    val atTop = idx == 0 && off == 0
-                    val deltaIdx = idx - lastIndex
-                    val deltaOff = off - lastOffset
-                    when {
-                        atTop -> actionBarVisible = true
-                        deltaIdx > 0 || (deltaIdx == 0 && deltaOff >  SCROLL_THRESHOLD) -> actionBarVisible = false
-                        deltaIdx < 0 || (deltaIdx == 0 && deltaOff < -SCROLL_THRESHOLD) -> actionBarVisible = true
-                    }
-                    lastIndex = idx
-                    lastOffset = off
+                LaunchedEffect(listState) {
+                    snapshotFlow { listState.firstVisibleItemIndex to listState.firstVisibleItemScrollOffset }
+                        .collect { (idx, off) ->
+                            val atTop = idx == 0 && off == 0
+                            val deltaIdx = idx - lastIndex
+                            val deltaOff = off - lastOffset
+                            when {
+                                atTop -> actionBarVisible = true
+                                deltaIdx > 0 || (deltaIdx == 0 && deltaOff >  SCROLL_THRESHOLD) -> actionBarVisible = false
+                                deltaIdx < 0 || deltaOff < -SCROLL_THRESHOLD -> actionBarVisible = true
+                            }
+                            lastIndex = idx
+                            lastOffset = off
+                        }
                 }
 
                 Column(Modifier.fillMaxSize()) {
@@ -187,7 +190,7 @@ fun DirectorScreen(
                                 )
                             }
                         }
-                        DirectorGroup.values().forEach { group ->
+                        DirectorGroup.entries.forEach { group ->
                     item(key = "group-$group") {
                         GroupAccordion(
                             group = group,

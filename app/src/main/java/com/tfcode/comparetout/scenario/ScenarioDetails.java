@@ -253,21 +253,13 @@ public class ScenarioDetails extends Fragment {
             updateKPIs();
         };
 //        TODO: Update DatePicker to non deprecated
-//        mDatePickerButton.setOnClickListener(v -> {
-//            LocalDate localDate = LocalDate.ofYearDay(2001, mDayOfYear);
-//            new DatePickerDialog(getActivity(), date, 2001 ,localDate.getMonth().getValue() - 1, localDate.getDayOfMonth()).show();
-//        });
         mDatePickerButton.setOnClickListener(v -> {
             LocalDate localDate = LocalDate.ofYearDay(2001, mDayOfYear);
-            int pickerTheme = 0;
-            switch (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) {
-                case Configuration.UI_MODE_NIGHT_YES:
-                    pickerTheme = android.R.style.Theme_Holo_Dialog;
-                    break;
-                case Configuration.UI_MODE_NIGHT_NO:
-                    pickerTheme = android.R.style.Theme_Holo_Light_Dialog;
-                    break;
-            }
+            int pickerTheme = switch (getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK) {
+                case Configuration.UI_MODE_NIGHT_YES -> android.R.style.Theme_Holo_Dialog;
+                case Configuration.UI_MODE_NIGHT_NO -> android.R.style.Theme_Holo_Light_Dialog;
+                default -> 0;
+            };
             assert getActivity() != null;
             DatePickerDialog dpd = new DatePickerDialog(getActivity(), pickerTheme, date, 2001 ,localDate.getMonth().getValue() - 1, localDate.getDayOfMonth());
             View yearView = dpd.getDatePicker().findViewById(getResources().getIdentifier("year", "id", "android"));

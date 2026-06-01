@@ -67,7 +67,7 @@ class UI2SimulationsViewModel @Inject constructor(
         // HA always stores sysSn = "HomeAssistant" (hardcoded in HACatchupWorker), so we
         // detect it by name to avoid misclassifying it as ESBN.
         val seen = mutableSetOf<String>()
-        val dsItems = buildList<SimListItem.DataSource> {
+        val dsItems = buildList {
             alpha.forEach { if (seen.add(it.sysSn)) add(SimListItem.DataSource(it.sysSn, ComparisonUIViewModel.Importer.ALPHAESS,        it.startDate, it.finishDate)) }
             esbn.forEach  { r ->
                 val type = if (r.sysSn == "HomeAssistant") ComparisonUIViewModel.Importer.HOME_ASSISTANT
@@ -82,23 +82,23 @@ class UI2SimulationsViewModel @Inject constructor(
     init {
         Log.d("UI2", "UI2SimulationsViewModel created")
         viewModelScope.launch(Dispatchers.Main) {
-            repository.getAllScenarios().asFlow().collect { list ->
+            repository.allScenarios.asFlow().collect { list ->
                 _scenarios.value = list ?: emptyList()
                 enrichScenarios(list ?: emptyList())
             }
         }
         viewModelScope.launch(Dispatchers.Main) {
-            repository.getLiveDateRanges().asFlow().collect { list ->
+            repository.liveDateRanges.asFlow().collect { list ->
                 _alphaSources.value = list ?: emptyList()
             }
         }
         viewModelScope.launch(Dispatchers.Main) {
-            repository.getESBNLiveDateRanges().asFlow().collect { list ->
+            repository.esbnLiveDateRanges.asFlow().collect { list ->
                 _esbnSources.value = list ?: emptyList()
             }
         }
         viewModelScope.launch(Dispatchers.Main) {
-            repository.getHALiveDateRanges().asFlow().collect { list ->
+            repository.haLiveDateRanges.asFlow().collect { list ->
                 _haSources.value = list ?: emptyList()
             }
         }
@@ -148,7 +148,7 @@ class UI2SimulationsViewModel @Inject constructor(
      * by either UI without special handling.
      */
     suspend fun buildScenarioJson(scenarioId: Long): String? = withContext(Dispatchers.IO) {
-        val all = repository.getAllScenariosForExport() ?: return@withContext null
+        val all = repository.allScenariosForExport ?: return@withContext null
         val pick = all.filter { it.scenario.scenarioIndex == scenarioId }
         if (pick.isEmpty()) return@withContext null
         JsonTools.createScenarioList(pick)

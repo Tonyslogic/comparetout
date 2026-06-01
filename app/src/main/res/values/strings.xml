@@ -15,7 +15,6 @@
   -->
 
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <string name="app_name">Eco Power Optimiser</string>
     <string name="share">Share</string>
     <string name="edit">Edit</string>
     <string name="add_day_rate">Add day rate</string>
@@ -26,10 +25,8 @@
     <string name="main_activity_usage">Usages</string>
     <string name="main_activity_costs">Costs</string>
     <string name="main_activity_compare">Compare</string>
-    <string name="hello_blank_fragment">Hello blank fragment</string>
     <string name="channel_name">EPO Progress</string>
     <string name="channel_description">Shows the status of background tasks</string>
-    <string name="scenario">Scenario</string>
     <string name="supplier_plan">Supplier:Plan</string>
     <string name="net">Net</string>
     <string name="buy">Buy</string>
@@ -46,7 +43,6 @@
     <string name="link">Link</string>
     <string name="help">Help</string>
     <string name="add_a_new_supplier_plan">Add a new supplier plan</string>
-    <string name="scenario_capability">Aspect</string>
     <string name="scenario_with_aspect">Eligible scenarios</string>
     <string name="cancel">Cancel</string>
     <string name="importlp">Import</string>
@@ -57,7 +53,6 @@
     <string name="DownloadNecessary">Download necessary</string>
     <string name="DataInDB">Data in DB</string>
     <string name="DBUpdateNecessary">DB update necessary</string>
-    <string name="Scenario">Scenario</string>
     <string name="NoBestCost">Best cost = €???.??</string>
     <string name="BestSupplier">Best supplier</string>
     <string name="FetchUpdateData">Fetch / Update data</string>
@@ -79,7 +74,6 @@
     <string name="hot_water_diversion">Hot Water Diversion</string>
     <string name="state_of_charge">State of Charge</string>
     <string name="hot_water_temperature">Hot Water Temperature</string>
-    <string name="ComparisonFilterText">\"Show columns… \"</string>
     <string name="EmptyComparisonsText">Price comparisons will appear here. \n\n Select usage(s) and costs from the other tabs to control the content of this tab\n\nYou can sort the table, and select the fields to show.\n\nTilting the screen (landscape) will better fit more fields.\n\nProgress of recently added costs and usages can be seen in the notification area.\n\nSelecting a comparison will pop up a usage graph (pie chart) that shows how much electricity was purchased at each rate</string>
     <string name="Total">Total</string>
     <string name="Split">Split</string>
@@ -149,7 +143,6 @@
     <string name="battery_configuration">Battery configuration</string>
     <string name="load_profile_configuration_disabled">Load profile configuration disabled</string>
     <string name="load_profile_configured">Load profile configured</string>
-    <string name="NoSolarData">Cannot find solar data for these panels. Remember to fetch or update solar data for each set of panels.</string>
     <string name="no_solar_data">Cannot find solar data for these panels. Remember to fetch or update solar data for each set of panels.</string>
     <string name="daily_distribution">Distribution of electricity usage by day of week</string>
     <string name="hourly_distribution">Distribution of electricity usage by hour of day</string>
@@ -157,7 +150,6 @@
     <string name="add_a_new_load_shift">Add a new load shift</string>
     <string name="hide_days_months">Hide days and months</string>
     <string name="show_days_months">Show days and months</string>
-    <string name="add_new_time">Add a new time</string>
     <string name="FromHr">From (hr)</string>
     <string name="ToHr">To (hr)</string>
     <string name="StopAt">Stop at (%)</string>
@@ -165,7 +157,6 @@
     <string name="linked">Linked</string>
     <string name="NinetyPoint0">90.0</string>
     <string name="scroll_view_for_distribution_editor">Scroll view for distribution editor</string>
-    <string name="help_text">Help text</string>
     <string name="add_a_new_heating_schedule">Add a new water heating schedule</string>
     <string name="draw">Draw</string>
     <string name="ev_charge_schedule_name">EV charge schedule name</string>
@@ -184,16 +175,9 @@
     <string name="reset_custom_lp">Reset Custom</string>
     <string name="standard_lp">Standard Load Profile</string>
     <string name="hdf_lp">ESBN Smart meter data</string>
-    <string name="done">Done</string>
-    <string name="costing_selection">Costing selection</string>
-    <string name="cost_hdf_file">Cost HDF file</string>
-    <string name="generating_load_profile">Generating load profile</string>
-    <string name="set_load_profile">Set Load Profile</string>
     <string name="select_dates">Select dates</string>
     <string name="dates_available">Dates available</string>
     <string name="loading">Loading…</string>
-    <string name="load_hdf_file">Load HDF file…</string>
-    <string name="estimate">Estimate</string>
     <string name="checking_for_panel_data">Checking for data for this location and panel string.</string>
     <string name="panel_data_updated">The data in the DB for this panel string was updated. You may change the location or return to the panels. A bar chart will appear there shortly.</string>
     <string name="panel_data_loading">PVGIS data was downloaded, now adding to the DB.</string>
@@ -208,7 +192,6 @@
     <string name="appSecret">App Secret</string>
     <string name="appId">App ID</string>
     <string name="Idle">Idle</string>
-    <string name="fetch_alpha_channel_id">AlphaESSCatchup</string>
     <string name="fetch_alpha_notification_title">AlphaESS Catchup</string>
     <string name="cancel_fetch_alpha">Cancel</string>
     <string name="CostData">Cost data</string>
@@ -219,7 +202,6 @@
     <string name="NoRange">Range: ??-??</string>
     <string name="no_data_available">No data available</string>
     <string name="hour">HOUR</string>
-    <string name="sum">Sum</string>
     <string name="DataTabName">Data</string>
     <string name="esbn_hdf_file">ESBN Smart Meter Data</string>
     <string name="dataMgmtOnScreenHelp">Manage your data sources</string>
@@ -255,9 +237,6 @@
     <string name="generate_battery_schedule">Generate battery schedule</string>
     <string name="generate_battery">Generate battery</string>
     <string name="generate_panel_data">Generate panel data</string>
-    <string name="_7">7</string>
-    <string name="string_2_panel_count">String 2 panel count</string>
-    <string name="string_1_panel_count">String 1 panel count</string>
     <string name="generate_panels">Generate panels</string>
     <string name="_2">2</string>
     <string name="mppt_count">MPPT count</string>
@@ -283,6 +262,7 @@
     <string name="not_listed">Not listed</string>
     <string name="data_load_race_mesage">Data update in progress, try again in a moment</string>
     <string name="esbn_import_notification_title">Smart meter file import</string>
+    <string name="esbn_export_notification_title">Smart meter file export</string>
     <string name="generate_profile">Generate profile</string>
     <string name="cost_notification_title">Calculating costs</string>
     <string name="cost_notification_text">Calculation in progress</string>
@@ -338,4 +318,6 @@
     <string name="confirm">Confirm</string>
     <string name="dialog_ok">OK</string>
     <string name="dialog_cancel">Cancel</string>
+    <string name="remove_comparison">Remove comparison</string>
+    <string name="app_name">Eco Power Optimiser</string>
 </resources>

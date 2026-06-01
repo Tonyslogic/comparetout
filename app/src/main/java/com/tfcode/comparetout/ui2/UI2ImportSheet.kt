@@ -35,17 +35,17 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import androidx.compose.runtime.rememberCoroutineScope
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.nio.charset.StandardCharsets
@@ -91,7 +91,7 @@ fun <T> UI2ImportSheet(
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
-    val clipboard = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
     val scope = rememberCoroutineScope()
 
     var source by remember { mutableStateOf(ImportSource.PASTE) }
@@ -201,10 +201,13 @@ fun <T> UI2ImportSheet(
                         textStyle = MaterialTheme.typography.bodySmall
                     )
                     TextButton(onClick = {
-                        val clip = clipboard.getText()?.text.orEmpty()
-                        if (clip.isNotBlank()) {
-                            pasteText = clip
-                            buffer = clip
+                        scope.launch {
+                            val clip = clipboard.getClipEntry()
+                                ?.clipData?.getItemAt(0)?.text?.toString().orEmpty()
+                            if (clip.isNotBlank()) {
+                                pasteText = clip
+                                buffer = clip
+                            }
                         }
                     }) {
                         Icon(Icons.Default.ContentPaste, contentDescription = null,

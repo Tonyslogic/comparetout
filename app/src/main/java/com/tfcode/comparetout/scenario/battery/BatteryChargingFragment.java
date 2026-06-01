@@ -16,8 +16,6 @@
 
 package com.tfcode.comparetout.scenario.battery;
 
-import android.annotation.SuppressLint;
-import android.content.pm.ActivityInfo;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.os.Handler;
@@ -91,7 +89,7 @@ public class BatteryChargingFragment extends Fragment {
         mMainHandler = new Handler(Looper.getMainLooper());
 
         // The activity may not be created, so these calls wait for the activity creation to complete
-        ((BatteryChargingActivity) requireActivity()).getLifecycle().addObserver((LifecycleEventObserver) (source, event) -> {
+        requireActivity().getLifecycle().addObserver((LifecycleEventObserver) (source, event) -> {
             if ((event.getTargetState() ==  Lifecycle.State.CREATED ) && !(null == getActivity()) ) {
                 mScenarioID = ((BatteryChargingActivity) requireActivity()).getScenarioID();
                 mLoadShiftsFromActivity = ((BatteryChargingActivity) requireActivity()).getLoadShifts(mBatteryScheduleIndex);
@@ -130,14 +128,6 @@ public class BatteryChargingFragment extends Fragment {
         mLoadShiftTimes.setShrinkAllColumns(true);
         mLoadShiftTimes.setStretchAllColumns(true);
         updateView();
-    }
-
-    @SuppressLint("SourceLockedOrientationActivity")
-    @Override
-    public void onResume() {
-        super.onResume();
-//        if (!(null == getActivity()))
-//            getActivity().setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT);
     }
 
     public void refreshFocus() {

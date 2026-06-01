@@ -6,6 +6,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.LinearOutSlowInEasing
@@ -16,6 +17,7 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,7 +25,6 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,15 +34,16 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -56,28 +58,46 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
-import androidx.compose.ui.draw.clip
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.border
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.core.graphics.toColorInt
+import androidx.fragment.app.Fragment
+import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.navigation.fragment.findNavController
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
 import com.github.mikephil.charting.charts.BarChart
 import com.github.mikephil.charting.components.XAxis
 import com.github.mikephil.charting.data.BarData
@@ -85,30 +105,17 @@ import com.github.mikephil.charting.data.BarDataSet
 import com.github.mikephil.charting.data.BarEntry
 import com.github.mikephil.charting.formatter.ValueFormatter
 import com.tfcode.comparetout.ComparisonUIViewModel
-import com.tfcode.comparetout.model.costings.Costings
-import com.tfcode.comparetout.model.scenario.LoadProfile
-import com.tfcode.comparetout.model.scenario.ScenarioComponents
-import com.tfcode.comparetout.model.scenario.Panel
-import com.tfcode.comparetout.model.scenario.PanelPVSummary
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import androidx.compose.ui.platform.ViewCompositionStrategy
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.unit.dp
-import androidx.fragment.app.Fragment
-import androidx.fragment.app.activityViewModels
-import androidx.fragment.app.viewModels
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import com.tfcode.comparetout.MainActivity
 import com.tfcode.comparetout.R
 import com.tfcode.comparetout.TOUTCApplication
+import com.tfcode.comparetout.model.costings.Costings
+import com.tfcode.comparetout.model.scenario.LoadProfile
+import com.tfcode.comparetout.model.scenario.Panel
+import com.tfcode.comparetout.model.scenario.PanelPVSummary
+import com.tfcode.comparetout.model.scenario.ScenarioComponents
 import com.tfcode.comparetout.model.scenario.SimKPIs
-import androidx.navigation.fragment.findNavController
 import dagger.hilt.android.AndroidEntryPoint
+import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -321,6 +328,25 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
     val scenarioTariffCostings by viewModel.scenarioTariffCostings.observeAsState(null)
     val dataBounds             by viewModel.dataBounds.observeAsState(null)
     val favouritePlanId        by viewModel.favouritePlanId.observeAsState(null)
+    // initial=true to avoid the empty-state card flashing on screens that already
+    // have scenarios — once the LiveData emits the real value, this drops to its
+    // proper state. Only matters for ≤1 recompose, but the flash is visible.
+    val hasScenarios           by viewModel.hasScenarios.observeAsState(initial = true)
+    // Re-pull DB-backed dashboard surfaces when the Simulation/Cost work chain
+    // (PVGIS → GenerateLoad → Simulate → Cost, kicked off by the wizard or by
+    // SampleDataLoader) reaches a successful terminal state. Without this the
+    // dashboard would sit on its pre-simulation snapshot — missing panel data,
+    // missing costings — until the user explicitly re-selected the scenario.
+    val context = LocalContext.current
+    val simulationWorkInfos by remember(context) {
+        WorkManager.getInstance(context).getWorkInfosForUniqueWorkLiveData("Simulation")
+    }.observeAsState(emptyList())
+    val simChainFinished = simulationWorkInfos.isNotEmpty() &&
+        simulationWorkInfos.all { it.state.isFinished } &&
+        simulationWorkInfos.any { it.state == WorkInfo.State.SUCCEEDED }
+    LaunchedEffect(simChainFinished, simulationWorkInfos.size) {
+        if (simChainFinished) viewModel.refresh()
+    }
     var showDrawer by remember { mutableStateOf(false) }
     val (showHints, toggleShowHints) = rememberShowHints()
     val df = remember { DecimalFormat("#,##0.00") }
@@ -361,6 +387,20 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
             val pvPeriod    by viewModel.pvPeriod.observeAsState(DataSourcePeriod.ALL)
     val pvAnchor    by viewModel.pvAnchor.observeAsState(LocalDate.now())
     val pvChartData by viewModel.pvChartData.observeAsState(null)
+
+            // First-run / data-deleted empty state. We check `dataSourceInfo`
+            // rather than `dashboardData == null` because after the user
+            // deletes their scenarios, DataStore still points at the now-gone
+            // scenarioId — the Simulation branch of dashboardData's flow still
+            // emits a non-null wrapper with null sub-fields. `dataSourceInfo`
+            // is only set when an actual data source is selected, so this
+            // condition correctly fires for both fresh installs and
+            // post-deletion states. The rest of this Column renders nothing in
+            // both cases (scenarioComponents/dataSourceInfo both null), so
+            // this card sits alone.
+            if (dashboardData?.dataSourceInfo == null && !hasScenarios) {
+                EmptyDashboardSampleCard()
+            }
 
             val dsInfo = dashboardData?.dataSourceInfo
             if (dsInfo != null) {
@@ -1034,7 +1074,7 @@ private fun stylePVBarChart(chart: BarChart, labelColor: Int, gridColor: Int) {
 
 @Composable
 fun LoadDistributionCharts(lp: LoadProfile) {
-    var zoomedIdx by remember { mutableStateOf(-1) }
+    var zoomedIdx by remember { mutableIntStateOf(-1) }
 
     val hourlyDist  = remember(lp) { lp.hourlyDist?.dist ?: emptyList<Double>() }
     val dailyDist   = remember(lp) { lp.dowDist?.dowDist ?: emptyList<Double>() }
@@ -1052,7 +1092,8 @@ fun LoadDistributionCharts(lp: LoadProfile) {
         )
     }
 
-    val cfg = LocalConfiguration.current
+    val containerSize = LocalWindowInfo.current.containerSize
+    val density = LocalDensity.current
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         charts.forEachIndexed { idx, (title, dist, labels) ->
@@ -1069,7 +1110,7 @@ fun LoadDistributionCharts(lp: LoadProfile) {
 
     if (zoomedIdx >= 0) {
         val (title, dist, labels) = charts[zoomedIdx]
-        val size = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 1.0f).dp
+        val size = with(density) { (minOf(containerSize.width, containerSize.height) * 1.0f).toDp() }
         Dialog(onDismissRequest = { zoomedIdx = -1 },
             properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
@@ -1123,7 +1164,7 @@ private fun SimpleDistBarChart(
 
 @Composable
 fun PVSummaryBarChart(panelSummary: List<PanelPVSummary>, panels: List<Panel>) {
-    var zoomedIdx by remember { mutableStateOf(-1) }
+    var zoomedIdx by remember { mutableIntStateOf(-1) }
     val monthLabels = remember { listOf("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec") }
 
     val grouped  = remember(panelSummary) { panelSummary.groupBy { it.panelID } }
@@ -1131,7 +1172,8 @@ fun PVSummaryBarChart(panelSummary: List<PanelPVSummary>, panels: List<Panel>) {
     val scenarioPanelIds = remember(panels) { panels.map { it.panelIndex }.toSet() }
     val panelIds = remember(grouped, scenarioPanelIds) { grouped.keys.filter { it in scenarioPanelIds }.sorted() }
 
-    val cfg = LocalConfiguration.current
+    val containerSize = LocalWindowInfo.current.containerSize
+    val density = LocalDensity.current
 
     Text("PV Monthly Generation (kWh)", style = MaterialTheme.typography.labelSmall,
         modifier = Modifier.padding(bottom = 4.dp))
@@ -1155,7 +1197,7 @@ fun PVSummaryBarChart(panelSummary: List<PanelPVSummary>, panels: List<Panel>) {
         val name     = panels.firstOrNull { it.panelIndex == panelId }?.panelName ?: "Panel $panelId"
         val monthMap = grouped[panelId]?.associate { (it.month.toIntOrNull() ?: 1) to it.tot } ?: emptyMap()
         val dist     = (1..12).map { m -> monthMap[m] ?: 0.0 }
-        val size     = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 1.0f).dp
+        val size     = with(density) { (minOf(containerSize.width, containerSize.height) * 1.0f).toDp() }
         Dialog(onDismissRequest = { zoomedIdx = -1 },
             properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
@@ -1181,7 +1223,7 @@ private fun PVStringBarChart(
 ) {
     val labelColorArgb = MaterialTheme.colorScheme.onSurface.toArgb()
     val gridColorArgb  = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f).toArgb()
-    val barColorArgb   = android.graphics.Color.parseColor("#F44336")
+    val barColorArgb   = "#F44336".toColorInt()
 
     AndroidView(
         factory = { ctx ->
@@ -1223,7 +1265,8 @@ private fun AllCostingsTable(
     favouritePlanId: Long? = null
 ) {
     var zoomedCosting by remember { mutableStateOf<Costings?>(null) }
-    val cfg = LocalConfiguration.current
+    val containerSize = LocalWindowInfo.current.containerSize
+    val density = LocalDensity.current
 
     // Header row
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
@@ -1289,12 +1332,12 @@ private fun AllCostingsTable(
         val c = zoomedCosting!!
         val slices = remember(c) {
             val st = c.subTotals ?: return@remember emptyList<PieSlice>()
-            st.getPrices().sortedBy { it }.mapIndexed { i, price ->
+            st.prices.sortedBy { it }.mapIndexed { i, price ->
                 val kwh = st.getSubTotalForPrice(price) ?: 0.0
                 PieSlice("%.1fc".format(price), kwh, TARIFF_PIE_COLORS[i % TARIFF_PIE_COLORS.size])
             }.filter { it.value > 0 }
         }
-        val size = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.9f).dp
+        val size = with(density) { (minOf(containerSize.width, containerSize.height) * 0.9f).toDp() }
         Dialog(onDismissRequest = { zoomedCosting = null },
             properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
@@ -1320,10 +1363,11 @@ private fun AllCostingsTable(
 @Composable
 private fun DataSourcePVBarChart(pvData: List<Pair<String, Double>>) {
     var zoomed by remember { mutableStateOf(false) }
-    val cfg = LocalConfiguration.current
+    val containerSize = LocalWindowInfo.current.containerSize
+    val density = LocalDensity.current
     val labelColorArgb = MaterialTheme.colorScheme.onSurface.toArgb()
     val gridColorArgb  = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f).toArgb()
-    val barColorArgb   = android.graphics.Color.parseColor("#F44336")
+    val barColorArgb   = "#F44336".toColorInt()
     val labels = remember(pvData) { pvData.map { it.first } }
     val values = remember(pvData) { pvData.map { it.second } }
     val total  = remember(pvData) { pvData.sumOf { it.second } }
@@ -1348,7 +1392,7 @@ private fun DataSourcePVBarChart(pvData: List<Pair<String, Double>>) {
         )
     }
     if (zoomed) {
-        val size = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 1.0f).dp
+        val size = with(density) { (minOf(containerSize.width, containerSize.height) * 1.0f).toDp() }
         Dialog(onDismissRequest = { zoomed = false },
             properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
@@ -1412,8 +1456,9 @@ private fun DataSourceExplorePies(
         }
     }
 
-    var zoomedChart by remember { mutableStateOf(-1) }
-    val cfg = LocalConfiguration.current
+    var zoomedChart by remember { mutableIntStateOf(-1) }
+    val containerSize = LocalWindowInfo.current.containerSize
+    val density = LocalDensity.current
 
     Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
         charts.forEachIndexed { idx, (title, slices) ->
@@ -1433,7 +1478,7 @@ private fun DataSourceExplorePies(
     if (zoomedChart >= 0) {
         val (title, slices) = charts[zoomedChart]
         val visible = slices.filter { it.value > 0 }
-        val size = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.9f).dp
+        val size = with(density) { (minOf(containerSize.width, containerSize.height) * 0.9f).toDp() }
         Dialog(onDismissRequest = { zoomedChart = -1 },
             properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
@@ -1471,7 +1516,8 @@ private fun DataSourceCostingsTable(
     }
 
     var zoomedRow by remember { mutableStateOf<DataSourceCostingRow?>(null) }
-    val cfg = LocalConfiguration.current
+    val containerSize = LocalWindowInfo.current.containerSize
+    val density = LocalDensity.current
 
     // Header
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
@@ -1535,12 +1581,12 @@ private fun DataSourceCostingsTable(
         val r = zoomedRow!!
         val slices = remember(r) {
             val st = r.subTotals ?: return@remember emptyList<PieSlice>()
-            st.getPrices().sortedBy { it }.mapIndexed { i, price ->
+            st.prices.sortedBy { it }.mapIndexed { i, price ->
                 val kwh = st.getSubTotalForPrice(price) ?: 0.0
                 PieSlice("%.1fc".format(price), kwh, TARIFF_PIE_COLORS[i % TARIFF_PIE_COLORS.size])
             }.filter { it.value > 0 }
         }
-        val size = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.9f).dp
+        val size = with(density) { (minOf(containerSize.width, containerSize.height) * 0.9f).toDp() }
         Dialog(onDismissRequest = { zoomedRow = null },
             properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
@@ -1572,7 +1618,7 @@ private fun PeriodTotalRow(label: String, value: Double, df: DecimalFormat) {
 
 @Composable
 private fun DataSourceDistributionCharts(distribution: UsageDistribution) {
-    var zoomedIdx by remember { mutableStateOf(-1) }
+    var zoomedIdx by remember { mutableIntStateOf(-1) }
 
     val hourLabels  = remember { (0..23).map { "%02d".format(it) } }
     val dayLabels   = remember { listOf("Sun","Mon","Tue","Wed","Thu","Fri","Sat") }
@@ -1586,7 +1632,8 @@ private fun DataSourceDistributionCharts(distribution: UsageDistribution) {
         )
     }
 
-    val cfg = LocalConfiguration.current
+    val containerSize = LocalWindowInfo.current.containerSize
+    val density = LocalDensity.current
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         charts.forEachIndexed { idx, (title, dist, labels) ->
@@ -1603,7 +1650,7 @@ private fun DataSourceDistributionCharts(distribution: UsageDistribution) {
 
     if (zoomedIdx >= 0) {
         val (title, dist, labels) = charts[zoomedIdx]
-        val size = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 1.0f).dp
+        val size = with(density) { (minOf(containerSize.width, containerSize.height) * 1.0f).toDp() }
         Dialog(onDismissRequest = { zoomedIdx = -1 },
             properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
@@ -1656,7 +1703,7 @@ fun PieLegend(slices: List<PieSlice>) {
 
 @Composable
 fun SimulationPieCharts(kpis: SimKPIs) {
-    var zoomedChart by remember { mutableStateOf(-1) }
+    var zoomedChart by remember { mutableIntStateOf(-1) }
 
     val charts = remember(kpis) {
         listOf(
@@ -1683,7 +1730,8 @@ fun SimulationPieCharts(kpis: SimKPIs) {
         )
     }
 
-    val cfg = LocalConfiguration.current
+    val containerSize = LocalWindowInfo.current.containerSize
+    val density = LocalDensity.current
 
     Column(modifier = Modifier.padding(top = 4.dp)) {
         for (row in 0 until 2) {
@@ -1714,7 +1762,7 @@ fun SimulationPieCharts(kpis: SimKPIs) {
     if (zoomedChart >= 0) {
         val (title, slices) = charts[zoomedChart]
         val visible = slices.filter { it.value > 0 }
-        val size = (minOf(cfg.screenWidthDp, cfg.screenHeightDp) * 0.9f).dp
+        val size = with(density) { (minOf(containerSize.width, containerSize.height) * 0.9f).toDp() }
         Dialog(onDismissRequest = { zoomedChart = -1 },
             properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
@@ -2175,12 +2223,12 @@ private fun LegendItem(iconRes: Int, label: String) {
 @Composable
 private fun KpiAccordion(
     period: DataSourcePeriod,
-    anchor: java.time.LocalDate,
+    anchor: LocalDate,
     monthFilter: Int,
     summary: KpiSummary?,
     months: List<KpiMonthRow>?,
-    bounds: Pair<java.time.LocalDate, java.time.LocalDate>?,
-    onPeriodChange: (DataSourcePeriod, java.time.LocalDate) -> Unit,
+    bounds: Pair<LocalDate, LocalDate>?,
+    onPeriodChange: (DataSourcePeriod, LocalDate) -> Unit,
     onNavigate: (forward: Boolean) -> Unit,
     onMonthFilterChange: (Int) -> Unit,
     df: DecimalFormat
@@ -2225,11 +2273,11 @@ private fun KpiAccordion(
 
         // Monthly key stats — filtered by the chip row above.
         Spacer(Modifier.height(10.dp))
-        when (val rows = months) {
+        when (months) {
             null -> {}
             else -> {
-                val filtered = if (monthFilter == 0) rows
-                               else rows.filter { it.monthNumber == monthFilter }
+                val filtered = if (monthFilter == 0) months
+                               else months.filter { it.monthNumber == monthFilter }
                 KpiMonthsTable(filtered, df)
             }
         }
@@ -2310,6 +2358,58 @@ private fun KpiMonthsTable(rows: List<KpiMonthRow>, df: DecimalFormat) {
                 Text(row.best,    style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1.4f))
                 Text(row.worst,   style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1.4f))
                 Text(df.format(row.average), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+            }
+        }
+    }
+}
+
+/**
+ * First-run onboarding card shown on the Dashboard when there are no scenarios
+ * and no data source is selected. The button text "Try with sample data" is
+ * the canonical Robo selector — see plans/roboscript/robo-plan.md Phase 4B/4C.
+ */
+@Composable
+private fun EmptyDashboardSampleCard() {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                "Welcome to Eco Power Optimiser",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                "Get started with a sample scenario and two demo tariffs " +
+                    "(24-hour flat + a cheap 02–05 night window). Solar yield " +
+                    "is fetched from PVGIS and the simulation runs in the background.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            Button(onClick = {
+                val loader = EntryPointAccessors
+                    .fromApplication(context.applicationContext, SampleDataLoaderEntryPoint::class.java)
+                    .sampleDataLoader()
+                coroutineScope.launch {
+                    val msg = when (val result = loader.load()) {
+                        is SampleDataLoader.Result.AlreadyLoaded ->
+                            "Sample data already loaded"
+                        is SampleDataLoader.Result.Loaded ->
+                            "Sample loaded · simulation running in background"
+                        is SampleDataLoader.Result.Failed ->
+                            "Couldn't load sample data: ${result.error.message ?: "unknown error"}"
+                    }
+                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                }
+            }) {
+                Text("Try with sample data")
             }
         }
     }

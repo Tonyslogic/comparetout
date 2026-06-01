@@ -20,10 +20,10 @@ import androidx.annotation.NonNull;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
+import com.tfcode.comparetout.importers.homeassistant.messages.HAMessage;
 import com.tfcode.comparetout.importers.homeassistant.messages.authorization.AuthInvalidHandler;
 import com.tfcode.comparetout.importers.homeassistant.messages.authorization.AuthOKHandler;
 import com.tfcode.comparetout.importers.homeassistant.messages.authorization.AuthRequiredHandler;
-import com.tfcode.comparetout.importers.homeassistant.messages.HAMessage;
 
 import java.util.HashMap;
 import java.util.Map;

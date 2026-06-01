@@ -1,0 +1,3 @@
+<component name="DependencyValidationManager">
+  <scope name="ModelClasses" pattern="file[comparetout.app.main]:java/com/tfcode/comparetout/model//*" />
+</component>

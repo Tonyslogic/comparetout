@@ -16,7 +16,6 @@
 
 package com.tfcode.comparetout.scenario.panel;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
@@ -37,8 +36,6 @@ import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
 
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -87,22 +84,6 @@ public class PanelFragment extends Fragment {
     private ComparisonUIViewModel mViewModel;
     private List<PanelPVSummary> mPanelPVSummaries;
     private List<Inverter> mInverters;
-
-//    private final ActivityResultLauncher<Intent> mStartForResult = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
-//            result -> {
-//                if (result.getResultCode() == Activity.RESULT_OK) {
-//                    Intent intent = result.getData();
-//                    // Handle the Intent
-//                    if (!(null == intent)) {
-//                        if (intent.getBooleanExtra("RESULT", false)) {
-//                            new Thread(() -> {
-//                                mViewModel.deleteSimulationDataForPanelID(mPanel.getPanelIndex());
-//                                mViewModel.deleteCostingDataForPanelID(mPanel.getPanelIndex());
-//                            }).start();
-//                        }
-//                    }
-//                }
-//            });
 
 
     public PanelFragment() {

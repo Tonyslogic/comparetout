@@ -17,11 +17,12 @@
 package com.tfcode.comparetout.importers.homeassistant.messages.authorization;
 
 import com.tfcode.comparetout.importers.homeassistant.HADispatcher;
-import com.tfcode.comparetout.importers.homeassistant.messages.HAMessage;
 import com.tfcode.comparetout.importers.homeassistant.MessageHandler;
+import com.tfcode.comparetout.importers.homeassistant.messages.HAMessage;
 
 import java.util.logging.Logger;
 
+@SuppressWarnings("unused")
 public class AuthRequiredHandler implements MessageHandler<AuthRequired> {
 
     private final HADispatcher dispatcher;

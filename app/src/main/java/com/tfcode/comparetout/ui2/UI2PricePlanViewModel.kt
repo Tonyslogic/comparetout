@@ -99,10 +99,7 @@ data class PricePlanBuilder(
     // Restrictions are not yet editable in UI2 — round-trip the legacy blob so
     // plans created in the legacy editor preserve their tiered-usage caps.
     val restrictions: Restrictions? = null
-) {
-    val isComplete: Boolean
-        get() = supplier.isNotBlank() && planName.isNotBlank() && dayRates.isNotEmpty()
-}
+)
 
 enum class PricePlanSaveResult { Idle, Saving, Saved, Failed }
 
@@ -138,7 +135,7 @@ class UI2PricePlanViewModel @Inject constructor(
 
     private fun loadExisting() {
         viewModelScope.launch(Dispatchers.IO) {
-            val plans = repository.getAllPricePlansNow().orEmpty()
+            val plans = repository.allPricePlansNow.orEmpty()
             val plan = plans.firstOrNull { it.pricePlanIndex == pricePlanId }
             val rates = if (plan != null) repository.getAllDayRatesForPricePlanID(pricePlanId) else emptyList()
             if (plan != null) {
@@ -199,7 +196,7 @@ class UI2PricePlanViewModel @Inject constructor(
                 if (runCosting) {
                     withContext(Dispatchers.Main) {
                         com.tfcode.comparetout.SimulatorLauncher
-                            .simulateIfNeeded(getApplication<Application>())
+                            .simulateIfNeeded(getApplication())
                     }
                 }
                 _saveResult.value = PricePlanSaveResult.Saved
@@ -207,10 +204,6 @@ class UI2PricePlanViewModel @Inject constructor(
                 _saveResult.value = PricePlanSaveResult.Failed
             }
         }
-    }
-
-    fun acknowledgeSaveResult() {
-        _saveResult.value = PricePlanSaveResult.Idle
     }
 
     /**
@@ -271,7 +264,7 @@ class UI2PricePlanViewModel @Inject constructor(
         // Expand the day-rates accordion so the user immediately sees what
         // was loaded; default-collapse it otherwise feels like the import
         // silently did nothing.
-        _expandedSections.value = _expandedSections.value + "rates"
+        _expandedSections.value += "rates"
         _expandedDayRates.value =
             setOfNotNull(_builder.value.dayRates.firstOrNull()?.id)
     }
@@ -308,8 +301,13 @@ fun validate(b: PricePlanBuilder): PlanIssues {
     while (i <= 365) {
         if (daysCovered[i] == 0) {
             val from = i
-            while (i <= 365 && daysCovered[i] == 0) i++
-            gaps += from..(i - 1)
+            // We already know daysCovered[from] == 0; scan forward from from+1
+            // to find the first covered day. This makes the resulting range
+            // from..<to provably non-empty (to >= from+1).
+            var to = from + 1
+            while (to <= 365 && daysCovered[to] == 0) to++
+            gaps += from..<to
+            i = to
         } else i++
     }
 

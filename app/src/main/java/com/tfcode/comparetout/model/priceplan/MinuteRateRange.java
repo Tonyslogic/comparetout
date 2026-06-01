@@ -47,7 +47,7 @@ public class MinuteRateRange {
                 begin = minute;
             }
             end = minute + 60;
-            minute = minute + 60;
+            minute += 60;
         }
         ret.mRates.add(new RangeRate(begin, end - 60, previousRate));
 

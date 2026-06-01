@@ -12,38 +12,37 @@ import com.tfcode.comparetout.ComparisonUIViewModel
 import com.tfcode.comparetout.TOUTCApplication
 import com.tfcode.comparetout.model.IntHolder
 import com.tfcode.comparetout.model.ToutcRepository
-import dagger.hilt.android.qualifiers.ApplicationContext
+import com.tfcode.comparetout.model.json.JsonTools
+import com.tfcode.comparetout.model.json.scenario.ScenarioJsonFile
 import com.tfcode.comparetout.model.scenario.Battery
 import com.tfcode.comparetout.model.scenario.ChargeModel
+import com.tfcode.comparetout.model.scenario.DOWDist
 import com.tfcode.comparetout.model.scenario.DischargeToGrid
 import com.tfcode.comparetout.model.scenario.EVCharge
 import com.tfcode.comparetout.model.scenario.EVDivert
-import com.tfcode.comparetout.model.scenario.Inverter
-import com.tfcode.comparetout.model.scenario.LoadShift
-import com.tfcode.comparetout.model.scenario.Panel
-import com.tfcode.comparetout.model.scenario.PanelPVSummary
-import com.tfcode.comparetout.scenario.loadprofile.StandardLoadProfiles
-import com.tfcode.comparetout.model.scenario.DOWDist
-import com.tfcode.comparetout.model.scenario.HourlyDist
 import com.tfcode.comparetout.model.scenario.HWDivert
 import com.tfcode.comparetout.model.scenario.HWSchedule
 import com.tfcode.comparetout.model.scenario.HWSystem
 import com.tfcode.comparetout.model.scenario.HWUse
+import com.tfcode.comparetout.model.scenario.HourlyDist
+import com.tfcode.comparetout.model.scenario.Inverter
 import com.tfcode.comparetout.model.scenario.LoadProfile
+import com.tfcode.comparetout.model.scenario.LoadShift
 import com.tfcode.comparetout.model.scenario.MonthHolder
 import com.tfcode.comparetout.model.scenario.MonthlyDist
+import com.tfcode.comparetout.model.scenario.Panel
+import com.tfcode.comparetout.model.scenario.PanelPVSummary
 import com.tfcode.comparetout.model.scenario.Scenario
 import com.tfcode.comparetout.model.scenario.ScenarioComponents
-import com.tfcode.comparetout.model.json.JsonTools
-import com.tfcode.comparetout.model.json.scenario.ScenarioJsonFile
+import com.tfcode.comparetout.scenario.loadprofile.StandardLoadProfiles
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
-import java.util.ArrayList
 import java.util.UUID
 import javax.inject.Inject
 
@@ -89,15 +88,15 @@ data class WizardEvDivertEntry(
     val months: List<Int> = (1..12).toList()
 ) {
     fun toEvDivert(): EVDivert = EVDivert().also { d ->
-        d.setName(name)
-        d.setActive(active)
-        d.setEv1st(ev1st)
-        d.setBegin(beginHour)
-        d.setEnd(endHour)
-        d.setDailyMax(dailyMax)
-        d.setMinimum(minimum)
-        d.setDays(IntHolder().also { it.ints = ArrayList(days) })
-        d.setMonths(MonthHolder().also { it.months = ArrayList(months) })
+        d.name = name
+        d.isActive = active
+        d.isEv1st = ev1st
+        d.begin = beginHour
+        d.end = endHour
+        d.dailyMax = dailyMax
+        d.minimum = minimum
+        d.days = IntHolder().also { it.ints = ArrayList(days) }
+        d.months = MonthHolder().also { it.months = ArrayList(months) }
     }
 }
 
@@ -368,7 +367,7 @@ private fun HWSchedule.toWizardHwScheduleEntry() = WizardHwScheduleEntry(
 data class WizardHwDivertEntry(
     val active: Boolean = false
 ) {
-    fun toHwDivert(): HWDivert = HWDivert().also { d -> d.setActive(active) }
+    fun toHwDivert(): HWDivert = HWDivert().also { d -> d.isActive = active }
 }
 
 private fun HWDivert.toWizardHwDivertEntry() = WizardHwDivertEntry(active = isActive)
@@ -586,7 +585,7 @@ class UI2WizardViewModel @Inject constructor(
     val saveResult = _saveResult.asLiveData()
 
     // Monthly PV totals per panel — used to display already-fetched PVGIS data (ID-based, edit mode)
-    val panelPvSummary: LiveData<List<PanelPVSummary>> = repository.getPanelDataSummary()
+    val panelPvSummary: LiveData<List<PanelPVSummary>> = repository.panelDataSummary
 
     // Parameter-based PVGIS data check: entry.id → hasData
     private val _pvgisParamCheck = MutableStateFlow<Map<String, Boolean>>(emptyMap())
@@ -600,16 +599,16 @@ class UI2WizardViewModel @Inject constructor(
     }
 
     // All existing scenarios for the copy/link picker and name-uniqueness check
-    val allScenarios = repository.getAllScenarios()
+    val allScenarios: LiveData<List<Scenario>> = repository.allScenarios
 
     // Combined list of available data sources (AlphaESS + ESBN + HA)
     private val _availableSources = MediatorLiveData<List<SourceDateRange>>()
     val availableSources: LiveData<List<SourceDateRange>> = _availableSources
 
     init {
-        val alphaRanges = repository.getLiveDateRanges()
-        val esbnRanges  = repository.getESBNLiveDateRanges()
-        val haRanges    = repository.getHALiveDateRanges()
+        val alphaRanges = repository.liveDateRanges
+        val esbnRanges  = repository.esbnLiveDateRanges
+        val haRanges    = repository.haLiveDateRanges
 
         fun rebuild() {
             // Deduplicate by sysSn — alpha takes priority, then esbn, then ha.
@@ -637,7 +636,7 @@ class UI2WizardViewModel @Inject constructor(
 
         viewModelScope.launch(Dispatchers.IO) {
             val app = context.applicationContext as TOUTCApplication
-            val stored = app.getDataStore()
+            val stored = app.dataStore
                 .data()
                 .firstOrError()
                 .map { prefs -> prefs[stringPreferencesKey(KEY_NOVICE_MODE)] ?: "true" }
@@ -716,7 +715,7 @@ class UI2WizardViewModel @Inject constructor(
                 applyComponentsToBuilder(components, fromId = 0L, isLinked = false, keepName = false)
                 // Keep IMPORT in the mode chip; preserve any name the user
                 // already typed (mirrors COPY's prevName handling).
-                val name = if (prevName.isNotBlank()) prevName else _builder.value.scenarioName
+                val name = prevName.ifBlank { _builder.value.scenarioName }
                 _builder.value = _builder.value.copy(
                     scenarioMode = ScenarioMode.IMPORT,
                     scenarioName = name
@@ -1263,16 +1262,16 @@ class UI2WizardViewModel @Inject constructor(
                         val existing = repository.getScenarioComponentsForScenarioID(scenarioId)
                         existing.scenario?.also { sc ->
                             sc.scenarioName = b.scenarioName
-                            sc.setHasEVCharges(b.evEntries.isNotEmpty())
-                            sc.setHasEVDivert(b.evDivertEntries.isNotEmpty())
-                            sc.setHasInverters(b.inverterEntries.isNotEmpty())
-                            sc.setHasPanels(b.panelEntries.isNotEmpty())
-                            sc.setHasBatteries(b.batteryEntries.isNotEmpty())
-                            sc.setHasLoadShifts(b.expandedLoadShifts().isNotEmpty())
-                            sc.setHasDischarges(b.expandedDischarges().isNotEmpty())
-                            sc.setHasHWSystem(b.hwSystem != null)
-                            sc.setHasHWSchedules(b.hwSchedules.isNotEmpty())
-                            sc.setHasHWDivert(b.hwDivert.active)
+                            sc.isHasEVCharges = b.evEntries.isNotEmpty()
+                            sc.isHasEVDivert = b.evDivertEntries.isNotEmpty()
+                            sc.isHasInverters = b.inverterEntries.isNotEmpty()
+                            sc.isHasPanels = b.panelEntries.isNotEmpty()
+                            sc.isHasBatteries = b.batteryEntries.isNotEmpty()
+                            sc.isHasLoadShifts = b.expandedLoadShifts().isNotEmpty()
+                            sc.isHasDischarges = b.expandedDischarges().isNotEmpty()
+                            sc.isHasHWSystem = b.hwSystem != null
+                            sc.isHasHWSchedules = b.hwSchedules.isNotEmpty()
+                            sc.isHasHWDivert = b.hwDivert.active
                         }?.let { repository.updateScenario(it) }
                         repository.saveLoadProfile(scenarioId, b.toLoadProfile())
                         // Replace EV charges

@@ -203,6 +203,7 @@
             android:background="@color/white"
             android:paddingTop="20dp"
             android:paddingStart="10dp"
+            android:paddingEnd="10dp"
             android:paddingBottom="20dp"
             android:scaleType="fitCenter"
             android:src="@drawable/battery1"
@@ -380,7 +381,7 @@
             android:stretchColumns="*"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/tankButton"></TableLayout>
+            app:layout_constraintTop_toBottomOf="@id/tankButton" />
 
         <TableLayout
             android:id="@+id/scenarioHelpTable"
@@ -389,7 +390,7 @@
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@id/editScenarioTable"></TableLayout>
+            app:layout_constraintTop_toBottomOf="@id/editScenarioTable" />
 
 
     </androidx.constraintlayout.widget.ConstraintLayout>

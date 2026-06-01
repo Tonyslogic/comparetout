@@ -17,9 +17,10 @@
 package com.tfcode.comparetout.importers.homeassistant.messages.authorization;
 
 import com.tfcode.comparetout.importers.homeassistant.HADispatcher;
-import com.tfcode.comparetout.importers.homeassistant.messages.HAMessage;
 import com.tfcode.comparetout.importers.homeassistant.MessageHandler;
+import com.tfcode.comparetout.importers.homeassistant.messages.HAMessage;
 
+@SuppressWarnings("unused")
 public class AuthInvalidHandler implements MessageHandler<AuthRequired> {
 
     private final HADispatcher dispatcher;

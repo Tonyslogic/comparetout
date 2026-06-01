@@ -16,7 +16,8 @@
 
 package com.tfcode.comparetout.scenario;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.ChargeModel;
@@ -219,7 +220,7 @@ public class SimulationWorkerIntegrationTest {
     /**
      * Tests coordination between multiple inverters in complex scenarios.
      * Verifies proper load distribution and battery sharing across multiple inverters.
-     * 
+     * <p>
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
      * Test operates on second row (index 1) to avoid first-row initialization artifacts
      * where SOC gets overwritten to discharge stop value. Each InputData object must have
@@ -354,7 +355,7 @@ public class SimulationWorkerIntegrationTest {
     /**
      * Tests export limit handling in grid-tie scenarios.
      * Verifies proper curtailment of PV generation when export limits are reached.
-     * 
+     * <p>
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
      * Test operates on second row (index 1) to avoid first-row initialization artifacts
      * where SOC gets overwritten to discharge stop value.
@@ -398,7 +399,7 @@ public class SimulationWorkerIntegrationTest {
     /**
      * Tests integration behavior with zero and negative energy values.
      * Verifies system stability and proper handling of edge case energy flows.
-     * 
+     * <p>
      * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
      * Test operates on second row (index 1) to avoid first-row initialization artifacts
      * where SOC gets overwritten to discharge stop value.

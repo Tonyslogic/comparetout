@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@SuppressWarnings("unused")
 public class StatsForPeriodRequest extends HAMessageWithID {
 
     private static final DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
@@ -37,13 +38,16 @@ public class StatsForPeriodRequest extends HAMessageWithID {
     @SerializedName("end_time")
     private String end_time;
     @SerializedName("statistic_ids")
-    private List<String> statistic_ids;
+    private final List<String> statistic_ids;
     @SerializedName("period")
     private String period = "hour";
+    // Populated for Gson serialisation; not read locally.
     @SerializedName("units")
-    private Map<String, String> units;
+    @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
+    private final Map<String, String> units;
     @SerializedName("types")
-    private List<String> types;
+    @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
+    private final List<String> types;
 
     public StatsForPeriodRequest(List<String> stats) {
         setType("recorder/statistics_during_period");

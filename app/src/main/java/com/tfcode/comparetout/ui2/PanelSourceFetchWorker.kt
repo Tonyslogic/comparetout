@@ -1,6 +1,7 @@
 package com.tfcode.comparetout.ui2
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.Application
 import android.content.Context
 import android.content.pm.PackageManager
@@ -59,6 +60,7 @@ class PanelSourceFetchWorker(
             "srcKwp=$sourceKwp tgtKwp=$targetKwp useAz=$useAzimuthFactor srcAz=$sourceAz tgtAz=$targetAz " +
             "lat=$lat lon=$lon tilt=$tilt")
 
+        @SuppressLint("InlinedApi")  // permission string is inlined; runtime check returns DENIED pre-API 33 which is fine
         val hasPostPerm = ActivityCompat.checkSelfPermission(
             applicationContext, Manifest.permission.POST_NOTIFICATIONS
         ) == PackageManager.PERMISSION_GRANTED
@@ -109,16 +111,16 @@ class PanelSourceFetchWorker(
             val dateFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd")
             samples.filter { it.pv > 0 }.forEach { row ->
                 val pd = PanelData()
-                pd.setPanelID(panelId)
-                pd.setDate(row.date)
-                pd.setMinute(row.minute)
+                pd.panelID = panelId
+                pd.date = row.date
+                pd.minute = row.minute
                 val parts = row.minute.split(":")
-                pd.setMod((parts.getOrNull(0)?.toIntOrNull() ?: 0) * 60 +
-                          (parts.getOrNull(1)?.toIntOrNull() ?: 0))
+                pd.mod = (parts.getOrNull(0)?.toIntOrNull() ?: 0) * 60 +
+                        (parts.getOrNull(1)?.toIntOrNull() ?: 0)
                 val date = LocalDate.parse(row.date, dateFmt)
-                pd.setDow(date.dayOfWeek.value)
-                pd.setDo2001(date.dayOfYear)
-                pd.setPv(row.pv)
+                pd.dow = date.dayOfWeek.value
+                pd.do2001 = date.dayOfYear
+                pd.pv = row.pv
                 out.add(pd)
             }
             if (out.isNotEmpty()) repo.savePanelData(out)

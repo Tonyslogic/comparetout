@@ -17,6 +17,7 @@
 package com.tfcode.comparetout.util;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
@@ -41,14 +42,17 @@ public class LocalContentWebViewClient extends WebViewClient {
 
     @Override
     public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
-        if (request != null && (request.getUrl().getHost().startsWith("re.jrc.ec.europa.eu") ||
-                request.getUrl().getHost().startsWith("joint-research-centre.ec.europa.eu") ||
-                request.getUrl().getHost().startsWith("www.esbnetworks.ie") ||
-                request.getUrl().getHost().startsWith("www.youtube.com") ||
-                request.getUrl().getHost().startsWith("github.com") ||
-                request.getUrl().getHost().startsWith("open.alphaess.com"))) {
+        if (request == null) return super.shouldOverrideUrlLoading(view, request);
+        Uri url = request.getUrl();
+        String host = url == null ? null : url.getHost();
+        if (host != null && (host.startsWith("re.jrc.ec.europa.eu") ||
+                host.startsWith("joint-research-centre.ec.europa.eu") ||
+                host.startsWith("www.esbnetworks.ie") ||
+                host.startsWith("www.youtube.com") ||
+                host.startsWith("github.com") ||
+                host.startsWith("open.alphaess.com"))) {
             view.getContext().startActivity(
-                    new Intent(Intent.ACTION_VIEW, request.getUrl()));
+                    new Intent(Intent.ACTION_VIEW, url));
             return true;
         } else {
             return false;

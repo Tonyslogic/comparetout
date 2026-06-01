@@ -1,3 +1,5 @@
+@file:Suppress("AssignedValueIsNeverRead")
+
 package com.tfcode.comparetout.ui2
 
 import android.os.Bundle
@@ -22,14 +24,12 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -62,8 +62,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -72,6 +70,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.rememberDateRangePickerState
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -86,13 +86,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.tfcode.comparetout.ComparisonUIViewModel.Importer
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -212,7 +212,9 @@ private fun DataSourceManagementScreen(
                                 onFetch = viewModel::fetchAlpha,
                                 onCancel = viewModel::cancelFetch,
                                 onDeleteAll = viewModel::deleteAllData,
-                                onDeleteRange = viewModel::deleteRange
+                                onDeleteRange = viewModel::deleteRange,
+                                onImportFile = viewModel::importAlphaFile,
+                                onExportFolder = viewModel::exportAlpha
                             )
                         }
                     )
@@ -228,7 +230,6 @@ private fun DataSourceManagementScreen(
                                 state = ha,
                                 sensors = haSensors,
                                 showHints = showHints,
-                                onSetCredentials = viewModel::discoverHA,
                                 onRediscover = viewModel::discoverHA,
                                 onFetch = viewModel::fetchHA,
                                 onCancel = viewModel::cancelFetch,
@@ -250,7 +251,8 @@ private fun DataSourceManagementScreen(
                                 showHints = showHints,
                                 onImportFile = viewModel::importEsbnFile,
                                 onDeleteAll = viewModel::deleteAllData,
-                                onDeleteRange = viewModel::deleteRange
+                                onDeleteRange = viewModel::deleteRange,
+                                onExportFolder = viewModel::exportEsbn
                             )
                         }
                     )
@@ -402,11 +404,31 @@ private fun AlphaSection(
     onFetch: (String, LocalDateTime) -> Unit,
     onCancel: (String) -> Unit,
     onDeleteAll: (String) -> Unit,
-    onDeleteRange: (String, LocalDateTime, LocalDateTime) -> Unit
+    onDeleteRange: (String, LocalDateTime, LocalDateTime) -> Unit,
+    onImportFile: (String, String) -> Unit,
+    onExportFolder: (String, String) -> Unit
 ) {
     var showCreds by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<ManagedSystem?>(null) }
     var pendingFetch by remember { mutableStateOf<ManagedSystem?>(null) }
+    // The pickers fire asynchronously; remember which row's button kicked
+    // them off so the resulting URI lands against the right SN.
+    var importTargetSn by remember { mutableStateOf<String?>(null) }
+    var exportTargetSn by remember { mutableStateOf<String?>(null) }
+    val pickImportFile = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        val sn = importTargetSn
+        importTargetSn = null
+        if (uri != null && sn != null) onImportFile(sn, uri.toString())
+    }
+    val pickExportFolder = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        val sn = exportTargetSn
+        exportTargetSn = null
+        if (uri != null && sn != null) onExportFolder(sn, uri.toString())
+    }
     if (showHints) {
         HintLine("AlphaESS uses your AlphaCloud OpenAPI keys — generate them in the developer portal.")
     }
@@ -425,7 +447,15 @@ private fun AlphaSection(
             pendingFetch = sys
         },
         onCancel = onCancel,
-        onDelete = { sys -> pendingDelete = sys }
+        onDelete = { sys -> pendingDelete = sys },
+        onImport = { sn ->
+            importTargetSn = sn
+            pickImportFile.launch("*/*")
+        },
+        onExport = { sn ->
+            exportTargetSn = sn
+            pickExportFolder.launch(null)
+        }
     )
     if (showCreds) {
         CredentialDialog(
@@ -470,7 +500,6 @@ private fun HASection(
     state: SourceState?,
     sensors: HASensorSnapshot?,
     showHints: Boolean,
-    onSetCredentials: (String, String) -> Unit,
     onRediscover: (String, String) -> Unit,
     onFetch: (LocalDateTime) -> Unit,
     onCancel: (String) -> Unit,
@@ -520,7 +549,7 @@ private fun HASection(
         }
     )
 
-    PushToHaToggle(showHints = showHints)
+    PushToHaToggle()
 
     if (showCreds) {
         CredentialDialog(
@@ -665,7 +694,7 @@ private fun SensorList(label: String, sensors: List<String>) {
 }
 
 @Composable
-private fun PushToHaToggle(showHints: Boolean) {
+private fun PushToHaToggle() {
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
         shape = RoundedCornerShape(10.dp),
@@ -695,13 +724,22 @@ private fun EsbnSection(
     showHints: Boolean,
     onImportFile: (String) -> Unit,
     onDeleteAll: (String) -> Unit,
-    onDeleteRange: (String, LocalDateTime, LocalDateTime) -> Unit
+    onDeleteRange: (String, LocalDateTime, LocalDateTime) -> Unit,
+    onExportFolder: (String, String) -> Unit
 ) {
     var pendingDelete by remember { mutableStateOf<ManagedSystem?>(null) }
+    var exportTargetMprn by remember { mutableStateOf<String?>(null) }
     val pickFile = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri ->
         if (uri != null) onImportFile(uri.toString())
+    }
+    val pickExportFolder = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        val mprn = exportTargetMprn
+        exportTargetMprn = null
+        if (uri != null && mprn != null) onExportFolder(mprn, uri.toString())
     }
     // Always visible — even if hints off — because it explains why credentials
     // are absent. Calling it a "hint" understates the user-blocking nature.
@@ -741,7 +779,14 @@ private fun EsbnSection(
         onSelect = { /* read-only */ },
         onFetch = { /* no cloud fetch */ },
         onCancel = { /* no cloud fetch */ },
-        onDelete = { sys -> pendingDelete = sys }
+        onDelete = { sys -> pendingDelete = sys },
+        // ESBN import stays section-level (the "Import HDF file" button
+        // above) — the file's MPRN is read from its contents, so there's
+        // no natural per-row import here. Export *is* per-MPRN.
+        onExport = { mprn ->
+            exportTargetMprn = mprn
+            pickExportFolder.launch(null)
+        }
     )
     if (state?.systems.isNullOrEmpty() && showHints) {
         Text("Imported MPRNs will appear here once a file has been ingested.",
@@ -808,7 +853,12 @@ private fun SystemList(
     onSelect: (String) -> Unit,
     onFetch: (String) -> Unit,
     onCancel: (String) -> Unit,
-    onDelete: (ManagedSystem) -> Unit
+    onDelete: (ManagedSystem) -> Unit,
+    // Optional secondary actions rendered as a second button row below
+    // Fetch/Delete. Null → row omitted. Used for AlphaESS (import+export)
+    // and ESBN (export only). HA passes neither.
+    onImport: ((String) -> Unit)? = null,
+    onExport: ((String) -> Unit)? = null
 ) {
     if (systems.isEmpty()) {
         Text("No systems configured yet.",
@@ -817,7 +867,10 @@ private fun SystemList(
         return
     }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        systems.forEach { sys -> SystemRow(sys, selected, canFetch, onSelect, onFetch, onCancel, onDelete) }
+        systems.forEach { sys ->
+            SystemRow(sys, selected, canFetch, onSelect, onFetch, onCancel, onDelete,
+                onImport, onExport)
+        }
     }
 }
 
@@ -829,7 +882,9 @@ private fun SystemRow(
     onSelect: (String) -> Unit,
     onFetch: (String) -> Unit,
     onCancel: (String) -> Unit,
-    onDelete: (ManagedSystem) -> Unit
+    onDelete: (ManagedSystem) -> Unit,
+    onImport: ((String) -> Unit)? = null,
+    onExport: ((String) -> Unit)? = null
 ) {
     val isSelected = sys.sysSn == selected
     val active = sys.fetching || sys.scheduled
@@ -915,6 +970,36 @@ private fun SystemRow(
                     Text("Delete",
                         color = if (sys.fetching) MaterialTheme.colorScheme.outline
                                 else MaterialTheme.colorScheme.error)
+                }
+            }
+            // Secondary actions — file import (re-ingest a previously
+            // exported source) and export (write the source to a file
+            // for backup / sharing). Each is disabled mid-fetch to avoid
+            // racing the underlying writes.
+            if (onImport != null || onExport != null) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (onImport != null) {
+                        OutlinedButton(
+                            onClick = { onImport(sys.sysSn) },
+                            enabled = !sys.fetching,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.Download, null, Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Import")
+                        }
+                    }
+                    if (onExport != null) {
+                        OutlinedButton(
+                            onClick = { onExport(sys.sysSn) },
+                            enabled = !sys.fetching,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.UploadFile, null, Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Export")
+                        }
+                    }
                 }
             }
         }
@@ -1023,7 +1108,7 @@ private fun DeleteDialog(
                         "system configuration are preserved either way.",
                         style = MaterialTheme.typography.bodyMedium)
                     if (hasRange) {
-                        Text("Available data: ${start} ↔ ${end}",
+                        Text("Available data: $start ↔ $end",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     } else {
@@ -1238,7 +1323,7 @@ private fun FetchStartDialog(
             headline = {
                 Text(
                     when {
-                        picked == null -> "Pick a date · catch-up runs up to ${yesterday}"
+                        picked == null -> "Pick a date · catch-up runs up to $yesterday"
                         picked.isAfter(yesterday) -> "Must be no later than $yesterday"
                         else -> "$picked  →  $yesterday   ·   $days day" +
                                 (if (days == 1) "" else "s")

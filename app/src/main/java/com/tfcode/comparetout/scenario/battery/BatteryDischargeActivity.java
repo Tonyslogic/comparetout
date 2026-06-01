@@ -1,5 +1,6 @@
 package com.tfcode.comparetout.scenario.battery;
 
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
@@ -210,7 +211,10 @@ public class BatteryDischargeActivity extends InsetRespectingActivity {
         }).start();
 
         LayoutInflater inflater = (LayoutInflater) this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        mPopupView = inflater.inflate(R.layout.popup_help, null);
+        // PopupWindow uses null root since it's not attached to any view group.
+        @SuppressLint("InflateParams")
+        View popupView = inflater.inflate(R.layout.popup_help, null);
+        mPopupView = popupView;
         int width = LinearLayout.LayoutParams.WRAP_CONTENT;
         int height = LinearLayout.LayoutParams.WRAP_CONTENT;
         boolean focusable = true; // lets taps outside the popup also dismiss it

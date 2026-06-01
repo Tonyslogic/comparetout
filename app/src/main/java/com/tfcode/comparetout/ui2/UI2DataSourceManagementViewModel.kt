@@ -19,8 +19,11 @@ import com.tfcode.comparetout.ComparisonUIViewModel
 import com.tfcode.comparetout.TOUTCApplication
 import com.tfcode.comparetout.importers.alphaess.CatchUpWorker
 import com.tfcode.comparetout.importers.alphaess.DailyWorker
+import com.tfcode.comparetout.importers.alphaess.ExportWorker
+import com.tfcode.comparetout.importers.alphaess.ImportWorker
 import com.tfcode.comparetout.importers.alphaess.OpenAlphaESSClient
 import com.tfcode.comparetout.importers.alphaess.responses.GetEssListResponse
+import com.tfcode.comparetout.importers.esbn.ESBNExportWorker
 import com.tfcode.comparetout.importers.esbn.ESBNImportWorker
 import com.tfcode.comparetout.importers.homeassistant.EnergySensors
 import com.tfcode.comparetout.importers.homeassistant.HACatchupWorker
@@ -85,9 +88,7 @@ data class FetchStatus(
     val running: Boolean,
     val scheduled: Boolean,
     val progress: String?
-) {
-    companion object { val Idle = FetchStatus(running = false, scheduled = false, progress = null) }
-}
+)
 
 /** Top-level state for one of the three accordions. */
 data class SourceState(
@@ -343,6 +344,74 @@ class UI2DataSourceManagementViewModel @Inject constructor(
             wm.enqueueUniquePeriodicWork(sysSn + "daily", ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE, dailyReq)
             _toast.postValue(Toast("Fetch started for $sysSn"))
             _alpha.postValue(buildAlphaState())
+        }
+    }
+
+    /**
+     * Ingest a previously-exported AlphaESS JSON file for [sysSn]. Same
+     * worker the legacy ImportAlphaActivity drives — tagged with the SN so
+     * the row's status line picks up the live progress.
+     */
+    fun importAlphaFile(sysSn: String, uri: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val input = Data.Builder()
+                .putString(ImportWorker.KEY_SYSTEM_SN, sysSn)
+                .putString(ImportWorker.KEY_URI, uri)
+                .build()
+            val req = OneTimeWorkRequest.Builder(ImportWorker::class.java)
+                .setInputData(input)
+                .addTag(sysSn)
+                .build()
+            wm.pruneWork()
+            wm.beginUniqueWork(sysSn, ExistingWorkPolicy.APPEND, req).enqueue()
+            _toast.postValue(Toast("Importing $sysSn…"))
+            _alpha.postValue(buildAlphaState())
+        }
+    }
+
+    /**
+     * Export AlphaESS raw energy + power for [sysSn] to a JSON file under
+     * the user-picked folder tree URI. Same worker the legacy screen drives;
+     * the file round-trips through [importAlphaFile].
+     */
+    fun exportAlpha(sysSn: String, folderUri: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val input = Data.Builder()
+                .putString(ExportWorker.KEY_SYSTEM_SN, sysSn)
+                .putString(ExportWorker.KEY_FOLDER, folderUri)
+                .build()
+            val req = OneTimeWorkRequest.Builder(ExportWorker::class.java)
+                .setInputData(input)
+                .addTag(sysSn + "Export")
+                .build()
+            wm.pruneWork()
+            // Distinct unique-work name from "Fetch" so an export can sit
+            // alongside a running fetch without one cancelling the other.
+            wm.beginUniqueWork(sysSn + "Export",
+                ExistingWorkPolicy.APPEND, req).enqueue()
+            _toast.postValue(Toast("Exporting $sysSn…"))
+        }
+    }
+
+    /**
+     * Export the per-MPRN ESBN data as an HDF-compatible CSV under the
+     * user-picked folder tree URI. The file round-trips through the
+     * section-level "Import HDF file" affordance.
+     */
+    fun exportEsbn(mprn: String, folderUri: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val input = Data.Builder()
+                .putString(ESBNExportWorker.KEY_SYSTEM_SN, mprn)
+                .putString(ESBNExportWorker.KEY_FOLDER, folderUri)
+                .build()
+            val req = OneTimeWorkRequest.Builder(ESBNExportWorker::class.java)
+                .setInputData(input)
+                .addTag(mprn + "Export")
+                .build()
+            wm.pruneWork()
+            wm.beginUniqueWork(mprn + "Export",
+                ExistingWorkPolicy.APPEND, req).enqueue()
+            _toast.postValue(Toast("Exporting $mprn…"))
         }
     }
 

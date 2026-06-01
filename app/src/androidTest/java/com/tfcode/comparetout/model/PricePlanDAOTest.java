@@ -16,7 +16,9 @@
 
 package com.tfcode.comparetout.model;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
 import android.content.Intent;
@@ -103,17 +105,17 @@ public class PricePlanDAOTest {
     public void deleteAll() throws InterruptedException {
         loadTestData();
         Map<PricePlan, List<DayRate>> mpp = LiveDataTestUtil.getValue(pricePlanDAO.loadPricePlans());
-        assertEquals(mpp.keySet().size(), 10);
+        assertEquals(10, mpp.size());
         pricePlanDAO.deleteAll();
         mpp = LiveDataTestUtil.getValue(pricePlanDAO.loadPricePlans());
-        assertEquals(mpp.keySet().size(), 0);
+        assertEquals(0, mpp.size());
     }
 
     @Test
     public void loadPricePlans() throws InterruptedException {
         loadTestData();
         Map<PricePlan, List<DayRate>> mpp = LiveDataTestUtil.getValue(pricePlanDAO.loadPricePlans());
-        assertEquals(mpp.keySet().size(), 10);
+        assertEquals(10, mpp.size());
     }
 
     private void loadTestData() {
@@ -130,10 +132,6 @@ public class PricePlanDAOTest {
             pricePlanDAO.addNewPricePlanWithDayRates(p, drs, false);
         }
     }
-
-//    @Test
-//    public void addNewDayRate() {
-//    }
 
     @Test
     public void addNewPricePlanWithDayRates() throws InterruptedException {
@@ -153,27 +151,15 @@ public class PricePlanDAOTest {
             break;
         }
         Map<PricePlan, List<DayRate>> mpp = LiveDataTestUtil.getValue(pricePlanDAO.loadPricePlans());
-        assertEquals(mpp.keySet().size(), 11);
+        assertEquals(11, mpp.size());
         assertTrue(mpp.containsKey(p));
-    }
-
-//    @Test
-//    public void clearDayRates() {
-//    }
-//
-//    @Test
-//    public void clearPricePlans() {
-//    }
-
-    @Test
-    public void loadPricePlan() {
     }
 
     @Test
     public void deletePricePlan() throws InterruptedException {
         pricePlanDAO.deleteAll();
         Map<PricePlan, List<DayRate>> mpp = LiveDataTestUtil.getValue(pricePlanDAO.loadPricePlans());
-        assertEquals(0, mpp.keySet().size());
+        assertEquals(0, mpp.size());
 
         Type type = new TypeToken<List<PricePlanJsonFile>>() {}.getType();
         List<PricePlanJsonFile> ppList = new Gson().fromJson(testData, type);
@@ -204,28 +190,6 @@ public class PricePlanDAOTest {
         assertFalse(mpp.containsKey(p));
     }
 
-//    @Test
-//    public void deleteDayRates() throws InterruptedException {
-//        pricePlanDAO.deleteAll();
-//        loadTestData();
-//
-//        Map<PricePlan, List<DayRate>> mpp = LiveDataTestUtil.getValue(pricePlanDAO.loadPricePlans());
-//        PricePlan pp = mpp.keySet().iterator().next();
-//        List<DayRate> drs = mpp.get(pp);
-//        assertEquals(2, drs.size());
-//        DayRate dr = drs.get(0);
-//        pricePlanDAO.deleteDayRates(pp.getId());
-//        mpp = LiveDataTestUtil.getValue(pricePlanDAO.loadPricePlans());
-//        PricePlan ppo = mpp.keySet().iterator().next();
-//        List<DayRate> drs0 = mpp.get(ppo);
-//        assertEquals(0, drs0.size());
-//    }
-
-//    @Test
-//    public void deletePricePlanRow() throws InterruptedException {
-//
-//    }
-
     @Test
     public void delpp() throws InterruptedException {
         pricePlanDAO.deleteAll();
@@ -237,18 +201,6 @@ public class PricePlanDAOTest {
         mpp = LiveDataTestUtil.getValue(pricePlanDAO.loadPricePlans());
         assertFalse(mpp.containsKey(pp));
     }
-
-//    @Test
-//    public void updatePricePlanActiveStatus() {
-//    }
-
-//    @Test
-//    public void updatePricePlan() {
-//    }
-//
-//    @Test
-//    public void updateDayRate() {
-//    }
 
     @Test
     public void updatePricePlanWithDayRates() throws InterruptedException {
