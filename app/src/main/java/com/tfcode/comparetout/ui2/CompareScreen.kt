@@ -1198,6 +1198,8 @@ private fun CostStackArea(
     layout: CompareLayout, bars: List<CostBar>, series: List<SeriesDef>, explanation: String?
 ) {
     if (layout == CompareLayout.SPLIT && bars.size > 1) {
+        // Share the signed y-axis (positive + negative extent) across panels.
+        val (sharedPos, sharedNeg) = compareCostStackExtents(bars)
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
             bars.chunked(2).forEach { rowItems ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -1209,7 +1211,10 @@ private fun CostStackArea(
                         ) {
                             Box(Modifier.padding(8.dp)) {
                                 ZoomableChart(bar.title, series.map { it.color to it.label }, explanation) { h ->
-                                    CompareCostStackChart(listOf(bar), "€", h)
+                                    CompareCostStackChart(
+                                        listOf(bar), "€", h,
+                                        posExtent = sharedPos, negExtent = sharedNeg
+                                    )
                                 }
                             }
                         }
@@ -1379,12 +1384,32 @@ private fun ChartArea(
     state: CompareState, metricLabel: String,
     data: List<ChartDatum>, series: List<SeriesDef>, explanation: String?, unit: String
 ) {
+    // In SPLIT layout, every panel must share the same y-axis (both ceiling
+    // and floor) so a taller subject — or a credit-bearing one — can be
+    // compared at a glance. Compute once across the full data set; charts
+    // apply niceCeil themselves.
+    val splitting = state.layout == CompareLayout.SPLIT && data.size > 1
+    val sharedBarRange = if (splitting && state.mode == CompareMode.BAR)
+        compareBarYRange(data, series) else null
+    val sharedLineRange = if (splitting && (state.mode == CompareMode.LINE || state.mode == CompareMode.AREA))
+        compareLineYRange(data, series) else null
+    val sharedStackMax = if (splitting && state.mode == CompareMode.STACK)
+        compareStackYMax(data, series) else null
     val render: @Composable (List<ChartDatum>, Dp) -> Unit = { d, h ->
         when (state.mode) {
-            CompareMode.BAR -> CompareBarChart(d, series, unit, h)
-            CompareMode.STACK -> CompareStackChart(d, series, unit, h)
-            CompareMode.LINE -> CompareLineChart(d, series, area = false, unit = unit, height = h)
-            CompareMode.AREA -> CompareLineChart(d, series, area = true, unit = unit, height = h)
+            CompareMode.BAR -> CompareBarChart(
+                d, series, unit, h,
+                yMax = sharedBarRange?.first, yMin = sharedBarRange?.second
+            )
+            CompareMode.STACK -> CompareStackChart(d, series, unit, h, yMax = sharedStackMax)
+            CompareMode.LINE -> CompareLineChart(
+                d, series, area = false, unit = unit, height = h,
+                yMax = sharedLineRange?.first, yMin = sharedLineRange?.second
+            )
+            CompareMode.AREA -> CompareLineChart(
+                d, series, area = true, unit = unit, height = h,
+                yMax = sharedLineRange?.first, yMin = sharedLineRange?.second
+            )
             else -> {}
         }
     }
