@@ -23,9 +23,7 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.app.TaskStackBuilder;
 import android.content.Context;
-import android.content.Intent;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Pair;
@@ -37,10 +35,12 @@ import androidx.work.WorkManager;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
+import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.importers.esbn.responses.ESBNException;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
+import com.tfcode.comparetout.ui2.UI2NotificationLaunch;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -57,6 +57,11 @@ public class ESBNCatchUpWorker extends Worker {
     private final NotificationManager mNotificationManager;
     private static final int mNotificationId = 3;
     private boolean mStopped = false;
+    // Mirrors the other importer workers: cached on the worker thread and
+    // consumed by getNotification() so the notification's content-intent
+    // routes through UI2NotificationLaunch when the user has opted in.
+    private boolean mUseUI2 = false;
+    private String mSelectedSysSn = null;
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private final DateTimeFormatter MIN_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
@@ -95,6 +100,8 @@ public class ESBNCatchUpWorker extends Worker {
         String startDate = inputData.getString(KEY_START_DATE);
         if (null == startDate) startDate = mToutcRepository.getLatestDateForSn(systemSN);
         esbnHDFClient.setSelectedMPRN(systemSN);
+        mSelectedSysSn = systemSN;
+        mUseUI2 = UI2NotificationLaunch.isUI2Enabled(getApplicationContext());
 
         LocalDate current = LocalDate.parse(startDate, DATE_FORMAT);
 
@@ -215,11 +222,9 @@ public class ESBNCatchUpWorker extends Worker {
         PendingIntent intent = WorkManager.getInstance(context)
                 .createCancelPendingIntent(getId());
 
-        Intent importESBNActivity = new Intent(context, ImportESBNActivity.class);
-        TaskStackBuilder stackBuilder = TaskStackBuilder.create(context);
-        stackBuilder.addNextIntentWithParentStack(importESBNActivity);
-        PendingIntent activityPendingIntent = stackBuilder.getPendingIntent(0,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent activityPendingIntent = UI2NotificationLaunch.contentIntent(
+                context, mUseUI2, ComparisonUIViewModel.Importer.ESBNHDF,
+                mSelectedSysSn, ImportESBNActivity.class);
 
 
         return new NotificationCompat.Builder(context, id)

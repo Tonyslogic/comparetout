@@ -212,7 +212,9 @@ private fun DataSourceManagementScreen(
                                 onFetch = viewModel::fetchAlpha,
                                 onCancel = viewModel::cancelFetch,
                                 onDeleteAll = viewModel::deleteAllData,
-                                onDeleteRange = viewModel::deleteRange
+                                onDeleteRange = viewModel::deleteRange,
+                                onImportFile = viewModel::importAlphaFile,
+                                onExportFolder = viewModel::exportAlpha
                             )
                         }
                     )
@@ -249,7 +251,8 @@ private fun DataSourceManagementScreen(
                                 showHints = showHints,
                                 onImportFile = viewModel::importEsbnFile,
                                 onDeleteAll = viewModel::deleteAllData,
-                                onDeleteRange = viewModel::deleteRange
+                                onDeleteRange = viewModel::deleteRange,
+                                onExportFolder = viewModel::exportEsbn
                             )
                         }
                     )
@@ -401,11 +404,31 @@ private fun AlphaSection(
     onFetch: (String, LocalDateTime) -> Unit,
     onCancel: (String) -> Unit,
     onDeleteAll: (String) -> Unit,
-    onDeleteRange: (String, LocalDateTime, LocalDateTime) -> Unit
+    onDeleteRange: (String, LocalDateTime, LocalDateTime) -> Unit,
+    onImportFile: (String, String) -> Unit,
+    onExportFolder: (String, String) -> Unit
 ) {
     var showCreds by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<ManagedSystem?>(null) }
     var pendingFetch by remember { mutableStateOf<ManagedSystem?>(null) }
+    // The pickers fire asynchronously; remember which row's button kicked
+    // them off so the resulting URI lands against the right SN.
+    var importTargetSn by remember { mutableStateOf<String?>(null) }
+    var exportTargetSn by remember { mutableStateOf<String?>(null) }
+    val pickImportFile = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        val sn = importTargetSn
+        importTargetSn = null
+        if (uri != null && sn != null) onImportFile(sn, uri.toString())
+    }
+    val pickExportFolder = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        val sn = exportTargetSn
+        exportTargetSn = null
+        if (uri != null && sn != null) onExportFolder(sn, uri.toString())
+    }
     if (showHints) {
         HintLine("AlphaESS uses your AlphaCloud OpenAPI keys — generate them in the developer portal.")
     }
@@ -424,7 +447,15 @@ private fun AlphaSection(
             pendingFetch = sys
         },
         onCancel = onCancel,
-        onDelete = { sys -> pendingDelete = sys }
+        onDelete = { sys -> pendingDelete = sys },
+        onImport = { sn ->
+            importTargetSn = sn
+            pickImportFile.launch("*/*")
+        },
+        onExport = { sn ->
+            exportTargetSn = sn
+            pickExportFolder.launch(null)
+        }
     )
     if (showCreds) {
         CredentialDialog(
@@ -693,13 +724,22 @@ private fun EsbnSection(
     showHints: Boolean,
     onImportFile: (String) -> Unit,
     onDeleteAll: (String) -> Unit,
-    onDeleteRange: (String, LocalDateTime, LocalDateTime) -> Unit
+    onDeleteRange: (String, LocalDateTime, LocalDateTime) -> Unit,
+    onExportFolder: (String, String) -> Unit
 ) {
     var pendingDelete by remember { mutableStateOf<ManagedSystem?>(null) }
+    var exportTargetMprn by remember { mutableStateOf<String?>(null) }
     val pickFile = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
     ) { uri ->
         if (uri != null) onImportFile(uri.toString())
+    }
+    val pickExportFolder = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        val mprn = exportTargetMprn
+        exportTargetMprn = null
+        if (uri != null && mprn != null) onExportFolder(mprn, uri.toString())
     }
     // Always visible — even if hints off — because it explains why credentials
     // are absent. Calling it a "hint" understates the user-blocking nature.
@@ -739,7 +779,14 @@ private fun EsbnSection(
         onSelect = { /* read-only */ },
         onFetch = { /* no cloud fetch */ },
         onCancel = { /* no cloud fetch */ },
-        onDelete = { sys -> pendingDelete = sys }
+        onDelete = { sys -> pendingDelete = sys },
+        // ESBN import stays section-level (the "Import HDF file" button
+        // above) — the file's MPRN is read from its contents, so there's
+        // no natural per-row import here. Export *is* per-MPRN.
+        onExport = { mprn ->
+            exportTargetMprn = mprn
+            pickExportFolder.launch(null)
+        }
     )
     if (state?.systems.isNullOrEmpty() && showHints) {
         Text("Imported MPRNs will appear here once a file has been ingested.",
@@ -806,7 +853,12 @@ private fun SystemList(
     onSelect: (String) -> Unit,
     onFetch: (String) -> Unit,
     onCancel: (String) -> Unit,
-    onDelete: (ManagedSystem) -> Unit
+    onDelete: (ManagedSystem) -> Unit,
+    // Optional secondary actions rendered as a second button row below
+    // Fetch/Delete. Null → row omitted. Used for AlphaESS (import+export)
+    // and ESBN (export only). HA passes neither.
+    onImport: ((String) -> Unit)? = null,
+    onExport: ((String) -> Unit)? = null
 ) {
     if (systems.isEmpty()) {
         Text("No systems configured yet.",
@@ -815,7 +867,10 @@ private fun SystemList(
         return
     }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        systems.forEach { sys -> SystemRow(sys, selected, canFetch, onSelect, onFetch, onCancel, onDelete) }
+        systems.forEach { sys ->
+            SystemRow(sys, selected, canFetch, onSelect, onFetch, onCancel, onDelete,
+                onImport, onExport)
+        }
     }
 }
 
@@ -827,7 +882,9 @@ private fun SystemRow(
     onSelect: (String) -> Unit,
     onFetch: (String) -> Unit,
     onCancel: (String) -> Unit,
-    onDelete: (ManagedSystem) -> Unit
+    onDelete: (ManagedSystem) -> Unit,
+    onImport: ((String) -> Unit)? = null,
+    onExport: ((String) -> Unit)? = null
 ) {
     val isSelected = sys.sysSn == selected
     val active = sys.fetching || sys.scheduled
@@ -913,6 +970,36 @@ private fun SystemRow(
                     Text("Delete",
                         color = if (sys.fetching) MaterialTheme.colorScheme.outline
                                 else MaterialTheme.colorScheme.error)
+                }
+            }
+            // Secondary actions — file import (re-ingest a previously
+            // exported source) and export (write the source to a file
+            // for backup / sharing). Each is disabled mid-fetch to avoid
+            // racing the underlying writes.
+            if (onImport != null || onExport != null) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (onImport != null) {
+                        OutlinedButton(
+                            onClick = { onImport(sys.sysSn) },
+                            enabled = !sys.fetching,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.Download, null, Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Import")
+                        }
+                    }
+                    if (onExport != null) {
+                        OutlinedButton(
+                            onClick = { onExport(sys.sysSn) },
+                            enabled = !sys.fetching,
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Icon(Icons.Default.UploadFile, null, Modifier.size(16.dp))
+                            Spacer(Modifier.width(4.dp))
+                            Text("Export")
+                        }
+                    }
                 }
             }
         }

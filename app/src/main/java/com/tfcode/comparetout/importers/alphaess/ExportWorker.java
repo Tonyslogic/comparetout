@@ -23,13 +23,9 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
-import android.app.TaskStackBuilder;
 import android.content.ContentResolver;
 import android.content.Context;
-import android.content.Intent;
 import android.net.Uri;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -41,6 +37,7 @@ import androidx.work.WorkerParameters;
 
 import com.google.gson.Gson;
 import com.google.gson.stream.JsonWriter;
+import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.importers.alphaess.responses.GetOneDayEnergyResponse;
 import com.tfcode.comparetout.importers.alphaess.responses.GetOneDayPowerResponse;
@@ -48,6 +45,7 @@ import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawEnergy;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawPower;
 import com.tfcode.comparetout.model.json.AlphaESSJsonTools;
+import com.tfcode.comparetout.ui2.UI2NotificationLaunch;
 import com.tfcode.comparetout.util.ContractFileUtils;
 
 import java.io.FileNotFoundException;
@@ -64,6 +62,16 @@ public class ExportWorker extends Worker {
     private static final int mNotificationId = 2;
     private boolean mStopped = false;
     private final Context mContext;
+    // Same cached-flag pattern the other importer workers use so the
+    // notification's content-intent lands on UI2 when the user has opted in.
+    private boolean mUseUI2 = false;
+    private String mSelectedSysSn = null;
+    // The 30-day milestone fires fast enough on a multi-year export to
+    // outrun Android's notification update cap (~5/sec). Throttle the
+    // in-loop notifies so they never get coalesced away — the terminal
+    // milestones use force=true to guarantee the user sees the final state.
+    private long mLastNotifyAt = 0L;
+    private static final long MIN_NOTIFY_INTERVAL_MS = 250L;
 
     private static final String TAG = "ExportWorker";
 
@@ -93,18 +101,15 @@ public class ExportWorker extends Worker {
     @Override
     public Result doWork() {
         System.out.println("ExportWorker:doWork invoked ");
-        Handler mHandler = new Handler(Looper.getMainLooper());
         Data inputData = getInputData();
         String systemSN = inputData.getString(KEY_SYSTEM_SN);
         String folder = inputData.getString(KEY_FOLDER);
         Uri folderUri = Uri.parse(folder);
+        mSelectedSysSn = systemSN;
+        mUseUI2 = UI2NotificationLaunch.isUI2Enabled(getApplicationContext());
 
-        // Mark the Worker as important
-        String progress = "Exporting energy";
-        setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
-        mNotificationManager.notify(mNotificationId, getNotification(progress));
-        
-        // Do some work
+        publishProgress("Exporting energy", true);
+
         String fileName = systemSN + ".json";
         ContentResolver resolver = mContext.getContentResolver();
 
@@ -133,10 +138,7 @@ public class ExportWorker extends Worker {
             jsonWriter.endArray();
             jsonWriter.flush();
 
-            progress = "Exported energy";
-            setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
-            String finalProgress = progress;
-            mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress)));
+            publishProgress("Exported energy", true);
 
             jsonWriter.name("power");
             jsonWriter.beginArray();
@@ -153,10 +155,7 @@ public class ExportWorker extends Worker {
                 processed++;
 
                 if ((processed % 30) == 0) {
-                    progress = "Exporting power: " + processed + "/" + dates.size();
-                    setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
-                    String finalProgress1 = progress;
-                    mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress1)));
+                    publishProgress("Exporting power: " + processed + "/" + dates.size(), false);
                 }
                 if (mStopped) break;
             }
@@ -167,10 +166,7 @@ public class ExportWorker extends Worker {
             fileWriter.close();
 
             String filename = ContractFileUtils.getFileNameFromUri(mContext, destinationFileUri);
-            progress = "Exported complete: " + filename;
-            setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
-            String finalProgress2 = progress;
-            mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress2)));
+            publishProgress("Exported complete: " + filename, true);
 
         } catch (Exception e) {
             if (e instanceof FileNotFoundException) Log.i(TAG, "FileNotFoundException when creating a file for download");
@@ -178,10 +174,7 @@ public class ExportWorker extends Worker {
             if (e instanceof SecurityException) Log.e(TAG, "SecurityException when creating a file for download");
             if (e instanceof IOException) Log.e(TAG, "IOException when creating a file for download");
             e.printStackTrace();
-            progress = "Export abandoned: Missing permission or file exists";
-            setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
-            String finalProgress3 = progress;
-            mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress3)));
+            publishProgress("Export abandoned: Missing permission or file exists", true);
         } finally {
             if (!(null == jsonWriter)) {
                 try {
@@ -211,6 +204,22 @@ public class ExportWorker extends Worker {
         return Result.success();
     }
 
+    /**
+     * Publish the worker's progress to WorkManager + the notification
+     * shade. NotificationManager.notify is thread-safe, so no main-thread
+     * hop is required (the earlier handler.post approach raced the worker's
+     * own completion). [force]=true bypasses the in-loop throttle and is
+     * used for the first/last updates so terminal state always lands.
+     */
+    private void publishProgress(@NonNull String progress, boolean force) {
+        setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
+        long now = System.currentTimeMillis();
+        if (force || now - mLastNotifyAt > MIN_NOTIFY_INTERVAL_MS) {
+            mLastNotifyAt = now;
+            mNotificationManager.notify(mNotificationId, getNotification(progress));
+        }
+    }
+
     @NonNull
     private Notification getNotification(@NonNull String progress) {
         // Build a notification using bytesRead and contentLength
@@ -223,11 +232,9 @@ public class ExportWorker extends Worker {
         PendingIntent cancelPendingIntent = WorkManager.getInstance(context)
                 .createCancelPendingIntent(getId());
 
-        Intent importAlphaActivity = new Intent(context, ImportAlphaActivity.class);
-        TaskStackBuilder stackBuilder = TaskStackBuilder.create(context);
-        stackBuilder.addNextIntentWithParentStack(importAlphaActivity);
-        PendingIntent activityPendingIntent = stackBuilder.getPendingIntent(0,
-                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        PendingIntent activityPendingIntent = UI2NotificationLaunch.contentIntent(
+                context, mUseUI2, ComparisonUIViewModel.Importer.ALPHAESS,
+                mSelectedSysSn, ImportAlphaActivity.class);
 
         return new NotificationCompat.Builder(context, id)
                 .setContentTitle(title)

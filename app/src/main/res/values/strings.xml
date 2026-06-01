@@ -262,6 +262,7 @@
     <string name="not_listed">Not listed</string>
     <string name="data_load_race_mesage">Data update in progress, try again in a moment</string>
     <string name="esbn_import_notification_title">Smart meter file import</string>
+    <string name="esbn_export_notification_title">Smart meter file export</string>
     <string name="generate_profile">Generate profile</string>
     <string name="cost_notification_title">Calculating costs</string>
     <string name="cost_notification_text">Calculation in progress</string>
