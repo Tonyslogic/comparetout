@@ -191,11 +191,16 @@ public class ImportWorker extends Worker {
             if (eBuy < 0D) eBuy = 0D;
             // Unitize and scale power (in kWh 5 minute intervals)
             Map<Long, FiveMinuteEnergies> massaged = DataMassager.massage(fixed, ePV, eLoad, eFeed, eBuy);
+            // v2: per-interval EV charger kWh (scaled to daily total), used by the new transform.
+            Map<Long, Double> evByInterval = DataMassager.evIn5MinIntervals(powerList, energy.getEnergyChargingPile());
 
             // Store transformed data
-            List<AlphaESSTransformedData> normalizedEntityList = AlphaESSEntityUtil.getTransformedDataRows(massaged, systemSN);
+            List<AlphaESSTransformedData> normalizedEntityList = AlphaESSEntityUtil.getTransformedDataRows(massaged, evByInterval, systemSN);
             mToutcRepository.addTransformedData(normalizedEntityList);
         }
+
+        // ImportWorker rewrites every transformed row for this SN, so we can stamp v2 unconditionally.
+        mToutcRepository.stampAlphaESSTransformCurrent(systemSN);
 
         publishProgress("All done importing " + systemSN, true);
 

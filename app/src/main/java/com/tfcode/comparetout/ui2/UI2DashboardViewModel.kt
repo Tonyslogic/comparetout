@@ -35,7 +35,16 @@ enum class DataSourcePeriod(val label: String) {
 
 data class PeriodTotals(
     val load: Double, val buy: Double, val feed: Double, val pv: Double,
-    val charging: Double = 0.0, val discharging: Double = 0.0
+    val charging: Double = 0.0, val discharging: Double = 0.0,
+    // v2 flow fields — populated for AlphaESS rows once the migration worker has run.
+    // Stay at 0 for pre-v2 AlphaESS rows, ESBN, HA, and the simulation path (which uses
+    // its own kpis-based pies on the dashboard).
+    val pv2load: Double = 0.0,
+    val pv2bat: Double = 0.0,
+    val bat2load: Double = 0.0,
+    val grid2bat: Double = 0.0,
+    val bat2grid: Double = 0.0,
+    val evActual: Double = 0.0
 )
 
 data class UsageDistribution(
@@ -495,7 +504,13 @@ class UI2DashboardViewModel @Inject constructor(
             feed        = rows.sumOf { it.feed },
             pv          = rows.sumOf { it.pv },
             charging    = rows.sumOf { it.batCharge },
-            discharging = rows.sumOf { it.batDischarge }
+            discharging = rows.sumOf { it.batDischarge },
+            pv2load     = rows.sumOf { it.pv2load },
+            pv2bat      = rows.sumOf { it.pv2bat },
+            bat2load    = rows.sumOf { it.bat2load },
+            grid2bat    = rows.sumOf { it.grid2bat },
+            bat2grid    = rows.sumOf { it.bat2grid },
+            evActual    = rows.sumOf { it.evActual }
         )
     }
 

@@ -101,6 +101,12 @@ public class CatchUpWorker extends Worker {
         LocalDate current = LocalDate.parse(startDate, DATE_FORMAT);
         LocalDate end = LocalDate.now();
 
+        // v2: remember whether this SN had any processed rows before we started. If it did,
+        // some of those rows may be pre-v2 and we shouldn't stamp v2 at the end (the user
+        // still needs the Migrate button to upgrade the historical rows).
+        String latestBefore = mToutcRepository.getLatestDateForSn(systemSN);
+        boolean snHadNoRowsBefore = (latestBefore == null || latestBefore.isEmpty());
+
         publishProgress(current.toString(), true);
         while (current.isBefore(end) && !mStopped) {
             if (mToutcRepository.checkSysSnForDataOnDate(systemSN, current.format(DATE_FORMAT))) {
@@ -132,8 +138,10 @@ public class CatchUpWorker extends Worker {
                     // Store raw power
                     List<AlphaESSRawPower> powerEntityList = AlphaESSEntityUtil.getPowerRowsFromJson(oneDayPowerBySn);
                     mToutcRepository.addRawPower(powerEntityList);
+                    // v2: per-interval EV charger kWh (scaled to daily total), used by the new transform.
+                    Map<Long, Double> evByInterval = DataMassager.evIn5MinIntervals(powerEntityList, oneDayEnergyBySn.data.eChargingPile);
                     // Store transformed data
-                    List<AlphaESSTransformedData> normalizedEntityList = AlphaESSEntityUtil.getTransformedDataRows(massaged, systemSN);
+                    List<AlphaESSTransformedData> normalizedEntityList = AlphaESSEntityUtil.getTransformedDataRows(massaged, evByInterval, systemSN);
                     mToutcRepository.addTransformedData(normalizedEntityList);
                     System.out.println("CatchupWorker storing normalizedEntityList " + normalizedEntityList.size());
 
@@ -159,6 +167,11 @@ public class CatchUpWorker extends Worker {
             publishProgress("Done catching up with " + current, false);
             current = current.plusDays(1);
         }
+        // v2: only stamp if the SN started empty (so all our rows are v2) or was already v2.
+        // Otherwise we may have left v1 historical rows untouched and the Migrate button
+        // should keep surfacing.
+        mToutcRepository.stampAlphaESSTransformCurrentIfSafe(systemSN, snHadNoRowsBefore);
+
         if (mStopped) mNotificationManager.cancel(mNotificationId);
 
         return Result.success();

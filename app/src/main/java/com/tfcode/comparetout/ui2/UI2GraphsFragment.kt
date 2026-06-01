@@ -132,6 +132,7 @@ private val SERIES_COLORS: Map<FilterSeries, Color> = mapOf(
     FilterSeries.GRID2BAT      to Color(0xFFE91E63),
     FilterSeries.EV_SCHEDULE   to Color(0xFFFFA500),
     FilterSeries.EV_DIVERT     to Color(0xFFE0F2D2),
+    FilterSeries.EV_ACTUAL     to Color(0xFFFF6F00),
     FilterSeries.HW_SCHEDULE   to Color(0xFF9C27B0),
     FilterSeries.HW_DIVERT     to Color(0xFF795548),
     FilterSeries.BAT2GRID      to Color(0xFFFFD700),
@@ -547,6 +548,9 @@ private fun buildChartPoints(state: UI2GraphsViewModel.GraphState): List<ChartPo
                     FilterSeries.GRID2BAT      to row.grid2Battery,
                     FilterSeries.EV_SCHEDULE   to row.evSchedule,
                     FilterSeries.EV_DIVERT     to row.evDivert,
+                    // singleDayBarData is sim-only (see UI2GraphsViewModel.fetchData);
+                    // AlphaESS data flows through intervalData, so 0 here is correct.
+                    FilterSeries.EV_ACTUAL     to 0.0,
                     FilterSeries.HW_SCHEDULE   to row.hwSchedule,
                     FilterSeries.HW_DIVERT     to row.hwDivert,
                     FilterSeries.BAT2GRID      to row.bat2grid,
@@ -570,6 +574,7 @@ private fun buildChartPoints(state: UI2GraphsViewModel.GraphState): List<ChartPo
                     FilterSeries.GRID2BAT      to row.grid2bat,
                     FilterSeries.EV_SCHEDULE   to row.evSchedule,
                     FilterSeries.EV_DIVERT     to row.evDivert,
+                    FilterSeries.EV_ACTUAL     to row.evActual,
                     FilterSeries.HW_SCHEDULE   to row.hwSchedule,
                     FilterSeries.HW_DIVERT     to row.hwDivert,
                     FilterSeries.BAT2GRID      to row.bat2grid,

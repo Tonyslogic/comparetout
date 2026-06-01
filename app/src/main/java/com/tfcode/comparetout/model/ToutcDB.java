@@ -27,6 +27,7 @@ import androidx.room.TypeConverters;
 import com.tfcode.comparetout.model.costings.Costings;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawEnergy;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawPower;
+import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformMeta;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
@@ -77,14 +78,16 @@ import java.util.concurrent.Executors;
         LoadProfileData.class, ScenarioSimulationData.class,
         Costings.class, PanelData.class,
         AlphaESSRawPower.class, AlphaESSRawEnergy.class,
-        AlphaESSTransformedData.class
-        }, version = 6,
+        AlphaESSTransformedData.class,
+        AlphaESSTransformMeta.class
+        }, version = 7,
         autoMigrations = {
             @AutoMigration(from = 1, to = 2),
             @AutoMigration(from = 2, to = 3),
             @AutoMigration(from = 3, to = 4),
             @AutoMigration(from = 4, to = 5),
-            @AutoMigration(from = 5, to = 6)})
+            @AutoMigration(from = 5, to = 6),
+            @AutoMigration(from = 6, to = 7)})
 
 @TypeConverters({Converters.class})
 

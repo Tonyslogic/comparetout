@@ -1443,16 +1443,63 @@ private fun DataSourceExplorePies(
                 )
             )
         } else {
-            listOf(
-                "Load Source" to listOf(
-                    PieSlice("Solar",  maxOf(0.0, periodTotals.load - periodTotals.buy), Color(0xFF4CAF50)),
-                    PieSlice("Bought", periodTotals.buy,  Color(0xFFF44336))
-                ),
-                "Self Consumption" to listOf(
-                    PieSlice("PV Used",  maxOf(0.0, periodTotals.pv - periodTotals.feed), Color(0xFF4CAF50)),
-                    PieSlice("Exported", periodTotals.feed, Color(0xFF2196F3))
-                )
+            // Mirror UI2GraphsFragment.buildGraphPieSpecs — same four-pie set so the
+            // dashboard's at-a-glance summary matches what the user sees when they
+            // drill into Explore Data. For AlphaESS:
+            //   • v1 (pre-migration) rows leave pv2*/bat2*/grid2* fields at 0, so the
+            //     extra slices appear degenerate or empty. Once the Migrate worker
+            //     stamps v2 they fill out fully.
+            //   • Battery Flows is gated on actual battery activity in the data, not
+            //     on a scenario flag — AlphaESS has no scenario, so we read it off
+            //     PeriodTotals.charging/discharging.
+            val gridToLoad = maxOf(0.0, periodTotals.buy - periodTotals.grid2bat)
+            val pvUsed = maxOf(0.0, periodTotals.pv2load + periodTotals.pv2bat)
+                .takeIf { it > 0 } ?: maxOf(0.0, periodTotals.pv - periodTotals.feed)
+            val out = mutableListOf<Pair<String, List<PieSlice>>>()
+            out += "Self Consumption" to listOf(
+                PieSlice("PV Used", pvUsed, Color(0xFF4CAF50)),
+                PieSlice("Exported", periodTotals.feed, Color(0xFF2196F3))
             )
+            out += "Load Source" to buildList {
+                if (periodTotals.pv2load > 0) add(PieSlice("Solar",   periodTotals.pv2load, Color(0xFF4CAF50)))
+                if (periodTotals.bat2load > 0) add(PieSlice("Battery", periodTotals.bat2load, Color(0xFFFFB300)))
+                if (gridToLoad > 0)            add(PieSlice("Grid",    gridToLoad,           Color(0xFFF44336)))
+                // Pre-v2 fallback: if no flow-decomposed slices, fall back to the
+                // legacy approximation so the pie is never empty.
+                if (isEmpty()) {
+                    val approxSolar = maxOf(0.0, periodTotals.load - periodTotals.buy)
+                    if (approxSolar > 0) add(PieSlice("Solar",  approxSolar,        Color(0xFF4CAF50)))
+                    if (periodTotals.buy > 0) add(PieSlice("Grid",   periodTotals.buy,   Color(0xFFF44336)))
+                }
+            }
+            if (periodTotals.pv > 0) {
+                out += "Solar Distribution" to buildList {
+                    if (periodTotals.pv2load > 0)  add(PieSlice("To Load",  periodTotals.pv2load, Color(0xFF4CAF50)))
+                    if (periodTotals.pv2bat > 0)   add(PieSlice("Battery",  periodTotals.pv2bat,  Color(0xFF2196F3)))
+                    if (periodTotals.evActual > 0) add(PieSlice("EV",       periodTotals.evActual, Color(0xFFFF6F00)))
+                    if (periodTotals.feed > 0)     add(PieSlice("Exported", periodTotals.feed,    Color(0xFFFFEB3B)))
+                }
+            }
+            val batteryActive = periodTotals.charging > 0 || periodTotals.discharging > 0 ||
+                    periodTotals.pv2bat > 0 || periodTotals.grid2bat > 0 ||
+                    periodTotals.bat2load > 0 || periodTotals.bat2grid > 0
+            if (batteryActive) {
+                val flows = buildList {
+                    if (periodTotals.pv2bat > 0)   add(PieSlice("Solar In", periodTotals.pv2bat,   Color(0xFF4CAF50)))
+                    if (periodTotals.grid2bat > 0) add(PieSlice("Grid In",  periodTotals.grid2bat, Color(0xFF00BCD4)))
+                    if (periodTotals.bat2load > 0) add(PieSlice("To Load",  periodTotals.bat2load, Color(0xFF2196F3)))
+                    if (periodTotals.bat2grid > 0) add(PieSlice("To Grid",  periodTotals.bat2grid, Color(0xFFFFD700)))
+                    // Pre-v2 fallback: no flow decomposition yet, so show net battery
+                    // throughput from the legacy charge/discharge columns. Migration
+                    // upgrades this to the four-source breakdown above.
+                    if (isEmpty()) {
+                        if (periodTotals.charging > 0)    add(PieSlice("Charge",    periodTotals.charging,    Color(0xFF4CAF50)))
+                        if (periodTotals.discharging > 0) add(PieSlice("Discharge", periodTotals.discharging, Color(0xFFFFD700)))
+                    }
+                }
+                if (flows.isNotEmpty()) out += "Battery Flows" to flows
+            }
+            out
         }
     }
 
@@ -1460,17 +1507,32 @@ private fun DataSourceExplorePies(
     val containerSize = LocalWindowInfo.current.containerSize
     val density = LocalDensity.current
 
-    Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
-        charts.forEachIndexed { idx, (title, slices) ->
-            val visible = slices.filter { it.value > 0 }
-            Column(
-                modifier = Modifier.weight(1f).clickable { zoomedChart = idx }.padding(4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(title, style = MaterialTheme.typography.labelSmall,
-                    textAlign = TextAlign.Center)
-                Spacer(Modifier.height(4.dp))
-                PieChart(slices = visible, modifier = Modifier.size(80.dp))
+    // Wrap charts into a 2×N grid so 3 and 4 pies stay readable. Two pies
+    // (legacy or ESBN) collapse to a single row naturally. Empty grid cells
+    // get a Spacer to keep the right-hand column aligned.
+    val cols = 2
+    val rows = (charts.size + cols - 1) / cols
+    Column(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+        for (row in 0 until rows) {
+            Row(modifier = Modifier.fillMaxWidth()) {
+                for (col in 0 until cols) {
+                    val idx = row * cols + col
+                    if (idx < charts.size) {
+                        val (title, slices) = charts[idx]
+                        val visible = slices.filter { it.value > 0 }
+                        Column(
+                            modifier = Modifier.weight(1f).clickable { zoomedChart = idx }.padding(4.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(title, style = MaterialTheme.typography.labelSmall,
+                                textAlign = TextAlign.Center)
+                            Spacer(Modifier.height(4.dp))
+                            PieChart(slices = visible, modifier = Modifier.size(80.dp))
+                        }
+                    } else {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
             }
         }
     }

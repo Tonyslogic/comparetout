@@ -101,6 +101,19 @@ public class AlphaESSEntityUtil {
     }
 
     public static List<AlphaESSTransformedData> getTransformedDataRows (Map<Long, FiveMinuteEnergies> rows, String sysSN) {
+        return getTransformedDataRows(rows, null, sysSN);
+    }
+
+    /**
+     * v2 overload: also populates the per-interval flow decomposition
+     * (pv2load, pv2bat, pv2grid, bat2load, bat2grid, grid2load, grid2bat,
+     * batChargeIn, batDischargeOut) and {@code evActual} from
+     * {@code evByInterval} (may be null when EV data is unavailable).
+     */
+    public static List<AlphaESSTransformedData> getTransformedDataRows (
+            Map<Long, FiveMinuteEnergies> rows,
+            Map<Long, Double> evByInterval,
+            String sysSN) {
         List<AlphaESSTransformedData> entities = new ArrayList<>();
         for (Map.Entry<Long, FiveMinuteEnergies> entry : rows.entrySet()) {
             AlphaESSTransformedData entity = new AlphaESSTransformedData();
@@ -108,15 +121,38 @@ public class AlphaESSEntityUtil {
             Date date = new Date(entry.getKey());
             entity.setDate(DATE_FORMAT.format(date));
             entity.setMinute(HH_MM_FORMAT.format(date));
-            entity.setPv(entry.getValue().pv.isNaN() ? 0D : entry.getValue().pv);
-            entity.setLoad(entry.getValue().load.isNaN() ? 0D : entry.getValue().load);
-            entity.setFeed(entry.getValue().feed.isNaN() ? 0D : entry.getValue().feed);
-            entity.setBuy(entry.getValue().buy.isNaN() ? 0D : entry.getValue().buy);
+            double pv = entry.getValue().pv.isNaN() ? 0D : entry.getValue().pv;
+            double load = entry.getValue().load.isNaN() ? 0D : entry.getValue().load;
+            double feed = entry.getValue().feed.isNaN() ? 0D : entry.getValue().feed;
+            double buy = entry.getValue().buy.isNaN() ? 0D : entry.getValue().buy;
+            entity.setPv(pv);
+            entity.setLoad(load);
+            entity.setFeed(feed);
+            entity.setBuy(buy);
             double charge = entry.getValue().charge.isNaN() ? 0D : entry.getValue().charge;
             // Assume losses of 10% when discharging
             // TODO make this configurable in the importer
             entity.setCharge(charge > 0D ? charge : charge * 0.9);
             entity.setMillisSinceEpoch(date.getTime());
+
+            // v2 flow decomposition — exact, energy-balance-preserving allocation.
+            AlphaESSFlowDecomposer.FlowDecomposition flows =
+                    AlphaESSFlowDecomposer.decompose(pv, load, feed, buy);
+            entity.setPv2load(flows.pv2load);
+            entity.setPv2bat(flows.pv2bat);
+            entity.setPv2grid(flows.pv2grid);
+            entity.setBat2load(flows.bat2load);
+            entity.setBat2grid(flows.bat2grid);
+            entity.setGrid2load(flows.grid2load);
+            entity.setGrid2bat(flows.grid2bat);
+            entity.setBatChargeIn(flows.batChargeIn);
+            entity.setBatDischargeOut(flows.batDischargeOut);
+
+            if (evByInterval != null) {
+                Double ev = evByInterval.get(entry.getKey());
+                if (ev != null && !ev.isNaN()) entity.setEvActual(ev);
+            }
+
             entities.add(entity);
         }
         return entities;

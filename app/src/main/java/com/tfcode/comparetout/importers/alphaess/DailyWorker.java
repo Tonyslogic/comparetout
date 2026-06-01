@@ -97,6 +97,13 @@ public class DailyWorker extends Worker {
         mUseUI2 = UI2NotificationLaunch.isUI2Enabled(getApplicationContext());
 
         LocalDate yesterday = LocalDate.now().plusDays(-1);
+
+        // v2: remember whether this SN had any processed rows before we started. We only
+        // stamp v2 if it did NOT, so the Migrate button stays available when there is v1
+        // historical data we haven't touched.
+        String latestBefore = mToutcRepository.getLatestDateForSn(systemSN);
+        boolean snHadNoRowsBefore = (latestBefore == null || latestBefore.isEmpty());
+
         if (mToutcRepository.checkSysSnForDataOnDate(systemSN, yesterday.format(DATE_FORMAT))) {
             System.out.println("DailyWorker skipping " + yesterday);
         }
@@ -121,6 +128,10 @@ public class DailyWorker extends Worker {
             }
 
         }
+        // v2 stamp — safe only when the SN had no historical rows before today's fetch,
+        // or its meta is already v2.
+        mToutcRepository.stampAlphaESSTransformCurrentIfSafe(systemSN, snHadNoRowsBefore);
+
         if (mStopped) mNotificationManager.cancel(mNotificationId);
         return Result.success();
     }
@@ -152,8 +163,10 @@ public class DailyWorker extends Worker {
             // Store raw power
             List<AlphaESSRawPower> powerEntityList = AlphaESSEntityUtil.getPowerRowsFromJson(oneDayPowerBySn);
             mToutcRepository.addRawPower(powerEntityList);
+            // v2: per-interval EV charger kWh (scaled to daily total), used by the new transform.
+            Map<Long, Double> evByInterval = DataMassager.evIn5MinIntervals(powerEntityList, oneDayEnergyBySn.data.eChargingPile);
             // Store transformed data
-            List<AlphaESSTransformedData> normalizedEntityList = AlphaESSEntityUtil.getTransformedDataRows(massaged, systemSN);
+            List<AlphaESSTransformedData> normalizedEntityList = AlphaESSEntityUtil.getTransformedDataRows(massaged, evByInterval, systemSN);
             mToutcRepository.addTransformedData(normalizedEntityList);
             System.out.println("DailyWorker storing normalizedEntityList " + normalizedEntityList.size());
             ret = true;

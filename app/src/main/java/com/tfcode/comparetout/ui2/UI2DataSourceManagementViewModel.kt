@@ -17,6 +17,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.tfcode.comparetout.ComparisonUIViewModel
 import com.tfcode.comparetout.TOUTCApplication
+import com.tfcode.comparetout.importers.alphaess.AlphaESSMigrationWorker
 import com.tfcode.comparetout.importers.alphaess.CatchUpWorker
 import com.tfcode.comparetout.importers.alphaess.DailyWorker
 import com.tfcode.comparetout.importers.alphaess.ExportWorker
@@ -28,6 +29,7 @@ import com.tfcode.comparetout.importers.esbn.ESBNImportWorker
 import com.tfcode.comparetout.importers.homeassistant.EnergySensors
 import com.tfcode.comparetout.importers.homeassistant.HACatchupWorker
 import com.tfcode.comparetout.model.ToutcRepository
+import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformMeta
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -135,6 +137,15 @@ class UI2DataSourceManagementViewModel @Inject constructor(
     val busy: LiveData<Boolean> = _busy
     private val _toast = MutableLiveData<Toast?>()
     val toast: LiveData<Toast?> = _toast
+
+    /**
+     * Live snapshot of the per-SN AlphaESS transform stamps. The UI compares
+     * `(meta.transformVersion ?: 1) < AlphaESSTransformMeta.TRANSFORM_VERSION_CURRENT`
+     * to decide whether to surface the Migrate button for a given system.
+     * SNs missing from the list are pre-v2 (legacy) and treated as stale.
+     */
+    val alphaTransformMeta: LiveData<List<AlphaESSTransformMeta>> =
+        repository.getAllAlphaESSTransformMetaLive()
 
     // ── WorkManager observer plumbing ──────────────────────────────────
     //
@@ -422,6 +433,29 @@ class UI2DataSourceManagementViewModel @Inject constructor(
             _toast.postValue(Toast("Fetch cancelled for $sysSn"))
             _alpha.postValue(buildAlphaState())
             _ha.postValue(buildHAState())
+        }
+    }
+
+    /**
+     * Re-run the v2 AlphaESS transform across [sysSn]'s historical raw data.
+     * Foregrounded worker (notification ID 12) with the publishProgress
+     * pattern. KEEP policy means re-tapping the button while one is running
+     * is a silent no-op. On completion the worker stamps
+     * [AlphaESSTransformMeta.TRANSFORM_VERSION_CURRENT] which (via
+     * [alphaTransformMeta]) removes the button from the row.
+     */
+    fun runMigration(sysSn: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val input = Data.Builder()
+                .putString(AlphaESSMigrationWorker.KEY_SYSTEM_SN, sysSn)
+                .build()
+            val req = OneTimeWorkRequest.Builder(AlphaESSMigrationWorker::class.java)
+                .setInputData(input)
+                .addTag(sysSn + "Migrate")
+                .build()
+            wm.pruneWork()
+            wm.beginUniqueWork(sysSn + "Migrate", ExistingWorkPolicy.KEEP, req).enqueue()
+            _toast.postValue(Toast("Migrating $sysSn…"))
         }
     }
 

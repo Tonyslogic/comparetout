@@ -94,6 +94,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.tfcode.comparetout.ComparisonUIViewModel.Importer
+import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformMeta
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -143,6 +144,16 @@ private fun DataSourceManagementScreen(
     val haSensors by viewModel.haSensors.observeAsState()
     val busy by viewModel.busy.observeAsState(false)
     val toast by viewModel.toast.observeAsState()
+    // v2 enrichment status — used to decide which AlphaESS rows surface the
+    // Migrate button. Missing-meta or transformVersion < CURRENT → stale.
+    val alphaMetas by viewModel.alphaTransformMeta.observeAsState(emptyList())
+    val staleByAlphaSn: Map<String, Boolean> = remember(alphaMetas, alphaRaw) {
+        val byVersion = alphaMetas.associate { it.sysSn to it.transformVersion }
+        alphaRaw?.systems.orEmpty().associate { sys ->
+            sys.sysSn to ((byVersion[sys.sysSn] ?: AlphaESSTransformMeta.TRANSFORM_VERSION_V1)
+                    < AlphaESSTransformMeta.TRANSFORM_VERSION_CURRENT)
+        }
+    }
 
     // Merge the persistent SourceState (DataStore + DB) with the live
     // WorkManager status (per-SN fetching/scheduled). Done in the activity so
@@ -214,7 +225,9 @@ private fun DataSourceManagementScreen(
                                 onDeleteAll = viewModel::deleteAllData,
                                 onDeleteRange = viewModel::deleteRange,
                                 onImportFile = viewModel::importAlphaFile,
-                                onExportFolder = viewModel::exportAlpha
+                                onExportFolder = viewModel::exportAlpha,
+                                staleByAlphaSn = staleByAlphaSn,
+                                onMigrate = viewModel::runMigration
                             )
                         }
                     )
@@ -406,7 +419,9 @@ private fun AlphaSection(
     onDeleteAll: (String) -> Unit,
     onDeleteRange: (String, LocalDateTime, LocalDateTime) -> Unit,
     onImportFile: (String, String) -> Unit,
-    onExportFolder: (String, String) -> Unit
+    onExportFolder: (String, String) -> Unit,
+    staleByAlphaSn: Map<String, Boolean>,
+    onMigrate: (String) -> Unit
 ) {
     var showCreds by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<ManagedSystem?>(null) }
@@ -455,7 +470,9 @@ private fun AlphaSection(
         onExport = { sn ->
             exportTargetSn = sn
             pickExportFolder.launch(null)
-        }
+        },
+        onMigrate = onMigrate,
+        isStale = { sn -> staleByAlphaSn[sn] == true }
     )
     if (showCreds) {
         CredentialDialog(
@@ -858,7 +875,11 @@ private fun SystemList(
     // Fetch/Delete. Null → row omitted. Used for AlphaESS (import+export)
     // and ESBN (export only). HA passes neither.
     onImport: ((String) -> Unit)? = null,
-    onExport: ((String) -> Unit)? = null
+    onExport: ((String) -> Unit)? = null,
+    // AlphaESS only: Migrate button appears on a third row when isStale(sn)
+    // is true and onMigrate is wired. Null callbacks → row omitted entirely.
+    onMigrate: ((String) -> Unit)? = null,
+    isStale: ((String) -> Boolean)? = null
 ) {
     if (systems.isEmpty()) {
         Text("No systems configured yet.",
@@ -869,7 +890,7 @@ private fun SystemList(
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         systems.forEach { sys ->
             SystemRow(sys, selected, canFetch, onSelect, onFetch, onCancel, onDelete,
-                onImport, onExport)
+                onImport, onExport, onMigrate, isStale)
         }
     }
 }
@@ -884,7 +905,9 @@ private fun SystemRow(
     onCancel: (String) -> Unit,
     onDelete: (ManagedSystem) -> Unit,
     onImport: ((String) -> Unit)? = null,
-    onExport: ((String) -> Unit)? = null
+    onExport: ((String) -> Unit)? = null,
+    onMigrate: ((String) -> Unit)? = null,
+    isStale: ((String) -> Boolean)? = null
 ) {
     val isSelected = sys.sysSn == selected
     val active = sys.fetching || sys.scheduled
@@ -999,6 +1022,22 @@ private fun SystemRow(
                             Spacer(Modifier.width(4.dp))
                             Text("Export")
                         }
+                    }
+                }
+            }
+            // Third row: Migrate — surfaced only when the SN's processed rows
+            // are pre-v2. Disappears once AlphaESSMigrationWorker stamps the
+            // transform meta to TRANSFORM_VERSION_CURRENT on completion.
+            if (onMigrate != null && isStale != null && isStale(sys.sysSn)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    OutlinedButton(
+                        onClick = { onMigrate(sys.sysSn) },
+                        enabled = !sys.fetching,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Refresh, null, Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Migrate")
                     }
                 }
             }
