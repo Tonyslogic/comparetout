@@ -295,7 +295,8 @@ class UI2DashboardFragment : Fragment() {
                             viewModel.setActiveSimulationId(sel.id)
                         is UI2SharedViewModel.ActiveSelection.DataSource ->
                             viewModel.setActiveDataSource(sel.sysSn, sel.importerType, sel.startDate, sel.endDate)
-                        UI2SharedViewModel.ActiveSelection.None -> {}
+                        UI2SharedViewModel.ActiveSelection.None ->
+                            viewModel.clearActive()
                     }
                 }
             }
@@ -332,6 +333,10 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
     // have scenarios — once the LiveData emits the real value, this drops to its
     // proper state. Only matters for ≤1 recompose, but the flash is visible.
     val hasScenarios           by viewModel.hasScenarios.observeAsState(initial = true)
+    // initial=true for the same reason — assume there's a pinned subject during
+    // the first recompose so we don't flash NoActiveSubjectCard while restore
+    // is still in flight. Drops to false only after a confirmed None.
+    val hasActiveItem          by viewModel.hasActiveItem.observeAsState(initial = true)
     // Re-pull DB-backed dashboard surfaces when the Simulation/Cost work chain
     // (PVGIS → GenerateLoad → Simulate → Cost, kicked off by the wizard or by
     // SampleDataLoader) reaches a successful terminal state. Without this the
@@ -388,19 +393,27 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
     val pvAnchor    by viewModel.pvAnchor.observeAsState(LocalDate.now())
     val pvChartData by viewModel.pvChartData.observeAsState(null)
 
-            // First-run / data-deleted empty state. We check `dataSourceInfo`
-            // rather than `dashboardData == null` because after the user
-            // deletes their scenarios, DataStore still points at the now-gone
-            // scenarioId — the Simulation branch of dashboardData's flow still
-            // emits a non-null wrapper with null sub-fields. `dataSourceInfo`
-            // is only set when an actual data source is selected, so this
-            // condition correctly fires for both fresh installs and
-            // post-deletion states. The rest of this Column renders nothing in
-            // both cases (scenarioComponents/dataSourceInfo both null), so
-            // this card sits alone.
-            if (dashboardData?.dataSourceInfo == null && !hasScenarios) {
-                EmptyDashboardSampleCard()
-            }
+            // First-run vs deleted-active-subject empty states.
+            //
+            // [hasActiveItem] = the dashboard VM has a pinned subject. Goes
+            // false on first launch (before restore) and when the deletion
+            // guards in UI2SharedViewModel clear the saved subject because the
+            // scenario or data source it pointed at no longer exists.
+            //
+            // If nothing is pinned: show the original sample-data welcome card
+            // when no scenarios exist at all, otherwise direct the user to
+            // pick a subject from the navigation drawer.
+            if (!hasActiveItem) {
+                if (!hasScenarios) EmptyDashboardSampleCard() else NoActiveSubjectCard()
+            } else {
+                // Gate the entire dashboard content on hasActiveItem rather than
+                // on dashboardData's shape. clearActive() nulls _activeItem
+                // synchronously, but dashboardData is downstream of a Flow chain
+                // — there's a brief window where it still holds the previous
+                // subject's data, and we'd otherwise render its accordions for
+                // a frame between the empty-card swap and the Flow re-emitting
+                // DashboardData(null, null, null). Skipping the whole block
+                // until hasActiveItem flips back to true avoids that.
 
             val dsInfo = dashboardData?.dataSourceInfo
             if (dsInfo != null) {
@@ -992,6 +1005,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     //     the headline answer once a scenario has been simulated.)
                 }
             }
+            }   // end else of !hasActiveItem
             Spacer(Modifier.height(80.dp))
         }   // end Column
 
@@ -2430,6 +2444,40 @@ private fun KpiMonthsTable(rows: List<KpiMonthRow>, df: DecimalFormat) {
  * and no data source is selected. The button text "Try with sample data" is
  * the canonical Robo selector — see plans/roboscript/robo-plan.md Phase 4B/4C.
  */
+/**
+ * Empty state shown when the dashboard has no pinned subject but the user
+ * already has scenarios and/or data sources available — typically reached
+ * after the deletion guards in UI2SharedViewModel clear the saved subject
+ * because its underlying scenario/sysSn was deleted. Directs the user to
+ * pick a different subject from the navigation drawer.
+ */
+@Composable
+private fun NoActiveSubjectCard() {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                "Pick a dashboard subject",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                "The scenario or data source this dashboard was set to is no " +
+                    "longer available. Open the navigation drawer and pick a " +
+                    "scenario or data source to view.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
 @Composable
 private fun EmptyDashboardSampleCard() {
     val context = LocalContext.current

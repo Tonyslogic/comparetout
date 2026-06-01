@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
@@ -130,6 +131,15 @@ class UI2DashboardViewModel @Inject constructor(
     private val dateTimeFormatter  = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
     private val _activeItem = MutableStateFlow<ActiveDashboardItem?>(null)
+
+    /**
+     * Whether the dashboard currently has a pinned subject. The fragment uses
+     * this — rather than inferring from [dashboardData]'s shape — to decide
+     * between the "pick a subject" empty card and the regular accordion list,
+     * so a fresh boot with a valid pinned scenario doesn't flash the empty
+     * card while the IO fetch is in flight.
+     */
+    val hasActiveItem: LiveData<Boolean> = _activeItem.map { it != null }.asLiveData()
 
     /**
      * Bumped each time the dashboard should re-fetch DB-backed data without a
@@ -253,6 +263,26 @@ class UI2DashboardViewModel @Inject constructor(
             recomputeKpis()
             recomputeScenarioTariff()
         }
+    }
+
+    /**
+     * Drop the active dashboard subject and reset every derived StateFlow to
+     * its empty default. Called by the dashboard fragment when the shared VM
+     * emits [UI2SharedViewModel.ActiveSelection.None] — typically because the
+     * persisted subject's underlying data was deleted. Without this reset, the
+     * dashboard keeps rendering stale numbers from the previous subject after
+     * the persisted selection has been cleared.
+     */
+    fun clearActive() {
+        _activeItem.value = null
+        _dataBounds.value = null
+        _pvChartData.value = null
+        _exploreTotals.value = null
+        _usageTotals.value = null
+        _usageDistribution.value = null
+        _tariffCostings.value = null
+        _scenarioTariffCostings.value = null
+        resetKpiDefaults()
     }
 
     fun setActiveDataSource(

@@ -81,9 +81,35 @@ class UI2SharedViewModel @Inject constructor(
                 if (sysSn.isBlank() || typStr.isBlank() || start.isBlank() || end.isBlank()) return@launch
                 val importer = runCatching { ComparisonUIViewModel.Importer.valueOf(typStr) }.getOrNull()
                     ?: return@launch
+                // Validate that the persisted DS still exists before adopting it.
+                // AlphaESS has a sync date-range lookup; ESBN/HA fall through to
+                // the reactive observer in the date-ranges combine below — if the
+                // sysSn isn't in any of the three lists when it next emits, the
+                // selection will be cleared then.
+                if (importer == ComparisonUIViewModel.Importer.ALPHAESS) {
+                    val exists = runCatching { repository.getDateRange(sysSn) != null }.getOrDefault(false)
+                    if (!exists) {
+                        clearActiveSelection()
+                        return@launch
+                    }
+                }
                 _activeSelection.value = ActiveSelection.DataSource(sysSn, importer, start, end)
             } else {
-                stored[1].toLongOrNull()?.let { _activeSelection.value = ActiveSelection.Simulation(it) }
+                val id = stored[1].toLongOrNull() ?: return@launch
+                // Validate that the persisted scenario still exists. Check the
+                // Scenario row itself, not the ScenarioComponents wrapper —
+                // ScenarioDAO.getScenarioComponentsForScenarioID always returns
+                // a non-null wrapper (its sub-queries fall back to empty lists
+                // for a missing id), so a wrapper-non-null check would let
+                // every deleted id pass and re-pin a ghost selection.
+                val exists = runCatching {
+                    repository.getScenarioComponentsForScenarioID(id)?.scenario != null
+                }.getOrDefault(false)
+                if (!exists) {
+                    clearActiveSelection()
+                    return@launch
+                }
+                _activeSelection.value = ActiveSelection.Simulation(id)
             }
         }
 
@@ -102,27 +128,80 @@ class UI2SharedViewModel @Inject constructor(
         // table then emits and we refresh the selection so the dashboard and
         // graphs, which both observe activeSelection, recompute over the full
         // window instead of the stale range they were opened with.
+        //
+        // Also acts as the deletion guard for data-source selections: if the
+        // active sysSn vanishes from all three date-range tables (e.g. the user
+        // wiped all data for it from the Data Source Management screen), the
+        // saved dashboard subject is cleared rather than left pointing at a
+        // gone source.
         viewModelScope.launch {
             combine(
                 repository.liveDateRanges.asFlow(),
                 repository.esbnLiveDateRanges.asFlow(),
-                repository.haLiveDateRanges.asFlow()
-            ) { alpha, esbn, ha ->
+                repository.haLiveDateRanges.asFlow(),
+                _activeSelection
+            ) { alpha, esbn, ha, sel ->
                 // sysSn -> (start, finish). Match the Simulations list's dedup
                 // priority: alpha wins over esbn over ha for a shared sysSn.
-                buildMap<String, Pair<String?, String?>> {
+                val ranges = buildMap<String, Pair<String?, String?>> {
                     ha.orEmpty().forEach   { put(it.sysSn, it.startDate to it.finishDate) }
                     esbn.orEmpty().forEach { put(it.sysSn, it.startDate to it.finishDate) }
                     alpha.orEmpty().forEach { put(it.sysSn, it.startDate to it.finishDate) }
                 }
-            }.collect { ranges ->
-                val sel = _activeSelection.value as? ActiveSelection.DataSource ?: return@collect
+                ranges to sel
+            }.collect { (ranges, sel) ->
+                if (sel !is ActiveSelection.DataSource) return@collect
+                if (sel.sysSn !in ranges.keys) {
+                    clearActiveSelection()
+                    return@collect
+                }
                 val (start, finish) = ranges[sel.sysSn] ?: return@collect
                 if (start.isNullOrBlank() || finish.isNullOrBlank()) return@collect
                 if (start != sel.startDate || finish != sel.endDate) {
                     setActiveDataSource(sel.sysSn, sel.importerType, start, finish)
                 }
             }
+        }
+
+        // Deletion guard for simulation selections: when the scenarios list
+        // emits without the active sim id, the saved dashboard subject is
+        // cleared. Verified with a sync DB read because Room's LiveData can
+        // lag the table on a fresh insert-then-select (SampleDataLoader path)
+        // — without the verify, the freshly-selected scenario would be cleared
+        // before its row had propagated to this observer.
+        viewModelScope.launch {
+            combine(repository.allScenarios.asFlow(), _activeSelection) { scenarios, sel ->
+                scenarios.orEmpty() to sel
+            }.collect { (scenarios, sel) ->
+                if (sel !is ActiveSelection.Simulation) return@collect
+                if (scenarios.any { it.scenarioIndex == sel.id }) return@collect
+                val exists = withContext(Dispatchers.IO) {
+                    runCatching { repository.getScenarioComponentsForScenarioID(sel.id)?.scenario != null }
+                        .getOrDefault(false)
+                }
+                if (!exists) clearActiveSelection()
+            }
+        }
+    }
+
+    /**
+     * Drop the saved dashboard subject — sets [activeSelection] to
+     * [ActiveSelection.None] and blanks the persisted DataStore keys so the
+     * next app launch starts unpinned. Invoked by the deletion guards in
+     * `init {}` when the subject's underlying data has gone away; the dashboard
+     * fragment reacts to [ActiveSelection.None] by clearing its accordion state
+     * and showing the "pick a subject" empty card.
+     */
+    private fun clearActiveSelection() {
+        _activeSelection.value = ActiveSelection.None
+        viewModelScope.launch(Dispatchers.IO) {
+            val app = context.applicationContext as TOUTCApplication
+            app.putStringValueIntoDataStore(KEY_ACTIVE_TYPE,        "")
+            app.putStringValueIntoDataStore(KEY_ACTIVE_SIM,         "")
+            app.putStringValueIntoDataStore(KEY_ACTIVE_DS_SYSSN,    "")
+            app.putStringValueIntoDataStore(KEY_ACTIVE_DS_IMPORTER, "")
+            app.putStringValueIntoDataStore(KEY_ACTIVE_DS_START,    "")
+            app.putStringValueIntoDataStore(KEY_ACTIVE_DS_END,      "")
         }
     }
 
