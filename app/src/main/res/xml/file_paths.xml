@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Used by androidx.core.content.FileProvider to share scoped SQLite
+         snapshot exports from the app cache. Files land under
+         cacheDir/exports/ and surface as content:// URIs from the
+         authority "com.tfcode.comparetout.fileprovider". -->
+    <cache-path name="exports" path="exports/" />
+</paths>

@@ -1,5 +1,8 @@
 package com.tfcode.comparetout.ui2
 
+import android.app.Application
+import android.content.Intent
+import android.net.Uri
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
@@ -20,22 +23,27 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.FileUpload
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -44,12 +52,14 @@ import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -64,21 +74,33 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.ViewModel
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.asFlow
+import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import com.google.gson.reflect.TypeToken
+import com.tfcode.comparetout.model.SnapshotExporter
 import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.model.json.JsonTools
 import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile
 import com.tfcode.comparetout.model.json.scenario.ScenarioJsonFile
 import com.tfcode.comparetout.model.priceplan.DayRate
+import com.tfcode.comparetout.model.scenario.Scenario
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -95,8 +117,9 @@ import javax.inject.Inject
 // comparisons against the *current selection*, so a global all-pairs CSV
 // has no analogue. Per-panel CSV/JSON share lives on the Compare tab itself.
 //
-// DB snapshot import + export (raw .db / scoped subset) is gated behind a
-// hint-card placeholder for a later iteration.
+// The DB-snapshot export rows below (Everything / Selection) build a real
+// SQLite file via [SnapshotExporter] and share it through the FileProvider
+// declared in AndroidManifest.xml. Import-side handling is a later phase.
 // ──────────────────────────────────────────────────────────────────────────
 
 @AndroidEntryPoint
@@ -124,12 +147,28 @@ data class ImportOutcome(val replaced: Int, val added: Int) {
     }
 }
 
+/** A picker row for one of the data sources held in the AlphaESS tables. */
+data class ExportSourceRow(
+    val sysSn: String,
+    val kind: SourceKind,
+    val startDate: String,
+    val finishDate: String
+) {
+    enum class SourceKind(val label: String) {
+        ALPHAESS("AlphaESS"),
+        ESBN_OR_HA("ESBN / HA")
+    }
+}
+
 @HiltViewModel
 class UI2ImportExportViewModel @Inject constructor(
+    application: Application,
     private val repository: ToutcRepository
-) : ViewModel() {
+) : AndroidViewModel(application) {
 
-    // ── export (unchanged from Phase C-lite) ────────────────────────────────
+    private val snapshotExporter = SnapshotExporter(application)
+
+    // ── export (JSON paths — unchanged from Phase C-lite) ───────────────────
 
     suspend fun allPlansJson(): String? = withContext(Dispatchers.IO) {
         val map = repository.allPricePlansForExport ?: return@withContext null
@@ -139,6 +178,51 @@ class UI2ImportExportViewModel @Inject constructor(
     suspend fun allScenariosJson(): String? = withContext(Dispatchers.IO) {
         val list = repository.allScenariosForExport ?: return@withContext null
         if (list.isEmpty()) null else JsonTools.createScenarioList(list)
+    }
+
+    // ── DB snapshot export ──────────────────────────────────────────────────
+
+    /** Lightweight rows for the picker sheet — derived from the live LiveData. */
+    val scenarios = repository.allScenarios.asFlow()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Sources are AlphaESS systems (raw-energy rows present) plus ESBN/HA
+     *  entries (only transformed rows present). Both AlphaESS DAOs use
+     *  identical SQL for ESBN and HA — the rows can't be distinguished by
+     *  data alone, so they share a single "ESBN / HA" bucket in the picker. */
+    val sources = combine(
+        repository.liveDateRanges.asFlow(),
+        repository.esbnLiveDateRanges.asFlow()
+    ) { alpha, transformed ->
+        val alphaSns = alpha.map { it.sysSn }.toHashSet()
+        val alphaRows = alpha.map {
+            ExportSourceRow(it.sysSn, ExportSourceRow.SourceKind.ALPHAESS, it.startDate, it.finishDate)
+        }
+        val esbnHaRows = transformed
+            .filter { it.sysSn !in alphaSns }
+            .map {
+                ExportSourceRow(it.sysSn, ExportSourceRow.SourceKind.ESBN_OR_HA, it.startDate, it.finishDate)
+            }
+        (alphaRows + esbnHaRows).sortedBy { it.sysSn }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /**
+     * Build a SQLite snapshot and return a content:// URI the caller can hand
+     * to a system share intent. `null` on failure (caller surfaces a snackbar).
+     */
+    suspend fun buildSnapshot(
+        scope: SnapshotExporter.Scope,
+        includeOutputs: Boolean,
+        filenameSuffix: String
+    ): Uri? = withContext(Dispatchers.IO) {
+        runCatching {
+            val app = getApplication<Application>()
+            val dir = File(app.cacheDir, "exports").apply { mkdirs() }
+            val stamp = SimpleDateFormat("yyyyMMdd-HHmm", Locale.US).format(Date())
+            val target = File(dir, "eco-power-optimiser-$filenameSuffix-$stamp.db")
+            snapshotExporter.buildSnapshot(scope, includeOutputs, target)
+            FileProvider.getUriForFile(app, "${app.packageName}.fileprovider", target)
+        }.getOrNull()
     }
 
     // ── import ──────────────────────────────────────────────────────────────
@@ -219,6 +303,8 @@ private fun ImportExportScreen(
     // lifecycles (export = build → share; import = pick → preview → confirm).
     var importTarget by remember { mutableStateOf<ImportTarget?>(null) }
     var pendingImport by remember { mutableStateOf<PendingImport?>(null) }
+    // DB snapshot picker visibility — shows the scenarios + sources + outputs sheet.
+    var showSnapshotPicker by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     fun runExport(label: String, subject: String, format: ShareFormat, build: suspend () -> String?) {
@@ -229,6 +315,26 @@ private fun ImportExportScreen(
             workingLabel = null
             if (!payload.isNullOrEmpty()) {
                 context.shareText(payload, format, subject)
+            }
+        }
+    }
+
+    fun runSnapshotExport(
+        label: String,
+        scopeKind: SnapshotExporter.Scope,
+        includeOutputs: Boolean,
+        filenameSuffix: String,
+        subject: String
+    ) {
+        if (workingLabel != null) return
+        workingLabel = label
+        scope.launch {
+            val uri = viewModel.buildSnapshot(scopeKind, includeOutputs, filenameSuffix)
+            workingLabel = null
+            if (uri != null) {
+                context.shareSnapshot(uri, subject)
+            } else {
+                snackbarHostState.showSnackbar("Snapshot export failed")
             }
         }
     }
@@ -315,6 +421,40 @@ private fun ImportExportScreen(
                         }
                     )
                 }
+                item("export_db_all") {
+                    DataRow(
+                        title = "Everything (database)",
+                        format = "SQLite",
+                        helpText = "A full SQLite snapshot — all plans, scenarios, data sources, and " +
+                                "precomputed simulation results. Re-imports byte-for-byte on another device.",
+                        actionIcon = Icons.Default.Backup,
+                        actionTint = MaterialTheme.colorScheme.primary,
+                        busy = workingLabel == "snapshot-all",
+                        anyBusy = workingLabel != null,
+                        onClick = {
+                            runSnapshotExport(
+                                label = "snapshot-all",
+                                scopeKind = SnapshotExporter.Scope.Everything,
+                                includeOutputs = true,
+                                filenameSuffix = "all",
+                                subject = "Eco Power Optimiser snapshot"
+                            )
+                        }
+                    )
+                }
+                item("export_db_selection") {
+                    DataRow(
+                        title = "Selected scenarios / sources (database)",
+                        format = "SQLite",
+                        helpText = "Pick which scenarios and data sources to include. All supplier " +
+                                "plans are bundled so imported scenarios can find their tariffs.",
+                        actionIcon = Icons.Default.Backup,
+                        actionTint = MaterialTheme.colorScheme.primary,
+                        busy = workingLabel == "snapshot-selection",
+                        anyBusy = workingLabel != null,
+                        onClick = { showSnapshotPicker = true }
+                    )
+                }
 
                 item("import_header") { SectionLabel("Import", Icons.Default.FileUpload) }
                 item("import_plans") {
@@ -346,9 +486,6 @@ private fun ImportExportScreen(
 
                 item("comparenote") {
                     if (showHints) ComparisonResultsNote()
-                }
-                item("dbnote") {
-                    if (showHints) DatabaseSnapshotNote()
                 }
             }
 
@@ -427,6 +564,205 @@ private fun ImportExportScreen(
                 }
             }
         )
+    }
+
+    // ── Snapshot picker — choose scenarios + sources + outputs toggle ──────
+    if (showSnapshotPicker) {
+        val scenarios by viewModel.scenarios.collectAsState()
+        val sources by viewModel.sources.collectAsState()
+        SnapshotPickerDialog(
+            scenarios = scenarios,
+            sources = sources,
+            onDismiss = { showSnapshotPicker = false },
+            onConfirm = { selectedScenarioIds, selectedSysSns, includeOutputs ->
+                showSnapshotPicker = false
+                val nScenarios = selectedScenarioIds.size
+                val nSources = selectedSysSns.size
+                val suffix = buildString {
+                    if (nScenarios > 0) append("${nScenarios}sims")
+                    if (nScenarios > 0 && nSources > 0) append("-")
+                    if (nSources > 0) append("${nSources}sources")
+                }
+                runSnapshotExport(
+                    label = "snapshot-selection",
+                    scopeKind = SnapshotExporter.Scope.Selection(selectedScenarioIds, selectedSysSns),
+                    includeOutputs = includeOutputs,
+                    filenameSuffix = suffix,
+                    subject = "Eco Power Optimiser snapshot"
+                )
+            }
+        )
+    }
+}
+
+/** Fire a system share with a content URI pointing at the binary snapshot. */
+private fun android.content.Context.shareSnapshot(uri: Uri, subject: String) {
+    val send = Intent(Intent.ACTION_SEND).apply {
+        type = "application/vnd.sqlite3"
+        putExtra(Intent.EXTRA_STREAM, uri)
+        if (subject.isNotBlank()) putExtra(Intent.EXTRA_SUBJECT, subject)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    startActivity(Intent.createChooser(send, null))
+}
+
+@Composable
+private fun SnapshotPickerDialog(
+    scenarios: List<Scenario>,
+    sources: List<ExportSourceRow>,
+    onDismiss: () -> Unit,
+    onConfirm: (scenarioIds: Set<Long>, sysSns: Set<String>, includeOutputs: Boolean) -> Unit
+) {
+    val selectedScenarios = remember { mutableStateOf(emptySet<Long>()) }
+    val selectedSources = remember { mutableStateOf(emptySet<String>()) }
+    var includeOutputs by remember { mutableStateOf(true) }
+    val canExport = selectedScenarios.value.isNotEmpty() || selectedSources.value.isNotEmpty()
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Export selection (database)") },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 480.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.Lock, contentDescription = null,
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.width(6.dp))
+                    Text(
+                        "Supplier plans are always included.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Spacer(Modifier.size(8.dp))
+
+                LazyColumn(modifier = Modifier.weight(1f, fill = false)) {
+                    if (scenarios.isNotEmpty()) {
+                        item("hdr_sc") { PickerHeader("Scenarios") }
+                        items(scenarios) { sc ->
+                            val checked = sc.scenarioIndex in selectedScenarios.value
+                            CheckboxRow(
+                                label = sc.scenarioName,
+                                sub = "id ${sc.scenarioIndex}",
+                                checked = checked,
+                                onToggle = {
+                                    selectedScenarios.value = if (checked) {
+                                        selectedScenarios.value - sc.scenarioIndex
+                                    } else {
+                                        selectedScenarios.value + sc.scenarioIndex
+                                    }
+                                }
+                            )
+                        }
+                    }
+                    if (sources.isNotEmpty()) {
+                        item("hdr_src") {
+                            Spacer(Modifier.size(8.dp))
+                            PickerHeader("Data sources")
+                        }
+                        items(sources) { src ->
+                            val checked = src.sysSn in selectedSources.value
+                            CheckboxRow(
+                                label = src.sysSn,
+                                sub = "${src.kind.label}  ·  ${src.startDate} → ${src.finishDate}",
+                                checked = checked,
+                                onToggle = {
+                                    selectedSources.value = if (checked) {
+                                        selectedSources.value - src.sysSn
+                                    } else {
+                                        selectedSources.value + src.sysSn
+                                    }
+                                }
+                            )
+                        }
+                    }
+                    if (scenarios.isEmpty() && sources.isEmpty()) {
+                        item("empty") {
+                            Text(
+                                "No scenarios or data sources available to export.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(vertical = 12.dp)
+                            )
+                        }
+                    }
+                }
+
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            "Include simulation results",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            "Costings, panel data, sim time series. Recomputable from inputs.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(checked = includeOutputs, onCheckedChange = { includeOutputs = it })
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                enabled = canExport,
+                onClick = {
+                    onConfirm(selectedScenarios.value, selectedSources.value, includeOutputs)
+                }
+            ) { Text("Export") }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}
+
+@Composable
+private fun PickerHeader(text: String) {
+    Text(
+        text.uppercase(),
+        style = MaterialTheme.typography.labelMedium,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.padding(top = 4.dp, bottom = 4.dp)
+    )
+}
+
+@Composable
+private fun CheckboxRow(
+    label: String,
+    sub: String,
+    checked: Boolean,
+    onToggle: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onToggle)
+            .padding(vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Checkbox(checked = checked, onCheckedChange = { onToggle() })
+        Spacer(Modifier.width(4.dp))
+        Column(Modifier.weight(1f)) {
+            Text(label, style = MaterialTheme.typography.bodyMedium)
+            Text(
+                sub,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 
@@ -559,34 +895,6 @@ private fun ComparisonResultsNote() {
             Text(
                 "Comparison results are exported from the Compare tab itself — pick your sources, " +
                     "scenarios and plans, then use the Share button on each result panel.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-    }
-}
-
-@Composable
-private fun DatabaseSnapshotNote() {
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant,
-        shape = RoundedCornerShape(10.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(Icons.Default.Backup, contentDescription = null,
-                    modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.width(6.dp))
-                Text("Database snapshot — coming soon",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Text(
-                "A scoped SQLite snapshot (everything / single source / single scenario / PV data / " +
-                    "+costs) will be added here for advanced users who want to query their data " +
-                    "directly. Importing the matching snapshots will land in the same place.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
