@@ -27,6 +27,8 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -83,6 +85,7 @@ import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import com.google.gson.reflect.TypeToken
 import com.tfcode.comparetout.model.SnapshotExporter
+import com.tfcode.comparetout.model.SnapshotImporter
 import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.model.json.JsonTools
 import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile
@@ -167,6 +170,7 @@ class UI2ImportExportViewModel @Inject constructor(
 ) : AndroidViewModel(application) {
 
     private val snapshotExporter = SnapshotExporter(application)
+    private val snapshotImporter = SnapshotImporter(application)
 
     // ── export (JSON paths — unchanged from Phase C-lite) ───────────────────
 
@@ -223,6 +227,41 @@ class UI2ImportExportViewModel @Inject constructor(
             snapshotExporter.buildSnapshot(scope, includeOutputs, target)
             FileProvider.getUriForFile(app, "${app.packageName}.fileprovider", target)
         }.getOrNull()
+    }
+
+    // ── DB snapshot import ─────────────────────────────────────────────────
+
+    suspend fun stageAndValidate(uri: Uri): SnapshotImporter.Validation = withContext(Dispatchers.IO) {
+        val staged = runCatching { snapshotImporter.stage(uri) }.getOrElse { e ->
+            return@withContext SnapshotImporter.Validation.FileError(
+                e.message ?: "Could not read the picked file"
+            )
+        }
+        val result = runCatching { snapshotImporter.validate(staged) }.getOrElse { e ->
+            SnapshotImporter.Validation.FileError(
+                e.message ?: "Could not validate the picked file"
+            )
+        }
+        // Drop the staging file whenever the user is going to bail at this
+        // step — either because validation failed, or because the integrity
+        // check came back with errors and we won't be committing. The
+        // Confirm branch keeps the file around until commit / cancel.
+        when (result) {
+            is SnapshotImporter.Validation.FileError -> staged.delete()
+            is SnapshotImporter.Validation.Opened -> if (!result.ok) staged.delete()
+        }
+        result
+    }
+
+    suspend fun commitImport(
+        staged: SnapshotImporter.Staged,
+        replaceExisting: Boolean
+    ): SnapshotImporter.CommitResult? = withContext(Dispatchers.IO) {
+        runCatching { snapshotImporter.commit(staged, replaceExisting) }.getOrNull()
+    }
+
+    fun discardStaged(staged: SnapshotImporter.Staged) {
+        staged.delete()
     }
 
     // ── import ──────────────────────────────────────────────────────────────
@@ -305,7 +344,34 @@ private fun ImportExportScreen(
     var pendingImport by remember { mutableStateOf<PendingImport?>(null) }
     // DB snapshot picker visibility — shows the scenarios + sources + outputs sheet.
     var showSnapshotPicker by remember { mutableStateOf(false) }
+    // Pending DB snapshot import — either an error to show or a validated
+    // staging file waiting for the user's Replace toggle and confirm.
+    var snapshotImportState by remember { mutableStateOf<SnapshotImportState?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
+
+    val snapshotPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri == null || workingLabel != null) return@rememberLauncherForActivityResult
+        workingLabel = "snapshot-import"
+        scope.launch {
+            val v = viewModel.stageAndValidate(uri)
+            workingLabel = null
+            snapshotImportState = SnapshotImportState.from(v)
+        }
+    }
+
+    fun commitSnapshotImport(staged: SnapshotImporter.Staged, replaceExisting: Boolean) {
+        if (workingLabel != null) return
+        workingLabel = "snapshot-import"
+        snapshotImportState = null
+        scope.launch {
+            val result = viewModel.commitImport(staged, replaceExisting)
+            workingLabel = null
+            val msg = result?.summary() ?: "Snapshot import failed"
+            snackbarHostState.showSnackbar(msg)
+        }
+    }
 
     fun runExport(label: String, subject: String, format: ShareFormat, build: suspend () -> String?) {
         if (workingLabel != null) return
@@ -483,6 +549,25 @@ private fun ImportExportScreen(
                         onClick = { importTarget = ImportTarget.SCENARIOS }
                     )
                 }
+                item("import_db") {
+                    DataRow(
+                        title = "Import database snapshot",
+                        format = "SQLite",
+                        helpText = "Pick a .db file exported from another device. The file is " +
+                                "validated against the current schema before any rows are written; " +
+                                "you'll see a preview and a Replace toggle before commit.",
+                        actionIcon = Icons.Default.FileUpload,
+                        actionTint = MaterialTheme.colorScheme.tertiary,
+                        busy = workingLabel == "snapshot-import",
+                        anyBusy = workingLabel != null,
+                        onClick = {
+                            // Accept anything; some launchers don't honour the
+                            // application/vnd.sqlite3 filter. We re-validate the
+                            // content via Room before doing anything destructive.
+                            snapshotPicker.launch(arrayOf("*/*"))
+                        }
+                    )
+                }
 
                 item("comparenote") {
                     if (showHints) ComparisonResultsNote()
@@ -564,6 +649,60 @@ private fun ImportExportScreen(
                 }
             }
         )
+    }
+
+    // ── Snapshot import — error card or preview + confirm dialog ──────────
+    snapshotImportState?.let { state ->
+        when (state) {
+            is SnapshotImportState.Error -> {
+                AlertDialog(
+                    onDismissRequest = { snapshotImportState = null },
+                    title = { Text("Snapshot rejected") },
+                    text = {
+                        Column {
+                            Text(state.message, style = MaterialTheme.typography.bodyMedium)
+                            if (state.details.isNotEmpty()) {
+                                Spacer(Modifier.size(8.dp))
+                                Text(
+                                    "Details:",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                state.details.take(5).forEach { line ->
+                                    Text(
+                                        "• $line",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                if (state.details.size > 5) {
+                                    Text(
+                                        "…and ${state.details.size - 5} more.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { snapshotImportState = null }) { Text("OK") }
+                    }
+                )
+            }
+            is SnapshotImportState.Confirm -> {
+                SnapshotPreviewDialog(
+                    summary = state.summary,
+                    onCancel = {
+                        viewModel.discardStaged(state.staged)
+                        snapshotImportState = null
+                    },
+                    onConfirm = { replaceExisting ->
+                        commitSnapshotImport(state.staged, replaceExisting)
+                    }
+                )
+            }
+        }
     }
 
     // ── Snapshot picker — choose scenarios + sources + outputs toggle ──────
@@ -761,6 +900,151 @@ private fun CheckboxRow(
                 sub,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+/** Two-state UI model for the DB-snapshot import path. */
+private sealed class SnapshotImportState {
+    /** Schema mismatch / unreadable file / referential failures — rendered as a dialog. */
+    data class Error(val message: String, val details: List<String>) : SnapshotImportState()
+
+    /** Validated staging file waiting on the user's Replace toggle + Import tap. */
+    data class Confirm(
+        val staged: SnapshotImporter.Staged,
+        val summary: SnapshotImporter.Summary
+    ) : SnapshotImportState()
+
+    companion object {
+        fun from(v: SnapshotImporter.Validation): SnapshotImportState = when (v) {
+            is SnapshotImporter.Validation.FileError ->
+                Error(v.message, emptyList())
+            is SnapshotImporter.Validation.Opened ->
+                if (v.ok) Confirm(v.staged, v.summary)
+                else Error(
+                    "The snapshot is internally inconsistent — nothing was changed.",
+                    v.errors
+                )
+        }
+    }
+}
+
+private fun SnapshotImporter.CommitResult.summary(): String {
+    val parts = mutableListOf<String>()
+    val plans = plansAdded + plansReplaced
+    if (plans > 0) {
+        parts += if (plansReplaced == 0) "$plans plan${plural(plans)}"
+                 else "$plans plan${plural(plans)} ($plansReplaced replaced)"
+    }
+    val scenarios = scenariosAdded + scenariosReplaced
+    if (scenarios > 0) {
+        parts += if (scenariosReplaced == 0) "$scenarios scenario${plural(scenarios)}"
+                 else "$scenarios scenario${plural(scenarios)} ($scenariosReplaced replaced)"
+    }
+    if (sourcesTouched > 0) parts += "$sourcesTouched source${plural(sourcesTouched)}"
+    val skipped = plansSkipped + scenariosSkipped
+    val skipFragment = if (skipped > 0) " — $skipped existing item${plural(skipped)} kept" else ""
+    return if (parts.isEmpty()) "Nothing was imported$skipFragment"
+           else "Imported ${parts.joinToString(", ")}$skipFragment"
+}
+
+private fun plural(n: Int) = if (n == 1) "" else "s"
+
+@Composable
+private fun SnapshotPreviewDialog(
+    summary: SnapshotImporter.Summary,
+    onCancel: () -> Unit,
+    onConfirm: (replaceExisting: Boolean) -> Unit
+) {
+    var replaceExisting by remember { mutableStateOf(false) }
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text("Import database snapshot") },
+        text = {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                SummaryLine("Supplier plans", summary.plans)
+                SummaryLine(
+                    "Scenarios",
+                    summary.scenarios,
+                    sample = summary.sampleScenarioNames
+                )
+                SummaryLine(
+                    "Data sources",
+                    summary.sources,
+                    sample = summary.sampleSysSns
+                )
+                if (summary.transformedRows + summary.rawPowerRows + summary.rawEnergyRows > 0) {
+                    Text(
+                        "Source rows: ${summary.transformedRows} 5-min + " +
+                            "${summary.rawPowerRows} power + " +
+                            "${summary.rawEnergyRows} energy.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
+                Text(
+                    "PV data (paneldata, fetched from PVGIS) and load profile time-series " +
+                        "are imported with each scenario. Costings and simulation outputs are " +
+                        "regenerated locally from the imported inputs.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 8.dp)
+                )
+
+                HorizontalDivider(Modifier.padding(vertical = 10.dp))
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { replaceExisting = !replaceExisting }
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = replaceExisting,
+                        onCheckedChange = { replaceExisting = it }
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            "Replace existing data with the same name / serial",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Text(
+                            "Off: keep what you have, skip imports that collide.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onConfirm(replaceExisting) }) { Text("Import") }
+        },
+        dismissButton = {
+            TextButton(onClick = onCancel) { Text("Cancel") }
+        }
+    )
+}
+
+@Composable
+private fun SummaryLine(label: String, count: Int, sample: List<String> = emptyList()) {
+    Column(Modifier.padding(vertical = 2.dp)) {
+        Text(
+            "• $count $label",
+            style = MaterialTheme.typography.bodyMedium
+        )
+        if (sample.isNotEmpty()) {
+            val preview = sample.take(3).joinToString(", ")
+            val tail = if (sample.size > 3 || count > sample.size) " …" else ""
+            Text(
+                "$preview$tail",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(start = 12.dp)
             )
         }
     }
