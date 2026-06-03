@@ -24,10 +24,13 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import androidx.work.Data;
+import androidx.work.ExistingWorkPolicy;
+import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
@@ -43,17 +46,23 @@ import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
 import com.tfcode.comparetout.ui2.UI2NotificationLaunch;
 
 import java.time.LocalDate;
+import java.time.Duration;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
 public class DailyWorker extends Worker {
 
+    private static final String TAG = "AlphaESSImporter";
+
     private final ToutcRepository mToutcRepository;
     private final NotificationManager mNotificationManager;
     // Distinct notification slot per worker class — see
     // plans/eventual-bouncing-hare.md.
     private static final int mNotificationId = 7;
+    // Separate slot for the "data not yet available" terminal notification
+    // posted on the second consecutive empty-data miss.
+    private static final int mNoDataNotificationId = 12;
     private boolean mStopped = false;
     private boolean mUseUI2 = false;
     private String mSelectedSysSn = null;
@@ -65,6 +74,10 @@ public class DailyWorker extends Worker {
     public static final String KEY_SYSTEM_SN = "KEY_SYSTEM_SN";
     public static final String KEY_APP_ID = "KEY_APP_ID";
     public static final String KEY_APP_SECRET = "KEY_APP_SECRET";
+    // True when this run is the 1-hour delayed retry enqueued after a
+    // first AlphaESSNoDataYetException miss. A second miss while this is
+    // true gives up and notifies — no infinite retry.
+    public static final String KEY_IS_RETRY = "KEY_IS_RETRY";
 
     public static final String PROGRESS = "PROGRESS";
 
@@ -74,7 +87,7 @@ public class DailyWorker extends Worker {
         mNotificationManager = (NotificationManager)
                 context.getSystemService(NOTIFICATION_SERVICE);
         createChannel();
-        System.out.println("Daily worker created");
+        Log.i(TAG, "Daily worker created");
     }
 
     @Override
@@ -86,7 +99,7 @@ public class DailyWorker extends Worker {
     @NonNull
     @Override
     public Result doWork() {
-        System.out.println("DailyWorker:doWork invoked ");
+        Log.i(TAG, "DailyWorker:doWork invoked");
         Data inputData = getInputData();
         OpenAlphaESSClient mOpenAlphaESSClient = new OpenAlphaESSClient(
                 inputData.getString(KEY_APP_ID),
@@ -95,6 +108,7 @@ public class DailyWorker extends Worker {
         mOpenAlphaESSClient.setSerial(systemSN);
         mSelectedSysSn = systemSN;
         mUseUI2 = UI2NotificationLaunch.isUI2Enabled(getApplicationContext());
+        boolean isRetry = inputData.getBoolean(KEY_IS_RETRY, false);
 
         LocalDate yesterday = LocalDate.now().plusDays(-1);
 
@@ -105,19 +119,33 @@ public class DailyWorker extends Worker {
         boolean snHadNoRowsBefore = (latestBefore == null || latestBefore.isEmpty());
 
         if (mToutcRepository.checkSysSnForDataOnDate(systemSN, yesterday.format(DATE_FORMAT))) {
-            System.out.println("DailyWorker skipping " + yesterday);
+            Log.i(TAG, "DailyWorker skipping " + yesterday);
         }
         else try {
             boolean fetchOK = fetchFromOpenAlphaESS(mOpenAlphaESSClient, systemSN, yesterday);
             // Rumor has it that the 1st call to getOneDay* fails
             if (!fetchOK) fetchFromOpenAlphaESS(mOpenAlphaESSClient, systemSN, yesterday);
-            System.out.println("DailyWorker finished with " + yesterday);
+            Log.i(TAG, "DailyWorker finished with " + yesterday);
             publishProgress("Done catching up with " + yesterday, true);
 
+        } catch (AlphaESSNoDataYetException e) {
+            // The remote API returned code=200 with data=null — yesterday's data
+            // hasn't been aggregated yet. First miss schedules a single 1-hour
+            // delayed retry; second miss gives up and notifies.
+            Log.w(TAG, "DailyWorker got empty data for " + yesterday + " (isRetry=" + isRetry + ")");
+            if (!isRetry) {
+                enqueueOneHourRetry(systemSN, inputData);
+                publishProgress("No data yet for " + yesterday + "; retrying in 1 hour", true);
+            } else {
+                postNoDataNotification(systemSN, yesterday);
+                publishProgress("No data yet for " + yesterday + "; will retry tomorrow", true);
+            }
+            if (mStopped) mNotificationManager.cancel(mNotificationId);
+            return Result.success();
         } catch (AlphaESSException e) {
             // check to see if we are exceeding limits and retry
             e.printStackTrace();
-            System.out.println("DailyWorker got a rate limit for " + yesterday);
+            Log.w(TAG, "DailyWorker got an error for " + yesterday, e);
             if (!(null == e.getMessage()) && e.getMessage().startsWith("err.code=6053"))
                 return Result.retry();
             else {
@@ -136,9 +164,44 @@ public class DailyWorker extends Worker {
         return Result.success();
     }
 
+    // REPLACE the unique work so a fresh periodic run supersedes any
+    // pending retry from the previous day.
+    private void enqueueOneHourRetry(@NonNull String systemSN, @NonNull Data baseInput) {
+        Data retryInput = new Data.Builder()
+                .putString(KEY_SYSTEM_SN, baseInput.getString(KEY_SYSTEM_SN))
+                .putString(KEY_APP_ID, baseInput.getString(KEY_APP_ID))
+                .putString(KEY_APP_SECRET, baseInput.getString(KEY_APP_SECRET))
+                .putBoolean(KEY_IS_RETRY, true)
+                .build();
+        OneTimeWorkRequest retry = new OneTimeWorkRequest.Builder(DailyWorker.class)
+                .setInitialDelay(Duration.ofHours(1))
+                .setInputData(retryInput)
+                .addTag(systemSN + "daily-retry")
+                .build();
+        WorkManager.getInstance(getApplicationContext())
+                .enqueueUniqueWork(systemSN + "daily-retry", ExistingWorkPolicy.REPLACE, retry);
+        Log.i(TAG, "DailyWorker enqueued 1h empty-data retry for " + systemSN);
+    }
+
+    private void postNoDataNotification(@NonNull String systemSN, @NonNull LocalDate forDate) {
+        Context context = getApplicationContext();
+        String channelId = context.getString(R.string.alphaess_channel_id);
+        PendingIntent activityPendingIntent = UI2NotificationLaunch.contentIntent(
+                context, mUseUI2, ComparisonUIViewModel.Importer.ALPHAESS,
+                systemSN, ImportAlphaActivity.class);
+        Notification notification = new NotificationCompat.Builder(context, channelId)
+                .setContentTitle("AlphaESS data not yet available")
+                .setContentText(forDate + " for " + systemSN + " isn't available yet; will retry on the next daily run")
+                .setSmallIcon(R.drawable.ic_baseline_download_24)
+                .setAutoCancel(true)
+                .setContentIntent(activityPendingIntent)
+                .build();
+        mNotificationManager.notify(mNoDataNotificationId, notification);
+    }
+
     private boolean fetchFromOpenAlphaESS(OpenAlphaESSClient mOpenAlphaESSClient, String systemSN, LocalDate yesterday) throws AlphaESSException {
         boolean ret = false;
-        System.out.println("DailyWorker fetching data for " + yesterday);
+        Log.i(TAG, "DailyWorker fetching data for " + yesterday);
         publishProgress(yesterday.toString(), true);
 
         // Get the data from AlphaESS (a) power, (b) energy
@@ -156,7 +219,7 @@ public class DailyWorker extends Worker {
             double eBuy = oneDayEnergyBySn.data.eInput;
             // Unitize and scale power (in kWh 5 minute intervals)
             Map<Long, FiveMinuteEnergies> massaged = DataMassager.massage(fixed, ePV, eLoad, eFeed, eBuy);
-            System.out.println("DailyWorker storing data for " + yesterday);
+            Log.i(TAG, "DailyWorker storing data for " + yesterday);
             // Store raw energy
             AlphaESSRawEnergy energyEntity = AlphaESSEntityUtil.getEnergyRowFromJson(oneDayEnergyBySn);
             mToutcRepository.addRawEnergy(energyEntity);
@@ -168,11 +231,11 @@ public class DailyWorker extends Worker {
             // Store transformed data
             List<AlphaESSTransformedData> normalizedEntityList = AlphaESSEntityUtil.getTransformedDataRows(massaged, evByInterval, systemSN);
             mToutcRepository.addTransformedData(normalizedEntityList);
-            System.out.println("DailyWorker storing normalizedEntityList " + normalizedEntityList.size());
+            Log.i(TAG, "DailyWorker storing normalizedEntityList " + normalizedEntityList.size());
             ret = true;
         }
         else {
-            System.out.println("DailyWorker got null data for " + yesterday);
+            Log.w(TAG, "DailyWorker got null data for " + yesterday);
         }
         return ret;
     }

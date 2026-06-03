@@ -16,6 +16,8 @@
 
 package com.tfcode.comparetout.importers.alphaess;
 
+import android.util.Log;
+
 import androidx.annotation.NonNull;
 
 import com.google.gson.Gson;
@@ -30,7 +32,9 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
+import okhttp3.OkHttpClient;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Response;
@@ -39,6 +43,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class OpenAlphaESSClient {
 
+    private static final String TAG = "AlphaESSImporter";
     private static final String BASE_URL = "https://openapi.alphaess.com/";
     private String mSystemSerialNumber = "";
     private final String mApplicationID;
@@ -49,8 +54,17 @@ public class OpenAlphaESSClient {
     public OpenAlphaESSClient(String applicationID, String applicationSecret) {
         mApplicationID = applicationID;
         mApplicationSecret = applicationSecret;
+        // Bound hangs: the OkHttp defaults are 10s, but under load the
+        // AlphaESS OpenAPI sometimes stalls. 30s is generous for the modest
+        // JSON bodies these endpoints return.
+        OkHttpClient okHttpClient = new OkHttpClient.Builder()
+                .connectTimeout(30, TimeUnit.SECONDS)
+                .readTimeout(30, TimeUnit.SECONDS)
+                .writeTimeout(30, TimeUnit.SECONDS)
+                .build();
         Retrofit mRetrofit = new Retrofit.Builder()
                 .baseUrl(BASE_URL)
+                .client(okHttpClient)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
         mApiService = mRetrofit.create(OpenAlphaESSService.class);
@@ -80,11 +94,11 @@ public class OpenAlphaESSClient {
                 ret = gson.fromJson(responseBody, GetEssListResponse.class);
             }
             catch (IllegalStateException ise) {
-                System.out.println("Expecting GetEssListResponse, but not one :-(");
+                Log.w(TAG, "Expecting GetEssListResponse, but not one :-(");
             }
             if ((null == ret) || (null == ret.data)) {
                 ErrorResponse err = gson.fromJson(responseBody, ErrorResponse.class);
-                System.out.println(err.code);
+                Log.w(TAG, "getEssList error code=" + err.code);
                 throwAppropriateException(err);
             }
         } else if (!(null == response)) {
@@ -118,11 +132,11 @@ public class OpenAlphaESSClient {
                 ret = gson.fromJson(responseBody, GetOneDayPowerResponse.class);
             }
             catch (IllegalStateException ise) {
-                System.out.println("Expecting GetOneDayPowerResponse, but not one :-(");
+                Log.w(TAG, "Expecting GetOneDayPowerResponse, but not one :-(");
             }
             if ((null == ret) || (null == ret.data)) {
                 ErrorResponse err = gson.fromJson(responseBody, ErrorResponse.class);
-                System.out.println(err.code);
+                Log.w(TAG, "getOneDayPowerBySn error code=" + err.code);
                 throwAppropriateException(err);
             }
         } else if (!(null == response)) {
@@ -157,11 +171,11 @@ public class OpenAlphaESSClient {
                 ret = gson.fromJson(responseBody, GetOneDayEnergyResponse.class);
             }
             catch (IllegalStateException ise) {
-                System.out.println("Expecting GetOneDayEnergyResponse, but not one :-(");
+                Log.w(TAG, "Expecting GetOneDayEnergyResponse, but not one :-(");
             }
             if ((null == ret) || (null == ret.data)) {
                 ErrorResponse err = gson.fromJson(responseBody, ErrorResponse.class);
-                System.out.println(err.code);
+                Log.w(TAG, "getOneDayEnergyBySn error code=" + err.code);
                 throwAppropriateException(err);
             }
         } else  if (!(null == response)){
@@ -175,6 +189,9 @@ public class OpenAlphaESSClient {
     }
 
     private void throwAppropriateException(ErrorResponse err) throws AlphaESSException {
+        // 200  -- HTTP-style success envelope but data=null. Means the
+        //         remote hasn't aggregated yesterday's data yet; the
+        //         DailyWorker schedules a single 1-hour delayed retry.
         // 6001 -- Parameter error
         // 6002 -- The SN is not bound to the user
         // 6003 -- You have bound this SN
@@ -188,8 +205,12 @@ public class OpenAlphaESSClient {
         // 6012 -- AppId is empty ==> bad app id
         // 6053 -- The request was too fast, please try again later
         // 7001 -- The network was not available
-        throw new AlphaESSException("err.code=" + err.code + " err.msg=" + err.msg + " Serial: " +
-                mSystemSerialNumber);
+        String message = "err.code=" + err.code + " err.msg=" + err.msg + " Serial: " +
+                mSystemSerialNumber;
+        if (err.code == 200) {
+            throw new AlphaESSNoDataYetException(message);
+        }
+        throw new AlphaESSException(message);
     }
 
     private Map<String, String> getHeaders() {
