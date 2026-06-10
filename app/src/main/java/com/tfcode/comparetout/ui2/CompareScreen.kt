@@ -1777,7 +1777,7 @@ private fun costData(rows: List<CompareCostRow>): List<ChartDatum> = rows.map { 
         values = mapOf("net" to r.net, "buy" to r.buy, "sell" to r.sell,
             "bonus" to r.bonus, "fixed" to r.fixed),
         axisLabels = r.timeline.axisLabels,
-        seriesValues = r.timeline.seriesValues          // keyed "net" only
+        seriesValues = r.timeline.seriesValues          // keys: net/buy/sell/fixed/bonus
     )
 }
 

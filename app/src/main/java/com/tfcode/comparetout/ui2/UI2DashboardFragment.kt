@@ -502,7 +502,9 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         onPeriodChange = { p, a -> viewModel.setKpiPeriod(p, a) },
                         onNavigate = { fwd -> viewModel.navigateKpi(fwd) },
                         onMonthFilterChange = { viewModel.setKpiMonthFilter(it) },
-                        df = df
+                        df = df,
+                        kwhDf = kwhDf,
+                        showHints = showHints
                     )
                 }
 
@@ -744,7 +746,9 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         onPeriodChange = { p, a -> viewModel.setKpiPeriod(p, a) },
                         onNavigate = { fwd -> viewModel.navigateKpi(fwd) },
                         onMonthFilterChange = { viewModel.setKpiMonthFilter(it) },
-                        df = df
+                        df = df,
+                        kwhDf = kwhDf,
+                        showHints = showHints
                     )
 
                     // 4. Visual overview
@@ -2293,8 +2297,10 @@ private fun LegendItem(iconRes: Int, label: String) {
 // ──────────────────────────────────────────────────────────────────────────
 // KPI accordion — same data set the legacy ImportKeyStatsFragment shows
 // (self-consumption / sufficiency / max-self-sufficiency, PV total, feed total
-// + per-month best/worst/average). The range picker drives the summary; the
-// 12-button J/F/M/A/… row filters the monthly table.
+// + per-month best/worst/average). The range picker drives the summary;
+// the 13-button * J F M A M J J A S O N D row filters only the monthly
+// best/worst/avg table — so it sits between the two tables, not next to
+// the date picker.
 // ──────────────────────────────────────────────────────────────────────────
 @Composable
 private fun KpiAccordion(
@@ -2307,7 +2313,9 @@ private fun KpiAccordion(
     onPeriodChange: (DataSourcePeriod, LocalDate) -> Unit,
     onNavigate: (forward: Boolean) -> Unit,
     onMonthFilterChange: (Int) -> Unit,
-    df: DecimalFormat
+    df: DecimalFormat,
+    kwhDf: DecimalFormat,
+    showHints: Boolean
 ) {
     ExpandableCard(
         title = "KPIs",
@@ -2337,24 +2345,24 @@ private fun KpiAccordion(
         )
         Spacer(Modifier.height(8.dp))
 
-        // Month filter: 13 buttons — ALL + J F M A M J J A S O N D.
+        // KPI summary table — driven by the date picker above.
+        when (summary) {
+            null -> CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+            else -> KpiSummaryTable(summary, df, kwhDf, showHints)
+        }
+
+        // Month filter sits directly above the per-month table it controls.
+        Spacer(Modifier.height(10.dp))
         MonthFilterRow(monthFilter, onMonthFilterChange)
         Spacer(Modifier.height(8.dp))
 
-        // KPI summary table — same five rows the legacy fragment shows.
-        when (summary) {
-            null -> CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-            else -> KpiSummaryTable(summary, df)
-        }
-
         // Monthly key stats — filtered by the chip row above.
-        Spacer(Modifier.height(10.dp))
         when (months) {
             null -> {}
             else -> {
                 val filtered = if (monthFilter == 0) months
                                else months.filter { it.monthNumber == monthFilter }
-                KpiMonthsTable(filtered, df)
+                KpiMonthsTable(filtered, kwhDf)
             }
         }
     }
@@ -2386,24 +2394,26 @@ private fun MonthFilterRow(selected: Int, onChange: (Int) -> Unit) {
 }
 
 @Composable
-private fun KpiSummaryTable(summary: KpiSummary, df: DecimalFormat) {
+private fun KpiSummaryTable(summary: KpiSummary, df: DecimalFormat, kwhDf: DecimalFormat, showHints: Boolean) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        KpiRow("Self consumption",  "(PV − Feed) / PV", df.format(summary.selfConsumption) + "%")
-        KpiRow("Self sufficiency",  "(PV − Feed) / Load", df.format(summary.selfSufficiency) + "%")
-        KpiRow("Max self sufficiency", "PV / Load",      df.format(summary.maxSelfSufficiency) + "%")
-        KpiRow("Generation (kWh)",  "PV",   df.format(summary.pv))
-        KpiRow("Feed (kWh)",        "Feed", df.format(summary.feed))
+        KpiRow("Self consumption",  "(PV − Feed) / PV", df.format(summary.selfConsumption) + "%", showHints)
+        KpiRow("Self sufficiency",  "(PV − Feed) / Load", df.format(summary.selfSufficiency) + "%", showHints)
+        KpiRow("Max self sufficiency", "PV / Load",      df.format(summary.maxSelfSufficiency) + "%", showHints)
+        KpiRow("Generation (kWh)",  "PV",   kwhDf.format(summary.pv), showHints)
+        KpiRow("Feed (kWh)",        "Feed", kwhDf.format(summary.feed), showHints)
     }
 }
 
 @Composable
-private fun KpiRow(label: String, sub: String, value: String) {
+private fun KpiRow(label: String, sub: String, value: String, showHints: Boolean) {
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(label, style = MaterialTheme.typography.bodyMedium)
-            Text(sub, style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (showHints) {
+                Text(sub, style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
         Text(value, style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.primary)
@@ -2411,7 +2421,7 @@ private fun KpiRow(label: String, sub: String, value: String) {
 }
 
 @Composable
-private fun KpiMonthsTable(rows: List<KpiMonthRow>, df: DecimalFormat) {
+private fun KpiMonthsTable(rows: List<KpiMonthRow>, kwhDf: DecimalFormat) {
     Column {
         Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
             Text("YY-MM",   style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
@@ -2428,15 +2438,31 @@ private fun KpiMonthsTable(rows: List<KpiMonthRow>, df: DecimalFormat) {
         } else rows.forEach { row ->
             Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
                 Text(row.monthLabel,  style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                Text(df.format(row.pvTotal), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                // best/worst arrive as "<value> on <dd>" — keep the DB string intact so
-                // the user sees which day produced it (legacy KPI fragment behaviour).
-                Text(row.best,    style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1.4f))
-                Text(row.worst,   style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1.4f))
-                Text(df.format(row.average), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                Text(kwhDf.format(row.pvTotal), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                // best/worst arrive as "<value> on <dd>" — re-format the leading
+                // kWh value to 1 dp; the DB query (AlphaEssDAO) and the sim path
+                // (buildMonthRowsFromDoy) both emit 2 dp, but the display layer
+                // is the single source of truth so they stay consistent.
+                Text(reformatKwhOn(row.best, kwhDf),    style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1.4f))
+                Text(reformatKwhOn(row.worst, kwhDf),   style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1.4f))
+                Text(kwhDf.format(row.average), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
             }
         }
     }
+}
+
+/**
+ * Re-format a pre-built "<value> on <dd>" string by parsing the leading
+ * number and re-emitting it via [kwhDf] (1 dp). Falls back to the original
+ * string if the leading token isn't a number — covers "—" and any future
+ * format drift gracefully.
+ */
+private fun reformatKwhOn(s: String, kwhDf: DecimalFormat): String {
+    val space = s.indexOf(' ')
+    val head = if (space < 0) s else s.substring(0, space)
+    val tail = if (space < 0) "" else s.substring(space)
+    val v = head.toDoubleOrNull() ?: return s
+    return kwhDf.format(v) + tail
 }
 
 /**

@@ -721,7 +721,10 @@ class UI2CompareViewModel @Inject constructor(
             val lookup = RateLookup(plan, dayRates)
             lookup.setStartDOY(fromD.dayOfYear)
             var buy = 0.0; var sell = 0.0
-            val bucketed = DoubleArray(axis.labels.size.coerceAtLeast(1))
+            val n = axis.labels.size.coerceAtLeast(1)
+            val bucketedNet = DoubleArray(n)
+            val bucketedBuy = DoubleArray(n)
+            val bucketedSell = DoubleArray(n)
             val subTotals = SubTotals()
             hourly.forEach { row ->
                 val ldt = LocalDateTime.parse(row.dateTime, rowFmt)
@@ -732,7 +735,11 @@ class UI2CompareViewModel @Inject constructor(
                 buy += rowBuy
                 sell += rowSell
                 val idx = axis.indexOf(ldt)
-                if (idx in bucketed.indices) bucketed[idx] += (rowBuy - rowSell) / 100.0
+                if (idx in bucketedNet.indices) {
+                    bucketedNet[idx] += (rowBuy - rowSell) / 100.0
+                    bucketedBuy[idx] += rowBuy / 100.0
+                    bucketedSell[idx] += rowSell / 100.0
+                }
                 subTotals.addToPrice(price, row.buy)
             }
             // buy cost split by tariff rate band: price × kWh-at-that-price.
@@ -742,10 +749,18 @@ class UI2CompareViewModel @Inject constructor(
             val buyBands = sortedRates
                 .map { p -> p * (subTotals.getSubTotalForPrice(p) ?: 0.0) / 100.0 }
             val fixed = plan.standingCharges * (days / 365.0)
-            // Spread the fixed charge across the buckets that actually hold variable
+            // Spread fixed / bonus across the buckets that actually hold variable
             // cost, so the line doesn't show a flat artificial offset in empty buckets.
-            val coveredBuckets = bucketed.count { it != 0.0 }.coerceAtLeast(1)
-            for (i in bucketed.indices) if (bucketed[i] != 0.0) bucketed[i] += fixed / coveredBuckets
+            val coveredBuckets = bucketedNet.count { it != 0.0 }.coerceAtLeast(1)
+            val perBucketFixed = fixed / coveredBuckets
+            val perBucketBonus = plan.signUpBonus / coveredBuckets
+            val bucketedFixed = DoubleArray(n)
+            val bucketedBonus = DoubleArray(n)
+            for (i in bucketedNet.indices) if (bucketedNet[i] != 0.0) {
+                bucketedNet[i] += perBucketFixed
+                bucketedFixed[i] = perBucketFixed
+                bucketedBonus[i] = perBucketBonus
+            }
             val net = (buy - sell) / 100.0 + fixed
             CompareCostRow(
                 subjectId = subjectId,
@@ -761,7 +776,13 @@ class UI2CompareViewModel @Inject constructor(
                 bonus = plan.signUpBonus,
                 buyBands = buyBands.ifEmpty { listOf(buy / 100.0) },
                 buyBandRates = sortedRates.ifEmpty { emptyList() },
-                timeline = BucketSeries(axis.labels, mapOf("net" to bucketed.toList()))
+                timeline = BucketSeries(axis.labels, mapOf(
+                    "net"   to bucketedNet.toList(),
+                    "buy"   to bucketedBuy.toList(),
+                    "sell"  to bucketedSell.toList(),
+                    "fixed" to bucketedFixed.toList(),
+                    "bonus" to bucketedBonus.toList()
+                ))
             )
         }
     }
@@ -815,6 +836,9 @@ class UI2CompareViewModel @Inject constructor(
             val c = costings.firstOrNull { it.pricePlanID == plan.pricePlanIndex }
             val net = (c?.net ?: 0.0) / 100.0
             val buy = (c?.buy ?: 0.0) / 100.0
+            val sell = (c?.sell ?: 0.0) / 100.0
+            val fixed = plan.standingCharges
+            val bonus = plan.signUpBonus
             val st = c?.subTotals
             val sortedRates = if (st != null && st.prices.isNotEmpty())
                 st.prices.sorted() else emptyList()
@@ -831,12 +855,20 @@ class UI2CompareViewModel @Inject constructor(
                 available = c != null,
                 net = net,
                 buy = buy,
-                sell = (c?.sell ?: 0.0) / 100.0,
-                fixed = plan.standingCharges,
-                bonus = plan.signUpBonus,
+                sell = sell,
+                fixed = fixed,
+                bonus = bonus,
                 buyBands = buyBands,
                 buyBandRates = sortedRates,
-                timeline = BucketSeries(axis.labels, mapOf("net" to List(n) { net / n }))
+                // Sims have no per-bucket cost detail (CostingWorker emits annual
+                // totals), so every series is smeared uniformly across the axis.
+                timeline = BucketSeries(axis.labels, mapOf(
+                    "net"   to List(n) { net / n },
+                    "buy"   to List(n) { buy / n },
+                    "sell"  to List(n) { sell / n },
+                    "fixed" to List(n) { fixed / n },
+                    "bonus" to List(n) { bonus / n }
+                ))
             )
         }
     }
