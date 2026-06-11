@@ -36,7 +36,8 @@ data class PricePlanListRow(
     val signUpBonus: Double,
     val rateCount: Int,
     val deemedExport: Boolean,
-    val lastUpdate: String
+    val lastUpdate: String,
+    val active: Boolean
 )
 
 @HiltViewModel
@@ -69,7 +70,8 @@ class UI2PricePlanListViewModel @Inject constructor(
                         signUpBonus = plan.signUpBonus,
                         rateCount = drs.size,
                         deemedExport = plan.isDeemedExport,
-                        lastUpdate = plan.lastUpdate
+                        lastUpdate = plan.lastUpdate,
+                        active = plan.isActive
                     )
                 }.sortedWith(compareBy({ it.supplier.lowercase() }, { it.planName.lowercase() }))
                 // Drop the favourite if the plan it points to has been deleted.
@@ -80,6 +82,10 @@ class UI2PricePlanListViewModel @Inject constructor(
 
     fun toggleFavourite(planId: Long) {
         favouriteStore.setFavourite(if (favouriteStore.id.value == planId) null else planId)
+    }
+
+    fun setActive(planId: Long, active: Boolean) {
+        repository.updatePricePlanActiveStatus(planId.toInt(), active)
     }
 
     fun delete(planId: Long) {

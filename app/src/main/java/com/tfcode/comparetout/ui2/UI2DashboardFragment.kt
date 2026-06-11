@@ -278,6 +278,14 @@ class UI2DashboardFragment : Fragment() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Picks up changes made on side trips (e.g. toggling a plan active in
+        // UI2PricePlanListActivity, edits in UI2WizardActivity) without
+        // requiring the user to re-select the active subject.
+        viewModel.refresh()
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         Log.d("UI2", "UI2DashboardFragment.onViewCreated — observing dashboardData and sharedVM")
@@ -430,7 +438,9 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         if (tariffCostings != null)
                             Icon(painterResource(R.drawable.tick), null, Modifier.size(18.dp), tint = Color.Unspecified)
                     },
-                    showEdit = false
+                    onEdit = {
+                        context.startActivity(Intent(context, UI2PricePlanListActivity::class.java))
+                    }
                 ) {
                     PeriodSelector(
                         selectedPeriod = tariffPeriod,
@@ -638,6 +648,9 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                             if (costing != null) {
                                 Icon(painterResource(R.drawable.tick), null, Modifier.size(18.dp), tint = Color.Unspecified)
                             }
+                        },
+                        onEdit = {
+                            ctx.startActivity(Intent(ctx, UI2PricePlanListActivity::class.java))
                         }
                     ) {
                         // Use the simulation's actual date range (typically year
@@ -666,7 +679,8 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                                 planStandingCharges = dashboardData?.planStandingCharges ?: emptyMap(),
                                 simDays = dashboardData?.simDays ?: 365L,
                                 df = df,
-                                favouritePlanId = favouritePlanId
+                                favouritePlanId = favouritePlanId,
+                                planActive = dashboardData?.planActive ?: emptyMap()
                             )
                         } else if (periodRows == null) {
                             CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
@@ -1280,11 +1294,17 @@ private fun AllCostingsTable(
     planStandingCharges: Map<Long, Double>,
     simDays: Long,
     df: DecimalFormat,
-    favouritePlanId: Long? = null
+    favouritePlanId: Long? = null,
+    planActive: Map<Long, Boolean> = emptyMap()
 ) {
     var zoomedCosting by remember { mutableStateOf<Costings?>(null) }
     val containerSize = LocalWindowInfo.current.containerSize
     val density = LocalDensity.current
+    // Only active plans appear in the dashboard's Tariff Plan table — match
+    // DataSourceCostingsTable. Plans missing from the map (pre-existing
+    // costings rows for since-deleted plans) default to active so they don't
+    // silently vanish.
+    val visible = costings.filter { planActive[it.pricePlanID] ?: true }
 
     // Header row
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
@@ -1301,7 +1321,16 @@ private fun AllCostingsTable(
     }
     HorizontalDivider()
 
-    costings.forEachIndexed { idx, c ->
+    if (visible.isEmpty() && costings.isNotEmpty()) {
+        Text(
+            "No active price plans — activate one via Supplier Plans",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        return
+    }
+
+    visible.forEachIndexed { idx, c ->
         val fixed = (planStandingCharges[c.pricePlanID] ?: 0.0) * (simDays / 365.0)
         val isBest = idx == 0
         val isFav = favouritePlanId != null && favouritePlanId == c.pricePlanID
@@ -1588,8 +1617,14 @@ private fun DataSourceCostingsTable(
         CircularProgressIndicator(modifier = Modifier.padding(4.dp).size(20.dp), strokeWidth = 2.dp)
         return
     }
-    if (costings.isEmpty()) {
-        Text("No price plans configured",
+    // Only active plans appear in the dashboard's Tariff Plan table — the
+    // Compare tab still evaluates every plan regardless. Toggle via the
+    // Supplier Plans screen (edit icon on this accordion).
+    val visible = costings.filter { it.active }
+    if (visible.isEmpty()) {
+        Text(
+            if (costings.isEmpty()) "No price plans configured"
+            else "No active price plans — activate one via Supplier Plans",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
@@ -1614,7 +1649,7 @@ private fun DataSourceCostingsTable(
     }
     HorizontalDivider()
 
-    costings.forEachIndexed { idx, row ->
+    visible.forEachIndexed { idx, row ->
         val isBest = idx == 0
         val isFav = favouritePlanId != null && favouritePlanId == row.pricePlanId
         Row(

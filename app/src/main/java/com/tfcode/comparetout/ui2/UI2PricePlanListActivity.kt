@@ -178,6 +178,7 @@ private fun PricePlanListScreen(
                             onEdit = { openWizard(row.planId) },
                             onDelete = { pendingDelete = row },
                             onToggleFavourite = { viewModel.toggleFavourite(row.planId) },
+                            onToggleActive = { viewModel.setActive(row.planId, !row.active) },
                             onShare = {
                                 // Serialise on IO, fire the share intent on Main. The
                                 // chooser is launched from the Activity context so any
@@ -297,7 +298,11 @@ private fun ListHintCard() {
                 "Every cost in the app — Compare tab totals, dashboard Tariff Plan " +
                     "tables, KPIs — is calculated against one of these plans. " +
                     "Tap the ★ on a plan to mark it as the tariff you're currently " +
-                    "contracted to; it will be highlighted everywhere it appears.",
+                    "contracted to; it will be highlighted everywhere it appears.\n\n" +
+                    "The green ✓ marks a plan as active. Active only narrows the dashboard's " +
+                    "Tariff Plan table — the Compare tab still evaluates every plan regardless " +
+                    "of its active state. Open a plan and tap the ✓ to toggle: grey → green " +
+                    "activates it, green → grey deactivates it.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -313,6 +318,7 @@ private fun PricePlanAccordion(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onToggleFavourite: () -> Unit,
+    onToggleActive: () -> Unit,
     onShare: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -351,6 +357,34 @@ private fun PricePlanAccordion(
                         row.planName,
                         style = MaterialTheme.typography.bodyMedium,
                         maxLines = 1, overflow = TextOverflow.Ellipsis
+                    )
+                }
+                if (row.active) {
+                    // When the accordion is open the tick is clickable so the user
+                    // can deactivate the plan; collapsed view is purely indicator.
+                    val activeModifier = if (expanded)
+                        Modifier.size(18.dp).clickable(onClick = onToggleActive)
+                    else
+                        Modifier.size(18.dp)
+                    Icon(
+                        painter = androidx.compose.ui.res.painterResource(
+                            com.tfcode.comparetout.R.drawable.tick),
+                        contentDescription = if (expanded)
+                            "Active — tap to deactivate for the dashboard"
+                        else
+                            "Active — included in dashboard tariff tables",
+                        modifier = activeModifier,
+                        tint = Color.Unspecified
+                    )
+                } else if (expanded) {
+                    Icon(
+                        painter = androidx.compose.ui.res.painterResource(
+                            com.tfcode.comparetout.R.drawable.tick),
+                        contentDescription = "Inactive — tap to activate for the dashboard",
+                        modifier = Modifier
+                            .size(18.dp)
+                            .clickable(onClick = onToggleActive),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                     )
                 }
                 Icon(

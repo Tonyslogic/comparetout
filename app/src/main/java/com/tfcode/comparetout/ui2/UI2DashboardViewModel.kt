@@ -61,7 +61,10 @@ data class DataSourceCostingRow(
     val buy: Double,    // cents
     val sell: Double,   // cents
     val fixed: Double,  // € pre-computed: standingCharges × days/365
-    val subTotals: SubTotals?
+    val subTotals: SubTotals?,
+    // Mirrors PricePlan.isActive. The dashboard's Tariff Plan tables only show
+    // active rows; the Compare tab evaluates every plan regardless.
+    val active: Boolean = true
 )
 
 /**
@@ -229,6 +232,18 @@ class UI2DashboardViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             recomputeKpis()
             recomputeScenarioTariff()
+            // Picks up toggled active flags when the user returns from
+            // Supplier Plans. No-op when the active item is a simulation.
+            refreshDataSourceTariff()
+        }
+    }
+
+    private suspend fun refreshDataSourceTariff() {
+        val item = _activeItem.value as? ActiveDashboardItem.DataSource ?: return
+        val period = _tariffPeriod.value
+        val anchor = _tariffAnchor.value
+        withContext(Dispatchers.IO) {
+            _tariffCostings.value = fetchCostings(period, anchor, false, item)
         }
     }
 
@@ -633,7 +648,8 @@ class UI2DashboardViewModel @Inject constructor(
                 buy        = buy,
                 sell       = sell,
                 fixed      = fixed,
-                subTotals  = subTotals
+                subTotals  = subTotals,
+                active     = plan.isActive
             )
         }.sortedBy { it.net }
     }
@@ -667,6 +683,7 @@ class UI2DashboardViewModel @Inject constructor(
                     val allCostings        = repository.getAllCostingsForScenario(id)
                     val plans              = repository.allPricePlansNow
                     val planChargesMap     = plans.associate { it.pricePlanIndex to it.standingCharges }
+                    val planActiveMap      = plans.associate { it.pricePlanIndex to it.isActive }
                     val dateRange          = repository.getSimDateRanges(id.toString())
                     val simDays = runCatching {
                         LocalDate.parse(dateRange!!.finishDate).toEpochDay() -
@@ -674,7 +691,8 @@ class UI2DashboardViewModel @Inject constructor(
                     }.getOrDefault(365L)
                     Log.d("UI2", "fetched — scenarioName=${scenarioComponents?.scenario?.scenarioName} net=${bestCosting?.net} plans=${allCostings.size}")
                     DashboardData(scenarioComponents, bestCosting, simKPIs, hasPanelData,
-                        allCostings = allCostings, planStandingCharges = planChargesMap, simDays = simDays)
+                        allCostings = allCostings, planStandingCharges = planChargesMap,
+                        planActive = planActiveMap, simDays = simDays)
                 })
             }
             is ActiveDashboardItem.DataSource -> flow {
@@ -880,7 +898,8 @@ class UI2DashboardViewModel @Inject constructor(
                 buy         = buy,
                 sell        = sell,
                 fixed       = fixed,
-                subTotals   = subTotals
+                subTotals   = subTotals,
+                active      = plan.isActive
             )
         }.sortedBy { it.net }
         _scenarioTariffCostings.value = rows
@@ -917,5 +936,6 @@ data class DashboardData(
     val dataSourceInfo: DashboardDataSourceInfo? = null,
     val allCostings: List<Costings> = emptyList(),
     val planStandingCharges: Map<Long, Double> = emptyMap(),
+    val planActive: Map<Long, Boolean> = emptyMap(),
     val simDays: Long = 365L
 )
