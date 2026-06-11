@@ -49,9 +49,13 @@ data class PeriodTotals(
 )
 
 data class UsageDistribution(
-    val hourly: List<Double>,   // 24 values, % of total import
+    val hourly: List<Double>,   // 24 values, % of total
     val daily: List<Double>,    // 7 values, % (0=Sun…6=Sat)
-    val monthly: List<Double>   // 12 values, % (Jan…Dec)
+    val monthly: List<Double>,  // 12 values, % (Jan…Dec)
+    // True iff the distribution buckets actual measured load. False only for
+    // import-only sources (ESBN), where the distribution falls back to the
+    // grid-import series because no load series is available.
+    val basedOnLoad: Boolean = true
 )
 
 data class DataSourceCostingRow(
@@ -577,23 +581,48 @@ class UI2DashboardViewModel @Inject constructor(
         item: ActiveDashboardItem.DataSource
     ): UsageDistribution? {
         val (from, to) = anchorDateRange(period, anchor, advanced, item.startDate, item.endDate)
-        val rows = repository.getSelectedAlphaESSData(item.sysSn, from, to)
-        if (rows.isEmpty()) return null
-        val hourly   = DoubleArray(24)
-        val dow      = DoubleArray(7)
-        val monthly  = DoubleArray(12)
-        rows.forEach { row ->
-            val ldt = LocalDateTime.parse(row.dateTime, dateTimeFormatter)
-            hourly[ldt.hour] += row.buy
-            val d = ldt.dayOfWeek.value.let { if (it == 7) 0 else it }
-            dow[d] += row.buy
-            monthly[ldt.monthValue - 1] += row.buy
+        // ESBN smart-meter data is import/export only — no load series. Every
+        // other importer (AlphaESS, Home Assistant) writes per-interval load to
+        // alphaESSTransformedData, so use it directly rather than re-deriving
+        // the user's consumption from grid import.
+        val useLoad = item.importerType != ComparisonUIViewModel.Importer.ESBNHDF
+        val pick: (IntervalRow) -> Double = { if (useLoad) it.load else it.buy }
+
+        val hourRows  = repository.getSumHour(item.sysSn, from, to)
+        val dowRows   = repository.getSumDOW(item.sysSn, from, to)
+        val monthRows = repository.getSumMonth(item.sysSn, from, to)
+        if (hourRows.isEmpty() && dowRows.isEmpty() && monthRows.isEmpty()) return null
+
+        val hourly = DoubleArray(24)
+        hourRows.forEach { row ->
+            val h = row.interval.toIntOrNull() ?: return@forEach
+            if (h in 0..23) hourly[h] += pick(row)
         }
+        val dow = DoubleArray(7)
+        dowRows.forEach { row ->
+            // SQLite strftime('%w', date): 0 = Sunday … 6 = Saturday — matches
+            // the chart's day-label ordering.
+            val d = row.interval.toIntOrNull() ?: return@forEach
+            if (d in 0..6) dow[d] += pick(row)
+        }
+        val monthly = DoubleArray(12)
+        monthRows.forEach { row ->
+            // sumMonth groups by YYYYMM — fold across years into the 12 calendar
+            // months so a multi-year selection still produces a Jan…Dec profile.
+            val s = row.interval ?: return@forEach
+            if (s.length != 6) return@forEach
+            val m = s.drop(4).toIntOrNull()?.takeIf { it in 1..12 } ?: return@forEach
+            monthly[m - 1] += pick(row)
+        }
+
         fun normalize(arr: DoubleArray): List<Double> {
             val total = arr.sum()
             return if (total <= 0.0) arr.toList() else arr.map { it / total * 100.0 }
         }
-        return UsageDistribution(normalize(hourly), normalize(dow), normalize(monthly))
+        return UsageDistribution(
+            normalize(hourly), normalize(dow), normalize(monthly),
+            basedOnLoad = useLoad
+        )
     }
 
     // Delegates to the shared periodDateRange() in PeriodSelector.kt so the

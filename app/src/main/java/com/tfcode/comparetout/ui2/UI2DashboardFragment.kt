@@ -1739,11 +1739,14 @@ private fun DataSourceDistributionCharts(distribution: UsageDistribution) {
     val dayLabels   = remember { listOf("Sun","Mon","Tue","Wed","Thu","Fri","Sat") }
     val monthLabels = remember { listOf("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec") }
 
-    val charts = remember(distribution) {
+    // ESBN has no load series, so its distributions fall back to grid import —
+    // label them accordingly. Every other importer buckets actual load.
+    val metric = if (distribution.basedOnLoad) "Load" else "Import"
+    val charts = remember(distribution, metric) {
         listOf(
-            Triple("Import Hourly (%)",   distribution.hourly,   hourLabels),
-            Triple("Import Daily (%)",    distribution.daily,    dayLabels),
-            Triple("Import Monthly (%)",  distribution.monthly,  monthLabels)
+            Triple("$metric Hourly (%)",   distribution.hourly,   hourLabels),
+            Triple("$metric Daily (%)",    distribution.daily,    dayLabels),
+            Triple("$metric Monthly (%)",  distribution.monthly,  monthLabels)
         )
     }
 
