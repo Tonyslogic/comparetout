@@ -33,10 +33,16 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
+import androidx.work.Data
+import androidx.work.ExistingWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkInfo
+import androidx.work.WorkManager
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import com.tfcode.comparetout.R
 import com.tfcode.comparetout.TOUTCApplication
+import com.tfcode.comparetout.importers.esbn.ESBNImportWorker
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -56,6 +62,26 @@ class UI2SimpleFragment : Fragment() {
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
 
+    // In-UI2 ESBN HDF import: pick a file and run the same ESBNImportWorker the
+    // legacy importer uses (no jump to the legacy screen). The worker writes the
+    // meter data; the VM's ESBN-source flow then picks it up.
+    private val importHdfLauncher =
+        registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
+            if (uri == null) return@registerForActivityResult
+            val inputData = Data.Builder()
+                .putString(ESBNImportWorker.KEY_SYSTEM_SN, SIMPLE_ESBN_SYSTEM_SN)
+                .putString(ESBNImportWorker.KEY_URI, uri.toString())
+                .build()
+            val request = OneTimeWorkRequestBuilder<ESBNImportWorker>()
+                .setInputData(inputData)
+                .addTag(SIMPLE_ESBN_SYSTEM_SN + "Import")
+                .build()
+            val wm = WorkManager.getInstance(requireContext().applicationContext)
+            wm.pruneWork()
+            wm.beginUniqueWork(IMPORT_WORK, ExistingWorkPolicy.REPLACE, request).enqueue()
+            viewModel.markHdfImporting()
+        }
+
     private val locationPermissionRequest =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
             val granted = result[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
@@ -67,6 +93,25 @@ class UI2SimpleFragment : Fragment() {
                 Toast.LENGTH_LONG
             ).show()
         }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        // Deterministic import feedback: reflect the worker's state into the VM
+        // (spinner while running, read the file in on success) rather than
+        // relying on the meter-data LiveData emitting in time.
+        WorkManager.getInstance(requireContext().applicationContext)
+            .getWorkInfosForUniqueWorkLiveData(IMPORT_WORK)
+            .observe(viewLifecycleOwner) { infos ->
+                if (infos.isNullOrEmpty()) return@observe
+                when {
+                    infos.any {
+                        it.state == WorkInfo.State.RUNNING || it.state == WorkInfo.State.ENQUEUED
+                    } -> viewModel.markHdfImporting()
+                    infos.any { it.state == WorkInfo.State.SUCCEEDED } -> viewModel.onHdfImported()
+                    infos.any { it.state == WorkInfo.State.FAILED } -> viewModel.onHdfImportFailed()
+                }
+            }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
@@ -82,7 +127,8 @@ class UI2SimpleFragment : Fragment() {
                         viewModel = viewModel,
                         onRequestLocation = ::requestLocation,
                         onLaunchGraphs = ::launchGraphs,
-                        onSwitchToFullUi = ::switchToFullUi
+                        onSwitchToFullUi = ::switchToFullUi,
+                        onImportHdf = ::importHdf
                     )
                 }
             }
@@ -145,6 +191,13 @@ class UI2SimpleFragment : Fragment() {
         }
     }
 
+    /** Pick an HDF file and import it in-place (no legacy-UI jump). When the
+     * worker finishes, the VM's ESBN-source flow updates and the screen reads
+     * the yearly total from it. */
+    private fun importHdf() {
+        importHdfLauncher.launch("*/*")
+    }
+
     /** Persist simple-mode = false, then recreate so the shell rebuilds on the
      * full 4-tab nav. */
     private fun switchToFullUi() {
@@ -153,5 +206,10 @@ class UI2SimpleFragment : Fragment() {
             setSimpleMode(app, false)
             withContext(Dispatchers.Main) { requireActivity().recreate() }
         }
+    }
+
+    companion object {
+        /** Unique-work name for the in-place HDF import (observed for progress). */
+        private const val IMPORT_WORK = "simple_esbn_import"
     }
 }

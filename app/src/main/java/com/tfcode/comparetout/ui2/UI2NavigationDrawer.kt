@@ -88,9 +88,11 @@ fun UI2DrawerContent(
     showHints: Boolean,
     onShowHintsChange: (Boolean) -> Unit,
     onSwitchLegacy: () -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    simpleMode: Boolean = false
 ) {
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 4.dp),
@@ -102,43 +104,46 @@ fun UI2DrawerContent(
         HorizontalDivider()
         ShowHintsRow(showHints, onShowHintsChange)
         HorizontalDivider()
-        // Data — supplier plans & meter sources live together.
+        // Supplier Plans (the price-plan editor) stays available in simple mode —
+        // the user needs it to verify/correct downloaded tariffs.
         UI2DrawerItem(R.drawable.ic_baseline_euro_symbol_24,  "Supplier Plans") {
             onClose()
             context.startActivity(
                 android.content.Intent(context, UI2PricePlanListActivity::class.java))
         }
-        UI2DrawerItem(R.drawable.ic_baseline_call_split_24,   "Data Source Management") {
-            onClose()
-            context.startActivity(
-                android.content.Intent(context, UI2DataSourceManagementActivity::class.java))
-        }
-        UI2DrawerItem(R.drawable.ic_baseline_download_24,     "Import / Export") {
-            onClose()
-            context.startActivity(
-                android.content.Intent(context, UI2ImportExportActivity::class.java))
-        }
-        // One-tap onboarding: seed a sample scenario + two demo plans, then kick
-        // off the same PVGIS-fetch + simulation pipeline the wizard would. Idempotent
-        // (subsequent taps are no-ops). Same affordance appears on the empty
-        // Dashboard so a fresh user has a visible entry point too. See
-        // plans/roboscript/robo-plan.md Phase 4B.
-        val coroutineScope = rememberCoroutineScope()
-        UI2DrawerItem(R.drawable.ic_baseline_download_24,     "Try with sample data") {
-            onClose()
-            val loader = EntryPointAccessors
-                .fromApplication(context.applicationContext, SampleDataLoaderEntryPoint::class.java)
-                .sampleDataLoader()
-            coroutineScope.launch {
-                val msg = when (val result = loader.load()) {
-                    is SampleDataLoader.Result.AlreadyLoaded ->
-                        "Sample data already loaded"
-                    is SampleDataLoader.Result.Loaded ->
-                        "Sample loaded · simulation running in background"
-                    is SampleDataLoader.Result.Failed ->
-                        "Couldn't load sample data: ${result.error.message ?: "unknown error"}"
+        // Data-management, import/export, and sample onboarding are full-UI only —
+        // simple mode hides them to keep to a single focused flow.
+        if (!simpleMode) {
+            UI2DrawerItem(R.drawable.ic_baseline_call_split_24,   "Data Source Management") {
+                onClose()
+                context.startActivity(
+                    android.content.Intent(context, UI2DataSourceManagementActivity::class.java))
+            }
+            UI2DrawerItem(R.drawable.ic_baseline_download_24,     "Import / Export") {
+                onClose()
+                context.startActivity(
+                    android.content.Intent(context, UI2ImportExportActivity::class.java))
+            }
+            // One-tap onboarding: seed a sample scenario + two demo plans, then kick
+            // off the same PVGIS-fetch + simulation pipeline the wizard would. Idempotent
+            // (subsequent taps are no-ops). A separate front door from simple mode:
+            // it plays with dummy data across the whole app.
+            UI2DrawerItem(R.drawable.ic_baseline_download_24,     "Try with sample data") {
+                onClose()
+                val loader = EntryPointAccessors
+                    .fromApplication(context.applicationContext, SampleDataLoaderEntryPoint::class.java)
+                    .sampleDataLoader()
+                coroutineScope.launch {
+                    val msg = when (val result = loader.load()) {
+                        is SampleDataLoader.Result.AlreadyLoaded ->
+                            "Sample data already loaded"
+                        is SampleDataLoader.Result.Loaded ->
+                            "Sample loaded · simulation running in background"
+                        is SampleDataLoader.Result.Failed ->
+                            "Couldn't load sample data: ${result.error.message ?: "unknown error"}"
+                    }
+                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                 }
-                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
             }
         }
         // Download the community-maintained real Irish supplier tariffs. Always
@@ -173,22 +178,36 @@ fun UI2DrawerContent(
                 android.content.Intent(context, UI2TimezoneActivity::class.java))
         }
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
-        // Enter the persistent single-screen simple mode. Self-contained: flips
-        // the flag and relaunches UI2MainActivity (CLEAR_TASK) so it works from
-        // any host activity the drawer appears in, landing on the simple screen.
-        UI2DrawerItem(R.drawable.ic_baseline_settings_24,     "Switch to simple UI") {
-            onClose()
-            CoroutineScope(Dispatchers.IO).launch {
-                setSimpleMode(context.applicationContext as TOUTCApplication, true)
-                withContext(Dispatchers.Main) {
-                    val intent = android.content.Intent(context, UI2MainActivity::class.java)
-                    intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
-                        android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
-                    context.startActivity(intent)
-                }
+        if (simpleMode) {
+            // Leave the persistent single-screen mode for the full 4-tab UI.
+            UI2DrawerItem(R.drawable.ic_baseline_settings_24, "Switch to full UI") {
+                onClose()
+                relaunchInMode(context, simple = false)
             }
+        } else {
+            // Enter the persistent single-screen simple mode. Self-contained: flips
+            // the flag and relaunches UI2MainActivity (CLEAR_TASK) so it works from
+            // any host activity the drawer appears in, landing on the simple screen.
+            UI2DrawerItem(R.drawable.ic_baseline_settings_24, "Switch to quick UI") {
+                onClose()
+                relaunchInMode(context, simple = true)
+            }
+            UI2DrawerItem(R.drawable.ic_baseline_settings_24, "Switch to Legacy UI", onSwitchLegacy)
         }
-        UI2DrawerItem(R.drawable.ic_baseline_settings_24,     "Switch to Legacy UI",    onSwitchLegacy)
+    }
+}
+
+/** Flip the simple-mode flag and relaunch the UI2 shell (CLEAR_TASK) so it
+ * rebuilds on the right start destination from any host activity. */
+private fun relaunchInMode(context: android.content.Context, simple: Boolean) {
+    CoroutineScope(Dispatchers.IO).launch {
+        setSimpleMode(context.applicationContext as TOUTCApplication, simple)
+        withContext(Dispatchers.Main) {
+            val intent = android.content.Intent(context, UI2MainActivity::class.java)
+            intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
+                android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+            context.startActivity(intent)
+        }
     }
 }
 

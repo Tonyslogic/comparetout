@@ -16,10 +16,20 @@
 
 package com.tfcode.comparetout.ui2
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -28,27 +38,40 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.GridView
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -60,17 +83,23 @@ import java.util.Locale
  * resulting cost. Designed to answer "would solar / a battery pay off?" quickly
  * without exposing the full wizard.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun UI2SimpleScreen(
     viewModel: UI2SimpleViewModel,
     onRequestLocation: () -> Unit,
     onLaunchGraphs: () -> Unit,
-    onSwitchToFullUi: () -> Unit
+    onSwitchToFullUi: () -> Unit,
+    onImportHdf: () -> Unit
 ) {
     val state by viewModel.uiState.collectAsState()
     val status by viewModel.status.collectAsState()
     val result by viewModel.result.collectAsState()
     val planCount by viewModel.planCount.collectAsState()
+    val hdfState by viewModel.hdfState.collectAsState()
+
+    val (showHints, toggleHints) = rememberShowHints()
+    var showDrawer by remember { mutableStateOf(false) }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -80,78 +109,179 @@ fun UI2SimpleScreen(
         }
     }
 
-    Scaffold(snackbarHost = { SnackbarHost(snackbarHostState) }) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .verticalScroll(rememberScrollState()),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-          Column(
-            modifier = Modifier
-                .widthIn(max = AdaptiveLayout.CONTENT_MAX_WIDTH)
-                .fillMaxWidth()
-                .padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Text("Simple mode", style = MaterialTheme.typography.headlineSmall)
-            Text(
-                "See whether solar and a battery would pay off for you, fast. " +
-                    "Answer a couple of questions and tap Calculate.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Quick mode") },
+                actions = {
+                    IconButton(onClick = { showDrawer = true }) {
+                        Icon(Icons.Default.Menu, contentDescription = "Menu")
+                    }
+                }
             )
-
-            UsageCard(state, viewModel)
-            SolarCard(state, viewModel, onRequestLocation)
-            BatteryCard(state, viewModel)
-
-            Button(
-                onClick = viewModel::calculate,
-                enabled = status != UI2SimpleViewModel.Status.BUILDING &&
-                    status != UI2SimpleViewModel.Status.SIMULATING,
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Calculate") }
-
-            ResultCard(status, result, planCount, viewModel)
-
-            // Graphs is allowed in simple mode once a scenario exists.
-            OutlinedButton(
-                onClick = onLaunchGraphs,
-                enabled = status == UI2SimpleViewModel.Status.READY,
-                modifier = Modifier.fillMaxWidth()
-            ) { Text("Open graphs") }
-
-            HorizontalDivider()
-            TextButton(onClick = onSwitchToFullUi, modifier = Modifier.fillMaxWidth()) {
-                Text("Switch to full UI")
+        },
+        bottomBar = {
+            // A single tab-like entry to leave simple mode, echoing the full UI's
+            // bottom navigation.
+            NavigationBar {
+                NavigationBarItem(
+                    selected = false,
+                    onClick = onSwitchToFullUi,
+                    icon = { Icon(Icons.Default.GridView, contentDescription = null) },
+                    label = { Text("Full UI") }
+                )
             }
-          }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { padding ->
+        Box(Modifier.fillMaxSize().padding(padding)) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+              Column(
+                modifier = Modifier
+                    .widthIn(max = AdaptiveLayout.CONTENT_MAX_WIDTH)
+                    .fillMaxWidth()
+                    .padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    "See whether solar and a battery would pay off for you, fast. " +
+                        "Answer a couple of questions and tap Calculate.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                UsageCard(state, viewModel, showHints, hdfState, onImportHdf)
+                SolarCard(state, viewModel, showHints, onRequestLocation)
+                BatteryCard(state, viewModel, showHints)
+
+                Button(
+                    onClick = viewModel::calculate,
+                    enabled = status != UI2SimpleViewModel.Status.BUILDING &&
+                        status != UI2SimpleViewModel.Status.SIMULATING,
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Calculate") }
+
+                ResultCard(status, result, planCount, viewModel)
+
+                // Graphs is allowed in simple mode once a scenario exists.
+                OutlinedButton(
+                    onClick = onLaunchGraphs,
+                    enabled = status == UI2SimpleViewModel.Status.READY,
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text("Open graphs") }
+              }
+            }
+
+            // Right-side slide-in drawer (trimmed for simple mode), matching the
+            // pattern used across the full-UI screens.
+            AnimatedVisibility(
+                visible = showDrawer, enter = fadeIn(tween(180)), exit = fadeOut(tween(180))
+            ) {
+                Box(
+                    Modifier.fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.4f))
+                        .clickable { showDrawer = false }
+                )
+            }
+            AnimatedVisibility(
+                visible = showDrawer,
+                enter = slideInHorizontally(tween(220)) { it },
+                exit = slideOutHorizontally(tween(220)) { it },
+                modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight().width(300.dp)
+            ) {
+                Surface(tonalElevation = 8.dp, shadowElevation = 8.dp, modifier = Modifier.fillMaxSize()) {
+                    UI2DrawerContent(
+                        showHints = showHints,
+                        onShowHintsChange = { toggleHints() },
+                        onSwitchLegacy = { },
+                        onClose = { showDrawer = false },
+                        simpleMode = true
+                    )
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun UsageCard(state: UI2SimpleViewModel.UiState, vm: UI2SimpleViewModel) {
+private fun UsageCard(
+    state: UI2SimpleViewModel.UiState,
+    vm: UI2SimpleViewModel,
+    showHints: Boolean,
+    hdfState: UI2SimpleViewModel.HdfState,
+    onImportHdf: () -> Unit
+) {
+    val hdf = state.usageMode == UI2SimpleViewModel.UsageMode.HDF
+    val importing = hdfState is UI2SimpleViewModel.HdfState.Importing
+    val ready = hdfState is UI2SimpleViewModel.HdfState.Ready
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("How much do you use?", style = MaterialTheme.typography.titleMedium)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(
+                    selected = !hdf,
+                    onClick = { vm.setUsageMode(UI2SimpleViewModel.UsageMode.STANDARD) },
+                    label = { Text("Typical home") }
+                )
+                FilterChip(
+                    selected = hdf,
+                    onClick = { vm.setUsageMode(UI2SimpleViewModel.UsageMode.HDF) },
+                    label = { Text("My ESBN data") }
+                )
+            }
             OutlinedTextField(
                 value = state.annualKwh,
                 onValueChange = vm::setAnnualKwh,
-                label = { Text("Yearly electricity (kWh)") },
+                readOnly = hdf,
+                label = {
+                    Text(if (hdf) "Yearly electricity (from your data)" else "Yearly electricity (kWh)")
+                },
                 suffix = { Text("kWh / year") },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
-            Text(
-                "On your bill as kWh used per year. A typical Irish home is around " +
-                    "4,200 kWh. We apply a standard smart-meter usage pattern.",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            if (hdf) {
+                when {
+                    importing -> Row(verticalAlignment = Alignment.CenterVertically) {
+                        CircularProgressIndicator(Modifier.width(20.dp))
+                        Spacer(Modifier.width(12.dp))
+                        Text("Importing your ESBN data…", style = MaterialTheme.typography.bodyMedium)
+                    }
+                    ready -> Text(
+                        "✓ Imported — yearly total read from your data.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+                if (!importing) {
+                    OutlinedButton(onClick = onImportHdf, modifier = Modifier.fillMaxWidth()) {
+                        Text(if (ready) "Import a different file" else "Import ESBN HDF file")
+                    }
+                }
+                if (showHints) {
+                    Text(
+                        "Download an HDF file from the ESBN Networks portal (My Energy " +
+                            "Consumption → Download). We read your exact yearly total and " +
+                            "half-hourly usage pattern from it — the most accurate option.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            } else if (showHints) {
+                Text(
+                    "It's on your bill as kWh used per year. A typical Irish home is around " +
+                        "4,200 kWh. We spread it over the year using a standard smart-meter " +
+                        "pattern. For a more accurate result, switch to “My ESBN data”.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
     }
 }
@@ -160,6 +290,7 @@ private fun UsageCard(state: UI2SimpleViewModel.UiState, vm: UI2SimpleViewModel)
 private fun SolarCard(
     state: UI2SimpleViewModel.UiState,
     vm: UI2SimpleViewModel,
+    showHints: Boolean,
     onRequestLocation: () -> Unit
 ) {
     Card(Modifier.fillMaxWidth()) {
@@ -172,6 +303,15 @@ private fun SolarCard(
                 )
                 Switch(checked = state.hasSolar, onCheckedChange = vm::setHasSolar)
             }
+            if (showHints) {
+                Text(
+                    "We model a typical ~7 kWp roof array at 40° tilt and fetch a year of " +
+                        "expected output for your exact spot from PVGIS (an EU solar dataset). " +
+                        "Turn this off to see the battery-only case.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             if (state.hasSolar) {
                 OutlinedTextField(
                     value = state.azimuth,
@@ -182,6 +322,13 @@ private fun SolarCard(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
                 )
+                if (showHints) {
+                    Text(
+                        "0 = north, 90 = east, 180 = south, 270 = west. South is best in Ireland.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 OutlinedButton(onClick = onRequestLocation, modifier = Modifier.fillMaxWidth()) {
                     Text("Use my location")
                 }
@@ -204,10 +351,23 @@ private fun SolarCard(
 }
 
 @Composable
-private fun BatteryCard(state: UI2SimpleViewModel.UiState, vm: UI2SimpleViewModel) {
+private fun BatteryCard(
+    state: UI2SimpleViewModel.UiState,
+    vm: UI2SimpleViewModel,
+    showHints: Boolean
+) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("Battery size", style = MaterialTheme.typography.titleMedium)
+            if (showHints) {
+                Text(
+                    "A home battery stores daytime solar (or cheap night-rate electricity) " +
+                        "to use at peak times. Try a few sizes to see which pays off — bigger " +
+                        "isn't always better.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 listOf(0, 5, 10, 15).forEach { kwh ->
                     FilterChip(
@@ -225,6 +385,14 @@ private fun BatteryCard(state: UI2SimpleViewModel.UiState, vm: UI2SimpleViewMode
                         modifier = Modifier.weight(1f)
                     )
                     Switch(checked = state.nightCharge, onCheckedChange = vm::setNightCharge)
+                }
+                if (showHints) {
+                    Text(
+                        "Fills the battery on a cheap night-rate window so you draw less at " +
+                            "peak times. Best paired with a night-saver tariff.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
         }

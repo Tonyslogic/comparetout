@@ -38,6 +38,10 @@ const val SIMPLE_SCENARIO_ID_KEY = "simple_scenario_id"
  * if the stored id is lost. */
 const val SIMPLE_SCENARIO_NAME = "My home (simple)"
 
+/** The system-serial key simple mode's ESBN HDF rows are stored under (the
+ * import worker keys data by the SN we pass, not by the file's MPRN). */
+const val SIMPLE_ESBN_SYSTEM_SN = "ESBN HDF"
+
 /** Read the stored simple-scenario id, or null if none. Blocking — off-main-thread. */
 fun storedSimpleScenarioId(app: TOUTCApplication): Long? =
     runCatching { app.getStringValueFromDataStore(SIMPLE_SCENARIO_ID_KEY) }

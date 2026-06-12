@@ -19,7 +19,10 @@ package com.tfcode.comparetout.ui2
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.tfcode.comparetout.TOUTCApplication
+import com.tfcode.comparetout.importers.esbn.ImportESBNOverview
 import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.scenario.loadprofile.StandardLoadProfiles
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -35,6 +38,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
 /**
@@ -52,8 +57,12 @@ class UI2SimpleViewModel @Inject constructor(
 
     enum class Status { IDLE, BUILDING, SIMULATING, READY, ERROR }
 
+    /** Where the yearly usage comes from. */
+    enum class UsageMode { STANDARD, HDF }
+
     data class UiState(
         val annualKwh: String = "4200",
+        val usageMode: UsageMode = UsageMode.STANDARD,
         val hasSolar: Boolean = true,
         val azimuth: String = "180",          // degrees; 180 = due south
         val locationLat: Double? = null,
@@ -83,6 +92,18 @@ class UI2SimpleViewModel @Inject constructor(
     private val _planCount = MutableStateFlow(0)
     val planCount: StateFlow<Int> = _planCount.asStateFlow()
 
+    /** Progress of importing + reading an ESBN HDF file. */
+    sealed class HdfState {
+        data object None : HdfState()
+        data object Importing : HdfState()
+        data class Ready(val annualKwh: Int) : HdfState()
+    }
+
+    private val _hdfState = MutableStateFlow<HdfState>(HdfState.None)
+    val hdfState: StateFlow<HdfState> = _hdfState.asStateFlow()
+
+    private var derived: SimpleScenarioLoader.UsageSource.Derived? = null
+
     private val _events = MutableSharedFlow<String>(extraBufferCapacity = 4)
     val events: SharedFlow<String> = _events.asSharedFlow()
 
@@ -100,6 +121,47 @@ class UI2SimpleViewModel @Inject constructor(
     fun setLocation(lat: Double, lon: Double) =
         _uiState.update { it.copy(locationLat = lat, locationLon = lon) }
 
+    fun setUsageMode(mode: UsageMode) {
+        _uiState.update { it.copy(usageMode = mode) }
+        // Entering HDF mode: silently surface data imported in a prior session.
+        if (mode == UsageMode.HDF && _hdfState.value == HdfState.None) {
+            viewModelScope.launch { tryDeriveHdf(announce = false) }
+        }
+    }
+
+    /** The import worker has been kicked off — drive the spinner. */
+    fun markHdfImporting() { _hdfState.value = HdfState.Importing }
+
+    /** The import worker finished — read the file's totals + usage pattern in.
+     * Only announce when a fresh import just completed (state was Importing), so
+     * re-observing a past success on screen re-entry stays quiet. */
+    fun onHdfImported() {
+        val wasImporting = _hdfState.value is HdfState.Importing
+        viewModelScope.launch { tryDeriveHdf(announce = wasImporting) }
+    }
+
+    /** The import worker failed. */
+    fun onHdfImportFailed() {
+        _hdfState.value = HdfState.None
+        _events.tryEmit("Import failed — check the file and try again")
+    }
+
+    private suspend fun tryDeriveHdf(announce: Boolean) {
+        val agg = withContext(Dispatchers.IO) { aggregateBestEsbn() }
+        if (agg == null) {
+            derived = null
+            _hdfState.value = HdfState.None
+            if (announce) _events.tryEmit("No usable data found in that file")
+            return
+        }
+        val (d, annual) = agg
+        derived = d
+        val a = annual.toInt()
+        _hdfState.value = HdfState.Ready(a)
+        _uiState.update { it.copy(annualKwh = a.toString()) }
+        if (announce) _events.tryEmit("Imported ~$a kWh/year from your ESBN data")
+    }
+
     // ── Actions ───────────────────────────────────────────────────────────
 
     fun calculate() {
@@ -113,9 +175,17 @@ class UI2SimpleViewModel @Inject constructor(
             _events.tryEmit("Tap “Use my location” so we can estimate your solar")
             return
         }
+        val usage = if (s.usageMode == UsageMode.HDF) {
+            derived ?: run {
+                _events.tryEmit("Import your ESBN data first, or use the standard profile")
+                return
+            }
+        } else {
+            SimpleScenarioLoader.UsageSource.Slp(StandardLoadProfiles.URBAN_SMART)
+        }
         val inputs = SimpleScenarioLoader.SimpleInputs(
             annualKwh = annual,
-            usage = SimpleScenarioLoader.UsageSource.Slp(StandardLoadProfiles.URBAN_SMART),
+            usage = usage,
             hasSolar = s.hasSolar,
             latitude = s.locationLat ?: 0.0,
             longitude = s.locationLon ?: 0.0,
@@ -174,6 +244,79 @@ class UI2SimpleViewModel @Inject constructor(
     }
 
     private fun withStoredId(): Long? = storedSimpleScenarioId(app)
+
+    /**
+     * The ESBN import worker keys rows by the MPRN it reads from the HDF, not by
+     * the SN we passed. Discover the candidate MPRNs the importer recorded (plus
+     * our fallback label) and aggregate whichever actually has data.
+     */
+    private fun candidateEsbnSysSns(): List<String> {
+        val out = LinkedHashSet<String>()
+        runCatching {
+            val json = app.getStringValueFromDataStore(ImportESBNOverview.ESBN_SYSTEM_LIST_KEY)
+            if (json.isNotBlank()) {
+                Gson().fromJson<List<String>>(json, object : TypeToken<List<String>>() {}.type)
+                    ?.let { out.addAll(it) }
+            }
+        }
+        runCatching {
+            val prev = app.getStringValueFromDataStore(ImportESBNOverview.ESBN_PREVIOUS_SELECTED_KEY)
+            if (prev.isNotBlank()) out.add(prev)
+        }
+        out.add(SIMPLE_ESBN_SYSTEM_SN)   // fallback when the file carried no MPRN
+        return out.toList()
+    }
+
+    private fun aggregateBestEsbn(): Pair<SimpleScenarioLoader.UsageSource.Derived, Double>? {
+        var best: Pair<SimpleScenarioLoader.UsageSource.Derived, Double>? = null
+        for (sn in candidateEsbnSysSns()) {
+            val agg = aggregateEsbn(sn) ?: continue
+            if (best == null || agg.second > best.second) best = agg
+        }
+        return best
+    }
+
+    /**
+     * Aggregate all imported rows for [sysSn] (queried over a wide range) into
+     * hourly/day-of-week/monthly distributions plus a yearly total scaled from
+     * the actual span of data — the same shape the wizard's
+     * `deriveLoadProfileFromSource` produces. Independent of any LiveData timing.
+     */
+    private fun aggregateEsbn(
+        sysSn: String
+    ): Pair<SimpleScenarioLoader.UsageSource.Derived, Double>? {
+        val rows = runCatching {
+            repository.getAlphaESSTransformedData(sysSn, "1970-01-01", "2999-12-31")
+        }.getOrNull().orEmpty()
+        if (rows.isEmpty()) return null
+
+        val hourly = DoubleArray(24)
+        val daily = DoubleArray(7)
+        val monthly = DoubleArray(12)
+        var total = 0.0
+        var minDate: LocalDate? = null
+        var maxDate: LocalDate? = null
+        rows.forEach { r ->
+            val e = r.buy                       // ESBN stores consumption as "buy"
+            if (e <= 0.0) return@forEach
+            val date = runCatching { LocalDate.parse(r.date) }.getOrNull() ?: return@forEach
+            val hour = r.minute.substringBefore(":").toIntOrNull() ?: return@forEach
+            hourly[hour] += e
+            daily[date.dayOfWeek.value - 1] += e
+            monthly[date.monthValue - 1] += e
+            total += e
+            if (minDate == null || date.isBefore(minDate)) minDate = date
+            if (maxDate == null || date.isAfter(maxDate)) maxDate = date
+        }
+        if (total <= 0.0 || minDate == null || maxDate == null) return null
+
+        val h = hourly.map { it / total * 100.0 }
+        val d = daily.map { it / total * 100.0 }
+        val m = monthly.map { it / total * 100.0 }
+        val days = ChronoUnit.DAYS.between(minDate, maxDate) + 1
+        val annual = if (days > 0) total * (365.0 / days) else total
+        return SimpleScenarioLoader.UsageSource.Derived(h, d, m, "ESBN HDF") to annual
+    }
 
     /**
      * Poll the best costing for [id] until it appears (costing is produced by a

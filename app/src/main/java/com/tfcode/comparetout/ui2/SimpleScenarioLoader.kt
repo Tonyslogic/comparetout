@@ -148,9 +148,7 @@ class SimpleScenarioLoader @Inject constructor(
 
         val inverter = Inverter().also { inv ->
             inv.inverterName = INVERTER_NAME
-            // Sized above the fixed 7 kWp array so PV isn't clipped at the
-            // wizard's default 5 kW — simple mode is about seeing solar's value.
-            inv.maxInverterLoad = 8.0
+            inv.maxInverterLoad = 5.0   // the standard default inverter size
             inv.mpptCount = 2
             inv.minExcess = 0.008
             inv.ac2dcLoss = 5
