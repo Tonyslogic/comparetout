@@ -127,6 +127,14 @@ private fun seriesColor(id: String, primary: Color): Color = when (id.removePref
     "pv2load"  -> Color(0xFF66BB6A)
     "bat2load" -> Color(0xFF26A69A)
     "grid2bat" -> Color(0xFF7E57C2)
+    // Simulation-only advanced flows — distinct hues so they don't all collapse
+    // to `primary` in the chart.
+    "charge"     -> Color(0xFF8E24AA)
+    "discharge"  -> Color(0xFFEC407A)
+    "evSchedule" -> Color(0xFF5C6BC0)
+    "evDivert"   -> Color(0xFF42A5F5)
+    "hwSchedule" -> Color(0xFFEF6C00)
+    "hwDivert"   -> Color(0xFFFF8A65)
     else       -> primary
 }
 
@@ -208,7 +216,7 @@ fun CompareScreen(
                 item {
                     AccordionCard("Filter", filterSubtitle(state), state.series.isNotEmpty(),
                         open == "filter", { open = if (open == "filter") null else "filter" }) {
-                        FilterSection(state, viewModel)
+                        FilterSection(state, viewModel, noviceMode)
                     }
                 }
                 item {
@@ -570,12 +578,17 @@ private fun SelectRow(title: String, count: Int, onTap: () -> Unit) {
 // ──────────────────────────────────────────────────────────────────────────
 // Filter
 // ──────────────────────────────────────────────────────────────────────────
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
-private fun FilterSection(state: CompareState, vm: UI2CompareViewModel) {
+private fun FilterSection(state: CompareState, vm: UI2CompareViewModel, novice: Boolean) {
     val primary = MaterialTheme.colorScheme.primary
+    // Energy series at least one selected subject can provide; others are greyed.
+    val available by vm.availableEnergySeries.collectAsState()
+    // Hoisted in the VM so the tab choice survives the accordion scrolling off.
+    val advanced by vm.filterAdvanced.collectAsState()
+
     @Composable
-    fun chips(defs: List<Pair<String, String>>, prefix: String) {
+    fun chips(defs: List<Pair<String, String>>, prefix: String, isEnergy: Boolean) {
         // Default FilterChip uses secondaryContainer for the selected fill, which
         // is too close to surface in many themes — selected vs unselected was hard
         // to tell apart. Lift selected to primaryContainer + a 1.5dp primary
@@ -589,8 +602,14 @@ private fun FilterSection(state: CompareState, vm: UI2CompareViewModel) {
             defs.forEach { (rawId, label) ->
                 val id = prefix + rawId
                 val on = state.series.contains(id)
+                // Cost columns aren't subject-gated. An energy series is available
+                // only if a selected subject records it. A greyed series stays
+                // tappable while it's still selected, so it's never trapped on.
+                val avail = !isEnergy || rawId in available
+                val chipEnabled = avail || on
                 FilterChip(
                     selected = on,
+                    enabled = chipEnabled,
                     onClick = {
                         vm.update { it.copy(series = if (on) it.series - id else it.series + id) }
                     },
@@ -600,7 +619,7 @@ private fun FilterSection(state: CompareState, vm: UI2CompareViewModel) {
                     },
                     colors = chipColors,
                     border = FilterChipDefaults.filterChipBorder(
-                        enabled = true,
+                        enabled = chipEnabled,
                         selected = on,
                         selectedBorderColor = MaterialTheme.colorScheme.primary,
                         selectedBorderWidth = 1.5.dp
@@ -609,20 +628,41 @@ private fun FilterSection(state: CompareState, vm: UI2CompareViewModel) {
             }
         }
     }
+
+    PrimaryTabRow(selectedTabIndex = if (advanced) 1 else 0) {
+        Tab(selected = !advanced, onClick = { vm.setFilterAdvanced(false) }, text = { Text("Basic") })
+        Tab(selected = advanced, onClick = { vm.setFilterAdvanced(true) }, text = { Text("Advanced") })
+    }
+    HelpText(
+        "Greyed series aren't recorded by any selected source — full inverter feeds " +
+            "(e.g. AlphaESS) and simulations provide them, meter-only sources " +
+            "(e.g. ESBN HDF) don't." +
+            if (advanced) " Advanced adds PV/battery flow breakdowns plus bonus & fixed cost."
+            else " Switch to Advanced for PV/battery flows and more cost columns.",
+        novice
+    )
+    Spacer(Modifier.height(8.dp))
+
+    // Advanced is additive: it keeps the basic series visible and reveals the
+    // advanced ones alongside them (it doesn't replace the basic set).
+    val energyDefs = if (advanced) UI2CompareViewModel.USAGE_SERIES
+        else UI2CompareViewModel.USAGE_SERIES.filter { it.first in UI2CompareViewModel.BASIC_ENERGY_IDS }
+    val costDefs = if (advanced) UI2CompareViewModel.COST_SERIES
+        else UI2CompareViewModel.COST_SERIES.filter { it.first in UI2CompareViewModel.BASIC_COST_IDS }
     when (state.what) {
         CompareWhat.COST -> {
             SmallCaps("Cost columns")
-            chips(UI2CompareViewModel.COST_SERIES, "")
+            chips(costDefs, "", isEnergy = false)
         }
         CompareWhat.USAGE -> {
             SmallCaps("Energy flows")
-            chips(UI2CompareViewModel.USAGE_SERIES, "")
+            chips(energyDefs, "", isEnergy = true)
         }
         CompareWhat.BOTH -> {
             SmallCaps("Energy flows")
-            chips(UI2CompareViewModel.USAGE_SERIES, "")
+            chips(energyDefs, "", isEnergy = true)
             SmallCaps("Cost columns")
-            chips(UI2CompareViewModel.COST_SERIES, "c_")
+            chips(costDefs, "c_", isEnergy = false)
         }
     }
 }
@@ -1811,6 +1851,9 @@ private fun costValue(r: CompareCostRow, id: String): Double = when (id) {
 private fun usageValue(r: CompareUsageRow, id: String): Double = when (id) {
     "load" -> r.load; "buy" -> r.buy; "feed" -> r.feed; "pv" -> r.pv
     "pv2load" -> r.pv2load; "bat2load" -> r.bat2load; "grid2bat" -> r.grid2bat
+    "charge" -> r.charge; "discharge" -> r.discharge
+    "evSchedule" -> r.evSchedule; "evDivert" -> r.evDivert
+    "hwSchedule" -> r.hwSchedule; "hwDivert" -> r.hwDivert
     else -> 0.0
 }
 
@@ -1873,7 +1916,10 @@ private fun usageData(rows: List<CompareUsageRow>): List<ChartDatum> = rows.map 
         title = r.subjectName,
         shortLabel = shorten(r.subjectName),
         values = mapOf("load" to r.load, "buy" to r.buy, "feed" to r.feed, "pv" to r.pv,
-            "pv2load" to r.pv2load, "bat2load" to r.bat2load, "grid2bat" to r.grid2bat),
+            "pv2load" to r.pv2load, "bat2load" to r.bat2load, "grid2bat" to r.grid2bat,
+            "charge" to r.charge, "discharge" to r.discharge,
+            "evSchedule" to r.evSchedule, "evDivert" to r.evDivert,
+            "hwSchedule" to r.hwSchedule, "hwDivert" to r.hwDivert),
         axisLabels = r.timeline.axisLabels,
         seriesValues = r.timeline.seriesValues
     )

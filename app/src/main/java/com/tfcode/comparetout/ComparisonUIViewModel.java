@@ -602,10 +602,30 @@ public class ComparisonUIViewModel extends AndroidViewModel {
     }
 
     public enum Importer {
-        ALPHAESS,
-        ESBNHDF,
-        HOME_ASSISTANT,
-        SIMULATION
+        // Each importer declares which energy-flow series it can provide, so the
+        // Compare UI can grey out series a selected subject has no data for. The
+        // ids match USAGE_SERIES in UI2CompareViewModel.kt. ESBN HDF is meter data
+        // (import/export only); AlphaESS / Home Assistant carry the measured
+        // inverter flows. SIMULATION declares the full catalogue (including the
+        // simulation-only schedule/divert/charge flows); the UI narrows it per
+        // scenario (e.g. no PV / battery / EV / HW flows when the scenario lacks
+        // those components).
+        ALPHAESS(java.util.Set.of("load", "buy", "feed", "pv", "pv2load", "bat2load", "grid2bat")),
+        ESBNHDF(java.util.Set.of("buy", "feed")),
+        HOME_ASSISTANT(java.util.Set.of("load", "buy", "feed", "pv", "pv2load", "bat2load", "grid2bat")),
+        SIMULATION(java.util.Set.of("load", "buy", "feed", "pv", "pv2load", "bat2load", "grid2bat",
+                "charge", "discharge", "evSchedule", "evDivert", "hwSchedule", "hwDivert"));
+
+        private final java.util.Set<String> providedEnergySeries;
+
+        Importer(java.util.Set<String> providedEnergySeries) {
+            this.providedEnergySeries = providedEnergySeries;
+        }
+
+        /** Energy-flow series ids this importer can provide (see USAGE_SERIES). */
+        public java.util.Set<String> getProvidedEnergySeries() {
+            return providedEnergySeries;
+        }
     }
 
     // Importer methods
