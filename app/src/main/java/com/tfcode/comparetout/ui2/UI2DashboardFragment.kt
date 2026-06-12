@@ -1288,6 +1288,116 @@ private val TARIFF_PIE_COLORS = listOf(
     Color(0xFFE67E22), Color(0xFF27AE60)
 )
 
+/**
+ * Costings table + tariff-band breakdown pie, shared by [AllCostingsTable] and
+ * [DataSourceCostingsTable] (which differ only in row type and accessors).
+ *
+ * COMPACT: table is full width; tapping a row opens the band pie in a dialog
+ * (unchanged behaviour). WIDE+: the table sits on the left and a permanent band
+ * pie shows on the right, defaulting to the top (best) row and updating when
+ * another row is tapped — the dialog stays as the COMPACT fallback.
+ */
+@Composable
+private fun <R> CostingsTableWithBandPie(
+    rows: List<R>,
+    rowId: (R) -> Any,
+    pinnedCell: @Composable (R) -> Unit,
+    columns: List<PinnedScrollColumn<R>>,
+    rowBackground: @Composable (R, Int) -> Color,
+    planName: (R) -> String,
+    bandSlices: (R) -> List<PieSlice>,
+) {
+    // Track selection by stable id, not row instance — the costings list is
+    // re-created on each recomposition and Costings has no structural equality,
+    // so keying on the instance would reset the selection every frame.
+    var zoomedId by remember { mutableStateOf<Any?>(null) }
+    var selectedId by remember { mutableStateOf<Any?>(null) }
+    val selected = rows.firstOrNull { rowId(it) == selectedId } ?: rows.firstOrNull()
+    val zoomed = rows.firstOrNull { rowId(it) == zoomedId }
+    val containerSize = LocalWindowInfo.current.containerSize
+    val density = LocalDensity.current
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val wide = maxWidth >= AdaptiveLayout.WIDTH_WIDE_AT
+        val table: @Composable () -> Unit = {
+            PinnedScrollTable(
+                rows = rows,
+                pinnedHeader = "Plan",
+                pinnedWeight = 2f,
+                pinnedCell = pinnedCell,
+                columns = columns,
+                rowBackground = rowBackground,
+                onRowClick = { if (wide) selectedId = rowId(it) else zoomedId = rowId(it) },
+                footer = {
+                    Text(
+                        if (wide) "Tap a row to update the band chart →"
+                        else "Tap a row to see tariff band breakdown  ↗",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            )
+        }
+        if (wide) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(Modifier.weight(1.6f)) { table() }
+                Box(Modifier.weight(1f)) {
+                    val r = selected
+                    if (r != null) {
+                        val slices = bandSlices(r)
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(planName(r), style = MaterialTheme.typography.labelMedium,
+                                textAlign = TextAlign.Center, maxLines = 2,
+                                overflow = TextOverflow.Ellipsis)
+                            Spacer(Modifier.height(8.dp))
+                            if (slices.isNotEmpty()) {
+                                PieChart(slices = slices,
+                                    modifier = Modifier.size(160.dp), isDonut = true)
+                                Spacer(Modifier.height(8.dp))
+                                PieLegend(slices = slices)
+                            } else {
+                                Text("No band breakdown for this plan",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            table()
+        }
+    }
+
+    val z = zoomed
+    if (z != null) {
+        val slices = bandSlices(z)
+        val size = with(density) { (minOf(containerSize.width, containerSize.height) * 0.9f).toDp() }
+        Dialog(onDismissRequest = { zoomedId = null },
+            properties = DialogProperties(usePlatformDefaultWidth = false)) {
+            Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
+                Column(
+                    modifier = Modifier.padding(16.dp).fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(planName(z), style = MaterialTheme.typography.titleSmall,
+                        textAlign = TextAlign.Center)
+                    Spacer(Modifier.height(8.dp))
+                    PieChart(slices = slices, modifier = Modifier.size(size * 0.55f), isDonut = true)
+                    Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
+                        PieLegend(slices = slices)
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun AllCostingsTable(
     costings: List<Costings>,
@@ -1297,9 +1407,6 @@ private fun AllCostingsTable(
     favouritePlanId: Long? = null,
     planActive: Map<Long, Boolean> = emptyMap()
 ) {
-    var zoomedCosting by remember { mutableStateOf<Costings?>(null) }
-    val containerSize = LocalWindowInfo.current.containerSize
-    val density = LocalDensity.current
     // Only active plans appear in the dashboard's Tariff Plan table — match
     // DataSourceCostingsTable. Plans missing from the map (pre-existing
     // costings rows for since-deleted plans) default to active so they don't
@@ -1347,10 +1454,9 @@ private fun AllCostingsTable(
         })
     )
 
-    PinnedScrollTable(
+    CostingsTableWithBandPie(
         rows = visible,
-        pinnedHeader = "Plan",
-        pinnedWeight = 2f,
+        rowId = { it.pricePlanID },
         pinnedCell = { c ->
             val isFav = favouritePlanId != null && favouritePlanId == c.pricePlanID
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1374,42 +1480,16 @@ private fun AllCostingsTable(
                 else -> Color.Transparent
             }
         },
-        onRowClick = { zoomedCosting = it },
-        footer = {
-            Text("Tap a row to see tariff band breakdown  ↗",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    )
-
-    if (zoomedCosting != null) {
-        val c = zoomedCosting!!
-        val slices = remember(c) {
-            val st = c.subTotals ?: return@remember emptyList<PieSlice>()
-            st.prices.sortedBy { it }.mapIndexed { i, price ->
+        planName = { it.fullPlanName ?: "" },
+        bandSlices = { c ->
+            val st = c.subTotals
+            if (st == null) emptyList()
+            else st.prices.sortedBy { it }.mapIndexed { i, price ->
                 val kwh = st.getSubTotalForPrice(price) ?: 0.0
                 PieSlice("%.1fc".format(price), kwh, TARIFF_PIE_COLORS[i % TARIFF_PIE_COLORS.size])
             }.filter { it.value > 0 }
         }
-        val size = with(density) { (minOf(containerSize.width, containerSize.height) * 0.9f).toDp() }
-        Dialog(onDismissRequest = { zoomedCosting = null },
-            properties = DialogProperties(usePlatformDefaultWidth = false)) {
-            Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
-                Column(
-                    modifier = Modifier.padding(16.dp).fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(c.fullPlanName ?: "", style = MaterialTheme.typography.titleSmall,
-                        textAlign = TextAlign.Center)
-                    Spacer(Modifier.height(8.dp))
-                    PieChart(slices = slices, modifier = Modifier.size(size * 0.55f), isDonut = true)
-                    Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
-                        PieLegend(slices = slices)
-                    }
-                }
-            }
-        }
-    }
+    )
 }
 
 // ─── Data source PV bar chart (period-aware) ──────────────────────────────
@@ -1561,30 +1641,34 @@ private fun DataSourceExplorePies(
     val containerSize = LocalWindowInfo.current.containerSize
     val density = LocalDensity.current
 
-    // Wrap charts into a 2×N grid so 3 and 4 pies stay readable. Two pies
-    // (legacy or ESBN) collapse to a single row naturally. Empty grid cells
-    // get a Spacer to keep the right-hand column aligned.
-    val cols = 2
-    val rows = (charts.size + cols - 1) / cols
-    Column(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
-        for (row in 0 until rows) {
-            Row(modifier = Modifier.fillMaxWidth()) {
-                for (col in 0 until cols) {
-                    val idx = row * cols + col
-                    if (idx < charts.size) {
-                        val (title, slices) = charts[idx]
-                        val visible = slices.filter { it.value > 0 }
-                        Column(
-                            modifier = Modifier.weight(1f).clickable { zoomedChart = idx }.padding(4.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(title, style = MaterialTheme.typography.labelSmall,
-                                textAlign = TextAlign.Center)
-                            Spacer(Modifier.height(4.dp))
-                            PieChart(slices = visible, modifier = Modifier.size(80.dp))
+    // Wrap charts into a grid so 3 and 4 pies stay readable. Column count is
+    // width-driven (central itemsPerRow): 2 on a phone, 3-4 on a tablet, so
+    // landscape / large screens stop wasting half the row. Empty grid cells get
+    // a Spacer to keep columns aligned.
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+        val cols = itemsPerRow(maxWidth, AdaptiveLayout.PIE_CELL_MIN_WIDTH)
+            .coerceIn(1, charts.size)
+        val rows = (charts.size + cols - 1) / cols
+        Column(modifier = Modifier.fillMaxWidth()) {
+            for (row in 0 until rows) {
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    for (col in 0 until cols) {
+                        val idx = row * cols + col
+                        if (idx < charts.size) {
+                            val (title, slices) = charts[idx]
+                            val visible = slices.filter { it.value > 0 }
+                            Column(
+                                modifier = Modifier.weight(1f).clickable { zoomedChart = idx }.padding(4.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(title, style = MaterialTheme.typography.labelSmall,
+                                    textAlign = TextAlign.Center)
+                                Spacer(Modifier.height(4.dp))
+                                PieChart(slices = visible, modifier = Modifier.size(80.dp))
+                            }
+                        } else {
+                            Spacer(modifier = Modifier.weight(1f))
                         }
-                    } else {
-                        Spacer(modifier = Modifier.weight(1f))
                     }
                 }
             }
@@ -1637,10 +1721,6 @@ private fun DataSourceCostingsTable(
         return
     }
 
-    var zoomedRow by remember { mutableStateOf<DataSourceCostingRow?>(null) }
-    val containerSize = LocalWindowInfo.current.containerSize
-    val density = LocalDensity.current
-
     val firstId = visible.firstOrNull()?.pricePlanId
     val columns = listOf(
         PinnedScrollColumn<DataSourceCostingRow>(
@@ -1672,10 +1752,9 @@ private fun DataSourceCostingsTable(
         })
     )
 
-    PinnedScrollTable(
+    CostingsTableWithBandPie(
         rows = visible,
-        pinnedHeader = "Plan",
-        pinnedWeight = 2f,
+        rowId = { it.pricePlanId },
         pinnedCell = { row ->
             val isFav = favouritePlanId != null && favouritePlanId == row.pricePlanId
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -1699,42 +1778,16 @@ private fun DataSourceCostingsTable(
                 else -> Color.Transparent
             }
         },
-        onRowClick = { zoomedRow = it },
-        footer = {
-            Text("Tap a row to see tariff band breakdown  ↗",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    )
-
-    if (zoomedRow != null) {
-        val r = zoomedRow!!
-        val slices = remember(r) {
-            val st = r.subTotals ?: return@remember emptyList<PieSlice>()
-            st.prices.sortedBy { it }.mapIndexed { i, price ->
+        planName = { it.planName },
+        bandSlices = { row ->
+            val st = row.subTotals
+            if (st == null) emptyList()
+            else st.prices.sortedBy { it }.mapIndexed { i, price ->
                 val kwh = st.getSubTotalForPrice(price) ?: 0.0
                 PieSlice("%.1fc".format(price), kwh, TARIFF_PIE_COLORS[i % TARIFF_PIE_COLORS.size])
             }.filter { it.value > 0 }
         }
-        val size = with(density) { (minOf(containerSize.width, containerSize.height) * 0.9f).toDp() }
-        Dialog(onDismissRequest = { zoomedRow = null },
-            properties = DialogProperties(usePlatformDefaultWidth = false)) {
-            Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
-                Column(
-                    modifier = Modifier.padding(16.dp).fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(r.planName, style = MaterialTheme.typography.titleSmall,
-                        textAlign = TextAlign.Center)
-                    Spacer(Modifier.height(8.dp))
-                    PieChart(slices = slices, modifier = Modifier.size(size * 0.55f), isDonut = true)
-                    Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
-                        PieLegend(slices = slices)
-                    }
-                }
-            }
-        }
-    }
+    )
 }
 
 @Composable

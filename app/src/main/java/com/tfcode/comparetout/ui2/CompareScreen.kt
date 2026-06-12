@@ -14,6 +14,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -456,7 +457,9 @@ private fun SourcesSection(
         Text("Selected subjects",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
-        slots.forEach { (id, name, isDup) ->
+        // One subject card per row on a phone; two side-by-side at WIDE+ so
+        // tablets / unfolded foldables stop showing a skinny single column.
+        val subjectCell: @Composable (Triple<String, String, Boolean>) -> Unit = { (id, name, isDup) ->
             Surface(
                 color = if (isDup) MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)
                         else MaterialTheme.colorScheme.surface,
@@ -480,6 +483,24 @@ private fun SourcesSection(
                         Icon(Icons.Default.Close, contentDescription = "Remove",
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(16.dp))
+                    }
+                }
+            }
+        }
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val perRow = if (maxWidth >= AdaptiveLayout.WIDTH_WIDE_AT) 2 else 1
+            Column(modifier = Modifier.fillMaxWidth()) {
+                if (perRow == 1) {
+                    slots.forEach { subjectCell(it) }
+                } else {
+                    slots.chunked(perRow).forEach { chunk ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            chunk.forEach { Box(Modifier.weight(1f)) { subjectCell(it) } }
+                            repeat(perRow - chunk.size) { Spacer(Modifier.weight(1f)) }
+                        }
                     }
                 }
             }
@@ -1510,6 +1531,11 @@ private fun ChartPopout(
     val density = LocalDensity.current
     val popW = with(density) { containerSize.width.toDp() }
     val popH = with(density) { (containerSize.height * 0.8f).toDp() }
+    // At ULTRA (large tablet) give the legend more breathing room without
+    // shrinking the chart on small landscape phones.
+    val ultra = popW >= AdaptiveLayout.WIDTH_ULTRA_AT
+    val chartWeight = if (ultra) 2f else 1.3f
+    val legendWeight = if (ultra) 1.2f else 1f
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -1545,7 +1571,7 @@ private fun ChartPopout(
             if (landscape) {
                 Row(Modifier.fillMaxSize().padding(16.dp)) {
                     Box(
-                        modifier = Modifier.weight(1.3f).fillMaxHeight()
+                        modifier = Modifier.weight(chartWeight).fillMaxHeight()
                             .verticalScroll(rememberScrollState()),
                         contentAlignment = Alignment.Center
                     ) {
@@ -1553,7 +1579,7 @@ private fun ChartPopout(
                     }
                     Spacer(Modifier.width(16.dp))
                     Column(
-                        modifier = Modifier.weight(1f).fillMaxHeight()
+                        modifier = Modifier.weight(legendWeight).fillMaxHeight()
                             .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) { InfoColumn() }

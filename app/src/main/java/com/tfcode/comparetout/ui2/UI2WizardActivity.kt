@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -370,10 +371,14 @@ private fun WizardScreen(
                     )
                 }
             }
-            // Scrollable accordion sections
+            // Scrollable accordion sections. Capped + centred at CONTENT_MAX_WIDTH
+            // so the form doesn't run to the full width on tablets / landscape.
             Column(
                 modifier = Modifier
                     .weight(1f)
+                    .fillMaxWidth()
+                    .widthIn(max = AdaptiveLayout.CONTENT_MAX_WIDTH)
+                    .align(Alignment.CenterHorizontally)
                     .verticalScroll(scrollState)
                     .padding(horizontal = 16.dp, vertical = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)

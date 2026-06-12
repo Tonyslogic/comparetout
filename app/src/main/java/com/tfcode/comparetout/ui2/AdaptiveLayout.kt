@@ -111,6 +111,11 @@ internal object AdaptiveLayout {
     val WIDTH_WIDE_AT    = 720.dp
     val WIDTH_ULTRA_AT   = 1000.dp
 
+    // Comfortable minimum width of a pie-chart cell, used by the central
+    // itemsPerRow() to decide how many pies share a row (2 on a phone, 3-4 on
+    // a tablet) instead of a fixed 2-up grid.
+    val PIE_CELL_MIN_WIDTH = 160.dp
+
     // Centred max width for action button rows so they don't span tablets.
     val ACTION_ROW_MAX_WIDTH = 480.dp
 
@@ -863,6 +868,41 @@ fun AdaptiveTwoColumn(
             ) {
                 primary()
                 secondary()
+            }
+        }
+    }
+}
+
+/**
+ * Form field that stacks its label above the input on COMPACT/MEDIUM (today's
+ * vertical layout) and places the label to the LEFT of the input at WIDE+, so
+ * wide screens stop wasting horizontal space. The input fills the remaining
+ * width. For fields that don't already carry a Material floating label.
+ */
+@Composable
+fun LabeledField(
+    label: String,
+    modifier: Modifier = Modifier,
+    labelWidth: Dp = 120.dp,
+    field: @Composable () -> Unit,
+) {
+    BoxWithConstraints(modifier = modifier.fillMaxWidth()) {
+        if (maxWidth >= AdaptiveLayout.WIDTH_WIDE_AT) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(label, modifier = Modifier.width(labelWidth),
+                    style = MaterialTheme.typography.bodyMedium)
+                Box(Modifier.weight(1f)) { field() }
+            }
+        } else {
+            Column(modifier = Modifier.fillMaxWidth()) {
+                Text(label, style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Spacer(Modifier.height(2.dp))
+                field()
             }
         }
     }

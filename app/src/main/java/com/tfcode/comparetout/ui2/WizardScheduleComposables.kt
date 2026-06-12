@@ -296,19 +296,26 @@ fun WizardHourRangePicker(
     onEndChange: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier) {
-        // From/To dropdowns side-by-side at fs<1.6, stacked at fs>=1.6.
-        data class HourSlot(val label: String, val hour: Int, val onChange: (Int) -> Unit)
-        val slots = listOf(
-            HourSlot("From", startHour, onStartChange),
-            HourSlot("To", endHour, onEndChange),
-        )
-        AdaptiveCellRow(items = slots, perRowAtA = 2, perRowAtB = 2, perRowAtC = 1) { slot ->
-            HourDropdown(label = slot.label, hour = slot.hour, onHourChange = slot.onChange)
+    // From/To dropdowns side-by-side at fs<1.6, stacked at fs>=1.6.
+    data class HourSlot(val label: String, val hour: Int, val onChange: (Int) -> Unit)
+    val slots = listOf(
+        HourSlot("From", startHour, onStartChange),
+        HourSlot("To", endHour, onEndChange),
+    )
+    // COMPACT: dropdowns above the range bar (stacked). MEDIUM+: dropdowns on
+    // the left, range bar on the right so landscape / tablets use the width.
+    AdaptiveTwoColumn(
+        modifier = modifier,
+        breakAt = AdaptiveLayout.WIDTH_MEDIUM_AT,
+        primary = {
+            AdaptiveCellRow(items = slots, perRowAtA = 2, perRowAtB = 2, perRowAtC = 1) { slot ->
+                HourDropdown(label = slot.label, hour = slot.hour, onHourChange = slot.onChange)
+            }
+        },
+        secondary = {
+            HourRangeBar(startHour = startHour, endHour = endHour)
         }
-        Spacer(Modifier.height(8.dp))
-        HourRangeBar(startHour = startHour, endHour = endHour)
-    }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

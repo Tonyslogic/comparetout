@@ -223,6 +223,20 @@ fun GraphsScreen(
     var showDrawer   by remember { mutableStateOf(false) }
     val (showHints, toggleShowHints) = rememberShowHints()
 
+    // Slide-out panels widen modestly on tablets / unfolded foldables so their
+    // entries don't ellipsise; phones keep today's compact widths. (Full
+    // simultaneous docking at ULTRA is deferred — higher risk, reflows content.)
+    val panelScreenWidth = with(LocalDensity.current) {
+        LocalWindowInfo.current.containerSize.width.toDp()
+    }
+    val settingsPanelWidth = when {
+        panelScreenWidth >= AdaptiveLayout.WIDTH_ULTRA_AT -> 360.dp
+        panelScreenWidth >= AdaptiveLayout.WIDTH_WIDE_AT  -> 330.dp
+        else -> 290.dp
+    }
+    val drawerPanelWidth =
+        if (panelScreenWidth >= AdaptiveLayout.WIDTH_WIDE_AT) 320.dp else 280.dp
+
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
 
     Scaffold(
@@ -285,7 +299,7 @@ fun GraphsScreen(
                 visible = showPanel,
                 enter = slideInHorizontally(tween(220)) { it },
                 exit  = slideOutHorizontally(tween(220)) { it },
-                modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight().width(290.dp)
+                modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight().width(settingsPanelWidth)
             ) {
                 Surface(tonalElevation = 8.dp, shadowElevation = 8.dp,
                     modifier = Modifier.fillMaxSize()) {
@@ -307,7 +321,7 @@ fun GraphsScreen(
                 visible = showDrawer,
                 enter = slideInHorizontally(tween(220)) { it },
                 exit = slideOutHorizontally(tween(220)) { it },
-                modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight().width(280.dp)
+                modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight().width(drawerPanelWidth)
             ) {
                 Surface(tonalElevation = 8.dp, shadowElevation = 8.dp, modifier = Modifier.fillMaxSize()) {
                     UI2DrawerContent(
