@@ -117,6 +117,8 @@ import java.time.format.DateTimeFormatter
 // see from a source".
 // ──────────────────────────────────────────────────────────────────────────
 
+private enum class DataSourceIoAction { IMPORT, EXPORT }
+
 @AndroidEntryPoint
 class UI2DataSourceManagementActivity : AppCompatActivity() {
 
@@ -1000,23 +1002,33 @@ private fun SystemRow(
             // for backup / sharing). Each is disabled mid-fetch to avoid
             // racing the underlying writes.
             if (onImport != null || onExport != null) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    if (onImport != null) {
-                        OutlinedButton(
-                            onClick = { onImport(sys.sysSn) },
+                // Import / Export side-by-side at fs<1.6, stacked at fs>=1.6
+                // so each label has room to render. AdaptiveCellRow keeps
+                // both at 50/50 width through tier B and goes full-width per
+                // button at tier C.
+                val ioItems = buildList {
+                    if (onImport != null) add(DataSourceIoAction.IMPORT)
+                    if (onExport != null) add(DataSourceIoAction.EXPORT)
+                }
+                AdaptiveCellRow(
+                    items = ioItems,
+                    perRowAtA = ioItems.size, perRowAtB = ioItems.size, perRowAtC = 1,
+                    spacing = 6.dp
+                ) { action ->
+                    when (action) {
+                        DataSourceIoAction.IMPORT -> OutlinedButton(
+                            onClick = { onImport!!(sys.sysSn) },
                             enabled = !sys.fetching,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             Icon(Icons.Default.Download, null, Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
                             Text("Import")
                         }
-                    }
-                    if (onExport != null) {
-                        OutlinedButton(
-                            onClick = { onExport(sys.sysSn) },
+                        DataSourceIoAction.EXPORT -> OutlinedButton(
+                            onClick = { onExport!!(sys.sysSn) },
                             enabled = !sys.fetching,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             Icon(Icons.Default.UploadFile, null, Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))

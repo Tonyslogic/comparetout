@@ -710,30 +710,37 @@ private fun RangePicker(
     onAnchor: (LocalDate) -> Unit
 ) {
     SmallCaps(label)
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        DataSourcePeriod.entries.forEach { p ->
-            FilterChip(
-                selected = gran == p,
-                onClick = { onGran(if (gran == p) null else p) },
-                label = { Text(p.label) },
-                modifier = Modifier.padding(end = 6.dp)
-            )
+    val longLabel: (DataSourcePeriod) -> String = {
+        when (it) {
+            DataSourcePeriod.YESTERDAY -> "Day"
+            DataSourcePeriod.MONTH     -> "Month"
+            DataSourcePeriod.YEAR      -> "Year"
+            DataSourcePeriod.ALL       -> "All time"
         }
     }
-    if (gran != null && gran != DataSourcePeriod.ALL) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = { onAnchor(stepAnchorBy(anchor, gran, -1)) }) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Earlier")
-            }
-            Text(rangeLabel(gran, anchor, advanced),
-                modifier = Modifier.weight(1f), textAlign = TextAlign.Center,
-                maxLines = 1, overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.bodyMedium)
-            IconButton(onClick = { onAnchor(stepAnchorBy(anchor, gran, 1)) }) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Later")
+    AdaptivePeriodControl(
+        segments = DataSourcePeriod.entries,
+        selected = gran,
+        labelFor = { it.label },
+        longLabelFor = longLabel,
+        onSelect = { p -> onGran(if (gran == p) null else p) },
+        dateSlot = {
+            if (gran != null && gran != DataSourcePeriod.ALL) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { onAnchor(stepAnchorBy(anchor, gran, -1)) }) {
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Earlier")
+                    }
+                    Text(rangeLabel(gran, anchor, advanced),
+                        modifier = Modifier.weight(1f), textAlign = TextAlign.Center,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.bodyMedium)
+                    IconButton(onClick = { onAnchor(stepAnchorBy(anchor, gran, 1)) }) {
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Later")
+                    }
+                }
             }
         }
-    }
+    )
     val hint = when (gran) {
         null -> "Pick D / M / Y / * to set this range"
         DataSourcePeriod.ALL -> "All time — every reading on file"
@@ -792,59 +799,63 @@ private fun compareLayoutIcon(l: CompareLayout): ImageVector = when (l) {
 private fun DisplaySection(state: CompareState, vm: UI2CompareViewModel, novice: Boolean) {
     SmallCaps("Chart style")
     if (novice) {
-        // Novice: icons + text, 3 per row so labels stay readable.
-        CompareMode.entries.chunked(3).forEach { row ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                row.forEach { mode ->
-                    val active = state.mode == mode
-                    Surface(
-                        color = if (active) MaterialTheme.colorScheme.primaryContainer
-                                else MaterialTheme.colorScheme.surface,
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.weight(1f).padding(vertical = 4.dp)
-                            .then(if (active) Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp)) else Modifier)
-                            .clickable { vm.update { it.copy(mode = mode) } }
-                    ) {
-                        Row(
-                            Modifier.fillMaxWidth().padding(vertical = 10.dp, horizontal = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Icon(compareModeIcon(mode), contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                                tint = if (active) MaterialTheme.colorScheme.primary
-                                       else MaterialTheme.colorScheme.onSurface)
-                            Spacer(Modifier.width(6.dp))
-                            Text(mode.label, style = MaterialTheme.typography.bodySmall,
-                                maxLines = 1, overflow = TextOverflow.Ellipsis,
-                                color = if (active) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.onSurface)
-                        }
-                    }
+        // Novice: icons + text. AdaptiveCellRow keeps the cards 3-up at fs<1.6
+        // and stacks them at fs>=1.6 so the labels stop ellipsising.
+        AdaptiveCellRow(
+            items = CompareMode.entries.toList(),
+            perRowAtA = 3, perRowAtB = 3, perRowAtC = 1,
+            spacing = 8.dp
+        ) { mode ->
+            val active = state.mode == mode
+            Surface(
+                color = if (active) MaterialTheme.colorScheme.primaryContainer
+                        else MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                    .then(if (active) Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp)) else Modifier)
+                    .clickable { vm.update { it.copy(mode = mode) } }
+            ) {
+                Row(
+                    Modifier.fillMaxWidth().padding(vertical = 10.dp, horizontal = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(compareModeIcon(mode), contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = if (active) MaterialTheme.colorScheme.primary
+                               else MaterialTheme.colorScheme.onSurface)
+                    Spacer(Modifier.width(6.dp))
+                    Text(mode.label, style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        color = if (active) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurface)
                 }
-                repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
             }
         }
     } else {
-        // Compact: one row of icon-only chips so the picker doesn't dominate.
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            CompareMode.entries.forEach { mode ->
-                val active = state.mode == mode
-                Surface(
-                    color = if (active) MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.surface,
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.weight(1f)
-                        .then(if (active) Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp)) else Modifier)
-                        .clickable { vm.update { it.copy(mode = mode) } }
-                ) {
-                    Box(Modifier.fillMaxWidth().padding(vertical = 10.dp),
-                        contentAlignment = Alignment.Center) {
-                        Icon(compareModeIcon(mode), contentDescription = mode.label,
-                            modifier = Modifier.size(20.dp),
-                            tint = if (active) MaterialTheme.colorScheme.primary
-                                   else MaterialTheme.colorScheme.onSurface)
-                    }
+        // Compact: icon-only chips. AdaptiveCellRow keeps 4-up at fs<1.6 and
+        // shrinks to two rows of two at fs>=1.6 so each chip keeps a
+        // comfortable tap target.
+        AdaptiveCellRow(
+            items = CompareMode.entries.toList(),
+            perRowAtA = 4, perRowAtB = 2, perRowAtC = 2,
+            spacing = 6.dp
+        ) { mode ->
+            val active = state.mode == mode
+            Surface(
+                color = if (active) MaterialTheme.colorScheme.primaryContainer
+                        else MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth()
+                    .then(if (active) Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp)) else Modifier)
+                    .clickable { vm.update { it.copy(mode = mode) } }
+            ) {
+                Box(Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center) {
+                    Icon(compareModeIcon(mode), contentDescription = mode.label,
+                        modifier = Modifier.size(20.dp),
+                        tint = if (active) MaterialTheme.colorScheme.primary
+                               else MaterialTheme.colorScheme.onSurface)
                 }
             }
         }
@@ -1595,6 +1606,7 @@ private fun ResultTable(
     rows: List<List<Cell>>,
     defaultSort: Int
 ) {
+    if (headers.isEmpty()) return
     var sortCol by remember { mutableIntStateOf(defaultSort) }
     var ascending by remember { mutableStateOf(true) }
     val sorted = remember(rows, sortCol, ascending) {
@@ -1605,55 +1617,68 @@ private fun ResultTable(
         }
         rows.sortedWith(if (ascending) cmp else cmp.reversed())
     }
-    val weights = List(headers.size) { i -> if (i == 0) 1.6f else 1f }
 
-    Column {
-        Row(Modifier.fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(6.dp))
-            .padding(vertical = 6.dp, horizontal = 8.dp)) {
-            headers.forEachIndexed { i, (label, _) ->
-                val selected = i == sortCol
-                Row(
-                    Modifier.weight(weights[i]).clickable {
-                        if (sortCol == i) ascending = !ascending
-                        else { sortCol = i; ascending = i == 0 }
-                    },
-                    horizontalArrangement = if (i == 0) Arrangement.Start else Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(label.uppercase(),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                        color = if (selected) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onSurfaceVariant)
-                    if (selected) {
-                        Icon(
-                            if (ascending) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                            contentDescription = null, modifier = Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.primary)
-                    }
-                }
-            }
-        }
-        sorted.forEachIndexed { ri, row ->
-            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 8.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                row.forEachIndexed { i, cell ->
-                    Text(
-                        cell.text,
-                        modifier = Modifier.weight(weights[i]),
-                        textAlign = if (i == 0) TextAlign.Start else TextAlign.End,
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis,
-                        color = cell.color ?: MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-            if (ri < sorted.lastIndex) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+    fun headerSlot(index: Int): @Composable () -> Unit = {
+        val selected = index == sortCol
+        val label = headers[index].first
+        Row(
+            Modifier.clickable {
+                if (sortCol == index) ascending = !ascending
+                else { sortCol = index; ascending = index == 0 }
+            },
+            horizontalArrangement = if (index == 0) Arrangement.Start else Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(label.uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                color = if (selected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant)
+            if (selected) {
+                Icon(
+                    if (ascending) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = null, modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.primary)
             }
         }
     }
+
+    val scrollColumns = (1 until headers.size).map { i ->
+        PinnedScrollColumn<List<Cell>>(
+            header = headers[i].first,
+            align = TextAlign.End,
+            minWidth = AdaptiveLayout.SCROLL_COL_MIN_NUMERIC,
+            headerSlot = headerSlot(i),
+            cell = { row ->
+                val cell = row[i]
+                Text(
+                    cell.text,
+                    textAlign = TextAlign.End,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    color = cell.color ?: MaterialTheme.colorScheme.onSurface
+                )
+            }
+        )
+    }
+
+    PinnedScrollTable(
+        rows = sorted,
+        pinnedHeader = headers[0].first,
+        pinnedWeight = 1.6f,
+        pinnedHeaderSlot = headerSlot(0),
+        pinnedCell = { row ->
+            val cell = row[0]
+            Text(
+                cell.text,
+                textAlign = TextAlign.Start,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1, overflow = TextOverflow.Ellipsis,
+                color = cell.color ?: MaterialTheme.colorScheme.onSurface
+            )
+        },
+        columns = scrollColumns
+    )
 }
 
 @Composable

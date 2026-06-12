@@ -108,6 +108,8 @@ import dagger.hilt.android.AndroidEntryPoint
 // validatePlan() rules so the user can see exactly what's missing.
 // ──────────────────────────────────────────────────────────────────────────
 
+private enum class PpwFooterAction { SAVE, RUN, CLOSE }
+
 @AndroidEntryPoint
 class UI2PricePlanWizardActivity : AppCompatActivity() {
     @OptIn(ExperimentalMaterial3Api::class)
@@ -484,29 +486,37 @@ private fun PricePlanActionBar(
             1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f))
     ) {
         Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                OutlinedButton(
-                    onClick = onSave, enabled = !saving,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    when {
-                        saveResult == PricePlanSaveResult.Saved -> {
-                            Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(16.dp))
-                            Spacer(Modifier.width(4.dp)); Text("Saved")
+            ActionRowCenter {
+                AdaptiveCellRow(
+                    items = listOf(PpwFooterAction.SAVE, PpwFooterAction.RUN, PpwFooterAction.CLOSE),
+                    perRowAtA = 3, perRowAtB = 3, perRowAtC = 1,
+                    spacing = 8.dp
+                ) { action ->
+                    when (action) {
+                        PpwFooterAction.SAVE -> OutlinedButton(
+                            onClick = onSave, enabled = !saving,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            when {
+                                saveResult == PricePlanSaveResult.Saved -> {
+                                    Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(16.dp))
+                                    Spacer(Modifier.width(4.dp)); Text("Saved")
+                                }
+                                saving -> Text("Saving…")
+                                else -> Text("Save")
+                            }
                         }
-                        saving -> Text("Saving…")
-                        else -> Text("Save")
+                        PpwFooterAction.RUN -> Button(
+                            onClick = onRun,
+                            enabled = canRun && !saving,
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("Run calculations") }
+                        PpwFooterAction.CLOSE -> OutlinedButton(
+                            onClick = onClose,
+                            modifier = Modifier.fillMaxWidth()
+                        ) { Text("Close") }
                     }
                 }
-                Button(
-                    onClick = onRun,
-                    enabled = canRun && !saving,
-                    modifier = Modifier.weight(1.4f)
-                ) { Text("Run calculations") }
-                OutlinedButton(onClick = onClose, modifier = Modifier.weight(1f)) { Text("Close") }
             }
             if (saveResult == PricePlanSaveResult.Failed) {
                 Spacer(Modifier.height(6.dp))

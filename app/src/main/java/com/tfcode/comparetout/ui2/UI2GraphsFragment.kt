@@ -14,6 +14,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
+import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -965,24 +966,41 @@ private fun TableView(state: UI2GraphsViewModel.GraphState) {
         return
     }
 
-    // Shared horizontal scroll so header + rows stay in sync
+    // Shared horizontal scroll so header + rows stay in sync. Pinned first
+    // column stays fixed while series columns scroll horizontally — the
+    // pinned-column width grows with system fontScale (mirrors
+    // PinnedScrollTable; same primitive, hand-rolled here to preserve the
+    // LazyColumn body).
     val hScroll = rememberScrollState()
-    val colW = 72.dp
+    val colW = AdaptiveLayout.SCROLL_COL_MIN_NUMERIC
+    val pinnedWidth = pinnedColumnWidth(adaptiveFontScale())
+    val surface = MaterialTheme.colorScheme.surface
 
     Column(modifier = Modifier.fillMaxSize()) {
         // Sticky header
         Row(modifier = Modifier
             .fillMaxWidth()
-            .horizontalScroll(hScroll)
             .background(MaterialTheme.colorScheme.secondaryContainer)
             .padding(vertical = 4.dp)
         ) {
-            Text("Interval", modifier = Modifier.width(88.dp).padding(horizontal = 4.dp),
-                fontWeight = FontWeight.Bold, fontSize = 11.sp)
-            activeSeries.forEach { s ->
-                Text(s.displayName, modifier = Modifier.width(colW).padding(horizontal = 4.dp),
-                    fontWeight = FontWeight.Bold, fontSize = 10.sp, textAlign = TextAlign.End,
-                    maxLines = 2)
+            Box(
+                Modifier
+                    .width(pinnedWidth)
+                    .shadow(elevation = 2.dp)
+                    .background(MaterialTheme.colorScheme.secondaryContainer)
+                    .padding(horizontal = 4.dp)
+            ) {
+                Text("Interval", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+            }
+            Row(modifier = Modifier
+                .weight(1f)
+                .horizontalScroll(hScroll)
+            ) {
+                activeSeries.forEach { s ->
+                    Text(s.displayName, modifier = Modifier.width(colW).padding(horizontal = 4.dp),
+                        fontWeight = FontWeight.Bold, fontSize = 10.sp, textAlign = TextAlign.End,
+                        maxLines = 2)
+                }
             }
         }
         HorizontalDivider()
@@ -991,15 +1009,26 @@ private fun TableView(state: UI2GraphsViewModel.GraphState) {
             items(points) { pt ->
                 Row(modifier = Modifier
                     .fillMaxWidth()
-                    .horizontalScroll(hScroll)
                     .padding(vertical = 2.dp)
                 ) {
-                    Text(pt.label, modifier = Modifier.width(88.dp).padding(horizontal = 4.dp),
-                        fontSize = 10.sp)
-                    activeSeries.forEach { s ->
-                        Text("%.2f".format(pt.values[s] ?: 0.0),
-                            modifier = Modifier.width(colW).padding(horizontal = 4.dp),
-                            fontSize = 10.sp, textAlign = TextAlign.End)
+                    Box(
+                        Modifier
+                            .width(pinnedWidth)
+                            .shadow(elevation = 2.dp)
+                            .background(surface)
+                            .padding(horizontal = 4.dp)
+                    ) {
+                        Text(pt.label, fontSize = 10.sp)
+                    }
+                    Row(modifier = Modifier
+                        .weight(1f)
+                        .horizontalScroll(hScroll)
+                    ) {
+                        activeSeries.forEach { s ->
+                            Text("%.2f".format(pt.values[s] ?: 0.0),
+                                modifier = Modifier.width(colW).padding(horizontal = 4.dp),
+                                fontSize = 10.sp, textAlign = TextAlign.End)
+                        }
                     }
                 }
                 HorizontalDivider(thickness = 0.5.dp)

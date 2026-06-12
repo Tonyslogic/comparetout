@@ -1306,21 +1306,6 @@ private fun AllCostingsTable(
     // silently vanish.
     val visible = costings.filter { planActive[it.pricePlanID] ?: true }
 
-    // Header row
-    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Text("Plan", Modifier.weight(2.5f), style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("Net", Modifier.weight(1f), textAlign = TextAlign.End,
-            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("Buy", Modifier.weight(1f), textAlign = TextAlign.End,
-            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("Sell", Modifier.weight(1f), textAlign = TextAlign.End,
-            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("Fixed", Modifier.weight(1f), textAlign = TextAlign.End,
-            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-    HorizontalDivider()
-
     if (visible.isEmpty() && costings.isNotEmpty()) {
         Text(
             "No active price plans — activate one via Supplier Plans",
@@ -1330,50 +1315,72 @@ private fun AllCostingsTable(
         return
     }
 
-    visible.forEachIndexed { idx, c ->
-        val fixed = (planStandingCharges[c.pricePlanID] ?: 0.0) * (simDays / 365.0)
-        val isBest = idx == 0
-        val isFav = favouritePlanId != null && favouritePlanId == c.pricePlanID
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { zoomedCosting = c }
-                .background(
-                    when {
-                        isFav -> MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
-                        isBest -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                        else -> Color.Transparent
-                    }
-                )
-                .padding(vertical = 3.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (isFav) {
-                Icon(Icons.Default.Star, contentDescription = "Your current plan",
-                    modifier = Modifier.size(14.dp),
-                    tint = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.width(4.dp))
+    val firstId = visible.firstOrNull()?.pricePlanID
+    val columns = listOf(
+        PinnedScrollColumn<Costings>(
+            header = "Net",
+            accent = { it.pricePlanID == firstId },
+            cell = { c ->
+                Text(df.format(c.net / 100.0),
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.End,
+                    maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
+                    color = if (c.pricePlanID == firstId)
+                        MaterialTheme.colorScheme.primary else Color.Unspecified)
             }
-            Text(c.fullPlanName ?: "",
-                Modifier.weight(if (isFav) 2.3f else 2.5f),
-                style = MaterialTheme.typography.bodySmall, maxLines = 1,
-                overflow = TextOverflow.Ellipsis)
-            Text(df.format(c.net / 100.0), Modifier.weight(1f), textAlign = TextAlign.End,
-                style = MaterialTheme.typography.bodySmall,
-                color = if (isBest) MaterialTheme.colorScheme.primary else Color.Unspecified)
-            Text(df.format(c.buy / 100.0), Modifier.weight(1f), textAlign = TextAlign.End,
-                style = MaterialTheme.typography.bodySmall)
-            Text(df.format(c.sell / 100.0), Modifier.weight(1f), textAlign = TextAlign.End,
-                style = MaterialTheme.typography.bodySmall)
-            Text(df.format(fixed), Modifier.weight(1f), textAlign = TextAlign.End,
-                style = MaterialTheme.typography.bodySmall)
+        ),
+        PinnedScrollColumn<Costings>(header = "Buy", cell = { c ->
+            Text(df.format(c.buy / 100.0),
+                style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
+                maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
+        }),
+        PinnedScrollColumn<Costings>(header = "Sell", cell = { c ->
+            Text(df.format(c.sell / 100.0),
+                style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
+                maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
+        }),
+        PinnedScrollColumn<Costings>(header = "Fixed", cell = { c ->
+            val fixed = (planStandingCharges[c.pricePlanID] ?: 0.0) * (simDays / 365.0)
+            Text(df.format(fixed),
+                style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
+                maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
+        })
+    )
+
+    PinnedScrollTable(
+        rows = visible,
+        pinnedHeader = "Plan",
+        pinnedWeight = 2f,
+        pinnedCell = { c ->
+            val isFav = favouritePlanId != null && favouritePlanId == c.pricePlanID
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (isFav) {
+                    Icon(Icons.Default.Star, contentDescription = "Your current plan",
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(4.dp))
+                }
+                Text(c.fullPlanName ?: "",
+                    style = MaterialTheme.typography.bodySmall, maxLines = 1,
+                    overflow = TextOverflow.Ellipsis)
+            }
+        },
+        columns = columns,
+        rowBackground = { c, idx ->
+            val isFav = favouritePlanId != null && favouritePlanId == c.pricePlanID
+            when {
+                isFav -> MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                idx == 0 -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                else -> Color.Transparent
+            }
+        },
+        onRowClick = { zoomedCosting = it },
+        footer = {
+            Text("Tap a row to see tariff band breakdown  ↗",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        HorizontalDivider()
-    }
-    Spacer(Modifier.height(4.dp))
-    Text("Tap a row to see tariff band breakdown  ↗",
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant)
+    )
 
     if (zoomedCosting != null) {
         val c = zoomedCosting!!
@@ -1634,63 +1641,71 @@ private fun DataSourceCostingsTable(
     val containerSize = LocalWindowInfo.current.containerSize
     val density = LocalDensity.current
 
-    // Header
-    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Text("Plan",  Modifier.weight(2.5f), style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("Net",   Modifier.weight(1f), textAlign = TextAlign.End,
-            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("Buy",   Modifier.weight(1f), textAlign = TextAlign.End,
-            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("Sell",  Modifier.weight(1f), textAlign = TextAlign.End,
-            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("Fixed", Modifier.weight(1f), textAlign = TextAlign.End,
-            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-    HorizontalDivider()
-
-    visible.forEachIndexed { idx, row ->
-        val isBest = idx == 0
-        val isFav = favouritePlanId != null && favouritePlanId == row.pricePlanId
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { zoomedRow = row }
-                .background(
-                    when {
-                        isFav -> MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
-                        isBest -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                        else -> Color.Transparent
-                    }
-                )
-                .padding(vertical = 3.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (isFav) {
-                Icon(Icons.Default.Star, contentDescription = "Your current plan",
-                    modifier = Modifier.size(14.dp),
-                    tint = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.width(4.dp))
+    val firstId = visible.firstOrNull()?.pricePlanId
+    val columns = listOf(
+        PinnedScrollColumn<DataSourceCostingRow>(
+            header = "Net",
+            accent = { it.pricePlanId == firstId },
+            cell = { row ->
+                Text(df.format(row.net / 100.0),
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.End,
+                    maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
+                    color = if (row.pricePlanId == firstId)
+                        MaterialTheme.colorScheme.primary else Color.Unspecified)
             }
-            Text(row.planName, Modifier.weight(if (isFav) 2.3f else 2.5f),
-                style = MaterialTheme.typography.bodySmall, maxLines = 1,
-                overflow = TextOverflow.Ellipsis)
-            Text(df.format(row.net / 100.0), Modifier.weight(1f), textAlign = TextAlign.End,
-                style = MaterialTheme.typography.bodySmall,
-                color = if (isBest) MaterialTheme.colorScheme.primary else Color.Unspecified)
-            Text(df.format(row.buy / 100.0), Modifier.weight(1f), textAlign = TextAlign.End,
-                style = MaterialTheme.typography.bodySmall)
-            Text(df.format(row.sell / 100.0), Modifier.weight(1f), textAlign = TextAlign.End,
-                style = MaterialTheme.typography.bodySmall)
-            Text(df.format(row.fixed), Modifier.weight(1f), textAlign = TextAlign.End,
-                style = MaterialTheme.typography.bodySmall)
+        ),
+        PinnedScrollColumn<DataSourceCostingRow>(header = "Buy", cell = { row ->
+            Text(df.format(row.buy / 100.0),
+                style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
+                maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
+        }),
+        PinnedScrollColumn<DataSourceCostingRow>(header = "Sell", cell = { row ->
+            Text(df.format(row.sell / 100.0),
+                style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
+                maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
+        }),
+        PinnedScrollColumn<DataSourceCostingRow>(header = "Fixed", cell = { row ->
+            Text(df.format(row.fixed),
+                style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
+                maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
+        })
+    )
+
+    PinnedScrollTable(
+        rows = visible,
+        pinnedHeader = "Plan",
+        pinnedWeight = 2f,
+        pinnedCell = { row ->
+            val isFav = favouritePlanId != null && favouritePlanId == row.pricePlanId
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (isFav) {
+                    Icon(Icons.Default.Star, contentDescription = "Your current plan",
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(4.dp))
+                }
+                Text(row.planName,
+                    style = MaterialTheme.typography.bodySmall, maxLines = 1,
+                    overflow = TextOverflow.Ellipsis)
+            }
+        },
+        columns = columns,
+        rowBackground = { row, idx ->
+            val isFav = favouritePlanId != null && favouritePlanId == row.pricePlanId
+            when {
+                isFav -> MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                idx == 0 -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                else -> Color.Transparent
+            }
+        },
+        onRowClick = { zoomedRow = it },
+        footer = {
+            Text("Tap a row to see tariff band breakdown  ↗",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        HorizontalDivider()
-    }
-    Spacer(Modifier.height(4.dp))
-    Text("Tap a row to see tariff band breakdown  ↗",
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant)
+    )
 
     if (zoomedRow != null) {
         val r = zoomedRow!!
@@ -1753,14 +1768,39 @@ private fun DataSourceDistributionCharts(distribution: UsageDistribution) {
     val containerSize = LocalWindowInfo.current.containerSize
     val density = LocalDensity.current
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        charts.forEachIndexed { idx, (title, dist, labels) ->
-            if (dist.any { it > 0 }) {
-                Column(modifier = Modifier.fillMaxWidth().clickable { zoomedIdx = idx }) {
-                    Text("$title  ↗", style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.padding(bottom = 2.dp))
-                    SimpleDistBarChart(dist = dist, labels = labels,
-                        modifier = Modifier.fillMaxWidth().height(80.dp))
+    // At MEDIUM+ widths render the three distributions side-by-side (Hourly /
+    // Daily / Monthly) so landscape phones and tablets stop showing skinny
+    // 80-dp bars stacked vertically.
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val visible = charts.mapIndexedNotNull { idx, c ->
+            if (c.second.any { it > 0 }) idx to c else null
+        }
+        if (visible.isEmpty()) return@BoxWithConstraints
+        if (maxWidth >= AdaptiveLayout.WIDTH_MEDIUM_AT) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                visible.forEach { (idx, c) ->
+                    val (title, dist, labels) = c
+                    Column(modifier = Modifier.weight(1f).clickable { zoomedIdx = idx }) {
+                        Text("$title  ↗", style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(bottom = 2.dp))
+                        SimpleDistBarChart(dist = dist, labels = labels,
+                            modifier = Modifier.fillMaxWidth().height(80.dp))
+                    }
+                }
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                visible.forEach { (idx, c) ->
+                    val (title, dist, labels) = c
+                    Column(modifier = Modifier.fillMaxWidth().clickable { zoomedIdx = idx }) {
+                        Text("$title  ↗", style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(bottom = 2.dp))
+                        SimpleDistBarChart(dist = dist, labels = labels,
+                            modifier = Modifier.fillMaxWidth().height(80.dp))
+                    }
                 }
             }
         }
@@ -2408,27 +2448,19 @@ private fun KpiAccordion(
 
 @Composable
 private fun MonthFilterRow(selected: Int, onChange: (Int) -> Unit) {
-    val labels = listOf("*", "J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
-    Row(modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-        labels.forEachIndexed { idx, label ->
-            val isOn = idx == selected
-            Surface(
-                color = if (isOn) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
-                        else MaterialTheme.colorScheme.surfaceVariant,
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp),
-                modifier = Modifier.weight(1f).height(32.dp)
-                    .clickable { onChange(idx) }
-            ) {
-                Box(contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize()) {
-                    Text(label, style = MaterialTheme.typography.labelMedium,
-                        color = if (isOn) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
-    }
+    val labelsShort = listOf("*", "J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
+    val labelsLong  = listOf("All", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                             "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+    // AdaptiveChipRow keeps all 13 on one weighted line at normal font, wraps
+    // to multiple rows as the font enlarges, and collapses to a dropdown at
+    // the largest tier. 3-letter labels appear in landscape (MEDIUM+).
+    AdaptiveChipRow(
+        items = labelsShort.indices.toList(),
+        isSelected = { it == selected },
+        onSelect = onChange,
+        label = { labelsShort[it] },
+        labelLong = { labelsLong[it] }
+    )
 }
 
 @Composable
@@ -2460,33 +2492,61 @@ private fun KpiRow(label: String, sub: String, value: String, showHints: Boolean
 
 @Composable
 private fun KpiMonthsTable(rows: List<KpiMonthRow>, kwhDf: DecimalFormat) {
-    Column {
-        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-            Text("YY-MM",   style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
-            Text("PV Tot",  style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
-            Text("Best",    style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1.4f))
-            Text("Worst",   style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1.4f))
-            Text("Avg",     style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
-        }
-        if (rows.isEmpty()) {
-            Text("No data for the selected filter.",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(vertical = 6.dp))
-        } else rows.forEach { row ->
-            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-                Text(row.monthLabel,  style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                Text(kwhDf.format(row.pvTotal), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+    if (rows.isEmpty()) {
+        Text("No data for the selected filter.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(vertical = 6.dp))
+        return
+    }
+    val columns = listOf(
+        PinnedScrollColumn<KpiMonthRow>(header = "PV Tot", cell = { row ->
+            Text(kwhDf.format(row.pvTotal),
+                style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
+                maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
+        }),
+        PinnedScrollColumn<KpiMonthRow>(
+            header = "Best",
+            minWidth = AdaptiveLayout.SCROLL_COL_MIN_MIXED,
+            weight = 1.4f,
+            cell = { row ->
                 // best/worst arrive as "<value> on <dd>" — re-format the leading
                 // kWh value to 1 dp; the DB query (AlphaEssDAO) and the sim path
                 // (buildMonthRowsFromDoy) both emit 2 dp, but the display layer
                 // is the single source of truth so they stay consistent.
-                Text(reformatKwhOn(row.best, kwhDf),    style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1.4f))
-                Text(reformatKwhOn(row.worst, kwhDf),   style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1.4f))
-                Text(kwhDf.format(row.average), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
+                Text(reformatKwhOn(row.best, kwhDf),
+                    style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
+                    maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
             }
-        }
-    }
+        ),
+        PinnedScrollColumn<KpiMonthRow>(
+            header = "Worst",
+            minWidth = AdaptiveLayout.SCROLL_COL_MIN_MIXED,
+            weight = 1.4f,
+            cell = { row ->
+                Text(reformatKwhOn(row.worst, kwhDf),
+                    style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
+                    maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
+            }
+        ),
+        PinnedScrollColumn<KpiMonthRow>(header = "Avg", cell = { row ->
+            Text(kwhDf.format(row.average),
+                style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
+                maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
+        })
+    )
+    // Single table — at normal size the weighted layout distributes the
+    // columns across the full width (including landscape); under font scaling
+    // it pins the YY-MM column and scrolls the values.
+    PinnedScrollTable(
+        rows = rows,
+        pinnedHeader = "YY-MM",
+        pinnedWeight = 1f,
+        pinnedCell = { row ->
+            Text(row.monthLabel, style = MaterialTheme.typography.bodySmall)
+        },
+        columns = columns
+    )
 }
 
 /**
