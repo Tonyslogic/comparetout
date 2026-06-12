@@ -31,6 +31,25 @@ import com.tfcode.comparetout.TOUTCApplication
  */
 const val SIMPLE_MODE_KEY = "simple_mode"
 
+/** DataStore key holding the row id of the single scenario simple mode manages. */
+const val SIMPLE_SCENARIO_ID_KEY = "simple_scenario_id"
+
+/** The reserved name of simple mode's scenario, so it can be found/cleaned even
+ * if the stored id is lost. */
+const val SIMPLE_SCENARIO_NAME = "My home (simple)"
+
+/** Read the stored simple-scenario id, or null if none. Blocking — off-main-thread. */
+fun storedSimpleScenarioId(app: TOUTCApplication): Long? =
+    runCatching { app.getStringValueFromDataStore(SIMPLE_SCENARIO_ID_KEY) }
+        .getOrDefault("").toLongOrNull()
+
+/** Persist the simple-scenario id ("" clears it). Blocking — off-main-thread. */
+fun setStoredSimpleScenarioId(app: TOUTCApplication, id: Long?) {
+    runCatching {
+        app.putStringValueIntoDataStore(SIMPLE_SCENARIO_ID_KEY, id?.toString() ?: "")
+    }
+}
+
 /**
  * Resolve whether the app should open in simple mode, applying the first-run
  * default exactly once.
