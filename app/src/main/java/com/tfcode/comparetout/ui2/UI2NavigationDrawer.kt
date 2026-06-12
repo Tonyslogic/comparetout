@@ -150,6 +150,21 @@ fun UI2DrawerContent(
                 android.content.Intent(context, UI2TimezoneActivity::class.java))
         }
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+        // Enter the persistent single-screen simple mode. Self-contained: flips
+        // the flag and relaunches UI2MainActivity (CLEAR_TASK) so it works from
+        // any host activity the drawer appears in, landing on the simple screen.
+        UI2DrawerItem(R.drawable.ic_baseline_settings_24,     "Switch to simple UI") {
+            onClose()
+            CoroutineScope(Dispatchers.IO).launch {
+                setSimpleMode(context.applicationContext as TOUTCApplication, true)
+                withContext(Dispatchers.Main) {
+                    val intent = android.content.Intent(context, UI2MainActivity::class.java)
+                    intent.flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
+                        android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
+                    context.startActivity(intent)
+                }
+            }
+        }
         UI2DrawerItem(R.drawable.ic_baseline_settings_24,     "Switch to Legacy UI",    onSwitchLegacy)
     }
 }

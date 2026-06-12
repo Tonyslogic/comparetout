@@ -10,16 +10,25 @@ import androidx.coordinatorlayout.widget.CoordinatorLayout
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.lifecycleScope
 import com.google.android.material.behavior.HideBottomViewOnScrollBehavior
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.tfcode.comparetout.ComparisonUIViewModel
 import com.tfcode.comparetout.R
+import com.tfcode.comparetout.TOUTCApplication
+import com.tfcode.comparetout.model.ToutcRepository
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class UI2MainActivity : AppCompatActivity() {
 
     private val sharedViewModel: UI2SharedViewModel by viewModels()
+
+    @Inject lateinit var repository: ToutcRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,7 +47,9 @@ class UI2MainActivity : AppCompatActivity() {
             insets
         }
 
-        bottomNav.selectedItemId = R.id.ui2DashboardFragment
+        // Hidden until the mode resolves, so the bar never flashes in front of
+        // the simple screen on a fresh install.
+        bottomNav.visibility = View.GONE
 
         val setupNavListener = object : androidx.navigation.NavController.OnDestinationChangedListener {
             override fun onDestinationChanged(controller: androidx.navigation.NavController, destination: androidx.navigation.NavDestination, arguments: Bundle?) {
@@ -53,7 +64,9 @@ class UI2MainActivity : AppCompatActivity() {
                 }
                 controller.addOnDestinationChangedListener { _, dest, _ ->
                     Log.d("UI2", "NavController destination changed: ${dest.label}")
-                    val shouldShow = dest.id != R.id.ui2GraphsFragment
+                    // The Graphs and Simple screens are full-bleed — no bottom bar.
+                    val shouldShow = dest.id != R.id.ui2GraphsFragment &&
+                        dest.id != R.id.ui2SimpleFragment
                     bottomNav.visibility = if (shouldShow) View.VISIBLE else View.GONE
                     // The HideBottomViewOnScrollBehavior hides the bar by
                     // translating it offscreen rather than toggling visibility.
@@ -76,8 +89,37 @@ class UI2MainActivity : AppCompatActivity() {
         }
         navController.addOnDestinationChangedListener(setupNavListener)
 
-        // Launched from an importer notification? Pre-select that source.
-        handleSourceSelectionIntent(intent, bottomNav)
+        // The nav graph is inflated here (not via app:navGraph in XML) so the
+        // start destination can depend on the resolved simple-mode flag. Reading
+        // the flag + scenario count blocks on the DataStore/DB, so do it off the
+        // main thread, then set the graph (which navigates to the start dest).
+        lifecycleScope.launch {
+            val app = application as TOUTCApplication
+            val simple = withContext(Dispatchers.IO) {
+                val hasData = repository.scenarios.orEmpty().isNotEmpty()
+                resolveSimpleMode(app, hasData)
+            }
+            Log.d("UI2", "UI2MainActivity simpleMode=$simple")
+            val graph = navController.navInflater.inflate(R.navigation.nav_ui2)
+            graph.setStartDestination(
+                if (simple) R.id.ui2SimpleFragment else R.id.ui2DashboardFragment
+            )
+            navController.graph = graph
+
+            // The ongoing visibility listener only fires on *subsequent*
+            // destination changes, so set the bar's initial state for the start
+            // destination here: visible on the full-UI dashboard, gone in simple
+            // mode (and on Graphs, which is never the start destination).
+            if (simple) {
+                bottomNav.visibility = View.GONE
+            } else {
+                bottomNav.visibility = View.VISIBLE
+                bottomNav.selectedItemId = R.id.ui2DashboardFragment
+                // Notification-launched source selection only makes sense in the
+                // full UI (the simple screen has no source list / dashboard tab).
+                handleSourceSelectionIntent(intent, bottomNav)
+            }
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
