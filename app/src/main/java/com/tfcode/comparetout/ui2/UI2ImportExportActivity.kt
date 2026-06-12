@@ -605,6 +605,9 @@ private fun ImportExportScreen(
                 hint = "Accepts the JSON shape produced by the Share button on a plan, " +
                         "or the bulk export above.",
                 applyLabel = "Continue",
+                communityUrl = PricePlanDownloader.RATES_URL,
+                communityNote = "Community-maintained Irish supplier tariffs — may be out of " +
+                    "date. You can edit any plan after importing.",
                 parse = ::parsePricePlansJson,
                 onApply = {
                     pendingImport = PendingImport.Plans(it)

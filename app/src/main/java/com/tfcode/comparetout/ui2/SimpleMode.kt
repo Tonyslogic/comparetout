@@ -42,6 +42,9 @@ const val SIMPLE_SCENARIO_NAME = "My home (simple)"
  * import worker keys data by the SN we pass, not by the file's MPRN). */
 const val SIMPLE_ESBN_SYSTEM_SN = "ESBN HDF"
 
+/** DataStore key holding the remembered quick-mode inputs (JSON). */
+const val SIMPLE_INPUTS_KEY = "simple_inputs_json"
+
 /** Read the stored simple-scenario id, or null if none. Blocking — off-main-thread. */
 fun storedSimpleScenarioId(app: TOUTCApplication): Long? =
     runCatching { app.getStringValueFromDataStore(SIMPLE_SCENARIO_ID_KEY) }

@@ -51,6 +51,7 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.math.roundToInt
 
 /**
  * Builds (and rebuilds) the single scenario that simple mode manages, then runs
@@ -91,6 +92,8 @@ class SimpleScenarioLoader @Inject constructor(
         val annualKwh: Double,
         val usage: UsageSource,
         val hasSolar: Boolean,
+        /** PV array size in kWp (adjustable in 0.5 steps on the screen). */
+        val solarKwp: Double,
         val latitude: Double,
         val longitude: Double,
         val azimuthDegrees: Int,
@@ -170,9 +173,10 @@ class SimpleScenarioLoader @Inject constructor(
         val panels = if (inputs.hasSolar) listOf(
             Panel().also { p ->
                 p.panelName = "Solar"
-                // Fixed ≈7 kWp system (20 × 350 W); only orientation + location vary.
-                p.panelCount = SIMPLE_PANEL_COUNT
-                p.panelkWp = SIMPLE_PANEL_WP
+                // One string sized to the chosen kWp (panelkWp is watts; the PV
+                // calc only uses count × watts, so a single string is exact).
+                p.panelCount = 1
+                p.panelkWp = (inputs.solarKwp * 1000).roundToInt()
                 p.azimuth = inputs.azimuthDegrees
                 p.slope = SIMPLE_PANEL_SLOPE
                 p.latitude = inputs.latitude
@@ -328,10 +332,7 @@ class SimpleScenarioLoader @Inject constructor(
 
     companion object {
         private const val INVERTER_NAME = "Inverter"
-        // Fixed ≈7 kWp array (20 × 350 W); panelkWp is watts-per-panel.
-        private const val SIMPLE_PANEL_COUNT = 20
-        private const val SIMPLE_PANEL_WP = 350
-        private const val SIMPLE_PANEL_SLOPE = 40
+        private const val SIMPLE_PANEL_SLOPE = 40   // degrees tilt
         private const val NIGHT_CHARGE_BEGIN = 2
         private const val NIGHT_CHARGE_END = 5
     }

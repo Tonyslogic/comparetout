@@ -15,10 +15,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -48,6 +50,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import java.net.URL
 import java.nio.charset.StandardCharsets
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -70,7 +73,7 @@ sealed class ParsedPreview<out T> {
     data class Err(val message: String) : ParsedPreview<Nothing>()
 }
 
-private enum class ImportSource { FILE, PASTE }
+private enum class ImportSource { FILE, PASTE, COMMUNITY }
 
 private val IMPORT_MIME_TYPES = arrayOf(
     "application/json",
@@ -85,6 +88,11 @@ fun <T> UI2ImportSheet(
     title: String,
     hint: String? = null,
     applyLabel: String = "Apply",
+    /** When non-null, offers a third "Community" source that downloads JSON from
+     * this URL into the same parse/preview/apply pipeline. */
+    communityUrl: String? = null,
+    communityNote: String = "Community-maintained — may be out of date. You can edit " +
+        "anything after importing.",
     parse: (String) -> ParsedPreview<T>,
     onApply: (T) -> Unit,
     onDismiss: () -> Unit
@@ -98,6 +106,34 @@ fun <T> UI2ImportSheet(
     var pickedFileName by remember { mutableStateOf<String?>(null) }
     var buffer by remember { mutableStateOf("") }          // raw text fed to parse()
     var pasteText by remember { mutableStateOf("") }
+    var downloading by remember { mutableStateOf(false) }
+    var downloadError by remember { mutableStateOf<String?>(null) }
+
+    // Fetch the community JSON over the network into `buffer`, so it flows
+    // through the same parse → preview → Apply path as file/paste.
+    fun startCommunityDownload() {
+        val url = communityUrl ?: return
+        source = ImportSource.COMMUNITY
+        scope.launch {
+            downloading = true
+            downloadError = null
+            buffer = ""
+            val text = withContext(Dispatchers.IO) {
+                runCatching {
+                    URL(url).openStream().use { ins ->
+                        BufferedReader(InputStreamReader(ins, StandardCharsets.UTF_8))
+                            .use { it.readText() }
+                    }
+                }.getOrNull()
+            }
+            downloading = false
+            if (text.isNullOrBlank()) {
+                downloadError = "Couldn't download the list — check your connection and retry."
+            } else {
+                buffer = text
+            }
+        }
+    }
 
     // Preview is recomputed whenever the buffer changes. Empty buffer = no
     // preview yet (Apply disabled); non-empty buffer = either Ok or Err.
@@ -178,6 +214,17 @@ fun <T> UI2ImportSheet(
                             modifier = Modifier.size(16.dp))
                     }
                 )
+                if (communityUrl != null) {
+                    FilterChip(
+                        selected = source == ImportSource.COMMUNITY,
+                        onClick = { startCommunityDownload() },
+                        label = { Text("Community") },
+                        leadingIcon = {
+                            Icon(Icons.Default.CloudDownload, contentDescription = null,
+                                modifier = Modifier.size(16.dp))
+                        }
+                    )
+                }
             }
 
             when (source) {
@@ -214,6 +261,37 @@ fun <T> UI2ImportSheet(
                             modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
                         Text("Paste from clipboard")
+                    }
+                }
+                ImportSource.COMMUNITY -> {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            communityNote,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (downloading) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                CircularProgressIndicator(Modifier.size(20.dp))
+                                Spacer(Modifier.width(12.dp))
+                                Text("Downloading latest…",
+                                    style = MaterialTheme.typography.bodySmall)
+                            }
+                        } else {
+                            OutlinedButton(
+                                onClick = { startCommunityDownload() },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.CloudDownload, contentDescription = null,
+                                    modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("Download latest")
+                            }
+                        }
+                        downloadError?.let {
+                            Text(it, style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error)
+                        }
                     }
                 }
             }

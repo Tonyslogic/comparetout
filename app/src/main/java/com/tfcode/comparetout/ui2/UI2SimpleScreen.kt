@@ -39,8 +39,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -297,22 +299,41 @@ private fun SolarCard(
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Solar panels (≈7 kWp)",
+                    "Solar panels",
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f)
                 )
                 Switch(checked = state.hasSolar, onCheckedChange = vm::setHasSolar)
             }
-            if (showHints) {
-                Text(
-                    "We model a typical ~7 kWp roof array at 40° tilt and fetch a year of " +
-                        "expected output for your exact spot from PVGIS (an EU solar dataset). " +
-                        "Turn this off to see the battery-only case.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
             if (state.hasSolar) {
+                // Capacity stepper: ± 0.5 kWp.
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "System size",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(onClick = vm::decSolarKwp) {
+                        Icon(Icons.Default.Remove, contentDescription = "Decrease")
+                    }
+                    Text(
+                        String.format(Locale.US, "%.1f kWp", state.solarKwp),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    IconButton(onClick = vm::incSolarKwp) {
+                        Icon(Icons.Default.Add, contentDescription = "Increase")
+                    }
+                }
+                if (showHints) {
+                    Text(
+                        "Adjust in 0.5 kWp steps — a typical home install is around 7 kWp. " +
+                            "We model it at 40° tilt and fetch a year of expected output for " +
+                            "your exact spot from PVGIS (an EU solar dataset). Turn solar off " +
+                            "to see the battery-only case.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 OutlinedTextField(
                     value = state.azimuth,
                     onValueChange = vm::setAzimuth,

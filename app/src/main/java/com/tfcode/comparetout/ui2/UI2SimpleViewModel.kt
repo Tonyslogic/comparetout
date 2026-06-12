@@ -35,6 +35,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -64,6 +65,7 @@ class UI2SimpleViewModel @Inject constructor(
         val annualKwh: String = "4200",
         val usageMode: UsageMode = UsageMode.STANDARD,
         val hasSolar: Boolean = true,
+        val solarKwp: Double = 7.0,           // adjustable in 0.5 kWp steps
         val azimuth: String = "180",          // degrees; 180 = due south
         val locationLat: Double? = null,
         val locationLon: Double? = null,
@@ -109,7 +111,25 @@ class UI2SimpleViewModel @Inject constructor(
 
     init {
         refreshPlanCount()
-        loadExisting()
+        viewModelScope.launch {
+            // Restore the remembered inputs (full set, incl. usage mode) before
+            // anything else; fall back to reading them off an existing scenario.
+            val restored = withContext(Dispatchers.IO) { readPersistedInputs() }
+            if (restored != null) {
+                _uiState.value = restored
+                // Re-hydrate the HDF profile from the still-imported data so a
+                // restored "My ESBN data" selection can Calculate without re-import.
+                if (restored.usageMode == UsageMode.HDF) tryDeriveHdf(announce = false)
+                pollExistingResult()
+            } else {
+                loadExisting()
+            }
+            // Persist any later edits (debounced) so they survive app restarts.
+            _uiState.collectLatest { state ->
+                delay(400)
+                withContext(Dispatchers.IO) { writePersistedInputs(state) }
+            }
+        }
     }
 
     // ── Input setters ─────────────────────────────────────────────────────
@@ -120,6 +140,9 @@ class UI2SimpleViewModel @Inject constructor(
     fun setNightCharge(v: Boolean) = _uiState.update { it.copy(nightCharge = v) }
     fun setLocation(lat: Double, lon: Double) =
         _uiState.update { it.copy(locationLat = lat, locationLon = lon) }
+
+    fun incSolarKwp() = _uiState.update { it.copy(solarKwp = (it.solarKwp + 0.5).coerceAtMost(20.0)) }
+    fun decSolarKwp() = _uiState.update { it.copy(solarKwp = (it.solarKwp - 0.5).coerceAtLeast(0.5)) }
 
     fun setUsageMode(mode: UsageMode) {
         _uiState.update { it.copy(usageMode = mode) }
@@ -187,6 +210,7 @@ class UI2SimpleViewModel @Inject constructor(
             annualKwh = annual,
             usage = usage,
             hasSolar = s.hasSolar,
+            solarKwp = s.solarKwp,
             latitude = s.locationLat ?: 0.0,
             longitude = s.locationLon ?: 0.0,
             azimuthDegrees = s.azimuth.toIntOrNull() ?: 180,
@@ -277,10 +301,12 @@ class UI2SimpleViewModel @Inject constructor(
     }
 
     /**
-     * Aggregate all imported rows for [sysSn] (queried over a wide range) into
-     * hourly/day-of-week/monthly distributions plus a yearly total scaled from
-     * the actual span of data — the same shape the wizard's
-     * `deriveLoadProfileFromSource` produces. Independent of any LiveData timing.
+     * Aggregate imported rows for [sysSn] into hourly/day-of-week/monthly
+     * distributions plus the yearly usage total. The total is the **actual sum
+     * of the most recent ~12 months** in the file (not a scaled estimate); only
+     * when the file holds less than a year do we scale the partial data up to a
+     * year. Distributions are taken over the same window. Independent of any
+     * LiveData timing.
      */
     private fun aggregateEsbn(
         sysSn: String
@@ -290,31 +316,39 @@ class UI2SimpleViewModel @Inject constructor(
         }.getOrNull().orEmpty()
         if (rows.isEmpty()) return null
 
+        val maxDate = rows.mapNotNull { runCatching { LocalDate.parse(it.date) }.getOrNull() }
+            .maxOrNull() ?: return null
+        // Most recent single-year window: (maxDate - 1 year, maxDate] inclusive.
+        val windowStart = maxDate.minusYears(1).plusDays(1)
+
         val hourly = DoubleArray(24)
         val daily = DoubleArray(7)
         val monthly = DoubleArray(12)
         var total = 0.0
-        var minDate: LocalDate? = null
-        var maxDate: LocalDate? = null
+        var earliestInWindow: LocalDate? = null
         rows.forEach { r ->
             val e = r.buy                       // ESBN stores consumption as "buy"
             if (e <= 0.0) return@forEach
             val date = runCatching { LocalDate.parse(r.date) }.getOrNull() ?: return@forEach
+            if (date.isBefore(windowStart) || date.isAfter(maxDate)) return@forEach
             val hour = r.minute.substringBefore(":").toIntOrNull() ?: return@forEach
             hourly[hour] += e
             daily[date.dayOfWeek.value - 1] += e
             monthly[date.monthValue - 1] += e
             total += e
-            if (minDate == null || date.isBefore(minDate)) minDate = date
-            if (maxDate == null || date.isAfter(maxDate)) maxDate = date
+            val cur = earliestInWindow
+            if (cur == null || date.isBefore(cur)) earliestInWindow = date
         }
-        if (total <= 0.0 || minDate == null || maxDate == null) return null
+        val earliest = earliestInWindow ?: return null
+        if (total <= 0.0) return null
 
         val h = hourly.map { it / total * 100.0 }
         val d = daily.map { it / total * 100.0 }
         val m = monthly.map { it / total * 100.0 }
-        val days = ChronoUnit.DAYS.between(minDate, maxDate) + 1
-        val annual = if (days > 0) total * (365.0 / days) else total
+        // A full year present → the window total IS the annual usage. Less than a
+        // year of data → scale the partial total up to a year.
+        val daysInWindow = ChronoUnit.DAYS.between(earliest, maxDate) + 1
+        val annual = if (daysInWindow >= 365) total else total * (365.0 / daysInWindow)
         return SimpleScenarioLoader.UsageSource.Derived(h, d, m, "ESBN HDF") to annual
     }
 
@@ -348,7 +382,8 @@ class UI2SimpleViewModel @Inject constructor(
         if (attempts > 1) _events.tryEmit("Still simulating — tap Refresh in a moment")
     }
 
-    /** Reflect an existing simple scenario's inputs + cost back into the UI. */
+    /** Reflect an existing simple scenario's inputs + cost back into the UI.
+     * Fallback for installs predating input persistence. */
     private fun loadExisting() {
         viewModelScope.launch {
             val id = withStoredId() ?: return@launch
@@ -362,6 +397,7 @@ class UI2SimpleViewModel @Inject constructor(
                 it.copy(
                     annualKwh = lp?.annualUsage?.toInt()?.toString() ?: it.annualKwh,
                     hasSolar = panel != null,
+                    solarKwp = panel?.let { p -> (p.panelCount * p.panelkWp) / 1000.0 } ?: it.solarKwp,
                     azimuth = panel?.azimuth?.toString() ?: it.azimuth,
                     locationLat = panel?.latitude,
                     locationLon = panel?.longitude,
@@ -371,5 +407,22 @@ class UI2SimpleViewModel @Inject constructor(
             }
             pollForResult(id, attempts = 1)
         }
+    }
+
+    /** Re-read just the cost for the already-restored simple scenario. */
+    private fun pollExistingResult() {
+        viewModelScope.launch {
+            val id = withStoredId() ?: return@launch
+            pollForResult(id, attempts = 1)
+        }
+    }
+
+    private fun readPersistedInputs(): UiState? = runCatching {
+        val json = app.getStringValueFromDataStore(SIMPLE_INPUTS_KEY)
+        if (json.isBlank()) null else Gson().fromJson(json, UiState::class.java)
+    }.getOrNull()
+
+    private fun writePersistedInputs(state: UiState) {
+        runCatching { app.putStringValueIntoDataStore(SIMPLE_INPUTS_KEY, Gson().toJson(state)) }
     }
 }
