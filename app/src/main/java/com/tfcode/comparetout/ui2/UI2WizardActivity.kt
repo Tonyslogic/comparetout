@@ -233,6 +233,14 @@ private fun WizardScreen(
                 result.pvgisStringsQueued > 0 -> {
                     pvgisQueued = result.pvgisStringsQueued
                 }
+                else -> {
+                    // Plain Save with no PVGIS fetch pending. The save invalidated
+                    // this scenario's sim + costing rows, so recompute now rather
+                    // than waiting for the next navigation to notice. (When PVGIS
+                    // strings are queued the fetch worker kicks off the recompute
+                    // once its data lands, so we skip it here.)
+                    SimulatorLauncher.simulateIfNeeded(context)
+                }
             }
             if (!result.runSimulation) {
                 lastSavedBuilder = builder

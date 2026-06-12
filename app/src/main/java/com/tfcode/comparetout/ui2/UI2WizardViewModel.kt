@@ -1349,6 +1349,15 @@ class UI2WizardViewModel @Inject constructor(
                                 val panelId = repository.savePanel(scenarioId, entry.toPanel())
                                 triggerPanelDataFetch(entry, panelId)
                             }
+                        // Editing a scenario in place changes its energy flows, so
+                        // any previously computed simulation + costing rows are now
+                        // stale. The simulator only runs when no sim rows exist and
+                        // CostingWorker skips existing costings, so they must be
+                        // cleared here to force a full recompute — mirrors what the
+                        // legacy per-component activities did on save. (NEW / COPY /
+                        // LINKED paths create fresh scenarios with no such rows.)
+                        repository.deleteSimulationDataForScenarioID(scenarioId)
+                        repository.deleteCostingDataForScenarioID(scenarioId)
                         scenarioId
                     }
                     b.isLinked -> {
