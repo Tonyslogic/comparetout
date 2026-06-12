@@ -141,6 +141,29 @@ fun UI2DrawerContent(
                 Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
             }
         }
+        // Download the community-maintained real Irish supplier tariffs. Always
+        // paired with the "may be out of date" caveat (the list is public and
+        // can drift; the price-plan editor stays available to correct it).
+        UI2DrawerItem(R.drawable.ic_baseline_download_24,     "Refresh tariffs") {
+            onClose()
+            val downloader = EntryPointAccessors
+                .fromApplication(context.applicationContext, PricePlanDownloaderEntryPoint::class.java)
+                .pricePlanDownloader()
+            coroutineScope.launch {
+                val msg = when (val result = downloader.download()) {
+                    is PricePlanDownloader.Result.Loaded ->
+                        "Downloaded ${result.added} tariff${if (result.added == 1) "" else "s"} " +
+                            "· these are community-maintained and may be out of date"
+                    is PricePlanDownloader.Result.Empty ->
+                        "No tariffs found in the published list"
+                    is PricePlanDownloader.Result.NoNetwork ->
+                        "No connection — couldn't download tariffs"
+                    is PricePlanDownloader.Result.Failed ->
+                        "Couldn't download tariffs: ${result.error.message ?: "unknown error"}"
+                }
+                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+            }
+        }
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
         // Preferences — global formatting choices.
         UI2DrawerItem(R.drawable.ic_baseline_settings_24,     "Units",                  onClose)
