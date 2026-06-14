@@ -140,6 +140,15 @@ class UI2SimulationsViewModel @Inject constructor(
         }
     }
 
+    /** Delete every scenario. Data sources are untouched — they are managed
+     *  separately and are read-only in this list. */
+    fun deleteAllScenarios() {
+        viewModelScope.launch(Dispatchers.IO) {
+            _scenarios.value.forEach { repository.deleteScenario(it.scenarioIndex.toInt()) }
+            _enrichments.update { emptyMap() }
+        }
+    }
+
     /**
      * Build the JSON payload for a single scenario, ready for sharing. We pull
      * the full export bundle from the repository (same path used by legacy bulk

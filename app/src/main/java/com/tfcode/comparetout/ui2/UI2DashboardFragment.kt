@@ -1319,6 +1319,18 @@ private fun <R> CostingsTableWithBandPie(
     val density = LocalDensity.current
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         val wide = maxWidth >= AdaptiveLayout.WIDTH_WIDE_AT
+        // Highlight the row whose tariff-band pie is currently on screen. WIDE:
+        // the side pie is always visible and defaults to the top row, so
+        // highlight `selected`. COMPACT: the pie is a dialog opened on tap, so
+        // only highlight once a row has been tapped — we set selectedId on that
+        // tap too, keeping the row highlighted while the dialog is up and after
+        // it's dismissed.
+        val highlightId: Any? = if (wide) selected?.let { rowId(it) } else selectedId
+        val highlightColor = MaterialTheme.colorScheme.secondaryContainer
+        val effectiveRowBackground: @Composable (R, Int) -> Color = { r, idx ->
+            if (highlightId != null && rowId(r) == highlightId) highlightColor
+            else rowBackground(r, idx)
+        }
         val table: @Composable () -> Unit = {
             PinnedScrollTable(
                 rows = rows,
@@ -1326,8 +1338,11 @@ private fun <R> CostingsTableWithBandPie(
                 pinnedWeight = 2f,
                 pinnedCell = pinnedCell,
                 columns = columns,
-                rowBackground = rowBackground,
-                onRowClick = { if (wide) selectedId = rowId(it) else zoomedId = rowId(it) },
+                rowBackground = effectiveRowBackground,
+                onRowClick = {
+                    selectedId = rowId(it)
+                    if (!wide) zoomedId = rowId(it)
+                },
                 footer = {
                     Text(
                         if (wide) "Tap a row to update the band chart →"

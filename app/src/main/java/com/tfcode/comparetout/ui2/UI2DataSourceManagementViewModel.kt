@@ -663,6 +663,64 @@ class UI2DataSourceManagementViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Remove an entire source: cancel any in-flight/scheduled work, delete every
+     * reading for all of its systems, AND clear its credentials + system list
+     * from DataStore. Distinct from [deleteAllData], which only drops the
+     * readings and keeps the source configured. Clearing a key is done by
+     * storing the empty string — `buildXState()` treats blank/empty as
+     * "not configured / no systems".
+     */
+    fun deleteEntireSource(importer: ComparisonUIViewModel.Importer) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _busy.postValue(true)
+            try {
+                val sns = when (importer) {
+                    ComparisonUIViewModel.Importer.ALPHAESS -> buildAlphaState().systems
+                    ComparisonUIViewModel.Importer.HOME_ASSISTANT -> buildHAState().systems
+                    ComparisonUIViewModel.Importer.ESBNHDF -> buildEsbnState().systems
+                    else -> emptyList()
+                }.map { it.sysSn }
+                sns.forEach { sn ->
+                    wm.cancelAllWorkByTag(sn)
+                    wm.cancelAllWorkByTag(sn + "daily")
+                    repository.clearAlphaESSDataForSN(sn)
+                }
+                when (importer) {
+                    ComparisonUIViewModel.Importer.ALPHAESS -> {
+                        app.putStringValueIntoDataStore(ALPHA_APP_ID_KEY, "")
+                        app.putStringValueIntoDataStore(ALPHA_APP_SECRET_KEY, "")
+                        app.putStringValueIntoDataStore(ALPHA_GOOD_KEY, "")
+                        app.putStringValueIntoDataStore(ALPHA_SYSTEM_LIST_KEY, "")
+                        app.putStringValueIntoDataStore(ALPHA_SELECTED_KEY, "")
+                    }
+                    ComparisonUIViewModel.Importer.HOME_ASSISTANT -> {
+                        app.putStringValueIntoDataStore(HA_HOST_KEY, "")
+                        app.putStringValueIntoDataStore(HA_TOKEN_KEY, "")
+                        app.putStringValueIntoDataStore(HA_GOOD_KEY, "")
+                        app.putStringValueIntoDataStore(HA_SYSTEM_LIST_KEY, "")
+                        app.putStringValueIntoDataStore(HA_SELECTED_KEY, "")
+                        app.putStringValueIntoDataStore(HA_SENSORS_KEY, "")
+                    }
+                    ComparisonUIViewModel.Importer.ESBNHDF -> {
+                        app.putStringValueIntoDataStore(ESBN_SYSTEM_LIST_KEY, "")
+                        app.putStringValueIntoDataStore(ESBN_SELECTED_KEY, "")
+                    }
+                    else -> {}
+                }
+                _toast.postValue(Toast("Source removed"))
+            } catch (t: Throwable) {
+                _toast.postValue(Toast(t.message ?: "Could not remove source"))
+            } finally {
+                _alpha.postValue(buildAlphaState())
+                _ha.postValue(buildHAState())
+                _esbn.postValue(buildEsbnState())
+                _haSensors.postValue(readHASensors())
+                _busy.postValue(false)
+            }
+        }
+    }
+
     // ── Helpers ────────────────────────────────────────────────────────
 
     private fun decryptOrNull(s: String?): String? {

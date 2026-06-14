@@ -229,7 +229,8 @@ private fun DataSourceManagementScreen(
                                 onImportFile = viewModel::importAlphaFile,
                                 onExportFolder = viewModel::exportAlpha,
                                 staleByAlphaSn = staleByAlphaSn,
-                                onMigrate = viewModel::runMigration
+                                onMigrate = viewModel::runMigration,
+                                onRemoveSource = { viewModel.deleteEntireSource(Importer.ALPHAESS) }
                             )
                         }
                     )
@@ -249,7 +250,8 @@ private fun DataSourceManagementScreen(
                                 onFetch = viewModel::fetchHA,
                                 onCancel = viewModel::cancelFetch,
                                 onDeleteAll = viewModel::deleteAllData,
-                                onDeleteRange = viewModel::deleteRange
+                                onDeleteRange = viewModel::deleteRange,
+                                onRemoveSource = { viewModel.deleteEntireSource(Importer.HOME_ASSISTANT) }
                             )
                         }
                     )
@@ -267,7 +269,8 @@ private fun DataSourceManagementScreen(
                                 onImportFile = viewModel::importEsbnFile,
                                 onDeleteAll = viewModel::deleteAllData,
                                 onDeleteRange = viewModel::deleteRange,
-                                onExportFolder = viewModel::exportEsbn
+                                onExportFolder = viewModel::exportEsbn,
+                                onRemoveSource = { viewModel.deleteEntireSource(Importer.ESBNHDF) }
                             )
                         }
                     )
@@ -427,9 +430,11 @@ private fun AlphaSection(
     onImportFile: (String, String) -> Unit,
     onExportFolder: (String, String) -> Unit,
     staleByAlphaSn: Map<String, Boolean>,
-    onMigrate: (String) -> Unit
+    onMigrate: (String) -> Unit,
+    onRemoveSource: () -> Unit
 ) {
     var showCreds by remember { mutableStateOf(false) }
+    var showDeleteSource by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<ManagedSystem?>(null) }
     var pendingFetch by remember { mutableStateOf<ManagedSystem?>(null) }
     // The pickers fire asynchronously; remember which row's button kicked
@@ -456,7 +461,9 @@ private fun AlphaSection(
     CredentialStrip(
         configured = state?.credentialsConfigured == true,
         good = state?.credentialsKnownGood == true,
-        onEdit = { showCreds = true }
+        onEdit = { showCreds = true },
+        onDeleteSource = if (state?.credentialsConfigured == true || !state?.systems.isNullOrEmpty())
+            ({ showDeleteSource = true }) else null
     )
     SystemList(
         systems = state?.systems.orEmpty(),
@@ -493,6 +500,14 @@ private fun AlphaSection(
             }
         )
     }
+    if (showDeleteSource) {
+        DeleteSourceDialog(
+            sourceName = "AlphaESS Cloud",
+            mentionsCredentials = true,
+            onDismiss = { showDeleteSource = false },
+            onConfirm = { onRemoveSource(); showDeleteSource = false }
+        )
+    }
     pendingDelete?.let { sys ->
         DeleteDialog(
             sysSn = sys.sysSn,
@@ -527,9 +542,11 @@ private fun HASection(
     onFetch: (LocalDateTime) -> Unit,
     onCancel: (String) -> Unit,
     onDeleteAll: (String) -> Unit,
-    onDeleteRange: (String, LocalDateTime, LocalDateTime) -> Unit
+    onDeleteRange: (String, LocalDateTime, LocalDateTime) -> Unit,
+    onRemoveSource: () -> Unit
 ) {
     var showCreds by remember { mutableStateOf(false) }
+    var showDeleteSource by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<ManagedSystem?>(null) }
     var pendingFetch by remember { mutableStateOf<ManagedSystem?>(null) }
     if (showHints) {
@@ -538,7 +555,9 @@ private fun HASection(
     CredentialStrip(
         configured = state?.credentialsConfigured == true,
         good = state?.credentialsKnownGood == true,
-        onEdit = { showCreds = true }
+        onEdit = { showCreds = true },
+        onDeleteSource = if (state?.credentialsConfigured == true || !state?.systems.isNullOrEmpty())
+            ({ showDeleteSource = true }) else null
     )
 
     SystemList(
@@ -585,6 +604,14 @@ private fun HASection(
                 onRediscover(h, t)
                 showCreds = false
             }
+        )
+    }
+    if (showDeleteSource) {
+        DeleteSourceDialog(
+            sourceName = "Home Assistant",
+            mentionsCredentials = true,
+            onDismiss = { showDeleteSource = false },
+            onConfirm = { onRemoveSource(); showDeleteSource = false }
         )
     }
     pendingDelete?.let { sys ->
@@ -748,9 +775,11 @@ private fun EsbnSection(
     onImportFile: (String) -> Unit,
     onDeleteAll: (String) -> Unit,
     onDeleteRange: (String, LocalDateTime, LocalDateTime) -> Unit,
-    onExportFolder: (String, String) -> Unit
+    onExportFolder: (String, String) -> Unit,
+    onRemoveSource: () -> Unit
 ) {
     var pendingDelete by remember { mutableStateOf<ManagedSystem?>(null) }
+    var showDeleteSource by remember { mutableStateOf(false) }
     var exportTargetMprn by remember { mutableStateOf<String?>(null) }
     val pickFile = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
@@ -787,13 +816,25 @@ private fun EsbnSection(
             )
         }
     }
-    Button(
-        onClick = { pickFile.launch("*/*") },
-        modifier = Modifier.fillMaxWidth()
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(Icons.Default.Download, null, Modifier.size(16.dp))
-        Spacer(Modifier.width(6.dp))
-        Text("Import HDF file")
+        Button(
+            onClick = { pickFile.launch("*/*") },
+            modifier = Modifier.weight(1f)
+        ) {
+            Icon(Icons.Default.Download, null, Modifier.size(16.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("Import HDF file")
+        }
+        if (!state?.systems.isNullOrEmpty()) {
+            IconButton(onClick = { showDeleteSource = true }) {
+                Icon(Icons.Default.Delete, contentDescription = "Remove source",
+                    tint = MaterialTheme.colorScheme.error)
+            }
+        }
     }
     SystemList(
         systems = state?.systems.orEmpty(),
@@ -826,6 +867,14 @@ private fun EsbnSection(
             onDeleteRange = { f, t -> onDeleteRange(sys.sysSn, f, t); pendingDelete = null }
         )
     }
+    if (showDeleteSource) {
+        DeleteSourceDialog(
+            sourceName = "ESBN data",
+            mentionsCredentials = false,
+            onDismiss = { showDeleteSource = false },
+            onConfirm = { onRemoveSource(); showDeleteSource = false }
+        )
+    }
 }
 
 // ── Shared widgets ─────────────────────────────────────────────────────
@@ -834,7 +883,11 @@ private fun EsbnSection(
 private fun CredentialStrip(
     configured: Boolean,
     good: Boolean,
-    onEdit: () -> Unit
+    onEdit: () -> Unit,
+    // When non-null, a trashcan appears beside the credentials action that
+    // removes the whole source — readings AND credentials. Omitted (null)
+    // when there is nothing configured to remove.
+    onDeleteSource: (() -> Unit)? = null
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
@@ -864,8 +917,60 @@ private fun CredentialStrip(
                 Spacer(Modifier.width(4.dp))
                 Text(if (configured) "Update" else "Set")
             }
+            if (onDeleteSource != null) {
+                Spacer(Modifier.width(4.dp))
+                IconButton(onClick = onDeleteSource) {
+                    Icon(Icons.Default.Delete, contentDescription = "Remove source",
+                        tint = MaterialTheme.colorScheme.error)
+                }
+            }
         }
     }
+}
+
+/**
+ * Confirmation for removing an entire source. Spells out that this wipes both
+ * the stored readings and (where applicable) the credentials — the per-system
+ * Delete dialog keeps credentials, this one does not.
+ */
+@Composable
+private fun DeleteSourceDialog(
+    sourceName: String,
+    mentionsCredentials: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Remove $sourceName?") },
+        text = {
+            Text(
+                if (mentionsCredentials)
+                    "This permanently deletes all stored readings for this source AND its " +
+                        "saved credentials. You'll need to re-enter them to use it again. " +
+                        "There is no undo."
+                else
+                    "This permanently deletes all stored readings and configuration for this " +
+                        "source. There is no undo.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Icon(Icons.Default.Delete, null, Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Remove")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
 }
 
 @Composable

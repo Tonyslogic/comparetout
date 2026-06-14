@@ -7,6 +7,7 @@ import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.model.json.JsonTools
+import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile
 import com.tfcode.comparetout.model.priceplan.DayRate
 import com.tfcode.comparetout.model.priceplan.PricePlan
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -102,6 +103,42 @@ class UI2PricePlanListViewModel @Inject constructor(
             // UI doesn't show a star next to a row that's about to vanish.
             if (favouriteStore.id.value == planId) favouriteStore.setFavourite(null)
         }
+    }
+
+    /** Delete every supplier plan, clearing each plan's cached costings first
+     *  (mirrors [delete] — without the pre-delete, the Compare tab can show
+     *  ghost rows for a since-deleted plan until a later prune runs). */
+    fun deleteAll() {
+        viewModelScope.launch(Dispatchers.IO) {
+            _rows.value.forEach { row ->
+                repository.deleteRelatedCostings(row.planId.toInt())
+                repository.deletePricePlan(row.planId.toInt())
+            }
+            favouriteStore.setFavourite(null)
+        }
+    }
+
+    /**
+     * Add the parsed plans to the library via the same repository path the
+     * Import / Export screen uses. `clobber` replaces a plan with a matching
+     * name; otherwise the import is kept alongside the existing one.
+     */
+    suspend fun importPlansFromList(
+        list: List<PricePlanJsonFile>,
+        clobber: Boolean
+    ): ImportOutcome = withContext(Dispatchers.IO) {
+        var replaced = 0
+        var added = 0
+        val existingNames: Set<String> =
+            repository.allPricePlansNow?.map { it.planName }?.toSet().orEmpty()
+        list.forEach { pp ->
+            val plan = JsonTools.createPricePlan(pp)
+            val drs = ArrayList<DayRate>()
+            pp.rates?.forEach { drj -> drs.add(JsonTools.createDayRate(drj)) }
+            repository.insert(plan, drs, clobber)
+            if (plan.planName in existingNames) replaced += 1 else added += 1
+        }
+        ImportOutcome(replaced, added)
     }
 
     /**

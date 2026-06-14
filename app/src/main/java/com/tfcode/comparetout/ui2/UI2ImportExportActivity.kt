@@ -1073,7 +1073,7 @@ private enum class ImportTarget { PLANS, SCENARIOS }
 // the legacy MainActivity importers do, but extracted out of the file-pick
 // callback so the parser can run on a pasted text buffer.
 
-private fun parsePricePlansJson(text: String): ParsedPreview<List<PricePlanJsonFile>> = try {
+internal fun parsePricePlansJson(text: String): ParsedPreview<List<PricePlanJsonFile>> = try {
     val gson = Gson()
     val trimmed = text.trimStart()
     // Gson returns null for an empty or "null" payload — guard before .filter.
