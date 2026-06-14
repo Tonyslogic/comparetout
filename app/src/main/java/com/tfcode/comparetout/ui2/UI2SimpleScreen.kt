@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -123,9 +124,16 @@ fun UI2SimpleScreen(
             )
         },
         bottomBar = {
-            // A single tab-like entry to leave simple mode, echoing the full UI's
-            // bottom navigation.
+            // Tab-like bottom nav for quick mode: Graphs (once a scenario exists)
+            // and the switch back to the full UI.
             NavigationBar {
+                NavigationBarItem(
+                    selected = false,
+                    enabled = status == UI2SimpleViewModel.Status.READY,
+                    onClick = onLaunchGraphs,
+                    icon = { Icon(Icons.Default.ShowChart, contentDescription = null) },
+                    label = { Text("Graphs") }
+                )
                 NavigationBarItem(
                     selected = false,
                     onClick = onSwitchToFullUi,
@@ -169,13 +177,6 @@ fun UI2SimpleScreen(
                 ) { Text("Calculate") }
 
                 ResultCard(status, result, planCount, viewModel)
-
-                // Graphs is allowed in simple mode once a scenario exists.
-                OutlinedButton(
-                    onClick = onLaunchGraphs,
-                    enabled = status == UI2SimpleViewModel.Status.READY,
-                    modifier = Modifier.fillMaxWidth()
-                ) { Text("Open graphs") }
               }
             }
 

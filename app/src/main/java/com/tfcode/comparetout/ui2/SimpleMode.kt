@@ -58,33 +58,17 @@ fun setStoredSimpleScenarioId(app: TOUTCApplication, id: Long?) {
 }
 
 /**
- * Resolve whether the app should open in simple mode, applying the first-run
- * default exactly once.
+ * Resolve whether the app should open in simple ("quick") mode.
  *
- * Stored values: "true" / "false" are honoured verbatim. An empty string means
- * the flag has never been written (fresh install or pre-feature upgrade) — in
- * that case the default is **simple when there is no existing data**, and the
- * resolved value is persisted so the decision is stable thereafter.
- *
- * @param hasExistingData whether the user already has scenarios (an existing
- *   user keeps the full UI; a fresh install starts simple). Computed by the
- *   caller off the main thread (the backend-edit rule blocks adding a blocking
- *   source-count getter, so scenarios are the freshness signal).
+ * Default is **full UI2** — a fresh install lands on the normal dashboard (whose
+ * empty state offers Quick mode as one of its choices). Quick mode is opt-in via
+ * that button or the drawer, and is then remembered ("true"). Only an explicit
+ * stored "true" selects it.
  *
  * Blocking — call on a background dispatcher.
  */
-fun resolveSimpleMode(app: TOUTCApplication, hasExistingData: Boolean): Boolean {
-    val stored = runCatching { app.getStringValueFromDataStore(SIMPLE_MODE_KEY) }.getOrDefault("")
-    return when (stored) {
-        "true" -> true
-        "false" -> false
-        else -> {
-            val default = !hasExistingData
-            runCatching { app.putStringValueIntoDataStore(SIMPLE_MODE_KEY, default.toString()) }
-            default
-        }
-    }
-}
+fun resolveSimpleMode(app: TOUTCApplication): Boolean =
+    runCatching { app.getStringValueFromDataStore(SIMPLE_MODE_KEY) }.getOrDefault("") == "true"
 
 /** Persist the simple-mode flag. Blocking — call on a background dispatcher. */
 fun setSimpleMode(app: TOUTCApplication, enabled: Boolean) {

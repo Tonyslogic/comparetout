@@ -199,7 +199,7 @@ fun UI2DrawerContent(
 
 /** Flip the simple-mode flag and relaunch the UI2 shell (CLEAR_TASK) so it
  * rebuilds on the right start destination from any host activity. */
-private fun relaunchInMode(context: android.content.Context, simple: Boolean) {
+internal fun relaunchInMode(context: android.content.Context, simple: Boolean) {
     CoroutineScope(Dispatchers.IO).launch {
         setSimpleMode(context.applicationContext as TOUTCApplication, simple)
         withContext(Dispatchers.Main) {

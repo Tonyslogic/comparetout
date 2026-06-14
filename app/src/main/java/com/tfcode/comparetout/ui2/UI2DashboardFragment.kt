@@ -44,6 +44,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -2673,31 +2674,46 @@ private fun EmptyDashboardSampleCard() {
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                "Get started with a sample scenario and two demo tariffs " +
-                    "(24-hour flat + a cheap 02–05 night window). Solar yield " +
-                    "is fetched from PVGIS and the simulation runs in the background.",
+                "Pick how you'd like to start:",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
-            Button(onClick = {
-                val loader = EntryPointAccessors
-                    .fromApplication(context.applicationContext, SampleDataLoaderEntryPoint::class.java)
-                    .sampleDataLoader()
-                coroutineScope.launch {
-                    val msg = when (val result = loader.load()) {
-                        is SampleDataLoader.Result.AlreadyLoaded ->
-                            "Sample data already loaded"
-                        is SampleDataLoader.Result.Loaded ->
-                            "Sample loaded · simulation running in background"
-                        is SampleDataLoader.Result.Failed ->
-                            "Couldn't load sample data: ${result.error.message ?: "unknown error"}"
+            // (a) Sample data — seed a demo scenario + tariffs and simulate.
+            Button(
+                onClick = {
+                    val loader = EntryPointAccessors
+                        .fromApplication(context.applicationContext, SampleDataLoaderEntryPoint::class.java)
+                        .sampleDataLoader()
+                    coroutineScope.launch {
+                        val msg = when (val result = loader.load()) {
+                            is SampleDataLoader.Result.AlreadyLoaded ->
+                                "Sample data already loaded"
+                            is SampleDataLoader.Result.Loaded ->
+                                "Sample loaded · simulation running in background"
+                            is SampleDataLoader.Result.Failed ->
+                                "Couldn't load sample data: ${result.error.message ?: "unknown error"}"
+                        }
+                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                     }
-                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-                }
-            }) {
-                Text("Try with sample data")
-            }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Try with sample data") }
+
+            // (b) Quick mode — the simplified single-screen flow.
+            OutlinedButton(
+                onClick = { relaunchInMode(context, simple = true) },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Quick mode") }
+
+            // (c) Add a scenario — same entry point as "+ Create new" on the Scenarios tab.
+            OutlinedButton(
+                onClick = {
+                    context.startActivity(
+                        android.content.Intent(context, UI2WizardActivity::class.java))
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Add a scenario") }
         }
     }
 }

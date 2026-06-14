@@ -948,8 +948,11 @@ private fun SnapshotImporter.CommitResult.summary(): String {
     if (sourcesTouched > 0) parts += "$sourcesTouched source${plural(sourcesTouched)}"
     val skipped = plansSkipped + scenariosSkipped
     val skipFragment = if (skipped > 0) " — $skipped existing item${plural(skipped)} kept" else ""
+    // Imported source rows are written outside Room's change tracking, so the
+    // data-source lists won't refresh until the app is relaunched.
+    val restartFragment = if (sourcesTouched > 0) " · restart the app to see data sources" else ""
     return if (parts.isEmpty()) "Nothing was imported$skipFragment"
-           else "Imported ${parts.joinToString(", ")}$skipFragment"
+           else "Imported ${parts.joinToString(", ")}$skipFragment$restartFragment"
 }
 
 private fun plural(n: Int) = if (n == 1) "" else "s"
@@ -995,6 +998,14 @@ private fun SnapshotPreviewDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp)
                 )
+                if (summary.sources > 0) {
+                    Text(
+                        "Restart the app after importing for data sources to appear.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
 
                 HorizontalDivider(Modifier.padding(vertical = 10.dp))
 
@@ -1138,6 +1149,12 @@ private fun HintCard() {
                     "them up to your file storage. For exporting a single plan or scenario use the " +
                     "Share button on its row; for importing one into a wizard step, the Import option " +
                     "on each accordion is more focused than the bulk paths here.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                "Note: when a database snapshot includes data sources, restart the app after " +
+                    "importing for those sources to appear.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

@@ -390,6 +390,10 @@ private fun StatusChip(state: SourceState?) {
             MaterialTheme.colorScheme.outline, "Loading")
         state.importer == Importer.ESBNHDF -> Triple(Icons.Default.UploadFile,
             MaterialTheme.colorScheme.primary, "File")
+        // Systems present but no credentials (e.g. imported via a snapshot) —
+        // flag clearly as needing attention rather than a neutral "Not set".
+        !state.credentialsConfigured && state.systems.isNotEmpty() ->
+            Triple(Icons.Outlined.Warning, MaterialTheme.colorScheme.error, "Set credentials")
         !state.credentialsConfigured -> Triple(Icons.Default.CloudOff,
             MaterialTheme.colorScheme.outline, "Not set")
         !state.credentialsKnownGood -> Triple(Icons.Outlined.Warning,

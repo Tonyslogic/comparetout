@@ -16,19 +16,15 @@ import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.tfcode.comparetout.ComparisonUIViewModel
 import com.tfcode.comparetout.R
 import com.tfcode.comparetout.TOUTCApplication
-import com.tfcode.comparetout.model.ToutcRepository
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import javax.inject.Inject
 
 @AndroidEntryPoint
 class UI2MainActivity : AppCompatActivity() {
 
     private val sharedViewModel: UI2SharedViewModel by viewModels()
-
-    @Inject lateinit var repository: ToutcRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -95,10 +91,7 @@ class UI2MainActivity : AppCompatActivity() {
         // main thread, then set the graph (which navigates to the start dest).
         lifecycleScope.launch {
             val app = application as TOUTCApplication
-            val simple = withContext(Dispatchers.IO) {
-                val hasData = repository.scenarios.orEmpty().isNotEmpty()
-                resolveSimpleMode(app, hasData)
-            }
+            val simple = withContext(Dispatchers.IO) { resolveSimpleMode(app) }
             Log.d("UI2", "UI2MainActivity simpleMode=$simple")
             val graph = navController.navInflater.inflate(R.navigation.nav_ui2)
             graph.setStartDestination(
@@ -119,6 +112,30 @@ class UI2MainActivity : AppCompatActivity() {
                 // full UI (the simple screen has no source list / dashboard tab).
                 handleSourceSelectionIntent(intent, bottomNav)
             }
+        }
+
+        // First-use disclaimer now lives here (UI2 is the default entry point),
+        // shown over UI2 rather than the legacy screen.
+        maybeShowDisclaimer()
+    }
+
+    /** Show the one-time legal disclaimer on first launch, then record it. */
+    private fun maybeShowDisclaimer() {
+        val app = application as TOUTCApplication
+        lifecycleScope.launch {
+            val seen = withContext(Dispatchers.IO) {
+                runCatching { app.getStringValueFromDataStore(FIRST_USE_KEY) }.getOrDefault("")
+            } == "False"
+            if (seen || isFinishing) return@launch
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(this@UI2MainActivity)
+                .setMessage(DISCLAIMER_TEXT)
+                .setCancelable(false)
+                .setPositiveButton("Ok") { _, _ ->
+                    kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+                        runCatching { app.putStringValueIntoDataStore(FIRST_USE_KEY, "False") }
+                    }
+                }
+                .show()
         }
     }
 
@@ -149,5 +166,24 @@ class UI2MainActivity : AppCompatActivity() {
         // Consume the extras so they don't fire again on recreate.
         intent.removeExtra(UI2NotificationLaunch.EXTRA_DS_SYSSN)
         intent.removeExtra(UI2NotificationLaunch.EXTRA_DS_IMPORTER)
+    }
+
+    companion object {
+        /** Matches TOUTCApplication.FIRST_USE (package-private in the legacy package). */
+        private const val FIRST_USE_KEY = "first_use"
+
+        private const val DISCLAIMER_TEXT =
+            "Solar data is variable. This app uses historical solar data in estimations.\n\n" +
+            "Solar panels may be shaded. This app makes no attempt to consider shading.\n\n" +
+            "Price plan accuracy determines calculation accuracy. Check price plan details.\n\n" +
+            "Price plans do not include Public Services Obligations. Estimates will not include this.\n\n" +
+            "Price plans do not include rate usage limitations or complex contracts. Estimates will be " +
+            "wrong where limitations are exceeded or conditions triggered.\n\n" +
+            "All estimates are based on user input. If the input is bad, the output will be too.\n\n" +
+            "This app provides the ability to explore possibilities, estimations are not advice " +
+            "(financial or otherwise). The app is provided as-is, no representation or warranty of any " +
+            "kind, express or implied, regarding the accuracy, adequacy, validity, reliability, " +
+            "availability, or completeness of any information is made.\n\n" +
+            "Enjoy!"
     }
 }

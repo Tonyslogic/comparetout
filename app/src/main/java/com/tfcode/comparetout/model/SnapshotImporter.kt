@@ -10,6 +10,12 @@ import android.content.Context
 import android.net.Uri
 import androidx.room.Room
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.google.gson.Gson
+import com.google.gson.JsonArray
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
+import com.google.gson.reflect.TypeToken
+import com.tfcode.comparetout.TOUTCApplication
 import java.io.File
 import java.io.FileNotFoundException
 
@@ -280,17 +286,29 @@ class SnapshotImporter(private val application: Application) {
             List<com.tfcode.comparetout.model.priceplan.DayRate>>?
         val stagingScenarios: List<com.tfcode.comparetout.model.scenario.ScenarioComponents>?
         val stagingSysSns: Set<String>
+        // AlphaESS systems live in alphaESSRawEnergy; ESBN/HA only ever produce
+        // alphaESSTransformedData (HA always under sysSn "HomeAssistant"). Used
+        // to register imported sources in the right management list below.
+        val stagingAlphaSns: Set<String>
+        val stagingTransformedSns: Set<String>
         try {
             stagingPlans = staging.pricePlanDAO().allPricePlansForExport
             stagingScenarios = staging.scenarioDAO().allScenariosForExport
+            val sdb = staging.openHelper.readableDatabase
             stagingSysSns = queryStrings(
-                staging.openHelper.readableDatabase,
+                sdb,
                 "SELECT DISTINCT sysSn FROM (" +
                     " SELECT sysSn FROM alphaESSRawEnergy" +
                     " UNION SELECT sysSn FROM alphaESSRawPower" +
                     " UNION SELECT sysSn FROM alphaESSTransformedData" +
                     " UNION SELECT sysSn FROM alphaESSTransformMeta" +
                     ")"
+            ).toHashSet()
+            stagingAlphaSns = queryStrings(
+                sdb, "SELECT DISTINCT sysSn FROM alphaESSRawEnergy"
+            ).toHashSet()
+            stagingTransformedSns = queryStrings(
+                sdb, "SELECT DISTINCT sysSn FROM alphaESSTransformedData"
             ).toHashSet()
         } finally {
             staging.close()
@@ -313,6 +331,13 @@ class SnapshotImporter(private val application: Application) {
             replaceExisting,
             warnings
         )
+
+        // Register the imported sources in the data-source management lists
+        // (DataStore), so they show up there with their credentials flagged as
+        // not-set — the snapshot carries the meter data but not the (encrypted,
+        // per-device) credentials, which the user must re-enter.
+        runCatching { registerImportedSources(stagingAlphaSns, stagingTransformedSns) }
+            .onFailure { warnings += "Could not register sources for management: ${it.message}" }
 
         // Discard the staging file once everything has been committed.
         staged.delete()
@@ -485,32 +510,50 @@ class SnapshotImporter(private val application: Application) {
     ): Int {
         if (panelIdMap.isEmpty() && loadProfileIdMap.isEmpty() && sysSns.isEmpty()) return 0
 
+        // IMPORTANT: do this copy on a *separate* SQLite connection, NOT Room's
+        // (`live.openHelper.writableDatabase`). Writing to Room-observed tables
+        // through Room's connection fires its invalidation triggers, which
+        // `INSERT … INTO room_table_modification_log` — a per-connection temp
+        // table that isn't present on the pooled/WAL connection these raw
+        // statements land on, so the whole copy threw and rolled back (sources
+        // never imported). A plain framework connection has none of Room's temp
+        // triggers, so the rows copy cleanly; Room's readers pick them up on
+        // their next query (WAL). See the visibility note in [commit]'s callers.
         val live = ToutcDB.getDatabase(application)
-        val sql = live.openHelper.writableDatabase
+        val dbPath = application.getDatabasePath(live.openHelper.databaseName ?: "toutc_database")
+            .absolutePath
         val attachPath = staged.file.absolutePath.replace("'", "''")
-        sql.execSQL("ATTACH DATABASE '$attachPath' AS staging")
+
+        val db = android.database.sqlite.SQLiteDatabase.openDatabase(
+            dbPath, null, android.database.sqlite.SQLiteDatabase.OPEN_READWRITE
+        )
         try {
-            sql.beginTransaction()
+            db.execSQL("ATTACH DATABASE '$attachPath' AS staging")
             try {
-                copyPanelData(sql, panelIdMap, replaceExisting, warnings)
-                copyLoadProfileData(sql, loadProfileIdMap, replaceExisting, warnings)
-                if (sysSns.isNotEmpty()) {
-                    copySourceTables(sql, sysSns, replaceExisting)
+                db.beginTransaction()
+                try {
+                    copyPanelData(db, panelIdMap, replaceExisting, warnings)
+                    copyLoadProfileData(db, loadProfileIdMap, replaceExisting, warnings)
+                    if (sysSns.isNotEmpty()) {
+                        copySourceTables(db, sysSns, replaceExisting)
+                    }
+                    db.setTransactionSuccessful()
+                } finally {
+                    db.endTransaction()
                 }
-                sql.setTransactionSuccessful()
             } finally {
-                sql.endTransaction()
+                db.execSQL("DETACH DATABASE staging")
             }
         } catch (t: Throwable) {
             warnings += "Attached-table copy failed: ${t.message ?: "unknown error"}"
         } finally {
-            sql.execSQL("DETACH DATABASE staging")
+            db.close()
         }
         return sysSns.size
     }
 
     private fun copyPanelData(
-        sql: SupportSQLiteDatabase,
+        sql: android.database.sqlite.SQLiteDatabase,
         panelIdMap: Map<Long, Long>,
         replaceExisting: Boolean,
         warnings: MutableList<String>
@@ -537,7 +580,7 @@ class SnapshotImporter(private val application: Application) {
     }
 
     private fun copyLoadProfileData(
-        sql: SupportSQLiteDatabase,
+        sql: android.database.sqlite.SQLiteDatabase,
         loadProfileIdMap: Map<Long, Long>,
         replaceExisting: Boolean,
         warnings: MutableList<String>
@@ -559,7 +602,7 @@ class SnapshotImporter(private val application: Application) {
     }
 
     private fun copySourceTables(
-        sql: SupportSQLiteDatabase,
+        sql: android.database.sqlite.SQLiteDatabase,
         sysSns: Set<String>,
         replaceExisting: Boolean
     ) {
@@ -572,6 +615,63 @@ class SnapshotImporter(private val application: Application) {
         val conflictClause = if (replaceExisting) "OR REPLACE" else "OR IGNORE"
         SOURCE_TABLES.forEach { t ->
             sql.execSQL("INSERT $conflictClause INTO $t SELECT * FROM staging.$t")
+        }
+    }
+
+    // ── Data-source management registration ─────────────────────────────────
+    //
+    // "Manage data sources" lists systems from DataStore (credential/config),
+    // not from the DB the snapshot carries — so without this, imported sources
+    // have data but never appear there. We add each imported sysSn to the right
+    // list. Credentials are NOT written (they're encrypted + per-device), so the
+    // management screen shows the source with a "Not set" credential status,
+    // prompting the user to (re-)enter them.
+
+    private fun registerImportedSources(alphaSns: Set<String>, transformedSns: Set<String>) {
+        val app = application as? TOUTCApplication ?: return
+        val haSns = transformedSns.filter { it == HA_SYS_SN }.toSet()
+        val esbnSns = transformedSns - alphaSns - haSns
+        if (alphaSns.isNotEmpty()) registerAlphaSystems(app, alphaSns)
+        if (esbnSns.isNotEmpty()) mergeStringListPref(app, ESBN_SYSTEM_LIST_KEY, esbnSns)
+        if (haSns.isNotEmpty()) mergeStringListPref(app, HA_SYSTEM_LIST_KEY, haSns)
+    }
+
+    /**
+     * Merge [sysSns] into the AlphaESS `system_list` (a `GetEssListResponse`
+     * JSON whose `data[].sysSn` the management screen reads). Adds a minimal
+     * `{"sysSn": …}` entry per new SN, preserving any existing entries' fields.
+     */
+    private fun registerAlphaSystems(app: TOUTCApplication, sysSns: Set<String>) {
+        val existing = runCatching { app.getStringValueFromDataStore(ALPHA_SYSTEM_LIST_KEY) }
+            .getOrDefault("")
+        val root: JsonObject = runCatching {
+            if (existing.isBlank()) null else JsonParser.parseString(existing).asJsonObject
+        }.getOrNull() ?: JsonObject()
+        val data: JsonArray =
+            if (root.has("data") && root.get("data").isJsonArray) root.getAsJsonArray("data")
+            else JsonArray().also { root.add("data", it) }
+        val present = data.mapNotNull { el ->
+            runCatching { el.asJsonObject.get("sysSn")?.asString }.getOrNull()
+        }.toHashSet()
+        sysSns.filter { it !in present }.forEach { sn ->
+            data.add(JsonObject().apply { addProperty("sysSn", sn) })
+        }
+        runCatching { app.putStringValueIntoDataStore(ALPHA_SYSTEM_LIST_KEY, root.toString()) }
+    }
+
+    /** Union [add] into a JSON `List<String>` preference at [key]. */
+    private fun mergeStringListPref(app: TOUTCApplication, key: String, add: Set<String>) {
+        val existing = runCatching { app.getStringValueFromDataStore(key) }.getOrDefault("")
+        val current: MutableList<String> = runCatching {
+            if (existing.isBlank()) mutableListOf()
+            else Gson().fromJson<List<String>>(
+                existing, object : TypeToken<List<String>>() {}.type
+            ).orEmpty().toMutableList()
+        }.getOrDefault(mutableListOf())
+        var changed = false
+        add.forEach { if (it !in current) { current.add(it); changed = true } }
+        if (changed) runCatching {
+            app.putStringValueIntoDataStore(key, Gson().toJson(current))
         }
     }
 
@@ -621,6 +721,13 @@ class SnapshotImporter(private val application: Application) {
             "alphaESSTransformedData",
             "alphaESSTransformMeta"
         )
+
+        // DataStore keys the "Manage data sources" screen reads its system lists
+        // from (mirrors UI2DataSourceManagementViewModel). HA's canonical sysSn.
+        private const val ALPHA_SYSTEM_LIST_KEY = "system_list"
+        private const val HA_SYSTEM_LIST_KEY = "ha_system_list"
+        private const val ESBN_SYSTEM_LIST_KEY = "esbn_system_list"
+        private const val HA_SYS_SN = "HomeAssistant"
     }
 }
 
