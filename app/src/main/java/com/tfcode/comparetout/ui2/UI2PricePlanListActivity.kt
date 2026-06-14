@@ -302,6 +302,7 @@ private fun PricePlanListScreen(
             communityUrl = PricePlanDownloader.RATES_URL,
             communityNote = "Community-maintained Irish supplier tariffs — may be out of " +
                 "date. You can edit any plan after importing.",
+            llmPrompt = PricePlanDownloader.LLM_PROMPT,
             parse = ::parsePricePlansJson,
             onApply = {
                 pendingImport = it
