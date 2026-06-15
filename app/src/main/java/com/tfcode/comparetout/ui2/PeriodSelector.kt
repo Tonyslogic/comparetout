@@ -1,15 +1,11 @@
 package com.tfcode.comparetout.ui2
 
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -27,7 +23,9 @@ import java.time.format.DateTimeFormatter
 // ─── The shared "D / M / Y / *  < >" date selector ──────────────────────────
 //
 // Extracted from UI2DashboardFragment so every accordion (and any future host)
-// renders an identical control and shares the same transition behaviour.
+// renders an identical control and shares the same transition behaviour. The
+// body delegates layout to [AdaptivePeriodControl] so the public API here is
+// unchanged — every call site automatically retiers under font scaling.
 
 private val DAY_FMT         = DateTimeFormatter.ofPattern("dd/MM/yy")
 private val MONTH_FMT       = DateTimeFormatter.ofPattern("MMM yy")
@@ -118,6 +116,14 @@ private fun spanLabel(from: LocalDate, to: LocalDate): String {
     return "$start – ${to.format(RANGE_FMT)}"
 }
 
+/** Long label used by the Tier-C dropdown trigger / menu items. */
+private fun periodLongLabel(p: DataSourcePeriod): String = when (p) {
+    DataSourcePeriod.YESTERDAY -> "Day"
+    DataSourcePeriod.MONTH     -> "Month"
+    DataSourcePeriod.YEAR      -> "Year"
+    DataSourcePeriod.ALL       -> "All time"
+}
+
 /**
  * The "D / M / Y / *  < >" period selector.
  *
@@ -158,48 +164,50 @@ fun PeriodSelector(
     val atStart = showNav && anchorDate <= startDate
     val atEnd   = showNav && anchorDate >= endDate
 
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        DataSourcePeriod.values().forEach { period ->
-            FilterChip(
-                selected = period == selectedPeriod,
-                onClick = {
-                    if (period != selectedPeriod) {
-                        val newAnchor = transitionAnchor(
-                            selectedPeriod, anchorDate, period, advanced, startDate, endDate)
-                        onPeriodChange(period, newAnchor, advanced)
+    AdaptivePeriodControl(
+        segments = DataSourcePeriod.values().toList(),
+        selected = selectedPeriod,
+        labelFor = { it.label },
+        longLabelFor = ::periodLongLabel,
+        onSelect = { period ->
+            if (period != selectedPeriod) {
+                val newAnchor = transitionAnchor(
+                    selectedPeriod, anchorDate, period, advanced, startDate, endDate
+                )
+                onPeriodChange(period, newAnchor, advanced)
+            }
+        },
+        dateSlot = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                if (showNav) {
+                    IconButton(
+                        onClick = { onNavigate(false, advanced) },
+                        enabled = !atStart,
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, null, Modifier.size(18.dp))
                     }
-                },
-                label = { Text(period.label, style = MaterialTheme.typography.labelSmall) },
-                modifier = Modifier.height(28.dp)
-            )
-            Spacer(Modifier.width(2.dp))
-        }
-        Spacer(Modifier.width(4.dp))
-        if (showNav) {
-            IconButton(
-                onClick = { onNavigate(false, advanced) },
-                enabled = !atStart,
-                modifier = Modifier.size(28.dp)
-            ) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, null, Modifier.size(18.dp))
+                }
+                Text(
+                    dateLabel, Modifier.weight(1f),
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    style = MaterialTheme.typography.labelSmall
+                )
+                if (showNav) {
+                    IconButton(
+                        onClick = { onNavigate(true, advanced) },
+                        enabled = !atEnd,
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, Modifier.size(18.dp))
+                    }
+                }
             }
         }
-        Text(dateLabel, Modifier.weight(1f),
-            textAlign = TextAlign.Center,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            style = MaterialTheme.typography.labelSmall)
-        if (showNav) {
-            IconButton(
-                onClick = { onNavigate(true, advanced) },
-                enabled = !atEnd,
-                modifier = Modifier.size(28.dp)
-            ) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, Modifier.size(18.dp))
-            }
-        }
-    }
+    )
 }

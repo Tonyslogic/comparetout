@@ -14,6 +14,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -58,6 +59,7 @@ import androidx.compose.material.icons.outlined.StackedBarChart
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -125,6 +127,14 @@ private fun seriesColor(id: String, primary: Color): Color = when (id.removePref
     "pv2load"  -> Color(0xFF66BB6A)
     "bat2load" -> Color(0xFF26A69A)
     "grid2bat" -> Color(0xFF7E57C2)
+    // Simulation-only advanced flows — distinct hues so they don't all collapse
+    // to `primary` in the chart.
+    "charge"     -> Color(0xFF8E24AA)
+    "discharge"  -> Color(0xFFEC407A)
+    "evSchedule" -> Color(0xFF5C6BC0)
+    "evDivert"   -> Color(0xFF42A5F5)
+    "hwSchedule" -> Color(0xFFEF6C00)
+    "hwDivert"   -> Color(0xFFFF8A65)
     else       -> primary
 }
 
@@ -206,7 +216,7 @@ fun CompareScreen(
                 item {
                     AccordionCard("Filter", filterSubtitle(state), state.series.isNotEmpty(),
                         open == "filter", { open = if (open == "filter") null else "filter" }) {
-                        FilterSection(state, viewModel)
+                        FilterSection(state, viewModel, noviceMode)
                     }
                 }
                 item {
@@ -455,7 +465,9 @@ private fun SourcesSection(
         Text("Selected subjects",
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
-        slots.forEach { (id, name, isDup) ->
+        // One subject card per row on a phone; two side-by-side at WIDE+ so
+        // tablets / unfolded foldables stop showing a skinny single column.
+        val subjectCell: @Composable (Triple<String, String, Boolean>) -> Unit = { (id, name, isDup) ->
             Surface(
                 color = if (isDup) MaterialTheme.colorScheme.primary.copy(alpha = 0.06f)
                         else MaterialTheme.colorScheme.surface,
@@ -479,6 +491,24 @@ private fun SourcesSection(
                         Icon(Icons.Default.Close, contentDescription = "Remove",
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(16.dp))
+                    }
+                }
+            }
+        }
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val perRow = if (maxWidth >= AdaptiveLayout.WIDTH_WIDE_AT) 2 else 1
+            Column(modifier = Modifier.fillMaxWidth()) {
+                if (perRow == 1) {
+                    slots.forEach { subjectCell(it) }
+                } else {
+                    slots.chunked(perRow).forEach { chunk ->
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            chunk.forEach { Box(Modifier.weight(1f)) { subjectCell(it) } }
+                            repeat(perRow - chunk.size) { Spacer(Modifier.weight(1f)) }
+                        }
                     }
                 }
             }
@@ -548,43 +578,91 @@ private fun SelectRow(title: String, count: Int, onTap: () -> Unit) {
 // ──────────────────────────────────────────────────────────────────────────
 // Filter
 // ──────────────────────────────────────────────────────────────────────────
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalMaterial3Api::class)
 @Composable
-private fun FilterSection(state: CompareState, vm: UI2CompareViewModel) {
+private fun FilterSection(state: CompareState, vm: UI2CompareViewModel, novice: Boolean) {
     val primary = MaterialTheme.colorScheme.primary
+    // Energy series at least one selected subject can provide; others are greyed.
+    val available by vm.availableEnergySeries.collectAsState()
+    // Hoisted in the VM so the tab choice survives the accordion scrolling off.
+    val advanced by vm.filterAdvanced.collectAsState()
+
     @Composable
-    fun chips(defs: List<Pair<String, String>>, prefix: String) {
+    fun chips(defs: List<Pair<String, String>>, prefix: String, isEnergy: Boolean) {
+        // Default FilterChip uses secondaryContainer for the selected fill, which
+        // is too close to surface in many themes — selected vs unselected was hard
+        // to tell apart. Lift selected to primaryContainer + a 1.5dp primary
+        // border, matching the active-state visual on BottomBarTile / DisplaySection.
+        val chipColors = FilterChipDefaults.filterChipColors(
+            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer
+        )
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             defs.forEach { (rawId, label) ->
                 val id = prefix + rawId
                 val on = state.series.contains(id)
+                // Cost columns aren't subject-gated. An energy series is available
+                // only if a selected subject records it. A greyed series stays
+                // tappable while it's still selected, so it's never trapped on.
+                val avail = !isEnergy || rawId in available
+                val chipEnabled = avail || on
                 FilterChip(
                     selected = on,
+                    enabled = chipEnabled,
                     onClick = {
                         vm.update { it.copy(series = if (on) it.series - id else it.series + id) }
                     },
                     label = { Text(label) },
                     leadingIcon = {
                         Box(Modifier.size(10.dp).background(seriesColor(rawId, primary), CircleShape))
-                    }
+                    },
+                    colors = chipColors,
+                    border = FilterChipDefaults.filterChipBorder(
+                        enabled = chipEnabled,
+                        selected = on,
+                        selectedBorderColor = MaterialTheme.colorScheme.primary,
+                        selectedBorderWidth = 1.5.dp
+                    )
                 )
             }
         }
     }
+
+    PrimaryTabRow(selectedTabIndex = if (advanced) 1 else 0) {
+        Tab(selected = !advanced, onClick = { vm.setFilterAdvanced(false) }, text = { Text("Basic") })
+        Tab(selected = advanced, onClick = { vm.setFilterAdvanced(true) }, text = { Text("Advanced") })
+    }
+    HelpText(
+        "Greyed series aren't recorded by any selected source — full inverter feeds " +
+            "(e.g. AlphaESS) and simulations provide them, meter-only sources " +
+            "(e.g. ESBN HDF) don't." +
+            if (advanced) " Advanced adds PV/battery flow breakdowns plus bonus & fixed cost."
+            else " Switch to Advanced for PV/battery flows and more cost columns.",
+        novice
+    )
+    Spacer(Modifier.height(8.dp))
+
+    // Advanced is additive: it keeps the basic series visible and reveals the
+    // advanced ones alongside them (it doesn't replace the basic set).
+    val energyDefs = if (advanced) UI2CompareViewModel.USAGE_SERIES
+        else UI2CompareViewModel.USAGE_SERIES.filter { it.first in UI2CompareViewModel.BASIC_ENERGY_IDS }
+    val costDefs = if (advanced) UI2CompareViewModel.COST_SERIES
+        else UI2CompareViewModel.COST_SERIES.filter { it.first in UI2CompareViewModel.BASIC_COST_IDS }
     when (state.what) {
         CompareWhat.COST -> {
             SmallCaps("Cost columns")
-            chips(UI2CompareViewModel.COST_SERIES, "")
+            chips(costDefs, "", isEnergy = false)
         }
         CompareWhat.USAGE -> {
             SmallCaps("Energy flows")
-            chips(UI2CompareViewModel.USAGE_SERIES, "")
+            chips(energyDefs, "", isEnergy = true)
         }
         CompareWhat.BOTH -> {
             SmallCaps("Energy flows")
-            chips(UI2CompareViewModel.USAGE_SERIES, "")
+            chips(energyDefs, "", isEnergy = true)
             SmallCaps("Cost columns")
-            chips(UI2CompareViewModel.COST_SERIES, "c_")
+            chips(costDefs, "c_", isEnergy = false)
         }
     }
 }
@@ -693,30 +771,37 @@ private fun RangePicker(
     onAnchor: (LocalDate) -> Unit
 ) {
     SmallCaps(label)
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        DataSourcePeriod.entries.forEach { p ->
-            FilterChip(
-                selected = gran == p,
-                onClick = { onGran(if (gran == p) null else p) },
-                label = { Text(p.label) },
-                modifier = Modifier.padding(end = 6.dp)
-            )
+    val longLabel: (DataSourcePeriod) -> String = {
+        when (it) {
+            DataSourcePeriod.YESTERDAY -> "Day"
+            DataSourcePeriod.MONTH     -> "Month"
+            DataSourcePeriod.YEAR      -> "Year"
+            DataSourcePeriod.ALL       -> "All time"
         }
     }
-    if (gran != null && gran != DataSourcePeriod.ALL) {
-        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = { onAnchor(stepAnchorBy(anchor, gran, -1)) }) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Earlier")
-            }
-            Text(rangeLabel(gran, anchor, advanced),
-                modifier = Modifier.weight(1f), textAlign = TextAlign.Center,
-                maxLines = 1, overflow = TextOverflow.Ellipsis,
-                style = MaterialTheme.typography.bodyMedium)
-            IconButton(onClick = { onAnchor(stepAnchorBy(anchor, gran, 1)) }) {
-                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Later")
+    AdaptivePeriodControl(
+        segments = DataSourcePeriod.entries,
+        selected = gran,
+        labelFor = { it.label },
+        longLabelFor = longLabel,
+        onSelect = { p -> onGran(if (gran == p) null else p) },
+        dateSlot = {
+            if (gran != null && gran != DataSourcePeriod.ALL) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { onAnchor(stepAnchorBy(anchor, gran, -1)) }) {
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Earlier")
+                    }
+                    Text(rangeLabel(gran, anchor, advanced),
+                        modifier = Modifier.weight(1f), textAlign = TextAlign.Center,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.bodyMedium)
+                    IconButton(onClick = { onAnchor(stepAnchorBy(anchor, gran, 1)) }) {
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Later")
+                    }
+                }
             }
         }
-    }
+    )
     val hint = when (gran) {
         null -> "Pick D / M / Y / * to set this range"
         DataSourcePeriod.ALL -> "All time — every reading on file"
@@ -775,59 +860,63 @@ private fun compareLayoutIcon(l: CompareLayout): ImageVector = when (l) {
 private fun DisplaySection(state: CompareState, vm: UI2CompareViewModel, novice: Boolean) {
     SmallCaps("Chart style")
     if (novice) {
-        // Novice: icons + text, 3 per row so labels stay readable.
-        CompareMode.entries.chunked(3).forEach { row ->
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                row.forEach { mode ->
-                    val active = state.mode == mode
-                    Surface(
-                        color = if (active) MaterialTheme.colorScheme.primaryContainer
-                                else MaterialTheme.colorScheme.surface,
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.weight(1f).padding(vertical = 4.dp)
-                            .then(if (active) Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp)) else Modifier)
-                            .clickable { vm.update { it.copy(mode = mode) } }
-                    ) {
-                        Row(
-                            Modifier.fillMaxWidth().padding(vertical = 10.dp, horizontal = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Icon(compareModeIcon(mode), contentDescription = null,
-                                modifier = Modifier.size(18.dp),
-                                tint = if (active) MaterialTheme.colorScheme.primary
-                                       else MaterialTheme.colorScheme.onSurface)
-                            Spacer(Modifier.width(6.dp))
-                            Text(mode.label, style = MaterialTheme.typography.bodySmall,
-                                maxLines = 1, overflow = TextOverflow.Ellipsis,
-                                color = if (active) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.onSurface)
-                        }
-                    }
+        // Novice: icons + text. AdaptiveCellRow keeps the cards 3-up at fs<1.6
+        // and stacks them at fs>=1.6 so the labels stop ellipsising.
+        AdaptiveCellRow(
+            items = CompareMode.entries.toList(),
+            perRowAtA = 3, perRowAtB = 3, perRowAtC = 1,
+            spacing = 8.dp
+        ) { mode ->
+            val active = state.mode == mode
+            Surface(
+                color = if (active) MaterialTheme.colorScheme.primaryContainer
+                        else MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+                    .then(if (active) Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp)) else Modifier)
+                    .clickable { vm.update { it.copy(mode = mode) } }
+            ) {
+                Row(
+                    Modifier.fillMaxWidth().padding(vertical = 10.dp, horizontal = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    Icon(compareModeIcon(mode), contentDescription = null,
+                        modifier = Modifier.size(18.dp),
+                        tint = if (active) MaterialTheme.colorScheme.primary
+                               else MaterialTheme.colorScheme.onSurface)
+                    Spacer(Modifier.width(6.dp))
+                    Text(mode.label, style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis,
+                        color = if (active) MaterialTheme.colorScheme.primary
+                                else MaterialTheme.colorScheme.onSurface)
                 }
-                repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
             }
         }
     } else {
-        // Compact: one row of icon-only chips so the picker doesn't dominate.
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            CompareMode.entries.forEach { mode ->
-                val active = state.mode == mode
-                Surface(
-                    color = if (active) MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.surface,
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.weight(1f)
-                        .then(if (active) Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp)) else Modifier)
-                        .clickable { vm.update { it.copy(mode = mode) } }
-                ) {
-                    Box(Modifier.fillMaxWidth().padding(vertical = 10.dp),
-                        contentAlignment = Alignment.Center) {
-                        Icon(compareModeIcon(mode), contentDescription = mode.label,
-                            modifier = Modifier.size(20.dp),
-                            tint = if (active) MaterialTheme.colorScheme.primary
-                                   else MaterialTheme.colorScheme.onSurface)
-                    }
+        // Compact: icon-only chips. AdaptiveCellRow keeps 4-up at fs<1.6 and
+        // shrinks to two rows of two at fs>=1.6 so each chip keeps a
+        // comfortable tap target.
+        AdaptiveCellRow(
+            items = CompareMode.entries.toList(),
+            perRowAtA = 4, perRowAtB = 2, perRowAtC = 2,
+            spacing = 6.dp
+        ) { mode ->
+            val active = state.mode == mode
+            Surface(
+                color = if (active) MaterialTheme.colorScheme.primaryContainer
+                        else MaterialTheme.colorScheme.surface,
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier.fillMaxWidth()
+                    .then(if (active) Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp)) else Modifier)
+                    .clickable { vm.update { it.copy(mode = mode) } }
+            ) {
+                Box(Modifier.fillMaxWidth().padding(vertical = 10.dp),
+                    contentAlignment = Alignment.Center) {
+                    Icon(compareModeIcon(mode), contentDescription = mode.label,
+                        modifier = Modifier.size(20.dp),
+                        tint = if (active) MaterialTheme.colorScheme.primary
+                               else MaterialTheme.colorScheme.onSurface)
                 }
             }
         }
@@ -1482,6 +1571,11 @@ private fun ChartPopout(
     val density = LocalDensity.current
     val popW = with(density) { containerSize.width.toDp() }
     val popH = with(density) { (containerSize.height * 0.8f).toDp() }
+    // At ULTRA (large tablet) give the legend more breathing room without
+    // shrinking the chart on small landscape phones.
+    val ultra = popW >= AdaptiveLayout.WIDTH_ULTRA_AT
+    val chartWeight = if (ultra) 2f else 1.3f
+    val legendWeight = if (ultra) 1.2f else 1f
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
@@ -1517,7 +1611,7 @@ private fun ChartPopout(
             if (landscape) {
                 Row(Modifier.fillMaxSize().padding(16.dp)) {
                     Box(
-                        modifier = Modifier.weight(1.3f).fillMaxHeight()
+                        modifier = Modifier.weight(chartWeight).fillMaxHeight()
                             .verticalScroll(rememberScrollState()),
                         contentAlignment = Alignment.Center
                     ) {
@@ -1525,7 +1619,7 @@ private fun ChartPopout(
                     }
                     Spacer(Modifier.width(16.dp))
                     Column(
-                        modifier = Modifier.weight(1f).fillMaxHeight()
+                        modifier = Modifier.weight(legendWeight).fillMaxHeight()
                             .verticalScroll(rememberScrollState()),
                         verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) { InfoColumn() }
@@ -1578,6 +1672,7 @@ private fun ResultTable(
     rows: List<List<Cell>>,
     defaultSort: Int
 ) {
+    if (headers.isEmpty()) return
     var sortCol by remember { mutableIntStateOf(defaultSort) }
     var ascending by remember { mutableStateOf(true) }
     val sorted = remember(rows, sortCol, ascending) {
@@ -1588,55 +1683,68 @@ private fun ResultTable(
         }
         rows.sortedWith(if (ascending) cmp else cmp.reversed())
     }
-    val weights = List(headers.size) { i -> if (i == 0) 1.6f else 1f }
 
-    Column {
-        Row(Modifier.fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(6.dp))
-            .padding(vertical = 6.dp, horizontal = 8.dp)) {
-            headers.forEachIndexed { i, (label, _) ->
-                val selected = i == sortCol
-                Row(
-                    Modifier.weight(weights[i]).clickable {
-                        if (sortCol == i) ascending = !ascending
-                        else { sortCol = i; ascending = i == 0 }
-                    },
-                    horizontalArrangement = if (i == 0) Arrangement.Start else Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(label.uppercase(),
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
-                        color = if (selected) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onSurfaceVariant)
-                    if (selected) {
-                        Icon(
-                            if (ascending) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                            contentDescription = null, modifier = Modifier.size(14.dp),
-                            tint = MaterialTheme.colorScheme.primary)
-                    }
-                }
-            }
-        }
-        sorted.forEachIndexed { ri, row ->
-            Row(Modifier.fillMaxWidth().padding(vertical = 8.dp, horizontal = 8.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                row.forEachIndexed { i, cell ->
-                    Text(
-                        cell.text,
-                        modifier = Modifier.weight(weights[i]),
-                        textAlign = if (i == 0) TextAlign.Start else TextAlign.End,
-                        style = MaterialTheme.typography.bodySmall,
-                        maxLines = 1, overflow = TextOverflow.Ellipsis,
-                        color = cell.color ?: MaterialTheme.colorScheme.onSurface
-                    )
-                }
-            }
-            if (ri < sorted.lastIndex) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f))
+    fun headerSlot(index: Int): @Composable () -> Unit = {
+        val selected = index == sortCol
+        val label = headers[index].first
+        Row(
+            Modifier.clickable {
+                if (sortCol == index) ascending = !ascending
+                else { sortCol = index; ascending = index == 0 }
+            },
+            horizontalArrangement = if (index == 0) Arrangement.Start else Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(label.uppercase(),
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium,
+                color = if (selected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant)
+            if (selected) {
+                Icon(
+                    if (ascending) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = null, modifier = Modifier.size(14.dp),
+                    tint = MaterialTheme.colorScheme.primary)
             }
         }
     }
+
+    val scrollColumns = (1 until headers.size).map { i ->
+        PinnedScrollColumn<List<Cell>>(
+            header = headers[i].first,
+            align = TextAlign.End,
+            minWidth = AdaptiveLayout.SCROLL_COL_MIN_NUMERIC,
+            headerSlot = headerSlot(i),
+            cell = { row ->
+                val cell = row[i]
+                Text(
+                    cell.text,
+                    textAlign = TextAlign.End,
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis,
+                    color = cell.color ?: MaterialTheme.colorScheme.onSurface
+                )
+            }
+        )
+    }
+
+    PinnedScrollTable(
+        rows = sorted,
+        pinnedHeader = headers[0].first,
+        pinnedWeight = 1.6f,
+        pinnedHeaderSlot = headerSlot(0),
+        pinnedCell = { row ->
+            val cell = row[0]
+            Text(
+                cell.text,
+                textAlign = TextAlign.Start,
+                style = MaterialTheme.typography.bodySmall,
+                maxLines = 1, overflow = TextOverflow.Ellipsis,
+                color = cell.color ?: MaterialTheme.colorScheme.onSurface
+            )
+        },
+        columns = scrollColumns
+    )
 }
 
 @Composable
@@ -1743,6 +1851,9 @@ private fun costValue(r: CompareCostRow, id: String): Double = when (id) {
 private fun usageValue(r: CompareUsageRow, id: String): Double = when (id) {
     "load" -> r.load; "buy" -> r.buy; "feed" -> r.feed; "pv" -> r.pv
     "pv2load" -> r.pv2load; "bat2load" -> r.bat2load; "grid2bat" -> r.grid2bat
+    "charge" -> r.charge; "discharge" -> r.discharge
+    "evSchedule" -> r.evSchedule; "evDivert" -> r.evDivert
+    "hwSchedule" -> r.hwSchedule; "hwDivert" -> r.hwDivert
     else -> 0.0
 }
 
@@ -1760,7 +1871,7 @@ private fun costData(rows: List<CompareCostRow>): List<ChartDatum> = rows.map { 
         values = mapOf("net" to r.net, "buy" to r.buy, "sell" to r.sell,
             "bonus" to r.bonus, "fixed" to r.fixed),
         axisLabels = r.timeline.axisLabels,
-        seriesValues = r.timeline.seriesValues          // keyed "net" only
+        seriesValues = r.timeline.seriesValues          // keys: net/buy/sell/fixed/bonus
     )
 }
 
@@ -1805,7 +1916,10 @@ private fun usageData(rows: List<CompareUsageRow>): List<ChartDatum> = rows.map 
         title = r.subjectName,
         shortLabel = shorten(r.subjectName),
         values = mapOf("load" to r.load, "buy" to r.buy, "feed" to r.feed, "pv" to r.pv,
-            "pv2load" to r.pv2load, "bat2load" to r.bat2load, "grid2bat" to r.grid2bat),
+            "pv2load" to r.pv2load, "bat2load" to r.bat2load, "grid2bat" to r.grid2bat,
+            "charge" to r.charge, "discharge" to r.discharge,
+            "evSchedule" to r.evSchedule, "evDivert" to r.evDivert,
+            "hwSchedule" to r.hwSchedule, "hwDivert" to r.hwDivert),
         axisLabels = r.timeline.axisLabels,
         seriesValues = r.timeline.seriesValues
     )

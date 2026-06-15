@@ -37,6 +37,18 @@ public class AlphaESSTransformedData {
     @ColumnInfo(defaultValue = "NULL")
     private Long millisSinceEpoch;
 
+    // v2 flow decomposition (populated by AlphaESSFlowDecomposer; 0 for v1 rows).
+    @ColumnInfo(defaultValue = "0") private double pv2load;
+    @ColumnInfo(defaultValue = "0") private double pv2bat;
+    @ColumnInfo(defaultValue = "0") private double pv2grid;
+    @ColumnInfo(defaultValue = "0") private double bat2load;
+    @ColumnInfo(defaultValue = "0") private double bat2grid;
+    @ColumnInfo(defaultValue = "0") private double grid2load;
+    @ColumnInfo(defaultValue = "0") private double grid2bat;
+    @ColumnInfo(defaultValue = "0") private double evActual;
+    @ColumnInfo(defaultValue = "0") private double batChargeIn;
+    @ColumnInfo(defaultValue = "0") private double batDischargeOut;
+
     public Long getMillisSinceEpoch() {
         return millisSinceEpoch;
     }
@@ -103,4 +115,34 @@ public class AlphaESSTransformedData {
     public double getBuy() { return buy; }
 
     public void setBuy(double buy) { this.buy = buy; }
+
+    public double getPv2load() { return pv2load; }
+    public void setPv2load(double pv2load) { this.pv2load = pv2load; }
+
+    public double getPv2bat() { return pv2bat; }
+    public void setPv2bat(double pv2bat) { this.pv2bat = pv2bat; }
+
+    public double getPv2grid() { return pv2grid; }
+    public void setPv2grid(double pv2grid) { this.pv2grid = pv2grid; }
+
+    public double getBat2load() { return bat2load; }
+    public void setBat2load(double bat2load) { this.bat2load = bat2load; }
+
+    public double getBat2grid() { return bat2grid; }
+    public void setBat2grid(double bat2grid) { this.bat2grid = bat2grid; }
+
+    public double getGrid2load() { return grid2load; }
+    public void setGrid2load(double grid2load) { this.grid2load = grid2load; }
+
+    public double getGrid2bat() { return grid2bat; }
+    public void setGrid2bat(double grid2bat) { this.grid2bat = grid2bat; }
+
+    public double getEvActual() { return evActual; }
+    public void setEvActual(double evActual) { this.evActual = evActual; }
+
+    public double getBatChargeIn() { return batChargeIn; }
+    public void setBatChargeIn(double batChargeIn) { this.batChargeIn = batChargeIn; }
+
+    public double getBatDischargeOut() { return batDischargeOut; }
+    public void setBatDischargeOut(double batDischargeOut) { this.batDischargeOut = batDischargeOut; }
 }

@@ -2,6 +2,7 @@ package com.tfcode.comparetout.ui2
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.compose.setContent
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.animation.AnimatedVisibility
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -73,6 +75,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.text.DecimalFormat
@@ -112,8 +115,21 @@ private fun PricePlanListScreen(
     val favouriteId by viewModel.favouriteId.observeAsState(null)
     val (showHints, toggleShowHints) = rememberShowHints()
     var pendingDelete by remember { mutableStateOf<PricePlanListRow?>(null) }
+    var showDeleteAll by remember { mutableStateOf(false) }
+    var showImport by remember { mutableStateOf(false) }
+    var pendingImport by remember { mutableStateOf<List<PricePlanJsonFile>?>(null) }
     var showDrawer by remember { mutableStateOf(false) }
     val shareScope = rememberCoroutineScope()
+
+    fun runPlanImport(list: List<PricePlanJsonFile>, clobber: Boolean) {
+        pendingImport = null
+        val noun = if (list.size == 1) "plan" else "plans"
+        shareScope.launch {
+            val outcome = runCatching { viewModel.importPlansFromList(list, clobber) }.getOrNull()
+            val msg = outcome?.summary(noun) ?: "Import failed"
+            Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+        }
+    }
 
     val openWizard: (Long?) -> Unit = { planId ->
         val intent = Intent(context, UI2PricePlanWizardActivity::class.java)
@@ -161,7 +177,9 @@ private fun PricePlanListScreen(
                     ListHeader(
                         count = rows.size,
                         showHints = showHints,
-                        onCreate = { openWizard(null) }
+                        onCreate = { openWizard(null) },
+                        onImport = { showImport = true },
+                        onDeleteAll = if (rows.isNotEmpty()) ({ showDeleteAll = true }) else null
                     )
                 }
                 if (showHints) {
@@ -178,6 +196,7 @@ private fun PricePlanListScreen(
                             onEdit = { openWizard(row.planId) },
                             onDelete = { pendingDelete = row },
                             onToggleFavourite = { viewModel.toggleFavourite(row.planId) },
+                            onToggleActive = { viewModel.setActive(row.planId, !row.active) },
                             onShare = {
                                 // Serialise on IO, fire the share intent on Main. The
                                 // chooser is launched from the Activity context so any
@@ -244,40 +263,154 @@ private fun PricePlanListScreen(
             }
         )
     }
+
+    if (showDeleteAll) {
+        AlertDialog(
+            onDismissRequest = { showDeleteAll = false },
+            title = { Text("Delete all supplier plans?") },
+            text = {
+                Text(
+                    "All ${rows.size} plan" + (if (rows.size == 1) "" else "s") +
+                        " will be permanently deleted, along with any cached costing results. " +
+                        "There is no undo.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteAll()
+                        showDeleteAll = false
+                    },
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) { Text("Delete all") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteAll = false }) { Text("Cancel") }
+            }
+        )
+    }
+
+    if (showImport) {
+        UI2ImportSheet(
+            title = "Import supplier plans",
+            hint = "Accepts the JSON shape produced by the Share button on a plan, " +
+                "or a bulk export.",
+            applyLabel = "Continue",
+            communityUrl = PricePlanDownloader.RATES_URL,
+            communityNote = "Community-maintained Irish supplier tariffs — may be out of " +
+                "date. You can edit any plan after importing.",
+            llmPrompt = PricePlanDownloader.LLM_PROMPT,
+            parse = ::parsePricePlansJson,
+            onApply = {
+                pendingImport = it
+                showImport = false
+            },
+            onDismiss = { showImport = false }
+        )
+    }
+
+    pendingImport?.let { list ->
+        val countLabel = if (list.size == 1) "1 supplier plan" else "${list.size} supplier plans"
+        AlertDialog(
+            onDismissRequest = { pendingImport = null },
+            title = { Text("Import $countLabel") },
+            text = {
+                Text(
+                    "If a plan with the same name already exists, should the imported " +
+                        "version replace it, or be kept alongside the existing one?",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                Button(onClick = { runPlanImport(list, clobber = true) }) { Text("Replace existing") }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(onClick = { runPlanImport(list, clobber = false) }) { Text("Keep both") }
+                    TextButton(onClick = { pendingImport = null }) { Text("Cancel") }
+                }
+            }
+        )
+    }
 }
 
 @Composable
-private fun ListHeader(count: Int, showHints: Boolean, onCreate: () -> Unit) {
+private fun ListHeader(
+    count: Int,
+    showHints: Boolean,
+    onCreate: () -> Unit,
+    onImport: () -> Unit,
+    onDeleteAll: (() -> Unit)?
+) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
         shape = RoundedCornerShape(12.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(Modifier.weight(1f)) {
-                Text(
-                    "$count plan" + if (count == 1) "" else "s",
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                if (showHints) {
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 8.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
                     Text(
-                        "Tap a row to see its details · Star marks your current contract",
-                        style = MaterialTheme.typography.labelSmall,
+                        "$count plan" + if (count == 1) "" else "s",
+                        style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    if (showHints) {
+                        Text(
+                            "Tap a row to see its details · Star marks your current contract",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+                // Hints off: actions sit inline beside the count. Hints on: the
+                // longer hint text needs the width, so the actions drop to a
+                // second row below.
+                if (!showHints) {
+                    HeaderActions(onCreate, onImport, onDeleteAll)
                 }
             }
-            TextButton(onClick = onCreate) {
-                Icon(Icons.Default.Add, contentDescription = null,
-                    modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(4.dp))
-                Text("Create new", style = MaterialTheme.typography.labelLarge)
+            if (showHints) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    HeaderActions(onCreate, onImport, onDeleteAll)
+                }
             }
         }
+    }
+}
+
+/** The Create / Import / Delete-all actions, shared by the inline (hints off)
+ *  and wrapped (hints on) header layouts. Rendered inside a RowScope. */
+@Composable
+private fun androidx.compose.foundation.layout.RowScope.HeaderActions(
+    onCreate: () -> Unit,
+    onImport: () -> Unit,
+    onDeleteAll: (() -> Unit)?
+) {
+    if (onDeleteAll != null) {
+        IconButton(onClick = onDeleteAll) {
+            Icon(Icons.Default.Delete, contentDescription = "Delete all plans",
+                tint = MaterialTheme.colorScheme.error)
+        }
+    }
+    TextButton(onClick = onImport) {
+        Text("Import…", style = MaterialTheme.typography.labelLarge)
+    }
+    TextButton(onClick = onCreate) {
+        Icon(Icons.Default.Add, contentDescription = null,
+            modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(4.dp))
+        Text("Create new", style = MaterialTheme.typography.labelLarge)
     }
 }
 
@@ -297,7 +430,11 @@ private fun ListHintCard() {
                 "Every cost in the app — Compare tab totals, dashboard Tariff Plan " +
                     "tables, KPIs — is calculated against one of these plans. " +
                     "Tap the ★ on a plan to mark it as the tariff you're currently " +
-                    "contracted to; it will be highlighted everywhere it appears.",
+                    "contracted to; it will be highlighted everywhere it appears.\n\n" +
+                    "The green ✓ marks a plan as active. Active only narrows the dashboard's " +
+                    "Tariff Plan table — the Compare tab still evaluates every plan regardless " +
+                    "of its active state. Open a plan and tap the ✓ to toggle: grey → green " +
+                    "activates it, green → grey deactivates it.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -313,6 +450,7 @@ private fun PricePlanAccordion(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onToggleFavourite: () -> Unit,
+    onToggleActive: () -> Unit,
     onShare: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -327,8 +465,13 @@ private fun PricePlanAccordion(
     ) {
         Column {
             // ── Collapsed header: just enough to scan the list at a glance.
+            // heightIn(min = MIN_TOUCH) keeps the tap surface a comfortable
+            // 48 dp even when the supplier/plan text wraps to 3 lines at
+            // accessibility-scale fonts.
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+                modifier = Modifier.fillMaxWidth()
+                    .heightIn(min = AdaptiveLayout.MIN_TOUCH)
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
@@ -351,6 +494,34 @@ private fun PricePlanAccordion(
                         row.planName,
                         style = MaterialTheme.typography.bodyMedium,
                         maxLines = 1, overflow = TextOverflow.Ellipsis
+                    )
+                }
+                if (row.active) {
+                    // When the accordion is open the tick is clickable so the user
+                    // can deactivate the plan; collapsed view is purely indicator.
+                    val activeModifier = if (expanded)
+                        Modifier.size(18.dp).clickable(onClick = onToggleActive)
+                    else
+                        Modifier.size(18.dp)
+                    Icon(
+                        painter = androidx.compose.ui.res.painterResource(
+                            com.tfcode.comparetout.R.drawable.tick),
+                        contentDescription = if (expanded)
+                            "Active — tap to deactivate for the dashboard"
+                        else
+                            "Active — included in dashboard tariff tables",
+                        modifier = activeModifier,
+                        tint = Color.Unspecified
+                    )
+                } else if (expanded) {
+                    Icon(
+                        painter = androidx.compose.ui.res.painterResource(
+                            com.tfcode.comparetout.R.drawable.tick),
+                        contentDescription = "Inactive — tap to activate for the dashboard",
+                        modifier = Modifier
+                            .size(18.dp)
+                            .clickable(onClick = onToggleActive),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
                     )
                 }
                 Icon(
@@ -378,20 +549,18 @@ private fun PricePlanAccordion(
                         )
                     }
 
-                    // Spec strip — standing / feed / bonus / day-rate count
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        SpecCell("Standing", "€${moneyFmt.format(row.standingCharges)}/yr",
-                            modifier = Modifier.weight(1f))
-                        SpecCell("Feed-in", "${moneyFmt.format(row.feed)} c/kWh",
-                            modifier = Modifier.weight(1f))
-                        SpecCell("Bonus", "€${moneyFmt.format(row.signUpBonus)}",
-                            modifier = Modifier.weight(1f))
-                        SpecCell(
-                            label = "Rates",
-                            value = "${row.rateCount} day-rate" +
-                                if (row.rateCount == 1) "" else "s",
-                            modifier = Modifier.weight(1f)
-                        )
+                    // Spec strip — standing / feed / bonus / day-rate count.
+                    // Routed through AdaptiveCellRow so the strip wraps to 2/1
+                    // cells per row under font scaling instead of clipping.
+                    val specs = listOf(
+                        "Standing" to "€${moneyFmt.format(row.standingCharges)}/yr",
+                        "Feed-in" to "${moneyFmt.format(row.feed)} c/kWh",
+                        "Bonus" to "€${moneyFmt.format(row.signUpBonus)}",
+                        "Rates" to "${row.rateCount} day-rate" +
+                            if (row.rateCount == 1) "" else "s"
+                    )
+                    AdaptiveCellRow(items = specs) { (label, value) ->
+                        SpecCell(label, value)
                     }
 
                     if (row.deemedExport) {
@@ -421,47 +590,54 @@ private fun PricePlanAccordion(
                     // visible on narrow screens. Each icon doubles as the
                     // contentDescription so a long-press / a11y still names it,
                     // and the legend below labels them when Show hints is on.
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        ActionIconButton(
-                            icon = if (isFavourite) Icons.Default.Star else Icons.Outlined.StarBorder,
-                            label = if (isFavourite) "Current plan" else "Mark as my plan",
-                            tint = MaterialTheme.colorScheme.primary,
-                            onClick = onToggleFavourite,
-                            modifier = Modifier.weight(1f)
-                        )
-                        ActionIconButton(
-                            icon = Icons.Default.Edit, label = "Edit",
-                            onClick = onEdit, modifier = Modifier.weight(1f)
-                        )
-                        ActionIconButton(
-                            icon = Icons.Default.Share, label = "Share",
-                            onClick = onShare, modifier = Modifier.weight(1f)
-                        )
-                        ActionIconButton(
-                            icon = Icons.Default.Delete, label = "Delete",
-                            tint = MaterialTheme.colorScheme.error,
-                            onClick = onDelete, modifier = Modifier.weight(1f)
-                        )
+                    //
+                    // Buttons + legend share the same 4→2→2 per-row layout so the
+                    // legend stays aligned beneath the buttons in every tier.
+                    data class ActionSpec(
+                        val icon: androidx.compose.ui.graphics.vector.ImageVector,
+                        val label: String,
+                        val legend: String,
+                        val tint: Color,
+                        val onClick: () -> Unit,
+                    )
+                    val starIcon = if (isFavourite) Icons.Default.Star else Icons.Outlined.StarBorder
+                    val actions = listOf(
+                        ActionSpec(starIcon,
+                            if (isFavourite) "Current plan" else "Mark as my plan",
+                            if (isFavourite) "Current" else "My plan",
+                            MaterialTheme.colorScheme.primary, onToggleFavourite),
+                        ActionSpec(Icons.Default.Edit, "Edit", "Edit",
+                            MaterialTheme.colorScheme.onSurface, onEdit),
+                        ActionSpec(Icons.Default.Share, "Share", "Share",
+                            MaterialTheme.colorScheme.onSurface, onShare),
+                        ActionSpec(Icons.Default.Delete, "Delete", "Delete",
+                            MaterialTheme.colorScheme.error, onDelete),
+                    )
+                    // ActionRowCenter caps the action row at 480 dp on tablets
+                    // so the four icon buttons don't isolate themselves across a
+                    // foot of screen width.
+                    ActionRowCenter {
+                        AdaptiveCellRow(
+                            items = actions,
+                            perRowAtA = 4, perRowAtB = 2, perRowAtC = 2
+                        ) { spec ->
+                            ActionIconButton(
+                                icon = spec.icon, label = spec.label,
+                                tint = spec.tint, onClick = spec.onClick
+                            )
+                        }
                     }
 
                     // Legend — only rendered when Show hints is on. Mirrors the
                     // action row layout so each label sits underneath its icon.
                     if (showHints) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            ActionLegendCell(
-                                if (isFavourite) "Current" else "My plan",
-                                modifier = Modifier.weight(1f)
-                            )
-                            ActionLegendCell("Edit", modifier = Modifier.weight(1f))
-                            ActionLegendCell("Share", modifier = Modifier.weight(1f))
-                            ActionLegendCell("Delete", modifier = Modifier.weight(1f))
+                        ActionRowCenter {
+                            AdaptiveCellRow(
+                                items = actions,
+                                perRowAtA = 4, perRowAtB = 2, perRowAtC = 2
+                            ) { spec ->
+                                ActionLegendCell(spec.legend)
+                            }
                         }
                     }
 
@@ -480,10 +656,13 @@ private fun PricePlanAccordion(
 
 @Composable
 private fun SpecCell(label: String, value: String, modifier: Modifier = Modifier) {
+    // heightIn(min = 46.dp) instead of a fixed height so wrapped rows at
+    // tier B/C can grow with the cell's content (label + value at larger
+    // font sizes) instead of clipping.
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
         shape = RoundedCornerShape(8.dp),
-        modifier = modifier.height(46.dp)
+        modifier = modifier.heightIn(min = 46.dp).fillMaxWidth()
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -511,7 +690,9 @@ private fun ActionIconButton(
 ) {
     OutlinedButton(
         onClick = onClick,
-        modifier = modifier,
+        // heightIn(min = MIN_TOUCH) keeps each button at a 48 dp tap target
+        // even when AdaptiveCellRow stacks them at higher font scales.
+        modifier = modifier.fillMaxWidth().heightIn(min = AdaptiveLayout.MIN_TOUCH),
         contentPadding = PaddingValues(horizontal = 0.dp, vertical = 6.dp)
     ) {
         Icon(icon, contentDescription = label,

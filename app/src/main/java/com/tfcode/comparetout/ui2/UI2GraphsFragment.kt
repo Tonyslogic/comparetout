@@ -14,6 +14,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
+import androidx.compose.ui.draw.shadow
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -32,11 +33,19 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.CallSplit
+import androidx.compose.material.icons.automirrored.filled.ShowChart
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.PieChart
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.TableChart
+import androidx.compose.material.icons.filled.Timeline
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
@@ -132,6 +141,7 @@ private val SERIES_COLORS: Map<FilterSeries, Color> = mapOf(
     FilterSeries.GRID2BAT      to Color(0xFFE91E63),
     FilterSeries.EV_SCHEDULE   to Color(0xFFFFA500),
     FilterSeries.EV_DIVERT     to Color(0xFFE0F2D2),
+    FilterSeries.EV_ACTUAL     to Color(0xFFFF6F00),
     FilterSeries.HW_SCHEDULE   to Color(0xFF9C27B0),
     FilterSeries.HW_DIVERT     to Color(0xFF795548),
     FilterSeries.BAT2GRID      to Color(0xFFFFD700),
@@ -213,6 +223,20 @@ fun GraphsScreen(
     var showDrawer   by remember { mutableStateOf(false) }
     val (showHints, toggleShowHints) = rememberShowHints()
 
+    // Slide-out panels widen modestly on tablets / unfolded foldables so their
+    // entries don't ellipsise; phones keep today's compact widths. (Full
+    // simultaneous docking at ULTRA is deferred — higher risk, reflows content.)
+    val panelScreenWidth = with(LocalDensity.current) {
+        LocalWindowInfo.current.containerSize.width.toDp()
+    }
+    val settingsPanelWidth = when {
+        panelScreenWidth >= AdaptiveLayout.WIDTH_ULTRA_AT -> 360.dp
+        panelScreenWidth >= AdaptiveLayout.WIDTH_WIDE_AT  -> 330.dp
+        else -> 290.dp
+    }
+    val drawerPanelWidth =
+        if (panelScreenWidth >= AdaptiveLayout.WIDTH_WIDE_AT) 320.dp else 280.dp
+
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
 
     Scaffold(
@@ -249,6 +273,14 @@ fun GraphsScreen(
                         ChartArea(state)
                     }
                 }
+                // Persistent bottom bar — chart-type tiles + a menu tile that opens
+                // the same Chart Settings slide-out the old FAB drove. Replaces the
+                // two FABs that used to hide chart content.
+                GraphsBottomBar(
+                    currentType = state.graphType,
+                    onTypeChange = viewModel::setGraphType,
+                    onMenuClick = { showPanel = true }
+                )
             }
 
             // Scrim
@@ -267,27 +299,15 @@ fun GraphsScreen(
                 visible = showPanel,
                 enter = slideInHorizontally(tween(220)) { it },
                 exit  = slideOutHorizontally(tween(220)) { it },
-                modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight().width(290.dp)
+                modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight().width(settingsPanelWidth)
             ) {
                 Surface(tonalElevation = 8.dp, shadowElevation = 8.dp,
                     modifier = Modifier.fillMaxSize()) {
-                    SettingsPanel(state, viewModel, onClose = { showPanel = false })
-                }
-            }
-
-            // FABs — battery/water (conditional) to the left, settings always on the right
-            Row(
-                modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                if (state.showLineFab) {
-                    FloatingActionButton(onClick = { showLinePop = true }) {
-                        Icon(painterResource(R.drawable.barchart), "SOC/Water Temp", Modifier.size(24.dp))
-                    }
-                }
-                FloatingActionButton(onClick = { showPanel = true }) {
-                    Icon(painterResource(R.drawable.ic_baseline_settings_24), "Chart settings", Modifier.size(24.dp))
+                    SettingsPanel(
+                        state, viewModel,
+                        onClose = { showPanel = false },
+                        onShowLinePopup = { showLinePop = true }
+                    )
                 }
             }
 
@@ -301,7 +321,7 @@ fun GraphsScreen(
                 visible = showDrawer,
                 enter = slideInHorizontally(tween(220)) { it },
                 exit = slideOutHorizontally(tween(220)) { it },
-                modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight().width(280.dp)
+                modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight().width(drawerPanelWidth)
             ) {
                 Surface(tonalElevation = 8.dp, shadowElevation = 8.dp, modifier = Modifier.fillMaxSize()) {
                     UI2DrawerContent(
@@ -425,7 +445,8 @@ private fun DateNavRow(
 private fun SettingsPanel(
     state: UI2GraphsViewModel.GraphState,
     viewModel: UI2GraphsViewModel,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    onShowLinePopup: () -> Unit = {}
 ) {
     Column(
         modifier = Modifier.fillMaxSize()
@@ -440,20 +461,20 @@ private fun SettingsPanel(
         }
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
-        // Graph type
-        PanelSection("Graph Type") {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                GraphType.entries.forEach { type ->
-                    FilterChip(
-                        selected = state.graphType == type,
-                        onClick  = { viewModel.setGraphType(type) },
-                        label    = { Text(type.label) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+        // Battery SOC + water-temp popup trigger — was a separate FAB before;
+        // now lives at the top of the settings panel and only when the line popup
+        // is actually applicable (sim single-day with battery/HW).
+        if (state.showLineFab) {
+            TextButton(
+                onClick = { onClose(); onShowLinePopup() },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Icon(Icons.AutoMirrored.Filled.ShowChart, null, Modifier.size(18.dp))
+                Spacer(Modifier.width(6.dp))
+                Text("Battery SOC & Water Temp…")
             }
+            HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
         }
-        Spacer(Modifier.height(12.dp))
 
         // Display scale
         PanelSection("Display Scale") {
@@ -514,6 +535,82 @@ private fun PanelSection(title: String, content: @Composable () -> Unit) {
     content()
 }
 
+// ─── Bottom bar (chart-type tiles + settings menu tile) ───────────────────
+//
+// Visual pattern mirrors CompareScreen.DisplaySection's compact mode — a
+// row of equally-weighted Surface tiles with rounded corners, primary
+// container background and a 1.5dp primary border when active. Replaces
+// the old Chart Settings + line-popup FABs that used to float over chart
+// content.
+
+private val GRAPHS_BOTTOM_BAR_TILES: List<Pair<GraphType, androidx.compose.ui.graphics.vector.ImageVector>> = listOf(
+    GraphType.BAR    to Icons.Default.BarChart,
+    GraphType.LINE   to Icons.AutoMirrored.Filled.ShowChart,
+    GraphType.AREA   to Icons.Default.Timeline,
+    GraphType.PIE    to Icons.Default.PieChart,
+    GraphType.TABLE  to Icons.Default.TableChart,
+    GraphType.SANKEY to Icons.AutoMirrored.Filled.CallSplit
+)
+
+@Composable
+private fun GraphsBottomBar(
+    currentType: GraphType,
+    onTypeChange: (GraphType) -> Unit,
+    onMenuClick: () -> Unit
+) {
+    val shape = RoundedCornerShape(10.dp)
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        GRAPHS_BOTTOM_BAR_TILES.forEach { (type, icon) ->
+            val active = currentType == type
+            BottomBarTile(
+                icon = icon,
+                contentDescription = type.label,
+                active = active,
+                shape = shape,
+                modifier = Modifier.weight(1f),
+                onClick = { onTypeChange(type) }
+            )
+        }
+        BottomBarTile(
+            icon = Icons.Default.Settings,
+            contentDescription = "Chart settings",
+            active = false,
+            shape = shape,
+            modifier = Modifier.weight(1f),
+            onClick = onMenuClick
+        )
+    }
+}
+
+@Composable
+private fun BottomBarTile(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    active: Boolean,
+    shape: androidx.compose.ui.graphics.Shape,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    Surface(
+        color = if (active) MaterialTheme.colorScheme.primaryContainer
+                else MaterialTheme.colorScheme.surface,
+        shape = shape,
+        modifier = modifier
+            .then(if (active) Modifier.border(1.5.dp, MaterialTheme.colorScheme.primary, shape) else Modifier)
+            .clickable(onClick = onClick)
+    ) {
+        Box(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 10.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = contentDescription, modifier = Modifier.size(20.dp))
+        }
+    }
+}
+
 // ─── Chart area dispatcher ─────────────────────────────────────────────────
 
 @Composable
@@ -521,6 +618,7 @@ private fun ChartArea(state: UI2GraphsViewModel.GraphState) {
     when (state.graphType) {
         GraphType.BAR    -> BarChartView(state)
         GraphType.LINE   -> LineChartView(state)
+        GraphType.AREA   -> AreaChartView(state)
         GraphType.PIE    -> PieChartView(state)
         GraphType.TABLE  -> TableView(state)
         GraphType.SANKEY -> SankeyView(state)
@@ -532,7 +630,10 @@ private fun ChartArea(state: UI2GraphsViewModel.GraphState) {
 data class ChartPoint(val label: String, val values: Map<FilterSeries, Double>)
 
 private fun buildChartPoints(state: UI2GraphsViewModel.GraphState): List<ChartPoint> {
-    return if (state.isSingleDay && state.displayScale == DisplayScale.HOUR) {
+    // Sim single-day at HOUR scale populates singleDayBarData; AlphaESS / data-source
+    // mode always flows through intervalData (even on single-day HOUR), so route by
+    // which list actually has data, not by mode/scale.
+    return if (state.singleDayBarData.isNotEmpty()) {
         state.singleDayBarData.map { row ->
             ChartPoint(
                 label = "%02d:00".format(row.hour),
@@ -547,6 +648,9 @@ private fun buildChartPoints(state: UI2GraphsViewModel.GraphState): List<ChartPo
                     FilterSeries.GRID2BAT      to row.grid2Battery,
                     FilterSeries.EV_SCHEDULE   to row.evSchedule,
                     FilterSeries.EV_DIVERT     to row.evDivert,
+                    // singleDayBarData is sim-only (see UI2GraphsViewModel.fetchData);
+                    // AlphaESS data flows through intervalData, so 0 here is correct.
+                    FilterSeries.EV_ACTUAL     to 0.0,
                     FilterSeries.HW_SCHEDULE   to row.hwSchedule,
                     FilterSeries.HW_DIVERT     to row.hwDivert,
                     FilterSeries.BAT2GRID      to row.bat2grid,
@@ -570,6 +674,7 @@ private fun buildChartPoints(state: UI2GraphsViewModel.GraphState): List<ChartPo
                     FilterSeries.GRID2BAT      to row.grid2bat,
                     FilterSeries.EV_SCHEDULE   to row.evSchedule,
                     FilterSeries.EV_DIVERT     to row.evDivert,
+                    FilterSeries.EV_ACTUAL     to row.evActual,
                     FilterSeries.HW_SCHEDULE   to row.hwSchedule,
                     FilterSeries.HW_DIVERT     to row.hwDivert,
                     FilterSeries.BAT2GRID      to row.bat2grid,
@@ -672,10 +777,23 @@ private fun BarChartView(state: UI2GraphsViewModel.GraphState) {
     )
 }
 
-// ─── LINE chart ────────────────────────────────────────────────────────────
+// ─── LINE / AREA charts ────────────────────────────────────────────────────
+//
+// LINE and AREA share the same MPAndroidChart wiring; AREA just sets
+// setDrawFilled(true) on each dataset so the region below the curve is
+// filled with the series colour at low alpha. Single helper, two thin
+// public composables.
 
 @Composable
-private fun LineChartView(state: UI2GraphsViewModel.GraphState) {
+private fun LineChartView(state: UI2GraphsViewModel.GraphState) =
+    LineOrAreaChartView(state, filled = false)
+
+@Composable
+private fun AreaChartView(state: UI2GraphsViewModel.GraphState) =
+    LineOrAreaChartView(state, filled = true)
+
+@Composable
+private fun LineOrAreaChartView(state: UI2GraphsViewModel.GraphState, filled: Boolean) {
     val labelColor = MaterialTheme.colorScheme.onSurface.toArgb()
     val gridColor  = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f).toArgb()
     val points = remember(state.intervalData, state.singleDayBarData, state.displayScale) {
@@ -700,16 +818,22 @@ private fun LineChartView(state: UI2GraphsViewModel.GraphState) {
                 override fun getFormattedValue(v: Float) = labels.getOrElse(v.toInt()) { "" }
             }
             val datasets: List<ILineDataSet> = activeSeries.map { series ->
+                val seriesArgb = (SERIES_COLORS[series] ?: Color.Gray).toArgb()
                 LineDataSet(
                     points.mapIndexed { i, pt -> Entry(i.toFloat(), pt.values[series]?.toFloat() ?: 0f) },
                     series.displayName
                 ).apply {
-                    color = (SERIES_COLORS[series] ?: Color.Gray).toArgb()
+                    color = seriesArgb
                     setDrawCircles(false)
                     lineWidth = 1.5f
                     setDrawValues(false)
                     mode = LineDataSet.Mode.CUBIC_BEZIER
                     valueTextColor = labelColor
+                    if (filled) {
+                        setDrawFilled(true)
+                        fillColor = seriesArgb
+                        fillAlpha = 80
+                    }
                 }
             }
             chart.data = LineData(datasets)
@@ -856,24 +980,41 @@ private fun TableView(state: UI2GraphsViewModel.GraphState) {
         return
     }
 
-    // Shared horizontal scroll so header + rows stay in sync
+    // Shared horizontal scroll so header + rows stay in sync. Pinned first
+    // column stays fixed while series columns scroll horizontally — the
+    // pinned-column width grows with system fontScale (mirrors
+    // PinnedScrollTable; same primitive, hand-rolled here to preserve the
+    // LazyColumn body).
     val hScroll = rememberScrollState()
-    val colW = 72.dp
+    val colW = AdaptiveLayout.SCROLL_COL_MIN_NUMERIC
+    val pinnedWidth = pinnedColumnWidth(adaptiveFontScale())
+    val surface = MaterialTheme.colorScheme.surface
 
     Column(modifier = Modifier.fillMaxSize()) {
         // Sticky header
         Row(modifier = Modifier
             .fillMaxWidth()
-            .horizontalScroll(hScroll)
             .background(MaterialTheme.colorScheme.secondaryContainer)
             .padding(vertical = 4.dp)
         ) {
-            Text("Interval", modifier = Modifier.width(88.dp).padding(horizontal = 4.dp),
-                fontWeight = FontWeight.Bold, fontSize = 11.sp)
-            activeSeries.forEach { s ->
-                Text(s.displayName, modifier = Modifier.width(colW).padding(horizontal = 4.dp),
-                    fontWeight = FontWeight.Bold, fontSize = 10.sp, textAlign = TextAlign.End,
-                    maxLines = 2)
+            Box(
+                Modifier
+                    .width(pinnedWidth)
+                    .shadow(elevation = 2.dp)
+                    .background(MaterialTheme.colorScheme.secondaryContainer)
+                    .padding(horizontal = 4.dp)
+            ) {
+                Text("Interval", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+            }
+            Row(modifier = Modifier
+                .weight(1f)
+                .horizontalScroll(hScroll)
+            ) {
+                activeSeries.forEach { s ->
+                    Text(s.displayName, modifier = Modifier.width(colW).padding(horizontal = 4.dp),
+                        fontWeight = FontWeight.Bold, fontSize = 10.sp, textAlign = TextAlign.End,
+                        maxLines = 2)
+                }
             }
         }
         HorizontalDivider()
@@ -882,15 +1023,26 @@ private fun TableView(state: UI2GraphsViewModel.GraphState) {
             items(points) { pt ->
                 Row(modifier = Modifier
                     .fillMaxWidth()
-                    .horizontalScroll(hScroll)
                     .padding(vertical = 2.dp)
                 ) {
-                    Text(pt.label, modifier = Modifier.width(88.dp).padding(horizontal = 4.dp),
-                        fontSize = 10.sp)
-                    activeSeries.forEach { s ->
-                        Text("%.2f".format(pt.values[s] ?: 0.0),
-                            modifier = Modifier.width(colW).padding(horizontal = 4.dp),
-                            fontSize = 10.sp, textAlign = TextAlign.End)
+                    Box(
+                        Modifier
+                            .width(pinnedWidth)
+                            .shadow(elevation = 2.dp)
+                            .background(surface)
+                            .padding(horizontal = 4.dp)
+                    ) {
+                        Text(pt.label, fontSize = 10.sp)
+                    }
+                    Row(modifier = Modifier
+                        .weight(1f)
+                        .horizontalScroll(hScroll)
+                    ) {
+                        activeSeries.forEach { s ->
+                            Text("%.2f".format(pt.values[s] ?: 0.0),
+                                modifier = Modifier.width(colW).padding(horizontal = 4.dp),
+                                fontSize = 10.sp, textAlign = TextAlign.End)
+                        }
                     }
                 }
                 HorizontalDivider(thickness = 0.5.dp)
@@ -905,8 +1057,7 @@ private data class SankeyFlow(val from: String, val to: String, val value: Doubl
 
 @Composable
 private fun SankeyView(state: UI2GraphsViewModel.GraphState) {
-    val hasData = state.intervalData.isNotEmpty() ||
-            (state.isSingleDay && state.displayScale == DisplayScale.HOUR && state.singleDayBarData.isNotEmpty())
+    val hasData = state.intervalData.isNotEmpty() || state.singleDayBarData.isNotEmpty()
     if (!hasData) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("No data") }
         return
@@ -916,8 +1067,8 @@ private fun SankeyView(state: UI2GraphsViewModel.GraphState) {
     var pv2bat = 0.0; var pv2load = 0.0; var bat2load = 0.0; var grid2bat = 0.0
     var evSchedule = 0.0; var evDivert = 0.0; var hwSchedule = 0.0; var hwDivert = 0.0; var bat2grid = 0.0
 
-    if (state.isSingleDay && state.displayScale == DisplayScale.HOUR) {
-        // Sum hourly bar data for a single day
+    if (state.singleDayBarData.isNotEmpty()) {
+        // Sum hourly bar data for a single simulation day
         state.singleDayBarData.forEach { row ->
             pv += row.pv; feed += row.feed; buy += row.buy
             pv2bat += row.pv2Battery; pv2load += row.pv2Load; bat2load += row.battery2Load

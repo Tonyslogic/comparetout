@@ -25,8 +25,6 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
-import android.os.Handler;
-import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
@@ -85,14 +83,17 @@ public class HACatchupWorker extends Worker {
     private final Object lock = new Object();
 
     final Context mContext;
-    Handler mHandler;
     private final ToutcRepository mToutcRepository;
 
     private EnergySensors mEnergySensors = null;
     private final NotificationManager mNotificationManager;
+    // Distinct notification slot per worker class — see
+    // plans/eventual-bouncing-hare.md.
     private static final int mNotificationId = 4;
     private boolean mStopped = false;
     private boolean mUseUI2 = false;
+    private long mLastNotifyAt = 0L;
+    private static final long MIN_NOTIFY_INTERVAL_MS = 250L;
     // HA data is stored under a single synthetic SN (see calculateAndAddLoad).
     private static final String HA_SYS_SN = "HomeAssistant";
     public HACatchupWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
@@ -114,7 +115,6 @@ public class HACatchupWorker extends Worker {
     @Override
     public Result doWork() {
         System.out.println("HACatchupWorker:doWork invoked ");
-        mHandler = new Handler(Looper.getMainLooper());
         Data inputData = getInputData();
         HADispatcher mHAClient = new HADispatcher(
                 inputData.getString(KEY_HOST),
@@ -128,13 +128,9 @@ public class HACatchupWorker extends Worker {
         mEnergySensors = new Gson().fromJson(sensors, new TypeToken<EnergySensors>(){}.getType());
         mUseUI2 = UI2NotificationLaunch.isUI2Enabled(getApplicationContext());
 
-        // Mark the Worker as important
         LocalDate current = LocalDate.parse(startDate, INPUT_DATE_FORMAT);
         mProgress = current.format(NOTIFY_FORMAT);
-        String progress = "Importing HomeAssistant data";
-        setProgressAsync(new Data.Builder().putString(PROGRESS, mProgress).build());
-        String finalProgress = progress;
-        mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress)));
+        publishProgress("Importing HomeAssistant data", true);
 
         mHAClient.registerHandler("auth_ok", new HACatchupWorker.AuthOKHandler(mHAClient, startDate));
         mHAClient.registerHandler("auth_invalid", new HACatchupWorker.AuthNotOKHandler(mHAClient));
@@ -142,12 +138,25 @@ public class HACatchupWorker extends Worker {
         waitWorkCompletion();
 
         LOGGER.info("HACatchupWorker:doWork finished");
-        progress = "All done importing HomeAssistant data";
-        setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
-        String finalProgress1 = progress;
-        mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress1)));
+        publishProgress("All done importing HomeAssistant data", true);
 
         return Result.success();
+    }
+
+    /**
+     * Publish the worker's progress to WorkManager + the notification
+     * shade. NotificationManager.notify is thread-safe, so no main-thread
+     * hop is required (the earlier handler.post approach raced the worker's
+     * own completion). [force]=true bypasses the in-loop throttle and is
+     * used for the first/last updates so terminal state always lands.
+     */
+    private void publishProgress(@NonNull String progress, boolean force) {
+        setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
+        long now = System.currentTimeMillis();
+        if (force || now - mLastNotifyAt > MIN_NOTIFY_INTERVAL_MS) {
+            mLastNotifyAt = now;
+            mNotificationManager.notify(mNotificationId, getNotification(progress));
+        }
     }
 
     private class StatsForPeriodResultHandler  implements MessageHandler<HAMessage> {
@@ -183,8 +192,7 @@ public class HACatchupWorker extends Worker {
                     String processedDate = date.format(NOTIFY_FORMAT);
                     if (!processedDate.equals(mProgress)) {
                         mProgress = processedDate;
-                        setProgressAsync(new Data.Builder().putString(PROGRESS, "Working on " + mProgress).build());
-                        mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification("Working on " + mProgress)));
+                        publishProgress("Working on " + mProgress, false);
                     }
                 }
             }

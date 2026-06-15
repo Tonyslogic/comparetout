@@ -382,6 +382,26 @@ public class MainActivity extends InsetRespectingActivity {
         // moment the DataStore replies — if mMainHandler is still null we crash with NPE on
         // the very first launch after install/update (when "use_ui2" hasn't been written yet).
         mMainHandler = new Handler(Looper.getMainLooper());
+
+        // UI2 is the default. Decide legacy-vs-UI2 BEFORE rendering any legacy
+        // view so a fresh start doesn't flash the legacy screen behind the
+        // dialogs. One quick flag read at cold start, under the splash.
+        // "" = never set (fresh / upgrade) -> default to UI2 and remember it;
+        // "true" -> UI2; "false" -> stay on legacy (explicit opt-out).
+        TOUTCApplication earlyApp = (TOUTCApplication) getApplication();
+        String ui2Pref = earlyApp.getStringValueFromDataStore("use_ui2");
+        if (!"false".equals(ui2Pref)) {
+            if (ui2Pref == null || ui2Pref.isEmpty()) {
+                earlyApp.putStringValueIntoDataStore("use_ui2", "true");
+            }
+            createNotificationChannel();
+            Intent ui2Intent = new Intent(this, com.tfcode.comparetout.ui2.UI2MainActivity.class);
+            ui2Intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+            startActivity(ui2Intent);
+            finish();
+            return;
+        }
+
         applyInsetsToView(R.id.tab_layout, EdgeInsets.Edge.TOP);
         applyInsetsToView(R.id.view_pager, EdgeInsets.Edge.RIGHT, EdgeInsets.Edge.BOTTOM);
         applyInsetsToGuidelines(0, R.id.bottom_inset_guideline, 0, R.id.right_inset_guideline );

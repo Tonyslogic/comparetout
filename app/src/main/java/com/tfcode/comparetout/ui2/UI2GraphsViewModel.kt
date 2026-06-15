@@ -46,13 +46,16 @@ class UI2GraphsViewModel @Inject constructor(
     }
 
     enum class GraphType(val label: String) {
-        BAR("Bar"), LINE("Line"), PIE("Pie"), TABLE("Table"), SANKEY("Sankey")
+        BAR("Bar"), LINE("Line"), AREA("Area"), PIE("Pie"), TABLE("Table"), SANKEY("Sankey")
     }
 
     enum class FilterSeries(val displayName: String) {
         LOAD("Load"), FEED("Export"), BUY("Import"), PV("Solar"),
         PV2BAT("PV→Bat"), PV2LOAD("PV→Load"), BAT2LOAD("Bat→Load"), GRID2BAT("Grid→Bat"),
         EV_SCHEDULE("EV Sched"), EV_DIVERT("EV Divert"),
+        // AlphaESS-only: real EV charger draw (pchargingPile, scaled to daily total).
+        // Zero on simulation rows; populated when the v2 transform has run.
+        EV_ACTUAL("EV Actual"),
         HW_SCHEDULE("HW Sched"), HW_DIVERT("HW Divert"),
         BAT2GRID("Bat→Grid"), BAT_CHARGE("Bat Chg"), BAT_DISCHARGE("Bat Dis")
     }
@@ -89,6 +92,10 @@ class UI2GraphsViewModel @Inject constructor(
         // True when the loaded interval data contains actual battery charge/discharge rows
         val hasBatteryData: Boolean get() =
             isDataSourceMode && intervalData.any { it.batCharge > 0.0 || it.batDischarge > 0.0 }
+        // True when the v2 AlphaESS transform has populated actual EV-charger usage.
+        // Gates the EV chip in the data-source mode filter group below.
+        val hasEvActualData: Boolean get() =
+            isDataSourceMode && intervalData.any { it.evActual > 0.0 }
         // Line fab only applies to simulation mode
         val showLineFab: Boolean get() = !isDataSourceMode && isSingleDay && (hasBattery || hasHW)
 
@@ -97,7 +104,12 @@ class UI2GraphsViewModel @Inject constructor(
                 if (isDataSourceMode) {
                     return when (importerType) {
                         ComparisonUIViewModel.Importer.ESBNHDF -> ESBN_FILTERS
-                        else -> if (hasBatteryData) CORE_FILTERS + BATTERY_FILTERS else CORE_FILTERS
+                        else -> {
+                            val set = CORE_FILTERS.toMutableSet()
+                            if (hasBatteryData) set.addAll(BATTERY_FILTERS)
+                            if (hasEvActualData) set.add(FilterSeries.EV_ACTUAL)
+                            set
+                        }
                     }
                 }
                 val sc = components ?: return CORE_FILTERS
@@ -124,7 +136,7 @@ class UI2GraphsViewModel @Inject constructor(
             FilterSeries.GRID2BAT, FilterSeries.BAT2GRID,
             FilterSeries.BAT_CHARGE, FilterSeries.BAT_DISCHARGE
         )
-        val EV_FILTERS = setOf(FilterSeries.EV_SCHEDULE, FilterSeries.EV_DIVERT)
+        val EV_FILTERS = setOf(FilterSeries.EV_SCHEDULE, FilterSeries.EV_DIVERT, FilterSeries.EV_ACTUAL)
         val HW_FILTERS = setOf(FilterSeries.HW_SCHEDULE, FilterSeries.HW_DIVERT)
     }
 

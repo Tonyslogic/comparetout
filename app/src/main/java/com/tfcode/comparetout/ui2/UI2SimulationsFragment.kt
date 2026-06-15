@@ -143,6 +143,7 @@ fun ScenariosScreen(
     val items by viewModel.items.collectAsState()
     val context = LocalContext.current
     var showDeleteDialog by remember { mutableStateOf<UI2SimulationsViewModel.SimListItem.Simulation?>(null) }
+    var showDeleteAll by remember { mutableStateOf(false) }
     var showDrawer by remember { mutableStateOf(false) }
     val (showHints, toggleShowHints) = rememberShowHints()
     val shareScope = rememberCoroutineScope()
@@ -173,9 +174,21 @@ fun ScenariosScreen(
                 // Scenarios section is always shown — the title's "+ Create new" action
                 // is the only entry point for building a scenario (no FAB any more).
                 stickyHeader(key = "header_simulations") {
-                    SectionHeader("Scenarios", action = SectionAction("+ Create new") {
-                        context.startActivity(Intent(context, UI2WizardActivity::class.java))
-                    })
+                    SectionHeader(
+                        "Scenarios",
+                        action = SectionAction("+ Create new") {
+                            context.startActivity(Intent(context, UI2WizardActivity::class.java))
+                        },
+                        onDeleteAll = if (simItems.isNotEmpty()) ({ showDeleteAll = true }) else null
+                    )
+                }
+                if (showHints) {
+                    item(key = "hint_simulations") {
+                        SectionHint(
+                            "Each scenario is a what-if home setup (solar, battery, EV, hot water). " +
+                                "Tap “+ Create new” to build one; the dashboard shows its costs."
+                        )
+                    }
                 }
                 if (simItems.isEmpty()) {
                     item(key = "empty_simulations") { EmptySectionRow("No scenarios yet — tap “+ Create new”.") }
@@ -211,6 +224,14 @@ fun ScenariosScreen(
                 // so this section is read-only here — no add action.
                 stickyHeader(key = "header_datasources") {
                     SectionHeader("Sources")
+                }
+                if (showHints) {
+                    item(key = "hint_datasources") {
+                        SectionHint(
+                            "Sources are real meter/inverter data (AlphaESS, ESBN HDF, Home " +
+                                "Assistant). See the menu → Data Source Management to add or remove them."
+                        )
+                    }
                 }
                 if (dataSourceItems.isEmpty()) {
                     item(key = "empty_datasources") {
@@ -275,13 +296,45 @@ fun ScenariosScreen(
             }
         )
     }
+
+    if (showDeleteAll) {
+        AlertDialog(
+            onDismissRequest = { showDeleteAll = false },
+            title = { Text("Delete all scenarios?") },
+            text = {
+                Text(
+                    "All ${simItems.size} scenario" + (if (simItems.size == 1) "" else "s") +
+                        " will be permanently deleted, along with their simulation and costing " +
+                        "results. Data sources are not affected. There is no undo."
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteAllScenarios()
+                        showDeleteAll = false
+                    },
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) { Text("Delete all") }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteAll = false }) { Text("Cancel") }
+            }
+        )
+    }
 }
 
 /** Optional trailing action rendered on the right of a [SectionHeader]. */
 private data class SectionAction(val label: String, val onClick: () -> Unit)
 
 @Composable
-private fun SectionHeader(title: String, action: SectionAction? = null) {
+private fun SectionHeader(
+    title: String,
+    action: SectionAction? = null,
+    onDeleteAll: (() -> Unit)? = null
+) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant,
         modifier = Modifier.fillMaxWidth()
@@ -296,6 +349,15 @@ private fun SectionHeader(title: String, action: SectionAction? = null) {
                 style = MaterialTheme.typography.titleSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            if (onDeleteAll != null) {
+                IconButton(onClick = onDeleteAll) {
+                    Icon(
+                        Icons.Default.Delete,
+                        contentDescription = "Delete all scenarios",
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
             if (action != null) {
                 TextButton(onClick = action.onClick) {
                     Text(action.label, style = MaterialTheme.typography.labelLarge)
@@ -303,6 +365,16 @@ private fun SectionHeader(title: String, action: SectionAction? = null) {
             }
         }
     }
+}
+
+@Composable
+private fun SectionHint(text: String) {
+    Text(
+        text,
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
 }
 
 @Composable

@@ -94,6 +94,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.tfcode.comparetout.ComparisonUIViewModel.Importer
+import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformMeta
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -115,6 +116,8 @@ import java.time.format.DateTimeFormatter
 // deliberately limited to "things you do to a source", not "things you
 // see from a source".
 // ──────────────────────────────────────────────────────────────────────────
+
+private enum class DataSourceIoAction { IMPORT, EXPORT }
 
 @AndroidEntryPoint
 class UI2DataSourceManagementActivity : AppCompatActivity() {
@@ -143,6 +146,16 @@ private fun DataSourceManagementScreen(
     val haSensors by viewModel.haSensors.observeAsState()
     val busy by viewModel.busy.observeAsState(false)
     val toast by viewModel.toast.observeAsState()
+    // v2 enrichment status — used to decide which AlphaESS rows surface the
+    // Migrate button. Missing-meta or transformVersion < CURRENT → stale.
+    val alphaMetas by viewModel.alphaTransformMeta.observeAsState(emptyList())
+    val staleByAlphaSn: Map<String, Boolean> = remember(alphaMetas, alphaRaw) {
+        val byVersion = alphaMetas.associate { it.sysSn to it.transformVersion }
+        alphaRaw?.systems.orEmpty().associate { sys ->
+            sys.sysSn to ((byVersion[sys.sysSn] ?: AlphaESSTransformMeta.TRANSFORM_VERSION_V1)
+                    < AlphaESSTransformMeta.TRANSFORM_VERSION_CURRENT)
+        }
+    }
 
     // Merge the persistent SourceState (DataStore + DB) with the live
     // WorkManager status (per-SN fetching/scheduled). Done in the activity so
@@ -214,7 +227,10 @@ private fun DataSourceManagementScreen(
                                 onDeleteAll = viewModel::deleteAllData,
                                 onDeleteRange = viewModel::deleteRange,
                                 onImportFile = viewModel::importAlphaFile,
-                                onExportFolder = viewModel::exportAlpha
+                                onExportFolder = viewModel::exportAlpha,
+                                staleByAlphaSn = staleByAlphaSn,
+                                onMigrate = viewModel::runMigration,
+                                onRemoveSource = { viewModel.deleteEntireSource(Importer.ALPHAESS) }
                             )
                         }
                     )
@@ -234,7 +250,8 @@ private fun DataSourceManagementScreen(
                                 onFetch = viewModel::fetchHA,
                                 onCancel = viewModel::cancelFetch,
                                 onDeleteAll = viewModel::deleteAllData,
-                                onDeleteRange = viewModel::deleteRange
+                                onDeleteRange = viewModel::deleteRange,
+                                onRemoveSource = { viewModel.deleteEntireSource(Importer.HOME_ASSISTANT) }
                             )
                         }
                     )
@@ -252,7 +269,8 @@ private fun DataSourceManagementScreen(
                                 onImportFile = viewModel::importEsbnFile,
                                 onDeleteAll = viewModel::deleteAllData,
                                 onDeleteRange = viewModel::deleteRange,
-                                onExportFolder = viewModel::exportEsbn
+                                onExportFolder = viewModel::exportEsbn,
+                                onRemoveSource = { viewModel.deleteEntireSource(Importer.ESBNHDF) }
                             )
                         }
                     )
@@ -375,6 +393,10 @@ private fun StatusChip(state: SourceState?) {
             MaterialTheme.colorScheme.outline, "Loading")
         state.importer == Importer.ESBNHDF -> Triple(Icons.Default.UploadFile,
             MaterialTheme.colorScheme.primary, "File")
+        // Systems present but no credentials (e.g. imported via a snapshot) —
+        // flag clearly as needing attention rather than a neutral "Not set".
+        !state.credentialsConfigured && state.systems.isNotEmpty() ->
+            Triple(Icons.Outlined.Warning, MaterialTheme.colorScheme.error, "Set credentials")
         !state.credentialsConfigured -> Triple(Icons.Default.CloudOff,
             MaterialTheme.colorScheme.outline, "Not set")
         !state.credentialsKnownGood -> Triple(Icons.Outlined.Warning,
@@ -406,9 +428,13 @@ private fun AlphaSection(
     onDeleteAll: (String) -> Unit,
     onDeleteRange: (String, LocalDateTime, LocalDateTime) -> Unit,
     onImportFile: (String, String) -> Unit,
-    onExportFolder: (String, String) -> Unit
+    onExportFolder: (String, String) -> Unit,
+    staleByAlphaSn: Map<String, Boolean>,
+    onMigrate: (String) -> Unit,
+    onRemoveSource: () -> Unit
 ) {
     var showCreds by remember { mutableStateOf(false) }
+    var showDeleteSource by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<ManagedSystem?>(null) }
     var pendingFetch by remember { mutableStateOf<ManagedSystem?>(null) }
     // The pickers fire asynchronously; remember which row's button kicked
@@ -435,7 +461,9 @@ private fun AlphaSection(
     CredentialStrip(
         configured = state?.credentialsConfigured == true,
         good = state?.credentialsKnownGood == true,
-        onEdit = { showCreds = true }
+        onEdit = { showCreds = true },
+        onDeleteSource = if (state?.credentialsConfigured == true || !state?.systems.isNullOrEmpty())
+            ({ showDeleteSource = true }) else null
     )
     SystemList(
         systems = state?.systems.orEmpty(),
@@ -455,7 +483,9 @@ private fun AlphaSection(
         onExport = { sn ->
             exportTargetSn = sn
             pickExportFolder.launch(null)
-        }
+        },
+        onMigrate = onMigrate,
+        isStale = { sn -> staleByAlphaSn[sn] == true }
     )
     if (showCreds) {
         CredentialDialog(
@@ -468,6 +498,14 @@ private fun AlphaSection(
                 onSetCredentials(u, p)
                 showCreds = false
             }
+        )
+    }
+    if (showDeleteSource) {
+        DeleteSourceDialog(
+            sourceName = "AlphaESS Cloud",
+            mentionsCredentials = true,
+            onDismiss = { showDeleteSource = false },
+            onConfirm = { onRemoveSource(); showDeleteSource = false }
         )
     }
     pendingDelete?.let { sys ->
@@ -504,9 +542,11 @@ private fun HASection(
     onFetch: (LocalDateTime) -> Unit,
     onCancel: (String) -> Unit,
     onDeleteAll: (String) -> Unit,
-    onDeleteRange: (String, LocalDateTime, LocalDateTime) -> Unit
+    onDeleteRange: (String, LocalDateTime, LocalDateTime) -> Unit,
+    onRemoveSource: () -> Unit
 ) {
     var showCreds by remember { mutableStateOf(false) }
+    var showDeleteSource by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<ManagedSystem?>(null) }
     var pendingFetch by remember { mutableStateOf<ManagedSystem?>(null) }
     if (showHints) {
@@ -515,7 +555,9 @@ private fun HASection(
     CredentialStrip(
         configured = state?.credentialsConfigured == true,
         good = state?.credentialsKnownGood == true,
-        onEdit = { showCreds = true }
+        onEdit = { showCreds = true },
+        onDeleteSource = if (state?.credentialsConfigured == true || !state?.systems.isNullOrEmpty())
+            ({ showDeleteSource = true }) else null
     )
 
     SystemList(
@@ -562,6 +604,14 @@ private fun HASection(
                 onRediscover(h, t)
                 showCreds = false
             }
+        )
+    }
+    if (showDeleteSource) {
+        DeleteSourceDialog(
+            sourceName = "Home Assistant",
+            mentionsCredentials = true,
+            onDismiss = { showDeleteSource = false },
+            onConfirm = { onRemoveSource(); showDeleteSource = false }
         )
     }
     pendingDelete?.let { sys ->
@@ -725,9 +775,11 @@ private fun EsbnSection(
     onImportFile: (String) -> Unit,
     onDeleteAll: (String) -> Unit,
     onDeleteRange: (String, LocalDateTime, LocalDateTime) -> Unit,
-    onExportFolder: (String, String) -> Unit
+    onExportFolder: (String, String) -> Unit,
+    onRemoveSource: () -> Unit
 ) {
     var pendingDelete by remember { mutableStateOf<ManagedSystem?>(null) }
+    var showDeleteSource by remember { mutableStateOf(false) }
     var exportTargetMprn by remember { mutableStateOf<String?>(null) }
     val pickFile = rememberLauncherForActivityResult(
         ActivityResultContracts.GetContent()
@@ -764,13 +816,25 @@ private fun EsbnSection(
             )
         }
     }
-    Button(
-        onClick = { pickFile.launch("*/*") },
-        modifier = Modifier.fillMaxWidth()
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(Icons.Default.Download, null, Modifier.size(16.dp))
-        Spacer(Modifier.width(6.dp))
-        Text("Import HDF file")
+        Button(
+            onClick = { pickFile.launch("*/*") },
+            modifier = Modifier.weight(1f)
+        ) {
+            Icon(Icons.Default.Download, null, Modifier.size(16.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("Import HDF file")
+        }
+        if (!state?.systems.isNullOrEmpty()) {
+            IconButton(onClick = { showDeleteSource = true }) {
+                Icon(Icons.Default.Delete, contentDescription = "Remove source",
+                    tint = MaterialTheme.colorScheme.error)
+            }
+        }
     }
     SystemList(
         systems = state?.systems.orEmpty(),
@@ -803,6 +867,14 @@ private fun EsbnSection(
             onDeleteRange = { f, t -> onDeleteRange(sys.sysSn, f, t); pendingDelete = null }
         )
     }
+    if (showDeleteSource) {
+        DeleteSourceDialog(
+            sourceName = "ESBN data",
+            mentionsCredentials = false,
+            onDismiss = { showDeleteSource = false },
+            onConfirm = { onRemoveSource(); showDeleteSource = false }
+        )
+    }
 }
 
 // ── Shared widgets ─────────────────────────────────────────────────────
@@ -811,7 +883,11 @@ private fun EsbnSection(
 private fun CredentialStrip(
     configured: Boolean,
     good: Boolean,
-    onEdit: () -> Unit
+    onEdit: () -> Unit,
+    // When non-null, a trashcan appears beside the credentials action that
+    // removes the whole source — readings AND credentials. Omitted (null)
+    // when there is nothing configured to remove.
+    onDeleteSource: (() -> Unit)? = null
 ) {
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
@@ -841,8 +917,60 @@ private fun CredentialStrip(
                 Spacer(Modifier.width(4.dp))
                 Text(if (configured) "Update" else "Set")
             }
+            if (onDeleteSource != null) {
+                Spacer(Modifier.width(4.dp))
+                IconButton(onClick = onDeleteSource) {
+                    Icon(Icons.Default.Delete, contentDescription = "Remove source",
+                        tint = MaterialTheme.colorScheme.error)
+                }
+            }
         }
     }
+}
+
+/**
+ * Confirmation for removing an entire source. Spells out that this wipes both
+ * the stored readings and (where applicable) the credentials — the per-system
+ * Delete dialog keeps credentials, this one does not.
+ */
+@Composable
+private fun DeleteSourceDialog(
+    sourceName: String,
+    mentionsCredentials: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Remove $sourceName?") },
+        text = {
+            Text(
+                if (mentionsCredentials)
+                    "This permanently deletes all stored readings for this source AND its " +
+                        "saved credentials. You'll need to re-enter them to use it again. " +
+                        "There is no undo."
+                else
+                    "This permanently deletes all stored readings and configuration for this " +
+                        "source. There is no undo.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Icon(Icons.Default.Delete, null, Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
+                Text("Remove")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
 }
 
 @Composable
@@ -858,7 +986,11 @@ private fun SystemList(
     // Fetch/Delete. Null → row omitted. Used for AlphaESS (import+export)
     // and ESBN (export only). HA passes neither.
     onImport: ((String) -> Unit)? = null,
-    onExport: ((String) -> Unit)? = null
+    onExport: ((String) -> Unit)? = null,
+    // AlphaESS only: Migrate button appears on a third row when isStale(sn)
+    // is true and onMigrate is wired. Null callbacks → row omitted entirely.
+    onMigrate: ((String) -> Unit)? = null,
+    isStale: ((String) -> Boolean)? = null
 ) {
     if (systems.isEmpty()) {
         Text("No systems configured yet.",
@@ -869,7 +1001,7 @@ private fun SystemList(
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         systems.forEach { sys ->
             SystemRow(sys, selected, canFetch, onSelect, onFetch, onCancel, onDelete,
-                onImport, onExport)
+                onImport, onExport, onMigrate, isStale)
         }
     }
 }
@@ -884,7 +1016,9 @@ private fun SystemRow(
     onCancel: (String) -> Unit,
     onDelete: (ManagedSystem) -> Unit,
     onImport: ((String) -> Unit)? = null,
-    onExport: ((String) -> Unit)? = null
+    onExport: ((String) -> Unit)? = null,
+    onMigrate: ((String) -> Unit)? = null,
+    isStale: ((String) -> Boolean)? = null
 ) {
     val isSelected = sys.sysSn == selected
     val active = sys.fetching || sys.scheduled
@@ -977,28 +1111,54 @@ private fun SystemRow(
             // for backup / sharing). Each is disabled mid-fetch to avoid
             // racing the underlying writes.
             if (onImport != null || onExport != null) {
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    if (onImport != null) {
-                        OutlinedButton(
-                            onClick = { onImport(sys.sysSn) },
+                // Import / Export side-by-side at fs<1.6, stacked at fs>=1.6
+                // so each label has room to render. AdaptiveCellRow keeps
+                // both at 50/50 width through tier B and goes full-width per
+                // button at tier C.
+                val ioItems = buildList {
+                    if (onImport != null) add(DataSourceIoAction.IMPORT)
+                    if (onExport != null) add(DataSourceIoAction.EXPORT)
+                }
+                AdaptiveCellRow(
+                    items = ioItems,
+                    perRowAtA = ioItems.size, perRowAtB = ioItems.size, perRowAtC = 1,
+                    spacing = 6.dp
+                ) { action ->
+                    when (action) {
+                        DataSourceIoAction.IMPORT -> OutlinedButton(
+                            onClick = { onImport!!(sys.sysSn) },
                             enabled = !sys.fetching,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             Icon(Icons.Default.Download, null, Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
                             Text("Import")
                         }
-                    }
-                    if (onExport != null) {
-                        OutlinedButton(
-                            onClick = { onExport(sys.sysSn) },
+                        DataSourceIoAction.EXPORT -> OutlinedButton(
+                            onClick = { onExport!!(sys.sysSn) },
                             enabled = !sys.fetching,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.fillMaxWidth()
                         ) {
                             Icon(Icons.Default.UploadFile, null, Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
                             Text("Export")
                         }
+                    }
+                }
+            }
+            // Third row: Migrate — surfaced only when the SN's processed rows
+            // are pre-v2. Disappears once AlphaESSMigrationWorker stamps the
+            // transform meta to TRANSFORM_VERSION_CURRENT on completion.
+            if (onMigrate != null && isStale != null && isStale(sys.sysSn)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    OutlinedButton(
+                        onClick = { onMigrate(sys.sysSn) },
+                        enabled = !sys.fetching,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Refresh, null, Modifier.size(16.dp))
+                        Spacer(Modifier.width(4.dp))
+                        Text("Migrate")
                     }
                 }
             }

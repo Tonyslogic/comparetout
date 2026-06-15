@@ -87,6 +87,7 @@ import androidx.compose.ui.unit.dp
 private const val SCROLL_THRESHOLD = 4
 
 private enum class ChipKind { LINKED, FORKED, NEW }
+private enum class DirectorFooterAction { SAVE, RUN, CLOSE }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -423,24 +424,39 @@ private fun DirectorActionBar(
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(6.dp))
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                if (dirty) {
-                    Button(onClick = onSave, enabled = !saving, modifier = Modifier.weight(1f)) {
-                        Box(Modifier.size(7.dp).background(
-                            MaterialTheme.colorScheme.onPrimary, CircleShape))
-                        Spacer(Modifier.width(6.dp))
-                        Text("Save")
-                    }
-                } else {
-                    OutlinedButton(onClick = onSave, enabled = false, modifier = Modifier.weight(1f)) {
-                        Text("Save")
+            // Save / Run simulation / Close. AdaptiveCellRow keeps them in a
+            // single line at fs<1.6 and stacks them vertically at fs>=1.6 so
+            // "Run simulation" stops wrapping inside the button.
+            ActionRowCenter {
+                AdaptiveCellRow(
+                    items = listOf(DirectorFooterAction.SAVE, DirectorFooterAction.RUN, DirectorFooterAction.CLOSE),
+                    perRowAtA = 3, perRowAtB = 3, perRowAtC = 1,
+                    spacing = 8.dp
+                ) { action ->
+                    when (action) {
+                        DirectorFooterAction.SAVE ->
+                            if (dirty) {
+                                Button(onClick = onSave, enabled = !saving,
+                                    modifier = Modifier.fillMaxWidth()) {
+                                    Box(Modifier.size(7.dp).background(
+                                        MaterialTheme.colorScheme.onPrimary, CircleShape))
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("Save")
+                                }
+                            } else {
+                                OutlinedButton(onClick = onSave, enabled = false,
+                                    modifier = Modifier.fillMaxWidth()) { Text("Save") }
+                            }
+                        DirectorFooterAction.RUN ->
+                            Button(onClick = onRun, enabled = !saving,
+                                modifier = Modifier.fillMaxWidth()) {
+                                Text("Run simulation")
+                            }
+                        DirectorFooterAction.CLOSE ->
+                            OutlinedButton(onClick = onClose,
+                                modifier = Modifier.fillMaxWidth()) { Text("Close") }
                     }
                 }
-                Button(onClick = onRun, enabled = !saving, modifier = Modifier.weight(1.4f)) {
-                    Text("Run simulation")
-                }
-                OutlinedButton(onClick = onClose, modifier = Modifier.weight(1f)) { Text("Close") }
             }
         }
     }

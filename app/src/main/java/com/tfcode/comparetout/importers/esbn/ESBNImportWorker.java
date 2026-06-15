@@ -27,8 +27,6 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.net.Uri;
-import android.os.Handler;
-import android.os.Looper;
 import android.util.Pair;
 
 import androidx.annotation.NonNull;
@@ -67,10 +65,14 @@ public class ESBNImportWorker extends Worker {
 
     private final ToutcRepository mToutcRepository;
     private final NotificationManager mNotificationManager;
+    // Distinct notification slot per worker class — see
+    // plans/eventual-bouncing-hare.md.
     private static final int mNotificationId = 3;
     private boolean mStopped = false;
     private boolean mUseUI2 = false;
     private String mSelectedSysSn = null;
+    private long mLastNotifyAt = 0L;
+    private static final long MIN_NOTIFY_INTERVAL_MS = 250L;
 
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -102,7 +104,6 @@ public class ESBNImportWorker extends Worker {
     @Override
     public Result doWork() {
         System.out.println("ESBNImportWorker:doWork invoked ");
-        Handler mHandler = new Handler(Looper.getMainLooper());
         Data inputData = getInputData();
         String systemSN = inputData.getString(KEY_SYSTEM_SN);
         String uriString = inputData.getString(KEY_URI);
@@ -110,11 +111,7 @@ public class ESBNImportWorker extends Worker {
         mSelectedSysSn = systemSN;
         mUseUI2 = UI2NotificationLaunch.isUI2Enabled(getApplicationContext());
 
-        // Mark the Worker as important
-        String progress = "Importing energy";
-        setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
-        String finalProgress = progress;
-        mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress)));
+        publishProgress("Importing energy", true);
         
         // Do some work
         Map<LocalDateTime, Pair<Double, Double>> timeAlignedEntries = new HashMap<>();
@@ -196,14 +193,27 @@ public class ESBNImportWorker extends Worker {
         // cached SN so the completion notification deep-links to the right
         // source under UI2.
         mSelectedSysSn = systemSN;
-        progress = "All done importing " + systemSN;
-        setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
-        String finalProgress1 = progress;
-        mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress1)));
+        publishProgress("All done importing " + systemSN, true);
 
         if (mStopped) mNotificationManager.cancel(mNotificationId);
 
         return Result.success();
+    }
+
+    /**
+     * Publish the worker's progress to WorkManager + the notification
+     * shade. NotificationManager.notify is thread-safe, so no main-thread
+     * hop is required (the earlier handler.post approach raced the worker's
+     * own completion). [force]=true bypasses the in-loop throttle and is
+     * used for the first/last updates so terminal state always lands.
+     */
+    private void publishProgress(@NonNull String progress, boolean force) {
+        setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
+        long now = System.currentTimeMillis();
+        if (force || now - mLastNotifyAt > MIN_NOTIFY_INTERVAL_MS) {
+            mLastNotifyAt = now;
+            mNotificationManager.notify(mNotificationId, getNotification(progress));
+        }
     }
 
     @NonNull

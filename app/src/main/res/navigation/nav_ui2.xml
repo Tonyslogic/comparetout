@@ -53,4 +53,9 @@
         android:id="@+id/ui2GraphsFragment"
         android:name="com.tfcode.comparetout.ui2.UI2GraphsFragment"
         android:label="Graphs" />
+
+    <fragment
+        android:id="@+id/ui2SimpleFragment"
+        android:name="com.tfcode.comparetout.ui2.UI2SimpleFragment"
+        android:label="Simple" />
 </navigation>

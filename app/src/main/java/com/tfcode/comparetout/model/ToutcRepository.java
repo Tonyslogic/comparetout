@@ -26,6 +26,7 @@ import com.tfcode.comparetout.model.importers.IntervalRow;
 import com.tfcode.comparetout.model.importers.InverterDateRange;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawEnergy;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawPower;
+import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformMeta;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
 import com.tfcode.comparetout.model.importers.alphaess.KPIRow;
 import com.tfcode.comparetout.model.importers.alphaess.KeyStatsRow;
@@ -931,5 +932,47 @@ public class ToutcRepository {
 
     public InverterDateRange getSimDateRanges(String sysSN) {
         return scenarioDAO.getSimDateRanges(sysSN);
+    }
+
+    // ---- AlphaESS transform meta (v2 enrichment tracking) ----
+
+    public AlphaESSTransformMeta getAlphaESSTransformMeta(String sysSN) {
+        return alphaEssDAO.getTransformMeta(sysSN);
+    }
+
+    public void upsertAlphaESSTransformMeta(AlphaESSTransformMeta meta) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                alphaEssDAO.upsertTransformMeta(meta));
+    }
+
+    /** UI binds against this to decide whether to surface the Migrate button per SN. */
+    public LiveData<List<AlphaESSTransformMeta>> getAllAlphaESSTransformMetaLive() {
+        return alphaEssDAO.observeAllTransformMeta();
+    }
+
+    /** Stamp the SN's transform meta as up-to-date for {@code TRANSFORM_VERSION_CURRENT}. */
+    public void stampAlphaESSTransformCurrent(String sysSn) {
+        AlphaESSTransformMeta meta = new AlphaESSTransformMeta();
+        meta.setSysSn(sysSn);
+        meta.setTransformVersion(AlphaESSTransformMeta.TRANSFORM_VERSION_CURRENT);
+        meta.setLastMigratedAt(System.currentTimeMillis());
+        upsertAlphaESSTransformMeta(meta);
+    }
+
+    /**
+     * Stamp v2 only when it is safe: either the SN had no processed rows before
+     * the caller's write (so everything it just wrote is v2), or the existing
+     * meta already says v2. Otherwise leaves the meta alone so the UI keeps
+     * surfacing the Migrate button for the un-migrated history.
+     */
+    public void stampAlphaESSTransformCurrentIfSafe(String sysSn, boolean snHadNoRowsBefore) {
+        if (snHadNoRowsBefore) {
+            stampAlphaESSTransformCurrent(sysSn);
+            return;
+        }
+        AlphaESSTransformMeta existing = alphaEssDAO.getTransformMeta(sysSn);
+        if (existing != null && existing.getTransformVersion() >= AlphaESSTransformMeta.TRANSFORM_VERSION_CURRENT) {
+            stampAlphaESSTransformCurrent(sysSn);
+        }
     }
 }

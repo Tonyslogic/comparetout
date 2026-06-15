@@ -24,8 +24,7 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
-import android.os.Handler;
-import android.os.Looper;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
@@ -52,12 +51,23 @@ import java.util.Map;
 @SuppressWarnings("BusyWait")
 public class CatchUpWorker extends Worker {
 
+    private static final String TAG = "AlphaESSImporter";
+
     private final ToutcRepository mToutcRepository;
     private final NotificationManager mNotificationManager;
-    private static final int mNotificationId = 2;
+    // Distinct notification slot per worker class — see
+    // plans/eventual-bouncing-hare.md.
+    private static final int mNotificationId = 6;
     private boolean mStopped = false;
     private boolean mUseUI2 = false;
     private String mSelectedSysSn = null;
+    private long mLastNotifyAt = 0L;
+    private static final long MIN_NOTIFY_INTERVAL_MS = 250L;
+    // AlphaESS OpenAPI returns 6053 (rate limit) under tight loops. The
+    // Python repo's README documents 10s minimum polling interval; 5s here
+    // is a pragmatic middle ground that nearly eliminates the rate-limit
+    // skips while keeping a year-long backfill under an hour.
+    private static final long SAMPLE_LIMIT_MILLIS = 5000L;
 
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
@@ -85,8 +95,7 @@ public class CatchUpWorker extends Worker {
     @NonNull
     @Override
     public Result doWork() {
-        System.out.println("CatchUpWorker:doWork invoked ");
-        Handler mHandler = new Handler(Looper.getMainLooper());
+        Log.i(TAG, "CatchUpWorker:doWork invoked");
         Data inputData = getInputData();
         OpenAlphaESSClient mOpenAlphaESSClient = new OpenAlphaESSClient(
                 inputData.getString(KEY_APP_ID),
@@ -100,16 +109,21 @@ public class CatchUpWorker extends Worker {
         LocalDate current = LocalDate.parse(startDate, DATE_FORMAT);
         LocalDate end = LocalDate.now();
 
-        // Mark the Worker as important
-        setProgressAsync(new Data.Builder().putString(PROGRESS, current.toString()).build());
+        // v2: remember whether this SN had any processed rows before we started. If it did,
+        // some of those rows may be pre-v2 and we shouldn't stamp v2 at the end (the user
+        // still needs the Migrate button to upgrade the historical rows).
+        String latestBefore = mToutcRepository.getLatestDateForSn(systemSN);
+        boolean snHadNoRowsBefore = (latestBefore == null || latestBefore.isEmpty());
+
+        publishProgress(current.toString(), true);
         while (current.isBefore(end) && !mStopped) {
             if (mToutcRepository.checkSysSnForDataOnDate(systemSN, current.format(DATE_FORMAT))) {
-                System.out.println("CatchUpWorker skipping " + current);
+                Log.i(TAG, "CatchUpWorker skipping " + current);
                 current = current.plusDays(1);
                 continue;
             }
             else try {
-                System.out.println("CatchupWorker fetching data for " + current);
+                Log.i(TAG, "CatchupWorker fetching data for " + current);
                 // Get the data from AlphaESS (a) power, (b) energy
                 GetOneDayPowerResponse oneDayPowerBySn = mOpenAlphaESSClient.getOneDayPowerBySn(current.format(DATE_FORMAT));
                 GetOneDayEnergyResponse oneDayEnergyBySn = mOpenAlphaESSClient.getOneDayEnergyBySn(current.format(DATE_FORMAT));
@@ -125,46 +139,66 @@ public class CatchUpWorker extends Worker {
                     double eBuy = oneDayEnergyBySn.data.eInput;
                     // Unitize and scale power (in kWh 5 minute intervals)
                     Map<Long, FiveMinuteEnergies> massaged = DataMassager.massage(fixed, ePV, eLoad, eFeed, eBuy);
-                    System.out.println("CatchupWorker storing data for " + current);
+                    Log.i(TAG, "CatchupWorker storing data for " + current);
                     // Store raw energy
                     AlphaESSRawEnergy energyEntity = AlphaESSEntityUtil.getEnergyRowFromJson(oneDayEnergyBySn);
                     mToutcRepository.addRawEnergy(energyEntity);
                     // Store raw power
                     List<AlphaESSRawPower> powerEntityList = AlphaESSEntityUtil.getPowerRowsFromJson(oneDayPowerBySn);
                     mToutcRepository.addRawPower(powerEntityList);
+                    // v2: per-interval EV charger kWh (scaled to daily total), used by the new transform.
+                    Map<Long, Double> evByInterval = DataMassager.evIn5MinIntervals(powerEntityList, oneDayEnergyBySn.data.eChargingPile);
                     // Store transformed data
-                    List<AlphaESSTransformedData> normalizedEntityList = AlphaESSEntityUtil.getTransformedDataRows(massaged, systemSN);
+                    List<AlphaESSTransformedData> normalizedEntityList = AlphaESSEntityUtil.getTransformedDataRows(massaged, evByInterval, systemSN);
                     mToutcRepository.addTransformedData(normalizedEntityList);
-                    System.out.println("CatchupWorker storing normalizedEntityList " + normalizedEntityList.size());
+                    Log.i(TAG, "CatchupWorker storing normalizedEntityList " + normalizedEntityList.size());
 
                     // Sleep to avoid API limits
-                    Thread.sleep(1200);
+                    Thread.sleep(SAMPLE_LIMIT_MILLIS);
                 }
                 else {
-                    System.out.println("CatchupWorker got null data for " + current);
-                    Thread.sleep(1200);
+                    Log.w(TAG, "CatchupWorker got null data for " + current);
+                    Thread.sleep(SAMPLE_LIMIT_MILLIS);
                     continue;
                 }
             } catch (AlphaESSException e) {
                 // check to see if we are exceeding limits and retry
                 e.printStackTrace();
-                System.out.println("CatchupWorker got a rate limit for " + current);
+                Log.w(TAG, "CatchupWorker got an error for " + current, e);
                 if (!(null == e.getMessage()) && e.getMessage().startsWith("err.code=6053"))
                     continue;
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
 
-            System.out.println("CatchUpWorker finished with " + current);
-            setProgressAsync(new Data.Builder().putString(PROGRESS, current.toString()).build());
-            LocalDate finalCurrent = current;
-            mHandler.post(() -> mNotificationManager
-                    .notify(mNotificationId, getNotification("Done catching up with " + finalCurrent)));
+            Log.i(TAG, "CatchUpWorker finished with " + current);
+            publishProgress("Done catching up with " + current, false);
             current = current.plusDays(1);
         }
+        // v2: only stamp if the SN started empty (so all our rows are v2) or was already v2.
+        // Otherwise we may have left v1 historical rows untouched and the Migrate button
+        // should keep surfacing.
+        mToutcRepository.stampAlphaESSTransformCurrentIfSafe(systemSN, snHadNoRowsBefore);
+
         if (mStopped) mNotificationManager.cancel(mNotificationId);
 
         return Result.success();
+    }
+
+    /**
+     * Publish the worker's progress to WorkManager + the notification
+     * shade. NotificationManager.notify is thread-safe, so no main-thread
+     * hop is required (the earlier handler.post approach raced the worker's
+     * own completion). [force]=true bypasses the in-loop throttle and is
+     * used for the first/last updates so terminal state always lands.
+     */
+    private void publishProgress(@NonNull String progress, boolean force) {
+        setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
+        long now = System.currentTimeMillis();
+        if (force || now - mLastNotifyAt > MIN_NOTIFY_INTERVAL_MS) {
+            mLastNotifyAt = now;
+            mNotificationManager.notify(mNotificationId, getNotification(progress));
+        }
     }
 
     @NonNull

@@ -25,8 +25,6 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.net.Uri;
-import android.os.Handler;
-import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
@@ -66,6 +64,12 @@ public class ImportWorker extends Worker {
     // tap opens the UI2 dashboard (source pre-selected) or the legacy screen.
     private boolean mUseUI2 = false;
     private String mSelectedSysSn = null;
+    // Notifications are issued directly from the worker thread (notify is
+    // thread-safe). Throttling in-loop updates avoids Android's ~5/sec
+    // coalescing — terminal milestones force-deliver so the user always
+    // sees the final state.
+    private long mLastNotifyAt = 0L;
+    private static final long MIN_NOTIFY_INTERVAL_MS = 250L;
 
 
     public static final String KEY_SYSTEM_SN = "KEY_SYSTEM_SN";
@@ -93,7 +97,6 @@ public class ImportWorker extends Worker {
     @Override
     public Result doWork() {
         System.out.println("ImportWorker:doWork invoked ");
-        Handler mHandler = new Handler(Looper.getMainLooper());
         Data inputData = getInputData();
         String systemSN = inputData.getString(KEY_SYSTEM_SN);
         String uriString = inputData.getString(KEY_URI);
@@ -101,13 +104,8 @@ public class ImportWorker extends Worker {
         mSelectedSysSn = systemSN;
         mUseUI2 = UI2NotificationLaunch.isUI2Enabled(getApplicationContext());
 
-        // Mark the Worker as important
-        String progress = "Importing energy";
-        setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
-        String finalProgress = progress;
-        mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress)));
-        
-        // Do some work
+        publishProgress("Importing energy", true);
+
         InputStream is = null;
         try {
             is = getApplicationContext().getContentResolver().openInputStream(fileUri);
@@ -133,10 +131,7 @@ public class ImportWorker extends Worker {
                         mToutcRepository.addRawEnergy(energy);
                         if (mStopped) break;
                     }
-                    progress = "Imported energy";
-                    setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
-                    String finalProgress1 = progress;
-                    mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress1)));
+                    publishProgress("Imported energy", true);
                 }
                 else if ("power".equals(name)){
                     int batchTrigger = 288;
@@ -151,19 +146,14 @@ public class ImportWorker extends Worker {
                             mToutcRepository.addRawPower(powerList);
                             powerList = new ArrayList<>(100);
                             if ((batchSize % batchTrigger * 3) == 0) {
-                                progress = "Importing power: " + batchSize + "/" + energyList.size() * 288;
-                                setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
-                                String finalProgress2 = progress;
-                                mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress2)));
+                                publishProgress("Importing power: " + batchSize + "/" + energyList.size() * 288,
+                                        false);
                             }
                         }
                     }
                     jsonReader.endArray();
                     mToutcRepository.addRawPower(powerList);
-                    progress = "Imported power done: " + batchSize + " entries";
-                    setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
-                    String finalProgress3 = progress;
-                    mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress3)));
+                    publishProgress("Imported power done: " + batchSize + " entries", true);
                 }
             }
             jsonReader.endObject();
@@ -186,10 +176,8 @@ public class ImportWorker extends Worker {
             List<AlphaESSRawPower> powerList = mToutcRepository.getAlphaESSPowerForSharing(systemSN, date);
             if (System.nanoTime() - notifyTime > 1e+9) {
                 notifyTime = System.nanoTime();
-                progress = "Unitizing and scaling: " + date + " of " + dates.get(dates.size() -1);
-                setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
-                String finalProgress4 = progress;
-                mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress4)));
+                publishProgress("Unitizing and scaling: " + date + " of " + dates.get(dates.size() - 1),
+                        false);
             }
 
             // Fix the power-data (5 minute alignment and missing entries)
@@ -203,20 +191,38 @@ public class ImportWorker extends Worker {
             if (eBuy < 0D) eBuy = 0D;
             // Unitize and scale power (in kWh 5 minute intervals)
             Map<Long, FiveMinuteEnergies> massaged = DataMassager.massage(fixed, ePV, eLoad, eFeed, eBuy);
+            // v2: per-interval EV charger kWh (scaled to daily total), used by the new transform.
+            Map<Long, Double> evByInterval = DataMassager.evIn5MinIntervals(powerList, energy.getEnergyChargingPile());
 
             // Store transformed data
-            List<AlphaESSTransformedData> normalizedEntityList = AlphaESSEntityUtil.getTransformedDataRows(massaged, systemSN);
+            List<AlphaESSTransformedData> normalizedEntityList = AlphaESSEntityUtil.getTransformedDataRows(massaged, evByInterval, systemSN);
             mToutcRepository.addTransformedData(normalizedEntityList);
         }
 
-        progress = "All done importing " + systemSN;
-        setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
-        String finalProgress5 = progress;
-        mHandler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(finalProgress5)));
+        // ImportWorker rewrites every transformed row for this SN, so we can stamp v2 unconditionally.
+        mToutcRepository.stampAlphaESSTransformCurrent(systemSN);
+
+        publishProgress("All done importing " + systemSN, true);
 
         if (mStopped) mNotificationManager.cancel(mNotificationId);
 
         return Result.success();
+    }
+
+    /**
+     * Publish the worker's progress to WorkManager + the notification
+     * shade. NotificationManager.notify is thread-safe, so no main-thread
+     * hop is required (the earlier handler.post approach raced the worker's
+     * own completion). [force]=true bypasses the in-loop throttle and is
+     * used for the first/last updates so terminal state always lands.
+     */
+    private void publishProgress(@NonNull String progress, boolean force) {
+        setProgressAsync(new Data.Builder().putString(PROGRESS, progress).build());
+        long now = System.currentTimeMillis();
+        if (force || now - mLastNotifyAt > MIN_NOTIFY_INTERVAL_MS) {
+            mLastNotifyAt = now;
+            mNotificationManager.notify(mNotificationId, getNotification(progress));
+        }
     }
 
     @NonNull

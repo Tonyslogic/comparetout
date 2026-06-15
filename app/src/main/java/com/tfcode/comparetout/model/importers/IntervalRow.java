@@ -37,5 +37,14 @@ public class IntervalRow {
     @ColumnInfo(name= "BAT_CHARGE") public double batCharge = 0.0;
     @ColumnInfo(name= "BAT_DISCHARGE") public double batDischarge = 0.0;
 
+    // v2 fields — populated by AlphaESS aggregation queries when the v2 transform has run.
+    // Simulation and pre-migration AlphaESS rows leave these at 0.0; downstream pies derive
+    // anything they need from the legacy fields in that case.
+    @ColumnInfo(name= "PV2GRID") public double pv2grid = 0.0;
+    @ColumnInfo(name= "GRID2LOAD") public double grid2load = 0.0;
+    @ColumnInfo(name= "EV_ACTUAL") public double evActual = 0.0;
+    @ColumnInfo(name= "BAT_CHARGE_IN") public double batChargeIn = 0.0;
+    @ColumnInfo(name= "BAT_DISCHARGE_OUT") public double batDischargeOut = 0.0;
+
     @ColumnInfo(name= "INTERVAL") public String interval = "";
 }

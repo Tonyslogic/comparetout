@@ -277,6 +277,51 @@ public class DataMassager {
         return interpolatedData;
     }
 
+    /**
+     * Bucket the raw pchargingPile (EV charger draw, W) samples into 5-minute
+     * intervals and scale the result so the day sums to the authoritative daily
+     * total {@code eChargingPile} (kWh). Mirrors the per-channel logic used by
+     * {@link #massage(Map, double, double, double, double)} for pv/load/feed/buy.
+     *
+     * Returns an empty map if there is no EV charger data on the day
+     * (eChargingPile == 0 or no rows). The map is keyed by the interval-start
+     * timestamp so it lines up 1:1 with the keys produced by
+     * {@link #oneDayDataInFiveMinuteIntervals(List)}.
+     */
+    public static Map<Long, Double> evIn5MinIntervals(List<com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawPower> rawPower, double eChargingPile) {
+        Map<Long, Double> result = new TreeMap<>();
+        if (rawPower == null || rawPower.isEmpty() || eChargingPile <= 0) return result;
+        int intervalSize = 5 * 60 * 1000;
+        @SuppressLint("SimpleDateFormat") SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        Map<Long, List<Double>> evBucket = new TreeMap<>();
+        for (com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawPower item : rawPower) {
+            try {
+                Date d = dateFormat.parse(item.getUploadTime());
+                if (d == null) continue;
+                long key = d.getTime() / intervalSize * intervalSize;
+                evBucket.computeIfAbsent(key, k -> new ArrayList<>()).add(item.getPchargingPile());
+            } catch (Exception e) {
+                // skip bad row
+            }
+        }
+        if (evBucket.isEmpty()) return result;
+        Map<Long, Double> avgEv = new TreeMap<>();
+        double rawTotalKwh = 0;
+        for (Map.Entry<Long, List<Double>> e : evBucket.entrySet()) {
+            double sum = 0;
+            for (double v : e.getValue()) sum += v;
+            double avgW = sum / e.getValue().size();
+            avgEv.put(e.getKey(), avgW);
+            rawTotalKwh += (avgW / 1000d) / 12d;
+        }
+        if (rawTotalKwh <= 0) return result;
+        for (Map.Entry<Long, Double> e : avgEv.entrySet()) {
+            double intervalKwh = (e.getValue() / 1000d) / 12d;
+            result.put(e.getKey(), (intervalKwh / rawTotalKwh) * eChargingPile);
+        }
+        return result;
+    }
+
     private static void interpolate(long startKey, long endKey,
                         double startPV, double startLoad, double startFeed, double startBuy,
                         FiveMinuteEnergies endValue, Map<Long, FiveMinuteEnergies> data) {

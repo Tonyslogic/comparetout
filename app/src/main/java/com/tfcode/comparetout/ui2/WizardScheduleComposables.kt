@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -95,6 +97,7 @@ private val WIDE_BREAKPOINT: Dp = 380.dp
 
 private val DAY_SHORT  = listOf("M","T","W","T","F","S","S")
 private val DAY_LONG   = listOf("Mon","Tue","Wed","Thu","Fri","Sat","Sun")
+private val DAY_FULL   = listOf("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday")
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -110,13 +113,22 @@ fun WizardDayPicker(
         "None"     to emptyList()
     )
     BoxWithConstraints(modifier = modifier) {
-        val wide = maxWidth >= WIDE_BREAKPOINT
+        val boxWidth = maxWidth
+        val wide = boxWidth >= WIDE_BREAKPOINT
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             if (wide) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    DAY_LONG.forEachIndexed { idx, label ->
-                        DayChipWide(label = label, on = selected.contains(idx),
-                            modifier = Modifier.weight(1f)) {
+                // FlowRow (no weight(1f)) so chip text grows with fontScale and
+                // wraps onto extra lines instead of clipping. At WIDE+ we use
+                // full day names ("Monday", "Tuesday") — the chips still wrap
+                // when there's not enough room.
+                val labels = if (boxWidth >= AdaptiveLayout.WIDTH_WIDE_AT) DAY_FULL else DAY_LONG
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    labels.forEachIndexed { idx, label ->
+                        DayChipWide(label = label, on = selected.contains(idx)) {
                             onSelectedChange(toggleInt(selected, idx))
                         }
                     }
@@ -159,7 +171,7 @@ private fun DayChipCircle(label: String, on: Boolean, onClick: () -> Unit) {
 @Composable
 private fun DayChipWide(label: String, on: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Box(
-        modifier = modifier.height(36.dp)
+        modifier = modifier.widthIn(min = 44.dp).heightIn(min = 36.dp)
             .clip(RoundedCornerShape(6.dp))
             .background(if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
             .border(1.dp,
@@ -170,7 +182,8 @@ private fun DayChipWide(label: String, on: Boolean, modifier: Modifier = Modifie
     ) {
         Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold,
             color = if (on) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1)
+            maxLines = 1,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
     }
 }
 
@@ -182,6 +195,8 @@ private fun DayChipWide(label: String, on: Boolean, modifier: Modifier = Modifie
 
 private val MONTH_ABBREV = listOf("J","F","M","A","M","J","J","A","S","O","N","D")
 private val MONTH_LONG   = listOf("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
+private val MONTH_FULL   = listOf("January","February","March","April","May","June",
+                                  "July","August","September","October","November","December")
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -198,14 +213,23 @@ fun WizardMonthPicker(
         "Autumn"   to listOf(9, 10)
     )
     BoxWithConstraints(modifier = modifier) {
-        val wide = maxWidth >= WIDE_BREAKPOINT
+        val boxWidth = maxWidth
+        val wide = boxWidth >= WIDE_BREAKPOINT
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
             if (wide) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-                    MONTH_LONG.forEachIndexed { idx, label ->
+                // Wrap-friendly month chip strip at fs≥1.6 — single Row would
+                // clip each chip to ~32 dp; FlowRow sizes to content and wraps
+                // onto multiple rows under font scaling. At ULTRA widths the
+                // chips show full month names ("January", "February", …).
+                val labels = if (boxWidth >= AdaptiveLayout.WIDTH_ULTRA_AT) MONTH_FULL else MONTH_LONG
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    labels.forEachIndexed { idx, label ->
                         val month = idx + 1
-                        MonthChipWide(label = label, on = selected.contains(month),
-                            modifier = Modifier.weight(1f)) {
+                        MonthChipWide(label = label, on = selected.contains(month)) {
                             onSelectedChange(toggleInt(selected, month))
                         }
                     }
@@ -243,7 +267,7 @@ fun WizardMonthPicker(
 @Composable
 private fun MonthChipWide(label: String, on: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Box(
-        modifier = modifier.height(28.dp)
+        modifier = modifier.widthIn(min = 36.dp).heightIn(min = 28.dp)
             .clip(RoundedCornerShape(4.dp))
             .background(if (on) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
             .border(1.dp,
@@ -254,7 +278,8 @@ private fun MonthChipWide(label: String, on: Boolean, modifier: Modifier = Modif
     ) {
         Text(label, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold,
             color = if (on) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1, overflow = TextOverflow.Visible)
+            maxLines = 1, overflow = TextOverflow.Visible,
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp))
     }
 }
 
@@ -271,16 +296,26 @@ fun WizardHourRangePicker(
     onEndChange: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier) {
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            HourDropdown(label = "From", hour = startHour, onHourChange = onStartChange,
-                modifier = Modifier.weight(1f))
-            HourDropdown(label = "To", hour = endHour, onHourChange = onEndChange,
-                modifier = Modifier.weight(1f))
+    // From/To dropdowns side-by-side at fs<1.6, stacked at fs>=1.6.
+    data class HourSlot(val label: String, val hour: Int, val onChange: (Int) -> Unit)
+    val slots = listOf(
+        HourSlot("From", startHour, onStartChange),
+        HourSlot("To", endHour, onEndChange),
+    )
+    // COMPACT: dropdowns above the range bar (stacked). MEDIUM+: dropdowns on
+    // the left, range bar on the right so landscape / tablets use the width.
+    AdaptiveTwoColumn(
+        modifier = modifier,
+        breakAt = AdaptiveLayout.WIDTH_MEDIUM_AT,
+        primary = {
+            AdaptiveCellRow(items = slots, perRowAtA = 2, perRowAtB = 2, perRowAtC = 1) { slot ->
+                HourDropdown(label = slot.label, hour = slot.hour, onHourChange = slot.onChange)
+            }
+        },
+        secondary = {
+            HourRangeBar(startHour = startHour, endHour = endHour)
         }
-        Spacer(Modifier.height(8.dp))
-        HourRangeBar(startHour = startHour, endHour = endHour)
-    }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -670,26 +705,32 @@ fun WizardInverterCard(
                         label = "Min excess (kW)",
                         modifier = Modifier.fillMaxWidth()
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    data class LossField(
+                        val value: Int,
+                        val label: String,
+                        val onChange: (Int) -> Unit,
+                    )
+                    val lossFields = listOf(
+                        LossField(entry.ac2dcLoss, "AC→DC loss %") {
+                            onUpdate(entry.copy(ac2dcLoss = it))
+                        },
+                        LossField(entry.dc2acLoss, "DC→AC loss %") {
+                            onUpdate(entry.copy(dc2acLoss = it))
+                        },
+                        LossField(entry.dc2dcLoss, "DC→DC loss %") {
+                            onUpdate(entry.copy(dc2dcLoss = it))
+                        },
+                    )
+                    AdaptiveCellRow(
+                        items = lossFields,
+                        perRowAtA = 3, perRowAtB = 3, perRowAtC = 1,
+                        spacing = 8.dp
+                    ) { f ->
                         NumericIntField(
-                            value = entry.ac2dcLoss,
-                            onValueChange = { onUpdate(entry.copy(ac2dcLoss = it)) },
-                            label = "AC→DC loss %",
-                            modifier = Modifier.weight(1f),
-                            range = 0..50
-                        )
-                        NumericIntField(
-                            value = entry.dc2acLoss,
-                            onValueChange = { onUpdate(entry.copy(dc2acLoss = it)) },
-                            label = "DC→AC loss %",
-                            modifier = Modifier.weight(1f),
-                            range = 0..50
-                        )
-                        NumericIntField(
-                            value = entry.dc2dcLoss,
-                            onValueChange = { onUpdate(entry.copy(dc2dcLoss = it)) },
-                            label = "DC→DC loss %",
-                            modifier = Modifier.weight(1f),
+                            value = f.value,
+                            onValueChange = f.onChange,
+                            label = f.label,
+                            modifier = Modifier.fillMaxWidth(),
                             range = 0..50
                         )
                     }

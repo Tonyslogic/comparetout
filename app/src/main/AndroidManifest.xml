@@ -20,6 +20,15 @@
         android:theme="@style/Theme.comparetout"
         tools:targetApi="34">
         <activity
+            android:name=".LaunchActivity"
+            android:exported="true"
+            android:theme="@style/Theme.comparetout.Splash">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity
             android:name=".ui2.UI2MainActivity"
             android:exported="false"
             android:launchMode="singleTop"
@@ -52,13 +61,7 @@
         <activity
             android:name=".MainActivity"
             android:configChanges="orientation"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-
+            android:exported="false">
             <meta-data
                 android:name="android.app.lib_name"
                 android:value="" />
@@ -176,6 +179,16 @@
                 android:name="android.app.lib_name"
                 android:value="" />
         </activity>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 
 </manifest>

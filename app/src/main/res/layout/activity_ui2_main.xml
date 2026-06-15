@@ -12,8 +12,10 @@
         android:name="androidx.navigation.fragment.NavHostFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:defaultNavHost="true"
-        app:navGraph="@navigation/nav_ui2" />
+        app:defaultNavHost="true" />
+        <!-- navGraph is set programmatically in UI2MainActivity so the start
+             destination (simple screen vs dashboard) can depend on the
+             resolved simple-mode flag without flashing the dashboard. -->
 
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_nav_view"

@@ -177,6 +177,13 @@ data class CompareUsageRow(
     val pv2load: Double,
     val bat2load: Double,
     val grid2bat: Double,
+    // Simulation-only flows (0 for importer sources that don't record them).
+    val charge: Double = 0.0,
+    val discharge: Double = 0.0,
+    val evSchedule: Double = 0.0,
+    val evDivert: Double = 0.0,
+    val hwSchedule: Double = 0.0,
+    val hwDivert: Double = 0.0,
     val timeline: BucketSeries         // bucketed usage for line/area (one series per metric id)
 )
 
@@ -236,8 +243,27 @@ class UI2CompareViewModel @Inject constructor(
         val USAGE_SERIES = listOf(
             "load" to "Load", "buy" to "Buy", "feed" to "Feed", "pv" to "PV",
             "pv2load" to "PV → Load", "bat2load" to "Battery → Load",
-            "grid2bat" to "Grid → Battery"
+            "grid2bat" to "Grid → Battery",
+            // Simulation-only flows (legacy graph filters). All summable kWh from
+            // IntervalRow; greyed for importer sources via capability declaration.
+            "charge" to "Charging", "discharge" to "Discharging",
+            "evSchedule" to "EV Schedule", "evDivert" to "EV Divert",
+            "hwSchedule" to "HW Schedule", "hwDivert" to "HW Divert"
         )
+        // Basic vs Advanced split for the Display filter (see UI). Cost columns
+        // net/buy/sell are basic; bonus/fixed advanced. Energy load/buy/feed/pv
+        // are basic; the PV/battery flow decompositions and simulation-only
+        // schedule/divert/charge flows are advanced.
+        val BASIC_ENERGY_IDS    = setOf("load", "buy", "feed", "pv")
+        val ADVANCED_ENERGY_IDS = setOf(
+            "pv2load", "bat2load", "grid2bat",
+            "charge", "discharge", "evSchedule", "evDivert", "hwSchedule", "hwDivert"
+        )
+        val BASIC_COST_IDS      = setOf("net", "buy", "sell")
+        val ADVANCED_COST_IDS   = setOf("bonus", "fixed")
+        // All energy-flow ids — the union used as the "everything available"
+        // default before any subject is selected.
+        val ALL_ENERGY_IDS = USAGE_SERIES.map { it.first }.toSet()
         val MONTH_LABELS = listOf(
             "Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"
         )
@@ -286,6 +312,56 @@ class UI2CompareViewModel @Inject constructor(
     // ── user selection / configuration ──────────────────────────────────────
     private val _state = MutableStateFlow(CompareState())
     val state: StateFlow<CompareState> = _state.asStateFlow()
+
+    // Filter accordion's Basic/Advanced tab. Hoisted here (not a local remember)
+    // so it survives the accordion being scrolled off-screen and disposed in the
+    // LazyColumn. Transient/session-only — not part of persisted CompareState.
+    private val _filterAdvanced = MutableStateFlow(false)
+    val filterAdvanced: StateFlow<Boolean> = _filterAdvanced.asStateFlow()
+    fun setFilterAdvanced(advanced: Boolean) { _filterAdvanced.value = advanced }
+
+    /**
+     * Energy-flow series ids that at least one currently-selected subject can
+     * actually provide. The Display filter greys series outside this set
+     * ("grey only if none provide it"). Sources use their importer's declared
+     * capability ([ComparisonUIViewModel.Importer.getProvidedEnergySeries]);
+     * simulations use the full set minus PV flows (no panels) / battery flows
+     * (no batteries). With nothing selected, everything is available — there's
+     * nothing to grey against yet. Cost columns aren't subject-gated, so they
+     * are not constrained here.
+     */
+    val availableEnergySeries: StateFlow<Set<String>> =
+        combine(_state, sourceItems, _scenarios) { s, sources, scenarios ->
+            val subjectSets = mutableListOf<Set<String>>()
+            s.sources.distinct().forEach { sn ->
+                sources.firstOrNull { it.sysSn == sn }?.let {
+                    subjectSets += it.importerType.providedEnergySeries
+                }
+            }
+            s.sims.distinct().forEach { id ->
+                subjectSets += simEnergySeries(scenarios.firstOrNull { it.scenarioIndex == id })
+            }
+            if (subjectSets.isEmpty()) ALL_ENERGY_IDS
+            else subjectSets.reduce { acc, set -> acc + set }
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, ALL_ENERGY_IDS)
+
+    /** Energy series a simulation provides, narrowed by its components. */
+    private fun simEnergySeries(sc: Scenario?): Set<String> {
+        // Authoritative full set is the SIMULATION importer declaration; the
+        // component flags below remove flows the scenario can't produce.
+        val full = ComparisonUIViewModel.Importer.SIMULATION.providedEnergySeries
+        if (sc == null) return full
+        val out = full.toMutableSet()
+        if (!sc.isHasPanels) { out -= "pv"; out -= "pv2load" }
+        if (!sc.isHasBatteries) {
+            out -= "bat2load"; out -= "grid2bat"; out -= "charge"; out -= "discharge"
+        }
+        if (!sc.isHasEVCharges) out -= "evSchedule"
+        if (!sc.isHasEVDivert) out -= "evDivert"
+        if (!sc.isHasHWSchedules) out -= "hwSchedule"
+        if (!sc.isHasHWDivert) out -= "hwDivert"
+        return out
+    }
 
     // ── novice mode (drives whether help text is shown) ─────────────────────
     private val _noviceMode = MutableStateFlow(true)
@@ -701,6 +777,12 @@ class UI2CompareViewModel @Inject constructor(
             pv2load = rows.sumOf { it.pv2load },
             bat2load = rows.sumOf { it.bat2load },
             grid2bat = rows.sumOf { it.grid2bat },
+            charge = rows.sumOf { it.batCharge },
+            discharge = rows.sumOf { it.batDischarge },
+            evSchedule = rows.sumOf { it.evSchedule },
+            evDivert = rows.sumOf { it.evDivert },
+            hwSchedule = rows.sumOf { it.hwSchedule },
+            hwDivert = rows.sumOf { it.hwDivert },
             timeline = bucketize(tlRows, scale)
         )
     }
@@ -721,7 +803,10 @@ class UI2CompareViewModel @Inject constructor(
             val lookup = RateLookup(plan, dayRates)
             lookup.setStartDOY(fromD.dayOfYear)
             var buy = 0.0; var sell = 0.0
-            val bucketed = DoubleArray(axis.labels.size.coerceAtLeast(1))
+            val n = axis.labels.size.coerceAtLeast(1)
+            val bucketedNet = DoubleArray(n)
+            val bucketedBuy = DoubleArray(n)
+            val bucketedSell = DoubleArray(n)
             val subTotals = SubTotals()
             hourly.forEach { row ->
                 val ldt = LocalDateTime.parse(row.dateTime, rowFmt)
@@ -732,7 +817,11 @@ class UI2CompareViewModel @Inject constructor(
                 buy += rowBuy
                 sell += rowSell
                 val idx = axis.indexOf(ldt)
-                if (idx in bucketed.indices) bucketed[idx] += (rowBuy - rowSell) / 100.0
+                if (idx in bucketedNet.indices) {
+                    bucketedNet[idx] += (rowBuy - rowSell) / 100.0
+                    bucketedBuy[idx] += rowBuy / 100.0
+                    bucketedSell[idx] += rowSell / 100.0
+                }
                 subTotals.addToPrice(price, row.buy)
             }
             // buy cost split by tariff rate band: price × kWh-at-that-price.
@@ -742,10 +831,18 @@ class UI2CompareViewModel @Inject constructor(
             val buyBands = sortedRates
                 .map { p -> p * (subTotals.getSubTotalForPrice(p) ?: 0.0) / 100.0 }
             val fixed = plan.standingCharges * (days / 365.0)
-            // Spread the fixed charge across the buckets that actually hold variable
+            // Spread fixed / bonus across the buckets that actually hold variable
             // cost, so the line doesn't show a flat artificial offset in empty buckets.
-            val coveredBuckets = bucketed.count { it != 0.0 }.coerceAtLeast(1)
-            for (i in bucketed.indices) if (bucketed[i] != 0.0) bucketed[i] += fixed / coveredBuckets
+            val coveredBuckets = bucketedNet.count { it != 0.0 }.coerceAtLeast(1)
+            val perBucketFixed = fixed / coveredBuckets
+            val perBucketBonus = plan.signUpBonus / coveredBuckets
+            val bucketedFixed = DoubleArray(n)
+            val bucketedBonus = DoubleArray(n)
+            for (i in bucketedNet.indices) if (bucketedNet[i] != 0.0) {
+                bucketedNet[i] += perBucketFixed
+                bucketedFixed[i] = perBucketFixed
+                bucketedBonus[i] = perBucketBonus
+            }
             val net = (buy - sell) / 100.0 + fixed
             CompareCostRow(
                 subjectId = subjectId,
@@ -761,7 +858,13 @@ class UI2CompareViewModel @Inject constructor(
                 bonus = plan.signUpBonus,
                 buyBands = buyBands.ifEmpty { listOf(buy / 100.0) },
                 buyBandRates = sortedRates.ifEmpty { emptyList() },
-                timeline = BucketSeries(axis.labels, mapOf("net" to bucketed.toList()))
+                timeline = BucketSeries(axis.labels, mapOf(
+                    "net"   to bucketedNet.toList(),
+                    "buy"   to bucketedBuy.toList(),
+                    "sell"  to bucketedSell.toList(),
+                    "fixed" to bucketedFixed.toList(),
+                    "bonus" to bucketedBonus.toList()
+                ))
             )
         }
     }
@@ -791,6 +894,12 @@ class UI2CompareViewModel @Inject constructor(
             pv2load = rows.sumOf { it.pv2load },
             bat2load = rows.sumOf { it.bat2load },
             grid2bat = rows.sumOf { it.grid2bat },
+            charge = rows.sumOf { it.batCharge },
+            discharge = rows.sumOf { it.batDischarge },
+            evSchedule = rows.sumOf { it.evSchedule },
+            evDivert = rows.sumOf { it.evDivert },
+            hwSchedule = rows.sumOf { it.hwSchedule },
+            hwDivert = rows.sumOf { it.hwDivert },
             timeline = bucketize(tlRows, scale)
         )
     }
@@ -815,6 +924,9 @@ class UI2CompareViewModel @Inject constructor(
             val c = costings.firstOrNull { it.pricePlanID == plan.pricePlanIndex }
             val net = (c?.net ?: 0.0) / 100.0
             val buy = (c?.buy ?: 0.0) / 100.0
+            val sell = (c?.sell ?: 0.0) / 100.0
+            val fixed = plan.standingCharges
+            val bonus = plan.signUpBonus
             val st = c?.subTotals
             val sortedRates = if (st != null && st.prices.isNotEmpty())
                 st.prices.sorted() else emptyList()
@@ -831,12 +943,20 @@ class UI2CompareViewModel @Inject constructor(
                 available = c != null,
                 net = net,
                 buy = buy,
-                sell = (c?.sell ?: 0.0) / 100.0,
-                fixed = plan.standingCharges,
-                bonus = plan.signUpBonus,
+                sell = sell,
+                fixed = fixed,
+                bonus = bonus,
                 buyBands = buyBands,
                 buyBandRates = sortedRates,
-                timeline = BucketSeries(axis.labels, mapOf("net" to List(n) { net / n }))
+                // Sims have no per-bucket cost detail (CostingWorker emits annual
+                // totals), so every series is smeared uniformly across the axis.
+                timeline = BucketSeries(axis.labels, mapOf(
+                    "net"   to List(n) { net / n },
+                    "buy"   to List(n) { buy / n },
+                    "sell"  to List(n) { sell / n },
+                    "fixed" to List(n) { fixed / n },
+                    "bonus" to List(n) { bonus / n }
+                ))
             )
         }
     }
@@ -951,6 +1071,19 @@ class UI2CompareViewModel @Inject constructor(
         }
     }
 
+    // Every energy series the chart can plot, with how to pull it from a row.
+    // Keeps the timeline (seriesValues) in lock-step with USAGE_SERIES so any
+    // selected energy series — basic OR advanced — renders in the bar/area/line
+    // chart, not just in the table.
+    private val energyExtractors:
+            List<Pair<String, (com.tfcode.comparetout.model.importers.IntervalRow) -> Double>> = listOf(
+        "load" to { it.load }, "buy" to { it.buy }, "feed" to { it.feed }, "pv" to { it.pv },
+        "pv2load" to { it.pv2load }, "bat2load" to { it.bat2load }, "grid2bat" to { it.grid2bat },
+        "charge" to { it.batCharge }, "discharge" to { it.batDischarge },
+        "evSchedule" to { it.evSchedule }, "evDivert" to { it.evDivert },
+        "hwSchedule" to { it.hwSchedule }, "hwDivert" to { it.hwDivert }
+    )
+
     /**
      * Aggregate into a fixed-size axis (HOUR=24, DOW=7) where [keyToIndex]
      * pulls the bucket index from the interval column.
@@ -960,21 +1093,16 @@ class UI2CompareViewModel @Inject constructor(
         n: Int, labels: List<String>,
         keyToIndex: (String) -> Int?
     ): BucketSeries {
-        val load = DoubleArray(n); val buy = DoubleArray(n)
-        val feed = DoubleArray(n); val pv = DoubleArray(n)
+        val series = energyExtractors.associate { (id, _) -> id to DoubleArray(n) }
         rows.forEach { row ->
             val key = row.interval ?: return@forEach
             val idx = keyToIndex(key) ?: return@forEach
             if (idx !in 0 until n) return@forEach
-            load[idx] += row.load; buy[idx] += row.buy
-            feed[idx] += row.feed; pv[idx] += row.pv
+            energyExtractors.forEach { (id, extract) -> series.getValue(id)[idx] += extract(row) }
         }
         return BucketSeries(
             axisLabels = labels,
-            seriesValues = mapOf(
-                "load" to load.toList(), "buy" to buy.toList(),
-                "feed" to feed.toList(), "pv" to pv.toList()
-            )
+            seriesValues = series.mapValues { it.value.toList() }
         )
     }
 
@@ -989,26 +1117,23 @@ class UI2CompareViewModel @Inject constructor(
     ): BucketSeries {
         val keys = mutableListOf<String>()
         val indexByKey = HashMap<String, Int>()
-        val load = mutableListOf<Double>(); val buy = mutableListOf<Double>()
-        val feed = mutableListOf<Double>(); val pv = mutableListOf<Double>()
+        val series: Map<String, MutableList<Double>> =
+            energyExtractors.associate { (id, _) -> id to mutableListOf<Double>() }
         rows.forEach { row ->
             val key = row.interval?.trim()?.ifEmpty { null } ?: return@forEach
             val idx = indexByKey.getOrPut(key) {
                 keys += key
-                load += 0.0; buy += 0.0; feed += 0.0; pv += 0.0
+                series.values.forEach { it.add(0.0) }
                 keys.size - 1
             }
-            load[idx] = load[idx] + row.load
-            buy[idx]  = buy[idx]  + row.buy
-            feed[idx] = feed[idx] + row.feed
-            pv[idx]   = pv[idx]   + row.pv
+            energyExtractors.forEach { (id, extract) ->
+                val list = series.getValue(id)
+                list[idx] = list[idx] + extract(row)
+            }
         }
         return BucketSeries(
             axisLabels = keys.map(keyToLabel),
-            seriesValues = mapOf(
-                "load" to load.toList(), "buy" to buy.toList(),
-                "feed" to feed.toList(), "pv" to pv.toList()
-            )
+            seriesValues = series.mapValues { it.value.toList() }
         )
     }
 

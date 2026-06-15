@@ -44,6 +44,7 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -278,6 +279,14 @@ class UI2DashboardFragment : Fragment() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        // Picks up changes made on side trips (e.g. toggling a plan active in
+        // UI2PricePlanListActivity, edits in UI2WizardActivity) without
+        // requiring the user to re-select the active subject.
+        viewModel.refresh()
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         Log.d("UI2", "UI2DashboardFragment.onViewCreated — observing dashboardData and sharedVM")
@@ -295,7 +304,8 @@ class UI2DashboardFragment : Fragment() {
                             viewModel.setActiveSimulationId(sel.id)
                         is UI2SharedViewModel.ActiveSelection.DataSource ->
                             viewModel.setActiveDataSource(sel.sysSn, sel.importerType, sel.startDate, sel.endDate)
-                        UI2SharedViewModel.ActiveSelection.None -> {}
+                        UI2SharedViewModel.ActiveSelection.None ->
+                            viewModel.clearActive()
                     }
                 }
             }
@@ -332,6 +342,10 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
     // have scenarios — once the LiveData emits the real value, this drops to its
     // proper state. Only matters for ≤1 recompose, but the flash is visible.
     val hasScenarios           by viewModel.hasScenarios.observeAsState(initial = true)
+    // initial=true for the same reason — assume there's a pinned subject during
+    // the first recompose so we don't flash NoActiveSubjectCard while restore
+    // is still in flight. Drops to false only after a confirmed None.
+    val hasActiveItem          by viewModel.hasActiveItem.observeAsState(initial = true)
     // Re-pull DB-backed dashboard surfaces when the Simulation/Cost work chain
     // (PVGIS → GenerateLoad → Simulate → Cost, kicked off by the wizard or by
     // SampleDataLoader) reaches a successful terminal state. Without this the
@@ -388,19 +402,27 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
     val pvAnchor    by viewModel.pvAnchor.observeAsState(LocalDate.now())
     val pvChartData by viewModel.pvChartData.observeAsState(null)
 
-            // First-run / data-deleted empty state. We check `dataSourceInfo`
-            // rather than `dashboardData == null` because after the user
-            // deletes their scenarios, DataStore still points at the now-gone
-            // scenarioId — the Simulation branch of dashboardData's flow still
-            // emits a non-null wrapper with null sub-fields. `dataSourceInfo`
-            // is only set when an actual data source is selected, so this
-            // condition correctly fires for both fresh installs and
-            // post-deletion states. The rest of this Column renders nothing in
-            // both cases (scenarioComponents/dataSourceInfo both null), so
-            // this card sits alone.
-            if (dashboardData?.dataSourceInfo == null && !hasScenarios) {
-                EmptyDashboardSampleCard()
-            }
+            // First-run vs deleted-active-subject empty states.
+            //
+            // [hasActiveItem] = the dashboard VM has a pinned subject. Goes
+            // false on first launch (before restore) and when the deletion
+            // guards in UI2SharedViewModel clear the saved subject because the
+            // scenario or data source it pointed at no longer exists.
+            //
+            // If nothing is pinned: show the original sample-data welcome card
+            // when no scenarios exist at all, otherwise direct the user to
+            // pick a subject from the navigation drawer.
+            if (!hasActiveItem) {
+                if (!hasScenarios) EmptyDashboardSampleCard() else NoActiveSubjectCard()
+            } else {
+                // Gate the entire dashboard content on hasActiveItem rather than
+                // on dashboardData's shape. clearActive() nulls _activeItem
+                // synchronously, but dashboardData is downstream of a Flow chain
+                // — there's a brief window where it still holds the previous
+                // subject's data, and we'd otherwise render its accordions for
+                // a frame between the empty-card swap and the Flow re-emitting
+                // DashboardData(null, null, null). Skipping the whole block
+                // until hasActiveItem flips back to true avoids that.
 
             val dsInfo = dashboardData?.dataSourceInfo
             if (dsInfo != null) {
@@ -417,7 +439,9 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         if (tariffCostings != null)
                             Icon(painterResource(R.drawable.tick), null, Modifier.size(18.dp), tint = Color.Unspecified)
                     },
-                    showEdit = false
+                    onEdit = {
+                        context.startActivity(Intent(context, UI2PricePlanListActivity::class.java))
+                    }
                 ) {
                     PeriodSelector(
                         selectedPeriod = tariffPeriod,
@@ -489,7 +513,9 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         onPeriodChange = { p, a -> viewModel.setKpiPeriod(p, a) },
                         onNavigate = { fwd -> viewModel.navigateKpi(fwd) },
                         onMonthFilterChange = { viewModel.setKpiMonthFilter(it) },
-                        df = df
+                        df = df,
+                        kwhDf = kwhDf,
+                        showHints = showHints
                     )
                 }
 
@@ -623,6 +649,9 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                             if (costing != null) {
                                 Icon(painterResource(R.drawable.tick), null, Modifier.size(18.dp), tint = Color.Unspecified)
                             }
+                        },
+                        onEdit = {
+                            ctx.startActivity(Intent(ctx, UI2PricePlanListActivity::class.java))
                         }
                     ) {
                         // Use the simulation's actual date range (typically year
@@ -651,7 +680,8 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                                 planStandingCharges = dashboardData?.planStandingCharges ?: emptyMap(),
                                 simDays = dashboardData?.simDays ?: 365L,
                                 df = df,
-                                favouritePlanId = favouritePlanId
+                                favouritePlanId = favouritePlanId,
+                                planActive = dashboardData?.planActive ?: emptyMap()
                             )
                         } else if (periodRows == null) {
                             CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
@@ -731,7 +761,9 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         onPeriodChange = { p, a -> viewModel.setKpiPeriod(p, a) },
                         onNavigate = { fwd -> viewModel.navigateKpi(fwd) },
                         onMonthFilterChange = { viewModel.setKpiMonthFilter(it) },
-                        df = df
+                        df = df,
+                        kwhDf = kwhDf,
+                        showHints = showHints
                     )
 
                     // 4. Visual overview
@@ -992,6 +1024,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     //     the headline answer once a scenario has been simulated.)
                 }
             }
+            }   // end else of !hasActiveItem
             Spacer(Modifier.height(80.dp))
         }   // end Column
 
@@ -1256,96 +1289,119 @@ private val TARIFF_PIE_COLORS = listOf(
     Color(0xFFE67E22), Color(0xFF27AE60)
 )
 
+/**
+ * Costings table + tariff-band breakdown pie, shared by [AllCostingsTable] and
+ * [DataSourceCostingsTable] (which differ only in row type and accessors).
+ *
+ * COMPACT: table is full width; tapping a row opens the band pie in a dialog
+ * (unchanged behaviour). WIDE+: the table sits on the left and a permanent band
+ * pie shows on the right, defaulting to the top (best) row and updating when
+ * another row is tapped — the dialog stays as the COMPACT fallback.
+ */
 @Composable
-private fun AllCostingsTable(
-    costings: List<Costings>,
-    planStandingCharges: Map<Long, Double>,
-    simDays: Long,
-    df: DecimalFormat,
-    favouritePlanId: Long? = null
+private fun <R> CostingsTableWithBandPie(
+    rows: List<R>,
+    rowId: (R) -> Any,
+    pinnedCell: @Composable (R) -> Unit,
+    columns: List<PinnedScrollColumn<R>>,
+    rowBackground: @Composable (R, Int) -> Color,
+    planName: (R) -> String,
+    bandSlices: (R) -> List<PieSlice>,
 ) {
-    var zoomedCosting by remember { mutableStateOf<Costings?>(null) }
+    // Track selection by stable id, not row instance — the costings list is
+    // re-created on each recomposition and Costings has no structural equality,
+    // so keying on the instance would reset the selection every frame.
+    var zoomedId by remember { mutableStateOf<Any?>(null) }
+    var selectedId by remember { mutableStateOf<Any?>(null) }
+    val selected = rows.firstOrNull { rowId(it) == selectedId } ?: rows.firstOrNull()
+    val zoomed = rows.firstOrNull { rowId(it) == zoomedId }
     val containerSize = LocalWindowInfo.current.containerSize
     val density = LocalDensity.current
-
-    // Header row
-    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Text("Plan", Modifier.weight(2.5f), style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("Net", Modifier.weight(1f), textAlign = TextAlign.End,
-            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("Buy", Modifier.weight(1f), textAlign = TextAlign.End,
-            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("Sell", Modifier.weight(1f), textAlign = TextAlign.End,
-            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("Fixed", Modifier.weight(1f), textAlign = TextAlign.End,
-            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-    HorizontalDivider()
-
-    costings.forEachIndexed { idx, c ->
-        val fixed = (planStandingCharges[c.pricePlanID] ?: 0.0) * (simDays / 365.0)
-        val isBest = idx == 0
-        val isFav = favouritePlanId != null && favouritePlanId == c.pricePlanID
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { zoomedCosting = c }
-                .background(
-                    when {
-                        isFav -> MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
-                        isBest -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                        else -> Color.Transparent
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val wide = maxWidth >= AdaptiveLayout.WIDTH_WIDE_AT
+        // Highlight the row whose tariff-band pie is currently on screen. WIDE:
+        // the side pie is always visible and defaults to the top row, so
+        // highlight `selected`. COMPACT: the pie is a dialog opened on tap, so
+        // only highlight once a row has been tapped — we set selectedId on that
+        // tap too, keeping the row highlighted while the dialog is up and after
+        // it's dismissed.
+        val highlightId: Any? = if (wide) selected?.let { rowId(it) } else selectedId
+        val highlightColor = MaterialTheme.colorScheme.secondaryContainer
+        val effectiveRowBackground: @Composable (R, Int) -> Color = { r, idx ->
+            if (highlightId != null && rowId(r) == highlightId) highlightColor
+            else rowBackground(r, idx)
+        }
+        val table: @Composable () -> Unit = {
+            PinnedScrollTable(
+                rows = rows,
+                pinnedHeader = "Plan",
+                pinnedWeight = 2f,
+                pinnedCell = pinnedCell,
+                columns = columns,
+                rowBackground = effectiveRowBackground,
+                onRowClick = {
+                    selectedId = rowId(it)
+                    if (!wide) zoomedId = rowId(it)
+                },
+                footer = {
+                    Text(
+                        if (wide) "Tap a row to update the band chart →"
+                        else "Tap a row to see tariff band breakdown  ↗",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            )
+        }
+        if (wide) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(Modifier.weight(1.6f)) { table() }
+                Box(Modifier.weight(1f)) {
+                    val r = selected
+                    if (r != null) {
+                        val slices = bandSlices(r)
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(planName(r), style = MaterialTheme.typography.labelMedium,
+                                textAlign = TextAlign.Center, maxLines = 2,
+                                overflow = TextOverflow.Ellipsis)
+                            Spacer(Modifier.height(8.dp))
+                            if (slices.isNotEmpty()) {
+                                PieChart(slices = slices,
+                                    modifier = Modifier.size(160.dp), isDonut = true)
+                                Spacer(Modifier.height(8.dp))
+                                PieLegend(slices = slices)
+                            } else {
+                                Text("No band breakdown for this plan",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
                     }
-                )
-                .padding(vertical = 3.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (isFav) {
-                Icon(Icons.Default.Star, contentDescription = "Your current plan",
-                    modifier = Modifier.size(14.dp),
-                    tint = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.width(4.dp))
+                }
             }
-            Text(c.fullPlanName ?: "",
-                Modifier.weight(if (isFav) 2.3f else 2.5f),
-                style = MaterialTheme.typography.bodySmall, maxLines = 1,
-                overflow = TextOverflow.Ellipsis)
-            Text(df.format(c.net / 100.0), Modifier.weight(1f), textAlign = TextAlign.End,
-                style = MaterialTheme.typography.bodySmall,
-                color = if (isBest) MaterialTheme.colorScheme.primary else Color.Unspecified)
-            Text(df.format(c.buy / 100.0), Modifier.weight(1f), textAlign = TextAlign.End,
-                style = MaterialTheme.typography.bodySmall)
-            Text(df.format(c.sell / 100.0), Modifier.weight(1f), textAlign = TextAlign.End,
-                style = MaterialTheme.typography.bodySmall)
-            Text(df.format(fixed), Modifier.weight(1f), textAlign = TextAlign.End,
-                style = MaterialTheme.typography.bodySmall)
+        } else {
+            table()
         }
-        HorizontalDivider()
     }
-    Spacer(Modifier.height(4.dp))
-    Text("Tap a row to see tariff band breakdown  ↗",
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-    if (zoomedCosting != null) {
-        val c = zoomedCosting!!
-        val slices = remember(c) {
-            val st = c.subTotals ?: return@remember emptyList<PieSlice>()
-            st.prices.sortedBy { it }.mapIndexed { i, price ->
-                val kwh = st.getSubTotalForPrice(price) ?: 0.0
-                PieSlice("%.1fc".format(price), kwh, TARIFF_PIE_COLORS[i % TARIFF_PIE_COLORS.size])
-            }.filter { it.value > 0 }
-        }
+    val z = zoomed
+    if (z != null) {
+        val slices = bandSlices(z)
         val size = with(density) { (minOf(containerSize.width, containerSize.height) * 0.9f).toDp() }
-        Dialog(onDismissRequest = { zoomedCosting = null },
+        Dialog(onDismissRequest = { zoomedId = null },
             properties = DialogProperties(usePlatformDefaultWidth = false)) {
             Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
                 Column(
                     modifier = Modifier.padding(16.dp).fillMaxSize(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Text(c.fullPlanName ?: "", style = MaterialTheme.typography.titleSmall,
+                    Text(planName(z), style = MaterialTheme.typography.titleSmall,
                         textAlign = TextAlign.Center)
                     Spacer(Modifier.height(8.dp))
                     PieChart(slices = slices, modifier = Modifier.size(size * 0.55f), isDonut = true)
@@ -1356,6 +1412,100 @@ private fun AllCostingsTable(
             }
         }
     }
+}
+
+@Composable
+private fun AllCostingsTable(
+    costings: List<Costings>,
+    planStandingCharges: Map<Long, Double>,
+    simDays: Long,
+    df: DecimalFormat,
+    favouritePlanId: Long? = null,
+    planActive: Map<Long, Boolean> = emptyMap()
+) {
+    // Only active plans appear in the dashboard's Tariff Plan table — match
+    // DataSourceCostingsTable. Plans missing from the map (pre-existing
+    // costings rows for since-deleted plans) default to active so they don't
+    // silently vanish.
+    val visible = costings.filter { planActive[it.pricePlanID] ?: true }
+
+    if (visible.isEmpty() && costings.isNotEmpty()) {
+        Text(
+            "No active price plans — activate one via Supplier Plans",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        return
+    }
+
+    val firstId = visible.firstOrNull()?.pricePlanID
+    val columns = listOf(
+        PinnedScrollColumn<Costings>(
+            header = "Net",
+            accent = { it.pricePlanID == firstId },
+            cell = { c ->
+                Text(df.format(c.net / 100.0),
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.End,
+                    maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
+                    color = if (c.pricePlanID == firstId)
+                        MaterialTheme.colorScheme.primary else Color.Unspecified)
+            }
+        ),
+        PinnedScrollColumn<Costings>(header = "Buy", cell = { c ->
+            Text(df.format(c.buy / 100.0),
+                style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
+                maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
+        }),
+        PinnedScrollColumn<Costings>(header = "Sell", cell = { c ->
+            Text(df.format(c.sell / 100.0),
+                style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
+                maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
+        }),
+        PinnedScrollColumn<Costings>(header = "Fixed", cell = { c ->
+            val fixed = (planStandingCharges[c.pricePlanID] ?: 0.0) * (simDays / 365.0)
+            Text(df.format(fixed),
+                style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
+                maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
+        })
+    )
+
+    CostingsTableWithBandPie(
+        rows = visible,
+        rowId = { it.pricePlanID },
+        pinnedCell = { c ->
+            val isFav = favouritePlanId != null && favouritePlanId == c.pricePlanID
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (isFav) {
+                    Icon(Icons.Default.Star, contentDescription = "Your current plan",
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(4.dp))
+                }
+                Text(c.fullPlanName ?: "",
+                    style = MaterialTheme.typography.bodySmall, maxLines = 1,
+                    overflow = TextOverflow.Ellipsis)
+            }
+        },
+        columns = columns,
+        rowBackground = { c, idx ->
+            val isFav = favouritePlanId != null && favouritePlanId == c.pricePlanID
+            when {
+                isFav -> MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                idx == 0 -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                else -> Color.Transparent
+            }
+        },
+        planName = { it.fullPlanName ?: "" },
+        bandSlices = { c ->
+            val st = c.subTotals
+            if (st == null) emptyList()
+            else st.prices.sortedBy { it }.mapIndexed { i, price ->
+                val kwh = st.getSubTotalForPrice(price) ?: 0.0
+                PieSlice("%.1fc".format(price), kwh, TARIFF_PIE_COLORS[i % TARIFF_PIE_COLORS.size])
+            }.filter { it.value > 0 }
+        }
+    )
 }
 
 // ─── Data source PV bar chart (period-aware) ──────────────────────────────
@@ -1443,16 +1593,63 @@ private fun DataSourceExplorePies(
                 )
             )
         } else {
-            listOf(
-                "Load Source" to listOf(
-                    PieSlice("Solar",  maxOf(0.0, periodTotals.load - periodTotals.buy), Color(0xFF4CAF50)),
-                    PieSlice("Bought", periodTotals.buy,  Color(0xFFF44336))
-                ),
-                "Self Consumption" to listOf(
-                    PieSlice("PV Used",  maxOf(0.0, periodTotals.pv - periodTotals.feed), Color(0xFF4CAF50)),
-                    PieSlice("Exported", periodTotals.feed, Color(0xFF2196F3))
-                )
+            // Mirror UI2GraphsFragment.buildGraphPieSpecs — same four-pie set so the
+            // dashboard's at-a-glance summary matches what the user sees when they
+            // drill into Explore Data. For AlphaESS:
+            //   • v1 (pre-migration) rows leave pv2*/bat2*/grid2* fields at 0, so the
+            //     extra slices appear degenerate or empty. Once the Migrate worker
+            //     stamps v2 they fill out fully.
+            //   • Battery Flows is gated on actual battery activity in the data, not
+            //     on a scenario flag — AlphaESS has no scenario, so we read it off
+            //     PeriodTotals.charging/discharging.
+            val gridToLoad = maxOf(0.0, periodTotals.buy - periodTotals.grid2bat)
+            val pvUsed = maxOf(0.0, periodTotals.pv2load + periodTotals.pv2bat)
+                .takeIf { it > 0 } ?: maxOf(0.0, periodTotals.pv - periodTotals.feed)
+            val out = mutableListOf<Pair<String, List<PieSlice>>>()
+            out += "Self Consumption" to listOf(
+                PieSlice("PV Used", pvUsed, Color(0xFF4CAF50)),
+                PieSlice("Exported", periodTotals.feed, Color(0xFF2196F3))
             )
+            out += "Load Source" to buildList {
+                if (periodTotals.pv2load > 0) add(PieSlice("Solar",   periodTotals.pv2load, Color(0xFF4CAF50)))
+                if (periodTotals.bat2load > 0) add(PieSlice("Battery", periodTotals.bat2load, Color(0xFFFFB300)))
+                if (gridToLoad > 0)            add(PieSlice("Grid",    gridToLoad,           Color(0xFFF44336)))
+                // Pre-v2 fallback: if no flow-decomposed slices, fall back to the
+                // legacy approximation so the pie is never empty.
+                if (isEmpty()) {
+                    val approxSolar = maxOf(0.0, periodTotals.load - periodTotals.buy)
+                    if (approxSolar > 0) add(PieSlice("Solar",  approxSolar,        Color(0xFF4CAF50)))
+                    if (periodTotals.buy > 0) add(PieSlice("Grid",   periodTotals.buy,   Color(0xFFF44336)))
+                }
+            }
+            if (periodTotals.pv > 0) {
+                out += "Solar Distribution" to buildList {
+                    if (periodTotals.pv2load > 0)  add(PieSlice("To Load",  periodTotals.pv2load, Color(0xFF4CAF50)))
+                    if (periodTotals.pv2bat > 0)   add(PieSlice("Battery",  periodTotals.pv2bat,  Color(0xFF2196F3)))
+                    if (periodTotals.evActual > 0) add(PieSlice("EV",       periodTotals.evActual, Color(0xFFFF6F00)))
+                    if (periodTotals.feed > 0)     add(PieSlice("Exported", periodTotals.feed,    Color(0xFFFFEB3B)))
+                }
+            }
+            val batteryActive = periodTotals.charging > 0 || periodTotals.discharging > 0 ||
+                    periodTotals.pv2bat > 0 || periodTotals.grid2bat > 0 ||
+                    periodTotals.bat2load > 0 || periodTotals.bat2grid > 0
+            if (batteryActive) {
+                val flows = buildList {
+                    if (periodTotals.pv2bat > 0)   add(PieSlice("Solar In", periodTotals.pv2bat,   Color(0xFF4CAF50)))
+                    if (periodTotals.grid2bat > 0) add(PieSlice("Grid In",  periodTotals.grid2bat, Color(0xFF00BCD4)))
+                    if (periodTotals.bat2load > 0) add(PieSlice("To Load",  periodTotals.bat2load, Color(0xFF2196F3)))
+                    if (periodTotals.bat2grid > 0) add(PieSlice("To Grid",  periodTotals.bat2grid, Color(0xFFFFD700)))
+                    // Pre-v2 fallback: no flow decomposition yet, so show net battery
+                    // throughput from the legacy charge/discharge columns. Migration
+                    // upgrades this to the four-source breakdown above.
+                    if (isEmpty()) {
+                        if (periodTotals.charging > 0)    add(PieSlice("Charge",    periodTotals.charging,    Color(0xFF4CAF50)))
+                        if (periodTotals.discharging > 0) add(PieSlice("Discharge", periodTotals.discharging, Color(0xFFFFD700)))
+                    }
+                }
+                if (flows.isNotEmpty()) out += "Battery Flows" to flows
+            }
+            out
         }
     }
 
@@ -1460,17 +1657,36 @@ private fun DataSourceExplorePies(
     val containerSize = LocalWindowInfo.current.containerSize
     val density = LocalDensity.current
 
-    Row(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
-        charts.forEachIndexed { idx, (title, slices) ->
-            val visible = slices.filter { it.value > 0 }
-            Column(
-                modifier = Modifier.weight(1f).clickable { zoomedChart = idx }.padding(4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(title, style = MaterialTheme.typography.labelSmall,
-                    textAlign = TextAlign.Center)
-                Spacer(Modifier.height(4.dp))
-                PieChart(slices = visible, modifier = Modifier.size(80.dp))
+    // Wrap charts into a grid so 3 and 4 pies stay readable. Column count is
+    // width-driven (central itemsPerRow): 2 on a phone, 3-4 on a tablet, so
+    // landscape / large screens stop wasting half the row. Empty grid cells get
+    // a Spacer to keep columns aligned.
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth().padding(top = 4.dp)) {
+        val cols = itemsPerRow(maxWidth, AdaptiveLayout.PIE_CELL_MIN_WIDTH)
+            .coerceIn(1, charts.size)
+        val rows = (charts.size + cols - 1) / cols
+        Column(modifier = Modifier.fillMaxWidth()) {
+            for (row in 0 until rows) {
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    for (col in 0 until cols) {
+                        val idx = row * cols + col
+                        if (idx < charts.size) {
+                            val (title, slices) = charts[idx]
+                            val visible = slices.filter { it.value > 0 }
+                            Column(
+                                modifier = Modifier.weight(1f).clickable { zoomedChart = idx }.padding(4.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(title, style = MaterialTheme.typography.labelSmall,
+                                    textAlign = TextAlign.Center)
+                                Spacer(Modifier.height(4.dp))
+                                PieChart(slices = visible, modifier = Modifier.size(80.dp))
+                            }
+                        } else {
+                            Spacer(modifier = Modifier.weight(1f))
+                        }
+                    }
+                }
             }
         }
     }
@@ -1508,103 +1724,86 @@ private fun DataSourceCostingsTable(
         CircularProgressIndicator(modifier = Modifier.padding(4.dp).size(20.dp), strokeWidth = 2.dp)
         return
     }
-    if (costings.isEmpty()) {
-        Text("No price plans configured",
+    // Only active plans appear in the dashboard's Tariff Plan table — the
+    // Compare tab still evaluates every plan regardless. Toggle via the
+    // Supplier Plans screen (edit icon on this accordion).
+    val visible = costings.filter { it.active }
+    if (visible.isEmpty()) {
+        Text(
+            if (costings.isEmpty()) "No price plans configured"
+            else "No active price plans — activate one via Supplier Plans",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
     }
 
-    var zoomedRow by remember { mutableStateOf<DataSourceCostingRow?>(null) }
-    val containerSize = LocalWindowInfo.current.containerSize
-    val density = LocalDensity.current
-
-    // Header
-    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
-        Text("Plan",  Modifier.weight(2.5f), style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("Net",   Modifier.weight(1f), textAlign = TextAlign.End,
-            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("Buy",   Modifier.weight(1f), textAlign = TextAlign.End,
-            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("Sell",  Modifier.weight(1f), textAlign = TextAlign.End,
-            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text("Fixed", Modifier.weight(1f), textAlign = TextAlign.End,
-            style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    }
-    HorizontalDivider()
-
-    costings.forEachIndexed { idx, row ->
-        val isBest = idx == 0
-        val isFav = favouritePlanId != null && favouritePlanId == row.pricePlanId
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable { zoomedRow = row }
-                .background(
-                    when {
-                        isFav -> MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
-                        isBest -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                        else -> Color.Transparent
-                    }
-                )
-                .padding(vertical = 3.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (isFav) {
-                Icon(Icons.Default.Star, contentDescription = "Your current plan",
-                    modifier = Modifier.size(14.dp),
-                    tint = MaterialTheme.colorScheme.primary)
-                Spacer(Modifier.width(4.dp))
+    val firstId = visible.firstOrNull()?.pricePlanId
+    val columns = listOf(
+        PinnedScrollColumn<DataSourceCostingRow>(
+            header = "Net",
+            accent = { it.pricePlanId == firstId },
+            cell = { row ->
+                Text(df.format(row.net / 100.0),
+                    style = MaterialTheme.typography.bodySmall,
+                    textAlign = TextAlign.End,
+                    maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
+                    color = if (row.pricePlanId == firstId)
+                        MaterialTheme.colorScheme.primary else Color.Unspecified)
             }
-            Text(row.planName, Modifier.weight(if (isFav) 2.3f else 2.5f),
-                style = MaterialTheme.typography.bodySmall, maxLines = 1,
-                overflow = TextOverflow.Ellipsis)
-            Text(df.format(row.net / 100.0), Modifier.weight(1f), textAlign = TextAlign.End,
-                style = MaterialTheme.typography.bodySmall,
-                color = if (isBest) MaterialTheme.colorScheme.primary else Color.Unspecified)
-            Text(df.format(row.buy / 100.0), Modifier.weight(1f), textAlign = TextAlign.End,
-                style = MaterialTheme.typography.bodySmall)
-            Text(df.format(row.sell / 100.0), Modifier.weight(1f), textAlign = TextAlign.End,
-                style = MaterialTheme.typography.bodySmall)
-            Text(df.format(row.fixed), Modifier.weight(1f), textAlign = TextAlign.End,
-                style = MaterialTheme.typography.bodySmall)
-        }
-        HorizontalDivider()
-    }
-    Spacer(Modifier.height(4.dp))
-    Text("Tap a row to see tariff band breakdown  ↗",
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant)
+        ),
+        PinnedScrollColumn<DataSourceCostingRow>(header = "Buy", cell = { row ->
+            Text(df.format(row.buy / 100.0),
+                style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
+                maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
+        }),
+        PinnedScrollColumn<DataSourceCostingRow>(header = "Sell", cell = { row ->
+            Text(df.format(row.sell / 100.0),
+                style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
+                maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
+        }),
+        PinnedScrollColumn<DataSourceCostingRow>(header = "Fixed", cell = { row ->
+            Text(df.format(row.fixed),
+                style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
+                maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
+        })
+    )
 
-    if (zoomedRow != null) {
-        val r = zoomedRow!!
-        val slices = remember(r) {
-            val st = r.subTotals ?: return@remember emptyList<PieSlice>()
-            st.prices.sortedBy { it }.mapIndexed { i, price ->
+    CostingsTableWithBandPie(
+        rows = visible,
+        rowId = { it.pricePlanId },
+        pinnedCell = { row ->
+            val isFav = favouritePlanId != null && favouritePlanId == row.pricePlanId
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (isFav) {
+                    Icon(Icons.Default.Star, contentDescription = "Your current plan",
+                        modifier = Modifier.size(14.dp),
+                        tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(4.dp))
+                }
+                Text(row.planName,
+                    style = MaterialTheme.typography.bodySmall, maxLines = 1,
+                    overflow = TextOverflow.Ellipsis)
+            }
+        },
+        columns = columns,
+        rowBackground = { row, idx ->
+            val isFav = favouritePlanId != null && favouritePlanId == row.pricePlanId
+            when {
+                isFav -> MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                idx == 0 -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                else -> Color.Transparent
+            }
+        },
+        planName = { it.planName },
+        bandSlices = { row ->
+            val st = row.subTotals
+            if (st == null) emptyList()
+            else st.prices.sortedBy { it }.mapIndexed { i, price ->
                 val kwh = st.getSubTotalForPrice(price) ?: 0.0
                 PieSlice("%.1fc".format(price), kwh, TARIFF_PIE_COLORS[i % TARIFF_PIE_COLORS.size])
             }.filter { it.value > 0 }
         }
-        val size = with(density) { (minOf(containerSize.width, containerSize.height) * 0.9f).toDp() }
-        Dialog(onDismissRequest = { zoomedRow = null },
-            properties = DialogProperties(usePlatformDefaultWidth = false)) {
-            Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
-                Column(
-                    modifier = Modifier.padding(16.dp).fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(r.planName, style = MaterialTheme.typography.titleSmall,
-                        textAlign = TextAlign.Center)
-                    Spacer(Modifier.height(8.dp))
-                    PieChart(slices = slices, modifier = Modifier.size(size * 0.55f), isDonut = true)
-                    Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState())) {
-                        PieLegend(slices = slices)
-                    }
-                }
-            }
-        }
-    }
+    )
 }
 
 @Composable
@@ -1624,25 +1823,53 @@ private fun DataSourceDistributionCharts(distribution: UsageDistribution) {
     val dayLabels   = remember { listOf("Sun","Mon","Tue","Wed","Thu","Fri","Sat") }
     val monthLabels = remember { listOf("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec") }
 
-    val charts = remember(distribution) {
+    // ESBN has no load series, so its distributions fall back to grid import —
+    // label them accordingly. Every other importer buckets actual load.
+    val metric = if (distribution.basedOnLoad) "Load" else "Import"
+    val charts = remember(distribution, metric) {
         listOf(
-            Triple("Import Hourly (%)",   distribution.hourly,   hourLabels),
-            Triple("Import Daily (%)",    distribution.daily,    dayLabels),
-            Triple("Import Monthly (%)",  distribution.monthly,  monthLabels)
+            Triple("$metric Hourly (%)",   distribution.hourly,   hourLabels),
+            Triple("$metric Daily (%)",    distribution.daily,    dayLabels),
+            Triple("$metric Monthly (%)",  distribution.monthly,  monthLabels)
         )
     }
 
     val containerSize = LocalWindowInfo.current.containerSize
     val density = LocalDensity.current
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        charts.forEachIndexed { idx, (title, dist, labels) ->
-            if (dist.any { it > 0 }) {
-                Column(modifier = Modifier.fillMaxWidth().clickable { zoomedIdx = idx }) {
-                    Text("$title  ↗", style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.padding(bottom = 2.dp))
-                    SimpleDistBarChart(dist = dist, labels = labels,
-                        modifier = Modifier.fillMaxWidth().height(80.dp))
+    // At MEDIUM+ widths render the three distributions side-by-side (Hourly /
+    // Daily / Monthly) so landscape phones and tablets stop showing skinny
+    // 80-dp bars stacked vertically.
+    BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+        val visible = charts.mapIndexedNotNull { idx, c ->
+            if (c.second.any { it > 0 }) idx to c else null
+        }
+        if (visible.isEmpty()) return@BoxWithConstraints
+        if (maxWidth >= AdaptiveLayout.WIDTH_MEDIUM_AT) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                visible.forEach { (idx, c) ->
+                    val (title, dist, labels) = c
+                    Column(modifier = Modifier.weight(1f).clickable { zoomedIdx = idx }) {
+                        Text("$title  ↗", style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(bottom = 2.dp))
+                        SimpleDistBarChart(dist = dist, labels = labels,
+                            modifier = Modifier.fillMaxWidth().height(80.dp))
+                    }
+                }
+            }
+        } else {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                visible.forEach { (idx, c) ->
+                    val (title, dist, labels) = c
+                    Column(modifier = Modifier.fillMaxWidth().clickable { zoomedIdx = idx }) {
+                        Text("$title  ↗", style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(bottom = 2.dp))
+                        SimpleDistBarChart(dist = dist, labels = labels,
+                            modifier = Modifier.fillMaxWidth().height(80.dp))
+                    }
                 }
             }
         }
@@ -2217,8 +2444,10 @@ private fun LegendItem(iconRes: Int, label: String) {
 // ──────────────────────────────────────────────────────────────────────────
 // KPI accordion — same data set the legacy ImportKeyStatsFragment shows
 // (self-consumption / sufficiency / max-self-sufficiency, PV total, feed total
-// + per-month best/worst/average). The range picker drives the summary; the
-// 12-button J/F/M/A/… row filters the monthly table.
+// + per-month best/worst/average). The range picker drives the summary;
+// the 13-button * J F M A M J J A S O N D row filters only the monthly
+// best/worst/avg table — so it sits between the two tables, not next to
+// the date picker.
 // ──────────────────────────────────────────────────────────────────────────
 @Composable
 private fun KpiAccordion(
@@ -2231,7 +2460,9 @@ private fun KpiAccordion(
     onPeriodChange: (DataSourcePeriod, LocalDate) -> Unit,
     onNavigate: (forward: Boolean) -> Unit,
     onMonthFilterChange: (Int) -> Unit,
-    df: DecimalFormat
+    df: DecimalFormat,
+    kwhDf: DecimalFormat,
+    showHints: Boolean
 ) {
     ExpandableCard(
         title = "KPIs",
@@ -2261,24 +2492,24 @@ private fun KpiAccordion(
         )
         Spacer(Modifier.height(8.dp))
 
-        // Month filter: 13 buttons — ALL + J F M A M J J A S O N D.
+        // KPI summary table — driven by the date picker above.
+        when (summary) {
+            null -> CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+            else -> KpiSummaryTable(summary, df, kwhDf, showHints)
+        }
+
+        // Month filter sits directly above the per-month table it controls.
+        Spacer(Modifier.height(10.dp))
         MonthFilterRow(monthFilter, onMonthFilterChange)
         Spacer(Modifier.height(8.dp))
 
-        // KPI summary table — same five rows the legacy fragment shows.
-        when (summary) {
-            null -> CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
-            else -> KpiSummaryTable(summary, df)
-        }
-
         // Monthly key stats — filtered by the chip row above.
-        Spacer(Modifier.height(10.dp))
         when (months) {
             null -> {}
             else -> {
                 val filtered = if (monthFilter == 0) months
                                else months.filter { it.monthNumber == monthFilter }
-                KpiMonthsTable(filtered, df)
+                KpiMonthsTable(filtered, kwhDf)
             }
         }
     }
@@ -2286,48 +2517,42 @@ private fun KpiAccordion(
 
 @Composable
 private fun MonthFilterRow(selected: Int, onChange: (Int) -> Unit) {
-    val labels = listOf("*", "J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
-    Row(modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(2.dp)) {
-        labels.forEachIndexed { idx, label ->
-            val isOn = idx == selected
-            Surface(
-                color = if (isOn) MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
-                        else MaterialTheme.colorScheme.surfaceVariant,
-                shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp),
-                modifier = Modifier.weight(1f).height(32.dp)
-                    .clickable { onChange(idx) }
-            ) {
-                Box(contentAlignment = Alignment.Center,
-                    modifier = Modifier.fillMaxSize()) {
-                    Text(label, style = MaterialTheme.typography.labelMedium,
-                        color = if (isOn) MaterialTheme.colorScheme.primary
-                                else MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
-    }
+    val labelsShort = listOf("*", "J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
+    val labelsLong  = listOf("All", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                             "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+    // AdaptiveChipRow keeps all 13 on one weighted line at normal font, wraps
+    // to multiple rows as the font enlarges, and collapses to a dropdown at
+    // the largest tier. 3-letter labels appear in landscape (MEDIUM+).
+    AdaptiveChipRow(
+        items = labelsShort.indices.toList(),
+        isSelected = { it == selected },
+        onSelect = onChange,
+        label = { labelsShort[it] },
+        labelLong = { labelsLong[it] }
+    )
 }
 
 @Composable
-private fun KpiSummaryTable(summary: KpiSummary, df: DecimalFormat) {
+private fun KpiSummaryTable(summary: KpiSummary, df: DecimalFormat, kwhDf: DecimalFormat, showHints: Boolean) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        KpiRow("Self consumption",  "(PV − Feed) / PV", df.format(summary.selfConsumption) + "%")
-        KpiRow("Self sufficiency",  "(PV − Feed) / Load", df.format(summary.selfSufficiency) + "%")
-        KpiRow("Max self sufficiency", "PV / Load",      df.format(summary.maxSelfSufficiency) + "%")
-        KpiRow("Generation (kWh)",  "PV",   df.format(summary.pv))
-        KpiRow("Feed (kWh)",        "Feed", df.format(summary.feed))
+        KpiRow("Self consumption",  "(PV − Feed) / PV", df.format(summary.selfConsumption) + "%", showHints)
+        KpiRow("Self sufficiency",  "(PV − Feed) / Load", df.format(summary.selfSufficiency) + "%", showHints)
+        KpiRow("Max self sufficiency", "PV / Load",      df.format(summary.maxSelfSufficiency) + "%", showHints)
+        KpiRow("Generation (kWh)",  "PV",   kwhDf.format(summary.pv), showHints)
+        KpiRow("Feed (kWh)",        "Feed", kwhDf.format(summary.feed), showHints)
     }
 }
 
 @Composable
-private fun KpiRow(label: String, sub: String, value: String) {
+private fun KpiRow(label: String, sub: String, value: String, showHints: Boolean) {
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
         verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(label, style = MaterialTheme.typography.bodyMedium)
-            Text(sub, style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            if (showHints) {
+                Text(sub, style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
         Text(value, style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.primary)
@@ -2335,32 +2560,76 @@ private fun KpiRow(label: String, sub: String, value: String) {
 }
 
 @Composable
-private fun KpiMonthsTable(rows: List<KpiMonthRow>, df: DecimalFormat) {
-    Column {
-        Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-            Text("YY-MM",   style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
-            Text("PV Tot",  style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
-            Text("Best",    style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1.4f))
-            Text("Worst",   style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1.4f))
-            Text("Avg",     style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
-        }
-        if (rows.isEmpty()) {
-            Text("No data for the selected filter.",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(vertical = 6.dp))
-        } else rows.forEach { row ->
-            Row(modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp)) {
-                Text(row.monthLabel,  style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                Text(df.format(row.pvTotal), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-                // best/worst arrive as "<value> on <dd>" — keep the DB string intact so
-                // the user sees which day produced it (legacy KPI fragment behaviour).
-                Text(row.best,    style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1.4f))
-                Text(row.worst,   style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1.4f))
-                Text(df.format(row.average), style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
-            }
-        }
+private fun KpiMonthsTable(rows: List<KpiMonthRow>, kwhDf: DecimalFormat) {
+    if (rows.isEmpty()) {
+        Text("No data for the selected filter.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(vertical = 6.dp))
+        return
     }
+    val columns = listOf(
+        PinnedScrollColumn<KpiMonthRow>(header = "PV Tot", cell = { row ->
+            Text(kwhDf.format(row.pvTotal),
+                style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
+                maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
+        }),
+        PinnedScrollColumn<KpiMonthRow>(
+            header = "Best",
+            minWidth = AdaptiveLayout.SCROLL_COL_MIN_MIXED,
+            weight = 1.4f,
+            cell = { row ->
+                // best/worst arrive as "<value> on <dd>" — re-format the leading
+                // kWh value to 1 dp; the DB query (AlphaEssDAO) and the sim path
+                // (buildMonthRowsFromDoy) both emit 2 dp, but the display layer
+                // is the single source of truth so they stay consistent.
+                Text(reformatKwhOn(row.best, kwhDf),
+                    style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
+                    maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
+            }
+        ),
+        PinnedScrollColumn<KpiMonthRow>(
+            header = "Worst",
+            minWidth = AdaptiveLayout.SCROLL_COL_MIN_MIXED,
+            weight = 1.4f,
+            cell = { row ->
+                Text(reformatKwhOn(row.worst, kwhDf),
+                    style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
+                    maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
+            }
+        ),
+        PinnedScrollColumn<KpiMonthRow>(header = "Avg", cell = { row ->
+            Text(kwhDf.format(row.average),
+                style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
+                maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
+        })
+    )
+    // Single table — at normal size the weighted layout distributes the
+    // columns across the full width (including landscape); under font scaling
+    // it pins the YY-MM column and scrolls the values.
+    PinnedScrollTable(
+        rows = rows,
+        pinnedHeader = "YY-MM",
+        pinnedWeight = 1f,
+        pinnedCell = { row ->
+            Text(row.monthLabel, style = MaterialTheme.typography.bodySmall)
+        },
+        columns = columns
+    )
+}
+
+/**
+ * Re-format a pre-built "<value> on <dd>" string by parsing the leading
+ * number and re-emitting it via [kwhDf] (1 dp). Falls back to the original
+ * string if the leading token isn't a number — covers "—" and any future
+ * format drift gracefully.
+ */
+private fun reformatKwhOn(s: String, kwhDf: DecimalFormat): String {
+    val space = s.indexOf(' ')
+    val head = if (space < 0) s else s.substring(0, space)
+    val tail = if (space < 0) "" else s.substring(space)
+    val v = head.toDoubleOrNull() ?: return s
+    return kwhDf.format(v) + tail
 }
 
 /**
@@ -2368,6 +2637,40 @@ private fun KpiMonthsTable(rows: List<KpiMonthRow>, df: DecimalFormat) {
  * and no data source is selected. The button text "Try with sample data" is
  * the canonical Robo selector — see plans/roboscript/robo-plan.md Phase 4B/4C.
  */
+/**
+ * Empty state shown when the dashboard has no pinned subject but the user
+ * already has scenarios and/or data sources available — typically reached
+ * after the deletion guards in UI2SharedViewModel clear the saved subject
+ * because its underlying scenario/sysSn was deleted. Directs the user to
+ * pick a different subject from the navigation drawer.
+ */
+@Composable
+private fun NoActiveSubjectCard() {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                "Pick a dashboard subject",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                "The scenario or data source this dashboard was set to is no " +
+                    "longer available. Open the navigation drawer and pick a " +
+                    "scenario or data source to view.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+        }
+    }
+}
+
 @Composable
 private fun EmptyDashboardSampleCard() {
     val context = LocalContext.current
@@ -2386,31 +2689,46 @@ private fun EmptyDashboardSampleCard() {
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                "Get started with a sample scenario and two demo tariffs " +
-                    "(24-hour flat + a cheap 02–05 night window). Solar yield " +
-                    "is fetched from PVGIS and the simulation runs in the background.",
+                "Pick how you'd like to start:",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
             )
-            Button(onClick = {
-                val loader = EntryPointAccessors
-                    .fromApplication(context.applicationContext, SampleDataLoaderEntryPoint::class.java)
-                    .sampleDataLoader()
-                coroutineScope.launch {
-                    val msg = when (val result = loader.load()) {
-                        is SampleDataLoader.Result.AlreadyLoaded ->
-                            "Sample data already loaded"
-                        is SampleDataLoader.Result.Loaded ->
-                            "Sample loaded · simulation running in background"
-                        is SampleDataLoader.Result.Failed ->
-                            "Couldn't load sample data: ${result.error.message ?: "unknown error"}"
+            // (a) Sample data — seed a demo scenario + tariffs and simulate.
+            Button(
+                onClick = {
+                    val loader = EntryPointAccessors
+                        .fromApplication(context.applicationContext, SampleDataLoaderEntryPoint::class.java)
+                        .sampleDataLoader()
+                    coroutineScope.launch {
+                        val msg = when (val result = loader.load()) {
+                            is SampleDataLoader.Result.AlreadyLoaded ->
+                                "Sample data already loaded"
+                            is SampleDataLoader.Result.Loaded ->
+                                "Sample loaded · simulation running in background"
+                            is SampleDataLoader.Result.Failed ->
+                                "Couldn't load sample data: ${result.error.message ?: "unknown error"}"
+                        }
+                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                     }
-                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-                }
-            }) {
-                Text("Try with sample data")
-            }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Try with sample data") }
+
+            // (b) Quick mode — the simplified single-screen flow.
+            OutlinedButton(
+                onClick = { relaunchInMode(context, simple = true) },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Quick mode") }
+
+            // (c) Add a scenario — same entry point as "+ Create new" on the Scenarios tab.
+            OutlinedButton(
+                onClick = {
+                    context.startActivity(
+                        android.content.Intent(context, UI2WizardActivity::class.java))
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Add a scenario") }
         }
     }
 }

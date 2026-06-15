@@ -6,6 +6,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -14,11 +16,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentPaste
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -40,7 +46,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboard
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.Dispatchers
@@ -48,6 +56,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import java.net.URL
 import java.nio.charset.StandardCharsets
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -70,7 +79,7 @@ sealed class ParsedPreview<out T> {
     data class Err(val message: String) : ParsedPreview<Nothing>()
 }
 
-private enum class ImportSource { FILE, PASTE }
+private enum class ImportSource { FILE, PASTE, COMMUNITY, LLM }
 
 private val IMPORT_MIME_TYPES = arrayOf(
     "application/json",
@@ -79,12 +88,21 @@ private val IMPORT_MIME_TYPES = arrayOf(
     "*/*"            // fallback for senders that drop the MIME entirely
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun <T> UI2ImportSheet(
     title: String,
     hint: String? = null,
     applyLabel: String = "Apply",
+    /** When non-null, offers a third "Community" source that downloads JSON from
+     * this URL into the same parse/preview/apply pipeline. */
+    communityUrl: String? = null,
+    communityNote: String = "Community-maintained — may be out of date. You can edit " +
+        "anything after importing.",
+    /** When non-null, offers a "Prompt an LLM" source: the user copies this
+     * prompt, runs it through their own AI assistant, then pastes the JSON it
+     * returns back via the "Paste JSON" source. */
+    llmPrompt: String? = null,
     parse: (String) -> ParsedPreview<T>,
     onApply: (T) -> Unit,
     onDismiss: () -> Unit
@@ -92,12 +110,42 @@ fun <T> UI2ImportSheet(
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val context = LocalContext.current
     val clipboard = LocalClipboard.current
+    val clipboardManager = LocalClipboardManager.current
     val scope = rememberCoroutineScope()
 
     var source by remember { mutableStateOf(ImportSource.PASTE) }
     var pickedFileName by remember { mutableStateOf<String?>(null) }
     var buffer by remember { mutableStateOf("") }          // raw text fed to parse()
     var pasteText by remember { mutableStateOf("") }
+    var downloading by remember { mutableStateOf(false) }
+    var downloadError by remember { mutableStateOf<String?>(null) }
+    var promptCopied by remember { mutableStateOf(false) }
+
+    // Fetch the community JSON over the network into `buffer`, so it flows
+    // through the same parse → preview → Apply path as file/paste.
+    fun startCommunityDownload() {
+        val url = communityUrl ?: return
+        source = ImportSource.COMMUNITY
+        scope.launch {
+            downloading = true
+            downloadError = null
+            buffer = ""
+            val text = withContext(Dispatchers.IO) {
+                runCatching {
+                    URL(url).openStream().use { ins ->
+                        BufferedReader(InputStreamReader(ins, StandardCharsets.UTF_8))
+                            .use { it.readText() }
+                    }
+                }.getOrNull()
+            }
+            downloading = false
+            if (text.isNullOrBlank()) {
+                downloadError = "Couldn't download the list — check your connection and retry."
+            } else {
+                buffer = text
+            }
+        }
+    }
 
     // Preview is recomputed whenever the buffer changes. Empty buffer = no
     // preview yet (Apply disabled); non-empty buffer = either Ok or Err.
@@ -146,10 +194,13 @@ fun <T> UI2ImportSheet(
                 )
             }
 
-            // Source picker — two FilterChips. The selection only changes
-            // which input control is visible; both share the same `buffer`
-            // so the preview reflects whichever source last wrote to it.
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            // Source picker. The selection only changes which input control is
+            // visible; file/paste/community share the same `buffer` so the
+            // preview reflects whichever source last wrote to it. With the LLM
+            // source there can be up to four chips — a FlowRow wraps them to a
+            // second line when the width can't hold them (narrow phone / large
+            // Display-size / large font), rather than clipping.
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
                     selected = source == ImportSource.FILE,
                     onClick = {
@@ -178,6 +229,28 @@ fun <T> UI2ImportSheet(
                             modifier = Modifier.size(16.dp))
                     }
                 )
+                if (communityUrl != null) {
+                    FilterChip(
+                        selected = source == ImportSource.COMMUNITY,
+                        onClick = { startCommunityDownload() },
+                        label = { Text("Community") },
+                        leadingIcon = {
+                            Icon(Icons.Default.CloudDownload, contentDescription = null,
+                                modifier = Modifier.size(16.dp))
+                        }
+                    )
+                }
+                if (llmPrompt != null) {
+                    FilterChip(
+                        selected = source == ImportSource.LLM,
+                        onClick = { source = ImportSource.LLM },
+                        label = { Text("Prompt an LLM") },
+                        leadingIcon = {
+                            Icon(Icons.Default.AutoAwesome, contentDescription = null,
+                                modifier = Modifier.size(16.dp))
+                        }
+                    )
+                }
             }
 
             when (source) {
@@ -214,6 +287,86 @@ fun <T> UI2ImportSheet(
                             modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
                         Text("Paste from clipboard")
+                    }
+                }
+                ImportSource.COMMUNITY -> {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            communityNote,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        if (downloading) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                CircularProgressIndicator(Modifier.size(20.dp))
+                                Spacer(Modifier.width(12.dp))
+                                Text("Downloading latest…",
+                                    style = MaterialTheme.typography.bodySmall)
+                            }
+                        } else {
+                            OutlinedButton(
+                                onClick = { startCommunityDownload() },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Icon(Icons.Default.CloudDownload, contentDescription = null,
+                                    modifier = Modifier.size(18.dp))
+                                Spacer(Modifier.width(8.dp))
+                                Text("Download latest")
+                            }
+                        }
+                        downloadError?.let {
+                            Text(it, style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                }
+                ImportSource.LLM -> {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            "No list for your supplier? Have an AI assistant build one:",
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Text(
+                            "1. Copy the prompt below.\n" +
+                                "2. Paste it into a text editor (Notes, etc.) — it's too long " +
+                                "to edit inside most LLM chat boxes.\n" +
+                                "3. Fill in the supplier and country at the top.\n" +
+                                "4. Copy the edited prompt and paste it into your favourite LLM " +
+                                "(ChatGPT, Claude, Gemini…).\n" +
+                                "5. Copy the JSON it returns, then switch to \"Paste JSON\" here.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        OutlinedButton(
+                            onClick = {
+                                llmPrompt?.let {
+                                    clipboardManager.setText(AnnotatedString(it))
+                                    promptCopied = true
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(Icons.Default.ContentCopy, contentDescription = null,
+                                modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text(if (promptCopied) "Prompt copied" else "Copy prompt")
+                        }
+                        TextButton(onClick = {
+                            source = ImportSource.PASTE
+                            buffer = pasteText
+                        }) {
+                            Icon(Icons.Default.ContentPaste, contentDescription = null,
+                                modifier = Modifier.size(16.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text("I have the JSON — paste it")
+                        }
+                        Text(
+                            "Heads-up: this only works some of the time — LLM results are " +
+                                "hit-and-miss and often need fixing. Always check the generated " +
+                                "rates against a recent bill, and edit any plan after importing.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error
+                        )
                     }
                 }
             }

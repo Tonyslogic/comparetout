@@ -22,6 +22,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
@@ -35,13 +36,26 @@ enum class DataSourcePeriod(val label: String) {
 
 data class PeriodTotals(
     val load: Double, val buy: Double, val feed: Double, val pv: Double,
-    val charging: Double = 0.0, val discharging: Double = 0.0
+    val charging: Double = 0.0, val discharging: Double = 0.0,
+    // v2 flow fields — populated for AlphaESS rows once the migration worker has run.
+    // Stay at 0 for pre-v2 AlphaESS rows, ESBN, HA, and the simulation path (which uses
+    // its own kpis-based pies on the dashboard).
+    val pv2load: Double = 0.0,
+    val pv2bat: Double = 0.0,
+    val bat2load: Double = 0.0,
+    val grid2bat: Double = 0.0,
+    val bat2grid: Double = 0.0,
+    val evActual: Double = 0.0
 )
 
 data class UsageDistribution(
-    val hourly: List<Double>,   // 24 values, % of total import
+    val hourly: List<Double>,   // 24 values, % of total
     val daily: List<Double>,    // 7 values, % (0=Sun…6=Sat)
-    val monthly: List<Double>   // 12 values, % (Jan…Dec)
+    val monthly: List<Double>,  // 12 values, % (Jan…Dec)
+    // True iff the distribution buckets actual measured load. False only for
+    // import-only sources (ESBN), where the distribution falls back to the
+    // grid-import series because no load series is available.
+    val basedOnLoad: Boolean = true
 )
 
 data class DataSourceCostingRow(
@@ -51,7 +65,10 @@ data class DataSourceCostingRow(
     val buy: Double,    // cents
     val sell: Double,   // cents
     val fixed: Double,  // € pre-computed: standingCharges × days/365
-    val subTotals: SubTotals?
+    val subTotals: SubTotals?,
+    // Mirrors PricePlan.isActive. The dashboard's Tariff Plan tables only show
+    // active rows; the Compare tab evaluates every plan regardless.
+    val active: Boolean = true
 )
 
 /**
@@ -121,6 +138,15 @@ class UI2DashboardViewModel @Inject constructor(
     private val dateTimeFormatter  = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
     private val _activeItem = MutableStateFlow<ActiveDashboardItem?>(null)
+
+    /**
+     * Whether the dashboard currently has a pinned subject. The fragment uses
+     * this — rather than inferring from [dashboardData]'s shape — to decide
+     * between the "pick a subject" empty card and the regular accordion list,
+     * so a fresh boot with a valid pinned scenario doesn't flash the empty
+     * card while the IO fetch is in flight.
+     */
+    val hasActiveItem: LiveData<Boolean> = _activeItem.map { it != null }.asLiveData()
 
     /**
      * Bumped each time the dashboard should re-fetch DB-backed data without a
@@ -210,6 +236,18 @@ class UI2DashboardViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.IO) {
             recomputeKpis()
             recomputeScenarioTariff()
+            // Picks up toggled active flags when the user returns from
+            // Supplier Plans. No-op when the active item is a simulation.
+            refreshDataSourceTariff()
+        }
+    }
+
+    private suspend fun refreshDataSourceTariff() {
+        val item = _activeItem.value as? ActiveDashboardItem.DataSource ?: return
+        val period = _tariffPeriod.value
+        val anchor = _tariffAnchor.value
+        withContext(Dispatchers.IO) {
+            _tariffCostings.value = fetchCostings(period, anchor, false, item)
         }
     }
 
@@ -244,6 +282,26 @@ class UI2DashboardViewModel @Inject constructor(
             recomputeKpis()
             recomputeScenarioTariff()
         }
+    }
+
+    /**
+     * Drop the active dashboard subject and reset every derived StateFlow to
+     * its empty default. Called by the dashboard fragment when the shared VM
+     * emits [UI2SharedViewModel.ActiveSelection.None] — typically because the
+     * persisted subject's underlying data was deleted. Without this reset, the
+     * dashboard keeps rendering stale numbers from the previous subject after
+     * the persisted selection has been cleared.
+     */
+    fun clearActive() {
+        _activeItem.value = null
+        _dataBounds.value = null
+        _pvChartData.value = null
+        _exploreTotals.value = null
+        _usageTotals.value = null
+        _usageDistribution.value = null
+        _tariffCostings.value = null
+        _scenarioTariffCostings.value = null
+        resetKpiDefaults()
     }
 
     fun setActiveDataSource(
@@ -495,7 +553,13 @@ class UI2DashboardViewModel @Inject constructor(
             feed        = rows.sumOf { it.feed },
             pv          = rows.sumOf { it.pv },
             charging    = rows.sumOf { it.batCharge },
-            discharging = rows.sumOf { it.batDischarge }
+            discharging = rows.sumOf { it.batDischarge },
+            pv2load     = rows.sumOf { it.pv2load },
+            pv2bat      = rows.sumOf { it.pv2bat },
+            bat2load    = rows.sumOf { it.bat2load },
+            grid2bat    = rows.sumOf { it.grid2bat },
+            bat2grid    = rows.sumOf { it.bat2grid },
+            evActual    = rows.sumOf { it.evActual }
         )
     }
 
@@ -517,23 +581,48 @@ class UI2DashboardViewModel @Inject constructor(
         item: ActiveDashboardItem.DataSource
     ): UsageDistribution? {
         val (from, to) = anchorDateRange(period, anchor, advanced, item.startDate, item.endDate)
-        val rows = repository.getSelectedAlphaESSData(item.sysSn, from, to)
-        if (rows.isEmpty()) return null
-        val hourly   = DoubleArray(24)
-        val dow      = DoubleArray(7)
-        val monthly  = DoubleArray(12)
-        rows.forEach { row ->
-            val ldt = LocalDateTime.parse(row.dateTime, dateTimeFormatter)
-            hourly[ldt.hour] += row.buy
-            val d = ldt.dayOfWeek.value.let { if (it == 7) 0 else it }
-            dow[d] += row.buy
-            monthly[ldt.monthValue - 1] += row.buy
+        // ESBN smart-meter data is import/export only — no load series. Every
+        // other importer (AlphaESS, Home Assistant) writes per-interval load to
+        // alphaESSTransformedData, so use it directly rather than re-deriving
+        // the user's consumption from grid import.
+        val useLoad = item.importerType != ComparisonUIViewModel.Importer.ESBNHDF
+        val pick: (IntervalRow) -> Double = { if (useLoad) it.load else it.buy }
+
+        val hourRows  = repository.getSumHour(item.sysSn, from, to)
+        val dowRows   = repository.getSumDOW(item.sysSn, from, to)
+        val monthRows = repository.getSumMonth(item.sysSn, from, to)
+        if (hourRows.isEmpty() && dowRows.isEmpty() && monthRows.isEmpty()) return null
+
+        val hourly = DoubleArray(24)
+        hourRows.forEach { row ->
+            val h = row.interval.toIntOrNull() ?: return@forEach
+            if (h in 0..23) hourly[h] += pick(row)
         }
+        val dow = DoubleArray(7)
+        dowRows.forEach { row ->
+            // SQLite strftime('%w', date): 0 = Sunday … 6 = Saturday — matches
+            // the chart's day-label ordering.
+            val d = row.interval.toIntOrNull() ?: return@forEach
+            if (d in 0..6) dow[d] += pick(row)
+        }
+        val monthly = DoubleArray(12)
+        monthRows.forEach { row ->
+            // sumMonth groups by YYYYMM — fold across years into the 12 calendar
+            // months so a multi-year selection still produces a Jan…Dec profile.
+            val s = row.interval ?: return@forEach
+            if (s.length != 6) return@forEach
+            val m = s.drop(4).toIntOrNull()?.takeIf { it in 1..12 } ?: return@forEach
+            monthly[m - 1] += pick(row)
+        }
+
         fun normalize(arr: DoubleArray): List<Double> {
             val total = arr.sum()
             return if (total <= 0.0) arr.toList() else arr.map { it / total * 100.0 }
         }
-        return UsageDistribution(normalize(hourly), normalize(dow), normalize(monthly))
+        return UsageDistribution(
+            normalize(hourly), normalize(dow), normalize(monthly),
+            basedOnLoad = useLoad
+        )
     }
 
     // Delegates to the shared periodDateRange() in PeriodSelector.kt so the
@@ -588,7 +677,8 @@ class UI2DashboardViewModel @Inject constructor(
                 buy        = buy,
                 sell       = sell,
                 fixed      = fixed,
-                subTotals  = subTotals
+                subTotals  = subTotals,
+                active     = plan.isActive
             )
         }.sortedBy { it.net }
     }
@@ -622,6 +712,7 @@ class UI2DashboardViewModel @Inject constructor(
                     val allCostings        = repository.getAllCostingsForScenario(id)
                     val plans              = repository.allPricePlansNow
                     val planChargesMap     = plans.associate { it.pricePlanIndex to it.standingCharges }
+                    val planActiveMap      = plans.associate { it.pricePlanIndex to it.isActive }
                     val dateRange          = repository.getSimDateRanges(id.toString())
                     val simDays = runCatching {
                         LocalDate.parse(dateRange!!.finishDate).toEpochDay() -
@@ -629,7 +720,8 @@ class UI2DashboardViewModel @Inject constructor(
                     }.getOrDefault(365L)
                     Log.d("UI2", "fetched — scenarioName=${scenarioComponents?.scenario?.scenarioName} net=${bestCosting?.net} plans=${allCostings.size}")
                     DashboardData(scenarioComponents, bestCosting, simKPIs, hasPanelData,
-                        allCostings = allCostings, planStandingCharges = planChargesMap, simDays = simDays)
+                        allCostings = allCostings, planStandingCharges = planChargesMap,
+                        planActive = planActiveMap, simDays = simDays)
                 })
             }
             is ActiveDashboardItem.DataSource -> flow {
@@ -835,7 +927,8 @@ class UI2DashboardViewModel @Inject constructor(
                 buy         = buy,
                 sell        = sell,
                 fixed       = fixed,
-                subTotals   = subTotals
+                subTotals   = subTotals,
+                active      = plan.isActive
             )
         }.sortedBy { it.net }
         _scenarioTariffCostings.value = rows
@@ -872,5 +965,6 @@ data class DashboardData(
     val dataSourceInfo: DashboardDataSourceInfo? = null,
     val allCostings: List<Costings> = emptyList(),
     val planStandingCharges: Map<Long, Double> = emptyMap(),
+    val planActive: Map<Long, Boolean> = emptyMap(),
     val simDays: Long = 365L
 )

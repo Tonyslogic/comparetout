@@ -24,8 +24,6 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
-import android.os.Handler;
-import android.os.Looper;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
@@ -58,7 +56,9 @@ public class GenerationWorker extends Worker {
 
     private final ToutcRepository mToutcRepository;
     private final NotificationManager mNotificationManager;
-    private static final int mNotificationId = 3;
+    // Distinct notification slot per worker class — see
+    // plans/eventual-bouncing-hare.md.
+    private static final int mNotificationId = 9;
     private boolean mStopped = false;
 
     public static final String KEY_SYSTEM_SN = "KEY_SYSTEM_SN";
@@ -92,7 +92,6 @@ public class GenerationWorker extends Worker {
     @Override
     public Result doWork() {
         System.out.println("GenerationWorker:doWork invoked ");
-        Handler mHandler = new Handler(Looper.getMainLooper());
 
         // Load the input data
         Data inputData = getInputData();
@@ -118,7 +117,7 @@ public class GenerationWorker extends Worker {
         String finalScenarioName;
 
         if (mScenarioID == 0) {
-            report(getString(R.string.creating_usage), mHandler);
+            report(getString(R.string.creating_usage));
             Scenario scenario = new Scenario();
             String scenarioName = mSystemSN;
             int suffix = 1;
@@ -145,7 +144,7 @@ public class GenerationWorker extends Worker {
 
         // Create & store a load profile
         if (mLP) {
-            report(getString(R.string.gen_load_profile), mHandler);
+            report(getString(R.string.gen_load_profile));
             List<IntervalRow> hourly = mToutcRepository.getSumHour(mSystemSN, mFrom, mTo);
             List<IntervalRow> weekly = mToutcRepository.getSumDOW(mSystemSN, mFrom, mTo);
             List<IntervalRow> monthly = mToutcRepository.getAvgMonth(mSystemSN, mFrom, mTo);
@@ -191,7 +190,7 @@ public class GenerationWorker extends Worker {
 
         // Create and store load profile data
         if (mLP) {
-            report(getString(R.string.adding_data), mHandler);
+            report(getString(R.string.adding_data));
 
             dbRows = mToutcRepository.getAlphaESSTransformedData(mSystemSN, mFrom, mTo);
             Map<Integer, Map<String, AlphaESSTransformedData>> dbLookup = new HashMap<>();
@@ -206,7 +205,7 @@ public class GenerationWorker extends Worker {
                 }
                 else entry.put(dbTime, dbRow);
             }
-            report("Loaded data", mHandler);
+            report("Loaded data");
 
             ArrayList<LoadProfileData> rows = new ArrayList<>();
             LocalDateTime active = LocalDateTime.of(2001, 1, 1, 0, 0);
@@ -239,14 +238,14 @@ public class GenerationWorker extends Worker {
                 rows.add(row);
                 active = active.plusMinutes(5);
             }
-            report("Storing data", mHandler);
+            report("Storing data");
 
             mToutcRepository.createLoadProfileDataEntries(rows);
-            report("Stored data", mHandler);
+            report("Stored data");
         }
 
         // Done :-)
-        report(getString(R.string.completed, finalScenarioName), mHandler);
+        report(getString(R.string.completed, finalScenarioName));
 
         
         if (mStopped) mNotificationManager.cancel(mNotificationId);
@@ -261,9 +260,15 @@ public class GenerationWorker extends Worker {
         return getApplicationContext().getString(resource_id, templateValue);
     }
 
-    private void report(String theReport, Handler handler) {
+    /**
+     * Publish progress to WorkManager + the notification shade.
+     * NotificationManager.notify is thread-safe — the previous handler-post
+     * hop only added a queuing race against worker completion. Each report
+     * here is a phase change (not loop-tight), so no throttling is needed.
+     */
+    private void report(String theReport) {
         setProgressAsync(new Data.Builder().putString(PROGRESS, theReport).build());
-        handler.post(() -> mNotificationManager.notify(mNotificationId, getNotification(theReport)));
+        mNotificationManager.notify(mNotificationId, getNotification(theReport));
     }
 
     @NonNull

@@ -190,14 +190,24 @@ class UI2PricePlanViewModel @Inject constructor(
                 val (plan, rates) = _builder.value.toEntities()
                 if (isEditMode) {
                     repository.updatePricePlan(plan, ArrayList(rates))
+                    // Editing a plan invalidates every costing computed against it
+                    // (across all scenarios) — otherwise the dashboard / Compare
+                    // tab would show stale figures until something else forced a
+                    // recompute. CostingWorker skips combinations where a costing
+                    // already exists, so the stale rows must be deleted here.
+                    // (insert(clobber=false) needs no cleanup — a new plan has none.)
+                    repository.removeCostingsForPricePlan(plan.pricePlanIndex)
                 } else {
                     repository.insert(plan, rates, /* clobber = */ false)
                 }
-                if (runCosting) {
-                    withContext(Dispatchers.Main) {
-                        com.tfcode.comparetout.SimulatorLauncher
-                            .simulateIfNeeded(getApplication())
-                    }
+                // Recompute immediately on every save, not just on "Run": editing
+                // a plan just invalidated its costings (and a new plan has none
+                // yet), so kick the worker chain now rather than deferring to the
+                // next navigation. Less aggressive than the legacy per-component
+                // delete-and-recompute, but explicit.
+                withContext(Dispatchers.Main) {
+                    com.tfcode.comparetout.SimulatorLauncher
+                        .simulateIfNeeded(getApplication())
                 }
                 _saveResult.value = PricePlanSaveResult.Saved
             } catch (t: Throwable) {

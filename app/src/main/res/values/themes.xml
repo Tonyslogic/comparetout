@@ -24,4 +24,18 @@
         <item name="colorOnSecondary">@color/black</item>
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
     </style>
+
+    <!--
+        Launch theme used by LaunchActivity. The AndroidX SplashScreen API
+        backports Android 12's window splash to API 23+, so older devices
+        also see a stable launch image while LaunchActivity reads the
+        use_ui2 flag and routes to the right home screen. postSplashScreenTheme
+        is the UI2 theme because that is the dominant routing target — for
+        the legacy fallback the brief visual mismatch is acceptable.
+    -->
+    <style name="Theme.comparetout.Splash" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/purple_500</item>
+        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.comparetout.UI2</item>
+    </style>
 </resources>

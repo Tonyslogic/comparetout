@@ -17,6 +17,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.tfcode.comparetout.ComparisonUIViewModel
 import com.tfcode.comparetout.TOUTCApplication
+import com.tfcode.comparetout.importers.alphaess.AlphaESSMigrationWorker
 import com.tfcode.comparetout.importers.alphaess.CatchUpWorker
 import com.tfcode.comparetout.importers.alphaess.DailyWorker
 import com.tfcode.comparetout.importers.alphaess.ExportWorker
@@ -28,6 +29,7 @@ import com.tfcode.comparetout.importers.esbn.ESBNImportWorker
 import com.tfcode.comparetout.importers.homeassistant.EnergySensors
 import com.tfcode.comparetout.importers.homeassistant.HACatchupWorker
 import com.tfcode.comparetout.model.ToutcRepository
+import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformMeta
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -135,6 +137,15 @@ class UI2DataSourceManagementViewModel @Inject constructor(
     val busy: LiveData<Boolean> = _busy
     private val _toast = MutableLiveData<Toast?>()
     val toast: LiveData<Toast?> = _toast
+
+    /**
+     * Live snapshot of the per-SN AlphaESS transform stamps. The UI compares
+     * `(meta.transformVersion ?: 1) < AlphaESSTransformMeta.TRANSFORM_VERSION_CURRENT`
+     * to decide whether to surface the Migrate button for a given system.
+     * SNs missing from the list are pre-v2 (legacy) and treated as stale.
+     */
+    val alphaTransformMeta: LiveData<List<AlphaESSTransformMeta>> =
+        repository.getAllAlphaESSTransformMetaLive()
 
     // ── WorkManager observer plumbing ──────────────────────────────────
     //
@@ -425,6 +436,29 @@ class UI2DataSourceManagementViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Re-run the v2 AlphaESS transform across [sysSn]'s historical raw data.
+     * Foregrounded worker (notification ID 12) with the publishProgress
+     * pattern. KEEP policy means re-tapping the button while one is running
+     * is a silent no-op. On completion the worker stamps
+     * [AlphaESSTransformMeta.TRANSFORM_VERSION_CURRENT] which (via
+     * [alphaTransformMeta]) removes the button from the row.
+     */
+    fun runMigration(sysSn: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val input = Data.Builder()
+                .putString(AlphaESSMigrationWorker.KEY_SYSTEM_SN, sysSn)
+                .build()
+            val req = OneTimeWorkRequest.Builder(AlphaESSMigrationWorker::class.java)
+                .setInputData(input)
+                .addTag(sysSn + "Migrate")
+                .build()
+            wm.pruneWork()
+            wm.beginUniqueWork(sysSn + "Migrate", ExistingWorkPolicy.KEEP, req).enqueue()
+            _toast.postValue(Toast("Migrating $sysSn…"))
+        }
+    }
+
     // ── Home Assistant ──────────────────────────────────────────────────
 
     private fun buildHAState(): SourceState {
@@ -626,6 +660,64 @@ class UI2DataSourceManagementViewModel @Inject constructor(
             _alpha.postValue(buildAlphaState())
             _ha.postValue(buildHAState())
             _esbn.postValue(buildEsbnState())
+        }
+    }
+
+    /**
+     * Remove an entire source: cancel any in-flight/scheduled work, delete every
+     * reading for all of its systems, AND clear its credentials + system list
+     * from DataStore. Distinct from [deleteAllData], which only drops the
+     * readings and keeps the source configured. Clearing a key is done by
+     * storing the empty string — `buildXState()` treats blank/empty as
+     * "not configured / no systems".
+     */
+    fun deleteEntireSource(importer: ComparisonUIViewModel.Importer) {
+        viewModelScope.launch(Dispatchers.IO) {
+            _busy.postValue(true)
+            try {
+                val sns = when (importer) {
+                    ComparisonUIViewModel.Importer.ALPHAESS -> buildAlphaState().systems
+                    ComparisonUIViewModel.Importer.HOME_ASSISTANT -> buildHAState().systems
+                    ComparisonUIViewModel.Importer.ESBNHDF -> buildEsbnState().systems
+                    else -> emptyList()
+                }.map { it.sysSn }
+                sns.forEach { sn ->
+                    wm.cancelAllWorkByTag(sn)
+                    wm.cancelAllWorkByTag(sn + "daily")
+                    repository.clearAlphaESSDataForSN(sn)
+                }
+                when (importer) {
+                    ComparisonUIViewModel.Importer.ALPHAESS -> {
+                        app.putStringValueIntoDataStore(ALPHA_APP_ID_KEY, "")
+                        app.putStringValueIntoDataStore(ALPHA_APP_SECRET_KEY, "")
+                        app.putStringValueIntoDataStore(ALPHA_GOOD_KEY, "")
+                        app.putStringValueIntoDataStore(ALPHA_SYSTEM_LIST_KEY, "")
+                        app.putStringValueIntoDataStore(ALPHA_SELECTED_KEY, "")
+                    }
+                    ComparisonUIViewModel.Importer.HOME_ASSISTANT -> {
+                        app.putStringValueIntoDataStore(HA_HOST_KEY, "")
+                        app.putStringValueIntoDataStore(HA_TOKEN_KEY, "")
+                        app.putStringValueIntoDataStore(HA_GOOD_KEY, "")
+                        app.putStringValueIntoDataStore(HA_SYSTEM_LIST_KEY, "")
+                        app.putStringValueIntoDataStore(HA_SELECTED_KEY, "")
+                        app.putStringValueIntoDataStore(HA_SENSORS_KEY, "")
+                    }
+                    ComparisonUIViewModel.Importer.ESBNHDF -> {
+                        app.putStringValueIntoDataStore(ESBN_SYSTEM_LIST_KEY, "")
+                        app.putStringValueIntoDataStore(ESBN_SELECTED_KEY, "")
+                    }
+                    else -> {}
+                }
+                _toast.postValue(Toast("Source removed"))
+            } catch (t: Throwable) {
+                _toast.postValue(Toast(t.message ?: "Could not remove source"))
+            } finally {
+                _alpha.postValue(buildAlphaState())
+                _ha.postValue(buildHAState())
+                _esbn.postValue(buildEsbnState())
+                _haSensors.postValue(readHASensors())
+                _busy.postValue(false)
+            }
         }
     }
 
