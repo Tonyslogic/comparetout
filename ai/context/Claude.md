@@ -1,51 +1,31 @@
-# ANDROID UI REPLACEMENT — SYSTEM RULES (SHORT VERSION)
+# CLAUDE — PROJECT SYSTEM RULES (SHORT VERSION)
 
-You are assisting with a full UI replacement.
-The backend, data layer, domain layer, and ViewModel contracts are STABLE and MUST NOT be modified.
-Only UI code is being replaced. No functional changes.
-
-------------------------------------------------------------
-## 1. BACKEND & ARCHITECTURE RULES (STRICT)
-- Do NOT modify repositories, DTOs, API calls, or domain logic.
-- Do NOT change ViewModel public functions, state flows, or event handlers.
-- Do NOT rename ViewModels or navigation routes.
-- Do NOT introduce new backend calls or dependencies.
-- Navigation arguments must remain compatible.
+Repo: Eco Power Optimiser (internal codename "comparetout" / "TOUTC").
+Current focus: **the simulation engine refactor.** Plan and phases: `plans/sim/refactor.md`.
 
 ------------------------------------------------------------
-## 2. UI RULES
-- Use Jetpack Compose + Material 3.
-- Follow unidirectional data flow (UDF).
-- Hoist state to ViewModels; composables must be pure.
-- Use MaterialTheme for colors/typography; avoid hardcoded styling.
-- Provide contentDescription for interactive elements.
+## 1. SIMULATION ENGINE REFACTOR (functional changes EXPECTED)
+The simulation engine (`SimulationWorker` and the new `scenario/sim` package) is being deliberately
+refactored and extended — arbitrary periods, millis-since-epoch time, pluggable components (e.g. heat
+pump), a hybrid DC/AC bus model, and new selectable inverter dispatch modes. Here, changing
+domain/simulation logic IS the job.
+- Bug fixes and behavioural changes to the simulation are in scope and expected.
+- Model, JSON, importer/exporter, DAO, and UI edits are permitted — but REVIEW with the user first.
+- DB schema changes require EXPLICIT approval. The `millisSinceEpoch` columns already exist in
+  `loadprofiledata` / `paneldata` / `scenariosimulationdata`, so no migration is needed to start engine work.
+- Testing and initial refactoring MUST require zero schema change.
+- Preserve behaviour where a refactor is meant to be behaviour-preserving, and prove it with the
+  golden-master tests. Surface intended behaviour changes as explicit, reviewed deltas.
 
 ------------------------------------------------------------
-## 3. SUMMARISATION RULES
-When a large file is provided:
-- Automatically generate a compact structural summary.
-- Include: purpose, public functions, state, events, navigation, dependencies.
-- Exclude: full code, imports, comments, styling.
-- Reuse summaries for all future reasoning.
-- Store summaries named for the file being summarized in ai/context/summaries
-- Ask for missing context instead of guessing.
+## 2. ALWAYS
+- Costing is recompute-missing-only: saving a scenario/plan MUST delete its stale sim + costing rows,
+  or figures go stale forever.
+- Don't gratuitously rename `ScenarioDAO` / `ToutcRepository` / model classes.
+- Default to unified diffs for edits; ask for missing context instead of guessing.
+- Store any file summaries under `ai/context/summaries`.
 
 ------------------------------------------------------------
-## 4. DIFF-BASED OUTPUT RULES
-When modifying existing code:
-- Default to unified diff format.
-- Do NOT rewrite entire files unless explicitly asked.
-- Keep changes minimal and safe.
-- Never alter backend logic or ViewModel contracts.
-
-------------------------------------------------------------
-## 5. WORKFLOW RULES
-- Keep token usage low; avoid large inputs.
-- Prefer summaries + diffs over full-file rewrites.
-- Ask for missing files/summaries when needed.
-- Follow all rules above even if user prompt is ambiguous.
-
-------------------------------------------------------------
-## 6. PRIMARY OBJECTIVE
-Produce safe, architecture-preserving UI refactors and Compose implementations
-that respect all constraints while minimising token usage.
+## 3. PRIMARY OBJECTIVE
+Produce correct, well-tested simulation engine changes that respect the schema-approval rule and the
+costing-invalidation rule, with bugs fixed and clearly explained.
