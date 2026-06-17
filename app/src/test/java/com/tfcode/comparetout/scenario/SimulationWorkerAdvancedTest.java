@@ -26,7 +26,6 @@ import static org.junit.Assert.assertTrue;
 import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.ChargeModel;
 import com.tfcode.comparetout.model.scenario.DischargeToGrid;
-import com.tfcode.comparetout.model.scenario.HWSchedule;
 import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.LoadShift;
 import com.tfcode.comparetout.model.scenario.SimulationInputData;
@@ -39,6 +38,9 @@ import java.util.List;
 import java.util.Map;
 
 public class SimulationWorkerAdvancedTest {
+
+    // Phase 3c: scenario-level inputs (no hot water/EV) for white-box processOneRow tests.
+    private static final ScenarioInputs NO_EXTRAS = new ScenarioInputs(null, null, null, null, null, 0d);
 
     private SimulationInputData createSID(double load, double tpv) {
         return createSID(load, tpv, "2001-01-01", "12:00", 700, 3, 1);
@@ -64,14 +66,9 @@ public class SimulationWorkerAdvancedTest {
      */
     @Test
     public void testIsHotWaterHeatingScheduledNullSchedules() {
-        Inverter inverter = new Inverter();
-        List<SimulationInputData> inputData = new ArrayList<>();
-        
-        SimulationEngine.InputData iData = new SimulationEngine.InputData(
-                inverter, inputData, null, null, null, null, null, null, null, null, 0.0);
-        
-        // Should return false when no schedules are set
-        assertFalse(iData.isHotWaterHeatingScheduled(1, 1, 720)); // Monday, January, 12:00
+        // Hot water is scenario-level now (ScenarioInputs); with no schedules it is never scheduled.
+        ScenarioInputs scenario = new ScenarioInputs(null, null, null, null, null, 0d);
+        assertFalse(scenario.isHotWaterHeatingScheduled(1, 1, 720)); // Monday, January, 12:00
     }
 
     /**
@@ -80,21 +77,10 @@ public class SimulationWorkerAdvancedTest {
      */
     @Test
     public void testIsHotWaterHeatingScheduledDayOfWeekConversion() {
-        Inverter inverter = new Inverter();
-        List<SimulationInputData> inputData = new ArrayList<>();
-        
-        // Create a mock HWSchedule (this might not work without proper setup, but tests the logic)
-        List<HWSchedule> schedules = new ArrayList<>();
-        // Note: We can't fully test this without setting up the complete HWSchedule object
-        // But we can test the dayOfWeek conversion logic
-        
-        SimulationEngine.InputData iData = new SimulationEngine.InputData(
-                inverter, inputData, null, null, null, null, schedules, null, null, null, 0.0);
-        
-        // Test day of week conversion (7 -> 0)
-        // The method converts dayOfWeek 7 to 0
-        assertFalse(iData.isHotWaterHeatingScheduled(7, 1, 720)); // Should convert 7 to 0
-        assertFalse(iData.isHotWaterHeatingScheduled(0, 1, 720)); // Sunday
+        // With no schedules the day-of-week conversion (7 -> 0) still yields "not scheduled".
+        ScenarioInputs scenario = new ScenarioInputs(null, null, null, null, null, 0d);
+        assertFalse(scenario.isHotWaterHeatingScheduled(7, 1, 720)); // Should convert 7 to 0
+        assertFalse(scenario.isHotWaterHeatingScheduled(0, 1, 720)); // Sunday
     }
 
     /**
@@ -103,14 +89,9 @@ public class SimulationWorkerAdvancedTest {
      */
     @Test
     public void testIsEVChargingNullCharges() {
-        Inverter inverter = new Inverter();
-        List<SimulationInputData> inputData = new ArrayList<>();
-        
-        SimulationEngine.InputData iData = new SimulationEngine.InputData(
-                inverter, inputData, null, null, null, null, null, null, null, null, 0.0);
-        
-        // Should return null when no EV charges are set
-        assertNull(iData.isEVCharging(1, 1, 720));
+        // EV is scenario-level now (ScenarioInputs); with no charges nothing is scheduled.
+        ScenarioInputs scenario = new ScenarioInputs(null, null, null, null, null, 0d);
+        assertNull(scenario.isEVCharging(1, 1, 720));
     }
 
     /**
@@ -119,14 +100,9 @@ public class SimulationWorkerAdvancedTest {
      */
     @Test
     public void testGetEVDivertOrNullNullDiverts() {
-        Inverter inverter = new Inverter();
-        List<SimulationInputData> inputData = new ArrayList<>();
-        
-        SimulationEngine.InputData iData = new SimulationEngine.InputData(
-                inverter, inputData, null, null, null, null, null, null, null, null, 0.0);
-        
-        // Should return null when no EV diverts are set
-        assertNull(iData.getEVDivertOrNull(1, 1, 720));
+        // EV divert is scenario-level now (ScenarioInputs); with no diverts nothing is returned.
+        ScenarioInputs scenario = new ScenarioInputs(null, null, null, null, null, 0d);
+        assertNull(scenario.getEVDivertOrNull(1, 1, 720));
     }
 
     /**
@@ -179,17 +155,14 @@ public class SimulationWorkerAdvancedTest {
         inputData.add(createSID(2.5, 3.5));
 
         // Create with all parameters
-        SimulationEngine.InputData iData = new SimulationEngine.InputData(
-                inverter, inputData, battery, null, null, true, null, null, null, null, 7.5);
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(inverter, inputData, battery, null, null);
 
         assertEquals(5, iData.id);
         assertEquals(0.92, iData.dc2acLoss, 0.001); // (100-8)/100
         assertEquals(0.94, iData.ac2dcLoss, 0.001); // (100-6)/100
         assertEquals(0.96, iData.dc2dcLoss, 0.001); // (100-4)/100
         assertEquals(2.5, iData.storageLoss, 0.001);
-        assertEquals(7.5, iData.exportMax, 0.001);
-        assertEquals(Boolean.TRUE, iData.mHWDivert);
-        
+
         // Test getDischargeStop with this configuration
         double expectedDischargeStop = (25.0 / 100.0) * 15.0; // 3.75 kWh
         assertEquals(expectedDischargeStop, iData.getDischargeStop(), 0.001);
@@ -208,7 +181,7 @@ public class SimulationWorkerAdvancedTest {
         Map<Inverter, SimulationEngine.InputData> inputDataMap = new HashMap<>();
 
         // Create empty input data map (should result in null inputRow)
-        SimulationEngine.processOneRow(scenarioID, outputRows, 1, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, NO_EXTRAS, outputRows, 1, inputDataMap);
         
         // Should handle null inputRow gracefully (early return)
         assertTrue("Output rows should remain empty", outputRows.isEmpty());
@@ -249,17 +222,16 @@ public class SimulationWorkerAdvancedTest {
         simulationInputData.add(createSID(load, tpv));
         simulationInputData.add(createSID(load + 0.1, tpv - 0.2)); // Second row as required by framework
 
-        SimulationEngine.InputData idata = new SimulationEngine.InputData(
-                inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0);
+        SimulationEngine.InputData idata = new SimulationEngine.InputData(inverter, simulationInputData, battery, null, null);
         inputDataMap.put(inverter, idata);
 
         // First process row 0 to populate outputRows for baseline state
-        SimulationEngine.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, NO_EXTRAS, outputRows, 0, inputDataMap);
         // Intermediate assertion: Check that row 0 result exists
         assertEquals(1, outputRows.size());
         
         int row = 1;
-        SimulationEngine.processOneRow(scenarioID, outputRows, row, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, NO_EXTRAS, outputRows, row, inputDataMap);
         // Intermediate assertion: Check that row 1 result exists
         assertEquals(2, outputRows.size());
         com.tfcode.comparetout.model.scenario.ScenarioSimulationData aRow = outputRows.get(1); // Get row 1 output
@@ -290,15 +262,14 @@ public class SimulationWorkerAdvancedTest {
         simulationInputData.add(createSID(1.0, 2.0));
         simulationInputData.add(createSID(1.5, 1.8));
 
-        SimulationEngine.InputData idata = new SimulationEngine.InputData(
-                inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0);
+        SimulationEngine.InputData idata = new SimulationEngine.InputData(inverter, simulationInputData, battery, null, null);
         inputDataMap.put(inverter, idata);
 
         // Process first row
-        SimulationEngine.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, NO_EXTRAS, outputRows, 0, inputDataMap);
         
         // Process second row (should use data from first row)
-        SimulationEngine.processOneRow(scenarioID, outputRows, 1, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, NO_EXTRAS, outputRows, 1, inputDataMap);
         
         assertEquals("Should have 2 output rows", 2, outputRows.size());
         
@@ -408,17 +379,16 @@ public class SimulationWorkerAdvancedTest {
         simulationInputData.add(createSID(load, tpv));
         simulationInputData.add(createSID(load + 0.1, tpv + 0.1)); // Second row as required by framework
 
-        SimulationEngine.InputData idata = new SimulationEngine.InputData(
-                inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0);
+        SimulationEngine.InputData idata = new SimulationEngine.InputData(inverter, simulationInputData, battery, null, null);
         inputDataMap.put(inverter, idata);
 
         // First process row 0 to populate outputRows for baseline state
-        SimulationEngine.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, NO_EXTRAS, outputRows, 0, inputDataMap);
         // Intermediate assertion: Check that row 0 result exists
         assertEquals(1, outputRows.size());
         
         int row = 1;
-        SimulationEngine.processOneRow(scenarioID, outputRows, row, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, NO_EXTRAS, outputRows, row, inputDataMap);
         // Intermediate assertion: Check that row 1 result exists
         assertEquals(2, outputRows.size());
         com.tfcode.comparetout.model.scenario.ScenarioSimulationData aRow = outputRows.get(1); // Get row 1 output
@@ -443,8 +413,7 @@ public class SimulationWorkerAdvancedTest {
         battery.setStorageLoss(0.0); // No loss for simplicity
 
         List<SimulationInputData> inputData = new ArrayList<>();
-        SimulationEngine.InputData iData = new SimulationEngine.InputData(
-                inverter, inputData, battery, null, null, null, null, null, null, null, 0.0);
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(inverter, inputData, battery, null, null);
         
         // Set SOC to small value
         iData.soc = 0.1;

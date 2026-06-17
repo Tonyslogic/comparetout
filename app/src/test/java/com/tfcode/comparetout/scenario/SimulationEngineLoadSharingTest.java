@@ -83,13 +83,13 @@ public class SimulationEngineLoadSharingTest {
 
     private static SimulationEngine.InputData noBatteryInput(Inverter inverter) {
         List<SimulationInputData> series = SimSeries.constant(2, LOAD, 0d); // no PV
-        return new SimulationEngine.InputData(inverter, series, null, null,
-                null, false, null, null, null, null, EXPORT_MAX);
+        return new SimulationEngine.InputData(inverter, series, null, null, null);
     }
 
     private static ScenarioSimulationData runRow0(Map<Inverter, SimulationEngine.InputData> map) {
         ArrayList<ScenarioSimulationData> out = new ArrayList<>();
-        SimulationEngine.processOneRow(SCENARIO_ID, out, 0, map);
+        ScenarioInputs scenario = new ScenarioInputs(null, null, null, null, null, EXPORT_MAX);
+        SimulationEngine.processOneRow(SCENARIO_ID, scenario, out, 0, map);
         return out.get(0);
     }
 }

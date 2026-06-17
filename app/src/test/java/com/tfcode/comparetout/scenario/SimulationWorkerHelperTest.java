@@ -34,6 +34,9 @@ import java.util.Map;
 
 public class SimulationWorkerHelperTest {
 
+    // Phase 3c: scenario-level inputs (no hot water/EV) for white-box processOneRow tests.
+    private static final ScenarioInputs NO_EXTRAS = new ScenarioInputs(null, null, null, null, null, 0d);
+
     private SimulationInputData createSID(double load, double tpv) {
         SimulationInputData sid = new SimulationInputData();
         sid.setDate("2001-01-01");
@@ -50,8 +53,7 @@ public class SimulationWorkerHelperTest {
         List<SimulationInputData> inputData = new ArrayList<>();
         inputData.add(createSID(1.0, 2.0));
         
-        SimulationEngine.InputData iData = new SimulationEngine.InputData(
-                inverter, inputData, battery, null, null, null, null, null, null, null, 0.0);
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(inverter, inputData, battery, null, null);
         iData.soc = soc;
         return iData;
     }
@@ -97,8 +99,8 @@ public class SimulationWorkerHelperTest {
         // Call processOneRow to test charging logic (using row 1 to avoid initialization)
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
         // First process row 0 to populate outputRows for baseline state
-        SimulationEngine.processOneRow(1L, outputRows, 0, inputDataMap);
-        SimulationEngine.processOneRow(1L, outputRows, 1, inputDataMap);
+        SimulationEngine.processOneRow(1L, NO_EXTRAS, outputRows, 0, inputDataMap);
+        SimulationEngine.processOneRow(1L, NO_EXTRAS, outputRows, 1, inputDataMap);
 
         // Verify that charging occurred (row 1 result is at index 1)
         assertTrue("PV to charge should be > 0", outputRows.get(1).getPvToCharge() > 0);
@@ -161,8 +163,8 @@ public class SimulationWorkerHelperTest {
         // Test the charging distribution
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
         // First process row 0 to populate outputRows for baseline state
-        SimulationEngine.processOneRow(1L, outputRows, 0, inputDataMap);
-        SimulationEngine.processOneRow(1L, outputRows, 1, inputDataMap);
+        SimulationEngine.processOneRow(1L, NO_EXTRAS, outputRows, 0, inputDataMap);
+        SimulationEngine.processOneRow(1L, NO_EXTRAS, outputRows, 1, inputDataMap);
 
         // Verify that charging occurred and total SOC increased (row 1 result is at index 1)
         assertTrue("SOC should increase", outputRows.get(1).getSOC() > 3.0); // Initial SOC: 2.0 + 1.0 = 3.0 (20% each)
@@ -218,8 +220,8 @@ public class SimulationWorkerHelperTest {
 
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
         // First process row 0 to populate outputRows for baseline state
-        SimulationEngine.processOneRow(1L, outputRows, 0, inputDataMap);
-        SimulationEngine.processOneRow(1L, outputRows, 1, inputDataMap);
+        SimulationEngine.processOneRow(1L, NO_EXTRAS, outputRows, 0, inputDataMap);
+        SimulationEngine.processOneRow(1L, NO_EXTRAS, outputRows, 1, inputDataMap);
 
         // Verify that grid charging occurred (row 1 result is at index 1)
         assertTrue("Grid to battery should be > 0", outputRows.get(1).getGridToBattery() > 0);
@@ -257,8 +259,8 @@ public class SimulationWorkerHelperTest {
 
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
         // First process row 0 to populate outputRows for baseline state
-        SimulationEngine.processOneRow(1L, outputRows, 0, inputDataMap);
-        SimulationEngine.processOneRow(1L, outputRows, 1, inputDataMap);
+        SimulationEngine.processOneRow(1L, NO_EXTRAS, outputRows, 0, inputDataMap);
+        SimulationEngine.processOneRow(1L, NO_EXTRAS, outputRows, 1, inputDataMap);
 
         // Verify that battery doesn't discharge further (row 1 result is at index 1)
         assertEquals("Battery should not discharge below stop", 0.0, outputRows.get(1).getBatToLoad(), 0.001);
@@ -298,13 +300,13 @@ public class SimulationWorkerHelperTest {
 
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
         // First process row 0 to populate outputRows for baseline state and charge battery
-        SimulationEngine.processOneRow(1L, outputRows, 0, inputDataMap);
+        SimulationEngine.processOneRow(1L, NO_EXTRAS, outputRows, 0, inputDataMap);
         
         // Verify outputRows state after row 0 processing - battery should have charged
         assertEquals("Should have 1 output row after processing row 0", 1, outputRows.size());
         assertTrue("SOC should be higher than discharge stop after charging", outputRows.get(0).getSOC() > 1.0);
         
-        SimulationEngine.processOneRow(1L, outputRows, 1, inputDataMap);
+        SimulationEngine.processOneRow(1L, NO_EXTRAS, outputRows, 1, inputDataMap);
         
         // Verify outputRows state after row 1 processing
         assertEquals("Should have 2 output rows after processing row 1", 2, outputRows.size());

@@ -24,7 +24,6 @@ import com.tfcode.comparetout.model.scenario.ChargeModel;
 import com.tfcode.comparetout.model.scenario.DischargeToGrid;
 import com.tfcode.comparetout.model.scenario.EVCharge;
 import com.tfcode.comparetout.model.scenario.EVDivert;
-import com.tfcode.comparetout.model.scenario.HWSchedule;
 import com.tfcode.comparetout.model.scenario.HWSystem;
 import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.LoadShift;
@@ -354,32 +353,6 @@ public class SimulationEngine {
     }
 
     /**
-     * Legacy/compatibility entry point retained for the existing white-box unit tests. It derives the
-     * scenario-level inputs ({@link ScenarioInputs}) from the inverter map exactly as the pre-Phase-2b
-     * engine did — hot water / EV taken from the first inverter's {@link InputData} — then delegates.
-     * Production code ({@link SimulationWorker}) builds a {@link ScenarioInputs} explicitly so that load,
-     * hot water and EV are modelled at scenario level (and free of {@code HashMap}-order sensitivity).
-     *
-     * @deprecated prefer {@link #processOneRow(long, ScenarioInputs, java.util.ArrayList, int, java.util.Map)}.
-     */
-    @Deprecated
-    static void processOneRow(long scenarioID, ArrayList<ScenarioSimulationData> outputRows, int row, Map<Inverter, InputData> inputDataMap) {
-        if (inputDataMap.isEmpty()) return;
-        InputData first = inputDataMap.values().iterator().next();
-        // Preserve the pre-2b extraction: hwSystem / hwDivert came from the first NON-NULL inverter,
-        // while schedules / EV / exportMax came from the first inverter entry.
-        HWSystem hwSystem = null;
-        Boolean hwDivert = null;
-        for (InputData d : inputDataMap.values()) {
-            if (null == hwSystem) hwSystem = d.mHWSystem;
-            if (null == hwDivert) hwDivert = d.mHWDivert;
-        }
-        ScenarioInputs scenario = new ScenarioInputs(hwSystem, hwDivert, first.mHWSchedules,
-                first.mEVCharges, first.mEVDiverts, first.mEVDivertDailyTotals, first.exportMax);
-        processOneRow(scenarioID, scenario, outputRows, row, inputDataMap);
-    }
-
-    /**
      * Charges batteries from the grid if scheduled and needed, based on user load shift schedules.
      * Only charges batteries that are below their stop threshold.
      * @param inputDataMap Map of inverters to their input data.
@@ -419,128 +392,34 @@ public class SimulationEngine {
         final double ac2dcLoss;
         final double dc2dcLoss;
         final double storageLoss;
-        final double exportMax;
         List<SimulationInputData> simulationInputData;
         Battery mBattery;
         ChargeFromGrid mChargeFromGrid;
         final ForceDischargeToGrid mForceDischargeToGrid;
 
-        final HWSystem mHWSystem;
-        final Boolean mHWDivert;
-        final List<HWSchedule> mHWSchedules;
-
-        final List<EVCharge> mEVCharges;
-        final List<EVDivert> mEVDiverts;
-        final Map<Integer, Double> mEVDivertDailyTotals;
-
         // Volatile state members
         double soc = 0d;
 
         /**
-         * Constructs InputData for an inverter and its associated scenario components.
-         * Gathers all user-configured factors (battery, hot water, EV, schedules, etc.)
-         * that affect simulation outcomes for this inverter.
+         * Constructs InputData for an inverter and its inverter-bound state. Hot water and EV are
+         * scenario-level (see {@link ScenarioInputs}) and are not held here.
          * @param inverter The inverter.
          * @param iData Simulation input data (load, PV, etc.).
          * @param battery Associated battery (nullable).
-         * @param chargeFromGrid Charge from grid schedule (nullable).
-         * @param hwSystem Hot water system (nullable).
-         * @param hwDivert Hot water divert flag (nullable).
-         * @param hotWaterSchedules Hot water schedules (nullable).
-         * @param evCharges EV charge schedules (nullable).
-         * @param evDiverts EV divert schedules (nullable).
-         * @param forceDischargeToGrid Forced discharge schedule (nullable).
-         * @param exportMax Maximum export value for this inverter.
+         * @param chargeFromGrid Charge-from-grid (load shift) schedule (nullable).
+         * @param forceDischargeToGrid Forced discharge-to-grid schedule (nullable).
          */
         InputData(Inverter inverter, List<SimulationInputData> iData,
-                  Battery battery, ChargeFromGrid chargeFromGrid,
-                  HWSystem hwSystem, Boolean hwDivert, List<HWSchedule> hotWaterSchedules,
-                  List<EVCharge> evCharges, List<EVDivert> evDiverts, ForceDischargeToGrid forceDischargeToGrid, double exportMax) {
+                  Battery battery, ChargeFromGrid chargeFromGrid, ForceDischargeToGrid forceDischargeToGrid) {
             id = inverter.getInverterIndex();
             dc2acLoss = (100d - inverter.getDc2acLoss()) / 100d;
             ac2dcLoss = (100d - inverter.getAc2dcLoss()) / 100d;
             dc2dcLoss = (100d - inverter.getDc2dcLoss()) / 100d;
-            this.exportMax = exportMax;
             storageLoss = (null == battery) ? 0 : battery.getStorageLoss();
             simulationInputData = iData;
             mBattery = battery;
             mChargeFromGrid = chargeFromGrid;
             mForceDischargeToGrid = forceDischargeToGrid;
-            mHWSystem = hwSystem;
-            mHWDivert = hwDivert;
-            mHWSchedules = hotWaterSchedules;
-            mEVCharges = evCharges;
-            mEVDiverts = evDiverts;
-            mEVDivertDailyTotals = new HashMap<>();
-        }
-
-        /**
-         * Determines if hot water heating is scheduled for the given time.
-         * Used to decide if immersion heating should be active in the simulation.
-         * @param dayOfWeek Day of week (0=Sunday).
-         * @param monthOfYear Month of year.
-         * @param minuteOfDay Minute of day.
-         * @return true if heating is scheduled, false otherwise.
-         */
-        public boolean isHotWaterHeatingScheduled(int dayOfWeek, int monthOfYear, int minuteOfDay) {
-            boolean ret = false;
-            if (dayOfWeek == 7) dayOfWeek = 0;
-            if (!(null == mHWSchedules)) for (HWSchedule hwSchedule: mHWSchedules) {
-                if (hwSchedule.getMonths().months.contains(monthOfYear) &&
-                    hwSchedule.getDays().ints.contains(dayOfWeek) &&
-                    hwSchedule.getBegin() * 60 <= minuteOfDay &&
-                    hwSchedule.getEnd() * 60 > minuteOfDay) {
-                    ret = true;
-                    break; //
-                }
-            }
-            return ret;
-        }
-
-        /**
-         * Checks if EV charging is scheduled for the given time.
-         * Used to determine if scheduled EV charging load should be applied.
-         * @param dayOfWeek Day of week (0=Sunday).
-         * @param monthOfYear Month of year.
-         * @param minuteOfDay Minute of day.
-         * @return The EVCharge if scheduled, null otherwise.
-         */
-        public EVCharge isEVCharging(int dayOfWeek, int monthOfYear, int minuteOfDay) {
-            EVCharge ret = null;
-            if (dayOfWeek == 7) dayOfWeek = 0;
-            if (!(null == mEVCharges)) for (EVCharge evCharge: mEVCharges) {
-                if (evCharge.getMonths().months.contains(monthOfYear) &&
-                        evCharge.getDays().ints.contains(dayOfWeek) &&
-                        evCharge.getBegin() * 60 <= minuteOfDay &&
-                        evCharge.getEnd() * 60 > minuteOfDay) {
-                    ret = evCharge;
-                    break; //
-                }
-            }
-            return ret;
-        }
-
-        /**
-         * Gets the EVDivert scheduled for the given time, if any.
-         * Used to determine if excess PV should be diverted to EV charging.
-         * @param dayOfWeek Day of week (0=Sunday).
-         * @param monthOfYear Month of year.
-         * @param minuteOfDay Minute of day.
-         * @return The EVDivert if scheduled, null otherwise.
-         */
-        public EVDivert getEVDivertOrNull(int dayOfWeek, int monthOfYear, int minuteOfDay) {
-            EVDivert ret = null;
-            if (dayOfWeek == 7) dayOfWeek = 0;
-            if (!(null == mEVDiverts)) for (EVDivert evDivert: mEVDiverts) {
-                if (evDivert.getMonths().months.contains(monthOfYear) &&
-                        evDivert.getDays().ints.contains(dayOfWeek) &&
-                        evDivert.getBegin() * 60 <= minuteOfDay &&
-                        evDivert.getEnd() * 60 > minuteOfDay) {
-                    ret = evDivert;
-                    break; //
-                }
-            }
-            return ret;
         }
 
         /**

@@ -49,7 +49,7 @@ public class SimulationEngineBusModelTest {
 
     private static SimulationEngine.InputData input(Inverter inv, Battery battery, double load, double pv) {
         List<SimulationInputData> series = SimSeries.constant(2, load, pv);
-        return new SimulationEngine.InputData(inv, series, battery, null, null, null, null, null, null, null, 0d);
+        return new SimulationEngine.InputData(inv, series, battery, null, null);
     }
 
     /** AC rating binds: PV (×dc2ac) above the inverter's AC throughput is capped; the rest is curtailed. */

@@ -73,9 +73,9 @@ public class SimulationGoldenMasterTest {
                 SimulationGoldenMasterTest::bellPV);
 
         Map<Inverter, SimulationEngine.InputData> map = new LinkedHashMap<>();
-        map.put(inverter, input(inverter, series, null, null, null, null, false, null, null));
+        map.put(inverter, input(inverter, series, null, null, null));
 
-        GoldenMaster.verify("single_inverter_no_battery", GoldenMaster.serialize(run(map)));
+        GoldenMaster.verify("single_inverter_no_battery", GoldenMaster.serialize(run(noExtras(), map)));
     }
 
     @Test
@@ -88,9 +88,9 @@ public class SimulationGoldenMasterTest {
                 SimulationGoldenMasterTest::bellPV);
 
         Map<Inverter, SimulationEngine.InputData> map = new LinkedHashMap<>();
-        map.put(inverter, input(inverter, series, battery, null, null, null, false, null, null));
+        map.put(inverter, input(inverter, series, battery, null, null));
 
-        GoldenMaster.verify("single_inverter_with_battery", GoldenMaster.serialize(run(map)));
+        GoldenMaster.verify("single_inverter_with_battery", GoldenMaster.serialize(run(noExtras(), map)));
     }
 
     /**
@@ -114,10 +114,10 @@ public class SimulationGoldenMasterTest {
         List<SimulationInputData> series2 = SimSeries.copyOf(series1);
 
         Map<Inverter, SimulationEngine.InputData> map = new LinkedHashMap<>();
-        map.put(inv1, input(inv1, series1, bat1, null, null, null, false, null, null));
-        map.put(inv2, input(inv2, series2, bat2, null, null, null, false, null, null));
+        map.put(inv1, input(inv1, series1, bat1, null, null));
+        map.put(inv2, input(inv2, series2, bat2, null, null));
 
-        GoldenMaster.verify("two_inverters_two_batteries", GoldenMaster.serialize(run(map)));
+        GoldenMaster.verify("two_inverters_two_batteries", GoldenMaster.serialize(run(noExtras(), map)));
     }
 
     /** Always-on load-shift: the battery charges from the grid up to the stop-at threshold. */
@@ -140,9 +140,9 @@ public class SimulationGoldenMasterTest {
         List<SimulationInputData> series = SimSeries.constant(ROWS, FLAT_LOAD, 0d);
 
         Map<Inverter, SimulationEngine.InputData> map = new LinkedHashMap<>();
-        map.put(inverter, input(inverter, series, battery, cfg, null, null, false, null, null));
+        map.put(inverter, input(inverter, series, battery, cfg, null));
 
-        GoldenMaster.verify("single_battery_load_shift", GoldenMaster.serialize(run(map)));
+        GoldenMaster.verify("single_battery_load_shift", GoldenMaster.serialize(run(noExtras(), map)));
     }
 
     /** Forced discharge to grid (all-day window), exporting battery energy down to the stop-at. */
@@ -165,9 +165,9 @@ public class SimulationGoldenMasterTest {
         List<SimulationInputData> series = SimSeries.constant(ROWS, FLAT_LOAD, 0d);
 
         Map<Inverter, SimulationEngine.InputData> map = new LinkedHashMap<>();
-        map.put(inverter, input(inverter, series, battery, null, fd2g, null, false, null, null));
+        map.put(inverter, input(inverter, series, battery, null, fd2g));
 
-        GoldenMaster.verify("single_battery_force_discharge", GoldenMaster.serialize(run(map)));
+        GoldenMaster.verify("single_battery_force_discharge", GoldenMaster.serialize(run(noExtras(), map)));
     }
 
     /** Scheduled immersion heating between 02:00 and 06:00. */
@@ -184,9 +184,10 @@ public class SimulationGoldenMasterTest {
                 SimulationGoldenMasterTest::bellPV);
 
         Map<Inverter, SimulationEngine.InputData> map = new LinkedHashMap<>();
-        map.put(inverter, input(inverter, series, null, null, null, hwSystem, false, hwSchedules, null));
+        map.put(inverter, input(inverter, series, null, null, null));
+        ScenarioInputs scenario = new ScenarioInputs(hwSystem, false, hwSchedules, null, null, EXPORT_MAX);
 
-        GoldenMaster.verify("hot_water_schedule", GoldenMaster.serialize(run(map)));
+        GoldenMaster.verify("hot_water_schedule", GoldenMaster.serialize(run(scenario, map)));
     }
 
     /** Scheduled EV charging between 02:00 and 06:00. */
@@ -203,9 +204,10 @@ public class SimulationGoldenMasterTest {
                 SimulationGoldenMasterTest::bellPV);
 
         Map<Inverter, SimulationEngine.InputData> map = new LinkedHashMap<>();
-        map.put(inverter, input(inverter, series, null, null, null, null, false, null, evCharges));
+        map.put(inverter, input(inverter, series, null, null, null));
+        ScenarioInputs scenario = new ScenarioInputs(null, false, null, evCharges, null, EXPORT_MAX);
 
-        GoldenMaster.verify("ev_charge_schedule", GoldenMaster.serialize(run(map)));
+        GoldenMaster.verify("ev_charge_schedule", GoldenMaster.serialize(run(scenario, map)));
     }
 
     // --- helpers -------------------------------------------------------------------------------
@@ -219,19 +221,22 @@ public class SimulationGoldenMasterTest {
         return 0.5 * Math.sin(Math.PI * (i - start) / (double) (end - start));
     }
 
-    private static List<ScenarioSimulationData> run(Map<Inverter, SimulationEngine.InputData> map) {
+    /** Scenario-level inputs with no hot water / EV, using the scenario's export limit. */
+    private static ScenarioInputs noExtras() {
+        return new ScenarioInputs(null, false, null, null, null, EXPORT_MAX);
+    }
+
+    private static List<ScenarioSimulationData> run(ScenarioInputs scenario, Map<Inverter, SimulationEngine.InputData> map) {
         ArrayList<ScenarioSimulationData> out = new ArrayList<>();
         for (int row = 0; row < ROWS; row++) {
-            SimulationEngine.processOneRow(SCENARIO_ID, out, row, map);
+            SimulationEngine.processOneRow(SCENARIO_ID, scenario, out, row, map);
         }
         return out;
     }
 
     private static SimulationEngine.InputData input(
             Inverter inverter, List<SimulationInputData> series, Battery battery,
-            SimulationEngine.ChargeFromGrid cfg, SimulationEngine.ForceDischargeToGrid fd2g,
-            HWSystem hwSystem, Boolean hwDivert, List<HWSchedule> hwSchedules, List<EVCharge> evCharges) {
-        return new SimulationEngine.InputData(inverter, series, battery, cfg,
-                hwSystem, hwDivert, hwSchedules, evCharges, null, fd2g, EXPORT_MAX);
+            SimulationEngine.ChargeFromGrid cfg, SimulationEngine.ForceDischargeToGrid fd2g) {
+        return new SimulationEngine.InputData(inverter, series, battery, cfg, fd2g);
     }
 }

@@ -38,6 +38,9 @@ import java.util.Map;
  */
 public class SimulationWorkerIntegrationTest {
 
+    // Phase 3c: scenario-level inputs (no hot water/EV) for white-box processOneRow tests.
+    private static final ScenarioInputs NO_EXTRAS = new ScenarioInputs(null, null, null, null, null, 0d);
+
     private SimulationInputData createSID(double load, double tpv, String date, String minute, int mod, int dow, int do2001) {
         SimulationInputData sid = new SimulationInputData();
         sid.setDate(date);
@@ -106,14 +109,13 @@ public class SimulationWorkerIntegrationTest {
         // Final row outside load shift period (row 13 = 01:05, outside hour 0)
         simulationInputData.add(createSID(4.0, 0.0, "2001-01-01", "19:00", 1140, 1, 1));
 
-        SimulationEngine.InputData iData = new SimulationEngine.InputData(
-                inverter, simulationInputData, battery, cfg, null, null, null, null, null, null, 0.0);
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(inverter, simulationInputData, battery, cfg, null);
         iData.soc = 3.0; // Start at 30% SOC
         inputDataMap.put(inverter, iData);
 
         // Process each time step
         for (int row = 0; row < simulationInputData.size(); row++) {
-            SimulationEngine.processOneRow(scenarioID, outputRows, row, inputDataMap);
+            SimulationEngine.processOneRow(scenarioID, NO_EXTRAS, outputRows, row, inputDataMap);
         }
 
         assertEquals("Should have " + simulationInputData.size() + " output rows", simulationInputData.size(), outputRows.size());
@@ -165,14 +167,13 @@ public class SimulationWorkerIntegrationTest {
             simulationInputData.add(createSID(1.0, 6.0)); // 5kW excess
         }
 
-        SimulationEngine.InputData iData = new SimulationEngine.InputData(
-                inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0.0);
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(inverter, simulationInputData, battery, null, null);
         iData.soc = 2.0; // Start at 5% SOC (5% of 40 kWh = 2.0 kWh)
         inputDataMap.put(inverter, iData);
 
         // Process multiple time steps to see charging curve
         for (int row = 0; row < 10; row++) {
-            SimulationEngine.processOneRow(scenarioID, outputRows, row, inputDataMap);
+            SimulationEngine.processOneRow(scenarioID, NO_EXTRAS, outputRows, row, inputDataMap);
         }
 
         assertEquals("Should have 10 output rows", 10, outputRows.size());
@@ -220,14 +221,13 @@ public class SimulationWorkerIntegrationTest {
         simulationInputData.add(createSID(0.0, 0.0)); // No load, no PV
         simulationInputData.add(createSID(0.1, 0.1)); // Second row as required by framework
 
-        SimulationEngine.InputData iData = new SimulationEngine.InputData(
-                inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0.0);
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(inverter, simulationInputData, battery, null, null);
         iData.soc = 5.0; // 50% SOC
         inputDataMap.put(inverter, iData);
 
         // First process row 0 to populate outputRows for baseline state
-        SimulationEngine.processOneRow(scenarioID, outputRows, 0, inputDataMap);
-        SimulationEngine.processOneRow(scenarioID, outputRows, 1, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, NO_EXTRAS, outputRows, 0, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, NO_EXTRAS, outputRows, 1, inputDataMap);
 
         assertEquals("Should have 2 output rows", 2, outputRows.size());
         

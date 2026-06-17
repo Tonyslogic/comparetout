@@ -77,8 +77,7 @@ public class SimulationEngineScenarioInputsTest {
 
     private static SimulationEngine.InputData noBatteryInput(Inverter inverter) {
         List<SimulationInputData> series = SimSeries.constant(2, LOAD, 0d);
-        return new SimulationEngine.InputData(inverter, series, null, null,
-                null, null, null, null, null, null, EXPORT_MAX);
+        return new SimulationEngine.InputData(inverter, series, null, null, null);
     }
 
     private static ScenarioSimulationData runRow0(ScenarioInputs scenario, Map<Inverter, SimulationEngine.InputData> map) {

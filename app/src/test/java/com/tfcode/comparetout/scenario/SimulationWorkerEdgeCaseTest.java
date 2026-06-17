@@ -39,6 +39,9 @@ import java.util.Map;
  */
 public class SimulationWorkerEdgeCaseTest {
 
+    // Phase 3c: scenario-level inputs (no hot water/EV) for white-box processOneRow tests.
+    private static final ScenarioInputs NO_EXTRAS = new ScenarioInputs(null, null, null, null, null, 0d);
+
     private SimulationInputData createSID(double load, double tpv) {
         SimulationInputData sid = new SimulationInputData();
         sid.setDate("2001-01-01");
@@ -64,8 +67,7 @@ public class SimulationWorkerEdgeCaseTest {
         Inverter inverter = new Inverter();
         List<SimulationInputData> inputData = new ArrayList<>();
         
-        SimulationEngine.InputData iData = new SimulationEngine.InputData(
-                inverter, inputData, null, null, null, null, null, null, null, null, 0.0);
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(inverter, inputData, null, null, null);
         
         // When battery is null, M_NULL_BATTERY should be used
         // We can test this indirectly through methods that would use the battery
@@ -113,14 +115,13 @@ public class SimulationWorkerEdgeCaseTest {
         simulationInputData.add(createSID(0.001, 0.002)); // Very small values
         simulationInputData.add(createSID(0.0015, 0.0025)); // Second row as required by framework
 
-        SimulationEngine.InputData iData = new SimulationEngine.InputData(
-                inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0.0);
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(inverter, simulationInputData, battery, null, null);
         iData.soc = 5.0; // 50% SOC
         inputDataMap.put(inverter, iData);
 
         // First process row 0 to populate outputRows for baseline state
-        SimulationEngine.processOneRow(scenarioID, outputRows, 0, inputDataMap);
-        SimulationEngine.processOneRow(scenarioID, outputRows, 1, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, NO_EXTRAS, outputRows, 0, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, NO_EXTRAS, outputRows, 1, inputDataMap);
 
         assertEquals("Should have 2 output rows", 2, outputRows.size());
         
@@ -153,8 +154,7 @@ public class SimulationWorkerEdgeCaseTest {
         battery.setChargeModel(chargeModel);
 
         List<SimulationInputData> inputData = new ArrayList<>();
-        SimulationEngine.InputData iData = new SimulationEngine.InputData(
-                inverter, inputData, battery, null, null, null, null, null, null, null, 0.0);
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(inverter, inputData, battery, null, null);
         
         iData.soc = 10.0; // 100% SOC
         
@@ -249,8 +249,7 @@ public class SimulationWorkerEdgeCaseTest {
         inverter.setDc2dcLoss(100);
 
         List<SimulationInputData> inputData = new ArrayList<>();
-        SimulationEngine.InputData iData = new SimulationEngine.InputData(
-                inverter, inputData, null, null, null, null, null, null, null, null, 0.0);
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(inverter, inputData, null, null, null);
 
         // All loss factors should be 0 (100% loss)
         assertEquals("DC to AC loss should be 0", 0.0, iData.dc2acLoss, 0.001);
@@ -270,8 +269,7 @@ public class SimulationWorkerEdgeCaseTest {
         inverter.setDc2dcLoss(0);
 
         List<SimulationInputData> inputData = new ArrayList<>();
-        SimulationEngine.InputData iData = new SimulationEngine.InputData(
-                inverter, inputData, null, null, null, null, null, null, null, null, 0.0);
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(inverter, inputData, null, null, null);
 
         // All loss factors should be 1 (no loss)
         assertEquals("DC to AC loss should be 1", 1.0, iData.dc2acLoss, 0.001);
@@ -294,8 +292,7 @@ public class SimulationWorkerEdgeCaseTest {
         battery.setMaxDischarge(5.0);
 
         List<SimulationInputData> inputData = new ArrayList<>();
-        SimulationEngine.InputData iData = new SimulationEngine.InputData(
-                inverter, inputData, battery, null, null, null, null, null, null, null, 0.0);
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(inverter, inputData, battery, null, null);
 
         iData.soc = 1.0; // Low SOC
         
@@ -319,8 +316,7 @@ public class SimulationWorkerEdgeCaseTest {
         battery.setMaxDischarge(5.0);
 
         List<SimulationInputData> inputData = new ArrayList<>();
-        SimulationEngine.InputData iData = new SimulationEngine.InputData(
-                inverter, inputData, battery, null, null, null, null, null, null, null, 0.0);
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(inverter, inputData, battery, null, null);
 
         iData.soc = 10.0; // Full SOC
         

@@ -229,9 +229,7 @@ public class SimulationWorker extends Worker {
                             // Associate the inverter with its inverter-bound state only. Hot water / EV
                             // are scenario-level (see scenarioInputs) and are not passed per inverter.
                             SimulationEngine.InputData iData = new SimulationEngine.InputData(inverter, simulationInputData,
-                                    connectedBattery, chargeFromGrid,
-                                    null, null, null,
-                                    null, null, connectedDischarge, exportMax);
+                                    connectedBattery, chargeFromGrid, connectedDischarge);
                             inputDataMap.put(inverter, iData);
                         }
                     } else { // No solar simulation, but we need a 'perfect' inverter
@@ -255,9 +253,7 @@ public class SimulationWorker extends Worker {
                         scenarioInputs = new ScenarioInputs(configuredHotWater, null, hotWaterSchedules,
                                 evCharges, null, exportMax);
                         SimulationEngine.InputData idata = new SimulationEngine.InputData(inverter, mToutcRepository.getSimulationInputNoSolar(scenarioID),
-                                null, null,
-                                null, null, null,
-                                null, null, null, exportMax);
+                                null, null, null);
                         inputDataMap.put(inverter, idata);
                         rowsToProcess = idata.simulationInputData.size();
                     }

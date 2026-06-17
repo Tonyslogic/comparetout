@@ -40,6 +40,9 @@ import java.util.Map;
 
 public class SimulationWorkerTest {
 
+    // Phase 3c: scenario-level inputs (no hot water/EV) for white-box processOneRow tests.
+    private static final ScenarioInputs NO_EXTRAS = new ScenarioInputs(null, null, null, null, null, 0d);
+
 
 
 
@@ -77,18 +80,15 @@ public class SimulationWorkerTest {
         List<SimulationInputData> inputData = new ArrayList<>();
         inputData.add(createSID(1.0, 2.0));
 
-        SimulationEngine.InputData iData = new SimulationEngine.InputData(
-                inverter, inputData, battery, null, null, null, null, null, null, null, 5.0);
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(inverter, inputData, battery, null, null);
 
         assertEquals(1, iData.id);
         assertEquals(0.95, iData.dc2acLoss, 0.001); // (100-5)/100
         assertEquals(0.97, iData.ac2dcLoss, 0.001); // (100-3)/100
         assertEquals(0.98, iData.dc2dcLoss, 0.001); // (100-2)/100
         assertEquals(1.5, iData.storageLoss, 0.001);
-        assertEquals(5.0, iData.exportMax, 0.001);
         assertEquals(inputData, iData.simulationInputData);
         assertEquals(battery, iData.mBattery);
-        assertNotNull(iData.mEVDivertDailyTotals);
     }
 
     /**
@@ -100,8 +100,7 @@ public class SimulationWorkerTest {
         Inverter inverter = new Inverter();
         List<SimulationInputData> inputData = new ArrayList<>();
 
-        SimulationEngine.InputData iData = new SimulationEngine.InputData(
-                inverter, inputData, null, null, null, null, null, null, null, null, 0.0);
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(inverter, inputData, null, null, null);
 
         assertEquals(0.0, iData.storageLoss, 0.001);
     }
@@ -118,8 +117,7 @@ public class SimulationWorkerTest {
         battery.setBatterySize(10.0); // 10 kWh
 
         List<SimulationInputData> inputData = new ArrayList<>();
-        SimulationEngine.InputData iData = new SimulationEngine.InputData(
-                inverter, inputData, battery, null, null, null, null, null, null, null, 0.0);
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(inverter, inputData, battery, null, null);
 
         double expected = (20.0 / 100.0) * 10.0; // 2.0 kWh
         assertEquals(expected, iData.getDischargeStop(), 0.001);
@@ -143,8 +141,7 @@ public class SimulationWorkerTest {
         battery.setChargeModel(chargeModel);
 
         List<SimulationInputData> inputData = new ArrayList<>();
-        SimulationEngine.InputData iData = new SimulationEngine.InputData(
-                inverter, inputData, battery, null, null, null, null, null, null, null, 0.0);
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(inverter, inputData, battery, null, null);
 
         // Test at 50% SOC (5 kWh)
         iData.soc = 5.0;
@@ -171,8 +168,7 @@ public class SimulationWorkerTest {
         battery.setDischargeStop(20.0); // 20%
 
         List<SimulationInputData> inputData = new ArrayList<>();
-        SimulationEngine.InputData iData = new SimulationEngine.InputData(
-                inverter, inputData, battery, null, null, null, null, null, null, null, 0.0);
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(inverter, inputData, battery, null, null);
 
         // Test at 50% SOC (5 kWh), no CFG
         iData.soc = 5.0;
@@ -210,8 +206,7 @@ public class SimulationWorkerTest {
         SimulationEngine.ChargeFromGrid cfg = new SimulationEngine.ChargeFromGrid(loadShifts, 105120);
 
         List<SimulationInputData> inputData = new ArrayList<>();
-        SimulationEngine.InputData iData = new SimulationEngine.InputData(
-                inverter, inputData, battery, cfg, null, null, null, null, null, null, 0.0);
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(inverter, inputData, battery, cfg, null);
 
         // When CFG is active, discharge capacity should be 0
         iData.soc = 5.0;
@@ -228,8 +223,7 @@ public class SimulationWorkerTest {
         List<SimulationInputData> inputData = new ArrayList<>();
 
         // Test with null ChargeFromGrid
-        SimulationEngine.InputData iData = new SimulationEngine.InputData(
-                inverter, inputData, null, null, null, null, null, null, null, null, 0.0);
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(inverter, inputData, null, null, null);
         assertFalse(iData.isCFG(0));
 
         // Test with ChargeFromGrid
@@ -240,8 +234,7 @@ public class SimulationWorkerTest {
         loadShifts.add(loadShift);
         SimulationEngine.ChargeFromGrid cfg = new SimulationEngine.ChargeFromGrid(loadShifts, 105120);
 
-        iData = new SimulationEngine.InputData(
-                inverter, inputData, null, cfg, null, null, null, null, null, null, 0.0);
+        iData = new SimulationEngine.InputData(inverter, inputData, null, cfg, null);
         assertTrue(iData.isCFG(0)); // Should be true for 24/7 schedule
     }
 
@@ -409,17 +402,16 @@ public class SimulationWorkerTest {
         SimulationInputData sid2 = createSID(load + 0.1, tpv + 0.1);
         simulationInputData.add(sid2);
 
-        SimulationEngine.InputData idata = new SimulationEngine.InputData(
-                inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0);
+        SimulationEngine.InputData idata = new SimulationEngine.InputData(inverter, simulationInputData, battery, null, null);
         inputDataMap.put(inverter, idata);
 
         // First process row 0 to populate outputRows for baseline state
-        SimulationEngine.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, NO_EXTRAS, outputRows, 0, inputDataMap);
         // Intermediate assertion: Check that row 0 result exists
         assertEquals(1, outputRows.size());
         
         int row = 1;
-        SimulationEngine.processOneRow(scenarioID, outputRows, row, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, NO_EXTRAS, outputRows, row, inputDataMap);
         // Intermediate assertion: Check that row 1 result exists
         assertEquals(2, outputRows.size());
         ScenarioSimulationData aRow = outputRows.get(1); // Get row 1 output
@@ -458,17 +450,16 @@ public class SimulationWorkerTest {
         SimulationInputData sid2 = createSID(load + 0.1, tpv + 0.1);
         simulationInputData.add(sid2);
 
-        SimulationEngine.InputData idata = new SimulationEngine.InputData(
-                inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0);
+        SimulationEngine.InputData idata = new SimulationEngine.InputData(inverter, simulationInputData, battery, null, null);
         inputDataMap.put(inverter, idata);
 
         // First process row 0 to populate outputRows for baseline state
-        SimulationEngine.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, NO_EXTRAS, outputRows, 0, inputDataMap);
         // Intermediate assertion: Check that row 0 result exists
         assertEquals(1, outputRows.size());
         
         int row = 1;
-        SimulationEngine.processOneRow(scenarioID, outputRows, row, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, NO_EXTRAS, outputRows, row, inputDataMap);
         // Intermediate assertion: Check that row 1 result exists
         assertEquals(2, outputRows.size());
         ScenarioSimulationData aRow = outputRows.get(1); // Get row 1 output
