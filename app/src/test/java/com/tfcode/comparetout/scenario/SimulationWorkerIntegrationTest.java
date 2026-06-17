@@ -65,7 +65,7 @@ public class SimulationWorkerIntegrationTest {
         // Test a complete 24-hour simulation with varying load and PV
         long scenarioID = 1;
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
-        Map<Inverter, SimulationWorker.InputData> inputDataMap = new HashMap<>();
+        Map<Inverter, SimulationEngine.InputData> inputDataMap = new HashMap<>();
 
         Inverter inverter = new Inverter();
         inverter.setDc2acLoss(5);
@@ -96,13 +96,13 @@ public class SimulationWorkerIntegrationTest {
         // Evening: High load, no PV - tests discharge
         simulationInputData.add(createSID(3.0, 0.0, "2001-01-01", "18:00", 1080, 1, 1));
 
-        SimulationWorker.InputData iData = new SimulationWorker.InputData(
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(
                 inverter, simulationInputData, battery, null, null, null, null, null, null, null, 5.0);
         inputDataMap.put(inverter, iData);
 
         // Process each time step
         for (int row = 0; row < simulationInputData.size(); row++) {
-            SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
+            SimulationEngine.processOneRow(scenarioID, outputRows, row, inputDataMap);
         }
 
         assertEquals("Should have 4 output rows", 4, outputRows.size());
@@ -150,7 +150,7 @@ public class SimulationWorkerIntegrationTest {
         // Test complete load shifting scenario
         long scenarioID = 1;
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
-        Map<Inverter, SimulationWorker.InputData> inputDataMap = new HashMap<>();
+        Map<Inverter, SimulationEngine.InputData> inputDataMap = new HashMap<>();
 
         Inverter inverter = new Inverter();
         Battery battery = new Battery();
@@ -175,7 +175,7 @@ public class SimulationWorkerIntegrationTest {
         loadShift.setStopAt(90.0); // Charge to 90%
         loadShifts.add(loadShift);
         
-        SimulationWorker.ChargeFromGrid cfg = new SimulationWorker.ChargeFromGrid(loadShifts, 105120);
+        SimulationEngine.ChargeFromGrid cfg = new SimulationEngine.ChargeFromGrid(loadShifts, 105120);
 
         List<SimulationInputData> simulationInputData = new ArrayList<>();
         
@@ -190,14 +190,14 @@ public class SimulationWorkerIntegrationTest {
         // Final row outside load shift period (row 13 = 01:05, outside hour 0)
         simulationInputData.add(createSID(4.0, 0.0, "2001-01-01", "19:00", 1140, 1, 1));
 
-        SimulationWorker.InputData iData = new SimulationWorker.InputData(
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(
                 inverter, simulationInputData, battery, cfg, null, null, null, null, null, null, 0.0);
         iData.soc = 3.0; // Start at 30% SOC
         inputDataMap.put(inverter, iData);
 
         // Process each time step
         for (int row = 0; row < simulationInputData.size(); row++) {
-            SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
+            SimulationEngine.processOneRow(scenarioID, outputRows, row, inputDataMap);
         }
 
         assertEquals("Should have " + simulationInputData.size() + " output rows", simulationInputData.size(), outputRows.size());
@@ -231,7 +231,7 @@ public class SimulationWorkerIntegrationTest {
         // Test coordination between multiple inverters
         long scenarioID = 1;
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
-        Map<Inverter, SimulationWorker.InputData> inputDataMap = new HashMap<>();
+        Map<Inverter, SimulationEngine.InputData> inputDataMap = new HashMap<>();
 
         // Setup first inverter with battery
         Inverter inverter1 = new Inverter();
@@ -261,29 +261,30 @@ public class SimulationWorkerIntegrationTest {
         simulationInputData1.add(createSID(2.1, 2.9)); // Second row as required by framework
         
         List<SimulationInputData> simulationInputData2 = new ArrayList<>();
-        simulationInputData2.add(createSID(0.0, 2.0)); // No load, 2kW PV
-        simulationInputData2.add(createSID(0.1, 1.9)); // Second row as required by framework
+        // Bug 1 fix: every inverter carries the SAME scenario load (as production does); only PV differs.
+        simulationInputData2.add(createSID(2.0, 2.0)); // shares inverter 1's load, 2kW PV
+        simulationInputData2.add(createSID(2.1, 1.9)); // Second row; shares inverter 1's load
 
-        SimulationWorker.InputData iData1 = new SimulationWorker.InputData(
+        SimulationEngine.InputData iData1 = new SimulationEngine.InputData(
                 inverter1, simulationInputData1, battery1, null, null, null, null, null, null, null, 0.0);
         iData1.soc = 4.0; // 50% SOC
 
-        SimulationWorker.InputData iData2 = new SimulationWorker.InputData(
+        SimulationEngine.InputData iData2 = new SimulationEngine.InputData(
                 inverter2, simulationInputData2, null, null, null, null, null, null, null, null, 0.0);
 
         inputDataMap.put(inverter1, iData1);
         inputDataMap.put(inverter2, iData2);
 
         // First process row 0 to populate outputRows for baseline state
-        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
-        SimulationWorker.processOneRow(scenarioID, outputRows, 1, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, outputRows, 1, inputDataMap);
 
         assertEquals("Should have 2 output rows", 2, outputRows.size());
         
         com.tfcode.comparetout.model.scenario.ScenarioSimulationData row = outputRows.get(1); // Get row 1 result
         
         // Verify aggregated results for row 1
-        assertEquals("Total load should be 2.2kW", 2.2, row.getLoad(), 0.001);
+        assertEquals("Shared load counted once (Bug 1 fix)", 2.1, row.getLoad(), 0.001);
         assertEquals("Total PV should be 4.8kW", 4.8, row.getPv(), 0.001);
         assertTrue("Should charge battery with excess", row.getPvToCharge() > 0);
         assertTrue("Should feed excess to grid", row.getFeed() > 0);
@@ -302,7 +303,7 @@ public class SimulationWorkerIntegrationTest {
         // Test how battery charging behaves at different SOC levels
         long scenarioID = 1;
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
-        Map<Inverter, SimulationWorker.InputData> inputDataMap = new HashMap<>();
+        Map<Inverter, SimulationEngine.InputData> inputDataMap = new HashMap<>();
 
         Inverter inverter = new Inverter();
         Battery battery = new Battery();
@@ -324,14 +325,14 @@ public class SimulationWorkerIntegrationTest {
             simulationInputData.add(createSID(1.0, 6.0)); // 5kW excess
         }
 
-        SimulationWorker.InputData iData = new SimulationWorker.InputData(
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(
                 inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0.0);
         iData.soc = 2.0; // Start at 5% SOC (5% of 40 kWh = 2.0 kWh)
         inputDataMap.put(inverter, iData);
 
         // Process multiple time steps to see charging curve
         for (int row = 0; row < 10; row++) {
-            SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
+            SimulationEngine.processOneRow(scenarioID, outputRows, row, inputDataMap);
         }
 
         assertEquals("Should have 10 output rows", 10, outputRows.size());
@@ -365,7 +366,7 @@ public class SimulationWorkerIntegrationTest {
         // Test how export limits are respected
         long scenarioID = 1;
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
-        Map<Inverter, SimulationWorker.InputData> inputDataMap = new HashMap<>();
+        Map<Inverter, SimulationEngine.InputData> inputDataMap = new HashMap<>();
 
         Inverter inverter = new Inverter();
         Battery battery = new Battery();
@@ -377,13 +378,13 @@ public class SimulationWorkerIntegrationTest {
         simulationInputData.add(createSID(1.1, 9.8)); // Second row as required by framework
 
         double exportLimit = 3.0; // Limit export to 3kW
-        SimulationWorker.InputData iData = new SimulationWorker.InputData(
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(
                 inverter, simulationInputData, battery, null, null, null, null, null, null, null, exportLimit);
         inputDataMap.put(inverter, iData);
 
         // First process row 0 to populate outputRows for baseline state
-        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
-        SimulationWorker.processOneRow(scenarioID, outputRows, 1, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, outputRows, 1, inputDataMap);
 
         assertEquals("Should have 2 output rows", 2, outputRows.size());
         
@@ -409,7 +410,7 @@ public class SimulationWorkerIntegrationTest {
         // Test handling of edge case values
         long scenarioID = 1;
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
-        Map<Inverter, SimulationWorker.InputData> inputDataMap = new HashMap<>();
+        Map<Inverter, SimulationEngine.InputData> inputDataMap = new HashMap<>();
 
         Inverter inverter = new Inverter();
         Battery battery = new Battery();
@@ -422,14 +423,14 @@ public class SimulationWorkerIntegrationTest {
         simulationInputData.add(createSID(0.0, 0.0)); // No load, no PV
         simulationInputData.add(createSID(0.1, 0.1)); // Second row as required by framework
 
-        SimulationWorker.InputData iData = new SimulationWorker.InputData(
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(
                 inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0.0);
         iData.soc = 5.0; // 50% SOC
         inputDataMap.put(inverter, iData);
 
         // First process row 0 to populate outputRows for baseline state
-        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
-        SimulationWorker.processOneRow(scenarioID, outputRows, 1, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, outputRows, 1, inputDataMap);
 
         assertEquals("Should have 2 output rows", 2, outputRows.size());
         

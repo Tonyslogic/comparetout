@@ -67,7 +67,7 @@ public class SimulationWorkerAdvancedTest {
         Inverter inverter = new Inverter();
         List<SimulationInputData> inputData = new ArrayList<>();
         
-        SimulationWorker.InputData iData = new SimulationWorker.InputData(
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(
                 inverter, inputData, null, null, null, null, null, null, null, null, 0.0);
         
         // Should return false when no schedules are set
@@ -88,7 +88,7 @@ public class SimulationWorkerAdvancedTest {
         // Note: We can't fully test this without setting up the complete HWSchedule object
         // But we can test the dayOfWeek conversion logic
         
-        SimulationWorker.InputData iData = new SimulationWorker.InputData(
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(
                 inverter, inputData, null, null, null, null, schedules, null, null, null, 0.0);
         
         // Test day of week conversion (7 -> 0)
@@ -106,7 +106,7 @@ public class SimulationWorkerAdvancedTest {
         Inverter inverter = new Inverter();
         List<SimulationInputData> inputData = new ArrayList<>();
         
-        SimulationWorker.InputData iData = new SimulationWorker.InputData(
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(
                 inverter, inputData, null, null, null, null, null, null, null, null, 0.0);
         
         // Should return null when no EV charges are set
@@ -122,7 +122,7 @@ public class SimulationWorkerAdvancedTest {
         Inverter inverter = new Inverter();
         List<SimulationInputData> inputData = new ArrayList<>();
         
-        SimulationWorker.InputData iData = new SimulationWorker.InputData(
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(
                 inverter, inputData, null, null, null, null, null, null, null, null, 0.0);
         
         // Should return null when no EV diverts are set
@@ -146,15 +146,15 @@ public class SimulationWorkerAdvancedTest {
         battery.setChargeModel(chargeModel);
 
         // Test exact boundary at 12% (1.2 kWh)
-        double result = SimulationWorker.InputData.getMaxChargeForSOC(1.2, battery);
+        double result = SimulationEngine.InputData.getMaxChargeForSOC(1.2, battery);
         assertEquals(2.0, result, 0.001); // Should use percent12 (100% of 2.0)
 
         // Test exact boundary at 90% (9.0 kWh)
-        result = SimulationWorker.InputData.getMaxChargeForSOC(9.0, battery);
+        result = SimulationEngine.InputData.getMaxChargeForSOC(9.0, battery);
         assertEquals(1.6, result, 0.001); // Should still use percent12 (90% is not > 90%)
 
         // Test just above 90% (9.1 kWh)
-        result = SimulationWorker.InputData.getMaxChargeForSOC(9.1, battery);
+        result = SimulationEngine.InputData.getMaxChargeForSOC(9.1, battery);
         assertEquals(1.0, result, 0.001); // Should use percent90 (50% of 2.0)
     }
 
@@ -179,7 +179,7 @@ public class SimulationWorkerAdvancedTest {
         inputData.add(createSID(2.5, 3.5));
 
         // Create with all parameters
-        SimulationWorker.InputData iData = new SimulationWorker.InputData(
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(
                 inverter, inputData, battery, null, null, true, null, null, null, null, 7.5);
 
         assertEquals(5, iData.id);
@@ -205,10 +205,10 @@ public class SimulationWorkerAdvancedTest {
     public void testProcessOneRowWithNullInputRow() {
         long scenarioID = 1;
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
-        Map<Inverter, SimulationWorker.InputData> inputDataMap = new HashMap<>();
+        Map<Inverter, SimulationEngine.InputData> inputDataMap = new HashMap<>();
 
         // Create empty input data map (should result in null inputRow)
-        SimulationWorker.processOneRow(scenarioID, outputRows, 1, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, outputRows, 1, inputDataMap);
         
         // Should handle null inputRow gracefully (early return)
         assertTrue("Output rows should remain empty", outputRows.isEmpty());
@@ -225,7 +225,7 @@ public class SimulationWorkerAdvancedTest {
     public void testProcessOneRowWithInverterLosses() {
         long scenarioID = 1;
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
-        Map<Inverter, SimulationWorker.InputData> inputDataMap = new HashMap<>();
+        Map<Inverter, SimulationEngine.InputData> inputDataMap = new HashMap<>();
 
         Inverter inverter = new Inverter();
         inverter.setDc2acLoss(10); // 10% loss
@@ -239,17 +239,17 @@ public class SimulationWorkerAdvancedTest {
         simulationInputData.add(createSID(load, tpv));
         simulationInputData.add(createSID(load + 0.1, tpv - 0.1)); // Second row as required by framework
 
-        SimulationWorker.InputData idata = new SimulationWorker.InputData(
+        SimulationEngine.InputData idata = new SimulationEngine.InputData(
                 inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0);
         inputDataMap.put(inverter, idata);
 
         // First process row 0 to populate outputRows for baseline state
-        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, outputRows, 0, inputDataMap);
         // Intermediate assertion: Check that row 0 result exists
         assertEquals(1, outputRows.size());
         
         int row = 1;
-        SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, outputRows, row, inputDataMap);
         // Intermediate assertion: Check that row 1 result exists
         assertEquals(2, outputRows.size());
         com.tfcode.comparetout.model.scenario.ScenarioSimulationData aRow = outputRows.get(1); // Get row 1 output
@@ -272,7 +272,7 @@ public class SimulationWorkerAdvancedTest {
     public void testProcessOneRowWithMaxInverterLoad() {
         long scenarioID = 1;
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
-        Map<Inverter, SimulationWorker.InputData> inputDataMap = new HashMap<>();
+        Map<Inverter, SimulationEngine.InputData> inputDataMap = new HashMap<>();
 
         Inverter inverter = new Inverter();
         inverter.setMaxInverterLoad(2.0); // Limit to 2kW
@@ -295,17 +295,17 @@ public class SimulationWorkerAdvancedTest {
         simulationInputData.add(createSID(load, tpv));
         simulationInputData.add(createSID(load + 0.1, tpv - 0.2)); // Second row as required by framework
 
-        SimulationWorker.InputData idata = new SimulationWorker.InputData(
+        SimulationEngine.InputData idata = new SimulationEngine.InputData(
                 inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0);
         inputDataMap.put(inverter, idata);
 
         // First process row 0 to populate outputRows for baseline state
-        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, outputRows, 0, inputDataMap);
         // Intermediate assertion: Check that row 0 result exists
         assertEquals(1, outputRows.size());
         
         int row = 1;
-        SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, outputRows, row, inputDataMap);
         // Intermediate assertion: Check that row 1 result exists
         assertEquals(2, outputRows.size());
         com.tfcode.comparetout.model.scenario.ScenarioSimulationData aRow = outputRows.get(1); // Get row 1 output
@@ -324,7 +324,7 @@ public class SimulationWorkerAdvancedTest {
     public void testProcessOneRowSecondRowWithPreviousData() {
         long scenarioID = 1;
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
-        Map<Inverter, SimulationWorker.InputData> inputDataMap = new HashMap<>();
+        Map<Inverter, SimulationEngine.InputData> inputDataMap = new HashMap<>();
 
         Inverter inverter = new Inverter();
         Battery battery = new Battery();
@@ -336,15 +336,15 @@ public class SimulationWorkerAdvancedTest {
         simulationInputData.add(createSID(1.0, 2.0));
         simulationInputData.add(createSID(1.5, 1.8));
 
-        SimulationWorker.InputData idata = new SimulationWorker.InputData(
+        SimulationEngine.InputData idata = new SimulationEngine.InputData(
                 inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0);
         inputDataMap.put(inverter, idata);
 
         // Process first row
-        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, outputRows, 0, inputDataMap);
         
         // Process second row (should use data from first row)
-        SimulationWorker.processOneRow(scenarioID, outputRows, 1, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, outputRows, 1, inputDataMap);
         
         assertEquals("Should have 2 output rows", 2, outputRows.size());
         
@@ -381,7 +381,7 @@ public class SimulationWorkerAdvancedTest {
         loadShifts.add(shift2);
 
         int rowsToProcess = 105120; // 288 intervals/day * 365 days (one non-leap year)
-        SimulationWorker.ChargeFromGrid cfg = new SimulationWorker.ChargeFromGrid(loadShifts, rowsToProcess);
+        SimulationEngine.ChargeFromGrid cfg = new SimulationEngine.ChargeFromGrid(loadShifts, rowsToProcess);
 
         assertNotNull(cfg.mCFG);
         assertNotNull(cfg.mStopAt);
@@ -410,7 +410,7 @@ public class SimulationWorkerAdvancedTest {
         discharges.add(discharge2);
 
         int rowsToProcess = 288;
-        SimulationWorker.ForceDischargeToGrid fdtg = new SimulationWorker.ForceDischargeToGrid(discharges, rowsToProcess);
+        SimulationEngine.ForceDischargeToGrid fdtg = new SimulationEngine.ForceDischargeToGrid(discharges, rowsToProcess);
 
         assertNotNull(fdtg.mD2G);
         assertNotNull(fdtg.mStopAt);
@@ -431,7 +431,7 @@ public class SimulationWorkerAdvancedTest {
     public void testProcessOneRowWithMinExcessAndCharging() {
         long scenarioID = 1;
         ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
-        Map<Inverter, SimulationWorker.InputData> inputDataMap = new HashMap<>();
+        Map<Inverter, SimulationEngine.InputData> inputDataMap = new HashMap<>();
 
         Inverter inverter = new Inverter();
         inverter.setMinExcess(1.0); // Need at least 1kW excess to charge
@@ -454,17 +454,17 @@ public class SimulationWorkerAdvancedTest {
         simulationInputData.add(createSID(load, tpv));
         simulationInputData.add(createSID(load + 0.1, tpv + 0.1)); // Second row as required by framework
 
-        SimulationWorker.InputData idata = new SimulationWorker.InputData(
+        SimulationEngine.InputData idata = new SimulationEngine.InputData(
                 inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0);
         inputDataMap.put(inverter, idata);
 
         // First process row 0 to populate outputRows for baseline state
-        SimulationWorker.processOneRow(scenarioID, outputRows, 0, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, outputRows, 0, inputDataMap);
         // Intermediate assertion: Check that row 0 result exists
         assertEquals(1, outputRows.size());
         
         int row = 1;
-        SimulationWorker.processOneRow(scenarioID, outputRows, row, inputDataMap);
+        SimulationEngine.processOneRow(scenarioID, outputRows, row, inputDataMap);
         // Intermediate assertion: Check that row 1 result exists
         assertEquals(2, outputRows.size());
         com.tfcode.comparetout.model.scenario.ScenarioSimulationData aRow = outputRows.get(1); // Get row 1 output
@@ -489,7 +489,7 @@ public class SimulationWorkerAdvancedTest {
         battery.setStorageLoss(0.0); // No loss for simplicity
 
         List<SimulationInputData> inputData = new ArrayList<>();
-        SimulationWorker.InputData iData = new SimulationWorker.InputData(
+        SimulationEngine.InputData iData = new SimulationEngine.InputData(
                 inverter, inputData, battery, null, null, null, null, null, null, null, 0.0);
         
         // Set SOC to small value
