@@ -53,45 +53,6 @@ public class SimulationWorkerEdgeCaseTest {
 
     // ====== Tests for M_NULL_BATTERY constant ======
 
-    /**
-     * Tests processOneRow behavior with null battery configuration.
-     * Verifies system operates correctly without battery storage components.
-     * <p>
-     * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
-     * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
-     */
-    @Test
-    public void testNullBatteryHandlingInProcessOneRow() {
-        // Test that null battery is properly replaced with M_NULL_BATTERY
-        long scenarioID = 1;
-        ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
-        Map<Inverter, SimulationEngine.InputData> inputDataMap = new HashMap<>();
-
-        Inverter inverter = new Inverter();
-        List<SimulationInputData> simulationInputData = new ArrayList<>();
-        simulationInputData.add(createSID(2.0, 1.0));
-        simulationInputData.add(createSID(2.5, 1.2)); // Second row as required by framework
-
-        // Create InputData with null battery
-        SimulationEngine.InputData iData = new SimulationEngine.InputData(
-                inverter, simulationInputData, null, null, null, null, null, null, null, null, 0.0);
-        
-        inputDataMap.put(inverter, iData);
-
-        // First process row 0 to populate outputRows for baseline state
-        SimulationEngine.processOneRow(scenarioID, outputRows, 0, inputDataMap);
-        SimulationEngine.processOneRow(scenarioID, outputRows, 1, inputDataMap);
-
-        assertEquals("Should have 2 output rows", 2, outputRows.size());
-        
-        com.tfcode.comparetout.model.scenario.ScenarioSimulationData row = outputRows.get(1); // Get row 1 result
-        
-        // With null battery, should behave like no battery system
-        assertEquals("SOC should be 0", 0.0, row.getSOC(), 0.001);
-        assertEquals("No battery discharge", 0.0, row.getBatToLoad(), 0.001);
-        assertEquals("No PV to charge", 0.0, row.getPvToCharge(), 0.001);
-        assertEquals("Should buy shortage from grid", 1.36, row.getBuy(), 0.01);
-    }
 
     /**
      * Tests InputData initialization with null battery constants.
@@ -119,102 +80,7 @@ public class SimulationWorkerEdgeCaseTest {
 
     // ====== Tests for extreme values ======
 
-    /**
-     * Tests system behavior with extremely high PV generation values.
-     * Verifies numerical stability and proper handling of unrealistic PV inputs.
-     * <p>
-     * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
-     * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
-     */
-    @Test
-    public void testExtremelyHighPVValues() {
-        long scenarioID = 1;
-        ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
-        Map<Inverter, SimulationEngine.InputData> inputDataMap = new HashMap<>();
 
-        Inverter inverter = new Inverter();
-        Battery battery = new Battery();
-        battery.setBatterySize(10.0);
-        battery.setMaxCharge(2.0);
-        battery.setDischargeStop(20.0); // 20% discharge stop allows charging from 20% to 100%
-        
-        ChargeModel chargeModel = new ChargeModel();
-        chargeModel.percent0 = 100;
-        chargeModel.percent12 = 100;
-        chargeModel.percent90 = 50;
-        chargeModel.percent100 = 0;
-        battery.setChargeModel(chargeModel);
-
-        List<SimulationInputData> simulationInputData = new ArrayList<>();
-        simulationInputData.add(createSID(1.0, 1000.0)); // Extremely high PV
-        simulationInputData.add(createSID(1.2, 950.0)); // Second row as required by framework
-
-        SimulationEngine.InputData iData = new SimulationEngine.InputData(
-                inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0.0);
-        inputDataMap.put(inverter, iData);
-
-        // First process row 0 to populate outputRows for baseline state
-        SimulationEngine.processOneRow(scenarioID, outputRows, 0, inputDataMap);
-        SimulationEngine.processOneRow(scenarioID, outputRows, 1, inputDataMap);
-
-        assertEquals("Should have 2 output rows", 2, outputRows.size());
-        
-        com.tfcode.comparetout.model.scenario.ScenarioSimulationData row = outputRows.get(1); // Get row 1 result
-        
-        // Should handle extreme values gracefully
-        assertEquals("PV should be recorded as input", 950.0, row.getPv(), 0.001);
-        assertTrue("Should charge battery", row.getPvToCharge() > 0);
-        assertEquals("Should feed to grid within inverter capacity", 3.0, row.getFeed(), 0.001);
-        assertEquals("Should not buy from grid", 0.0, row.getBuy(), 0.001);
-    }
-
-    /**
-     * Tests system behavior with extremely high load demand values.
-     * Verifies numerical stability and proper handling of unrealistic load inputs.
-     * <p>
-     * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
-     * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
-     */
-    @Test
-    public void testExtremelyHighLoadValues() {
-        long scenarioID = 1;
-        ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
-        Map<Inverter, SimulationEngine.InputData> inputDataMap = new HashMap<>();
-
-        Inverter inverter = new Inverter();
-        Battery battery = new Battery();
-        battery.setBatterySize(10.0);
-        battery.setMaxDischarge(3.0);
-        battery.setDischargeStop(20.0); // 20% discharge stop, so battery starts at 20% SOC = 2.0 kWh
-        battery.setStorageLoss(0.0);
-
-        List<SimulationInputData> simulationInputData = new ArrayList<>();
-        simulationInputData.add(createSID(1000.0, 5.0)); // Extremely high load
-        simulationInputData.add(createSID(950.0, 5.2)); // Second row as required by framework
-
-        SimulationEngine.InputData iData = new SimulationEngine.InputData(
-                inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0.0);
-        // Manual SOC setting will be overridden by algorithm in row 0, so we need to set it after row 0 processing
-        inputDataMap.put(inverter, iData);
-
-        // First process row 0 to populate outputRows for baseline state
-        SimulationEngine.processOneRow(scenarioID, outputRows, 0, inputDataMap);
-        
-        // Manually set SOC to full after row 0 initialization for the test scenario
-        iData.soc = 10.0; // Full battery for testing discharge
-        
-        SimulationEngine.processOneRow(scenarioID, outputRows, 1, inputDataMap);
-
-        assertEquals("Should have 2 output rows", 2, outputRows.size());
-        
-        com.tfcode.comparetout.model.scenario.ScenarioSimulationData row = outputRows.get(1); // Get row 1 result
-        
-        // Should handle extreme load gracefully
-        assertEquals("Load should be recorded as input", 950.0, row.getLoad(), 0.001);
-        assertTrue("Should buy massive amount from grid", row.getBuy() > 940);
-        assertTrue("Should discharge battery", row.getBatToLoad() > 0);
-        assertEquals("Should not feed to grid", 0.0, row.getFeed(), 0.001);
-    }
 
     /**
      * Tests system behavior with very small PV and load values.

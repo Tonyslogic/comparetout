@@ -1,0 +1,194 @@
+/*
+ * Copyright (c) 2026. Tony Finnerty
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+
+package com.tfcode.comparetout.scenario;
+
+import static org.junit.Assert.assertEquals;
+
+import com.tfcode.comparetout.model.scenario.Battery;
+import com.tfcode.comparetout.model.scenario.Inverter;
+import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
+import com.tfcode.comparetout.model.scenario.SimulationInputData;
+import com.tfcode.comparetout.scenario.sim.DispatchStrategy;
+
+import org.junit.Test;
+
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Phase 3 physics tests: the per-inverter DC/AC bus model and the dispatch Strategy
+ * (see {@code plans/sim/phase3-design.md}). These pin the intended new behaviour that drives the
+ * re-seeded golden deltas: the AC rating binds (Bug 3), surplus PV charges the own battery via DC-DC
+ * before being curtailed, DC-DC loss is symmetric (Bug 2), batteries only charge from their own PV,
+ * and the strategy controls battery-vs-grid ordering.
+ */
+public class SimulationEngineBusModelTest {
+
+    private static final long ID = 1L;
+    private static final double TOL = 1e-6;
+
+    private static ScenarioInputs noScenarioExtras(double exportMax) {
+        return new ScenarioInputs(null, null, null, null, null, exportMax);
+    }
+
+    private static SimulationEngine.InputData input(Inverter inv, Battery battery, double load, double pv) {
+        List<SimulationInputData> series = SimSeries.constant(2, load, pv);
+        return new SimulationEngine.InputData(inv, series, battery, null, null, null, null, null, null, null, 0d);
+    }
+
+    /** AC rating binds: PV (×dc2ac) above the inverter's AC throughput is capped; the rest is curtailed. */
+    @Test
+    public void acRatingBindsAndCurtailsSurplusWithoutBattery() {
+        Inverter inv = InverterBuilder.anInverter().index(1).maxInverterLoad(5.0).lossless().build();
+        Map<Inverter, SimulationEngine.InputData> map = new LinkedHashMap<>();
+        map.put(inv, input(inv, null, 0.1, 1.0)); // PV 1.0 kWh DC, far above 5kW/12 = 0.41667
+
+        ArrayList<ScenarioSimulationData> out = new ArrayList<>();
+        SimulationEngine.processOneRow(ID, noScenarioExtras(10.0), out, 0, map);
+        ScenarioSimulationData r = out.get(0);
+
+        double acCap = 5.0 / 12d;
+        assertEquals(0.1, r.getPvToLoad(), TOL);
+        assertEquals("feed capped so load+feed equals the AC rating", acCap - 0.1, r.getFeed(), TOL);
+        assertEquals(0.0, r.getBuy(), TOL);
+    }
+
+    /** Surplus PV beyond the AC rating charges the OWN battery via DC-DC rather than being clipped. */
+    @Test
+    public void dcDcChargingGrabsPvBeyondAcRating() {
+        Inverter inv = InverterBuilder.anInverter().index(1).maxInverterLoad(5.0).lossless().build();
+        Battery battery = BatteryBuilder.aBattery().index(1).size(10.0).dischargeStopPercent(0)
+                .maxChargeDischarge(1.0, 1.0).storageLossPercent(0).build();
+        Map<Inverter, SimulationEngine.InputData> map = new LinkedHashMap<>();
+        SimulationEngine.InputData d = input(inv, battery, 0.1, 1.0);
+        map.put(inv, d);
+
+        ArrayList<ScenarioSimulationData> out = new ArrayList<>();
+        SimulationEngine.processOneRow(ID, noScenarioExtras(0.0), out, 0, map); // export 0: no feed
+        d.soc = 5.0;                                                            // mid SOC: flat charge region
+        SimulationEngine.processOneRow(ID, noScenarioExtras(0.0), out, 1, map);
+        ScenarioSimulationData r = out.get(1);
+
+        // PV 1.0 DC, 0.1 to load (DC 0.1) leaves 0.9 DC; battery accepts maxCharge 1.0 ⇒ all 0.9 charges,
+        // even though that is well beyond the 0.41667 AC cap.
+        assertEquals(0.9, r.getPvToCharge(), TOL);
+        assertEquals(5.9, d.soc, TOL);
+        assertEquals(0.0, r.getFeed(), TOL);
+        assertEquals(0.0, r.getBuy(), TOL);
+    }
+
+    /** dc2dcLoss applies symmetrically: 10% loss on charge stores 0.9× the DC routed to the battery. */
+    @Test
+    public void dcDcLossIsAppliedOnCharge() {
+        Inverter inv = InverterBuilder.anInverter().index(1).maxInverterLoad(50.0).losses(0, 0, 10).build();
+        Battery battery = BatteryBuilder.aBattery().index(1).size(10.0).dischargeStopPercent(0)
+                .maxChargeDischarge(1.0, 1.0).storageLossPercent(0).build();
+        Map<Inverter, SimulationEngine.InputData> map = new LinkedHashMap<>();
+        SimulationEngine.InputData d = input(inv, battery, 0.0, 1.0);
+        map.put(inv, d);
+
+        ArrayList<ScenarioSimulationData> out = new ArrayList<>();
+        SimulationEngine.processOneRow(ID, noScenarioExtras(0.0), out, 0, map);
+        d.soc = 5.0;
+        SimulationEngine.processOneRow(ID, noScenarioExtras(0.0), out, 1, map);
+
+        assertEquals(1.0, out.get(1).getPvToCharge(), TOL); // 1.0 DC routed to battery
+        assertEquals(5.0 + 0.9, d.soc, TOL);                // only 0.9 stored (dc2dc 0.9)
+    }
+
+    /** dc2dcLoss also applies on discharge (Bug 2): delivering 0.5 AC draws 0.5/0.9 DC from the cells. */
+    @Test
+    public void dcDcLossIsAppliedOnDischarge() {
+        Inverter inv = InverterBuilder.anInverter().index(1).maxInverterLoad(50.0).losses(0, 0, 10).build();
+        Battery battery = BatteryBuilder.aBattery().index(1).size(10.0).dischargeStopPercent(0)
+                .maxChargeDischarge(1.0, 1.0).storageLossPercent(0).build();
+        Map<Inverter, SimulationEngine.InputData> map = new LinkedHashMap<>();
+        SimulationEngine.InputData d = input(inv, battery, 0.5, 0.0); // load 0.5, no PV
+        map.put(inv, d);
+
+        ArrayList<ScenarioSimulationData> out = new ArrayList<>();
+        SimulationEngine.processOneRow(ID, noScenarioExtras(0.0), out, 0, map);
+        d.soc = 5.0;
+        SimulationEngine.processOneRow(ID, noScenarioExtras(0.0), out, 1, map);
+        ScenarioSimulationData r = out.get(1);
+
+        assertEquals(0.5, r.getBatToLoad(), TOL);
+        assertEquals(0.0, r.getBuy(), TOL);
+        assertEquals(5.0 - 0.5 / 0.9, d.soc, TOL); // dc2ac=1.0, storageLoss=0 ⇒ DC drawn = 0.5/0.9
+    }
+
+    /** A battery only charges from its OWN inverter's PV (per-inverter DC coupling). */
+    @Test
+    public void batteryChargesOnlyFromOwnPv() {
+        Inverter inv1 = InverterBuilder.anInverter().index(1).maxInverterLoad(5.0).lossless().build();
+        Inverter inv2 = InverterBuilder.anInverter().index(2).maxInverterLoad(5.0).lossless().build();
+        Battery b1 = BatteryBuilder.aBattery().index(1).size(10.0).dischargeStopPercent(20)
+                .maxChargeDischarge(1.0, 1.0).storageLossPercent(0).build();
+        Battery b2 = BatteryBuilder.aBattery().index(2).size(10.0).dischargeStopPercent(20)
+                .maxChargeDischarge(1.0, 1.0).storageLossPercent(0).build();
+        SimulationEngine.InputData d1 = input(inv1, b1, 0.1, 1.0); // PV only on inverter 1
+        SimulationEngine.InputData d2 = input(inv2, b2, 0.1, 0.0);
+        Map<Inverter, SimulationEngine.InputData> map = new LinkedHashMap<>();
+        map.put(inv1, d1);
+        map.put(inv2, d2);
+
+        ArrayList<ScenarioSimulationData> out = new ArrayList<>();
+        SimulationEngine.processOneRow(ID, noScenarioExtras(0.0), out, 0, map);
+        d1.soc = 5.0;
+        d2.soc = 5.0;
+        SimulationEngine.processOneRow(ID, noScenarioExtras(0.0), out, 1, map);
+
+        // Inverter 1 served the shared load and charged its own battery; inverter 2's battery is untouched.
+        org.junit.Assert.assertTrue("own battery charged", d1.soc > 5.0);
+        assertEquals("other battery unchanged", 5.0, d2.soc, TOL);
+    }
+
+    /** Dispatch strategy controls battery-vs-grid: LoadGridBattery preserves the battery for load. */
+    @Test
+    public void dispatchStrategyControlsBatteryUseForLoad() {
+        // LoadBatteryGrid (default): battery serves the load. Large AC rating so the cap doesn't bind here.
+        Inverter invA = InverterBuilder.anInverter().index(1).maxInverterLoad(50.0).lossless().build();
+        Battery batA = BatteryBuilder.aBattery().index(1).size(10.0).dischargeStopPercent(0)
+                .maxChargeDischarge(1.0, 1.0).storageLossPercent(0).build();
+        SimulationEngine.InputData dA = input(invA, batA, 0.5, 0.0);
+        Map<Inverter, SimulationEngine.InputData> mapA = new LinkedHashMap<>();
+        mapA.put(invA, dA);
+        ArrayList<ScenarioSimulationData> outA = new ArrayList<>();
+        SimulationEngine.processOneRow(ID, noScenarioExtras(0.0), DispatchStrategy.LOAD_BATTERY_GRID, outA, 0, mapA);
+        dA.soc = 5.0;
+        SimulationEngine.processOneRow(ID, noScenarioExtras(0.0), DispatchStrategy.LOAD_BATTERY_GRID, outA, 1, mapA);
+        assertEquals(0.5, outA.get(1).getBatToLoad(), TOL);
+        assertEquals(0.0, outA.get(1).getBuy(), TOL);
+
+        // LoadGridBattery: battery preserved, load met from grid.
+        Inverter invB = InverterBuilder.anInverter().index(1).maxInverterLoad(50.0).lossless().build();
+        Battery batB = BatteryBuilder.aBattery().index(1).size(10.0).dischargeStopPercent(0)
+                .maxChargeDischarge(1.0, 1.0).storageLossPercent(0).build();
+        SimulationEngine.InputData dB = input(invB, batB, 0.5, 0.0);
+        Map<Inverter, SimulationEngine.InputData> mapB = new LinkedHashMap<>();
+        mapB.put(invB, dB);
+        ArrayList<ScenarioSimulationData> outB = new ArrayList<>();
+        SimulationEngine.processOneRow(ID, noScenarioExtras(0.0), DispatchStrategy.LOAD_GRID_BATTERY, outB, 0, mapB);
+        dB.soc = 5.0;
+        SimulationEngine.processOneRow(ID, noScenarioExtras(0.0), DispatchStrategy.LOAD_GRID_BATTERY, outB, 1, mapB);
+        assertEquals(0.0, outB.get(1).getBatToLoad(), TOL);
+        assertEquals(0.5, outB.get(1).getBuy(), TOL);
+        assertEquals(5.0, dB.soc, TOL);
+    }
+}

@@ -214,52 +214,6 @@ public class SimulationWorkerAdvancedTest {
         assertTrue("Output rows should remain empty", outputRows.isEmpty());
     }
 
-    /**
-     * Tests processOneRow with various inverter loss configurations.
-     * Verifies AC/DC conversion losses are properly applied to energy calculations.
-     * <p>
-     * SIMULATION ASSUMPTION: Framework requires at least 2 input rows for proper execution.
-     * Test operates on second row (index 1) to avoid first-row initialization artifacts where SOC gets overwritten to discharge stop value.
-     */
-    @Test
-    public void testProcessOneRowWithInverterLosses() {
-        long scenarioID = 1;
-        ArrayList<com.tfcode.comparetout.model.scenario.ScenarioSimulationData> outputRows = new ArrayList<>();
-        Map<Inverter, SimulationEngine.InputData> inputDataMap = new HashMap<>();
-
-        Inverter inverter = new Inverter();
-        inverter.setDc2acLoss(10); // 10% loss
-        
-        Battery battery = new Battery();
-        battery.setDischargeStop(100.0); // Prevent discharge
-
-        List<SimulationInputData> simulationInputData = new ArrayList<>();
-        double load = 1.0;
-        double tpv = 2.0;
-        simulationInputData.add(createSID(load, tpv));
-        simulationInputData.add(createSID(load + 0.1, tpv - 0.1)); // Second row as required by framework
-
-        SimulationEngine.InputData idata = new SimulationEngine.InputData(
-                inverter, simulationInputData, battery, null, null, null, null, null, null, null, 0);
-        inputDataMap.put(inverter, idata);
-
-        // First process row 0 to populate outputRows for baseline state
-        SimulationEngine.processOneRow(scenarioID, outputRows, 0, inputDataMap);
-        // Intermediate assertion: Check that row 0 result exists
-        assertEquals(1, outputRows.size());
-        
-        int row = 1;
-        SimulationEngine.processOneRow(scenarioID, outputRows, row, inputDataMap);
-        // Intermediate assertion: Check that row 1 result exists
-        assertEquals(2, outputRows.size());
-        com.tfcode.comparetout.model.scenario.ScenarioSimulationData aRow = outputRows.get(1); // Get row 1 output
-
-        // Verify that losses are applied
-        double effectivePV = (tpv - 0.1) * 0.9; // 90% efficiency (10% loss) on row 1 PV
-        double expectedFeed = effectivePV - (load + 0.1); // Row 1 load
-        assertEquals(expectedFeed, aRow.getFeed(), 0.001);
-        assertEquals(tpv - 0.1, aRow.getPv(), 0.001); // Raw PV from row 1 (tpv - 0.1)
-    }
 
     /**
      * Tests processOneRow with maximum inverter load limitations.

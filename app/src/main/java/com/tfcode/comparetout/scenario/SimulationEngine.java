@@ -30,10 +30,12 @@ import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.LoadShift;
 import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
 import com.tfcode.comparetout.model.scenario.SimulationInputData;
+import com.tfcode.comparetout.scenario.sim.DispatchStrategy;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,17 +70,22 @@ public class SimulationEngine {
         M_NULL_BATTERY.setStorageLoss(0);
     }
 
+    /** Scenario-level overload using the default dispatch strategy (load &rarr; battery &rarr; grid). */
+    static void processOneRow(long scenarioID, ScenarioInputs scenario, ArrayList<ScenarioSimulationData> outputRows, int row, Map<Inverter, InputData> inputDataMap) {
+        processOneRow(scenarioID, scenario, DispatchStrategy.LOAD_BATTERY_GRID, outputRows, row, inputDataMap);
+    }
+
     /**
      * Processes a single simulation time step for all inverters in the scenario.
-     * Calculates energy flows (PV, battery, grid, diversions), updates state of charge,
-     * and records the results for later storage.
+     * Resolves each inverter's DC/AC bus (Phase 3) feeding a shared AC bus, then writes the row.
      * @param scenarioID The scenario ID.
      * @param scenario The scenario-level inputs (load export limit, hot water, EV) shared by all inverters.
+     * @param strategy The dispatch strategy for meeting load PV can't cover (battery-before-grid by default).
      * @param outputRows List to append simulation output data.
      * @param row The time step index.
      * @param inputDataMap Map of inverters to their input data and state.
      */
-    static void processOneRow(long scenarioID, ScenarioInputs scenario, ArrayList<ScenarioSimulationData> outputRows, int row, Map<Inverter, InputData> inputDataMap) {
+    static void processOneRow(long scenarioID, ScenarioInputs scenario, DispatchStrategy strategy, ArrayList<ScenarioSimulationData> outputRows, int row, Map<Inverter, InputData> inputDataMap) {
 
         /*
          * INPUT AND STATE INITIALIZATION
@@ -88,79 +95,33 @@ public class SimulationEngine {
         SimulationInputData inputRow = null;
         HWSystem hwSystem = scenario.mHWSystem;
         Boolean hwDivert = scenario.mHWDivert;
-        InputData firstInputData = null;
-        double inputLoad = 0d;
 
-        // SETUP SOC AND BATTERY
-        double batteryAvailableForDischarge = 0;
-        double batteryAvailableForCharge = 0;
-        double absoluteMinExcess = 0;
-        double totalMaxInverterLoad = 0;
-        if (row > 0) {
-            for (Map.Entry<Inverter,InputData> entry: inputDataMap.entrySet()) {
-                InputData iData = entry.getValue();
-                if (null == firstInputData) firstInputData = iData;
-                if (null == inputRow) inputRow = iData.simulationInputData.get(row);
-                if (null == iData.mBattery) {
-                    iData.soc = 0;
-                    iData.mBattery = M_NULL_BATTERY;
-                }
-                batteryAvailableForDischarge += iData.getDischargeCapacity(row);
-                batteryAvailableForCharge += iData.getChargeCapacity();
-                double iMinExcess = entry.getKey().getMinExcess();
-                if (iMinExcess > 0 && absoluteMinExcess == 0) absoluteMinExcess = iMinExcess;
-                else absoluteMinExcess = min( absoluteMinExcess, iMinExcess);
-                totalMaxInverterLoad += entry.getKey().getMaxInverterLoad();
+        // Initialise battery state: at row 0 each battery starts at its discharge-stop floor; a missing
+        // battery is replaced by the shared null battery so the rest of the code treats it uniformly.
+        for (Map.Entry<Inverter, InputData> entry : inputDataMap.entrySet()) {
+            InputData iData = entry.getValue();
+            if (null == inputRow) inputRow = iData.simulationInputData.get(row);
+            if (null == iData.mBattery) {
+                iData.soc = 0;
+                iData.mBattery = M_NULL_BATTERY;
             }
-        }
-        else { // Set initial SOC
-            for (Map.Entry<Inverter, InputData> entry: inputDataMap.entrySet()) {
-                InputData iData = entry.getValue();
-                if (null == firstInputData) firstInputData = iData;
-                if (null == inputRow) inputRow = iData.simulationInputData.get(row);
-                if (null == iData.mBattery) {
-                    iData.soc = 0;
-                    iData.mBattery = M_NULL_BATTERY;
-                }
-                iData.soc = iData.getDischargeStop();
-                batteryAvailableForDischarge += iData.getDischargeCapacity(row);
-                batteryAvailableForCharge += iData.getChargeCapacity();
-                double iMinExcess = entry.getKey().getMinExcess();
-                if (iMinExcess > 0 && absoluteMinExcess == 0) absoluteMinExcess = iMinExcess;
-                else absoluteMinExcess = min( absoluteMinExcess, iMinExcess);
-                totalMaxInverterLoad += entry.getKey().getMaxInverterLoad();
-            }
+            if (row == 0) iData.soc = iData.getDischargeStop();
         }
         if (null == inputRow) return;
 
         /*
-         * LOAD (Phase 2 — Bug 1 fix: load replication across inverters)
-         * Load is a scenario-level quantity: every inverter's InputData carries the SAME load series
-         * (each is fetched via getSimulationInputNoSolar(scenarioID)). The previous code summed it once
-         * per inverter, so an N-inverter scenario saw N x the real load. Count it exactly once from the
-         * representative inputRow. PV, by contrast, is genuinely per-inverter and is still summed below.
+         * LOAD (Phase 2 — Bug 1 fix): load is scenario-level. Every inverter's InputData carries the SAME
+         * load series, so count it exactly once from the representative inputRow. PV, by contrast, is
+         * genuinely per-inverter and is resolved per inverter in the energy-flow pass below.
          */
-        inputLoad = inputRow.getLoad();
+        double inputLoad = inputRow.getLoad();
 
-        /*
-          PV AGGREGATION
-          Calculate total and effective PV for all inverters, accounting for inverter losses.
-          This value is used to determine available local energy for the time step.
-         */
+        // Total PV (DC) for the output row; per-inverter PV is consumed in the energy-flow pass.
         double tPV = 0;
-        double effectivePV = 0;
-        for (Map.Entry<Inverter,InputData> entry: inputDataMap.entrySet()) {
-            SimulationInputData sid = entry.getValue().simulationInputData.get(row);
-            tPV += sid.tpv;
-            effectivePV += sid.tpv * entry.getValue().dc2acLoss;
-        }
+        for (Map.Entry<Inverter, InputData> entry : inputDataMap.entrySet())
+            tPV += entry.getValue().simulationInputData.get(row).tpv;
 
-        /*
-          GRID CHARGING (LOAD SHIFT)
-          If grid charging is scheduled, charge batteries from the grid and update the extra load.
-          This models user-configured load shifting behavior.
-         */
-        double locallyAvailable = effectivePV + batteryAvailableForDischarge;
+        // Grid charging (load shift): charge batteries from the grid where scheduled.
         double purchaseShiftingLoad = chargeBatteriesFromGridIfNeeded(inputDataMap, row);
 
         /*
@@ -209,54 +170,89 @@ public class SimulationEngine {
         outputRow.setPv(tPV);
 
         /*
-         * ENERGY FLOW SIMULATION
-         * Simulate the flow of energy for this time step:
-         * - If load exceeds local supply, buy from grid and discharge batteries as needed.
-         * - If local supply is sufficient, use PV and batteries to meet load, and charge batteries/feed excess.
-         * - Update battery SOC and record energy flows.
+         * ENERGY FLOW — per-inverter DC/AC bus resolution feeding a shared AC bus (Phase 3).
+         * For each inverter, in ascending index order: (1) PV serves the shared load via DC->AC, capped by
+         * the inverter's AC rating; (2) surplus PV charges its OWN battery via DC-DC FIRST, so PV beyond the
+         * AC rating is captured rather than clipped; (3) remaining PV feeds the grid within AC headroom and
+         * the shared export cap. Then, per the dispatch strategy, any remaining load is met from the
+         * batteries (DC-DC, DC->AC, within AC headroom) and/or the grid. See plans/sim/phase3-design.md.
          */
+        final double h = 1d / 12d;                 // 5-minute interval as a fraction of an hour
+        double exportCap = scenario.exportMax * h; // shared export headroom (kWh)
+
         double buy = purchaseShiftingLoad;
         double feed = 0;
         double b2g = 0;
         double pv2charge = 0;
-        double pv2load;
+        double pv2load = 0;
         double bat2Load = 0;
-        double totalSOC;
 
-        if (inputLoad >= locallyAvailable) {
-            buy += inputLoad - locallyAvailable;
-            pv2load = effectivePV;
-            double [] discharge = dischargeBatteries(inputDataMap, batteryAvailableForDischarge, row);
-            totalSOC = discharge[0];
-            bat2Load = discharge[1];
-        }
-        else { // we cover the load without the grid
-            if (inputLoad >= effectivePV) {
-                pv2load = effectivePV;
-                double [] discharge = dischargeBatteries(inputDataMap, (inputLoad - effectivePV), row);
-                totalSOC = discharge[0];
-                bat2Load = discharge[1];
+        double remLoad = inputLoad;   // shared AC load still to serve
+        double remExport = exportCap; // shared export headroom remaining
+
+        List<Map.Entry<Inverter, InputData>> sortedInverters = new ArrayList<>(inputDataMap.entrySet());
+        sortedInverters.sort(Comparator.comparingLong(en -> en.getKey().getInverterIndex()));
+
+        // Remaining AC throughput headroom per inverter this interval (Bug 3 fix: the AC rating now binds).
+        Map<InputData, Double> acRoom = new HashMap<>();
+        for (Map.Entry<Inverter, InputData> en : sortedInverters)
+            acRoom.put(en.getValue(), en.getKey().getMaxInverterLoad() * h);
+
+        // PASS 1: PV -> load, PV -> own battery (DC-DC), PV -> feed.
+        for (Map.Entry<Inverter, InputData> en : sortedInverters) {
+            InputData d = en.getValue();
+            double room = acRoom.get(d);
+            double pvDc = d.simulationInputData.get(row).tpv;
+
+            // (1) PV -> AC -> shared load
+            double toLoad = min(min(pvDc * d.dc2acLoss, room), remLoad);
+            if (toLoad > 0) {
+                pv2load += toLoad;
+                remLoad -= toLoad;
+                room -= toLoad;
+                pvDc -= toLoad / d.dc2acLoss;
             }
-            else { // there is extra pv to charge/feed
-                pv2load = inputLoad;
-                if ((effectivePV - inputLoad) > absoluteMinExcess){
-                    double charge = min((tPV - inputLoad), batteryAvailableForCharge);
-                    pv2charge = charge;
-                    totalSOC = chargeBatteries(inputDataMap, charge);
-                    feed = effectivePV - inputLoad - charge;
-                    if (totalMaxInverterLoad < (feed + charge)) {
-                        feed = totalMaxInverterLoad - charge;
-                    }
-                    feed = max(0, feed );
-                }
-                else {
-                    ScenarioSimulationData scenarioSimulationData = null;
-                    if (row > 0) scenarioSimulationData = outputRows.get(row - 1);
-                    if (!(null == scenarioSimulationData)) totalSOC = scenarioSimulationData.getSOC();
-                    else totalSOC = firstInputData.soc;
+
+            // (2) PV surplus (DC) -> own battery via DC-DC (captures PV the AC stage cannot pass)
+            double dcToBatt = min(pvDc, d.getChargeCapacity());
+            if (dcToBatt > 0) {
+                d.soc += dcToBatt * d.dc2dcLoss; // dc2dcLoss is the kept fraction
+                pv2charge += dcToBatt;
+                pvDc -= dcToBatt;
+            }
+
+            // (3) PV surplus -> AC -> feed, within AC headroom and the shared export cap.
+            //     minExcess suppresses micro-export (kept from the original model).
+            double pvAcFeed = min(min(pvDc * d.dc2acLoss, room), remExport);
+            if (pvAcFeed > en.getKey().getMinExcess()) {
+                feed += pvAcFeed;
+                room -= pvAcFeed;
+                remExport -= pvAcFeed;
+            }
+            // any remaining PV is curtailed (clipped)
+            acRoom.put(d, room);
+        }
+
+        // PASS 2: remaining load from battery (per strategy), then grid.
+        if (strategy.dischargeBatteryForLoad()) {
+            for (Map.Entry<Inverter, InputData> en : sortedInverters) {
+                if (remLoad <= 0) break;
+                InputData d = en.getValue();
+                double room = acRoom.get(d);
+                if (room <= 0) continue;
+                double dcAvail = d.getDischargeCapacity(row); // DC kWh available above the discharge stop
+                double acFromBatt = min(min(dcAvail * d.dc2dcLoss * d.dc2acLoss, room), remLoad);
+                if (acFromBatt > 0) {
+                    // DC drawn from the cells to deliver acFromBatt at AC, incl. storage loss (D2).
+                    double dcDrawn = (acFromBatt / (d.dc2dcLoss * d.dc2acLoss)) * (1 + d.storageLoss / 100d);
+                    d.soc -= dcDrawn;
+                    bat2Load += acFromBatt;
+                    remLoad -= acFromBatt;
+                    acRoom.put(d, room - acFromBatt);
                 }
             }
         }
+        buy += remLoad; // grid meets remaining load (soft-capped by gridImportMax — see design D4)
 
         outputRow.setBuy(buy);
         outputRow.setPvToCharge(pv2charge);
@@ -317,35 +313,34 @@ public class SimulationEngine {
 
         /*
          * FORCED DISCHARGE TO GRID
-         * If forced discharge to grid is scheduled, discharge batteries to the grid up to the allowed export limit.
-         * This models user-configured forced export events.
+         * Battery -> grid export for inverters scheduled to discharge now. Export draws on the shared export
+         * headroom that remains after PV feed and on the inverter's remaining AC headroom (D3); the cells give
+         * up DC including the DC-DC + DC->AC conversion and storage loss (D2).
          */
-        double maxExport = scenario.exportMax / 12D; // 5 minutes
-        double availableExport = Math.max(0d, maxExport - feed);
-        // Which inverters/batteries are set to discharge now
-        for (Map.Entry<Inverter, InputData> entry: inputDataMap.entrySet()) {
-            InputData inputData = entry.getValue();
-            ForceDischargeToGrid forceDischargeToGrid = inputData.mForceDischargeToGrid;
-            if (!(null == forceDischargeToGrid) && !(null == forceDischargeToGrid.mD2G) && forceDischargeToGrid.mD2G.get(row)){
-                double dischargeStopPercent = forceDischargeToGrid.mStopAt.get(row); // %
-                double dischargeStopKWh = (dischargeStopPercent / 100d) * inputData.mBattery.getBatterySize();
-                double currentSOC = inputData.soc; // kWh
-
-                // Discharge if there is capacity to export and the battery soc is above reserve
-                if (availableExport > 0 && currentSOC > dischargeStopKWh) {
-                    double wantedDischargeRate = forceDischargeToGrid.mRate.get(row) / 12D; // kW 5 minutes, max
-                    double batteryAvailable = Math.max(0d, currentSOC - dischargeStopKWh);
-                    double amountToDischarge = Math.min(Math.min(availableExport, batteryAvailable), wantedDischargeRate);
-                    double discharge = forceDischargeBatteries(inputData, amountToDischarge);
-
-                    totalSOC -= discharge;
-                    b2g += discharge;
-                    availableExport -= discharge;
-                    availableExport = Math.max(0d, availableExport);
-                    feed += b2g;
-                }
+        for (Map.Entry<Inverter, InputData> en : sortedInverters) {
+            InputData d = en.getValue();
+            ForceDischargeToGrid fd = d.mForceDischargeToGrid;
+            if (null == fd || null == fd.mD2G || !fd.mD2G.get(row)) continue;
+            double room = acRoom.get(d);
+            double stopKWh = (fd.mStopAt.get(row) / 100d) * d.mBattery.getBatterySize();
+            double soc = d.soc;
+            if (remExport <= 0 || room <= 0 || soc <= stopKWh) continue;
+            double wantedRate = fd.mRate.get(row) / 12D;                          // AC kWh this interval (max)
+            // DC available above the stop, expressed as deliverable AC.
+            double acFromAvailable = (soc - stopKWh) / (1 + d.storageLoss / 100d) * d.dc2dcLoss * d.dc2acLoss;
+            double acExport = min(min(min(remExport, room), wantedRate), acFromAvailable);
+            if (acExport > 0) {
+                double dcDrawn = (acExport / (d.dc2dcLoss * d.dc2acLoss)) * (1 + d.storageLoss / 100d);
+                d.soc -= dcDrawn;
+                b2g += acExport;
+                feed += acExport;
+                remExport -= acExport;
+                acRoom.put(d, room - acExport);
             }
         }
+
+        double totalSOC = 0;
+        for (Map.Entry<Inverter, InputData> en : sortedInverters) totalSOC += en.getValue().soc;
 
         outputRow.setBattery2Grid(b2g);
         outputRow.setSOC(totalSOC);
@@ -385,30 +380,6 @@ public class SimulationEngine {
     }
 
     /**
-     * Charges batteries in the scenario by distributing the available charge proportionally
-     * based on each battery's capacity. Updates state of charge for each battery.
-     * @param inputDataMap Map of inverters to their input data.
-     * @param charge Total charge to distribute (kWh).
-     * @return The sum of all batteries' state of charge after charging.
-     */
-    private static double chargeBatteries(Map<Inverter, InputData> inputDataMap, double charge) {
-        double lastSOC = 0;
-        double totalChargeCapacity = 0d;
-        for (Map.Entry<Inverter, InputData> entry: inputDataMap.entrySet())
-            totalChargeCapacity += entry.getValue().getChargeCapacity();
-
-        for (Map.Entry<Inverter, InputData> entry: inputDataMap.entrySet()) {
-            InputData iData = entry.getValue();
-            double batteryShare = 0;
-            if (totalChargeCapacity != 0) batteryShare = iData.getChargeCapacity() / totalChargeCapacity;
-            iData.soc += charge * batteryShare * iData.dc2dcLoss;
-            lastSOC += iData.soc;
-        }
-
-        return lastSOC;
-    }
-
-    /**
      * Charges batteries from the grid if scheduled and needed, based on user load shift schedules.
      * Only charges batteries that are below their stop threshold.
      * @param inputDataMap Map of inverters to their input data.
@@ -424,60 +395,14 @@ public class SimulationEngine {
                 double stopAtPercentage = inputData.mChargeFromGrid.mStopAt.get(row);
                 double stopAt = (stopAtPercentage / 100d) * inputData.mBattery.getBatterySize();
                 if (inputData.isCFG(row) && (inputData.soc < stopAt)) {
-                    chargeCapacity = inputData.getChargeCapacity();
-                    inputData.soc += chargeCapacity;
+                    // D5: grid charging crosses AC->DC then DC-DC, so less is stored than is bought.
+                    chargeCapacity = inputData.getChargeCapacity();           // AC drawn from the grid
+                    inputData.soc += chargeCapacity * inputData.ac2dcLoss * inputData.dc2dcLoss;
                     totalExtraLoad += chargeCapacity;
                 }
             }
         }
         return totalExtraLoad;
-    }
-
-    /**
-     * Discharges batteries to meet load, distributing the discharge proportionally
-     * based on each battery's available discharge capacity.
-     * Updates state of charge for each battery.
-     * @param inputDataMap Map of inverters to their input data.
-     * @param discharge Total discharge required (kWh).
-     * @param row The time step index.
-     * @return Array: [total SOC after discharge, total discharge amount].
-     */
-    private static double[] dischargeBatteries(Map<Inverter, InputData> inputDataMap, double discharge, int row) {
-        double[] ret = {0,0};
-        // Get the current charge landscape inverters with batteries & their current state
-        // Cannot discharge a battery that is empty!
-        // Allocate % of discharge to each battery
-        double totalDischargeCapacity = 0d;
-        for (Map.Entry<Inverter, InputData> entry: inputDataMap.entrySet())
-            totalDischargeCapacity += entry.getValue().getDischargeCapacity(row);
-
-        for (Map.Entry<Inverter, InputData> entry: inputDataMap.entrySet()) {
-            InputData iData = entry.getValue();
-            double batteryShare = 0;
-            if (totalDischargeCapacity != 0) batteryShare = iData.getDischargeCapacity(row) / totalDischargeCapacity;
-            double effectiveDischarge = discharge * batteryShare * (1 + entry.getValue().storageLoss/100d);
-            iData.soc -= effectiveDischarge;
-            ret[0] += iData.soc;
-            ret[1] += effectiveDischarge;
-        }
-
-        return ret;
-    }
-
-    /**
-     * Forces discharge of a single battery by a specified amount, used for forced export to grid.
-     * Applies storage loss to the discharge.
-     * @param inputData The input data for the inverter/battery.
-     * @param amountToDischarge The amount to discharge (kWh).
-     * @return The effective discharge applied.
-     */
-    private static double forceDischargeBatteries(InputData inputData, double amountToDischarge) {
-        double ret;
-        double effectiveDischarge = amountToDischarge * (1 + inputData.storageLoss/100d);
-        inputData.soc -= effectiveDischarge;
-        ret = effectiveDischarge;
-
-        return ret;
     }
 
     /**
