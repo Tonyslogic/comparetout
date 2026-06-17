@@ -39,6 +39,7 @@ import com.tfcode.comparetout.model.json.scenario.pgvis.Hourly;
 import com.tfcode.comparetout.model.json.scenario.pgvis.PvGISData;
 import com.tfcode.comparetout.model.scenario.Panel;
 import com.tfcode.comparetout.model.scenario.PanelData;
+import com.tfcode.comparetout.scenario.sim.SimTime;
 import com.tfcode.comparetout.util.ContractFileUtils;
 
 import java.io.FileNotFoundException;
@@ -49,7 +50,6 @@ import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -129,32 +129,29 @@ public class PVGISLoader extends Worker {
             DateTimeFormatter minFormat = DateTimeFormatter.ofPattern("HH:mm");
 
             DateTimeFormatter pvGisFormat = DateTimeFormatter.ofPattern("yyyyMMdd:HHmm");
-            ZoneId localZone = ZoneOffset.systemDefault();
 
             for(Hourly pp : pvGISData.hourlies.hourlies){
-                LocalDateTime saharaTZ = LocalDateTime.parse(pp.time, pvGisFormat);
-                LocalDateTime active = saharaTZ.atZone(ZoneOffset.UTC).withZoneSameInstant(localZone).toLocalDateTime();
-                active = active.minusHours(1);
-                boolean shift = false;
+                // PVGIS timestamps are UTC (SARAH/ERA5 per the PVGIS docs). Store the canonical UTC instant
+                // directly — no device-zone conversion and no hour fudge — then remap onto the synthetic 2001
+                // grid (keep month/day/HH:mm) so PV shares one UTC axis with the load and aligns row-for-row.
+                LocalDateTime utc = LocalDateTime.parse(pp.time, pvGisFormat);
+                double pvPerInterval = (pp.gi / 12d / MAGIC_NUMBER) * mPanel.getPanelCount() * mPanel.getPanelkWp();
                 for (int i = 0; i < 12; i++) {
-                    if (active.getYear() != saharaTZ.getYear()) {
-                        active = active.plusYears(1);
-                        shift = true;
-                    }
+                    LocalDateTime slot = utc.plusMinutes(5L * i);
+                    // 2001 is non-leap: drop Feb 29 from leap source years so the PV row count stays equal to
+                    // the load's (105120), keeping the positional PV/load merge aligned.
+                    if (slot.getMonthValue() == 2 && slot.getDayOfMonth() == 29) continue;
+                    LocalDateTime mapped = slot.withYear(2001);
                     PanelData row = new PanelData();
-                    row.setDo2001(active.getDayOfYear());
                     row.setPanelID(mPanel.getPanelIndex());
-                    row.setMinute(active.format(minFormat));
-                    row.setDow(active.getDayOfWeek().getValue());
-                    row.setMod(active.getHour() * 60 + active.getMinute());
-                    row.setPv( (pp.gi / 12d / MAGIC_NUMBER) * mPanel.getPanelCount() * mPanel.getPanelkWp());
-                    row.setDate(active.format(dateFormat));
+                    row.setDate(mapped.format(dateFormat));
+                    row.setMinute(mapped.format(minFormat));
+                    row.setMod(mapped.getHour() * 60 + mapped.getMinute());
+                    row.setDow(mapped.getDayOfWeek().getValue());
+                    row.setDo2001(mapped.getDayOfYear());
+                    row.setMillisSinceEpoch(SimTime.toEpochMillis(mapped, ZoneOffset.UTC));
+                    row.setPv(pvPerInterval);
                     panelDataList.add(row);
-                    if (shift) {
-                        active = active.minusYears(1);
-                        shift = false;
-                    }
-                    active = active.plusMinutes(5);
                 }
             }
 

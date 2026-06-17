@@ -30,8 +30,10 @@ import com.tfcode.comparetout.model.scenario.LoadShift;
 import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
 import com.tfcode.comparetout.model.scenario.SimulationInputData;
 import com.tfcode.comparetout.scenario.sim.DispatchStrategy;
+import com.tfcode.comparetout.scenario.sim.SimTime;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -138,6 +140,11 @@ public class SimulationEngine {
         outputRow.setMinuteOfDay(inputRow.getMod());
         outputRow.setDayOfWeek(inputRow.getDow());
         outputRow.setDayOf2001((inputRow.getDo2001()));
+        // Carry the canonical UTC instant onto the output. Use the stored value where present; derive it from
+        // date+mod (UTC) for legacy rows whose column is still NULL. No zone conversion happens in the sim.
+        Long inputMillis = inputRow.getMillisSinceEpoch();
+        outputRow.setMillisSinceEpoch(inputMillis != null ? inputMillis
+                : SimTime.fromDateAndMinuteOfDay(inputRow.getDate(), inputRow.getMod(), ZoneOffset.UTC));
         outputRow.setGridToBattery(purchaseShiftingLoad);
 
         /*

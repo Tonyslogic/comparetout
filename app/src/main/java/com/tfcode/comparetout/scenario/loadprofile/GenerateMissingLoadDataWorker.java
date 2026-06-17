@@ -32,11 +32,13 @@ import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
 import com.tfcode.comparetout.model.scenario.LoadProfileData;
+import com.tfcode.comparetout.scenario.sim.SimTime;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAdjusters;
@@ -100,6 +102,9 @@ public class GenerateMissingLoadDataWorker extends Worker {
                     row.setMinute(active.format(minFormat));
                     row.setDow(active.getDayOfWeek().getValue());
                     row.setMod(active.getHour() * 60 + active.getMinute());
+                    // Store the canonical UTC instant on ingestion. The synthetic 2001 wall clock is treated
+                    // as UTC (no zone conversion) so every stored grid — load and PV — shares one UTC axis.
+                    row.setMillisSinceEpoch(SimTime.toEpochMillis(active, ZoneOffset.UTC));
                     row.setLoad(genLoad(mLoadProfile, active.getMonth().getValue(),
                             active.getDayOfWeek().getValue(), active.getHour()));
                     rows.add(row);

@@ -26,6 +26,8 @@ public class SimulationInputData {
     @ColumnInfo(name= "dow") public int dow = 0;
     @ColumnInfo(name= "do2001") public int do2001 = 0;
     @ColumnInfo(name= "TPV") public double tpv = 0D;
+    // Nullable: legacy loadprofiledata rows predate the column; the engine derives it (UTC) at the boundary.
+    @ColumnInfo(name= "millisSinceEpoch") public Long millisSinceEpoch;
 
     public String getDate() {
         return date;
@@ -81,5 +83,13 @@ public class SimulationInputData {
 
     public void setTpv(double tpv) {
         this.tpv = tpv;
+    }
+
+    public Long getMillisSinceEpoch() {
+        return millisSinceEpoch;
+    }
+
+    public void setMillisSinceEpoch(Long millisSinceEpoch) {
+        this.millisSinceEpoch = millisSinceEpoch;
     }
 }

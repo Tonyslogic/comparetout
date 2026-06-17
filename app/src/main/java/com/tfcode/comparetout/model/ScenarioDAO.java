@@ -522,7 +522,7 @@ public abstract class ScenarioDAO {
     @Query("SELECT * FROM scenarios WHERE scenarioIndex = :scenarioID")
     public abstract Scenario getScenarioForID(long scenarioID);
 
-    @Query("SELECT A.date, A.minute, A.load, A.mod, A.dow, A.do2001, 0 AS TPV FROM " +
+    @Query("SELECT A.date, A.minute, A.load, A.mod, A.dow, A.do2001, 0 AS TPV, A.millisSinceEpoch FROM " +
             "(SELECT * FROM loadprofiledata WHERE loadProfileID = " +
             "(SELECT loadProfileID FROM scenario2loadprofile WHERE scenarioID = :scenarioID)) AS A ORDER BY A.date, A.mod")
     public abstract List<SimulationInputData> getSimulationInputNoSolar(long scenarioID);
