@@ -31,6 +31,7 @@ import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
 import com.tfcode.comparetout.model.scenario.SimulationInputData;
 import com.tfcode.comparetout.scenario.sim.DispatchStrategy;
 import com.tfcode.comparetout.scenario.sim.SimTime;
+import com.tfcode.comparetout.scenario.sim.TimeAxis;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -69,6 +70,24 @@ public class SimulationEngine {
         M_NULL_BATTERY.setMaxCharge(0);
         M_NULL_BATTERY.setInverter("");
         M_NULL_BATTERY.setStorageLoss(0);
+    }
+
+    /**
+     * Runs the simulation over a {@link TimeAxis}, returning one output row per interval (Phase 4b). The
+     * per-interval time-of-day and schedule logic is derived from each interval's UTC millis inside
+     * {@link #processOneRow}; the daily EV-divert accumulator is keyed by UTC epoch-day. With the default axis
+     * (built from the input series' own millis range at the 5-minute cadence) this reproduces the historical
+     * row-by-row run exactly — the engine is now period-agnostic and millis-driven rather than bound to a fixed
+     * 105,120-row year. Each interval is resolved by its index against the uniform, contiguous input series.
+     */
+    static ArrayList<ScenarioSimulationData> simulate(long scenarioID, ScenarioInputs scenario,
+                                                      TimeAxis axis, Map<Inverter, InputData> inputDataMap) {
+        ArrayList<ScenarioSimulationData> outputRows = new ArrayList<>();
+        int count = axis.intervalCount();
+        for (int row = 0; row < count; row++) {
+            processOneRow(scenarioID, scenario, null, outputRows, row, inputDataMap);
+        }
+        return outputRows;
     }
 
     /**
@@ -140,11 +159,19 @@ public class SimulationEngine {
         outputRow.setMinuteOfDay(inputRow.getMod());
         outputRow.setDayOfWeek(inputRow.getDow());
         outputRow.setDayOf2001((inputRow.getDo2001()));
-        // Carry the canonical UTC instant onto the output. Use the stored value where present; derive it from
-        // date+mod (UTC) for legacy rows whose column is still NULL. No zone conversion happens in the sim.
-        Long inputMillis = inputRow.getMillisSinceEpoch();
-        outputRow.setMillisSinceEpoch(inputMillis != null ? inputMillis
-                : SimTime.fromDateAndMinuteOfDay(inputRow.getDate(), inputRow.getMod(), ZoneOffset.UTC));
+        // The canonical UTC instant for this interval: the stored value, or derived from date+mod for legacy
+        // NULL rows. ALL time-of-day logic below is derived from this instant (month, day-of-week, minute-of-
+        // day, and the per-day EV-divert key) so the engine is driven by milliseconds rather than the row's
+        // wall-clock strings. No zone conversion happens in the sim — the grid is already UTC. The output
+        // wall-clock fields are still copied from the input row, so behaviour is unchanged for the 2001 grid.
+        long millis = (inputRow.getMillisSinceEpoch() != null) ? inputRow.getMillisSinceEpoch()
+                : SimTime.fromDateAndMinuteOfDay(inputRow.getDate(), inputRow.getMod(), ZoneOffset.UTC);
+        LocalDateTime intervalTime = SimTime.toLocalDateTime(millis, ZoneOffset.UTC);
+        int month = intervalTime.getMonthValue();
+        int dayOfWeek = intervalTime.getDayOfWeek().getValue();    // 1 (Mon) .. 7 (Sun), matching the model
+        int minuteOfDay = intervalTime.getHour() * 60 + intervalTime.getMinute();
+        int evDivertDay = (int) Math.floorDiv(millis, 86_400_000L); // UTC epoch-day: per-day EV-divert key
+        outputRow.setMillisSinceEpoch(millis);
         outputRow.setGridToBattery(purchaseShiftingLoad);
 
         /*
@@ -152,9 +179,7 @@ public class SimulationEngine {
          * Determine if scheduled EV charging or hot water heating should be applied for this time step,
          * and update the load accordingly.
          */
-        int month = Integer.parseInt(inputRow.getDate().split("-")[1]);
-
-        EVCharge evCharge = scenario.isEVCharging(inputRow.getDow(), month, inputRow.mod);
+        EVCharge evCharge = scenario.isEVCharging(dayOfWeek, month, minuteOfDay);
         double scheduledEVChargeLoad = 0;
         if (!(null == evCharge)) scheduledEVChargeLoad = evCharge.getDraw() / 12d;
         outputRow.setDirectEVcharge(scheduledEVChargeLoad);
@@ -163,13 +188,13 @@ public class SimulationEngine {
         double scheduledWaterLoad = 0;
         if (!outputRows.isEmpty()) previousWaterTemp = outputRows.get(row -1).getWaterTemp();
         double nowWaterTemp = previousWaterTemp;
-        boolean immersionIsOn = scenario.isHotWaterHeatingScheduled(inputRow.getDow(), month, inputRow.mod);
+        boolean immersionIsOn = scenario.isHotWaterHeatingScheduled(dayOfWeek, month, minuteOfDay);
         boolean hwDiversionIsOn = !(null == hwSystem) && !(null == hwDivert) && hwDivert;
         double draw = 0d;
         if (immersionIsOn && !(null == hwSystem)) draw = hwSystem.getHwRate() / 12d;
         if (immersionIsOn || !hwDiversionIsOn ) {
             if (!(null == hwSystem)){
-                HWSystem.Heat heat = hwSystem.heatWater(inputRow.mod, previousWaterTemp, draw);
+                HWSystem.Heat heat = hwSystem.heatWater(minuteOfDay, previousWaterTemp, draw);
                 scheduledWaterLoad = heat.kWhUsed;
                 nowWaterTemp = heat.temperature;
             }
@@ -281,8 +306,8 @@ public class SimulationEngine {
         double divertedToWater = 0;
         double divertedToEV = 0;
         // ELECTRIC VEHICLE
-        double totalEVDivertedThisDay = scenario.mEVDivertDailyTotals.computeIfAbsent(inputRow.do2001, k -> 0D);
-        EVDivert evDivert = scenario.getEVDivertOrNull(inputRow.getDow(), month, inputRow.mod);
+        double totalEVDivertedThisDay = scenario.mEVDivertDailyTotals.computeIfAbsent(evDivertDay, k -> 0D);
+        EVDivert evDivert = scenario.getEVDivertOrNull(dayOfWeek, month, minuteOfDay);
         if (!(null == evDivert)) {
             double maxEVDivert = evDivert.getDailyMax() - totalEVDivertedThisDay;
             if (evDivert.isActive()) {
@@ -290,7 +315,7 @@ public class SimulationEngine {
                     if (feed > evDivert.getMinimum()/12d) {
                         if (maxEVDivert > 0) {
                             divertedToEV = min (feed, maxEVDivert);
-                            scenario.mEVDivertDailyTotals.put(inputRow.do2001, totalEVDivertedThisDay + divertedToEV);
+                            scenario.mEVDivertDailyTotals.put(evDivertDay, totalEVDivertedThisDay + divertedToEV);
                             feed -= divertedToEV;
                         }
                     }
@@ -298,14 +323,14 @@ public class SimulationEngine {
                 }
                 else { // Water diversion must happen to reduce the feed
                     if ((!immersionIsOn) && hwDiversionIsOn) {
-                        HWSystem.Heat heat = hwSystem.heatWater(inputRow.mod, previousWaterTemp, feed);
+                        HWSystem.Heat heat = hwSystem.heatWater(minuteOfDay, previousWaterTemp, feed);
                         feed -= heat.kWhUsed;
                         nowWaterTemp = heat.temperature;
                         divertedToWater = heat.kWhUsed;
                         if (feed > evDivert.getMinimum()/12d) { // there may be some feed left fo the EV
                             if (maxEVDivert > 0) {
                                 divertedToEV = min (feed, maxEVDivert);
-                                scenario.mEVDivertDailyTotals.put(inputRow.do2001, totalEVDivertedThisDay + divertedToEV);
+                                scenario.mEVDivertDailyTotals.put(evDivertDay, totalEVDivertedThisDay + divertedToEV);
                                 feed -= divertedToEV;
                             }
                         }
@@ -315,7 +340,7 @@ public class SimulationEngine {
         }
         // WATER
         if ((!immersionIsOn) && hwDiversionIsOn) {
-            HWSystem.Heat heat = hwSystem.heatWater(inputRow.mod, previousWaterTemp, feed);
+            HWSystem.Heat heat = hwSystem.heatWater(minuteOfDay, previousWaterTemp, feed);
             feed -= heat.kWhUsed;
             nowWaterTemp = heat.temperature;
             divertedToWater = heat.kWhUsed;

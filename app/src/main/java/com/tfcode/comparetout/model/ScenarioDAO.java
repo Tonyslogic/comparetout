@@ -527,8 +527,9 @@ public abstract class ScenarioDAO {
             "(SELECT loadProfileID FROM scenario2loadprofile WHERE scenarioID = :scenarioID)) AS A ORDER BY A.date, A.mod")
     public abstract List<SimulationInputData> getSimulationInputNoSolar(long scenarioID);
 
-    @Query("SELECT pv FROM paneldata WHERE panelID = :panelID ORDER BY date, mod")
-    public abstract List<Double> getSimulationInputForPanel(long panelID);
+    @Query("SELECT date, minute, mod, dow, do2001, 0 AS load, pv AS TPV, millisSinceEpoch " +
+            "FROM paneldata WHERE panelID = :panelID ORDER BY date, mod")
+    public abstract List<SimulationInputData> getPVRowsForPanel(long panelID);
 
     @Insert(entity = ScenarioSimulationData.class)
     public abstract void saveSimulationDataForScenario(ArrayList<ScenarioSimulationData> simulationData);
@@ -954,8 +955,8 @@ public abstract class ScenarioDAO {
         deleteOrphanPanels();
     }
 
-    @Query("INSERT INTO paneldata (PanelID, date, minute, pv, mod, dow, do2001) " +
-            "SELECT :toPanelID, date, minute, pv, mod, dow, do2001 FROM paneldata " +
+    @Query("INSERT INTO paneldata (PanelID, date, minute, pv, mod, dow, do2001, millisSinceEpoch) " +
+            "SELECT :toPanelID, date, minute, pv, mod, dow, do2001, millisSinceEpoch FROM paneldata " +
             "WHERE panelID = :fromPanelID")
     public abstract void copyPanelData(long fromPanelID, long toPanelID);
 

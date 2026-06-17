@@ -468,8 +468,8 @@ public class ToutcRepository {
         return scenarioDAO.getSimulationInputNoSolar(scenarioID);
     }
 
-    public List<Double> getSimulationInputForPanel(long panelID) {
-        return scenarioDAO.getSimulationInputForPanel(panelID);
+    public List<SimulationInputData> getPVRowsForPanel(long panelID) {
+        return scenarioDAO.getPVRowsForPanel(panelID);
     }
 
 

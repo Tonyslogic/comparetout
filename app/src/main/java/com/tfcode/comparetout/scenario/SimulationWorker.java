@@ -17,7 +17,6 @@
 package com.tfcode.comparetout.scenario;
 
 import static com.tfcode.comparetout.MainActivity.CHANNEL_ID;
-import static java.lang.Double.max;
 
 import android.app.Application;
 import android.content.Context;
@@ -44,9 +43,11 @@ import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
 import com.tfcode.comparetout.model.scenario.SimulationInputData;
+import com.tfcode.comparetout.scenario.sim.SimTime;
+import com.tfcode.comparetout.scenario.sim.TimeAxis;
 
+import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,10 +68,6 @@ public class SimulationWorker extends Worker {
 
     private final ToutcRepository mToutcRepository;
     private final Context mContext;
-
-    // TODO: update DST if the simulation year or duration changes
-    private static final int DST_BEGIN = 25634;
-    private static final int DST_END = 25645;
 
     /**
      * Constructs a SimulationWorker.
@@ -200,11 +197,10 @@ public class SimulationWorker extends Worker {
                             List<SimulationInputData> simulationInputData = mToutcRepository.getSimulationInputNoSolar(scenarioID);
                             rowsToProcess = simulationInputData.size();
 
-                            List<Double> inverterPV = new ArrayList<>(Collections.nCopies(rowsToProcess, 0d));
-                            // get the total PV from all the panels related to the inverter
-                            getPVForInverter(scenarioComponents, rowsToProcess, inverter, inverterPV);
-                            // Populate the PV in the SimulationInputData and associate with inverter
-                            mergePVWithSimulationInputData(rowsToProcess, simulationInputData, inverterPV);
+                            // Aggregate this inverter's PV keyed by UTC millis, then merge it onto the load
+                            // series by matching millis (replaces the old positional + DST-magic merge).
+                            Map<Long, Double> inverterPVByMillis = getPVForInverterByMillis(scenarioComponents, inverter);
+                            mergePVByMillis(simulationInputData, inverterPVByMillis);
                             // Get connected battery (if any, and max 1)
                             Battery connectedBattery = null;
                             SimulationEngine.ForceDischargeToGrid connectedDischarge = null;
@@ -266,13 +262,16 @@ public class SimulationWorker extends Worker {
 
                     /*
                      * SIMULATION EXECUTION
-                     * For each time step, run the simulation logic to model energy flows, battery usage,
-                     * and diversions. Results are collected for later storage.
+                     * Drive the engine over a UTC TimeAxis covering the input series at the 5-minute cadence.
+                     * The axis is built from the data's own millis range, so this reproduces the historical
+                     * full-year run; the engine itself is now period-agnostic and millis-driven.
                      */
-                    ArrayList<ScenarioSimulationData> outputRows = new ArrayList<>();
-                    for (int row = 0; row < rowsToProcess; row++) {
-                        SimulationEngine.processOneRow(scenarioID, scenarioInputs, outputRows, row, inputDataMap);
-                    }
+                    List<SimulationInputData> axisSeries = inputDataMap.values().iterator().next().simulationInputData;
+                    long axisStart = millisOf(axisSeries.get(0));
+                    TimeAxis axis = TimeAxis.fiveMinute(axisStart,
+                            axisStart + (long) rowsToProcess * TimeAxis.FIVE_MINUTES_MILLIS);
+                    ArrayList<ScenarioSimulationData> outputRows =
+                            SimulationEngine.simulate(scenarioID, scenarioInputs, axis, inputDataMap);
 
                     /*
                      * RESULT STORAGE
@@ -322,49 +321,52 @@ public class SimulationWorker extends Worker {
 
     /**
      * Merges PV (photovoltaic) data into the simulation input data for each time step.
-     * Handles daylight saving time adjustments by shifting PV data as needed.
-     * @param rowsToProcess Number of time steps to process.
-     * @param simulationInputData List of simulation input data objects.
-     * @param inverterPV List of PV values for the inverter.
+     * Merges aggregated PV onto the load series by matching UTC millis (replaces the old positional merge
+     * with its 2001 DST magic — Bug 4). Both grids are UTC after ingestion, so equal instants line up; a load
+     * row with no PV for its instant gets zero. PV stored device-local before the UTC change won't match and
+     * should be re-loaded from PVGIS.
+     * @param simulationInputData The load series to populate with PV.
+     * @param pvByMillis Aggregated inverter PV keyed by UTC millis.
      */
-    private void mergePVWithSimulationInputData(int rowsToProcess, List<SimulationInputData> simulationInputData, List<Double> inverterPV) {
-        for (int row = 0; row < rowsToProcess; row++) {
-            if (row < DST_BEGIN)
-                simulationInputData.get(row).setTpv(inverterPV.get(row));
-            if (DST_BEGIN <= row &&  row <= DST_END)
-                simulationInputData.get(row).setTpv(0);
-            if (row > DST_END) {
-                simulationInputData.get(row).setTpv(inverterPV.get(row - 12));
-            }
+    static void mergePVByMillis(List<SimulationInputData> simulationInputData, Map<Long, Double> pvByMillis) {
+        for (SimulationInputData row : simulationInputData) {
+            row.setTpv(pvByMillis.getOrDefault(millisOf(row), 0d));
         }
     }
 
+    /** UTC millis for a row: the stored value, or derived from date + minute-of-day for legacy NULL rows. */
+    static long millisOf(SimulationInputData row) {
+        Long millis = row.getMillisSinceEpoch();
+        return (millis != null) ? millis
+                : SimTime.fromDateAndMinuteOfDay(row.getDate(), row.getMod(), ZoneOffset.UTC);
+    }
+
     /**
-     * Aggregates PV generation for a given inverter by summing or maximizing panel outputs
-     * depending on connection mode (parallel or optimized).
+     * Aggregates a single inverter's PV generation keyed by UTC millis. Within an MPPT, parallel panels add and
+     * optimized panels take the max; the MPPTs are then summed. Each panel row is keyed by its UTC millis.
      * @param scenarioComponents Scenario components containing panels.
-     * @param rowsToProcess Number of time steps.
      * @param inverter The inverter to aggregate PV for.
-     * @param inverterPV Output list to store aggregated PV values.
+     * @return PV (kWh per interval) keyed by UTC millis.
      */
-    private void getPVForInverter(ScenarioComponents scenarioComponents, int rowsToProcess, Inverter inverter, List<Double> inverterPV) {
+    private Map<Long, Double> getPVForInverterByMillis(ScenarioComponents scenarioComponents, Inverter inverter) {
+        Map<Long, Double> inverterPV = new HashMap<>();
         for (int mppt = 1; mppt <= inverter.getMpptCount(); mppt++) {
-            List<Double> mpptPV = new ArrayList<>(Collections.nCopies(rowsToProcess, 0d));
+            Map<Long, Double> mpptPV = new HashMap<>();
             for (Panel panel : scenarioComponents.panels) {
                 if (panel.getMppt() == mppt && panel.getInverter().equals(inverter.getInverterName())) {
-                    List<Double> panelPV = mToutcRepository.getSimulationInputForPanel(panel.getPanelIndex());
-                    if (panel.getConnectionMode() == Panel.PARALLEL)
-                        for (int row = 0; row < panelPV.size(); row++)
-                            mpptPV.set(row, mpptPV.get(row) + panelPV.get(row));
-                    else // Optimized
-                        for (int row = 0; row < panelPV.size(); row++)
-                            mpptPV.set(row, max(mpptPV.get(row), panelPV.get(row)));
+                    List<SimulationInputData> panelPV = mToutcRepository.getPVRowsForPanel(panel.getPanelIndex());
+                    boolean parallel = panel.getConnectionMode() == Panel.PARALLEL;
+                    for (SimulationInputData pvRow : panelPV) {
+                        long millis = millisOf(pvRow);
+                        if (parallel) mpptPV.merge(millis, pvRow.getTpv(), Double::sum);
+                        else mpptPV.merge(millis, pvRow.getTpv(), Math::max);
+                    }
                 }
             }
-            for (int row = 0; row < mpptPV.size(); row++) {
-                inverterPV.set(row, inverterPV.get(row) + mpptPV.get(row));
-            }
+            for (Map.Entry<Long, Double> e : mpptPV.entrySet())
+                inverterPV.merge(e.getKey(), e.getValue(), Double::sum);
         }
+        return inverterPV;
     }
 
     /**
