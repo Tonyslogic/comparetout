@@ -73,6 +73,12 @@ public class InverterBuilder {
         return losses(0, 0, 0);
     }
 
+    /** Per-inverter dispatch mode (see {@code Inverter.DISPATCH_*}). */
+    public InverterBuilder dispatchMode(int mode) {
+        inverter.setDispatchMode(mode);
+        return this;
+    }
+
     public Inverter build() {
         return inverter;
     }

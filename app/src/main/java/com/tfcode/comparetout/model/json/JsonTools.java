@@ -349,6 +349,8 @@ public class JsonTools {
         inverter.setDc2dcLoss(ij.dc2dcLoss);
         inverter.setMpptCount(ij.mPPTCount);
         inverter.setMinExcess(ij.minExcess);
+        // Null for scenarios exported before the dispatch-mode field existed -> default load->battery->grid.
+        inverter.setDispatchMode(ij.dispatchMode == null ? Inverter.DISPATCH_LOAD_BATTERY_GRID : ij.dispatchMode);
         return inverter;
     }
 
@@ -865,6 +867,7 @@ public class JsonTools {
         inverterJson.ac2dcLoss = inverter.getAc2dcLoss();
         inverterJson.dc2acLoss = inverter.getDc2acLoss();
         inverterJson.dc2dcLoss = inverter.getDc2dcLoss();
+        inverterJson.dispatchMode = inverter.getDispatchMode();
         return inverterJson;
     }
 

@@ -22,7 +22,10 @@ import android.text.InputType;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
+import android.widget.Spinner;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
@@ -183,6 +186,16 @@ public class InverterFragment extends Fragment {
                 }
             }
         }, params, integerType));
+        // Dispatch mode (Phase 4): the option index maps directly to Inverter.DISPATCH_* (0 / 1).
+        mTableLayout.addView(createSpinnerRow("Dispatch mode",
+                new String[]{"Battery before grid", "Grid before battery"},
+                mInverter.getDispatchMode(), params, position -> {
+                    if (position != mInverter.getDispatchMode()) {
+                        mInverter.setDispatchMode(position);
+                        ((InverterActivity) requireActivity()).updateInverterAtIndex(mInverter, mInverterIndex);
+                        ((InverterActivity) requireActivity()).setSaveNeeded(true);
+                    }
+                }));
     }
 
     private TableRow createRow(String title, String initialValue, AbstractTextWatcher action, TableRow.LayoutParams params, int inputType){
@@ -202,6 +215,41 @@ public class InverterFragment extends Fragment {
         b.setPadding(20, 20, 20, 20);
         tableRow.addView(a);
         tableRow.addView(b);
+        return tableRow;
+    }
+
+    private interface OnOptionSelected {
+        void onSelected(int position);
+    }
+
+    private TableRow createSpinnerRow(String title, String[] options, int selectedIndex,
+                                      TableRow.LayoutParams params, OnOptionSelected action) {
+        TableRow tableRow = new TableRow(getActivity());
+        TextView a = new TextView(getActivity());
+        a.setText(title);
+        a.setMinimumHeight(80);
+        a.setHeight(80);
+        a.setLayoutParams(params);
+
+        Spinner spinner = new Spinner(requireActivity());
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(requireActivity(),
+                android.R.layout.simple_spinner_item, options);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
+        if (selectedIndex >= 0 && selectedIndex < options.length) spinner.setSelection(selectedIndex);
+        spinner.setEnabled(mEdit);
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                action.onSelected(position);
+            }
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) { }
+        });
+        mEditFields.add(spinner);
+
+        tableRow.addView(a);
+        tableRow.addView(spinner);
         return tableRow;
     }
 

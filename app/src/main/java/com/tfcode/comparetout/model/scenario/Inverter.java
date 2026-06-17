@@ -17,11 +17,17 @@
 package com.tfcode.comparetout.model.scenario;
 
 import androidx.annotation.NonNull;
+import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
 @Entity(tableName = "inverters")
 public class Inverter implements Comparable<Inverter> {
+
+    /** Dispatch order: serve load, then discharge the battery, then import from the grid (legacy default). */
+    public static final int DISPATCH_LOAD_BATTERY_GRID = 0;
+    /** Dispatch order: serve load, then import from the grid, preserving the battery. */
+    public static final int DISPATCH_LOAD_GRID_BATTERY = 1;
 
     @PrimaryKey(autoGenerate = true)
     private long inverterIndex;
@@ -35,6 +41,11 @@ public class Inverter implements Comparable<Inverter> {
     private int ac2dcLoss = 5;
     private int dc2acLoss = 5;
     private int dc2dcLoss = 0;
+
+    // Per-inverter dispatch mode (Phase 4). Defaults to the legacy load->battery->grid order so existing
+    // scenarios are unchanged; the @ColumnInfo default lets Room auto-migrate the new NOT NULL column.
+    @ColumnInfo(defaultValue = "0")
+    private int dispatchMode = DISPATCH_LOAD_BATTERY_GRID;
 
     public long getInverterIndex() {
         return inverterIndex;
@@ -99,6 +110,14 @@ public class Inverter implements Comparable<Inverter> {
 
     public void setDc2dcLoss(int dc2dcLoss) {
         this.dc2dcLoss = dc2dcLoss;
+    }
+
+    public int getDispatchMode() {
+        return dispatchMode;
+    }
+
+    public void setDispatchMode(int dispatchMode) {
+        this.dispatchMode = dispatchMode;
     }
 
     @Override

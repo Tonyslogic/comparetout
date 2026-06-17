@@ -34,21 +34,39 @@ package com.tfcode.comparetout.scenario.sim;
  */
 public interface DispatchStrategy {
 
+    /** Persisted mode for {@link #LOAD_BATTERY_GRID} (matches {@code Inverter.DISPATCH_LOAD_BATTERY_GRID}). */
+    int MODE_LOAD_BATTERY_GRID = 0;
+    /** Persisted mode for {@link #LOAD_GRID_BATTERY} (matches {@code Inverter.DISPATCH_LOAD_GRID_BATTERY}). */
+    int MODE_LOAD_GRID_BATTERY = 1;
+
     /** Whether the battery is discharged to serve household load before importing from the grid. */
     boolean dischargeBatteryForLoad();
 
     /** Short stable identifier (for logging / future persistence). */
     String id();
 
+    /** Persisted dispatch-mode code for this strategy (see the {@code MODE_*} constants). */
+    int mode();
+
     /** Default order: load → battery → grid. */
     DispatchStrategy LOAD_BATTERY_GRID = new DispatchStrategy() {
         @Override public boolean dischargeBatteryForLoad() { return true; }
         @Override public String id() { return "LoadBatteryGrid"; }
+        @Override public int mode() { return MODE_LOAD_BATTERY_GRID; }
     };
 
     /** Alternative order: load → grid → battery (battery preserved). */
     DispatchStrategy LOAD_GRID_BATTERY = new DispatchStrategy() {
         @Override public boolean dischargeBatteryForLoad() { return false; }
         @Override public String id() { return "LoadGridBattery"; }
+        @Override public int mode() { return MODE_LOAD_GRID_BATTERY; }
     };
+
+    /**
+     * Resolves a persisted dispatch-mode code to its strategy. Unknown/legacy values fall back to the
+     * default {@link #LOAD_BATTERY_GRID}, so existing inverters keep their historical behaviour.
+     */
+    static DispatchStrategy fromMode(int mode) {
+        return (mode == MODE_LOAD_GRID_BATTERY) ? LOAD_GRID_BATTERY : LOAD_BATTERY_GRID;
+    }
 }

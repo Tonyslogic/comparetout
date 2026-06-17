@@ -9,7 +9,8 @@
 				"MPPTCount": 2,
 				"AC2DCLoss": 5,
 				"DC2ACLoss": 5,
-				"DC2DCLoss": 0
+				"DC2DCLoss": 0,
+				"DispatchMode": 0
 			}
 		],
 		"Batteries": [

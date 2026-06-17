@@ -69,9 +69,13 @@ public class SimulationEngine {
         M_NULL_BATTERY.setStorageLoss(0);
     }
 
-    /** Scenario-level overload using the default dispatch strategy (load &rarr; battery &rarr; grid). */
+    /**
+     * Scenario-level overload (production path). Each inverter uses its OWN dispatch strategy, read from its
+     * persisted dispatch mode (Phase 4). Inverters default to load &rarr; battery &rarr; grid, so existing
+     * scenarios are unchanged.
+     */
     static void processOneRow(long scenarioID, ScenarioInputs scenario, ArrayList<ScenarioSimulationData> outputRows, int row, Map<Inverter, InputData> inputDataMap) {
-        processOneRow(scenarioID, scenario, DispatchStrategy.LOAD_BATTERY_GRID, outputRows, row, inputDataMap);
+        processOneRow(scenarioID, scenario, null, outputRows, row, inputDataMap);
     }
 
     /**
@@ -79,12 +83,13 @@ public class SimulationEngine {
      * Resolves each inverter's DC/AC bus (Phase 3) feeding a shared AC bus, then writes the row.
      * @param scenarioID The scenario ID.
      * @param scenario The scenario-level inputs (load export limit, hot water, EV) shared by all inverters.
-     * @param strategy The dispatch strategy for meeting load PV can't cover (battery-before-grid by default).
+     * @param forcedStrategy If non-null, overrides every inverter's own dispatch strategy with this one (used
+     *        by tests to isolate a strategy). If null, each inverter uses its own {@link InputData#strategy}.
      * @param outputRows List to append simulation output data.
      * @param row The time step index.
      * @param inputDataMap Map of inverters to their input data and state.
      */
-    static void processOneRow(long scenarioID, ScenarioInputs scenario, DispatchStrategy strategy, ArrayList<ScenarioSimulationData> outputRows, int row, Map<Inverter, InputData> inputDataMap) {
+    static void processOneRow(long scenarioID, ScenarioInputs scenario, DispatchStrategy forcedStrategy, ArrayList<ScenarioSimulationData> outputRows, int row, Map<Inverter, InputData> inputDataMap) {
 
         /*
          * INPUT AND STATE INITIALIZATION
@@ -232,11 +237,14 @@ public class SimulationEngine {
             acRoom.put(d, room);
         }
 
-        // PASS 2: remaining load from battery (per strategy), then grid.
-        if (strategy.dischargeBatteryForLoad()) {
-            for (Map.Entry<Inverter, InputData> en : sortedInverters) {
-                if (remLoad <= 0) break;
-                InputData d = en.getValue();
+        // PASS 2: remaining load from battery (per the inverter's own strategy), then grid.
+        // Each inverter decides independently whether to discharge its battery before the grid covers the
+        // residual load; a non-null forcedStrategy overrides them all (test isolation).
+        for (Map.Entry<Inverter, InputData> en : sortedInverters) {
+            if (remLoad <= 0) break;
+            InputData d = en.getValue();
+            DispatchStrategy eff = (forcedStrategy != null) ? forcedStrategy : d.strategy;
+            if (eff.dischargeBatteryForLoad()) {
                 double room = acRoom.get(d);
                 if (room <= 0) continue;
                 double dcAvail = d.getDischargeCapacity(row); // DC kWh available above the discharge stop
@@ -392,6 +400,7 @@ public class SimulationEngine {
         final double ac2dcLoss;
         final double dc2dcLoss;
         final double storageLoss;
+        final DispatchStrategy strategy;
         List<SimulationInputData> simulationInputData;
         Battery mBattery;
         ChargeFromGrid mChargeFromGrid;
@@ -416,6 +425,7 @@ public class SimulationEngine {
             ac2dcLoss = (100d - inverter.getAc2dcLoss()) / 100d;
             dc2dcLoss = (100d - inverter.getDc2dcLoss()) / 100d;
             storageLoss = (null == battery) ? 0 : battery.getStorageLoss();
+            strategy = DispatchStrategy.fromMode(inverter.getDispatchMode());
             simulationInputData = iData;
             mBattery = battery;
             mChargeFromGrid = chargeFromGrid;

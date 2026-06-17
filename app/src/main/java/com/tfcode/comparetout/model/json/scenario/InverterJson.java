@@ -47,4 +47,10 @@ public class InverterJson {
     @SerializedName("DC2DCLoss")
     public
     Integer dc2dcLoss;
+
+    // Per-inverter dispatch mode (Phase 4): 0 = load->battery->grid (default), 1 = load->grid->battery.
+    // Optional/nullable so scenarios exported before this field round-trip to the default on import.
+    @SerializedName("DispatchMode")
+    public
+    Integer dispatchMode;
 }

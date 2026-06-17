@@ -191,4 +191,41 @@ public class SimulationEngineBusModelTest {
         assertEquals(0.5, outB.get(1).getBuy(), TOL);
         assertEquals(5.0, dB.soc, TOL);
     }
+
+    /**
+     * Phase 4: each inverter uses its OWN persisted dispatch mode (no forced strategy). One inverter set to
+     * load→battery→grid discharges its battery; a sibling set to load→grid→battery preserves its battery and
+     * lets the grid cover the residual load — within a single shared simulation.
+     */
+    @Test
+    public void perInverterDispatchModeIsHonoured() {
+        // inv1: battery-before-grid (default). inv2: grid-before-battery. Large AC rating so the cap is moot.
+        Inverter inv1 = InverterBuilder.anInverter().index(1).maxInverterLoad(50.0).lossless()
+                .dispatchMode(Inverter.DISPATCH_LOAD_BATTERY_GRID).build();
+        Inverter inv2 = InverterBuilder.anInverter().index(2).maxInverterLoad(50.0).lossless()
+                .dispatchMode(Inverter.DISPATCH_LOAD_GRID_BATTERY).build();
+        Battery b1 = BatteryBuilder.aBattery().index(1).size(10.0).dischargeStopPercent(0)
+                .maxChargeDischarge(1.0, 1.0).storageLossPercent(0).build();
+        Battery b2 = BatteryBuilder.aBattery().index(2).size(10.0).dischargeStopPercent(0)
+                .maxChargeDischarge(1.0, 1.0).storageLossPercent(0).build();
+        // Shared load 1.5, no PV. The load series is carried by both inverters but counted once by the engine.
+        SimulationEngine.InputData d1 = input(inv1, b1, 1.5, 0.0);
+        SimulationEngine.InputData d2 = input(inv2, b2, 1.5, 0.0);
+        Map<Inverter, SimulationEngine.InputData> map = new LinkedHashMap<>();
+        map.put(inv1, d1);
+        map.put(inv2, d2);
+
+        ArrayList<ScenarioSimulationData> out = new ArrayList<>();
+        SimulationEngine.processOneRow(ID, noScenarioExtras(0.0), out, 0, map); // production overload: per-inverter mode
+        d1.soc = 5.0;
+        d2.soc = 5.0;
+        SimulationEngine.processOneRow(ID, noScenarioExtras(0.0), out, 1, map);
+        ScenarioSimulationData r = out.get(1);
+
+        // inv1 discharges its battery for 1.0 (its maxDischarge); inv2 preserves its battery, grid covers 0.5.
+        assertEquals(1.0, r.getBatToLoad(), TOL);
+        assertEquals(0.5, r.getBuy(), TOL);
+        assertEquals("battery-before-grid inverter discharged", 4.0, d1.soc, TOL);
+        assertEquals("grid-before-battery inverter preserved its battery", 5.0, d2.soc, TOL);
+    }
 }
