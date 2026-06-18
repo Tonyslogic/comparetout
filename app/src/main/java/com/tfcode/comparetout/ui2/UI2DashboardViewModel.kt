@@ -718,10 +718,23 @@ class UI2DashboardViewModel @Inject constructor(
                         LocalDate.parse(dateRange!!.finishDate).toEpochDay() -
                             LocalDate.parse(dateRange.startDate).toEpochDay() + 1
                     }.getOrDefault(365L)
+                    // 4c: grid-import (MIC) soft-cap breaches — intervals where buy exceeds gridImportMax/12 kWh.
+                    // Derived on demand from stored sim data; no schema change. Null when there's no breach.
+                    val micBreaches = scenarioComponents?.loadProfile?.let { lp ->
+                        val cap = lp.gridImportMax / 12.0
+                        val count = repository.countGridImportBreaches(id, cap)
+                        if (count <= 0) null
+                        else MICBreachInfo(
+                            count = count,
+                            micKw = lp.gridImportMax,
+                            sample = repository.getTopGridImportBreaches(id, cap, 50)
+                                .map { MICBreach(it.date, it.minuteOfDay, it.buy * 12.0) }
+                        )
+                    }
                     Log.d("UI2", "fetched — scenarioName=${scenarioComponents?.scenario?.scenarioName} net=${bestCosting?.net} plans=${allCostings.size}")
                     DashboardData(scenarioComponents, bestCosting, simKPIs, hasPanelData,
                         allCostings = allCostings, planStandingCharges = planChargesMap,
-                        planActive = planActiveMap, simDays = simDays)
+                        planActive = planActiveMap, simDays = simDays, micBreaches = micBreaches)
                 })
             }
             is ActiveDashboardItem.DataSource -> flow {
@@ -966,5 +979,12 @@ data class DashboardData(
     val allCostings: List<Costings> = emptyList(),
     val planStandingCharges: Map<Long, Double> = emptyMap(),
     val planActive: Map<Long, Boolean> = emptyMap(),
-    val simDays: Long = 365L
+    val simDays: Long = 365L,
+    val micBreaches: MICBreachInfo? = null
 )
+
+/** A single grid-import (MIC) soft-cap breach interval for display (item 4c). */
+data class MICBreach(val date: String, val minuteOfDay: Int, val kw: Double)
+
+/** Summary of grid-import (MIC) breaches for the active scenario: total count, the MIC, and the worst sample. */
+data class MICBreachInfo(val count: Int, val micKw: Double, val sample: List<MICBreach>)

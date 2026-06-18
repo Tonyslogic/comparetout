@@ -327,12 +327,14 @@ class SnapshotImporter(private val application: Application) {
         // single ATTACH session. paneldata / loadprofiledata FK columns are
         // rewritten using the maps built in applyScenarios so the rows land
         // against the freshly-assigned panelIndex / loadProfileIndex.
+        val misalignedPanelIds = mutableListOf<Long>()
         val sourcesTouched = applyAttachedTables(
             staged,
             scenariosResult.panelIdMap,
             scenariosResult.loadProfileIdMap,
             stagingSysSns,
             replaceExisting,
+            misalignedPanelIds,
             warnings
         )
 
@@ -348,6 +350,29 @@ class SnapshotImporter(private val application: Application) {
         // columns are always present; only the values can be NULL). See plans/sim/timezone-and-rollout.md.
         runCatching { backfillMissingMillis(warnings) }
             .onFailure { warnings += "Could not backfill timestamps: ${it.message}" }
+
+        // Imported importer data may have been stamped in a different zone (another device, or an older build) —
+        // its non-NULL millis won't be touched by the NULL-only backfill above. So when sources were imported,
+        // re-anchor ALL importer rows to THIS device's saved zone by resetting and re-running the one-time
+        // re-stamp (REPLACE). It is idempotent and resumable, and reuses the dashboard migration banner for the
+        // visual indication. (PanelDataRefreshWorker is deliberately NOT re-run here — it wipes ALL paneldata,
+        // which would destroy correctly-imported PV; see plans/sim/timezone-and-rollout.md.)
+        if (sourcesTouched > 0) {
+            (application as? TOUTCApplication)?.let { app ->
+                runCatching {
+                    app.putStringValueIntoDataStore(TimezoneRestampWorker.DONE_KEY, "")
+                    app.putStringValueIntoDataStore(TimezoneRestampWorker.CURSOR_KEY, "")
+                }
+            }
+            runCatching { TimezoneRestampWorker.enqueue(application) }
+                .onFailure { warnings += "Could not schedule timezone alignment: ${it.message}" }
+        }
+
+        // Off-grid imported PV (skipped by copyPanelData) — refresh per panel: PVGIS panels refetch from
+        // lat/lon, source-derived panels are flagged for the user. Scoped to the imported panels — no global
+        // delete of existing PV.
+        runCatching { refreshMisalignedPanels(misalignedPanelIds, warnings) }
+            .onFailure { warnings += "Could not schedule panel refresh: ${it.message}" }
 
         // Discard the staging file once everything has been committed.
         staged.delete()
@@ -516,6 +541,7 @@ class SnapshotImporter(private val application: Application) {
         loadProfileIdMap: Map<Long, Long>,
         sysSns: Set<String>,
         replaceExisting: Boolean,
+        misalignedNewIds: MutableList<Long>,
         warnings: MutableList<String>
     ): Int {
         if (panelIdMap.isEmpty() && loadProfileIdMap.isEmpty() && sysSns.isEmpty()) return 0
@@ -542,7 +568,7 @@ class SnapshotImporter(private val application: Application) {
             try {
                 db.beginTransaction()
                 try {
-                    copyPanelData(db, panelIdMap, replaceExisting, warnings)
+                    copyPanelData(db, panelIdMap, replaceExisting, misalignedNewIds, warnings)
                     copyLoadProfileData(db, loadProfileIdMap, replaceExisting, warnings)
                     if (sysSns.isNotEmpty()) {
                         copySourceTables(db, sysSns, replaceExisting)
@@ -566,6 +592,7 @@ class SnapshotImporter(private val application: Application) {
         sql: android.database.sqlite.SQLiteDatabase,
         panelIdMap: Map<Long, Long>,
         replaceExisting: Boolean,
+        misalignedNewIds: MutableList<Long>,
         warnings: MutableList<String>
     ) {
         if (panelIdMap.isEmpty()) return
@@ -577,6 +604,21 @@ class SnapshotImporter(private val application: Application) {
         val conflictClause = if (replaceExisting) "OR REPLACE" else "OR IGNORE"
         panelIdMap.forEach { (oldId, newId) ->
             try {
+                // Only import PV that's on the canonical 2001 five-minute grid. A pre-fix snapshot may carry PV
+                // on the wrong grid (year 2019 / real source year, or a 00:01 minute offset) which would merge
+                // to zero under the millis-keyed merge. Detect that from the rows themselves and SKIP importing
+                // it — the panel is routed to a scoped refresh instead (PVGIS refetch / needs-regen flag), so we
+                // never need a destructive "delete all paneldata". Aligned panels (the normal current-build
+                // case) import as before; a null millis on an otherwise-2001 row is fine — Phase 4 backfills it.
+                val misaligned = sql.rawQuery(
+                    "SELECT COUNT(*) FROM staging.paneldata WHERE panelID = $oldId " +
+                        "AND (substr(date,1,4) <> '2001' OR mod % 5 <> 0)",
+                    null
+                ).use { c -> if (c.moveToFirst()) c.getLong(0) else 0L }
+                if (misaligned > 0L) {
+                    misalignedNewIds += newId
+                    return@forEach
+                }
                 sql.execSQL(
                     "INSERT $conflictClause INTO paneldata " +
                         "(panelID, date, minute, pv, mod, dow, do2001, millisSinceEpoch) " +
@@ -690,6 +732,50 @@ class SnapshotImporter(private val application: Application) {
         } finally {
             db.close()
         }
+    }
+
+    // ── Scoped refresh of off-grid imported panels ──────────────────────────
+
+    /**
+     * Refresh the imported panels whose PV [copyPanelData] skipped as off-grid. PVGIS panels (their `inverter`
+     * is NOT a known source serial) are refetched from their lat/lon via [com.tfcode.comparetout.ui2.PVGISDirectFetchWorker];
+     * source-derived panels (their `inverter` IS a source serial) can't be auto-regenerated — the original
+     * import window is gone — so their serials are flagged in the dashboard needs-regen list for the user to
+     * re-run import→generate. Scoped to the imported panels; never deletes existing PV.
+     */
+    private fun refreshMisalignedPanels(newPanelIds: List<Long>, warnings: MutableList<String>) {
+        if (newPanelIds.isEmpty()) return
+        val live = ToutcDB.getDatabase(application)
+        val scenarioDAO = live.scenarioDAO()
+        val sourceSerials = runCatching { live.alphaEssDAO().transformedDataSysSns }
+            .getOrDefault(emptyList()).toHashSet()
+        val needsRegen = linkedSetOf<String>()
+        var refetched = 0
+        newPanelIds.forEach { id ->
+            val panel = scenarioDAO.getPanelForID(id) ?: return@forEach
+            if (sourceSerials.contains(panel.inverter)) {
+                needsRegen += panel.inverter            // source-derived → user must re-import
+            } else {
+                com.tfcode.comparetout.ui2.PVGISDirectFetchWorker.enqueue(application, id)  // PVGIS → auto refetch
+                refetched++
+            }
+        }
+        if (refetched > 0) warnings += "Refreshing $refetched imported PVGIS panel(s) from PVGIS (off-grid data)."
+        if (needsRegen.isNotEmpty()) {
+            mergeNeedsRegen(needsRegen)
+            warnings += "${needsRegen.size} imported source(s) need re-importing to refresh solar data."
+        }
+    }
+
+    /** Union [add] into the dashboard's `paneldata_needs_regen_sources` CSV (read by the needs-regen banner). */
+    private fun mergeNeedsRegen(add: Set<String>) {
+        val app = application as? TOUTCApplication ?: return
+        val existing = runCatching { app.getStringValueFromDataStore("paneldata_needs_regen_sources") }
+            .getOrDefault("")
+        val set = linkedSetOf<String>()
+        existing.split(",").map { it.trim() }.filter { it.isNotEmpty() }.forEach { set += it }
+        set.addAll(add)
+        runCatching { app.putStringValueIntoDataStore("paneldata_needs_regen_sources", set.joinToString(",")) }
     }
 
     // ── Data-source management registration ─────────────────────────────────

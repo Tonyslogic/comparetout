@@ -53,16 +53,19 @@ import java.time.ZoneId;
  * {@link UserTimezoneStore#resolvedZone}. The wall-clock strings (the PK, and what Compare renders) are left
  * unchanged. In the same pass this also fills rows whose millis was never set (e.g. ESBN).
  *
- * <p><b>Large-dataset safe / resumable.</b> Rows are paged by {@code rowid} through a plain SQLite connection
- * (never loading the whole table into memory), each batch committed and the cursor persisted to DataStore. So a
- * kill — the WorkManager execution-time limit, an OOM, or a debugger restart — resumes from the last committed
- * cursor instead of restarting, and the run converges across launches. Progress and completion are logged under
- * tag {@code TzRestamp} and shown in a notification; the unique work {@code tz_restamp_v1} (visible in Android
- * Studio's Background Task Inspector) reaching SUCCEEDED, or the {@code tz_restamp_v1_done} DataStore flag, is the
- * authoritative "completed" signal.</p>
+ * <p><b>Why a separate SQLite connection (not Room's).</b> Writing through Room's own connection fires Room's
+ * <em>TEMP</em> invalidation triggers ({@code room_table_modification_log}), which break on WAL pooled
+ * connections and, on a bulk migration, fire per-row and churn every observer (the {@code SnapshotImporter}
+ * learned this the hard way). So we open a plain {@link SQLiteDatabase} — TEMP triggers are per-connection, so a
+ * separate connection neither fires them nor disturbs Room's observers (Compare picks the new values up on its
+ * next query). The earlier {@code SQLITE_BUSY} this caused (it competes with the sim/cost workers for the WAL
+ * write lock) is handled by {@code PRAGMA busy_timeout} — the connection waits for the lock instead of throwing.</p>
  *
- * <p>Lives in {@code com.tfcode.comparetout.model} so it can reach the package-private {@link ToutcDB#getDatabase}
- * (mirroring {@link SnapshotExporter}).</p>
+ * <p><b>Large-dataset safe / resumable.</b> Rows are paged by {@code rowid} (never loading the whole table), each
+ * batch committed and a {@code rowid} high-water mark persisted to DataStore, so a kill (time limit / debugger
+ * restart) resumes from the cursor and the run converges. Progress + completion are logged under tag
+ * {@code TzRestamp} and reported via {@link #setProgressAsync} (independent of notification permission).
+ * Completion = the unique work {@code tz_restamp_v1} SUCCEEDED, or the {@code tz_restamp_v1_done} flag.</p>
  */
 public class TimezoneRestampWorker extends Worker {
 
@@ -74,6 +77,8 @@ public class TimezoneRestampWorker extends Worker {
     private static final String UNIQUE_WORK = "tz_restamp_v1";
     private static final int BATCH = 2000;
     private static final int NOTIFICATION_ID = 2;
+    /** Wait this long for the WAL write lock before giving up (vs. throwing SQLITE_BUSY immediately). */
+    private static final long BUSY_TIMEOUT_MS = 30_000L;
 
     /** WorkManager progress keys — readable from the Background Task Inspector / a WorkInfo observer,
      *  independent of POST_NOTIFICATIONS (notifications are silently suppressed when it isn't granted). */
@@ -113,10 +118,6 @@ public class TimezoneRestampWorker extends Worker {
         ToutcDB room = ToutcDB.getDatabase(context);
         String dbPath = context.getDatabasePath(room.getOpenHelper().getDatabaseName()).getAbsolutePath();
 
-        // These rollout workers can run from Application.onCreate before MainActivity has created the shared
-        // channel; on API 26+ a notify() to a missing channel is silently dropped. Create it defensively
-        // (idempotent) so progress IS visible. Progress is also reported via setProgressAsync + logcat, which
-        // don't depend on notifications at all.
         ensureChannel(context);
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
@@ -130,6 +131,10 @@ public class TimezoneRestampWorker extends Worker {
 
         SQLiteDatabase db = SQLiteDatabase.openDatabase(dbPath, null, SQLiteDatabase.OPEN_READWRITE);
         try {
+            // Wait for the WAL write lock rather than failing fast — this connection competes with the
+            // sim/cost workers that write through Room. Resolves the SQLITE_BUSY churn (see class doc).
+            db.execSQL("PRAGMA busy_timeout = " + BUSY_TIMEOUT_MS);
+
             long total = count(db, "SELECT COUNT(*) FROM alphaESSTransformedData", null);
             long cursor = parseLong(app.getStringValueFromDataStore(CURSOR_KEY));
             long remaining = count(db, "SELECT COUNT(*) FROM alphaESSTransformedData WHERE rowid > ?",
@@ -199,7 +204,7 @@ public class TimezoneRestampWorker extends Worker {
                     Log.w(TAG, "Skipping unparseable row rowid=" + rid + " date='" + date
                             + "' minute='" + minute + "': " + rowError.getMessage());
                 }
-                lastBatchRowid = rid;   // advance past every row (incl. skipped), rows ordered by rowid
+                lastBatchRowid = rid;   // rows are ordered by rowid, so this ends as the batch max
                 n++;
             }
             db.setTransactionSuccessful();

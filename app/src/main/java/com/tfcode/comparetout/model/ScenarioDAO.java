@@ -60,6 +60,7 @@ import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.model.scenario.ScenarioLineGraphData;
 import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
 import com.tfcode.comparetout.model.scenario.SimKPIs;
+import com.tfcode.comparetout.model.scenario.MICBreachRow;
 import com.tfcode.comparetout.model.scenario.SimulationInputData;
 
 import java.util.ArrayList;
@@ -540,6 +541,15 @@ public abstract class ScenarioDAO {
     @Query("SELECT * FROM scenariosimulationdata WHERE scenarioID = :scenarioID " +
             "ORDER BY date, minuteOfDay")
     public abstract List<ScenarioSimulationData> getSimulationDataForScenario(long scenarioID);
+
+    /** Count of intervals whose grid import exceeded the MIC (item 4c). capPerInterval = gridImportMax/12 (kWh). */
+    @Query("SELECT COUNT(*) FROM scenariosimulationdata WHERE scenarioID = :scenarioID AND buy > :capPerInterval")
+    public abstract int countGridImportBreaches(long scenarioID, double capPerInterval);
+
+    /** The worst (highest-import) MIC-breach intervals for a scenario, capped at :limit (item 4c). */
+    @Query("SELECT date, minuteOfDay, buy AS buy FROM scenariosimulationdata " +
+            "WHERE scenarioID = :scenarioID AND buy > :capPerInterval ORDER BY buy DESC LIMIT :limit")
+    public abstract List<MICBreachRow> getTopGridImportBreaches(long scenarioID, double capPerInterval, int limit);
 
     @Query("UPDATE scenarios SET isActive = :checked WHERE scenarioIndex = :id")
     public abstract void updateScenarioActiveStatus(int id, boolean checked);

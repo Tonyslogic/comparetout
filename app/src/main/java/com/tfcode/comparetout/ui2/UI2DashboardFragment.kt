@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -56,6 +57,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
@@ -376,6 +378,93 @@ private fun MigrationStatusBanner(refreshKey: Any?) {
                 "This message disappears when the update is complete.",
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+// ── Grid-import (MIC) soft-cap breach flag (item 4c) ─────────────────────────
+// Shown in the simulation "Explore data" accordion when the run drew more from the grid than the scenario's
+// Maximum Import Capacity in one or more intervals. The model doesn't clamp grid import (the grid will deliver),
+// so this is surfaced as a fault to investigate. Tapping opens the worst breaching times so the user can open
+// the graphs for those days. Derived from stored data — no schema change.
+@Composable
+private fun MICBreachFlag(info: MICBreachInfo, showHints: Boolean) {
+    var showDialog by remember { mutableStateOf(false) }
+    val kwDf = remember { DecimalFormat("#,##0.0") }
+
+    Surface(
+        shape = RoundedCornerShape(10.dp),
+        color = StatusAmber.copy(alpha = 0.12f),
+        modifier = Modifier.fillMaxWidth().clickable { showDialog = true }
+    ) {
+        Row(
+            modifier = Modifier.padding(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(painterResource(R.drawable.ic_baseline_warning_24), null, Modifier.size(18.dp), tint = StatusAmber)
+            Column(Modifier.weight(1f)) {
+                Text("Grid import limit exceeded — ${info.count} interval(s)",
+                    style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                Text("Tap for the times this happened",
+                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+            }
+        }
+    }
+    if (showHints) {
+        Text(
+            "Grid import is limited by your supply's MIC (${kwDf.format(info.micKw)} kW). The model never clamps " +
+                "it, but flags any interval that exceeds it so you can spot breaker/fuse/penalty risk and decide " +
+                "whether to upgrade your connection or shift load.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 4.dp)
+        )
+    }
+
+    if (showDialog) {
+        Dialog(onDismissRequest = { showDialog = false }) {
+            Surface(shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
+                Column(Modifier.padding(16.dp)) {
+                    Text("Grid import limit exceeded", style = MaterialTheme.typography.titleMedium)
+                    Spacer(Modifier.height(8.dp))
+                    Text(
+                        "Your simulation drew more than your Maximum Import Capacity (MIC) of " +
+                            "${kwDf.format(info.micKw)} kW in ${info.count} five-minute interval(s). The model " +
+                            "still meets the load — the grid physically can — but in reality exceeding your MIC " +
+                            "can trip the main breaker, blow a fuse, or incur supplier penalties. Open the graphs " +
+                            "for these days to see what drove the peak; to fix it, raise your MIC or shift " +
+                            "flexible loads (EV / hot water) away from these times.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Text("Worst intervals", style = MaterialTheme.typography.labelMedium,
+                        fontWeight = FontWeight.SemiBold)
+                    Spacer(Modifier.height(4.dp))
+                    Column(
+                        modifier = Modifier.heightIn(max = 280.dp).verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        info.sample.forEach { b ->
+                            val hh = b.minuteOfDay / 60
+                            val mm = b.minuteOfDay % 60
+                            Text("%s  %02d:%02d — %s kW (limit %s)".format(
+                                b.date, hh, mm, kwDf.format(b.kw), kwDf.format(info.micKw)),
+                                style = MaterialTheme.typography.bodySmall)
+                        }
+                        if (info.count > info.sample.size) {
+                            Text("+ ${info.count - info.sample.size} more…",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                        TextButton(onClick = { showDialog = false }) { Text("Close") }
+                    }
+                }
+            }
         }
     }
 }
@@ -886,6 +975,10 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                                 }
                                 SimulationPieCharts(kpis = kpis)
                             }
+                        }
+                        dashboardData?.micBreaches?.let { micb ->
+                            Spacer(Modifier.height(8.dp))
+                            MICBreachFlag(micb, showHints)
                         }
                     }
 

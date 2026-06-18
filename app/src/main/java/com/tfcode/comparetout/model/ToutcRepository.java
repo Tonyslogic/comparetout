@@ -63,6 +63,7 @@ import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.model.scenario.ScenarioLineGraphData;
 import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
 import com.tfcode.comparetout.model.scenario.SimKPIs;
+import com.tfcode.comparetout.model.scenario.MICBreachRow;
 import com.tfcode.comparetout.model.scenario.SimulationInputData;
 
 import java.time.LocalDateTime;
@@ -470,6 +471,14 @@ public class ToutcRepository {
 
     public List<SimulationInputData> getPVRowsForPanel(long panelID) {
         return scenarioDAO.getPVRowsForPanel(panelID);
+    }
+
+    public int countGridImportBreaches(long scenarioID, double capPerInterval) {
+        return scenarioDAO.countGridImportBreaches(scenarioID, capPerInterval);
+    }
+
+    public List<MICBreachRow> getTopGridImportBreaches(long scenarioID, double capPerInterval, int limit) {
+        return scenarioDAO.getTopGridImportBreaches(scenarioID, capPerInterval, limit);
     }
 
 
