@@ -61,6 +61,10 @@ public class PVGISLoader extends Worker {
     private final Context mContext;
     private static final String TAG = "PVGISLoader";
 
+    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+    private static final DateTimeFormatter MIN_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
+    private static final DateTimeFormatter PVGIS_FORMAT = DateTimeFormatter.ofPattern("yyyyMMdd:HHmm");
+
     public PVGISLoader(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
         mContext = context;
@@ -125,34 +129,9 @@ public class PVGISLoader extends Worker {
             reader.close();
 
             ArrayList<PanelData> panelDataList = new ArrayList<>();
-            DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd");
-            DateTimeFormatter minFormat = DateTimeFormatter.ofPattern("HH:mm");
-
-            DateTimeFormatter pvGisFormat = DateTimeFormatter.ofPattern("yyyyMMdd:HHmm");
-
-            for(Hourly pp : pvGISData.hourlies.hourlies){
-                // PVGIS timestamps are UTC (SARAH/ERA5 per the PVGIS docs). Store the canonical UTC instant
-                // directly — no device-zone conversion and no hour fudge — then remap onto the synthetic 2001
-                // grid (keep month/day/HH:mm) so PV shares one UTC axis with the load and aligns row-for-row.
-                LocalDateTime utc = LocalDateTime.parse(pp.time, pvGisFormat);
-                double pvPerInterval = (pp.gi / 12d / MAGIC_NUMBER) * mPanel.getPanelCount() * mPanel.getPanelkWp();
-                for (int i = 0; i < 12; i++) {
-                    LocalDateTime slot = utc.plusMinutes(5L * i);
-                    // 2001 is non-leap: drop Feb 29 from leap source years so the PV row count stays equal to
-                    // the load's (105120), keeping the positional PV/load merge aligned.
-                    if (slot.getMonthValue() == 2 && slot.getDayOfMonth() == 29) continue;
-                    LocalDateTime mapped = slot.withYear(2001);
-                    PanelData row = new PanelData();
-                    row.setPanelID(mPanel.getPanelIndex());
-                    row.setDate(mapped.format(dateFormat));
-                    row.setMinute(mapped.format(minFormat));
-                    row.setMod(mapped.getHour() * 60 + mapped.getMinute());
-                    row.setDow(mapped.getDayOfWeek().getValue());
-                    row.setDo2001(mapped.getDayOfYear());
-                    row.setMillisSinceEpoch(SimTime.toEpochMillis(mapped, ZoneOffset.UTC));
-                    row.setPv(pvPerInterval);
-                    panelDataList.add(row);
-                }
+            for (Hourly pp : pvGISData.hourlies.hourlies) {
+                panelDataList.addAll(mapHourlyTo2001Rows(mPanel.getPanelIndex(), pp.time, pp.gi,
+                        mPanel.getPanelCount(), mPanel.getPanelkWp()));
             }
 
             builder.setProgress(PROGRESS_MAX, 60, false);
@@ -174,6 +153,44 @@ public class PVGISLoader extends Worker {
         }
 
         return Result.success();
+    }
+
+    /**
+     * Maps one PVGIS hourly reading onto the synthetic 2001 UTC grid as up to twelve 5-minute
+     * {@link PanelData} rows. PVGIS timestamps are UTC (SARAH/ERA5 per the PVGIS docs), so the instant is
+     * stored directly — no device-zone conversion and no hour fudge — with the year remapped to 2001
+     * (month/day/HH:mm kept). Feb 29 of a leap source year is dropped (2001 is non-leap) so the PV row count
+     * stays equal to the load's 105120 and the millis-keyed PV/load merge aligns; an hourly that falls
+     * entirely on Feb 29 therefore yields no rows. Pure (Android-free) so it can be unit-tested directly.
+     *
+     * @param panelIndex the owning panel's index (stored on each row)
+     * @param pvgisTime  the PVGIS {@code time} field, formatted {@code yyyyMMdd:HHmm} (UTC)
+     * @param giWhm2     the PVGIS {@code G(i)} global irradiance for the hour
+     * @param panelCount the panel count for this PV string
+     * @param panelkWp   the per-panel peak power (kWp)
+     * @return the 5-minute {@link PanelData} rows for this hour, on the 2001 UTC grid
+     */
+    static java.util.List<PanelData> mapHourlyTo2001Rows(long panelIndex, String pvgisTime, double giWhm2,
+                                                         int panelCount, double panelkWp) {
+        java.util.List<PanelData> rows = new ArrayList<>(12);
+        LocalDateTime utc = LocalDateTime.parse(pvgisTime, PVGIS_FORMAT);
+        double pvPerInterval = (giWhm2 / 12d / MAGIC_NUMBER) * panelCount * panelkWp;
+        for (int i = 0; i < 12; i++) {
+            LocalDateTime slot = utc.plusMinutes(5L * i);
+            if (slot.getMonthValue() == 2 && slot.getDayOfMonth() == 29) continue;
+            LocalDateTime mapped = slot.withYear(2001);
+            PanelData row = new PanelData();
+            row.setPanelID(panelIndex);
+            row.setDate(mapped.format(DATE_FORMAT));
+            row.setMinute(mapped.format(MIN_FORMAT));
+            row.setMod(mapped.getHour() * 60 + mapped.getMinute());
+            row.setDow(mapped.getDayOfWeek().getValue());
+            row.setDo2001(mapped.getDayOfYear());
+            row.setMillisSinceEpoch(SimTime.toEpochMillis(mapped, ZoneOffset.UTC));
+            row.setPv(pvPerInterval);
+            rows.add(row);
+        }
+        return rows;
     }
 
 

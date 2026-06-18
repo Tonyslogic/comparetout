@@ -73,21 +73,49 @@ public class SimulationEngine {
     }
 
     /**
-     * Runs the simulation over a {@link TimeAxis}, returning one output row per interval (Phase 4b). The
-     * per-interval time-of-day and schedule logic is derived from each interval's UTC millis inside
-     * {@link #processOneRow}; the daily EV-divert accumulator is keyed by UTC epoch-day. With the default axis
-     * (built from the input series' own millis range at the 5-minute cadence) this reproduces the historical
-     * row-by-row run exactly — the engine is now period-agnostic and millis-driven rather than bound to a fixed
-     * 105,120-row year. Each interval is resolved by its index against the uniform, contiguous input series.
+     * Runs the simulation over a {@link TimeAxis}, returning one output row per interval that has stored data
+     * (Phase 4b / b2.3). Each axis interval is resolved to its input row by <b>UTC millis</b> — the interval's
+     * instant is looked up against the input series' own millis, so the axis need not start at row 0 of the
+     * stored series. Window semantics (the chosen model): an axis interval whose instant has no stored data
+     * produces no row. The per-interval time-of-day and schedule logic is derived from that instant inside
+     * {@link #processOneRow}; the daily EV-divert accumulator is keyed by UTC epoch-day.
+     *
+     * <p>With the default axis (built from the input series' own millis range at the 5-minute cadence) every
+     * interval matches a stored row in order, so {@code indexByMillis.get(m)} equals the loop counter and the
+     * historical row-by-row run is reproduced exactly — golden-master byte-identical. A sub-range axis (a
+     * window within the stored period) simply resolves to the corresponding contiguous slice of stored rows.</p>
+     *
+     * <p>The resolved index also addresses the 2001-indexed {@code ChargeFromGrid}/{@code ForceDischargeToGrid}
+     * schedules: under window-within-2001 semantics the stored series <i>is</i> the 2001 grid, so the series
+     * index equals the 2001 index and the fixed-2001 schedule precompute remains exactly correct (tiling /
+     * multi-year spans, which would need axis-walked schedules, are out of scope per the captured decision).</p>
      */
     static ArrayList<ScenarioSimulationData> simulate(long scenarioID, ScenarioInputs scenario,
                                                       TimeAxis axis, Map<Inverter, InputData> inputDataMap) {
         ArrayList<ScenarioSimulationData> outputRows = new ArrayList<>();
+        if (inputDataMap.isEmpty()) return outputRows;
+
+        // Map each stored interval's UTC millis to its index in the input series. The inverters share one
+        // load grid (Bug 1 fix), so the representative series' index applies to every inverter and to the
+        // 2001-indexed schedules. Resolving by instant (not position) is what lets the axis be a window.
+        List<SimulationInputData> reference = inputDataMap.values().iterator().next().simulationInputData;
+        Map<Long, Integer> indexByMillis = new HashMap<>();
+        for (int i = 0; i < reference.size(); i++) indexByMillis.put(millisOf(reference.get(i)), i);
+
         int count = axis.intervalCount();
-        for (int row = 0; row < count; row++) {
-            processOneRow(scenarioID, scenario, null, outputRows, row, inputDataMap);
+        for (int i = 0; i < count; i++) {
+            Integer seriesIndex = indexByMillis.get(axis.intervalAt(i).getStartMillis());
+            if (seriesIndex == null) continue; // window: no stored data for this instant -> no row
+            processOneRow(scenarioID, scenario, null, outputRows, seriesIndex, inputDataMap);
         }
         return outputRows;
+    }
+
+    /** UTC millis for a row: the stored value, or derived from date + minute-of-day for legacy NULL rows. */
+    static long millisOf(SimulationInputData row) {
+        Long millis = row.getMillisSinceEpoch();
+        return (millis != null) ? millis
+                : SimTime.fromDateAndMinuteOfDay(row.getDate(), row.getMod(), ZoneOffset.UTC);
     }
 
     /**
@@ -121,8 +149,11 @@ public class SimulationEngine {
         HWSystem hwSystem = scenario.mHWSystem;
         Boolean hwDivert = scenario.mHWDivert;
 
-        // Initialise battery state: at row 0 each battery starts at its discharge-stop floor; a missing
-        // battery is replaced by the shared null battery so the rest of the code treats it uniformly.
+        // Initialise battery state: on the FIRST simulated interval each battery starts at its discharge-stop
+        // floor; a missing battery is replaced by the shared null battery so the rest of the code treats it
+        // uniformly. "First interval" is keyed off the output list, not the absolute row index, so a windowed
+        // axis (whose first interval may be a stored row K>0) still initialises correctly (Phase 4b/b2.3).
+        boolean firstInterval = outputRows.isEmpty();
         for (Map.Entry<Inverter, InputData> entry : inputDataMap.entrySet()) {
             InputData iData = entry.getValue();
             if (null == inputRow) inputRow = iData.simulationInputData.get(row);
@@ -130,7 +161,7 @@ public class SimulationEngine {
                 iData.soc = 0;
                 iData.mBattery = M_NULL_BATTERY;
             }
-            if (row == 0) iData.soc = iData.getDischargeStop();
+            if (firstInterval) iData.soc = iData.getDischargeStop();
         }
         if (null == inputRow) return;
 
@@ -186,7 +217,9 @@ public class SimulationEngine {
 
         double previousWaterTemp = 0;
         double scheduledWaterLoad = 0;
-        if (!outputRows.isEmpty()) previousWaterTemp = outputRows.get(row -1).getWaterTemp();
+        // Carry the previous interval's water temperature from the last output row (position-relative, so a
+        // windowed axis starting at stored row K>0 still finds its predecessor — Phase 4b/b2.3).
+        if (!outputRows.isEmpty()) previousWaterTemp = outputRows.get(outputRows.size() - 1).getWaterTemp();
         double nowWaterTemp = previousWaterTemp;
         boolean immersionIsOn = scenario.isHotWaterHeatingScheduled(dayOfWeek, month, minuteOfDay);
         boolean hwDiversionIsOn = !(null == hwSystem) && !(null == hwDivert) && hwDivert;

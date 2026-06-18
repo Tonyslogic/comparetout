@@ -101,4 +101,36 @@ public class SimulationEngineMillisDrivenTest {
 
         assertEquals(3, out.size());
     }
+
+    /**
+     * A sub-window axis (not starting at row 0) must resolve its input rows by the interval's UTC millis,
+     * not by loop position — so the engine picks the stored slice the window actually covers, and the
+     * first-interval battery/water-temp state is keyed off output position rather than an absolute index
+     * (Phase 4b/b2.3, window-within-2001 semantics).
+     */
+    @Test
+    public void simulateWindowResolvesRowsByMillis() {
+        // Six rows with distinct loads so each output can be traced back to its source row.
+        double[] loads = {0.0, 0.1, 0.2, 0.3, 0.4, 0.5};
+        double[] pvs = new double[6];
+        List<SimulationInputData> series = SimSeries.of(loads, pvs);
+        Inverter inverter = InverterBuilder.anInverter().index(1).lossless().build();
+        Map<Inverter, SimulationEngine.InputData> map = new LinkedHashMap<>();
+        map.put(inverter, new SimulationEngine.InputData(inverter, series, null, null, null));
+
+        // Window over stored rows 2, 3, 4 only.
+        long windowStart = SimulationEngine.millisOf(series.get(2));
+        TimeAxis axis = TimeAxis.fiveMinute(windowStart, windowStart + 3 * TimeAxis.FIVE_MINUTES_MILLIS);
+
+        ScenarioInputs scenario = new ScenarioInputs(null, false, null, null, null, 6.0);
+        List<ScenarioSimulationData> out = SimulationEngine.simulate(ID, scenario, axis, map);
+
+        assertEquals(3, out.size());
+        // Rows 2, 3, 4 — resolved by instant, not by the loop counter (which would have given 0, 1, 2).
+        assertEquals(0.2, out.get(0).getLoad(), TOL);
+        assertEquals(0.3, out.get(1).getLoad(), TOL);
+        assertEquals(0.4, out.get(2).getLoad(), TOL);
+        assertEquals(SimulationEngine.millisOf(series.get(2)), (long) out.get(0).getMillisSinceEpoch());
+        assertEquals(SimulationEngine.millisOf(series.get(4)), (long) out.get(2).getMillisSinceEpoch());
+    }
 }
