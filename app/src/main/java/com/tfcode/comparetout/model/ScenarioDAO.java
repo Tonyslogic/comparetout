@@ -811,8 +811,8 @@ public abstract class ScenarioDAO {
         deleteOrphanLoadProfiles();
     }
 
-    @Query("INSERT INTO loadProfiledata (loadProfileID, date, minute, load, mod, dow, do2001) " +
-            "SELECT :newLoadProfileID, date, minute, load, mod, dow, do2001 FROM loadProfiledata " +
+    @Query("INSERT INTO loadProfiledata (loadProfileID, date, minute, load, mod, dow, do2001, millisSinceEpoch) " +
+            "SELECT :newLoadProfileID, date, minute, load, mod, dow, do2001, millisSinceEpoch FROM loadProfiledata " +
             "WHERE loadProfileID = :oldLoadProfileID")
     public abstract void copyLoadProfileData(long oldLoadProfileID, long newLoadProfileID);
 

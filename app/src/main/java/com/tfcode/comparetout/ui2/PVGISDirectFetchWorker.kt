@@ -12,6 +12,7 @@ import com.google.gson.Gson
 import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.model.json.scenario.pgvis.PvGISData
 import com.tfcode.comparetout.model.scenario.PanelData
+import com.tfcode.comparetout.scenario.sim.SimTime
 import java.net.HttpURLConnection
 import java.net.URL
 import java.text.DecimalFormat
@@ -52,31 +53,29 @@ class PVGISDirectFetchWorker(
             val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
             val minFormat = DateTimeFormatter.ofPattern("HH:mm")
             val pvGisFormat = DateTimeFormatter.ofPattern("yyyyMMdd:HHmm")
-            val localZone = ZoneOffset.systemDefault()
 
             for (pp in pvGISData.hourlies.hourlies) {
-                val saharaTime = LocalDateTime.parse(pp.time, pvGisFormat)
-                var active = saharaTime.atZone(ZoneOffset.UTC)
-                    .withZoneSameInstant(localZone)
-                    .toLocalDateTime()
-                    .minusHours(1)
-                var shift = false
-                repeat(12) {
-                    if (active.year != saharaTime.year) {
-                        active = active.plusYears(1)
-                        shift = true
-                    }
+                // PVGIS timestamps are UTC (SARAH/ERA5 per the PVGIS docs). Store the canonical UTC instant
+                // directly — no device-zone conversion and no hour fudge — then remap onto the synthetic 2001
+                // grid (keep month/day/HH:mm) so PV shares one UTC axis with the load and merges row-for-row by
+                // millis. Mirrors PVGISLoader.mapHourlyTo2001Rows (the file-import path).
+                val utc = LocalDateTime.parse(pp.time, pvGisFormat)
+                val pvPerInterval = (pp.gi / 12.0 / MAGIC_NUMBER) * panel.panelCount * panel.panelkWp
+                for (i in 0 until 12) {
+                    val slot = utc.plusMinutes(5L * i)
+                    // 2001 is non-leap: drop Feb 29 so the PV row count stays equal to the load's 105120.
+                    if (slot.monthValue == 2 && slot.dayOfMonth == 29) continue
+                    val mapped = slot.withYear(2001)
                     val row = PanelData()
                     row.panelID = panelID
-                    row.date = active.format(dateFormat)
-                    row.minute = active.format(minFormat)
-                    row.mod = active.hour * 60 + active.minute
-                    row.dow = active.dayOfWeek.value
-                    row.do2001 = active.dayOfYear
-                    row.pv = (pp.gi / 12.0 / MAGIC_NUMBER) * panel.panelCount * panel.panelkWp
+                    row.date = mapped.format(dateFormat)
+                    row.minute = mapped.format(minFormat)
+                    row.mod = mapped.hour * 60 + mapped.minute
+                    row.dow = mapped.dayOfWeek.value
+                    row.do2001 = mapped.dayOfYear
+                    row.millisSinceEpoch = SimTime.toEpochMillis(mapped, ZoneOffset.UTC)
+                    row.pv = pvPerInterval
                     panelDataList.add(row)
-                    if (shift) { active = active.minusYears(1); shift = false }
-                    active = active.plusMinutes(5)
                 }
             }
 

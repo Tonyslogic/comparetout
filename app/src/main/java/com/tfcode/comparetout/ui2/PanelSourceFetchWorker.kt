@@ -19,7 +19,10 @@ import com.tfcode.comparetout.MainActivity
 import com.tfcode.comparetout.R
 import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.model.scenario.PanelData
+import com.tfcode.comparetout.scenario.sim.SimTime
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 /**
@@ -110,16 +113,23 @@ class PanelSourceFetchWorker(
             val out = ArrayList<PanelData>(samples.size)
             val dateFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd")
             samples.filter { it.pv > 0 }.forEach { row ->
+                val parts = row.minute.split(":")
+                val hh = parts.getOrNull(0)?.toIntOrNull() ?: 0
+                val mm = parts.getOrNull(1)?.toIntOrNull() ?: 0
+                val sourceDate = LocalDate.parse(row.date, dateFmt)
+                // Remap the source instant onto the synthetic 2001 UTC grid (keep month/day/HH:mm) so PV shares
+                // one UTC axis with the 2001 load and merges row-for-row by millis. 2001 is non-leap, so drop
+                // 29 Feb; this also wraps a source period that crosses a year boundary onto a single 2001 year.
+                if (sourceDate.monthValue == 2 && sourceDate.dayOfMonth == 29) return@forEach
+                val mapped = LocalDateTime.of(2001, sourceDate.monthValue, sourceDate.dayOfMonth, hh, mm)
                 val pd = PanelData()
                 pd.panelID = panelId
-                pd.date = row.date
+                pd.date = mapped.format(dateFmt)
                 pd.minute = row.minute
-                val parts = row.minute.split(":")
-                pd.mod = (parts.getOrNull(0)?.toIntOrNull() ?: 0) * 60 +
-                        (parts.getOrNull(1)?.toIntOrNull() ?: 0)
-                val date = LocalDate.parse(row.date, dateFmt)
-                pd.dow = date.dayOfWeek.value
-                pd.do2001 = date.dayOfYear
+                pd.mod = hh * 60 + mm
+                pd.dow = mapped.dayOfWeek.value
+                pd.do2001 = mapped.dayOfYear
+                pd.millisSinceEpoch = SimTime.toEpochMillis(mapped, ZoneOffset.UTC)
                 pd.pv = row.pv
                 out.add(pd)
             }

@@ -46,9 +46,11 @@ import com.tfcode.comparetout.model.scenario.Panel;
 import com.tfcode.comparetout.model.scenario.PanelData;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
+import com.tfcode.comparetout.scenario.sim.SimTime;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -378,6 +380,8 @@ public abstract class AbstractGenerationWorker extends Worker {
             row.setMinute(active.format(MIN_FORMAT));
             row.setDow(active.getDayOfWeek().getValue());
             row.setMod(active.getHour() * 60 + active.getMinute());
+            // Store the canonical UTC instant on the 2001 grid so load and PV share one UTC axis.
+            row.setMillisSinceEpoch(SimTime.toEpochMillis(active, ZoneOffset.UTC));
             // Not every 5 minute interval has data uploaded to AlphaESS
             Integer doy = active.getDayOfYear();
             String hhmm = row.getMinute();
@@ -458,12 +462,15 @@ public abstract class AbstractGenerationWorker extends Worker {
         double proportionOfPV = stringSize / totalPanelCount;
 
         ArrayList<PanelData> rows = new ArrayList<>();
-        
-        // Generate data for full year (2001 used as reference year)
-        LocalDateTime active = LocalDateTime.of(2001, 1, 1, 0, 1);
-        LocalDateTime dbActive = active.plusMinutes(-1);  // Data is offset by 1 minute
+
+        // Generate data for full year (2001 used as reference year). The panel rows MUST sit on exactly the
+        // same 2001 UTC grid as the load (00:00, 00:05, …): the simulation now merges PV onto the load by
+        // millis, so a stamp offset would land PV on an instant the load never has and silently drop it. The
+        // historical lookup uses the same grid times (the same keys the load path uses), so the data read is
+        // unchanged — only the previous 1-minute stamp offset is removed.
+        LocalDateTime active = LocalDateTime.of(2001, 1, 1, 0, 0);
         LocalDateTime end = LocalDateTime.of(2002, 1, 1, 0, 0);
-        
+
         // Generate data points for every 5-minute interval throughout the year
         while (active.isBefore(end)) {
             PanelData row = new PanelData();
@@ -473,14 +480,13 @@ public abstract class AbstractGenerationWorker extends Worker {
             row.setMinute(active.format(MIN_FORMAT));
             row.setDow(active.getDayOfWeek().getValue());
             row.setMod(active.getHour() * 60 + active.getMinute());
-            
-            // Retrieve historical PV data for this time period
-            // Note: Solar data is offset by one minute from load data
-            Integer doy = dbActive.getDayOfYear();
-            String hhmm = dbActive.format(MIN_FORMAT);
+            // Store the canonical UTC instant on the 2001 grid so load and PV share one UTC axis.
+            row.setMillisSinceEpoch(SimTime.toEpochMillis(active, ZoneOffset.UTC));
+
+            // Look up historical generation data (same grid keys as the load path) and scale by string share.
+            Integer doy = active.getDayOfYear();
+            String hhmm = row.getMinute();
             double pvToSet = 0D;
-            
-            // Look up historical generation data and scale by string proportion
             Map<String, AlphaESSTransformedData> aDay = dbLookup.get(doy);
             if (!(null == aDay)) {
                 AlphaESSTransformedData a5MinutePeriod = aDay.get(hhmm);
@@ -492,7 +498,6 @@ public abstract class AbstractGenerationWorker extends Worker {
 
             rows.add(row);
             active = active.plusMinutes(5);
-            dbActive = dbActive.plusMinutes(5);
         }
         report("Storing PV data");
 

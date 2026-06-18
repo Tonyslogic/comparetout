@@ -43,9 +43,11 @@ import com.tfcode.comparetout.model.scenario.LoadProfileData;
 import com.tfcode.comparetout.model.scenario.MonthlyDist;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
+import com.tfcode.comparetout.scenario.sim.SimTime;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -218,6 +220,8 @@ public class GenerationWorker extends Worker {
                 row.setMinute(active.format(MIN_FORMAT));
                 row.setDow(active.getDayOfWeek().getValue());
                 row.setMod(active.getHour() * 60 + active.getMinute());
+                // Store the canonical UTC instant on the 2001 grid so load and PV share one UTC axis.
+                row.setMillisSinceEpoch(SimTime.toEpochMillis(active, ZoneOffset.UTC));
                 // Not every 30 minute interval has data uploaded to AlphaESS
                 Integer doy = active.getDayOfYear();
                 LocalDateTime activeLookup;
