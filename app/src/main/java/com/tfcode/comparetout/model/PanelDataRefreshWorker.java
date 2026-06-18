@@ -18,8 +18,11 @@ package com.tfcode.comparetout.model;
 
 import static com.tfcode.comparetout.MainActivity.CHANNEL_ID;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
@@ -73,6 +76,7 @@ import java.util.Set;
  */
 public class PanelDataRefreshWorker extends Worker {
 
+    private static final String TAG = "PanelRefresh";
     public static final String DONE_KEY = "paneldata_refresh_v1_done";
     /** CSV of source serials whose panels need the user to re-run import&rarr;generate. */
     public static final String NEEDS_REGEN_KEY = "paneldata_needs_regen_sources";
@@ -83,9 +87,13 @@ public class PanelDataRefreshWorker extends Worker {
         super(context, workerParams);
     }
 
-    /** Enqueue the one-time refresh (no-op if already scheduled or done). Safe to call on every start. */
+    /**
+     * Enqueue the one-time refresh. Uses {@link ExistingWorkPolicy#REPLACE} (not KEEP) so a previous attempt
+     * stuck in retry-backoff doesn't block a relaunch; safe because it no-ops immediately once {@link #DONE_KEY}
+     * is set (and the work it does — delete + re-fetch + re-sim — is idempotent).
+     */
     public static void enqueue(@NonNull Context context) {
-        WorkManager.getInstance(context).enqueueUniqueWork(UNIQUE_WORK, ExistingWorkPolicy.KEEP,
+        WorkManager.getInstance(context).enqueueUniqueWork(UNIQUE_WORK, ExistingWorkPolicy.REPLACE,
                 new OneTimeWorkRequest.Builder(PanelDataRefreshWorker.class).build());
     }
 
@@ -96,6 +104,9 @@ public class PanelDataRefreshWorker extends Worker {
         TOUTCApplication app = (TOUTCApplication) context;
         if ("true".equals(app.getStringValueFromDataStore(DONE_KEY))) return Result.success();
 
+        // Runs from Application.onCreate, possibly before MainActivity creates the shared channel — create it
+        // defensively (idempotent) or the notification is silently dropped on API 26+.
+        ensureChannel(context);
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
                 .setContentTitle(context.getString(R.string.app_name))
@@ -122,14 +133,20 @@ public class PanelDataRefreshWorker extends Worker {
             List<OneTimeWorkRequest> refetch = new ArrayList<>();
             Set<String> needsRegen = new LinkedHashSet<>();
             for (Panel panel : scenarioDAO.getAllPanels()) {
-                if (sourceSerials.contains(panel.getInverter())) {
-                    // Source-derived: original generation window is gone — needs the user.
-                    needsRegen.add(panel.getInverter());
-                } else {
-                    // PVGIS: refetch from lat/lon (no file / no user input).
-                    Data input = new Data.Builder().putLong("panelID", panel.getPanelIndex()).build();
-                    refetch.add(new OneTimeWorkRequest.Builder(PVGISDirectFetchWorker.class)
-                            .setInputData(input).build());
+                try {
+                    if (sourceSerials.contains(panel.getInverter())) {
+                        // Source-derived: original generation window is gone — needs the user.
+                        needsRegen.add(panel.getInverter());
+                    } else {
+                        // PVGIS: refetch from lat/lon (no file / no user input).
+                        Data input = new Data.Builder().putLong("panelID", panel.getPanelIndex()).build();
+                        refetch.add(new OneTimeWorkRequest.Builder(PVGISDirectFetchWorker.class)
+                                .setInputData(input).build());
+                    }
+                } catch (Exception panelError) {
+                    // One bad panel must not abort (and then endlessly retry) the whole refresh — skip it.
+                    Log.w(TAG, "Skipping panel " + panel.getPanelIndex() + " during refresh: "
+                            + panelError.getMessage());
                 }
             }
 
@@ -166,6 +183,16 @@ public class PanelDataRefreshWorker extends Worker {
             // Not marked done — retries on a later start.
             return Result.retry();
         }
+    }
+
+    /** Defensively (re)create the shared progress channel — idempotent; safe before MainActivity has run. */
+    private void ensureChannel(Context context) {
+        NotificationManager nm = context.getSystemService(NotificationManager.class);
+        if (nm == null) return;
+        NotificationChannel channel = new NotificationChannel(CHANNEL_ID,
+                context.getString(R.string.channel_name), NotificationManager.IMPORTANCE_DEFAULT);
+        channel.setDescription(context.getString(R.string.channel_description));
+        nm.createNotificationChannel(channel);
     }
 
     private void notify(NotificationManagerCompat manager, NotificationCompat.Builder builder) {

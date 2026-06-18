@@ -46,6 +46,7 @@ import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -65,6 +66,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -120,6 +122,7 @@ import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.DecimalFormat
 import java.time.LocalDate
 
@@ -242,6 +245,137 @@ private fun SimulationStatusAccordion(
                     }
                 }
             }
+        }
+    }
+}
+
+// ── Solar-data-needs-refreshing banner ───────────────────────────────────────
+// After the millis rollout (PanelDataRefreshWorker, plans/sim/timezone-and-rollout.md), PVGIS panels are
+// auto-refetched but source-derived panels can't be — their serials are written to the
+// `paneldata_needs_regen_sources` DataStore key. This app-wide banner surfaces them so the user knows to
+// re-import those sources (their solar otherwise reads as zero). Dismiss clears the key.
+@Composable
+private fun NeedsRegenBanner(refreshKey: Any?) {
+    val context = LocalContext.current
+    val app = context.applicationContext as TOUTCApplication
+    val scope = rememberCoroutineScope()
+    var dismissed by remember { mutableStateOf(false) }
+    if (dismissed) return
+    val sources by produceState(initialValue = emptyList<String>(), refreshKey) {
+        value = withContext(Dispatchers.IO) {
+            runCatching { app.getStringValueFromDataStore("paneldata_needs_regen_sources") }
+                .getOrDefault("")
+                .split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        }
+    }
+    if (sources.isEmpty()) return
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = StatusAmber.copy(alpha = 0.12f))
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Icon(painterResource(R.drawable.ic_baseline_warning_24), null,
+                    Modifier.size(22.dp), tint = StatusAmber)
+                Text("Solar data needs refreshing",
+                    style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                "After this update, solar generation for these imported source(s) couldn't be refreshed " +
+                    "automatically and needs re-importing: ${sources.joinToString(", ")}.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(10.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = {
+                    context.startActivity(Intent(context, UI2DataSourceManagementActivity::class.java))
+                }) { Text("Manage sources") }
+                OutlinedButton(onClick = {
+                    scope.launch(Dispatchers.IO) {
+                        runCatching { app.putStringValueIntoDataStore("paneldata_needs_regen_sources", "") }
+                    }
+                    dismissed = true
+                }) { Text("Dismiss") }
+            }
+        }
+    }
+}
+
+// ── One-time data-migration status banner ────────────────────────────────────
+// The millis rollout runs two one-time background workers (TimezoneRestampWorker = tz_restamp_v1,
+// PanelDataRefreshWorker = paneldata_refresh_v1) from Application.onCreate. This banner gives an IN-APP signal of
+// their progress: it shows each one that is still pending/running (with live %), and hides once both are done —
+// so an absent banner means "fully migrated". "Done" is taken from the persisted DataStore flags (authoritative
+// even after WorkManager prunes finished work) OR a live SUCCEEDED WorkInfo.
+@Composable
+private fun MigrationStatusBanner(refreshKey: Any?) {
+    val context = LocalContext.current
+    val app = context.applicationContext as TOUTCApplication
+
+    val tzInfos by remember(context) {
+        WorkManager.getInstance(context).getWorkInfosForUniqueWorkLiveData("tz_restamp_v1")
+    }.observeAsState(emptyList())
+    val pdInfos by remember(context) {
+        WorkManager.getInstance(context).getWorkInfosForUniqueWorkLiveData("paneldata_refresh_v1")
+    }.observeAsState(emptyList())
+
+    // Re-read the persisted done flags whenever the dashboard refreshes or a worker's state changes.
+    val flags by produceState(initialValue = false to false, refreshKey, tzInfos, pdInfos) {
+        value = withContext(Dispatchers.IO) {
+            val tz = runCatching { app.getStringValueFromDataStore("tz_restamp_v1_done") }.getOrDefault("")
+            val pd = runCatching { app.getStringValueFromDataStore("paneldata_refresh_v1_done") }.getOrDefault("")
+            (tz == "true") to (pd == "true")
+        }
+    }
+
+    fun statusLine(label: String, doneFlag: Boolean, infos: List<WorkInfo>): String? {
+        if (doneFlag || infos.any { it.state == WorkInfo.State.SUCCEEDED }) return null  // complete → hide
+        val running = infos.firstOrNull { it.state == WorkInfo.State.RUNNING }
+        return when {
+            running != null -> {
+                val pct = running.progress.getInt("pct", -1)
+                if (pct >= 0) "$label — in progress ($pct%)" else "$label — in progress…"
+            }
+            infos.any { it.state == WorkInfo.State.ENQUEUED || it.state == WorkInfo.State.BLOCKED } ->
+                "$label — queued…"
+            else -> "$label — pending"
+        }
+    }
+
+    val lines = listOfNotNull(
+        statusLine("Timezone alignment", flags.first, tzInfos),
+        statusLine("Solar data refresh", flags.second, pdInfos)
+    )
+    if (lines.isEmpty()) return  // both migrations complete → nothing to show
+
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(top = 8.dp, bottom = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = StatusAmber.copy(alpha = 0.12f))
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
+                Text("Finishing a one-time data update",
+                    style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+            }
+            Spacer(Modifier.height(6.dp))
+            lines.forEach { line ->
+                Text(line, style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Spacer(Modifier.height(4.dp))
+            Text("Runs once after the update — you can keep using the app; figures fill in when it finishes. " +
+                "This message disappears when the update is complete.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -398,6 +532,11 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     .padding(horizontal = 16.dp)
                     .verticalScroll(rememberScrollState())
             ) {
+            // App-wide one-time-migration status: visible while the rollout workers run, gone once migrated.
+            MigrationStatusBanner(refreshKey = dashboardData)
+            // App-wide: sources whose solar couldn't be auto-refreshed after the millis rollout. Re-reads
+            // when the dashboard refreshes (dashboardData changes after the rollout re-sim completes).
+            NeedsRegenBanner(refreshKey = dashboardData)
             val pvPeriod    by viewModel.pvPeriod.observeAsState(DataSourcePeriod.ALL)
     val pvAnchor    by viewModel.pvAnchor.observeAsState(LocalDate.now())
     val pvChartData by viewModel.pvChartData.observeAsState(null)

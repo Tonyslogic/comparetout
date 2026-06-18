@@ -18,13 +18,19 @@ package com.tfcode.comparetout.model;
 
 import static com.tfcode.comparetout.MainActivity.CHANNEL_ID;
 
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+import androidx.work.Data;
 import androidx.work.ExistingWorkPolicy;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
@@ -33,44 +39,63 @@ import androidx.work.WorkerParameters;
 
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.TOUTCApplication;
-import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
 import com.tfcode.comparetout.ui2.UserTimezoneStore;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
-import java.util.List;
 
 /**
  * Phase 2 of the saved-timezone rollout (see {@code plans/sim/timezone-and-rollout.md}): a one-time pass that
- * re-anchors the already-imported {@code alphaESSTransformedData} rows to the saved zone.
+ * re-anchors the already-imported {@code alphaESSTransformedData} rows to the saved zone by recomputing
+ * {@code millisSinceEpoch} from each row's {@code date}+{@code minute} wall-clock interpreted in
+ * {@link UserTimezoneStore#resolvedZone}. The wall-clock strings (the PK, and what Compare renders) are left
+ * unchanged. In the same pass this also fills rows whose millis was never set (e.g. ESBN).
  *
- * <p>Each row's {@code date}/{@code minute} strings are the source system's local wall-clock (preserved through
- * the old device-zone round-trip for AlphaESS, or the raw HDF wall-clock for ESBN) and are what Compare renders;
- * they are <b>left unchanged</b> (the PK is {@code (sysSn, date, minute)}, so changing them would mean a risky
- * delete+reinsert). Instead the canonical {@code millisSinceEpoch} is recomputed as that wall-clock interpreted
- * in {@link UserTimezoneStore#resolvedZone}. This conforms existing data's instant to the saved zone and, in the
- * same pass, backfills ESBN rows whose millis was never set.</p>
+ * <p><b>Large-dataset safe / resumable.</b> Rows are paged by {@code rowid} through a plain SQLite connection
+ * (never loading the whole table into memory), each batch committed and the cursor persisted to DataStore. So a
+ * kill — the WorkManager execution-time limit, an OOM, or a debugger restart — resumes from the last committed
+ * cursor instead of restarting, and the run converges across launches. Progress and completion are logged under
+ * tag {@code TzRestamp} and shown in a notification; the unique work {@code tz_restamp_v1} (visible in Android
+ * Studio's Background Task Inspector) reaching SUCCEEDED, or the {@code tz_restamp_v1_done} DataStore flag, is the
+ * authoritative "completed" signal.</p>
  *
- * <p>Lives in {@code com.tfcode.comparetout.model} so it can reach the package-private
- * {@link ToutcDB#getDatabase} (mirroring {@link SnapshotExporter}) without editing the repository or DAO surface
- * beyond the read/update queries it needs. Guarded by a DataStore flag so it runs exactly once.</p>
+ * <p>Lives in {@code com.tfcode.comparetout.model} so it can reach the package-private {@link ToutcDB#getDatabase}
+ * (mirroring {@link SnapshotExporter}).</p>
  */
 public class TimezoneRestampWorker extends Worker {
 
-    /** DataStore flag: set once the re-stamp has completed, so it never runs again. */
+    private static final String TAG = "TzRestamp";
+    /** DataStore flag: set once the re-stamp has fully completed, so it never runs again. */
     public static final String DONE_KEY = "tz_restamp_v1_done";
+    /** DataStore high-water rowid: the last alphaESSTransformedData row re-stamped, for resume. */
+    public static final String CURSOR_KEY = "tz_restamp_v1_cursor";
     private static final String UNIQUE_WORK = "tz_restamp_v1";
-    private static final int BATCH = 5000;
+    private static final int BATCH = 2000;
+    private static final int NOTIFICATION_ID = 2;
+
+    /** WorkManager progress keys — readable from the Background Task Inspector / a WorkInfo observer,
+     *  independent of POST_NOTIFICATIONS (notifications are silently suppressed when it isn't granted). */
+    public static final String PROGRESS_PCT = "pct";
+    public static final String PROGRESS_DONE = "done";
+    public static final String PROGRESS_TOTAL = "total";
+
+    /** Max rowid touched by the most recent {@link #restampBatch} (rows are read in rowid order). */
+    private long lastBatchRowid;
 
     public TimezoneRestampWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
     }
 
-    /** Enqueue the one-time re-stamp (no-op if already scheduled or already done). Safe to call on every start. */
+    /**
+     * Enqueue the one-time re-stamp. Uses {@link ExistingWorkPolicy#REPLACE} (not KEEP): a previous attempt
+     * sitting in retry-backoff is non-terminal and would block a KEEP enqueue indefinitely (the backoff grows
+     * to hours). REPLACE clears any stuck/backing-off instance on each launch and starts fresh — safe because
+     * the run resumes from its persisted {@link #CURSOR_KEY} and no-ops immediately once {@link #DONE_KEY} is set.
+     */
     public static void enqueue(@NonNull Context context) {
-        WorkManager.getInstance(context).enqueueUniqueWork(UNIQUE_WORK, ExistingWorkPolicy.KEEP,
+        WorkManager.getInstance(context).enqueueUniqueWork(UNIQUE_WORK, ExistingWorkPolicy.REPLACE,
                 new OneTimeWorkRequest.Builder(TimezoneRestampWorker.class).build());
     }
 
@@ -79,11 +104,20 @@ public class TimezoneRestampWorker extends Worker {
     public Result doWork() {
         Context context = getApplicationContext();
         TOUTCApplication app = (TOUTCApplication) context;
-        if ("true".equals(app.getStringValueFromDataStore(DONE_KEY))) return Result.success();
+        if ("true".equals(app.getStringValueFromDataStore(DONE_KEY))) {
+            Log.i(TAG, "Already complete — nothing to do.");
+            return Result.success();
+        }
 
         ZoneId zone = UserTimezoneStore.resolvedZone(context);
-        AlphaEssDAO dao = ToutcDB.getDatabase(context).alphaEssDAO();
+        ToutcDB room = ToutcDB.getDatabase(context);
+        String dbPath = context.getDatabasePath(room.getOpenHelper().getDatabaseName()).getAbsolutePath();
 
+        // These rollout workers can run from Application.onCreate before MainActivity has created the shared
+        // channel; on API 26+ a notify() to a missing channel is silently dropped. Create it defensively
+        // (idempotent) so progress IS visible. Progress is also reported via setProgressAsync + logcat, which
+        // don't depend on notifications at all.
+        ensureChannel(context);
         NotificationManagerCompat notificationManager = NotificationManagerCompat.from(context);
         NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
                 .setContentTitle(context.getString(R.string.app_name))
@@ -91,47 +125,123 @@ public class TimezoneRestampWorker extends Worker {
                 .setSmallIcon(R.drawable.housetick)
                 .setPriority(NotificationCompat.PRIORITY_LOW)
                 .setOnlyAlertOnce(true)
+                .setOngoing(true)
                 .setSilent(true);
 
+        SQLiteDatabase db = SQLiteDatabase.openDatabase(dbPath, null, SQLiteDatabase.OPEN_READWRITE);
         try {
-            List<String> sysSns = dao.getTransformedDataSysSns();
-            int total = sysSns.size();
-            int done = 0;
-            for (String sysSn : sysSns) {
-                builder.setProgress(Math.max(total, 1), done, false)
-                        .setContentText("Aligning timezone: " + sysSn);
-                notify(notificationManager, builder);
+            long total = count(db, "SELECT COUNT(*) FROM alphaESSTransformedData", null);
+            long cursor = parseLong(app.getStringValueFromDataStore(CURSOR_KEY));
+            long remaining = count(db, "SELECT COUNT(*) FROM alphaESSTransformedData WHERE rowid > ?",
+                    new String[]{Long.toString(cursor)});
+            long done = total - remaining;
+            Log.i(TAG, "Start: total=" + total + " alreadyDone=" + done + " resumeFromRowid=" + cursor
+                    + " zone=" + zone);
+            setProgressAsync(progress(done, total));
 
-                List<AlphaESSTransformedData> rows = dao.getAllTransformedDataForSysSn(sysSn);
-                for (AlphaESSTransformedData row : rows) {
-                    row.setMillisSinceEpoch(toMillis(row.getDate(), row.getMinute(), zone));
+            while (true) {
+                if (isStopped()) {
+                    Log.i(TAG, "Stopped at rowid=" + cursor + " (done=" + done + "/" + total
+                            + ") — will resume on next run.");
+                    return Result.retry();
                 }
-                // Update in batches to bound transaction/memory size on large sources.
-                for (int i = 0; i < rows.size(); i += BATCH) {
-                    dao.updateTransformedData(rows.subList(i, Math.min(i + BATCH, rows.size())));
-                }
-                done++;
+                int n = restampBatch(db, zone, cursor);
+                if (n == 0) break;          // no more rows after the cursor → finished
+                cursor = lastBatchRowid;    // max rowid the batch just committed
+                done += n;
+                app.putStringValueIntoDataStore(CURSOR_KEY, Long.toString(cursor));
+
+                int pct = total > 0 ? (int) Math.min(100, (done * 100) / total) : 0;
+                Log.i(TAG, "Batch committed: rowid=" + cursor + " done=" + done + "/" + total + " (" + pct + "%)");
+                setProgressAsync(progress(done, total));
+                builder.setProgress(100, pct, false)
+                        .setContentText("Aligning timezone… " + done + " / " + total);
+                notify(notificationManager, builder);
             }
+
             app.putStringValueIntoDataStore(DONE_KEY, "true");
-            builder.setProgress(0, 0, false).setContentText("Timezone alignment complete");
+            app.putStringValueIntoDataStore(CURSOR_KEY, "");
+            Log.i(TAG, "Complete: re-stamped " + total + " rows.");
+            builder.setProgress(0, 0, false).setOngoing(false)
+                    .setContentText("Timezone alignment complete");
             notify(notificationManager, builder);
             return Result.success();
         } catch (Exception e) {
-            e.printStackTrace();
-            // Not marked done — it will retry on a later start.
-            return Result.retry();
+            Log.e(TAG, "Re-stamp failed; will retry (cursor persisted).", e);
+            return Result.retry();   // not marked done — resumes from the persisted cursor
+        } finally {
+            db.close();
         }
     }
 
-    /** UTC millis for a stored wall-clock ({@code yyyy-MM-dd} + {@code HH:mm}) interpreted in {@code zone}. */
-    private static long toMillis(String date, String minute, ZoneId zone) {
-        LocalDateTime ldt = LocalDateTime.of(LocalDate.parse(date), LocalTime.parse(minute));
-        return ldt.atZone(zone).toInstant().toEpochMilli();
+    /**
+     * Re-stamp up to {@link #BATCH} rows whose rowid is greater than {@code afterRowid}, in one transaction.
+     * Returns the number of rows updated (0 when none remain). Bounded memory: only the page is read.
+     */
+    private int restampBatch(SQLiteDatabase db, ZoneId zone, long afterRowid) {
+        int n = 0;
+        db.beginTransaction();
+        try (Cursor c = db.rawQuery(
+                "SELECT rowid, date, minute FROM alphaESSTransformedData WHERE rowid > ? ORDER BY rowid LIMIT ?",
+                new String[]{Long.toString(afterRowid), Integer.toString(BATCH)})) {
+            while (c.moveToNext()) {
+                long rid = c.getLong(0);
+                String date = c.getString(1);
+                String minute = c.getString(2);
+                try {
+                    long millis = LocalDateTime.of(LocalDate.parse(date), LocalTime.parse(minute))
+                            .atZone(zone).toInstant().toEpochMilli();
+                    db.execSQL("UPDATE alphaESSTransformedData SET millisSinceEpoch = ? WHERE rowid = ?",
+                            new Object[]{millis, rid});
+                } catch (Exception rowError) {
+                    // A malformed date/minute must not poison the whole migration — skip it (leaving its
+                    // millis as-is) and advance, so the run still converges. Logged for diagnosis.
+                    Log.w(TAG, "Skipping unparseable row rowid=" + rid + " date='" + date
+                            + "' minute='" + minute + "': " + rowError.getMessage());
+                }
+                lastBatchRowid = rid;   // advance past every row (incl. skipped), rows ordered by rowid
+                n++;
+            }
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+        return n;
+    }
+
+    private long count(SQLiteDatabase db, String sql, String[] args) {
+        try (Cursor c = db.rawQuery(sql, args)) {
+            return c.moveToFirst() ? c.getLong(0) : 0L;
+        }
+    }
+
+    private long parseLong(String s) {
+        if (s == null || s.isEmpty()) return 0L;
+        try { return Long.parseLong(s); } catch (NumberFormatException e) { return 0L; }
+    }
+
+    private Data progress(long done, long total) {
+        int pct = total > 0 ? (int) Math.min(100, (done * 100) / total) : 0;
+        return new Data.Builder()
+                .putInt(PROGRESS_PCT, pct)
+                .putLong(PROGRESS_DONE, done)
+                .putLong(PROGRESS_TOTAL, total)
+                .build();
+    }
+
+    /** Defensively (re)create the shared progress channel — idempotent; safe before MainActivity has run. */
+    private void ensureChannel(Context context) {
+        NotificationManager nm = context.getSystemService(NotificationManager.class);
+        if (nm == null) return;
+        NotificationChannel channel = new NotificationChannel(CHANNEL_ID,
+                context.getString(R.string.channel_name), NotificationManager.IMPORTANCE_DEFAULT);
+        channel.setDescription(context.getString(R.string.channel_description));
+        nm.createNotificationChannel(channel);
     }
 
     private void notify(NotificationManagerCompat manager, NotificationCompat.Builder builder) {
         if (ActivityCompat.checkSelfPermission(getApplicationContext(),
                 android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return;
-        manager.notify(2, builder.build());
+        manager.notify(NOTIFICATION_ID, builder.build());
     }
 }
