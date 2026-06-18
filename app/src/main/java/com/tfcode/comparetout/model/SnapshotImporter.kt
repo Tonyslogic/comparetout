@@ -15,6 +15,7 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.google.gson.reflect.TypeToken
+import com.tfcode.comparetout.SimulatorLauncher
 import com.tfcode.comparetout.TOUTCApplication
 import com.tfcode.comparetout.ui2.UserTimezoneStore
 import java.io.File
@@ -373,6 +374,14 @@ class SnapshotImporter(private val application: Application) {
         // delete of existing PV.
         runCatching { refreshMisalignedPanels(misalignedPanelIds, warnings) }
             .onFailure { warnings += "Could not schedule panel refresh: ${it.message}" }
+
+        // Auto-queue the simulation pipeline so imported scenarios produce results without the user having to
+        // open the wizard (not doing so is a UX hit — the dashboard would sit empty). Imported scenarios carry
+        // inputs (load + any aligned PV) but no simulation output, so this generates any missing load data,
+        // simulates, and costs. Scenarios still missing PV (off-grid panels awaiting a PVGIS refetch or a source
+        // re-import) are simply skipped by SimulationWorker until their data lands.
+        runCatching { SimulatorLauncher.simulateIfNeeded(application) }
+            .onFailure { warnings += "Could not start simulation: ${it.message}" }
 
         // Discard the staging file once everything has been committed.
         staged.delete()
