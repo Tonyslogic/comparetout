@@ -45,6 +45,9 @@ import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.TOUTCApplication;
 import com.tfcode.comparetout.importers.esbn.responses.ESBNException;
 import com.tfcode.comparetout.model.ToutcRepository;
+import com.tfcode.comparetout.ui2.UserTimezoneStore;
+
+import java.time.ZoneId;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
 import com.tfcode.comparetout.ui2.UI2NotificationLaunch;
 
@@ -174,7 +177,10 @@ public class ESBNImportWorker extends Worker {
         if (count < 31) {
             timeAlignedEntries.entrySet().removeIf(entry -> entry.getKey().toLocalDate().equals(lastDay));
         }
-        // Store transformed data
+        // Store transformed data. ESBN HDF read-times are local wall-clock; interpret them in the saved zone
+        // to stamp the canonical UTC millis (Phase 1, timezone-and-rollout.md). The date/minute strings stay
+        // the wall-clock the file provided (already the source's local time), which is what Compare renders.
+        ZoneId zone = UserTimezoneStore.resolvedZone(getApplicationContext());
         List<AlphaESSTransformedData> normalizedEntityList = new ArrayList<>();
         for (Map.Entry<LocalDateTime, Pair<Double, Double>> entry: timeAlignedEntries.entrySet()) {
             AlphaESSTransformedData dbEntry = new AlphaESSTransformedData();
@@ -185,6 +191,7 @@ public class ESBNImportWorker extends Worker {
             dbEntry.setSysSn(systemSN != null ? systemSN : "Not set");
             dbEntry.setDate(entry.getKey().format(DATE_FORMAT));
             dbEntry.setMinute(entry.getKey().format(MIN_FORMAT));
+            dbEntry.setMillisSinceEpoch(entry.getKey().atZone(zone).toInstant().toEpochMilli());
             normalizedEntityList.add(dbEntry);
         }
         mToutcRepository.addTransformedData(normalizedEntityList);

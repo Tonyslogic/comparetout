@@ -16,8 +16,12 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.google.gson.reflect.TypeToken
 import com.tfcode.comparetout.TOUTCApplication
+import com.tfcode.comparetout.ui2.UserTimezoneStore
 import java.io.File
 import java.io.FileNotFoundException
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
 
 /**
  * Counterpart to [SnapshotExporter] — opens a user-picked SQLite file as a
@@ -339,6 +343,12 @@ class SnapshotImporter(private val application: Application) {
         runCatching { registerImportedSources(stagingAlphaSns, stagingTransformedSns) }
             .onFailure { warnings += "Could not register sources for management: ${it.message}" }
 
+        // Phase 4 — backfill any NULL millisSinceEpoch on the merged rows so the millis-keyed merge / time model
+        // works for snapshots whose data predated the millis population (the schema-identity gate means the
+        // columns are always present; only the values can be NULL). See plans/sim/timezone-and-rollout.md.
+        runCatching { backfillMissingMillis(warnings) }
+            .onFailure { warnings += "Could not backfill timestamps: ${it.message}" }
+
         // Discard the staging file once everything has been committed.
         staged.delete()
 
@@ -615,6 +625,70 @@ class SnapshotImporter(private val application: Application) {
         val conflictClause = if (replaceExisting) "OR REPLACE" else "OR IGNORE"
         SOURCE_TABLES.forEach { t ->
             sql.execSQL("INSERT $conflictClause INTO $t SELECT * FROM staging.$t")
+        }
+    }
+
+    // ── Phase 4 — millis backfill for merged rows ───────────────────────────
+
+    /**
+     * Populate any NULL `millisSinceEpoch` on the merged rows (NULL-only; idempotent).
+     *  - `loadprofiledata` / `paneldata` sit on the synthetic 2001 grid stored AS UTC, so the instant is
+     *    `date` + minute-of-day interpreted in UTC — derivable in pure SQL via `strftime`.
+     *  - `alphaESSTransformedData` holds real importer data whose `date`/`minute` are the source's local
+     *    wall-clock, so its instant is that wall-clock in the saved zone (matching Phase 1/2 ingestion) —
+     *    computed in Java since SQLite can't do zone math.
+     *
+     * Caveat: a snapshot's `paneldata` from a pre-fix build could carry the OLD grid (wrong date), in which case
+     * a date+mod backfill yields a non-2001 instant and the panel still needs regenerating (Phase 3 territory) —
+     * snapshots are expected to come from a current build, where millis is already populated correctly.
+     */
+    private fun backfillMissingMillis(warnings: MutableList<String>) {
+        val live = ToutcDB.getDatabase(application)
+        val dbPath = application.getDatabasePath(live.openHelper.databaseName ?: "toutc_database").absolutePath
+        val db = android.database.sqlite.SQLiteDatabase.openDatabase(
+            dbPath, null, android.database.sqlite.SQLiteDatabase.OPEN_READWRITE
+        )
+        try {
+            // 2001-as-UTC grid: instant = date + mod minutes, interpreted UTC.
+            db.execSQL(
+                "UPDATE loadprofiledata SET millisSinceEpoch = " +
+                    "CAST(strftime('%s', date, (mod || ' minutes')) AS INTEGER) * 1000 " +
+                    "WHERE millisSinceEpoch IS NULL"
+            )
+            db.execSQL(
+                "UPDATE paneldata SET millisSinceEpoch = " +
+                    "CAST(strftime('%s', date, (mod || ' minutes')) AS INTEGER) * 1000 " +
+                    "WHERE millisSinceEpoch IS NULL"
+            )
+
+            // Importer data: real local wall-clock -> instant in the saved zone (no SQL zone math).
+            val zone = UserTimezoneStore.resolvedZone(application)
+            var backfilled = 0
+            db.beginTransaction()
+            try {
+                db.rawQuery(
+                    "SELECT sysSn, date, minute FROM alphaESSTransformedData WHERE millisSinceEpoch IS NULL",
+                    null
+                ).use { c ->
+                    while (c.moveToNext()) {
+                        val sn = c.getString(0); val d = c.getString(1); val m = c.getString(2)
+                        val millis = LocalDateTime.of(LocalDate.parse(d), LocalTime.parse(m))
+                            .atZone(zone).toInstant().toEpochMilli()
+                        db.execSQL(
+                            "UPDATE alphaESSTransformedData SET millisSinceEpoch = ? " +
+                                "WHERE sysSn = ? AND date = ? AND minute = ?",
+                            arrayOf<Any>(millis, sn, d, m)
+                        )
+                        backfilled++
+                    }
+                }
+                db.setTransactionSuccessful()
+            } finally {
+                db.endTransaction()
+            }
+            if (backfilled > 0) warnings += "Aligned timestamps for $backfilled imported source rows."
+        } finally {
+            db.close()
         }
     }
 

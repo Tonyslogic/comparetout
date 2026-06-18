@@ -980,6 +980,10 @@ public abstract class ScenarioDAO {
     @Query("SELECT * FROM panels WHERE panelIndex = :panelID")
     public abstract Panel getPanelForID(Long panelID);
 
+    /** All panels across all scenarios (used by the one-time paneldata rollout refresh). */
+    @Query("SELECT * FROM panels")
+    public abstract List<Panel> getAllPanels();
+
     @Insert(entity = PanelData.class, onConflict = OnConflictStrategy.REPLACE)
     public abstract void savePanelData(ArrayList<PanelData> panelDataList);
 
@@ -1001,6 +1005,14 @@ public abstract class ScenarioDAO {
 
     @Query("DELETE FROM paneldata WHERE panelID = :panelID")
     public abstract void removePanelData(Long panelID);
+
+    /** Wipe all generated PV data (one-time paneldata rollout refresh — it is regenerated afterwards). */
+    @Query("DELETE FROM paneldata")
+    public abstract void deleteAllPanelData();
+
+    /** Wipe all simulation output (one-time rollout refresh — scenarios re-simulate). */
+    @Query("DELETE FROM scenariosimulationdata")
+    public abstract void deleteAllSimulationData();
 
     @Query("SELECT scenarioName FROM scenarios WHERE scenarioIndex IN (" +
             "SELECT scenarioID FROM scenario2loadprofile WHERE  loadProfileID = (" +

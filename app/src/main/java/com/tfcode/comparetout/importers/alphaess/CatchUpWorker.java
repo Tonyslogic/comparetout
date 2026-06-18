@@ -38,6 +38,9 @@ import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.importers.alphaess.responses.GetOneDayEnergyResponse;
 import com.tfcode.comparetout.importers.alphaess.responses.GetOneDayPowerResponse;
 import com.tfcode.comparetout.model.ToutcRepository;
+import com.tfcode.comparetout.ui2.UserTimezoneStore;
+
+import java.time.ZoneId;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawEnergy;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawPower;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
@@ -129,16 +132,18 @@ public class CatchUpWorker extends Worker {
                 GetOneDayEnergyResponse oneDayEnergyBySn = mOpenAlphaESSClient.getOneDayEnergyBySn(current.format(DATE_FORMAT));
 
                 if (!(null == oneDayPowerBySn) && !(null == oneDayEnergyBySn) && !(null == oneDayPowerBySn.data)) {
+                    // Interpret/stamp source timestamps in the saved zone (Phase 1, timezone-and-rollout.md).
+                    ZoneId zone = UserTimezoneStore.resolvedZone(getApplicationContext());
                     // Fix the power-data (5 minute alignment and missing entries)
-                    List<DataMassager.DataPoint> points = DataMassager.getDataPointsForPowerResponse(oneDayPowerBySn);
-                    Map<Long, FiveMinuteEnergies> fixed = DataMassager.oneDayDataInFiveMinuteIntervals(points);
+                    List<DataMassager.DataPoint> points = DataMassager.getDataPointsForPowerResponse(oneDayPowerBySn, zone);
+                    Map<Long, FiveMinuteEnergies> fixed = DataMassager.oneDayDataInFiveMinuteIntervals(points, zone);
                     // Get the total load (ePV - eOutput) + eInput
                     double ePV = oneDayEnergyBySn.data.epv;
                     double eLoad = (ePV - oneDayEnergyBySn.data.eOutput) + oneDayEnergyBySn.data.eInput;
                     double eFeed = oneDayEnergyBySn.data.eOutput;
                     double eBuy = oneDayEnergyBySn.data.eInput;
                     // Unitize and scale power (in kWh 5 minute intervals)
-                    Map<Long, FiveMinuteEnergies> massaged = DataMassager.massage(fixed, ePV, eLoad, eFeed, eBuy);
+                    Map<Long, FiveMinuteEnergies> massaged = DataMassager.massage(fixed, ePV, eLoad, eFeed, eBuy, zone);
                     Log.i(TAG, "CatchupWorker storing data for " + current);
                     // Store raw energy
                     AlphaESSRawEnergy energyEntity = AlphaESSEntityUtil.getEnergyRowFromJson(oneDayEnergyBySn);
@@ -147,9 +152,9 @@ public class CatchUpWorker extends Worker {
                     List<AlphaESSRawPower> powerEntityList = AlphaESSEntityUtil.getPowerRowsFromJson(oneDayPowerBySn);
                     mToutcRepository.addRawPower(powerEntityList);
                     // v2: per-interval EV charger kWh (scaled to daily total), used by the new transform.
-                    Map<Long, Double> evByInterval = DataMassager.evIn5MinIntervals(powerEntityList, oneDayEnergyBySn.data.eChargingPile);
+                    Map<Long, Double> evByInterval = DataMassager.evIn5MinIntervals(powerEntityList, oneDayEnergyBySn.data.eChargingPile, zone);
                     // Store transformed data
-                    List<AlphaESSTransformedData> normalizedEntityList = AlphaESSEntityUtil.getTransformedDataRows(massaged, evByInterval, systemSN);
+                    List<AlphaESSTransformedData> normalizedEntityList = AlphaESSEntityUtil.getTransformedDataRows(massaged, evByInterval, systemSN, zone);
                     mToutcRepository.addTransformedData(normalizedEntityList);
                     Log.i(TAG, "CatchupWorker storing normalizedEntityList " + normalizedEntityList.size());
 

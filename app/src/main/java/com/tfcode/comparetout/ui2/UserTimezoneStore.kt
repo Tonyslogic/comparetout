@@ -83,5 +83,24 @@ class UserTimezoneStore @Inject constructor(
         return runCatching { ZoneId.of(raw) }.getOrElse { ZoneId.systemDefault() }
     }
 
-    private companion object { const val KEY = "user_timezone" }
+    companion object {
+        const val KEY = "user_timezone"
+
+        /**
+         * Resolve the effective [ZoneId] without a store instance, reading the same DataStore key.
+         *
+         * For Java background importer workers (and the migration tasks) that need the saved zone
+         * synchronously at ingestion: the stored IANA zone if valid, otherwise the device default.
+         * Blocks on the DataStore read, so call only off the main thread (workers qualify).
+         */
+        @JvmStatic
+        fun resolvedZone(context: Context): ZoneId {
+            val raw = runCatching {
+                (context.applicationContext as TOUTCApplication).getStringValueFromDataStore(KEY)
+            }.getOrDefault("")
+            return raw.takeIf { it.isNotBlank() }
+                ?.let { runCatching { ZoneId.of(it) }.getOrNull() }
+                ?: ZoneId.systemDefault()
+        }
+    }
 }

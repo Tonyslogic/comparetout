@@ -33,11 +33,21 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TimeZone;
 import java.util.TreeMap;
 
 public class DataMassager {
 
     public static Map<Long, FiveMinuteEnergies> massage(Map<Long, FiveMinuteEnergies> fixed, double ePV, double eLoad, double eFeed, double eBuy) {
+        return massage(fixed, ePV, eLoad, eFeed, eBuy, ZoneId.systemDefault());
+    }
+
+    /**
+     * Zone-aware overload (Phase 1 of the saved-timezone wiring, see plans/sim/timezone-and-rollout.md). The
+     * DST fall-back fold dedups by wall-clock HH:mm, which depends on the source system's zone — pass the saved
+     * zone ({@code UserTimezoneStore.resolvedZone}) so a travelling user folds the correct interval.
+     */
+    public static Map<Long, FiveMinuteEnergies> massage(Map<Long, FiveMinuteEnergies> fixed, double ePV, double eLoad, double eFeed, double eBuy, ZoneId zone) {
         Map<Long, FiveMinuteEnergies> massaged = new TreeMap<>();
         double pPVTotal = 0D;
         double pLoadTotal = 0D;
@@ -69,6 +79,7 @@ public class DataMassager {
         if (massaged.size() == 289) {
             System.out.println("DST day detected");
             @SuppressLint("SimpleDateFormat") SimpleDateFormat sdf = new SimpleDateFormat("HH:mm");
+            sdf.setTimeZone(TimeZone.getTimeZone(zone));
             Set<String> check = new HashSet<>();
             Map<String, Long> lookup = new HashMap<>();
             Long keyToUpdate = 0L;
@@ -117,12 +128,18 @@ public class DataMassager {
     }
 
     public static List<DataPoint> getDataPointsForPowerResponse(GetOneDayPowerResponse oneDayPowerResponse) {
+        return getDataPointsForPowerResponse(oneDayPowerResponse, ZoneId.systemDefault());
+    }
+
+    /** Zone-aware overload: interpret the source {@code uploadTime} wall-clock in {@code zone} (Phase 1). */
+    public static List<DataPoint> getDataPointsForPowerResponse(GetOneDayPowerResponse oneDayPowerResponse, ZoneId zone) {
         List<DataPoint> dataPointList = new ArrayList<>();
         if (!(null == oneDayPowerResponse) && !(null == oneDayPowerResponse.data)) {
             for (GetOneDayPowerResponse.DataItem item : oneDayPowerResponse.data) {
                 // Get uploadTime and get milliseconds for it
                 long uplTime = 0;
                 @SuppressLint("SimpleDateFormat") SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                dateFormat.setTimeZone(TimeZone.getTimeZone(zone));
                 try {
                     Date date = dateFormat.parse(item.uploadTime);
                     if (!(null == date)) uplTime = date.getTime();
@@ -141,12 +158,18 @@ public class DataMassager {
     }
 
     public static List<DataPoint> getDataPointsForPowerResponse(List<AlphaESSRawPower> oneDayPowerResponse) {
+        return getDataPointsForPowerResponse(oneDayPowerResponse, ZoneId.systemDefault());
+    }
+
+    /** Zone-aware overload: interpret the source {@code uploadTime} wall-clock in {@code zone} (Phase 1). */
+    public static List<DataPoint> getDataPointsForPowerResponse(List<AlphaESSRawPower> oneDayPowerResponse, ZoneId zone) {
         List<DataPoint> dataPointList = new ArrayList<>();
         if (!(null == oneDayPowerResponse) && !(oneDayPowerResponse.isEmpty())) {
             for (AlphaESSRawPower item : oneDayPowerResponse) {
                 // Get uploadTime and get milliseconds for it
                 long uplTime = 0;
                 @SuppressLint("SimpleDateFormat") SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                dateFormat.setTimeZone(TimeZone.getTimeZone(zone));
                 try {
                     Date date = dateFormat.parse(item.getUploadTime());
                     if (!(null == date)) uplTime = date.getTime();
@@ -165,6 +188,15 @@ public class DataMassager {
     }
 
     public static Map<Long, FiveMinuteEnergies> oneDayDataInFiveMinuteIntervals(List<DataPoint> inputData) {
+        return oneDayDataInFiveMinuteIntervals(inputData, ZoneId.systemDefault());
+    }
+
+    /**
+     * Zone-aware overload (Phase 1): the synthetic midnight / 23:55 boundary rows are computed against the
+     * source system's day, so resolve them in {@code zone} (the saved zone) rather than the device default.
+     * The 5-minute bucket keys are UTC-epoch-floored and so are zone-independent.
+     */
+    public static Map<Long, FiveMinuteEnergies> oneDayDataInFiveMinuteIntervals(List<DataPoint> inputData, ZoneId zone) {
         Map<Long, List<Double>> ppvIntervalMap = new TreeMap<>();
         Map<Long, FiveMinuteEnergies> averagedData = new TreeMap<>();
         Map<Long, List<Double>> loadIntervalMap = new TreeMap<>();
@@ -180,12 +212,12 @@ public class DataMassager {
         for (DataPoint dataPoint : inputData) {
             if (midnightHour == 0) {
                 LocalDateTime date =
-                        LocalDateTime.ofInstant(Instant.ofEpochMilli(dataPoint.timestamp), ZoneId.systemDefault());
+                        LocalDateTime.ofInstant(Instant.ofEpochMilli(dataPoint.timestamp), zone);
                 LocalDateTime midnight = LocalDateTime.of(date.getYear(), date.getMonthValue(), date.getDayOfMonth(), 0, 0);
-                ZonedDateTime zdt = midnight.atZone(ZoneId.systemDefault());
+                ZonedDateTime zdt = midnight.atZone(zone);
                 midnightHour = zdt.toInstant().toEpochMilli();
                 LocalDateTime fiveTo = LocalDateTime.of(date.getYear(), date.getMonthValue(), date.getDayOfMonth(), 23, 55);
-                zdt = fiveTo.atZone(ZoneId.systemDefault());
+                zdt = fiveTo.atZone(zone);
                 fiveBefore = zdt.toInstant().toEpochMilli();
 
             }
@@ -289,10 +321,16 @@ public class DataMassager {
      * {@link #oneDayDataInFiveMinuteIntervals(List)}.
      */
     public static Map<Long, Double> evIn5MinIntervals(List<com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawPower> rawPower, double eChargingPile) {
+        return evIn5MinIntervals(rawPower, eChargingPile, ZoneId.systemDefault());
+    }
+
+    /** Zone-aware overload: interpret the source {@code uploadTime} wall-clock in {@code zone} (Phase 1). */
+    public static Map<Long, Double> evIn5MinIntervals(List<com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawPower> rawPower, double eChargingPile, ZoneId zone) {
         Map<Long, Double> result = new TreeMap<>();
         if (rawPower == null || rawPower.isEmpty() || eChargingPile <= 0) return result;
         int intervalSize = 5 * 60 * 1000;
         @SuppressLint("SimpleDateFormat") SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        dateFormat.setTimeZone(TimeZone.getTimeZone(zone));
         Map<Long, List<Double>> evBucket = new TreeMap<>();
         for (com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawPower item : rawPower) {
             try {

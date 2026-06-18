@@ -71,6 +71,10 @@ public abstract class CostingDAO {
     @Query("DELETE FROM costings WHERE pricePlanID = :id")
     public abstract void deleteRelatedCostings(int id);
 
+    /** Wipe all costings (one-time paneldata rollout refresh — they recompute after re-simulation). */
+    @Query("DELETE FROM costings")
+    public abstract void deleteAllCostings();
+
     /**
      * Find the most cost-effective price plan for a given scenario.
      * <p>

@@ -25,6 +25,7 @@ import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawPower;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
 
 import java.text.SimpleDateFormat;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -114,13 +115,32 @@ public class AlphaESSEntityUtil {
             Map<Long, FiveMinuteEnergies> rows,
             Map<Long, Double> evByInterval,
             String sysSN) {
+        return getTransformedDataRows(rows, evByInterval, sysSN, ZoneId.systemDefault());
+    }
+
+    /**
+     * Zone-aware overload (Phase 1 of the saved-timezone wiring, see plans/sim/timezone-and-rollout.md). Formats
+     * the stored {@code date}/{@code minute} strings in {@code zone} (the saved zone) so Compare — which renders
+     * those strings via SQLite {@code strftime} — shows the source system's local time regardless of where the
+     * device is. {@code millisSinceEpoch} stays the absolute UTC instant. Uses local formatters (the static ones
+     * are device-pinned) so concurrent importer workers don't race on a shared zone.
+     */
+    public static List<AlphaESSTransformedData> getTransformedDataRows (
+            Map<Long, FiveMinuteEnergies> rows,
+            Map<Long, Double> evByInterval,
+            String sysSN,
+            ZoneId zone) {
+        @SuppressLint("SimpleDateFormat") SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+        @SuppressLint("SimpleDateFormat") SimpleDateFormat minFormat = new SimpleDateFormat("HH:mm");
+        dateFormat.setTimeZone(TimeZone.getTimeZone(zone));
+        minFormat.setTimeZone(TimeZone.getTimeZone(zone));
         List<AlphaESSTransformedData> entities = new ArrayList<>();
         for (Map.Entry<Long, FiveMinuteEnergies> entry : rows.entrySet()) {
             AlphaESSTransformedData entity = new AlphaESSTransformedData();
             entity.setSysSn(sysSN);
             Date date = new Date(entry.getKey());
-            entity.setDate(DATE_FORMAT.format(date));
-            entity.setMinute(HH_MM_FORMAT.format(date));
+            entity.setDate(dateFormat.format(date));
+            entity.setMinute(minFormat.format(date));
             double pv = entry.getValue().pv.isNaN() ? 0D : entry.getValue().pv;
             double load = entry.getValue().load.isNaN() ? 0D : entry.getValue().load;
             double feed = entry.getValue().feed.isNaN() ? 0D : entry.getValue().feed;

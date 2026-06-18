@@ -80,6 +80,12 @@ public class TOUTCApplication extends Application {
     public void onCreate() {
         super.onCreate();
         dataStore = new RxPreferenceDataStoreBuilder(this, /*name=*/ "settings").build();
+        // One-time: re-anchor already-imported data to the saved timezone (Phase 2,
+        // plans/sim/timezone-and-rollout.md). Idempotent — unique work + an internal DataStore guard.
+        com.tfcode.comparetout.model.TimezoneRestampWorker.enqueue(this);
+        // One-time: discard pre-millis PV data (wrong grid) and refresh + re-simulate (Phase 3).
+        // Idempotent — unique work + an internal DataStore guard.
+        com.tfcode.comparetout.model.PanelDataRefreshWorker.enqueue(this);
     }
 
     /**

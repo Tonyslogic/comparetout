@@ -97,12 +97,14 @@ public class StatsForPeriodResult extends HAMessageWithID {
      * @return the transformed data as a list of AlphaESSTransformedData
      */
     public List<AlphaESSTransformedData> calculateAndAddLoad(String sysSn,
-            EnergySensors energySensors, Map<Long, Map<String, Double>> pivotedResult) {
+            EnergySensors energySensors, Map<Long, Map<String, Double>> pivotedResult, ZoneId zone) {
         List<AlphaESSTransformedData> rows = new ArrayList<>();
         for (Map.Entry<Long, Map<String, Double>> entry : pivotedResult.entrySet()) {
             Long date_long = entry.getKey();
+            // HA statistics carry a UTC epoch (date_long); render the stored date/minute strings in the saved
+            // zone so Compare shows the source system's local time (Phase 1, timezone-and-rollout.md).
             LocalDateTime date = Instant.ofEpochMilli(date_long)
-                .atZone(ZoneId.systemDefault())
+                .atZone(zone)
                 .toLocalDateTime();
             Map<String, Double> sensorChanges = entry.getValue();
             double solarGen = 0D;

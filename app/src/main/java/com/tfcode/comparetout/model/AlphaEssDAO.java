@@ -22,6 +22,7 @@ import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 import androidx.room.Transaction;
+import androidx.room.Update;
 
 import com.tfcode.comparetout.model.importers.CostInputRow;
 import com.tfcode.comparetout.model.importers.IntervalRow;
@@ -93,6 +94,18 @@ public abstract class AlphaEssDAO {
      */
     @Insert (onConflict = OnConflictStrategy.REPLACE)
     public abstract void addTransformedData(List<AlphaESSTransformedData> data);
+
+    /** Distinct source serials present in the transformed table (used by the one-time timezone re-stamp). */
+    @Query("SELECT DISTINCT sysSn FROM alphaESSTransformedData")
+    public abstract List<String> getTransformedDataSysSns();
+
+    /** All transformed rows for one source (used by the one-time timezone re-stamp). */
+    @Query("SELECT * FROM alphaESSTransformedData WHERE sysSn = :sysSn")
+    public abstract List<AlphaESSTransformedData> getAllTransformedDataForSysSn(String sysSn);
+
+    /** In-place update (by PK sysSn/date/minute) — Phase 2 re-stamp keeps the strings, rewrites millis only. */
+    @Update
+    public abstract void updateTransformedData(List<AlphaESSTransformedData> data);
 
     /**
      * Remove all AlphaESS data for a specific system serial number.

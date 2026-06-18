@@ -46,6 +46,7 @@ import com.tfcode.comparetout.importers.homeassistant.messages.authorization.Aut
 import com.tfcode.comparetout.importers.homeassistant.messages.authorization.AuthOK;
 import com.tfcode.comparetout.importers.homeassistant.messages.statsForPeriodResult.StatsForPeriodResult;
 import com.tfcode.comparetout.model.ToutcRepository;
+import com.tfcode.comparetout.ui2.UserTimezoneStore;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
 import com.tfcode.comparetout.ui2.UI2NotificationLaunch;
 
@@ -177,7 +178,8 @@ public class HACatchupWorker extends Worker {
                 LOGGER.info("StatsForPeriodResultHandler.handleMessage.success");
                 Map<Long, Map<String, Double>> pivotedResult = result.pivotStatsForPeriodResult();
                 List<AlphaESSTransformedData> dbRows = result.calculateAndAddLoad(
-                        "HomeAssistant", mEnergySensors, pivotedResult);
+                        "HomeAssistant", mEnergySensors, pivotedResult,
+                        UserTimezoneStore.resolvedZone(mContext));
                 mToutcRepository.addTransformedData(dbRows);
                 updateBatteryCapacities(result);
                 Long anyDate = null;
