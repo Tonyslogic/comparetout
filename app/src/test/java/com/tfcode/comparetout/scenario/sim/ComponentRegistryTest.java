@@ -19,8 +19,11 @@ package com.tfcode.comparetout.scenario.sim;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 
 import com.tfcode.comparetout.model.scenario.EVCharge;
+import com.tfcode.comparetout.model.scenario.EVDivert;
+import com.tfcode.comparetout.model.scenario.HWSystem;
 
 import org.junit.Test;
 
@@ -112,5 +115,58 @@ public class ComponentRegistryTest {
         // Sunday is stored as 0; passing 7 must normalise to 0 and still match the all-days default.
         assertNotNull(EvChargeComponent.scheduledChargeOrNull(charges, 7, 1, 12 * 60));
         assertNull(EvChargeComponent.scheduledChargeOrNull(Collections.emptyList(), 1, 1, 12 * 60));
+    }
+
+    // ---- divertOrder: the per-interval surplus-sink ordering (the divert analogue of the dispatch
+    //      strategy). Previously only covered indirectly by the two divert goldens. ----
+
+    private static EVDivert activeDivert(boolean ev1st, boolean active) {
+        EVDivert ev = new EVDivert();
+        ev.setBegin(0);
+        ev.setEnd(24);
+        ev.setActive(active);
+        ev.setEv1st(ev1st);
+        ev.setMinimum(0d);
+        ev.setDailyMax(100d);
+        return ev;
+    }
+
+    /** Hot water present (divert on) + the given EV diverts. */
+    private static ComponentRegistry divertRegistry(List<EVDivert> diverts) {
+        return ComponentRegistry.build(new HWSystem(), true, null, null, diverts, new HashMap<>());
+    }
+
+    @Test
+    public void divertOrder_waterOnlyWhenNoActiveEvDivert() {
+        ComponentRegistry r = divertRegistry(null);
+        List<SurplusSink> order = r.divertOrder(anyInterval());
+        assertEquals(1, order.size());
+        assertSame("only hot water consumes surplus", r.hotWater(), order.get(0));
+    }
+
+    @Test
+    public void divertOrder_inactiveEvDivertIsWaterOnly() {
+        ComponentRegistry r = divertRegistry(Collections.singletonList(activeDivert(true, false)));
+        List<SurplusSink> order = r.divertOrder(anyInterval());
+        assertEquals(1, order.size());
+        assertSame(r.hotWater(), order.get(0));
+    }
+
+    @Test
+    public void divertOrder_evFirstWhenIsEv1st() {
+        ComponentRegistry r = divertRegistry(Collections.singletonList(activeDivert(true, true)));
+        List<SurplusSink> order = r.divertOrder(anyInterval());
+        assertEquals(2, order.size());
+        assertSame("EV consumes first", r.evDivert(), order.get(0));
+        assertSame("then water mops the residual", r.hotWater(), order.get(1));
+    }
+
+    @Test
+    public void divertOrder_waterFirstWhenNotEv1st() {
+        ComponentRegistry r = divertRegistry(Collections.singletonList(activeDivert(false, true)));
+        List<SurplusSink> order = r.divertOrder(anyInterval());
+        assertEquals(2, order.size());
+        assertSame("water consumes first", r.hotWater(), order.get(0));
+        assertSame("then EV takes the residual", r.evDivert(), order.get(1));
     }
 }

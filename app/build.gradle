@@ -3,6 +3,11 @@ plugins {
     id 'com.google.devtools.ksp'
     id 'org.jetbrains.kotlin.plugin.compose'
     id 'com.google.dagger.hilt.android'
+    id 'jacoco'
+}
+
+jacoco {
+    toolVersion = '0.8.12' // JDK 21 compatible
 }
 
 android {
@@ -27,6 +32,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Produces a JaCoCo exec for the JVM unit tests (testDebugUnitTest) -> jacocoTestReport.
+            enableUnitTestCoverage true
+        }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
@@ -130,4 +139,34 @@ dependencies {
     implementation 'com.squareup.retrofit2:converter-gson:3.0.0'
     implementation "com.squareup.okhttp3:okhttp-urlconnection:5.3.2"
     implementation 'org.jsoup:jsoup:1.22.2'
+}
+
+// JaCoCo coverage report for the JVM unit tests. Run:
+//   ./gradlew :app:jacocoTestReport
+// HTML at app/build/reports/jacoco/jacocoTestReport/html/index.html
+tasks.register('jacocoTestReport', JacocoReport) {
+    dependsOn 'testDebugUnitTest'
+    group = 'verification'
+    description = 'Generates JaCoCo coverage for the debug JVM unit tests.'
+
+    reports {
+        html.required = true
+        xml.required = true
+        csv.required = true
+    }
+
+    // Generated / framework code that would only dilute the numbers.
+    def excludes = [
+            '**/R.class', '**/R$*.class', '**/BuildConfig.*', '**/Manifest*.*',
+            '**/*_Factory*.*', '**/*_HiltModules*.*', '**/*_Impl*.*', '**/Dagger*.*',
+            '**/hilt_aggregated_deps/**', '**/*_GeneratedInjector*.*', '**/*_MembersInjector*.*',
+            '**/databinding/**', '**/*Binding.*', '**/*Test*.*', 'android/**/*.*'
+    ]
+    classDirectories.setFrom(files(
+            fileTree(dir: "${buildDir}/intermediates/javac/debug", includes: ['**/*.class'], excludes: excludes),
+            fileTree(dir: "${buildDir}/tmp/kotlin-classes/debug", includes: ['**/*.class'], excludes: excludes)
+    ))
+    sourceDirectories.setFrom(files('src/main/java', 'src/main/kotlin'))
+    // AGP writes the unit-test exec under build/ (location varies by version); pick it up wherever it lands.
+    executionData.setFrom(fileTree(dir: buildDir, includes: ['**/*.exec', '**/*.ec']))
 }

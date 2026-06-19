@@ -39,7 +39,11 @@ public class EvDivertComponentTest {
     private static final int DAY = 100; // arbitrary UTC epoch-day
 
     private static IntervalContext ctx() {
-        return new IntervalContext(0L, 1, 1, 12 * 60, DAY, 1d / 12d);
+        return ctxOnDay(DAY);
+    }
+
+    private static IntervalContext ctxOnDay(int evDivertDay) {
+        return new IntervalContext(0L, 1, 1, 12 * 60, evDivertDay, 1d / 12d);
     }
 
     /** An all-day, active divert with the given minimum (kW) and daily cap (kWh). */
@@ -95,6 +99,19 @@ public class EvDivertComponentTest {
 
         assertNull("inactive -> activeDivertOrNull returns null", ev.activeDivertOrNull(ctx()));
         assertEquals(0d, ev.absorb(0.5, ctx()), 0d);
+    }
+
+    @Test
+    public void dailyCapResetsOnANewDay() {
+        Map<Integer, Double> totals = new HashMap<>();
+        EvDivertComponent ev = new EvDivertComponent(
+                Collections.singletonList(divert(0d, 0.5d, true)), totals);
+
+        assertEquals("day 10 uses its cap", 0.5, ev.absorb(0.5, ctxOnDay(10)), 0d);
+        assertEquals("day 10 now exhausted", 0.0, ev.absorb(0.5, ctxOnDay(10)), 0d);
+        assertEquals("day 11 gets a fresh cap", 0.5, ev.absorb(0.5, ctxOnDay(11)), 0d);
+        assertEquals(0.5, totals.get(10), 0d);
+        assertEquals(0.5, totals.get(11), 0d);
     }
 
     @Test

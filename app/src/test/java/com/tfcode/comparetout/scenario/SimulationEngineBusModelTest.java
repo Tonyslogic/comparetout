@@ -19,6 +19,7 @@ package com.tfcode.comparetout.scenario;
 import static org.junit.Assert.assertEquals;
 
 import com.tfcode.comparetout.model.scenario.Battery;
+import com.tfcode.comparetout.model.scenario.DischargeToGrid;
 import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
 import com.tfcode.comparetout.model.scenario.SimulationInputData;
@@ -27,6 +28,7 @@ import com.tfcode.comparetout.scenario.sim.DispatchStrategy;
 import org.junit.Test;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -227,5 +229,62 @@ public class SimulationEngineBusModelTest {
         assertEquals(0.5, r.getBuy(), TOL);
         assertEquals("battery-before-grid inverter discharged", 4.0, d1.soc(), TOL);
         assertEquals("grid-before-battery inverter preserved its battery", 5.0, d2.soc(), TOL);
+    }
+
+    /**
+     * Forced discharge to grid: a scheduled inverter exports its battery at the configured rate (rate
+     * binds below the export cap and the available headroom), the export shows as feed + battery2grid, and
+     * the SOC is drawn down accordingly. Schedules span the full 2001 calendar (105120 rows).
+     */
+    @Test
+    public void forcedDischargeExportsBatteryToGridAtRate() {
+        Inverter inv = InverterBuilder.anInverter().index(1).maxInverterLoad(50.0).lossless().build();
+        Battery battery = BatteryBuilder.aBattery().index(1).size(10.0).dischargeStopPercent(50) // seeds SOC 5.0
+                .maxChargeDischarge(1.0, 1.0).storageLossPercent(0).build();
+        DischargeToGrid d2g = new DischargeToGrid();
+        d2g.setBegin(0);
+        d2g.setEnd(23);
+        d2g.setStopAt(20.0); // floor at 2.0 kWh
+        d2g.setRate(5.0);    // 5 kW -> 0.41667 kWh / interval
+        SimulationEngine.ForceDischargeToGrid fd2g =
+                new SimulationEngine.ForceDischargeToGrid(Collections.singletonList(d2g), 105120);
+
+        SimulationEngine.InputData d = new SimulationEngine.InputData(
+                inv, SimSeries.constant(2, 0.0, 0.0), battery, null, fd2g); // no load, no PV
+        Map<Inverter, SimulationEngine.InputData> map = new LinkedHashMap<>();
+        map.put(inv, d);
+
+        ArrayList<ScenarioSimulationData> out = new ArrayList<>();
+        SimulationEngine.processOneRow(ID, noScenarioExtras(10.0), out, 0, map); // export cap 10kW: not binding
+        ScenarioSimulationData r = out.get(0);
+
+        double rate = 5.0 / 12d;
+        assertEquals("exports at the configured rate", rate, r.getBattery2Grid(), TOL);
+        assertEquals("the export is also recorded as feed", rate, r.getFeed(), TOL);
+        assertEquals("SOC drawn down by the exported energy (lossless)", 5.0 - rate, d.soc(), TOL);
+        assertEquals(0.0, r.getBuy(), TOL);
+    }
+
+    /**
+     * The export cap is shared across inverters: two inverters that each have feedable surplus cannot
+     * together export more than {@code exportMax}. Before the shared accounting this would have exported
+     * twice the cap.
+     */
+    @Test
+    public void sharedExportCapLimitsTotalFeedAcrossInverters() {
+        Inverter inv1 = InverterBuilder.anInverter().index(1).maxInverterLoad(50.0).lossless().build();
+        Inverter inv2 = InverterBuilder.anInverter().index(2).maxInverterLoad(50.0).lossless().build();
+        // Batteries full (discharge stop 100% -> seeded full) so PV cannot be absorbed by charging.
+        Battery b1 = BatteryBuilder.aBattery().index(1).size(10.0).dischargeStopPercent(100)
+                .maxChargeDischarge(1.0, 1.0).storageLossPercent(0).build();
+        Battery b2 = BatteryBuilder.aBattery().index(2).size(10.0).dischargeStopPercent(100)
+                .maxChargeDischarge(1.0, 1.0).storageLossPercent(0).build();
+        Map<Inverter, SimulationEngine.InputData> map = new LinkedHashMap<>();
+        map.put(inv1, input(inv1, b1, 0.0, 1.0)); // PV surplus on both
+        map.put(inv2, input(inv2, b2, 0.0, 1.0));
+
+        ArrayList<ScenarioSimulationData> out = new ArrayList<>();
+        SimulationEngine.processOneRow(ID, noScenarioExtras(3.0), out, 0, map); // shared cap = 3kW -> 0.25 kWh
+        assertEquals("total feed is bounded by the shared export cap", 3.0 / 12d, out.get(0).getFeed(), TOL);
     }
 }
