@@ -56,13 +56,15 @@ import java.util.Map;
  * extraction is behaviour-preserving — guarded by the golden-master tests — and carries no Android,
  * Room, WorkManager, or LiveData dependency, so it can be unit-tested directly.</p>
  *
- * <p>It lives in package {@code com.tfcode.comparetout.scenario} (rather than {@code scenario.sim})
- * so that the existing white-box unit tests — which read package-private state such as
- * {@code InputData.soc} and {@code ChargeFromGrid.mCFG} — keep compiling without widening visibility.
- * The new {@code scenario.sim} package holds the pure abstractions introduced by the refactor
- * (TimeAxis, SimTime, and, in later phases, the dispatch Strategy, component roles, and DC/AC bus
- * model). Once those phases replace the white-box tests with black-box golden coverage, this engine
- * can be relocated into {@code scenario.sim} with tightened visibility.</p>
+ * <p>It lives in package {@code com.tfcode.comparetout.scenario} alongside {@link SimulationWorker},
+ * which assembles its {@link InputData} inputs and reads the input series. {@code InputData}'s state is
+ * otherwise encapsulated: it implements the capability interfaces in {@code scenario.sim}
+ * ({@code InverterComponent} = {@code Generator} + {@code Storage} + {@code Converter} +
+ * {@code GridExchange}) and the engine drives it through those, so the bus solve depends on capabilities
+ * rather than concrete fields. The {@code scenario.sim} package holds the pure abstractions introduced by
+ * the refactor (TimeAxis, SimTime, the dispatch Strategy, the component model, and the DC/AC bus model).
+ * Coverage is black-box: the golden master plus the capability/behaviour tests in {@code scenario} and
+ * the component tests in {@code scenario.sim}.</p>
  */
 public class SimulationEngine {
 
@@ -430,21 +432,22 @@ public class SimulationEngine {
      * reason about each inverter's context and constraints at every time step.
      */
     static class InputData implements InverterComponent {
-        final long id;
-        final double dc2acLoss;
-        final double ac2dcLoss;
-        final double dc2dcLoss;
-        final double storageLoss;
-        final double maxInverterLoad;
-        final double minExcess;
-        final DispatchStrategy strategy;
+        private final long id;
+        private final double dc2acLoss;
+        private final double ac2dcLoss;
+        private final double dc2dcLoss;
+        private final double storageLoss;
+        private final double maxInverterLoad;
+        private final double minExcess;
+        private final DispatchStrategy strategy;
+        // Package-private: SimulationWorker reads the series for sizing and the default time axis.
         List<SimulationInputData> simulationInputData;
-        Battery mBattery;
-        ChargeFromGrid mChargeFromGrid;
-        final ForceDischargeToGrid mForceDischargeToGrid;
+        private Battery mBattery;
+        private final ChargeFromGrid mChargeFromGrid;
+        private final ForceDischargeToGrid mForceDischargeToGrid;
 
-        // Volatile state members
-        double soc = 0d;
+        // Volatile state, mutated only via the Storage capability methods (soc/adjustSoc/setSoc).
+        private double soc = 0d;
 
         /**
          * Constructs InputData for an inverter and its inverter-bound state. Hot water and EV are
@@ -510,7 +513,7 @@ public class SimulationEngine {
          * @param row The time step index.
          * @return true if charging from grid is scheduled, false otherwise.
          */
-        public boolean isCFG(int row) {
+        private boolean isCFG(int row) {
             boolean cfg = false;
             if (!(null == mChargeFromGrid)) cfg = mChargeFromGrid.mCFG.get(row);
             return cfg;
@@ -523,7 +526,7 @@ public class SimulationEngine {
          * @param battery The battery.
          * @return The maximum charge allowed in kWh.
          */
-        public static double getMaxChargeForSOC(double batterySOC, Battery battery) {
+        private static double getMaxChargeForSOC(double batterySOC, Battery battery) {
             double ret = 0;
             if (null == battery) return ret;
             ChargeModel cm = battery.getChargeModel();

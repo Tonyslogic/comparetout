@@ -81,14 +81,14 @@ public class SimulationEngineBusModelTest {
 
         ArrayList<ScenarioSimulationData> out = new ArrayList<>();
         SimulationEngine.processOneRow(ID, noScenarioExtras(0.0), out, 0, map); // export 0: no feed
-        d.soc = 5.0;                                                            // mid SOC: flat charge region
+        d.setSoc(5.0);                                                            // mid SOC: flat charge region
         SimulationEngine.processOneRow(ID, noScenarioExtras(0.0), out, 1, map);
         ScenarioSimulationData r = out.get(1);
 
         // PV 1.0 DC, 0.1 to load (DC 0.1) leaves 0.9 DC; battery accepts maxCharge 1.0 ⇒ all 0.9 charges,
         // even though that is well beyond the 0.41667 AC cap.
         assertEquals(0.9, r.getPvToCharge(), TOL);
-        assertEquals(5.9, d.soc, TOL);
+        assertEquals(5.9, d.soc(), TOL);
         assertEquals(0.0, r.getFeed(), TOL);
         assertEquals(0.0, r.getBuy(), TOL);
     }
@@ -105,11 +105,11 @@ public class SimulationEngineBusModelTest {
 
         ArrayList<ScenarioSimulationData> out = new ArrayList<>();
         SimulationEngine.processOneRow(ID, noScenarioExtras(0.0), out, 0, map);
-        d.soc = 5.0;
+        d.setSoc(5.0);
         SimulationEngine.processOneRow(ID, noScenarioExtras(0.0), out, 1, map);
 
         assertEquals(1.0, out.get(1).getPvToCharge(), TOL); // 1.0 DC routed to battery
-        assertEquals(5.0 + 0.9, d.soc, TOL);                // only 0.9 stored (dc2dc 0.9)
+        assertEquals(5.0 + 0.9, d.soc(), TOL);                // only 0.9 stored (dc2dc 0.9)
     }
 
     /** dc2dcLoss also applies on discharge (Bug 2): delivering 0.5 AC draws 0.5/0.9 DC from the cells. */
@@ -124,13 +124,13 @@ public class SimulationEngineBusModelTest {
 
         ArrayList<ScenarioSimulationData> out = new ArrayList<>();
         SimulationEngine.processOneRow(ID, noScenarioExtras(0.0), out, 0, map);
-        d.soc = 5.0;
+        d.setSoc(5.0);
         SimulationEngine.processOneRow(ID, noScenarioExtras(0.0), out, 1, map);
         ScenarioSimulationData r = out.get(1);
 
         assertEquals(0.5, r.getBatToLoad(), TOL);
         assertEquals(0.0, r.getBuy(), TOL);
-        assertEquals(5.0 - 0.5 / 0.9, d.soc, TOL); // dc2ac=1.0, storageLoss=0 ⇒ DC drawn = 0.5/0.9
+        assertEquals(5.0 - 0.5 / 0.9, d.soc(), TOL); // dc2ac=1.0, storageLoss=0 ⇒ DC drawn = 0.5/0.9
     }
 
     /** A battery only charges from its OWN inverter's PV (per-inverter DC coupling). */
@@ -150,13 +150,13 @@ public class SimulationEngineBusModelTest {
 
         ArrayList<ScenarioSimulationData> out = new ArrayList<>();
         SimulationEngine.processOneRow(ID, noScenarioExtras(0.0), out, 0, map);
-        d1.soc = 5.0;
-        d2.soc = 5.0;
+        d1.setSoc(5.0);
+        d2.setSoc(5.0);
         SimulationEngine.processOneRow(ID, noScenarioExtras(0.0), out, 1, map);
 
         // Inverter 1 served the shared load and charged its own battery; inverter 2's battery is untouched.
-        org.junit.Assert.assertTrue("own battery charged", d1.soc > 5.0);
-        assertEquals("other battery unchanged", 5.0, d2.soc, TOL);
+        org.junit.Assert.assertTrue("own battery charged", d1.soc() > 5.0);
+        assertEquals("other battery unchanged", 5.0, d2.soc(), TOL);
     }
 
     /** Dispatch strategy controls battery-vs-grid: LoadGridBattery preserves the battery for load. */
@@ -171,7 +171,7 @@ public class SimulationEngineBusModelTest {
         mapA.put(invA, dA);
         ArrayList<ScenarioSimulationData> outA = new ArrayList<>();
         SimulationEngine.processOneRow(ID, noScenarioExtras(0.0), DispatchStrategy.LOAD_BATTERY_GRID, outA, 0, mapA);
-        dA.soc = 5.0;
+        dA.setSoc(5.0);
         SimulationEngine.processOneRow(ID, noScenarioExtras(0.0), DispatchStrategy.LOAD_BATTERY_GRID, outA, 1, mapA);
         assertEquals(0.5, outA.get(1).getBatToLoad(), TOL);
         assertEquals(0.0, outA.get(1).getBuy(), TOL);
@@ -185,11 +185,11 @@ public class SimulationEngineBusModelTest {
         mapB.put(invB, dB);
         ArrayList<ScenarioSimulationData> outB = new ArrayList<>();
         SimulationEngine.processOneRow(ID, noScenarioExtras(0.0), DispatchStrategy.LOAD_GRID_BATTERY, outB, 0, mapB);
-        dB.soc = 5.0;
+        dB.setSoc(5.0);
         SimulationEngine.processOneRow(ID, noScenarioExtras(0.0), DispatchStrategy.LOAD_GRID_BATTERY, outB, 1, mapB);
         assertEquals(0.0, outB.get(1).getBatToLoad(), TOL);
         assertEquals(0.5, outB.get(1).getBuy(), TOL);
-        assertEquals(5.0, dB.soc, TOL);
+        assertEquals(5.0, dB.soc(), TOL);
     }
 
     /**
@@ -217,15 +217,15 @@ public class SimulationEngineBusModelTest {
 
         ArrayList<ScenarioSimulationData> out = new ArrayList<>();
         SimulationEngine.processOneRow(ID, noScenarioExtras(0.0), out, 0, map); // production overload: per-inverter mode
-        d1.soc = 5.0;
-        d2.soc = 5.0;
+        d1.setSoc(5.0);
+        d2.setSoc(5.0);
         SimulationEngine.processOneRow(ID, noScenarioExtras(0.0), out, 1, map);
         ScenarioSimulationData r = out.get(1);
 
         // inv1 discharges its battery for 1.0 (its maxDischarge); inv2 preserves its battery, grid covers 0.5.
         assertEquals(1.0, r.getBatToLoad(), TOL);
         assertEquals(0.5, r.getBuy(), TOL);
-        assertEquals("battery-before-grid inverter discharged", 4.0, d1.soc, TOL);
-        assertEquals("grid-before-battery inverter preserved its battery", 5.0, d2.soc, TOL);
+        assertEquals("battery-before-grid inverter discharged", 4.0, d1.soc(), TOL);
+        assertEquals("grid-before-battery inverter preserved its battery", 5.0, d2.soc(), TOL);
     }
 }
