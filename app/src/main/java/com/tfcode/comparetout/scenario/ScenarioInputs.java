@@ -20,6 +20,10 @@ import com.tfcode.comparetout.model.scenario.EVCharge;
 import com.tfcode.comparetout.model.scenario.EVDivert;
 import com.tfcode.comparetout.model.scenario.HWSchedule;
 import com.tfcode.comparetout.model.scenario.HWSystem;
+import com.tfcode.comparetout.scenario.sim.ComponentRegistry;
+import com.tfcode.comparetout.scenario.sim.EvChargeComponent;
+import com.tfcode.comparetout.scenario.sim.EvDivertComponent;
+import com.tfcode.comparetout.scenario.sim.HwComponent;
 
 import java.util.HashMap;
 import java.util.List;
@@ -56,6 +60,15 @@ public class ScenarioInputs {
     /** Maximum grid export for the scenario (from the load profile), in kW. */
     public final double exportMax;
 
+    /**
+     * Per-scenario component registry, built once here and consulted by the engine each interval
+     * (component-registration refactor, see {@code plans/sim/component.md}). Phase A registers the EV
+     * scheduled charge as a demand contributor; later phases add hot water and the inverter/battery/PV
+     * components. {@code ScenarioInputs} <i>holds</i> the registry (it stays the scenario-level inputs
+     * object); it does not become it.
+     */
+    public final ComponentRegistry registry;
+
     public ScenarioInputs(HWSystem hwSystem, Boolean hwDivert, List<HWSchedule> hwSchedules,
                           List<EVCharge> evCharges, List<EVDivert> evDiverts, double exportMax) {
         this(hwSystem, hwDivert, hwSchedules, evCharges, evDiverts, new HashMap<>(), exportMax);
@@ -75,6 +88,8 @@ public class ScenarioInputs {
         this.mEVDiverts = evDiverts;
         this.mEVDivertDailyTotals = evDivertDailyTotals;
         this.exportMax = exportMax;
+        this.registry = ComponentRegistry.build(hwSystem, hwDivert, hwSchedules,
+                evCharges, evDiverts, this.mEVDivertDailyTotals);
     }
 
     /**
@@ -85,18 +100,8 @@ public class ScenarioInputs {
      * @return true if heating is scheduled, false otherwise.
      */
     public boolean isHotWaterHeatingScheduled(int dayOfWeek, int monthOfYear, int minuteOfDay) {
-        boolean ret = false;
-        if (dayOfWeek == 7) dayOfWeek = 0;
-        if (!(null == mHWSchedules)) for (HWSchedule hwSchedule: mHWSchedules) {
-            if (hwSchedule.getMonths().months.contains(monthOfYear) &&
-                hwSchedule.getDays().ints.contains(dayOfWeek) &&
-                hwSchedule.getBegin() * 60 <= minuteOfDay &&
-                hwSchedule.getEnd() * 60 > minuteOfDay) {
-                ret = true;
-                break; //
-            }
-        }
-        return ret;
+        // Single source of truth: the hot water component owns the schedule lookup (Phase B).
+        return HwComponent.isHotWaterHeatingScheduled(mHWSchedules, dayOfWeek, monthOfYear, minuteOfDay);
     }
 
     /**
@@ -107,18 +112,8 @@ public class ScenarioInputs {
      * @return The EVCharge if scheduled, null otherwise.
      */
     public EVCharge isEVCharging(int dayOfWeek, int monthOfYear, int minuteOfDay) {
-        EVCharge ret = null;
-        if (dayOfWeek == 7) dayOfWeek = 0;
-        if (!(null == mEVCharges)) for (EVCharge evCharge: mEVCharges) {
-            if (evCharge.getMonths().months.contains(monthOfYear) &&
-                    evCharge.getDays().ints.contains(dayOfWeek) &&
-                    evCharge.getBegin() * 60 <= minuteOfDay &&
-                    evCharge.getEnd() * 60 > minuteOfDay) {
-                ret = evCharge;
-                break; //
-            }
-        }
-        return ret;
+        // Single source of truth: the EV charge component owns the schedule lookup (Phase A).
+        return EvChargeComponent.scheduledChargeOrNull(mEVCharges, dayOfWeek, monthOfYear, minuteOfDay);
     }
 
     /**
@@ -129,17 +124,7 @@ public class ScenarioInputs {
      * @return The EVDivert if scheduled, null otherwise.
      */
     public EVDivert getEVDivertOrNull(int dayOfWeek, int monthOfYear, int minuteOfDay) {
-        EVDivert ret = null;
-        if (dayOfWeek == 7) dayOfWeek = 0;
-        if (!(null == mEVDiverts)) for (EVDivert evDivert: mEVDiverts) {
-            if (evDivert.getMonths().months.contains(monthOfYear) &&
-                    evDivert.getDays().ints.contains(dayOfWeek) &&
-                    evDivert.getBegin() * 60 <= minuteOfDay &&
-                    evDivert.getEnd() * 60 > minuteOfDay) {
-                ret = evDivert;
-                break; //
-            }
-        }
-        return ret;
+        // Single source of truth: the EV divert component owns the schedule lookup (Phase B).
+        return EvDivertComponent.scheduledDivertOrNull(mEVDiverts, dayOfWeek, monthOfYear, minuteOfDay);
     }
 }

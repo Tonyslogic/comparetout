@@ -22,15 +22,18 @@ import static java.lang.Double.min;
 import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.ChargeModel;
 import com.tfcode.comparetout.model.scenario.DischargeToGrid;
-import com.tfcode.comparetout.model.scenario.EVCharge;
-import com.tfcode.comparetout.model.scenario.EVDivert;
-import com.tfcode.comparetout.model.scenario.HWSystem;
 import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.LoadShift;
 import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
 import com.tfcode.comparetout.model.scenario.SimulationInputData;
+import com.tfcode.comparetout.scenario.sim.DemandContributor;
+import com.tfcode.comparetout.scenario.sim.DemandResult;
 import com.tfcode.comparetout.scenario.sim.DispatchStrategy;
+import com.tfcode.comparetout.scenario.sim.IntervalContext;
+import com.tfcode.comparetout.scenario.sim.InverterComponent;
+import com.tfcode.comparetout.scenario.sim.OutputChannel;
 import com.tfcode.comparetout.scenario.sim.SimTime;
+import com.tfcode.comparetout.scenario.sim.SurplusSink;
 import com.tfcode.comparetout.scenario.sim.TimeAxis;
 
 import java.time.LocalDateTime;
@@ -38,6 +41,7 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -143,25 +147,19 @@ public class SimulationEngine {
         /*
          * INPUT AND STATE INITIALIZATION
          * Set up references to input data and initialize battery state of charge (SOC) and other
-         * per-row variables. Hot water and EV are scenario-level (see ScenarioInputs), not per-inverter.
+         * per-row variables. Hot water and EV are scenario-level (see ScenarioInputs), not per-inverter,
+         * and are now resolved through the component registry rather than inline here.
          */
         SimulationInputData inputRow = null;
-        HWSystem hwSystem = scenario.mHWSystem;
-        Boolean hwDivert = scenario.mHWDivert;
 
         // Initialise battery state: on the FIRST simulated interval each battery starts at its discharge-stop
         // floor; a missing battery is replaced by the shared null battery so the rest of the code treats it
         // uniformly. "First interval" is keyed off the output list, not the absolute row index, so a windowed
         // axis (whose first interval may be a stored row K>0) still initialises correctly (Phase 4b/b2.3).
         boolean firstInterval = outputRows.isEmpty();
-        for (Map.Entry<Inverter, InputData> entry : inputDataMap.entrySet()) {
-            InputData iData = entry.getValue();
-            if (null == inputRow) inputRow = iData.simulationInputData.get(row);
-            if (null == iData.mBattery) {
-                iData.soc = 0;
-                iData.mBattery = M_NULL_BATTERY;
-            }
-            if (firstInterval) iData.soc = iData.getDischargeStop();
+        for (InverterComponent inv : inputDataMap.values()) {
+            if (null == inputRow) inputRow = inv.inputRow(row);
+            inv.prepareForRun(firstInterval);
         }
         if (null == inputRow) return;
 
@@ -174,8 +172,8 @@ public class SimulationEngine {
 
         // Total PV (DC) for the output row; per-inverter PV is consumed in the energy-flow pass.
         double tPV = 0;
-        for (Map.Entry<Inverter, InputData> entry : inputDataMap.entrySet())
-            tPV += entry.getValue().simulationInputData.get(row).tpv;
+        for (InverterComponent inv : inputDataMap.values())
+            tPV += inv.dcGeneration(row);
 
         // Grid charging (load shift): charge batteries from the grid where scheduled.
         double purchaseShiftingLoad = chargeBatteriesFromGridIfNeeded(inputDataMap, row);
@@ -205,37 +203,27 @@ public class SimulationEngine {
         outputRow.setMillisSinceEpoch(millis);
         outputRow.setGridToBattery(purchaseShiftingLoad);
 
+        // Read-only per-interval context handed to components (plans/sim/component.md).
+        IntervalContext ctx = new IntervalContext(millis, month, dayOfWeek, minuteOfDay, evDivertDay, 1d / 12d);
+
+        // On the first simulated interval the hot water component starts from a zero previous temperature,
+        // reproducing the legacy "no prior output row -> previousWaterTemp = 0" (and keeping a re-run or a
+        // reused scenario deterministic). On later intervals the component carries its own temperature, so
+        // the engine no longer reads waterTemp back from the previous output row.
+        if (firstInterval) scenario.registry.hotWater().resetWaterTemp();
+
         /*
-         * SCHEDULED EV AND HOT WATER LOADS
-         * Determine if scheduled EV charging or hot water heating should be applied for this time step,
-         * and update the load accordingly.
+         * SCHEDULED DEMAND (Phase A/B): hot water immersion and EV scheduled charge contribute via the
+         * component registry. Contributors are ordered water-then-EV, and the load is recorded before the
+         * loop, so the accumulation order (load, then water, then EV) is byte-identical with the legacy
+         * engine. Each contributor routes its own output column (immersionLoad / directEVcharge).
          */
-        EVCharge evCharge = scenario.isEVCharging(dayOfWeek, month, minuteOfDay);
-        double scheduledEVChargeLoad = 0;
-        if (!(null == evCharge)) scheduledEVChargeLoad = evCharge.getDraw() / 12d;
-        outputRow.setDirectEVcharge(scheduledEVChargeLoad);
-
-        double previousWaterTemp = 0;
-        double scheduledWaterLoad = 0;
-        // Carry the previous interval's water temperature from the last output row (position-relative, so a
-        // windowed axis starting at stored row K>0 still finds its predecessor — Phase 4b/b2.3).
-        if (!outputRows.isEmpty()) previousWaterTemp = outputRows.get(outputRows.size() - 1).getWaterTemp();
-        double nowWaterTemp = previousWaterTemp;
-        boolean immersionIsOn = scenario.isHotWaterHeatingScheduled(dayOfWeek, month, minuteOfDay);
-        boolean hwDiversionIsOn = !(null == hwSystem) && !(null == hwDivert) && hwDivert;
-        double draw = 0d;
-        if (immersionIsOn && !(null == hwSystem)) draw = hwSystem.getHwRate() / 12d;
-        if (immersionIsOn || !hwDiversionIsOn ) {
-            if (!(null == hwSystem)){
-                HWSystem.Heat heat = hwSystem.heatWater(minuteOfDay, previousWaterTemp, draw);
-                scheduledWaterLoad = heat.kWhUsed;
-                nowWaterTemp = heat.temperature;
-            }
-        }
-
         outputRow.setLoad(inputLoad); // Record the input load before extras -- there are separate counters for extras
-        inputLoad += scheduledWaterLoad; // But capture the extras in case the solar can cover it
-        inputLoad += scheduledEVChargeLoad;
+        for (DemandContributor contributor : scenario.registry.demandContributors()) {
+            DemandResult demandResult = contributor.demand(ctx);
+            inputLoad += demandResult.kWh;
+            applyOutputs(outputRow, demandResult.outputs);
+        }
         outputRow.setPv(tPV);
 
         /*
@@ -259,41 +247,40 @@ public class SimulationEngine {
         double remLoad = inputLoad;   // shared AC load still to serve
         double remExport = exportCap; // shared export headroom remaining
 
-        List<Map.Entry<Inverter, InputData>> sortedInverters = new ArrayList<>(inputDataMap.entrySet());
-        sortedInverters.sort(Comparator.comparingLong(en -> en.getKey().getInverterIndex()));
+        List<InverterComponent> sortedInverters = new ArrayList<>(inputDataMap.values());
+        sortedInverters.sort(Comparator.comparingLong(InverterComponent::inverterIndex));
 
         // Remaining AC throughput headroom per inverter this interval (Bug 3 fix: the AC rating now binds).
-        Map<InputData, Double> acRoom = new HashMap<>();
-        for (Map.Entry<Inverter, InputData> en : sortedInverters)
-            acRoom.put(en.getValue(), en.getKey().getMaxInverterLoad() * h);
+        Map<InverterComponent, Double> acRoom = new HashMap<>();
+        for (InverterComponent d : sortedInverters)
+            acRoom.put(d, d.maxInverterLoad() * h);
 
         // PASS 1: PV -> load, PV -> own battery (DC-DC), PV -> feed.
-        for (Map.Entry<Inverter, InputData> en : sortedInverters) {
-            InputData d = en.getValue();
+        for (InverterComponent d : sortedInverters) {
             double room = acRoom.get(d);
-            double pvDc = d.simulationInputData.get(row).tpv;
+            double pvDc = d.dcGeneration(row);
 
             // (1) PV -> AC -> shared load
-            double toLoad = min(min(pvDc * d.dc2acLoss, room), remLoad);
+            double toLoad = min(min(pvDc * d.dc2acLoss(), room), remLoad);
             if (toLoad > 0) {
                 pv2load += toLoad;
                 remLoad -= toLoad;
                 room -= toLoad;
-                pvDc -= toLoad / d.dc2acLoss;
+                pvDc -= toLoad / d.dc2acLoss();
             }
 
             // (2) PV surplus (DC) -> own battery via DC-DC (captures PV the AC stage cannot pass)
             double dcToBatt = min(pvDc, d.getChargeCapacity());
             if (dcToBatt > 0) {
-                d.soc += dcToBatt * d.dc2dcLoss; // dc2dcLoss is the kept fraction
+                d.adjustSoc(dcToBatt * d.dc2dcLoss()); // dc2dcLoss is the kept fraction
                 pv2charge += dcToBatt;
                 pvDc -= dcToBatt;
             }
 
             // (3) PV surplus -> AC -> feed, within AC headroom and the shared export cap.
             //     minExcess suppresses micro-export (kept from the original model).
-            double pvAcFeed = min(min(pvDc * d.dc2acLoss, room), remExport);
-            if (pvAcFeed > en.getKey().getMinExcess()) {
+            double pvAcFeed = min(min(pvDc * d.dc2acLoss(), room), remExport);
+            if (pvAcFeed > d.minExcess()) {
                 feed += pvAcFeed;
                 room -= pvAcFeed;
                 remExport -= pvAcFeed;
@@ -305,19 +292,18 @@ public class SimulationEngine {
         // PASS 2: remaining load from battery (per the inverter's own strategy), then grid.
         // Each inverter decides independently whether to discharge its battery before the grid covers the
         // residual load; a non-null forcedStrategy overrides them all (test isolation).
-        for (Map.Entry<Inverter, InputData> en : sortedInverters) {
+        for (InverterComponent d : sortedInverters) {
             if (remLoad <= 0) break;
-            InputData d = en.getValue();
-            DispatchStrategy eff = (forcedStrategy != null) ? forcedStrategy : d.strategy;
+            DispatchStrategy eff = (forcedStrategy != null) ? forcedStrategy : d.dispatchStrategy();
             if (eff.dischargeBatteryForLoad()) {
                 double room = acRoom.get(d);
                 if (room <= 0) continue;
                 double dcAvail = d.getDischargeCapacity(row); // DC kWh available above the discharge stop
-                double acFromBatt = min(min(dcAvail * d.dc2dcLoss * d.dc2acLoss, room), remLoad);
+                double acFromBatt = min(min(dcAvail * d.dc2dcLoss() * d.dc2acLoss(), room), remLoad);
                 if (acFromBatt > 0) {
                     // DC drawn from the cells to deliver acFromBatt at AC, incl. storage loss (D2).
-                    double dcDrawn = (acFromBatt / (d.dc2dcLoss * d.dc2acLoss)) * (1 + d.storageLoss / 100d);
-                    d.soc -= dcDrawn;
+                    double dcDrawn = (acFromBatt / (d.dc2dcLoss() * d.dc2acLoss())) * (1 + d.storageLoss() / 100d);
+                    d.adjustSoc(-dcDrawn);
                     bat2Load += acFromBatt;
                     remLoad -= acFromBatt;
                     acRoom.put(d, room - acFromBatt);
@@ -332,56 +318,26 @@ public class SimulationEngine {
         outputRow.setBatToLoad(bat2Load);
 
         /*
-         * DIVERSIONS (EV AND HOT WATER)
-         * If excess PV is available, divert it to EV charging or hot water heating as per user schedules.
-         * This models user-configured diversion priorities and daily limits.
+         * DIVERSIONS (EV AND HOT WATER) — surplus PV (feed) diverted to EV charging / hot water.
+         *
+         * The mechanics and per-component state (water temperature, EV daily cap) live in the sinks; the
+         * ORDER is a strategy resolved per interval (registry.divertOrder, the divert analogue of the
+         * dispatch strategy): a config flag (EVDivert.isEv1st()) selects water-first vs EV-first, and the
+         * engine makes a SINGLE ordered pass. Each sink absorbs once, so the legacy double-heat bug (water
+         * absorbed twice) cannot occur; residual after a higher-priority sink flows to the next. Each sink
+         * reports its absorbed energy in its own output channel. (immersionLoad was routed in the demand
+         * phase above; waterTemp is committed by the hot-water component after the pass.)
          */
-        double divertedToWater = 0;
-        double divertedToEV = 0;
-        // ELECTRIC VEHICLE
-        double totalEVDivertedThisDay = scenario.mEVDivertDailyTotals.computeIfAbsent(evDivertDay, k -> 0D);
-        EVDivert evDivert = scenario.getEVDivertOrNull(dayOfWeek, month, minuteOfDay);
-        if (!(null == evDivert)) {
-            double maxEVDivert = evDivert.getDailyMax() - totalEVDivertedThisDay;
-            if (evDivert.isActive()) {
-                if (evDivert.isEv1st()) {
-                    if (feed > evDivert.getMinimum()/12d) {
-                        if (maxEVDivert > 0) {
-                            divertedToEV = min (feed, maxEVDivert);
-                            scenario.mEVDivertDailyTotals.put(evDivertDay, totalEVDivertedThisDay + divertedToEV);
-                            feed -= divertedToEV;
-                        }
-                    }
-                    // else we can ignore this and let the later water divert take it
-                }
-                else { // Water diversion must happen to reduce the feed
-                    if ((!immersionIsOn) && hwDiversionIsOn) {
-                        HWSystem.Heat heat = hwSystem.heatWater(minuteOfDay, previousWaterTemp, feed);
-                        feed -= heat.kWhUsed;
-                        nowWaterTemp = heat.temperature;
-                        divertedToWater = heat.kWhUsed;
-                        if (feed > evDivert.getMinimum()/12d) { // there may be some feed left fo the EV
-                            if (maxEVDivert > 0) {
-                                divertedToEV = min (feed, maxEVDivert);
-                                scenario.mEVDivertDailyTotals.put(evDivertDay, totalEVDivertedThisDay + divertedToEV);
-                                feed -= divertedToEV;
-                            }
-                        }
-                    }
-                }
-            }
+        Map<OutputChannel, Double> divertOutputs = new EnumMap<>(OutputChannel.class);
+        divertOutputs.put(OutputChannel.DIV_TO_WATER, 0d);
+        divertOutputs.put(OutputChannel.DIV_TO_EV, 0d);
+        for (SurplusSink sink : scenario.registry.divertOrder(ctx)) {
+            double absorbed = sink.absorb(feed, ctx);
+            feed -= absorbed;
+            divertOutputs.put(sink.divertChannel(), absorbed);
         }
-        // WATER
-        if ((!immersionIsOn) && hwDiversionIsOn) {
-            HWSystem.Heat heat = hwSystem.heatWater(minuteOfDay, previousWaterTemp, feed);
-            feed -= heat.kWhUsed;
-            nowWaterTemp = heat.temperature;
-            divertedToWater = heat.kWhUsed;
-        }
-        outputRow.setWaterTemp(nowWaterTemp);
-        outputRow.setKWHDivToWater(divertedToWater);
-        outputRow.setImmersionLoad(scheduledWaterLoad);
-        outputRow.setKWHDivToEV(divertedToEV);
+        divertOutputs.put(OutputChannel.WATER_TEMP, scenario.registry.hotWater().commitWaterTemp());
+        applyOutputs(outputRow, divertOutputs);
 
         /*
          * FORCED DISCHARGE TO GRID
@@ -389,21 +345,19 @@ public class SimulationEngine {
          * headroom that remains after PV feed and on the inverter's remaining AC headroom (D3); the cells give
          * up DC including the DC-DC + DC->AC conversion and storage loss (D2).
          */
-        for (Map.Entry<Inverter, InputData> en : sortedInverters) {
-            InputData d = en.getValue();
-            ForceDischargeToGrid fd = d.mForceDischargeToGrid;
-            if (null == fd || null == fd.mD2G || !fd.mD2G.get(row)) continue;
+        for (InverterComponent d : sortedInverters) {
+            if (!d.isForcedDischargeToGrid(row)) continue;
             double room = acRoom.get(d);
-            double stopKWh = (fd.mStopAt.get(row) / 100d) * d.mBattery.getBatterySize();
-            double soc = d.soc;
+            double stopKWh = (d.forcedDischargeStopAtPercent(row) / 100d) * d.batterySize();
+            double soc = d.soc();
             if (remExport <= 0 || room <= 0 || soc <= stopKWh) continue;
-            double wantedRate = fd.mRate.get(row) / 12D;                          // AC kWh this interval (max)
+            double wantedRate = d.forcedDischargeRate(row) / 12D;                 // AC kWh this interval (max)
             // DC available above the stop, expressed as deliverable AC.
-            double acFromAvailable = (soc - stopKWh) / (1 + d.storageLoss / 100d) * d.dc2dcLoss * d.dc2acLoss;
+            double acFromAvailable = (soc - stopKWh) / (1 + d.storageLoss() / 100d) * d.dc2dcLoss() * d.dc2acLoss();
             double acExport = min(min(min(remExport, room), wantedRate), acFromAvailable);
             if (acExport > 0) {
-                double dcDrawn = (acExport / (d.dc2dcLoss * d.dc2acLoss)) * (1 + d.storageLoss / 100d);
-                d.soc -= dcDrawn;
+                double dcDrawn = (acExport / (d.dc2dcLoss() * d.dc2acLoss())) * (1 + d.storageLoss() / 100d);
+                d.adjustSoc(-dcDrawn);
                 b2g += acExport;
                 feed += acExport;
                 remExport -= acExport;
@@ -412,7 +366,7 @@ public class SimulationEngine {
         }
 
         double totalSOC = 0;
-        for (Map.Entry<Inverter, InputData> en : sortedInverters) totalSOC += en.getValue().soc;
+        for (InverterComponent d : sortedInverters) totalSOC += d.soc();
 
         outputRow.setBattery2Grid(b2g);
         outputRow.setSOC(totalSOC);
@@ -426,6 +380,23 @@ public class SimulationEngine {
     }
 
     /**
+     * Routes a component's {@link OutputChannel} contributions onto the output row, so the engine does
+     * not hardcode which component writes which column (component-registration refactor). A future
+     * component's new channel is handled by adding a case here, not by editing the per-interval loop.
+     */
+    private static void applyOutputs(ScenarioSimulationData outputRow, Map<OutputChannel, Double> outputs) {
+        for (Map.Entry<OutputChannel, Double> e : outputs.entrySet()) {
+            switch (e.getKey()) {
+                case DIRECT_EV_CHARGE: outputRow.setDirectEVcharge(e.getValue()); break;
+                case IMMERSION_LOAD:   outputRow.setImmersionLoad(e.getValue());  break;
+                case DIV_TO_WATER:     outputRow.setKWHDivToWater(e.getValue());  break;
+                case DIV_TO_EV:        outputRow.setKWHDivToEV(e.getValue());     break;
+                case WATER_TEMP:       outputRow.setWaterTemp(e.getValue());      break;
+            }
+        }
+    }
+
+    /**
      * Charges batteries from the grid if scheduled and needed, based on user load shift schedules.
      * Only charges batteries that are below their stop threshold.
      * @param inputDataMap Map of inverters to their input data.
@@ -433,17 +404,16 @@ public class SimulationEngine {
      * @return The total extra load added from grid charging.
      */
     private static double chargeBatteriesFromGridIfNeeded(Map<Inverter, InputData> inputDataMap, int row) {
-        double chargeCapacity;
         double totalExtraLoad = 0;
-        for (Map.Entry<Inverter, InputData> entry: inputDataMap.entrySet()) {
-            InputData inputData = entry.getValue();
-            if (!(null == inputData.mChargeFromGrid)) {
-                double stopAtPercentage = inputData.mChargeFromGrid.mStopAt.get(row);
-                double stopAt = (stopAtPercentage / 100d) * inputData.mBattery.getBatterySize();
-                if (inputData.isCFG(row) && (inputData.soc < stopAt)) {
+        for (InverterComponent inv : inputDataMap.values()) {
+            // isChargeFromGrid implies a load-shift schedule exists, so the stop-at lookup below is safe;
+            // gating on it first is byte-identical (the stop-at computation has no side effect otherwise).
+            if (inv.isChargeFromGrid(row)) {
+                double stopAt = (inv.chargeFromGridStopAtPercent(row) / 100d) * inv.batterySize();
+                if (inv.soc() < stopAt) {
                     // D5: grid charging crosses AC->DC then DC-DC, so less is stored than is bought.
-                    chargeCapacity = inputData.getChargeCapacity();           // AC drawn from the grid
-                    inputData.soc += chargeCapacity * inputData.ac2dcLoss * inputData.dc2dcLoss;
+                    double chargeCapacity = inv.getChargeCapacity();          // AC drawn from the grid
+                    inv.adjustSoc(chargeCapacity * inv.ac2dcLoss() * inv.dc2dcLoss());
                     totalExtraLoad += chargeCapacity;
                 }
             }
@@ -459,12 +429,14 @@ public class SimulationEngine {
      * as input by the user for the given scenario, enabling the simulation engine to
      * reason about each inverter's context and constraints at every time step.
      */
-    static class InputData {
+    static class InputData implements InverterComponent {
         final long id;
         final double dc2acLoss;
         final double ac2dcLoss;
         final double dc2dcLoss;
         final double storageLoss;
+        final double maxInverterLoad;
+        final double minExcess;
         final DispatchStrategy strategy;
         List<SimulationInputData> simulationInputData;
         Battery mBattery;
@@ -490,6 +462,8 @@ public class SimulationEngine {
             ac2dcLoss = (100d - inverter.getAc2dcLoss()) / 100d;
             dc2dcLoss = (100d - inverter.getDc2dcLoss()) / 100d;
             storageLoss = (null == battery) ? 0 : battery.getStorageLoss();
+            maxInverterLoad = inverter.getMaxInverterLoad();
+            minExcess = inverter.getMinExcess();
             strategy = DispatchStrategy.fromMode(inverter.getDispatchMode());
             simulationInputData = iData;
             mBattery = battery;
@@ -560,6 +534,46 @@ public class SimulationEngine {
             if (batteryPercentSOC > 90) ret = (maxCharge * cm.percent90) / 100d;
             if (batteryPercentSOC == 100) ret = (maxCharge * cm.percent100) / 100d;
             return ret;
+        }
+
+        // ---- Capability interface (Phase C). These expose the inverter's bus capabilities so the engine
+        //      consults methods rather than fields. The package-private fields above are retained for the
+        //      white-box unit tests; each accessor simply returns the corresponding field/derived value, so
+        //      routing the bus solve through these methods is byte-identical. ----
+
+        @Override public SimulationInputData inputRow(int row) { return simulationInputData.get(row); }
+        @Override public double dcGeneration(int row) { return simulationInputData.get(row).tpv; }
+
+        @Override public double soc() { return soc; }
+        @Override public void adjustSoc(double deltaKWh) { soc += deltaKWh; }
+        @Override public void setSoc(double socKWh) { soc = socKWh; }
+        @Override public double storageLoss() { return storageLoss; }
+        @Override public double batterySize() { return mBattery.getBatterySize(); }
+
+        @Override public long inverterIndex() { return id; }
+        @Override public double maxInverterLoad() { return maxInverterLoad; }
+        @Override public double minExcess() { return minExcess; }
+        @Override public double dc2acLoss() { return dc2acLoss; }
+        @Override public double ac2dcLoss() { return ac2dcLoss; }
+        @Override public double dc2dcLoss() { return dc2dcLoss; }
+        @Override public DispatchStrategy dispatchStrategy() { return strategy; }
+
+        @Override public boolean isChargeFromGrid(int row) { return isCFG(row); }
+        @Override public double chargeFromGridStopAtPercent(int row) { return mChargeFromGrid.mStopAt.get(row); }
+
+        @Override public boolean isForcedDischargeToGrid(int row) {
+            ForceDischargeToGrid fd = mForceDischargeToGrid;
+            return !(null == fd) && !(null == fd.mD2G) && fd.mD2G.get(row);
+        }
+        @Override public double forcedDischargeStopAtPercent(int row) { return mForceDischargeToGrid.mStopAt.get(row); }
+        @Override public double forcedDischargeRate(int row) { return mForceDischargeToGrid.mRate.get(row); }
+
+        @Override public void prepareForRun(boolean firstInterval) {
+            if (null == mBattery) {
+                soc = 0;
+                mBattery = M_NULL_BATTERY;
+            }
+            if (firstInterval) soc = getDischargeStop();
         }
     }
 

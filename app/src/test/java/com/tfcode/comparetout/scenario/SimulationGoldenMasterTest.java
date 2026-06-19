@@ -19,6 +19,7 @@ package com.tfcode.comparetout.scenario;
 import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.DischargeToGrid;
 import com.tfcode.comparetout.model.scenario.EVCharge;
+import com.tfcode.comparetout.model.scenario.EVDivert;
 import com.tfcode.comparetout.model.scenario.HWSchedule;
 import com.tfcode.comparetout.model.scenario.HWSystem;
 import com.tfcode.comparetout.model.scenario.Inverter;
@@ -210,7 +211,53 @@ public class SimulationGoldenMasterTest {
         GoldenMaster.verify("ev_charge_schedule", GoldenMaster.serialize(run(scenario, map)));
     }
 
+    /**
+     * Surplus PV diverted with EV-divert <b>and</b> hot-water-divert both active, EV-first (water mops the
+     * residual). With a modest daily EV cap, the cap binds mid-day and later surplus spills to water — so
+     * this exercises the daily-total carry and the ordered single-pass divert. Pins corrected behaviour
+     * introduced with the divert-ordering strategy (see plans/sim/component.md).
+     */
+    @Test
+    public void ev_divert_ev_first() {
+        GoldenMaster.verify("ev_divert_ev_first",
+                GoldenMaster.serialize(run(divertScenario(true), divertMap())));
+    }
+
+    /**
+     * As above but water-first (not ev1st): hot water takes the surplus, EV takes the residual, each once.
+     * This is the path the legacy engine double-heated (water absorbed twice, feed double-debited); the
+     * single-pass divert fixes it. Pins the corrected behaviour.
+     */
+    @Test
+    public void ev_divert_water_first() {
+        GoldenMaster.verify("ev_divert_water_first",
+                GoldenMaster.serialize(run(divertScenario(false), divertMap())));
+    }
+
     // --- helpers -------------------------------------------------------------------------------
+
+    /** One inverter, no battery, bell-curve PV over a flat load — surplus to divert at midday. */
+    private static Map<Inverter, SimulationEngine.InputData> divertMap() {
+        Inverter inverter = InverterBuilder.anInverter().index(1).name("INV1").build();
+        List<SimulationInputData> series = SimSeries.generated(ROWS, i -> FLAT_LOAD,
+                SimulationGoldenMasterTest::bellPV);
+        Map<Inverter, SimulationEngine.InputData> map = new LinkedHashMap<>();
+        map.put(inverter, input(inverter, series, null, null, null));
+        return map;
+    }
+
+    /** Hot-water divert on (no immersion schedule) + an all-day active EV divert with a modest daily cap. */
+    private static ScenarioInputs divertScenario(boolean evFirst) {
+        EVDivert evDivert = new EVDivert();
+        evDivert.setBegin(0);
+        evDivert.setEnd(24);
+        evDivert.setActive(true);
+        evDivert.setEv1st(evFirst);
+        evDivert.setMinimum(0d);
+        evDivert.setDailyMax(5d);
+        return new ScenarioInputs(new HWSystem(), true, null, null,
+                Collections.singletonList(evDivert), EXPORT_MAX);
+    }
 
     /** A daily PV bell-curve: zero overnight, peaking at midday (kWh per 5-minute interval). */
     private static double bellPV(double rowIndex) {
