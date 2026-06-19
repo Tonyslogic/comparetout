@@ -19,6 +19,7 @@ import java.text.DecimalFormat
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 
 class PVGISDirectFetchWorker(
     context: Context,
@@ -55,11 +56,13 @@ class PVGISDirectFetchWorker(
             val pvGisFormat = DateTimeFormatter.ofPattern("yyyyMMdd:HHmm")
 
             for (pp in pvGISData.hourlies.hourlies) {
-                // PVGIS timestamps are UTC (SARAH/ERA5 per the PVGIS docs). Store the canonical UTC instant
-                // directly — no device-zone conversion and no hour fudge — then remap onto the synthetic 2001
-                // grid (keep month/day/HH:mm) so PV shares one UTC axis with the load and merges row-for-row by
-                // millis. Mirrors PVGISLoader.mapHourlyTo2001Rows (the file-import path).
-                val utc = LocalDateTime.parse(pp.time, pvGisFormat)
+                // PVGIS timestamps are UTC (SARAH/ERA5 per the PVGIS docs) but carry a native minute offset
+                // (PVGIS-SARAH2 stamps the hourly value at :11 past the hour). Truncate to the top of the hour
+                // BEFORE expanding into the twelve :00,:05,…,:55 slots so the PV rows sit on EXACTLY the same
+                // :00-based 2001 grid as the load: the sim merges PV onto the load by UTC millis, and an off-grid
+                // stamp (:11,:16,…) lands on instants the load never has, silently dropping all PV. Then remap
+                // onto the synthetic 2001 grid (keep month/day/hour). Mirrors PVGISLoader.mapHourlyTo2001Rows.
+                val utc = LocalDateTime.parse(pp.time, pvGisFormat).truncatedTo(ChronoUnit.HOURS)
                 val pvPerInterval = (pp.gi / 12.0 / MAGIC_NUMBER) * panel.panelCount * panel.panelkWp
                 for (i in 0 until 12) {
                     val slot = utc.plusMinutes(5L * i)

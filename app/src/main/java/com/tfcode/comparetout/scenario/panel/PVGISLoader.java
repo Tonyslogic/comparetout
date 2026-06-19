@@ -52,6 +52,7 @@ import java.text.DecimalFormat;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 
 public class PVGISLoader extends Worker {
@@ -157,11 +158,15 @@ public class PVGISLoader extends Worker {
 
     /**
      * Maps one PVGIS hourly reading onto the synthetic 2001 UTC grid as up to twelve 5-minute
-     * {@link PanelData} rows. PVGIS timestamps are UTC (SARAH/ERA5 per the PVGIS docs), so the instant is
-     * stored directly — no device-zone conversion and no hour fudge — with the year remapped to 2001
-     * (month/day/HH:mm kept). Feb 29 of a leap source year is dropped (2001 is non-leap) so the PV row count
-     * stays equal to the load's 105120 and the millis-keyed PV/load merge aligns; an hourly that falls
-     * entirely on Feb 29 therefore yields no rows. Pure (Android-free) so it can be unit-tested directly.
+     * {@link PanelData} rows. PVGIS timestamps are UTC (SARAH/ERA5 per the PVGIS docs) but carry a native
+     * minute offset (e.g. {@code HH:11} past the hour). The hour is therefore truncated to its top
+     * ({@code HH:00}) before being expanded into the twelve {@code :00,:05,…,:55} slots, so the PV rows sit
+     * on EXACTLY the same {@code :00}-based 2001 grid as the load: the simulation merges PV onto the load by
+     * UTC millis, and a stamp offset would land PV on an instant the load never has — silently dropping all
+     * of it. (No device-zone conversion and no hour fudge; the year is remapped to 2001, month/day/hour
+     * kept.) Feb 29 of a leap source year is dropped (2001 is non-leap) so the PV row count stays equal to
+     * the load's 105120; an hourly that falls entirely on Feb 29 therefore yields no rows. Pure
+     * (Android-free) so it can be unit-tested directly.
      *
      * @param panelIndex the owning panel's index (stored on each row)
      * @param pvgisTime  the PVGIS {@code time} field, formatted {@code yyyyMMdd:HHmm} (UTC)
@@ -173,7 +178,10 @@ public class PVGISLoader extends Worker {
     static java.util.List<PanelData> mapHourlyTo2001Rows(long panelIndex, String pvgisTime, double giWhm2,
                                                          int panelCount, double panelkWp) {
         java.util.List<PanelData> rows = new ArrayList<>(12);
-        LocalDateTime utc = LocalDateTime.parse(pvgisTime, PVGIS_FORMAT);
+        // Snap to the top of the hour: PVGIS stamps the hourly value at a minute offset (e.g. HH:11), but the
+        // load grid — and hence the millis-keyed PV/load merge — is on HH:00,:05,…,:55. Expanding from the raw
+        // offset would land every PV row between load instants and drop all of it (see method javadoc).
+        LocalDateTime utc = LocalDateTime.parse(pvgisTime, PVGIS_FORMAT).truncatedTo(ChronoUnit.HOURS);
         double pvPerInterval = (giWhm2 / 12d / MAGIC_NUMBER) * panelCount * panelkWp;
         for (int i = 0; i < 12; i++) {
             LocalDateTime slot = utc.plusMinutes(5L * i);

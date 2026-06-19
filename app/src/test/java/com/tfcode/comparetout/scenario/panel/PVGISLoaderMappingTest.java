@@ -31,10 +31,12 @@ import java.util.List;
 /**
  * Unit coverage for {@link PVGISLoader#mapHourlyTo2001Rows} — the PVGIS ingestion mapping (Phase 4b).
  *
- * <p>Pins the canonical-time contract decided 2026-06-17: PVGIS timestamps are UTC and are stored
- * directly (no device-zone conversion, no {@code minusHours(1)} fudge), remapped onto the synthetic
- * 2001 UTC grid, with Feb 29 of a leap source year dropped so the PV row count stays equal to the
- * load's 105120 and the millis-keyed PV/load merge aligns.</p>
+ * <p>Pins the canonical-time contract: PVGIS timestamps are UTC (no device-zone conversion, no
+ * {@code minusHours(1)} fudge), but PVGIS-SARAH2 stamps the hourly value at {@code :11} past the hour, so the
+ * hour is truncated to its top before being expanded into the twelve {@code :00,:05,…,:55} slots. The rows
+ * are remapped onto the synthetic 2001 UTC grid, with Feb 29 of a leap source year dropped, so the PV row
+ * count stays equal to the load's 105120 and — critically — the millis-keyed PV/load merge aligns
+ * row-for-row. An off-grid stamp would land PV on instants the load never has and silently drop all of it.</p>
  */
 public class PVGISLoaderMappingTest {
 
@@ -76,6 +78,29 @@ public class PVGISLoaderMappingTest {
         long expected = LocalDateTime.of(2001, 6, 15, 9, 0).atZone(ZoneOffset.UTC).toInstant().toEpochMilli();
         assertEquals(expected, (long) rows.get(0).getMillisSinceEpoch());
         assertEquals(540, rows.get(0).getMod()); // 09:00
+    }
+
+    /**
+     * Regression for the "no PV in the simulation" bug: real PVGIS-SARAH2 stamps the hour at {@code :11}
+     * (e.g. {@code 20190101:0011}). The twelve slots MUST be snapped to the {@code :00,:05,…,:55} grid — not
+     * left at {@code :11,:16,…} — or every PV row lands on an instant the (on-the-:00-grid) load never has and
+     * the millis merge drops all of it.
+     */
+    @Test
+    public void sarah2ElevenPastTheHourIsSnappedToTheFiveMinuteGrid() {
+        List<PanelData> rows = PVGISLoader.mapHourlyTo2001Rows(PANEL, "20190101:0011", 500d, 1, 1.0);
+
+        assertEquals(12, rows.size());
+        for (int i = 0; i < 12; i++) {
+            PanelData row = rows.get(i);
+            int expectedMod = i * 5;                       // 00:00, 00:05, … 00:55 — NOT 00:11, 00:16, …
+            assertEquals("slot " + i + " must be on the 5-minute grid", expectedMod, row.getMod());
+            assertEquals(0, row.getMod() % 5);             // never an off-grid minute
+            LocalDateTime slot = LocalDateTime.of(2001, 1, 1, 0, 0).plusMinutes(5L * i);
+            assertEquals(SimTime.toEpochMillis(slot, ZoneOffset.UTC), (long) row.getMillisSinceEpoch());
+        }
+        // First slot is the top of the hour, not the raw :11 stamp.
+        assertEquals(0, rows.get(0).getMod());
     }
 
     /** An hour that falls entirely on Feb 29 of a leap source year is dropped (2001 is non-leap). */
