@@ -42,10 +42,18 @@ import com.tfcode.comparetout.model.scenario.Panel;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
+import com.tfcode.comparetout.model.scenario.HeatPump;
 import com.tfcode.comparetout.model.scenario.SimulationInputData;
+import com.tfcode.comparetout.scenario.sim.CsvWeatherProvider;
+import com.tfcode.comparetout.scenario.sim.HeatPumpComponent;
+import com.tfcode.comparetout.scenario.sim.HeatPumpDemandModel;
 import com.tfcode.comparetout.scenario.sim.SimTime;
 import com.tfcode.comparetout.scenario.sim.TimeAxis;
+import com.tfcode.comparetout.scenario.sim.WeatherProvider;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -171,6 +179,15 @@ public class SimulationWorker extends Worker {
                     // Scenario-level inputs (load export limit, hot water, EV) — shared by all inverters.
                     ScenarioInputs scenarioInputs;
 
+                    // Heat pump (scenario-level demand): built once from its config + weather, aligned to the
+                    // grid (Phase 4 of plans/hp/plan.md). Null when no heat pump ⇒ nothing registered.
+                    HeatPumpComponent heatPumpComponent = null;
+                    if (scenario.isHasHeatPump() && !(null == scenarioComponents.heatPumps)
+                            && !scenarioComponents.heatPumps.isEmpty()) {
+                        List<SimulationInputData> hpGrid = mToutcRepository.getSimulationInputNoSolar(scenarioID);
+                        heatPumpComponent = buildHeatPumpComponent(scenarioComponents.heatPumps.get(0), hpGrid);
+                    }
+
                     /*
                      * INPUT DATA PREPARATION
                      * For each inverter, gather simulation input data (load, PV, battery, schedules, etc.).
@@ -191,7 +208,7 @@ public class SimulationWorker extends Worker {
                         if (scenario.isHasEVCharges() && !scenarioComponents.evCharges.isEmpty()) evCharges = scenarioComponents.evCharges;
                         if (scenario.isHasEVDivert() && !scenarioComponents.evDiverts.isEmpty()) evDiverts = scenarioComponents.evDiverts;
                         scenarioInputs = new ScenarioInputs(configuredHotWater, hotWaterDivert, hotWaterSchedules,
-                                evCharges, evDiverts, exportMax);
+                                evCharges, evDiverts, exportMax, heatPumpComponent);
                         for (Inverter inverter : scenarioComponents.inverters) {
                             // Get some load simulation data to start with
                             List<SimulationInputData> simulationInputData = mToutcRepository.getSimulationInputNoSolar(scenarioID);
@@ -247,7 +264,7 @@ public class SimulationWorker extends Worker {
                         List<EVCharge> evCharges = null;
                         if (scenario.isHasEVCharges() && !scenarioComponents.evCharges.isEmpty()) evCharges = scenarioComponents.evCharges;
                         scenarioInputs = new ScenarioInputs(configuredHotWater, null, hotWaterSchedules,
-                                evCharges, null, exportMax);
+                                evCharges, null, exportMax, heatPumpComponent);
                         SimulationEngine.InputData idata = new SimulationEngine.InputData(inverter, mToutcRepository.getSimulationInputNoSolar(scenarioID),
                                 null, null, null);
                         inputDataMap.put(inverter, idata);
@@ -348,6 +365,63 @@ public class SimulationWorker extends Worker {
      * @param inverter The inverter to aggregate PV for.
      * @return PV (kWh per interval) keyed by UTC millis.
      */
+    /**
+     * Builds the heat-pump demand component for a scenario: derives the sim grid millis from the load rows
+     * exactly as the engine derives {@code ctx.millis}, loads the weather (the offline sample asset for v1;
+     * the CDS-fetched series is Phase 6), and aligns/calibrates the model onto that grid. Returns null if the
+     * weather can't be loaded, so the rest of the simulation is unaffected.
+     */
+    private HeatPumpComponent buildHeatPumpComponent(HeatPump hp, List<SimulationInputData> gridRows) {
+        long[] gridMillis = new long[gridRows.size()];
+        for (int i = 0; i < gridRows.size(); i++) {
+            SimulationInputData r = gridRows.get(i);
+            gridMillis[i] = (r.getMillisSinceEpoch() != null) ? r.getMillisSinceEpoch()
+                    : SimTime.fromDateAndMinuteOfDay(r.getDate(), r.getMod(), ZoneOffset.UTC);
+        }
+        WeatherProvider weather;
+        try (InputStream is = getApplicationContext().getAssets()
+                .open("hp-weather/era5-timeseries-2001-synthetic.csv")) {
+            weather = new CsvWeatherProvider(new InputStreamReader(is));
+        } catch (IOException e) {
+            return null; // weather unavailable ⇒ no heat-pump contribution
+        }
+        return HeatPumpComponent.build(configFromHeatPump(hp), weather, gridMillis);
+    }
+
+    /** Maps a persisted {@link HeatPump} onto the pure model's {@link HeatPumpDemandModel.Config}. */
+    private static HeatPumpDemandModel.Config configFromHeatPump(HeatPump hp) {
+        HeatPumpDemandModel.Config c = new HeatPumpDemandModel.Config();
+        c.fuelAnnual = hp.getFuelAnnual();
+        c.calorificValue = hp.getCalorificValue();
+        c.boilerEfficiency = hp.getBoilerEfficiency();
+        c.dhwAnnualKWh = hp.getDhwAnnualKWh();
+        c.spaceHeatingFraction = hp.getSpaceHeatingFraction();
+        c.setpointNew = hp.getDesiredIndoorTemp();
+        c.setpointOld = hp.getCurrentIndoorTemp();
+        c.balancePoint = hp.getBalancePoint();
+        c.alphaWind = hp.getAlphaWind();
+        if (!(null == hp.getHourlyDist())) c.hourlyProfile = toWeights(hp.getHourlyDist().dist, 24);
+        if (!(null == hp.getDowDist())) c.dowProfile = toWeights(hp.getDowDist().dowDist, 7);
+        c.heatOnDayOfYear = hp.getHeatingSeasonStart();
+        c.heatOffDayOfYear = hp.getHeatingSeasonEnd();
+        c.copRated = hp.getCopRated();
+        c.copRefTemp = hp.getCopRefTemp();
+        c.copSlope = hp.getCopSlope();
+        c.scop = hp.getScop();
+        c.capacityKw = hp.getCapacityKw();
+        c.backupHeater = hp.isBackupHeater();
+        c.intervalHours = 1d / 12d; // 5-minute sim grid
+        return c;
+    }
+
+    private static double[] toWeights(List<Double> list, int n) {
+        double[] a = new double[n];
+        for (int i = 0; i < n; i++) {
+            a[i] = (!(null == list) && i < list.size() && !(null == list.get(i))) ? list.get(i) : 1d;
+        }
+        return a;
+    }
+
     private Map<Long, Double> getPVForInverterByMillis(ScenarioComponents scenarioComponents, Inverter inverter) {
         Map<Long, Double> inverterPV = new HashMap<>();
         for (int mppt = 1; mppt <= inverter.getMpptCount(); mppt++) {

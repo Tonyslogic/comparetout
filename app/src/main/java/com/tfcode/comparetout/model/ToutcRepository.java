@@ -35,6 +35,7 @@ import com.tfcode.comparetout.model.importers.alphaess.ScheduleRIInput;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.Battery;
+import com.tfcode.comparetout.model.scenario.HeatPump;
 import com.tfcode.comparetout.model.scenario.DischargeToGrid;
 import com.tfcode.comparetout.model.scenario.EVCharge;
 import com.tfcode.comparetout.model.scenario.EVDivert;
@@ -523,6 +524,7 @@ public class ToutcRepository {
         scenarioDAO.deleteOrphanLoadProfileData();
         scenarioDAO.deleteOrphanPanels();
         scenarioDAO.deleteOrphanPanelData();
+        scenarioDAO.deleteOrphanHeatPumps();
     }
 
     public void saveBatteryForScenario(Long scenarioID, Battery battery) {
@@ -541,6 +543,28 @@ public class ToutcRepository {
     public void linkBatteryFromScenario(long fromScenarioID, Long toScenarioID) {
         ToutcDB.databaseWriteExecutor.execute(() ->
         scenarioDAO.linkBatteryFromScenario(fromScenarioID, toScenarioID));
+    }
+
+    public void deleteHeatPumpFromScenario(Long heatPumpID, Long scenarioID) {
+        scenarioDAO.deleteHeatPumpFromScenario(heatPumpID, scenarioID);
+    }
+
+    public void saveHeatPumpForScenario(Long scenarioID, HeatPump heatPump) {
+        scenarioDAO.saveHeatPumpForScenario(scenarioID, heatPump);
+    }
+
+    public List<String> getLinkedHeatPumps(long heatPumpIndex, Long scenarioID) {
+        return scenarioDAO.getLinkedHeatPumps(heatPumpIndex, scenarioID);
+    }
+
+    public void copyHeatPumpFromScenario(long fromScenarioID, Long toScenarioID) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+        scenarioDAO.copyHeatPumpFromScenario(fromScenarioID, toScenarioID));
+    }
+
+    public void linkHeatPumpFromScenario(long fromScenarioID, Long toScenarioID) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+        scenarioDAO.linkHeatPumpFromScenario(fromScenarioID, toScenarioID));
     }
 
     public LiveData<List<Scenario2LoadShift>> getAllLoadShiftRelations() {

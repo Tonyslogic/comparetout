@@ -44,7 +44,9 @@ import com.tfcode.comparetout.model.scenario.Panel;
 import com.tfcode.comparetout.model.scenario.PanelData;
 import com.tfcode.comparetout.model.scenario.PanelPVSummary;
 import com.tfcode.comparetout.model.scenario.Scenario;
+import com.tfcode.comparetout.model.scenario.HeatPump;
 import com.tfcode.comparetout.model.scenario.Scenario2Battery;
+import com.tfcode.comparetout.model.scenario.Scenario2HeatPump;
 import com.tfcode.comparetout.model.scenario.Scenario2DischargeToGrid;
 import com.tfcode.comparetout.model.scenario.Scenario2EVCharge;
 import com.tfcode.comparetout.model.scenario.Scenario2EVDivert;
@@ -117,6 +119,9 @@ public abstract class ScenarioDAO {
     abstract long addNewBattery(Battery battery);
 
     @Insert
+    abstract long addNewHeatPump(HeatPump heatPump);
+
+    @Insert
     abstract long addNewPanels(Panel panel);
 
     @Insert
@@ -148,6 +153,9 @@ public abstract class ScenarioDAO {
 
     @Insert
     abstract void addNewScenario2Battery(Scenario2Battery scenario2Battery);
+
+    @Insert
+    abstract void addNewScenario2HeatPump(Scenario2HeatPump scenario2HeatPump);
 
     @Insert
     abstract void addNewScenario2Panel(Scenario2Panel scenario2Panel);
@@ -239,6 +247,8 @@ public abstract class ScenarioDAO {
                 scenario.setHasHWDivert(true);
             if (!(null == components.evDiverts) && (!components.evDiverts.isEmpty()))
                 scenario.setHasEVDivert(true);
+            if (!(null == components.heatPumps) && !components.heatPumps.isEmpty())
+                scenario.setHasHeatPump(true);
 
             scenarioID = addNewScenario(scenario);
             if (!(null == components.inverters)) {
@@ -336,6 +346,15 @@ public abstract class ScenarioDAO {
                     addNewScenario2EVDivert(s2evd);
                 }
             }
+            if (!(null == components.heatPumps)) {
+                for (HeatPump hp : components.heatPumps) {
+                    long heatPumpID = addNewHeatPump(hp);
+                    Scenario2HeatPump s2hp = new Scenario2HeatPump();
+                    s2hp.setScenarioID(scenarioID);
+                    s2hp.setHeatPumpID(heatPumpID);
+                    addNewScenario2HeatPump(s2hp);
+                }
+            }
         } catch (SQLiteConstraintException e) {
             // The only UNIQUE constraint reachable here is scenarios.scenarioName, so this means a scenario
             // with this name already exists. addNewScenario aborts before assigning scenarioID, so the
@@ -384,6 +403,11 @@ public abstract class ScenarioDAO {
             "WHERE scenarioID = :id AND batteries.batteryIndex = scenario2battery.batteryID")
     @RewriteQueriesToDropUnusedColumns
     public abstract List<Battery> getBatteriesForScenarioID(long id);
+
+    @Query("SELECT * FROM heatpumps, scenario2heatpump " +
+            "WHERE scenarioID = :id AND heatpumps.heatPumpIndex = scenario2heatpump.heatPumpID")
+    @RewriteQueriesToDropUnusedColumns
+    public abstract List<HeatPump> getHeatPumpsForScenarioID(long id);
 
     @Query("SELECT * FROM panels, scenario2panel " +
             "WHERE scenarioID = :id AND panels.panelIndex = scenario2panel.panelID")
@@ -591,6 +615,7 @@ public abstract class ScenarioDAO {
         
         // Remove all junction table relationships
         deleteBatteryRelationsForScenario(id);
+        deleteHeatPumpRelationsForScenario(id);
         deleteEVChargeRelationsForScenario(id);
         deleteEVDivertRelationsForScenario(id);
         deleteHWDivertRelationsForScenario(id);
@@ -604,6 +629,7 @@ public abstract class ScenarioDAO {
 
         // Clean up orphaned components (not referenced by any scenario)
         deleteOrphanBatteries();
+        deleteOrphanHeatPumps();
         deleteOrphanEVCharges();
         deleteOrphanEVDiverts();
         deleteOrphanHWDiverts();
@@ -636,6 +662,9 @@ public abstract class ScenarioDAO {
      */
     @Query("DELETE FROM batteries WHERE batteryIndex NOT IN (SELECT batteryID FROM scenario2battery)")
     public abstract void deleteOrphanBatteries();
+
+    @Query("DELETE FROM heatpumps WHERE heatPumpIndex NOT IN (SELECT heatPumpID FROM scenario2heatpump)")
+    public abstract void deleteOrphanHeatPumps();
 
     @Query("DELETE FROM evcharge WHERE evChargeIndex NOT IN (SELECT evChargeID FROM scenario2evcharge)")
     public abstract void deleteOrphanEVCharges();
@@ -679,6 +708,9 @@ public abstract class ScenarioDAO {
     @Query("DELETE FROM scenario2battery WHERE scenarioID = :id")
     public abstract void deleteBatteryRelationsForScenario(int id);
 
+    @Query("DELETE FROM scenario2heatpump WHERE scenarioID = :id")
+    public abstract void deleteHeatPumpRelationsForScenario(int id);
+
     @Query("DELETE FROM scenario2evcharge WHERE scenarioID = :id")
     public abstract void deleteEVChargeRelationsForScenario(int id);
 
@@ -719,6 +751,7 @@ public abstract class ScenarioDAO {
     public void copyScenario(int id) {
         Scenario scenario = getScenarioForID(id);
         List<Battery> batteries = getBatteriesForScenarioID(id);
+        List<HeatPump> heatPumps = getHeatPumpsForScenarioID(id);
         List<EVCharge> evCharges = getEVChargesForScenarioID(id);
         List<EVDivert> evDiverts = getEVDivertForScenarioID(id);
         HWDivert hwDivert = getHWDivertForScenarioID(id);
@@ -733,6 +766,7 @@ public abstract class ScenarioDAO {
         scenario.setScenarioName(scenario.getScenarioName() + "_copy");
         scenario.setScenarioIndex(0);
         for (Battery b : batteries) b.setBatteryIndex(0);
+        for (HeatPump hp : heatPumps) hp.setHeatPumpIndex(0);
         for (EVCharge e : evCharges) e.setEvChargeIndex(0);
         for (EVDivert d : evDiverts) d.setEvDivertIndex(0);
         if (!(null == hwDivert)) hwDivert.setHwDivertIndex(0);
@@ -756,10 +790,12 @@ public abstract class ScenarioDAO {
             p.setPanelIndex(newPanelID);
         }
 
-        addNewScenarioWithComponents(scenario, new ScenarioComponents(
+        ScenarioComponents copyComponents = new ScenarioComponents(
                 scenario, inverters, batteries, panels, hwSystem,
                 loadProfile, loadShifts, discharges, evCharges, hwSchedules,
-                hwDivert, evDiverts), false);
+                hwDivert, evDiverts);
+        copyComponents.heatPumps = heatPumps;
+        addNewScenarioWithComponents(scenario, copyComponents, false);
     }
 
     @Transaction
@@ -780,6 +816,7 @@ public abstract class ScenarioDAO {
                     getHWDivertForScenarioID(scenario.getScenarioIndex()),
                     getEVDivertForScenarioID(scenario.getScenarioIndex())
             );
+            scenarioComponents.heatPumps = getHeatPumpsForScenarioID(scenario.getScenarioIndex());
             ret.add(scenarioComponents);
         }
         return ret;
@@ -787,7 +824,7 @@ public abstract class ScenarioDAO {
 
     @Transaction
     public ScenarioComponents getScenarioComponentsForScenarioID(long scenarioID) {
-        return new ScenarioComponents(
+        ScenarioComponents components = new ScenarioComponents(
                 getScenarioForID(scenarioID),
                 getInvertersForScenarioID(scenarioID),
                 getBatteriesForScenarioID(scenarioID),
@@ -801,6 +838,8 @@ public abstract class ScenarioDAO {
                 getHWDivertForScenarioID(scenarioID),
                 getEVDivertForScenarioID(scenarioID)
         );
+        components.heatPumps = getHeatPumpsForScenarioID(scenarioID);
+        return components;
     }
 
     @Query("SELECT * FROM scenarios")
@@ -849,7 +888,7 @@ public abstract class ScenarioDAO {
         deleteOrphanLoadProfiles();
     }
 
-    @Query("SELECT sum(pv) AS gen, SUM(Feed) AS sold, SUM(load) + SUM(immersionLoad) + SUM(directEVcharge) AS load, SUM(Buy) AS bought, " +
+    @Query("SELECT sum(pv) AS gen, SUM(Feed) AS sold, SUM(load) + SUM(immersionLoad) + SUM(directEVcharge) + SUM(heatPumpLoad) AS load, SUM(Buy) AS bought, " +
             "sum(kWHDivToEV) AS evDiv, sum(kWHDivToWater) AS h2oDiv, sum(pvToLoad) AS pvToLoad, sum(pvToCharge) AS pvToCharge, " +
             "sum(load) AS house, sum(immersionLoad) AS h20, sum(directEVcharge) AS EV " +
             "FROM scenariosimulationdata WHERE scenarioID = :scenarioID")
@@ -1116,6 +1155,77 @@ public abstract class ScenarioDAO {
         }
 
         deleteOrphanBatteries();
+    }
+
+    // ---- Heat pump (mirrors the battery helpers; Phase 4 of plans/hp/plan.md) ----
+
+    @Query("DELETE FROM scenario2heatpump WHERE scenarioID = :scenarioID AND heatPumpID = :heatPumpID")
+    public abstract void deleteHeatPumpFromScenario(Long heatPumpID, Long scenarioID);
+
+    @Update(entity = HeatPump.class)
+    public abstract void updateHeatPump(HeatPump heatPump);
+
+    @Query("SELECT scenarioName FROM scenarios WHERE scenarioIndex IN (" +
+            "SELECT scenarioID FROM scenario2heatpump WHERE heatPumpID = :heatPumpIndex) AND scenarioIndex != :scenarioID")
+    public abstract List<String> getLinkedHeatPumps(long heatPumpIndex, Long scenarioID);
+
+    @Transaction
+    public void saveHeatPumpForScenario(Long scenarioID, HeatPump heatPump) {
+        long heatPumpID = heatPump.getHeatPumpIndex();
+        if (heatPumpID == 0) {
+            heatPumpID = addNewHeatPump(heatPump);
+            Scenario2HeatPump s2hp = new Scenario2HeatPump();
+            s2hp.setScenarioID(scenarioID);
+            s2hp.setHeatPumpID(heatPumpID);
+            addNewScenario2HeatPump(s2hp);
+
+            // Guard against a bad scenarioID: never NPE here.
+            Scenario scenario = getScenario(scenarioID);
+            if (scenario != null) {
+                scenario.setHasHeatPump(true);
+                updateScenario(scenario);
+            }
+        }
+        else {
+            updateHeatPump(heatPump);
+        }
+    }
+
+    @Transaction
+    public void copyHeatPumpFromScenario(long fromScenarioID, Long toScenarioID) {
+        List<HeatPump> heatPumps = getHeatPumpsForScenarioID(fromScenarioID);
+        for (HeatPump heatPump : heatPumps) {
+            heatPump.setHeatPumpIndex(0L);
+            long newHeatPumpID = addNewHeatPump(heatPump);
+
+            Scenario2HeatPump s2hp = new Scenario2HeatPump();
+            s2hp.setScenarioID(toScenarioID);
+            s2hp.setHeatPumpID(newHeatPumpID);
+            addNewScenario2HeatPump(s2hp);
+
+            Scenario toScenario = getScenario(toScenarioID);
+            toScenario.setHasHeatPump(true);
+            updateScenario(toScenario);
+        }
+
+        deleteOrphanHeatPumps();
+    }
+
+    @Transaction
+    public void linkHeatPumpFromScenario(long fromScenarioID, Long toScenarioID) {
+        List<HeatPump> heatPumps = getHeatPumpsForScenarioID(fromScenarioID);
+        for (HeatPump heatPump : heatPumps) {
+            Scenario2HeatPump scenario2HeatPump = new Scenario2HeatPump();
+            scenario2HeatPump.setScenarioID(toScenarioID);
+            scenario2HeatPump.setHeatPumpID(heatPump.getHeatPumpIndex());
+            addNewScenario2HeatPump(scenario2HeatPump);
+
+            Scenario toScenario = getScenario(toScenarioID);
+            toScenario.setHasHeatPump(true);
+            updateScenario(toScenario);
+        }
+
+        deleteOrphanHeatPumps();
     }
 
     //##############################################

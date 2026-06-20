@@ -30,6 +30,7 @@ import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
 import com.tfcode.comparetout.model.json.priceplan.RestrictionEntryJson;
 import com.tfcode.comparetout.model.json.priceplan.RestrictionJson;
 import com.tfcode.comparetout.model.json.scenario.BatteryJson;
+import com.tfcode.comparetout.model.json.scenario.HeatPumpJson;
 import com.tfcode.comparetout.model.json.scenario.ChargeModelJson;
 import com.tfcode.comparetout.model.json.scenario.DOWDistribution;
 import com.tfcode.comparetout.model.json.scenario.DischargeToGridJson;
@@ -61,6 +62,7 @@ import com.tfcode.comparetout.model.scenario.HWDivert;
 import com.tfcode.comparetout.model.scenario.HWSchedule;
 import com.tfcode.comparetout.model.scenario.HWSystem;
 import com.tfcode.comparetout.model.scenario.HWUse;
+import com.tfcode.comparetout.model.scenario.HeatPump;
 import com.tfcode.comparetout.model.scenario.HourlyDist;
 import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
@@ -382,6 +384,55 @@ public class JsonTools {
         return battery;
     }
 
+    public static List<HeatPump> createHeatPumpList(List<HeatPumpJson> jsons) {
+        ArrayList<HeatPump> heatPumps = new ArrayList<>();
+        if (!(null == jsons)) {
+            for (HeatPumpJson json : jsons) {
+                HeatPump heatPump = createHeatPump(json);
+                if (!(null == heatPump)) heatPumps.add(heatPump);
+            }
+        }
+        return heatPumps;
+    }
+
+    public static HeatPump createHeatPump(HeatPumpJson hpj) {
+        // Empty-object guard: a partial "{}" must not materialise a fully-defaulted heat pump.
+        if (null == hpj || null == hpj.fuelAnnual) return null;
+        HeatPump heatPump = new HeatPump();
+        if (!(null == hpj.fuelType)) heatPump.setFuelType(hpj.fuelType);
+        heatPump.setFuelAnnual(hpj.fuelAnnual);
+        if (!(null == hpj.calorificValue)) heatPump.setCalorificValue(hpj.calorificValue);
+        if (!(null == hpj.boilerEfficiency)) heatPump.setBoilerEfficiency(hpj.boilerEfficiency);
+        if (!(null == hpj.dhwAnnualKWh)) heatPump.setDhwAnnualKWh(hpj.dhwAnnualKWh);
+        heatPump.setSpaceHeatingFraction(hpj.spaceHeatingFraction);
+        if (!(null == hpj.desiredIndoorTemp)) heatPump.setDesiredIndoorTemp(hpj.desiredIndoorTemp);
+        if (!(null == hpj.currentIndoorTemp)) heatPump.setCurrentIndoorTemp(hpj.currentIndoorTemp);
+        if (!(null == hpj.balancePoint)) heatPump.setBalancePoint(hpj.balancePoint);
+        if (!(null == hpj.alphaWind)) heatPump.setAlphaWind(hpj.alphaWind);
+        if (!(null == hpj.hourlyDistribution)) {
+            HourlyDist hd = new HourlyDist();
+            hd.dist = new ArrayList<>(hpj.hourlyDistribution);
+            heatPump.setHourlyDist(hd);
+        }
+        if (!(null == hpj.dowDistribution)) {
+            DOWDist dd = new DOWDist();
+            dd.dowDist = new ArrayList<>(hpj.dowDistribution);
+            heatPump.setDowDist(dd);
+        }
+        heatPump.setHeatingSeasonStart(hpj.heatingSeasonStart);
+        heatPump.setHeatingSeasonEnd(hpj.heatingSeasonEnd);
+        if (!(null == hpj.copRated)) heatPump.setCopRated(hpj.copRated);
+        if (!(null == hpj.copRefTemp)) heatPump.setCopRefTemp(hpj.copRefTemp);
+        if (!(null == hpj.copSlope)) heatPump.setCopSlope(hpj.copSlope);
+        if (!(null == hpj.scop)) heatPump.setScop(hpj.scop);
+        if (!(null == hpj.capacityKw)) heatPump.setCapacityKw(hpj.capacityKw);
+        if (!(null == hpj.backupHeater)) heatPump.setBackupHeater(hpj.backupHeater);
+        if (!(null == hpj.latitude)) heatPump.setLatitude(hpj.latitude);
+        if (!(null == hpj.longitude)) heatPump.setLongitude(hpj.longitude);
+        if (!(null == hpj.weatherSource)) heatPump.setWeatherSource(hpj.weatherSource);
+        return heatPump;
+    }
+
     public static List<Panel> createPanelList(List<PanelJson> jsons) {
         ArrayList<Panel> entityList = new ArrayList<>();
         if (!(null == jsons)){
@@ -637,12 +688,17 @@ public class JsonTools {
             List<EVCharge> evCharges,
             List<HWSchedule> hwSchedules,
             HWDivert hwDivert,
-            List<EVDivert> evDiverts) {
+            List<EVDivert> evDiverts,
+            List<HeatPump> heatPumps) {
 
         ScenarioJsonFile sjf = new ScenarioJsonFile();
         sjf.name = scenario.getScenarioName();
         sjf.inverters = createInverterListJson(inverters);
         sjf.batteries = createBatteryListJson(batteries);
+        // Omit the HeatPumps field entirely when there are none, so scenarios predating the heat pump
+        // serialise byte-identically (a new "HeatPumps": [] would otherwise break round-trips).
+        ArrayList<HeatPumpJson> heatPumpJsons = createHeatPumpListJson(heatPumps);
+        sjf.heatPumps = heatPumpJsons.isEmpty() ? null : heatPumpJsons;
         sjf.panels = createPanelListJson(panels);
         sjf.hwSystem = createHWSystemJson(hwSystem);
         sjf.loadProfile = createLoadProfileJson(loadProfile);
@@ -851,6 +907,42 @@ public class JsonTools {
         return batteryJsons;
     }
 
+    public static ArrayList<HeatPumpJson> createHeatPumpListJson(List<HeatPump> heatPumps) {
+        ArrayList<HeatPumpJson> heatPumpJsons = new ArrayList<>();
+        if (!(null == heatPumps)) {
+            for (HeatPump heatPump : heatPumps) {
+                HeatPumpJson hpj = new HeatPumpJson();
+                hpj.fuelType = heatPump.getFuelType();
+                hpj.fuelAnnual = heatPump.getFuelAnnual();
+                hpj.calorificValue = heatPump.getCalorificValue();
+                hpj.boilerEfficiency = heatPump.getBoilerEfficiency();
+                hpj.dhwAnnualKWh = heatPump.getDhwAnnualKWh();
+                hpj.spaceHeatingFraction = heatPump.getSpaceHeatingFraction();
+                hpj.desiredIndoorTemp = heatPump.getDesiredIndoorTemp();
+                hpj.currentIndoorTemp = heatPump.getCurrentIndoorTemp();
+                hpj.balancePoint = heatPump.getBalancePoint();
+                hpj.alphaWind = heatPump.getAlphaWind();
+                if (!(null == heatPump.getHourlyDist()))
+                    hpj.hourlyDistribution = new ArrayList<>(heatPump.getHourlyDist().dist);
+                if (!(null == heatPump.getDowDist()))
+                    hpj.dowDistribution = new ArrayList<>(heatPump.getDowDist().dowDist);
+                hpj.heatingSeasonStart = heatPump.getHeatingSeasonStart();
+                hpj.heatingSeasonEnd = heatPump.getHeatingSeasonEnd();
+                hpj.copRated = heatPump.getCopRated();
+                hpj.copRefTemp = heatPump.getCopRefTemp();
+                hpj.copSlope = heatPump.getCopSlope();
+                hpj.scop = heatPump.getScop();
+                hpj.capacityKw = heatPump.getCapacityKw();
+                hpj.backupHeater = heatPump.isBackupHeater();
+                hpj.latitude = heatPump.getLatitude();
+                hpj.longitude = heatPump.getLongitude();
+                hpj.weatherSource = heatPump.getWeatherSource();
+                heatPumpJsons.add(hpj);
+            }
+        }
+        return heatPumpJsons;
+    }
+
     public static ArrayList<InverterJson> createInverterListJson(List<Inverter> inverters) {
         ArrayList<InverterJson> inverterJsons = new ArrayList<>();
         if (!(null == inverters)) {
@@ -881,7 +973,7 @@ public class JsonTools {
         for (ScenarioComponents scenarioComponents : scenarios){
             scenarioJsonFiles.add(createSingleScenarioJson(scenarioComponents.scenario, scenarioComponents.inverters, scenarioComponents.batteries, scenarioComponents.panels,
                     scenarioComponents.hwSystem, scenarioComponents.loadProfile, scenarioComponents.loadShifts, scenarioComponents.discharges, scenarioComponents.evCharges, scenarioComponents.hwSchedules,
-                    scenarioComponents.hwDivert, scenarioComponents.evDiverts));
+                    scenarioComponents.hwDivert, scenarioComponents.evDiverts, scenarioComponents.heatPumps));
         }
 
         Type type = new TypeToken<List<ScenarioJsonFile>>(){}.getType();
@@ -905,6 +997,7 @@ public class JsonTools {
                     createHWScheduleList(scenarioJsonFile.hwSchedules),
                     createHWDivert(scenarioJsonFile.hwDivert),
                     createEVDivertList(scenarioJsonFile.evDiverts, scenarioJsonFile.evDivert));
+            singleScenarioComponents.heatPumps = createHeatPumpList(scenarioJsonFile.heatPumps);
             scenarioComponents.add(singleScenarioComponents);
         }
         return scenarioComponents;

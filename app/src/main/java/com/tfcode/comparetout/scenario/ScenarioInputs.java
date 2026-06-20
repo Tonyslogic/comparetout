@@ -23,6 +23,7 @@ import com.tfcode.comparetout.model.scenario.HWSystem;
 import com.tfcode.comparetout.scenario.sim.ComponentRegistry;
 import com.tfcode.comparetout.scenario.sim.EvChargeComponent;
 import com.tfcode.comparetout.scenario.sim.EvDivertComponent;
+import com.tfcode.comparetout.scenario.sim.HeatPumpComponent;
 import com.tfcode.comparetout.scenario.sim.HwComponent;
 
 import java.util.HashMap;
@@ -90,6 +91,26 @@ public class ScenarioInputs {
         this.exportMax = exportMax;
         this.registry = ComponentRegistry.build(hwSystem, hwDivert, hwSchedules,
                 evCharges, evDiverts, this.mEVDivertDailyTotals);
+    }
+
+    /**
+     * As the basic constructor, additionally registering a pre-built heat-pump component (Phase 4 of
+     * {@code plans/hp/plan.md}). The {@link HeatPumpComponent} is built by the worker (it needs the sim grid
+     * and the weather source); a {@code null} heat pump registers nothing, so existing scenarios are
+     * unaffected.
+     */
+    public ScenarioInputs(HWSystem hwSystem, Boolean hwDivert, List<HWSchedule> hwSchedules,
+                          List<EVCharge> evCharges, List<EVDivert> evDiverts, double exportMax,
+                          HeatPumpComponent heatPump) {
+        this.mHWSystem = hwSystem;
+        this.mHWDivert = hwDivert;
+        this.mHWSchedules = hwSchedules;
+        this.mEVCharges = evCharges;
+        this.mEVDiverts = evDiverts;
+        this.mEVDivertDailyTotals = new HashMap<>();
+        this.exportMax = exportMax;
+        this.registry = ComponentRegistry.build(hwSystem, hwDivert, hwSchedules,
+                evCharges, evDiverts, this.mEVDivertDailyTotals, heatPump);
     }
 
     /**

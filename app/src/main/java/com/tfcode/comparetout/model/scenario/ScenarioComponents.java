@@ -31,6 +31,10 @@ public class ScenarioComponents {
     public List<HWSchedule> hwSchedules;
     public HWDivert hwDivert;
     public List<EVDivert> evDiverts;
+    // Heat pumps (Phase 4 of plans/hp/plan.md). Added as a settable field rather than a constructor
+    // parameter to avoid churning the 8 existing constructor call sites; the DAO / JsonTools set it
+    // explicitly where heat pumps are relevant, and it stays null elsewhere (consumers null-check).
+    public List<HeatPump> heatPumps;
 
     public ScenarioComponents (
             Scenario scenario,

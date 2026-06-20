@@ -73,5 +73,9 @@ public class ScenarioJsonFile {
     @SerializedName("EVDiverts")
     public
     ArrayList<EVDivertJson> evDiverts;
+
+    @SerializedName("HeatPumps")
+    public
+    ArrayList<HeatPumpJson> heatPumps;
 }
 
