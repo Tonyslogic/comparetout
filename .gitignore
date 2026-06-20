@@ -97,9 +97,8 @@ local.properties
 /analysis_260530/SizeReplaceableByIsEmpty.xml
 /analysis_260530/SpellCheckingInspection.xml
 /analysis_260530/TextBlockMigration.xml
-/plans/UI2/touc director-handoff.zip
-/plans/UI2/Toutc compare-handoff.zip
-/plans/UI2/Toutc wizard-handoff.zip
+/plans/
+/memory/
 /analysis_260530/TryFinallyCanBeTryWithResources.xml
 /analysis_260530/UnnecessaryLocalVariable.xml
 /analysis_260530/UnnecessaryVariable.xml
