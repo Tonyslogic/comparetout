@@ -2,17 +2,23 @@ Public version V1.60
 
 [![GetIt](./images/getItOnGooglePlay.png)](https://play.google.com/store/apps/details?id=com.tfcode.comparetout) (Ireland only, so far)
 
-Beta test version V1.60 (Ireland only, so far)
+Beta test version V1.61 (Ireland only, so far)
 > Sign up with [Android](https://play.google.com/store/apps/details?id=com.tfcode.comparetout) 
 
 > Sign up from your [browser](https://play.google.com/apps/testing/com.tfcode.comparetout)
 
-Internal test version V1.61 
+Internal test version V1.62 
 > [email me](mailto:tonysfreecode@gmail.com?subject=AlphaTest), with the email address used in your android play store account
 
 Read more on the [documentation site](https://github.com/Tonyslogic/comparetout-doc)
 
-V1.60
+V1.62
+
+* Simulator refactoring
+* Bug fixes
+* Data migration needed
+
+V1.61
 
 * Import/Export
 * Zoom support
