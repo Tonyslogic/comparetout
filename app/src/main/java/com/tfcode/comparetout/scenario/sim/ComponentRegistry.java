@@ -98,12 +98,27 @@ public final class ComponentRegistry {
     public static ComponentRegistry build(HWSystem hwSystem, Boolean hwDivert, List<HWSchedule> hwSchedules,
                                           List<EVCharge> evCharges, List<EVDivert> evDiverts,
                                           Map<Integer, Double> evDivertDailyTotals) {
+        return build(hwSystem, hwDivert, hwSchedules, evCharges, evDiverts, evDivertDailyTotals, null);
+    }
+
+    /**
+     * As above, additionally registering a heat pump when one is supplied. The heat pump is added
+     * <b>last</b> among the demand contributors (after hot water and EV charge), so existing scenarios —
+     * which always pass {@code null} here until the heat-pump schema lands (Phase 4 of
+     * {@code plans/hp/plan.md}) — keep their water-then-EV order and stay byte-identical. A {@code null}
+     * heat pump registers nothing.
+     */
+    public static ComponentRegistry build(HWSystem hwSystem, Boolean hwDivert, List<HWSchedule> hwSchedules,
+                                          List<EVCharge> evCharges, List<EVDivert> evDiverts,
+                                          Map<Integer, Double> evDivertDailyTotals,
+                                          HeatPumpComponent heatPump) {
         HwComponent hotWater = new HwComponent(hwSystem, hwDivert, hwSchedules);
         EvDivertComponent evDivert = new EvDivertComponent(evDiverts, evDivertDailyTotals);
 
         List<DemandContributor> demand = new ArrayList<>();
         demand.add(hotWater);                       // water first ...
         demand.add(new EvChargeComponent(evCharges)); // ... then EV charge (load add order)
+        if (heatPump != null) demand.add(heatPump);   // ... then heat pump (new; null in pre-Phase-4 scenarios)
         return new ComponentRegistry(demand, hotWater, evDivert);
     }
 }

@@ -108,6 +108,38 @@ public class ComponentRegistryTest {
         assertNotNull(registry.evDivert());
     }
 
+    /** A minimal heat-pump component (one-sample model) — enough to assert registration/order. */
+    private static HeatPumpComponent tinyHeatPump() {
+        HeatPumpDemandModel.WeatherSample s =
+                new HeatPumpDemandModel.WeatherSample(0d, 0d, 0, 0, 1);
+        HeatPumpDemandModel model =
+                new HeatPumpDemandModel(new HeatPumpDemandModel.Config(), Collections.singletonList(s));
+        return new HeatPumpComponent(model, new long[]{0L});
+    }
+
+    @Test
+    public void heatPumpRegistersLastWhenSupplied() {
+        HeatPumpComponent hp = tinyHeatPump();
+        ComponentRegistry registry = ComponentRegistry.build(
+                null, null, null, Collections.singletonList(allDayCharge(6.0)), null, new HashMap<>(), hp);
+        List<DemandContributor> contributors = registry.demandContributors();
+
+        assertEquals("hot water + EV charge + heat pump", 3, contributors.size());
+        assertEquals("hot water first", HwComponent.class, contributors.get(0).getClass());
+        assertEquals("EV charge second", EvChargeComponent.class, contributors.get(1).getClass());
+        assertSame("heat pump registered last", hp, contributors.get(2));
+    }
+
+    @Test
+    public void nullHeatPumpRegistersNothing() {
+        // The pre-Phase-4 path: existing scenarios pass null and keep the water-then-EV pair only.
+        ComponentRegistry sixArg = registryWith(Collections.singletonList(allDayCharge(6.0)));
+        ComponentRegistry sevenArgNull = ComponentRegistry.build(
+                null, null, null, Collections.singletonList(allDayCharge(6.0)), null, new HashMap<>(), null);
+        assertEquals(2, sixArg.demandContributors().size());
+        assertEquals(2, sevenArgNull.demandContributors().size());
+    }
+
     @Test
     public void lookupMatchesSchedule() {
         List<EVCharge> charges = Collections.singletonList(allDayCharge(6.0));
