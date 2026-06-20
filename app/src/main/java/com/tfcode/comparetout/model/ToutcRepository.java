@@ -506,6 +506,25 @@ public class ToutcRepository {
         scenarioDAO.deleteBatteryFromScenario(batteryID, scenarioID);
     }
 
+    /** Remove component rows no longer referenced by any scenario — left behind whenever an edit-save
+     *  deletes-and-reinserts a scenario's components (battery, inverter, schedules, etc.). Reuses the same
+     *  per-type DAO cleanup queries that {@code deleteScenario} already runs, so orphans don't accumulate. */
+    public void deleteOrphanComponents() {
+        scenarioDAO.deleteOrphanBatteries();
+        scenarioDAO.deleteOrphanInverters();
+        scenarioDAO.deleteOrphanLoadShifts();
+        scenarioDAO.deleteOrphanDischarges();
+        scenarioDAO.deleteOrphanEVCharges();
+        scenarioDAO.deleteOrphanEVDiverts();
+        scenarioDAO.deleteOrphanHWSchedules();
+        scenarioDAO.deleteOrphanHWSystems();
+        scenarioDAO.deleteOrphanHWDiverts();
+        scenarioDAO.deleteOrphanLoadProfiles();
+        scenarioDAO.deleteOrphanLoadProfileData();
+        scenarioDAO.deleteOrphanPanels();
+        scenarioDAO.deleteOrphanPanelData();
+    }
+
     public void saveBatteryForScenario(Long scenarioID, Battery battery) {
         scenarioDAO.saveBatteryForScenario(scenarioID, battery);
     }

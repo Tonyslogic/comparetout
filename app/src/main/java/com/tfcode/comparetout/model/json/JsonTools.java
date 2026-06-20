@@ -409,6 +409,11 @@ public class JsonTools {
     }
 
     public static HWSystem createHWSystem(HWSystemJson hwj) {
+        // An absent or empty ("HWSystem": {}) object means the scenario has no hot-water system. Without this
+        // guard the first null-field setter below NPEs and the catch hands back a DEFAULT-constructed HWSystem,
+        // so an empty object silently imported a full default hot-water config (HWCapacity 165, …). HWCapacity
+        // is always present on a real system, so its absence is the reliable "no HW" signal.
+        if (null == hwj || null == hwj.hwCapacity) return null;
         HWSystem hwSystem = null;
         try {
             hwSystem = new HWSystem();

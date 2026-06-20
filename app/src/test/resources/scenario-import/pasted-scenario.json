@@ -1,0 +1,107 @@
+[
+  {
+    "Batteries": [
+      {
+        "Battery Size": 5.7,
+        "ChargeModel": {
+          "0": 30,
+          "100": 0,
+          "12": 100,
+          "90": 10
+        },
+        "Discharge stop": 19.6,
+        "Inverter": "<New inverter>",
+        "Max charge": 0.225,
+        "Max discharge": 0.225,
+        "StorageLoss": 1.0
+      }
+    ],
+    "DischargeToGrid": [],
+    "EVCharge": [],
+    "EVDiverts": [],
+    "HWDivert": {
+      "active": false
+    },
+    "HWSchedule": [],
+    "HWSystem": {},
+    "Inverters": [
+      {
+        "AC2DCLoss": 5,
+        "DC2ACLoss": 5,
+        "DC2DCLoss": 0,
+        "DispatchMode": 0,
+        "MPPTCount": 2,
+        "MaxInverterLoad": 5.0,
+        "MinExcess": 0.008,
+        "Name": "<New inverter>"
+      }
+    ],
+    "LoadProfile": {
+      "AnnualUsage": 5578.9745,
+      "DayOfWeekDistribution": {
+        "Fri": 14.34250147585367,
+        "Mon": 14.22291856684414,
+        "Sat": 14.60498699178496,
+        "Sun": 14.782707825604865,
+        "Thu": 14.064403771696751,
+        "Tue": 13.980741442714963,
+        "Wed": 14.001739925500644
+      },
+      "GridExportMax": 5.0,
+      "GridImportMax": 15.0,
+      "HourlyBaseLoad": 300.0,
+      "HourlyDistribution": [
+        4.141970894471735, 2.4457541435258396, 1.3601782908310478, 0.9230011716310944,
+        0.7282969298389874, 0.719782820301473, 0.7236276129242032, 1.1446368862234446,
+        7.563925950907286, 1.9680229762656203, 2.7527281223457827, 4.299132394313686,
+        4.741059490413516, 5.451754619061262, 5.891835497724537, 4.905937462162625,
+        4.484820642216594, 4.477848034616398, 5.045846687415402, 6.806788595287538,
+        7.818721881593113, 12.716423063055766, 4.546785435208567, 4.341120397664481
+      ],
+      "MonthlyDistribution": {
+        "Apr": 9.339583824948473, "Aug": 6.00981416925279, "Dec": 11.169938131102768,
+        "Feb": 10.545952486429181, "Jan": 10.413455017584324, "Jul": 6.033850844810278,
+        "Jun": 5.70721375406896, "Mar": 9.786359482374404, "May": 6.903831519574072,
+        "Nov": 9.373604414216269, "Oct": 8.363149894304051, "Sep": 6.353246461334426
+      }
+    },
+    "LoadShift": [
+      {
+        "begin": 2,
+        "days": [0, 1, 2, 3, 4, 5, 6],
+        "end": 6,
+        "Inverter": "<New inverter>",
+        "months": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 0],
+        "Name": "New loadShift -1",
+        "stop at": 80.0
+      }
+    ],
+    "Name": "L&R",
+    "Panels": [
+      {
+        "Azimuth": 136,
+        "Inverter": "<New inverter>",
+        "Latitude": 53.49,
+        "Longitude": -10.015,
+        "MPPT": 1,
+        "Optimized": false,
+        "PanelCount": 7,
+        "PanelName": "Front",
+        "PanelkWp": 450,
+        "Slope": 24
+      },
+      {
+        "Azimuth": 90,
+        "Inverter": "<New inverter>",
+        "Latitude": 53.6259478,
+        "Longitude": -8.1714165,
+        "MPPT": 2,
+        "Optimized": false,
+        "PanelCount": 7,
+        "PanelName": "Back",
+        "PanelkWp": 450,
+        "Slope": 24
+      }
+    ]
+  }
+]

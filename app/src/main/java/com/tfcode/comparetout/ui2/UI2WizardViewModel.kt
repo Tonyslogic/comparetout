@@ -39,6 +39,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -562,8 +563,15 @@ class UI2WizardViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
-    val scenarioId: Long = savedStateHandle["ScenarioID"] ?: -1L
-    val isEditMode: Boolean get() = scenarioId != -1L
+    // Mutable so a successful Save can adopt the new id and flip the wizard into edit mode. Without this,
+    // after saving a brand-new (import/NEW) scenario the wizard stayed "new": the saved name now exists in
+    // the list, so the uniqueness check flagged a false "name already in use", and a second Save would
+    // re-INSERT and hit the scenarioName UNIQUE constraint. Exposed as a flow so the name check recomposes
+    // when it changes.
+    private val _scenarioId = MutableStateFlow(savedStateHandle["ScenarioID"] ?: -1L)
+    val scenarioIdFlow: StateFlow<Long> = _scenarioId
+    val scenarioId: Long get() = _scenarioId.value
+    val isEditMode: Boolean get() = _scenarioId.value != -1L
     private val wizardSection: String? = savedStateHandle["WizardSection"]
 
     private val _builder = MutableStateFlow(WizardBuilder())
@@ -1249,6 +1257,8 @@ class UI2WizardViewModel @Inject constructor(
                 android.util.Log.i(PanelSourceFetchWorker.TAG,
                     "save(): scenarioName='${b.scenarioName}' isEditMode=$isEditMode " +
                     "isLinked=${b.isLinked} loadSource=${b.loadSource} " +
+                    "batteryEntries=${b.batteryEntries.size} chargeEntries=${b.batteryChargeEntries.size} " +
+                    "hwSystem=${b.hwSystem != null} " +
                     "panelEntries=${b.panelEntries.size} " +
                     "[" + b.panelEntries.joinToString { "${it.panelName}/${it.pvDataSource}/sysSn='${it.pvSourceSysSn}'" } + "]")
                 val pvgisCount = when {
@@ -1295,12 +1305,17 @@ class UI2WizardViewModel @Inject constructor(
                         b.inverterEntries.forEach { entry ->
                             repository.saveInverter(scenarioId, entry.toInverter())
                         }
-                        // Replace batteries
+                        // Replace batteries. The delete above removes the scenario2battery JUNCTION (not the
+                        // battery row). saveBatteryForScenario only (re)creates that junction on its insert
+                        // (index == 0) branch; an entry that still carries its old batteryIndex takes the
+                        // update-only branch and is left ORPHANED — the battery then vanishes from the scenario
+                        // (e.g. after a PVGIS edit-save). Reset the index so it is re-inserted with a fresh
+                        // junction, exactly as load-shift/discharge already do (their toX() never carry an index).
                         existing.batteries?.forEach { bat ->
                             repository.deleteBatteryFromScenario(bat.batteryIndex, scenarioId)
                         }
                         b.batteryEntries.forEach { entry ->
-                            repository.saveBatteryForScenario(scenarioId, entry.toBattery())
+                            repository.saveBatteryForScenario(scenarioId, entry.toBattery().also { it.batteryIndex = 0 })
                         }
                         // Replace battery charge schedules (LoadShift) — replicated per inverter
                         existing.loadShifts?.forEach { ls ->
@@ -1399,7 +1414,15 @@ class UI2WizardViewModel @Inject constructor(
                         newId
                     }
                 }
+                // An edit-save deletes-and-reinserts the scenario's components, leaving the old rows
+                // unreferenced. Prune all such orphans (battery, inverter, schedules, …) in one pass — a no-op
+                // for the NEW/COPY/LINK paths, which don't orphan anything.
+                repository.deleteOrphanComponents()
                 android.util.Log.i(PanelSourceFetchWorker.TAG, "save(): completed savedId=$savedId")
+                // Adopt the saved id: the wizard is now editing THIS scenario. Stops the false "name already
+                // in use" (the just-saved name no longer counts against itself) and routes any further Save
+                // through the in-place edit path instead of a second INSERT that would hit the UNIQUE name index.
+                _scenarioId.value = savedId
                 _saveResult.value = WizardSaveResult.Done(savedId, runSimulation, pvgisCount)
             } catch (e: Exception) {
                 android.util.Log.e(PanelSourceFetchWorker.TAG, "save() threw — wizard will silently dismiss", e)

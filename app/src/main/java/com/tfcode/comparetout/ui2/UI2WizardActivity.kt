@@ -82,6 +82,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
@@ -256,10 +257,13 @@ private fun WizardScreen(
         }
     }
 
-    // Existing names for uniqueness check (exclude current scenario in edit mode)
-    val usedNames = remember(allScenarios, viewModel.scenarioId) {
+    // Existing names for uniqueness check (exclude the current scenario). Collected from a flow so that once a
+    // brand-new scenario is saved and the VM adopts its id, the just-saved name stops counting against itself
+    // (otherwise it would falsely read as "name already in use").
+    val currentScenarioId by viewModel.scenarioIdFlow.collectAsState()
+    val usedNames = remember(allScenarios, currentScenarioId) {
         allScenarios
-            .filter { it.scenarioIndex != viewModel.scenarioId }
+            .filter { it.scenarioIndex != currentScenarioId }
             .map { it.scenarioName }
             .toSet()
     }
@@ -369,6 +373,7 @@ private fun WizardScreen(
                     WizardProgressStrip(builder = builder)
                     WizardFooter(
                         canRun = builder.isRunnable && nameError == null,
+                        canSave = nameError == null,
                         isSaving = isSaving,
                         simButtonState = simButtonState,
                         showSavedTick = showSavedTick,
@@ -2383,6 +2388,7 @@ private sealed class SimButtonState {
 @Composable
 private fun WizardFooter(
     canRun: Boolean,
+    canSave: Boolean,
     isSaving: Boolean,
     simButtonState: SimButtonState,
     showSavedTick: Boolean,
@@ -2414,8 +2420,11 @@ private fun WizardFooter(
             verticalAlignment = Alignment.CenterVertically
         ) {
             OutlinedButton(
+                // Gate Save on the name check too (not just Run): saving a duplicate name violates the
+                // scenarios.scenarioName UNIQUE index, which the DAO swallows into a bogus id and then NPEs
+                // in savePanel — the whole save fails silently. Blocking it here is the user-visible fix.
                 onClick = onSave,
-                enabled = !isSaving,
+                enabled = canSave && !isSaving,
                 modifier = Modifier.weight(1f)
             ) {
                 if (showSavedTick) {
