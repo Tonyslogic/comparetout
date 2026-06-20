@@ -129,11 +129,20 @@ public class TimezoneRestampWorker extends Worker {
                 .setOngoing(true)
                 .setSilent(true);
 
-        SQLiteDatabase db = SQLiteDatabase.openDatabase(dbPath, null, SQLiteDatabase.OPEN_READWRITE);
+        // Request WAL on this connection (the DB is already in WAL via Room). Without it, openDatabase tries to
+        // flip the journal mode to TRUNCATE, which fails against Room's live connection ("database is locked")
+        // and needlessly fights for the lock. Requesting WAL is a no-op on an already-WAL DB, so no switch.
+        SQLiteDatabase db = SQLiteDatabase.openDatabase(dbPath, null,
+                SQLiteDatabase.OPEN_READWRITE | SQLiteDatabase.ENABLE_WRITE_AHEAD_LOGGING);
         try {
             // Wait for the WAL write lock rather than failing fast — this connection competes with the
-            // sim/cost workers that write through Room. Resolves the SQLITE_BUSY churn (see class doc).
-            db.execSQL("PRAGMA busy_timeout = " + BUSY_TIMEOUT_MS);
+            // sim/cost workers (and a running import) that write through Room. Resolves the SQLITE_BUSY churn.
+            // NB: `PRAGMA busy_timeout = N` returns the new value as a row, so it MUST go through rawQuery —
+            // execSQL rejects any statement that yields rows ("Queries can be performed using query or rawQuery
+            // methods only"), which previously crashed the worker into an endless RETRY loop.
+            try (Cursor pragma = db.rawQuery("PRAGMA busy_timeout = " + BUSY_TIMEOUT_MS, null)) {
+                pragma.moveToFirst(); // force the statement to execute (rawQuery is lazy)
+            }
 
             long total = count(db, "SELECT COUNT(*) FROM alphaESSTransformedData", null);
             long cursor = parseLong(app.getStringValueFromDataStore(CURSOR_KEY));

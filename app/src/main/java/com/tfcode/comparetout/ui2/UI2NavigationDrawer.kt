@@ -111,8 +111,8 @@ fun UI2DrawerContent(
             context.startActivity(
                 android.content.Intent(context, UI2PricePlanListActivity::class.java))
         }
-        // Data-management, import/export, and sample onboarding are full-UI only —
-        // simple mode hides them to keep to a single focused flow.
+        // Data-management and import/export are full-UI only — simple mode hides them
+        // to keep to a single focused flow. (Sample onboarding lives at the bottom now.)
         if (!simpleMode) {
             UI2DrawerItem(R.drawable.ic_baseline_call_split_24,   "Data Source Management") {
                 onClose()
@@ -123,50 +123,6 @@ fun UI2DrawerContent(
                 onClose()
                 context.startActivity(
                     android.content.Intent(context, UI2ImportExportActivity::class.java))
-            }
-            // One-tap onboarding: seed a sample scenario + two demo plans, then kick
-            // off the same PVGIS-fetch + simulation pipeline the wizard would. Idempotent
-            // (subsequent taps are no-ops). A separate front door from simple mode:
-            // it plays with dummy data across the whole app.
-            UI2DrawerItem(R.drawable.ic_baseline_download_24,     "Try with sample data") {
-                onClose()
-                val loader = EntryPointAccessors
-                    .fromApplication(context.applicationContext, SampleDataLoaderEntryPoint::class.java)
-                    .sampleDataLoader()
-                coroutineScope.launch {
-                    val msg = when (val result = loader.load()) {
-                        is SampleDataLoader.Result.AlreadyLoaded ->
-                            "Sample data already loaded"
-                        is SampleDataLoader.Result.Loaded ->
-                            "Sample loaded · simulation running in background"
-                        is SampleDataLoader.Result.Failed ->
-                            "Couldn't load sample data: ${result.error.message ?: "unknown error"}"
-                    }
-                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
-                }
-            }
-        }
-        // Download the community-maintained real Irish supplier tariffs. Always
-        // paired with the "may be out of date" caveat (the list is public and
-        // can drift; the price-plan editor stays available to correct it).
-        UI2DrawerItem(R.drawable.ic_baseline_download_24,     "Refresh tariffs") {
-            onClose()
-            val downloader = EntryPointAccessors
-                .fromApplication(context.applicationContext, PricePlanDownloaderEntryPoint::class.java)
-                .pricePlanDownloader()
-            coroutineScope.launch {
-                val msg = when (val result = downloader.download()) {
-                    is PricePlanDownloader.Result.Loaded ->
-                        "Downloaded ${result.added} tariff${if (result.added == 1) "" else "s"} " +
-                            "· these are community-maintained and may be out of date"
-                    is PricePlanDownloader.Result.Empty ->
-                        "No tariffs found in the published list"
-                    is PricePlanDownloader.Result.NoNetwork ->
-                        "No connection — couldn't download tariffs"
-                    is PricePlanDownloader.Result.Failed ->
-                        "Couldn't download tariffs: ${result.error.message ?: "unknown error"}"
-                }
-                Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
             }
         }
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
@@ -185,6 +141,27 @@ fun UI2DrawerContent(
                 relaunchInMode(context, simple = false)
             }
         } else {
+            // One-tap onboarding: seed a sample scenario + two demo plans, then kick off the same
+            // PVGIS-fetch + simulation pipeline the wizard would. Idempotent (subsequent taps are no-ops).
+            // It plays with dummy data across the whole app, so it sits at the bottom with the UI-mode
+            // switches rather than next to the real data-management entries.
+            UI2DrawerItem(R.drawable.ic_baseline_download_24, "Try with sample data") {
+                onClose()
+                val loader = EntryPointAccessors
+                    .fromApplication(context.applicationContext, SampleDataLoaderEntryPoint::class.java)
+                    .sampleDataLoader()
+                coroutineScope.launch {
+                    val msg = when (val result = loader.load()) {
+                        is SampleDataLoader.Result.AlreadyLoaded ->
+                            "Sample data already loaded"
+                        is SampleDataLoader.Result.Loaded ->
+                            "Sample loaded · simulation running in background"
+                        is SampleDataLoader.Result.Failed ->
+                            "Couldn't load sample data: ${result.error.message ?: "unknown error"}"
+                    }
+                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
+                }
+            }
             // Enter the persistent single-screen simple mode. Self-contained: flips
             // the flag and relaunches UI2MainActivity (CLEAR_TASK) so it works from
             // any host activity the drawer appears in, landing on the simple screen.

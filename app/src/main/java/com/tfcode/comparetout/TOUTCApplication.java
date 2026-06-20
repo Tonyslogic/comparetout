@@ -80,12 +80,30 @@ public class TOUTCApplication extends Application {
     public void onCreate() {
         super.onCreate();
         dataStore = new RxPreferenceDataStoreBuilder(this, /*name=*/ "settings").build();
-        // One-time: re-anchor already-imported data to the saved timezone (Phase 2,
-        // plans/sim/timezone-and-rollout.md). Idempotent — unique work + an internal DataStore guard.
-        com.tfcode.comparetout.model.TimezoneRestampWorker.enqueue(this);
-        // One-time: discard pre-millis PV data (wrong grid) and refresh + re-simulate (Phase 3).
-        // Idempotent — unique work + an internal DataStore guard.
-        com.tfcode.comparetout.model.PanelDataRefreshWorker.enqueue(this);
+        // The one-time data migrations below only repair data written by OLDER app versions. On a fresh
+        // install there is nothing to migrate, so gate them off: if the Room database file ("toutc_database")
+        // doesn't exist yet (first ever launch) mark both migrations done instead of enqueuing them.
+        // Otherwise they run, no-op, but the dashboard's "Finishing a one-time data update" card appears and
+        // lingers as "pending" until the next restart. Existing installs enqueue exactly as before.
+        boolean freshInstall = !getDatabasePath("toutc_database").exists();
+        if (freshInstall) {
+            // DataStore writes block; keep them off the main thread. No worker is enqueued on this path —
+            // setting the DONE guards is enough for both the workers (which would no-op) and the dashboard
+            // card (which hides once the guards read "true").
+            new Thread(() -> {
+                putStringValueIntoDataStore(
+                        com.tfcode.comparetout.model.TimezoneRestampWorker.DONE_KEY, "true");
+                putStringValueIntoDataStore(
+                        com.tfcode.comparetout.model.PanelDataRefreshWorker.DONE_KEY, "true");
+            }).start();
+        } else {
+            // One-time: re-anchor already-imported data to the saved timezone (Phase 2,
+            // plans/sim/timezone-and-rollout.md). Idempotent — unique work + an internal DataStore guard.
+            com.tfcode.comparetout.model.TimezoneRestampWorker.enqueue(this);
+            // One-time: discard pre-millis PV data (wrong grid) and refresh + re-simulate (Phase 3).
+            // Idempotent — unique work + an internal DataStore guard.
+            com.tfcode.comparetout.model.PanelDataRefreshWorker.enqueue(this);
+        }
     }
 
     /**
