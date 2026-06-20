@@ -6,6 +6,7 @@ package com.tfcode.comparetout.ui2
 import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -225,6 +226,11 @@ private fun WizardScreen(
 
     LaunchedEffect(saveResult) {
         val result = saveResult
+        if (result is WizardSaveResult.Failed) {
+            // The save couldn't complete (e.g. duplicate name slipping past the field check). Tell the user
+            // instead of dismissing silently; the wizard stays open so they can fix it.
+            Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
+        }
         if (result is WizardSaveResult.Done) {
             when {
                 result.runSimulation -> {

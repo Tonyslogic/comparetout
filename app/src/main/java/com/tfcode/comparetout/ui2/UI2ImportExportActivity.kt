@@ -347,6 +347,9 @@ private fun ImportExportScreen(
     // Pending DB snapshot import — either an error to show or a validated
     // staging file waiting for the user's Replace toggle and confirm.
     var snapshotImportState by remember { mutableStateOf<SnapshotImportState?>(null) }
+    // Result message shown in a blocking dialog (not a transient snackbar) when the imported DB carried data
+    // sources — those need an explicit acknowledgement because the user must restart the app to see them.
+    var snapshotSourcesResult by remember { mutableStateOf<String?>(null) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     val snapshotPicker = rememberLauncherForActivityResult(
@@ -369,7 +372,13 @@ private fun ImportExportScreen(
             val result = viewModel.commitImport(staged, replaceExisting)
             workingLabel = null
             val msg = result?.summary() ?: "Snapshot import failed"
-            snackbarHostState.showSnackbar(msg)
+            // When the imported DB included data sources, the user must restart to see them — a snackbar is too
+            // easy to miss, so require an explicit OK. Everything else stays a snackbar.
+            if (result != null && result.sourcesTouched > 0) {
+                snapshotSourcesResult = msg
+            } else {
+                snackbarHostState.showSnackbar(msg)
+            }
         }
     }
 
@@ -707,6 +716,20 @@ private fun ImportExportScreen(
                 )
             }
         }
+    }
+
+    // ── Snapshot import completed WITH data sources — explicit acknowledgement ───
+    // Sources are written outside Room's change tracking, so the data-source lists only refresh after a
+    // restart. A snackbar is too easy to miss, so block on an OK the user must tap.
+    snapshotSourcesResult?.let { msg ->
+        AlertDialog(
+            onDismissRequest = { snapshotSourcesResult = null },
+            title = { Text("Import complete") },
+            text = { Text(msg, style = MaterialTheme.typography.bodyMedium) },
+            confirmButton = {
+                TextButton(onClick = { snapshotSourcesResult = null }) { Text("OK") }
+            }
+        )
     }
 
     // ── Snapshot picker — choose scenarios + sources + outputs toggle ──────

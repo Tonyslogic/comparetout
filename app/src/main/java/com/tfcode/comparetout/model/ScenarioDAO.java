@@ -337,7 +337,13 @@ public abstract class ScenarioDAO {
                 }
             }
         } catch (SQLiteConstraintException e) {
-            System.out.println("Silently ignoring a duplicate added as new");
+            // The only UNIQUE constraint reachable here is scenarios.scenarioName, so this means a scenario
+            // with this name already exists. addNewScenario aborts before assigning scenarioID, so the
+            // transaction inserted nothing — return 0 (a clear "not created" sentinel) rather than a dead id
+            // the caller mistakes for success and then dereferences (e.g. savePanel -> getScenario(0) -> NPE).
+            System.out.println("addNewScenarioWithComponents: duplicate scenario name '"
+                    + scenario.getScenarioName() + "' — not created");
+            scenarioID = 0;
         }
         return scenarioID;
     }
@@ -933,9 +939,12 @@ public abstract class ScenarioDAO {
             s2p.setPanelID(panelID);
             addNewScenario2Panel(s2p);
 
+            // Guard against a bad scenarioID (e.g. a failed scenario insert returning 0): never NPE here.
             Scenario scenario = getScenario(scenarioID);
-            scenario.setHasPanels(true);
-            updateScenario(scenario);
+            if (scenario != null) {
+                scenario.setHasPanels(true);
+                updateScenario(scenario);
+            }
         }
         else {
             updatePanel(panel);
@@ -1053,9 +1062,12 @@ public abstract class ScenarioDAO {
             s2b.setBatteryID(batteryID);
             addNewScenario2Battery(s2b);
 
+            // Guard against a bad scenarioID: never NPE here.
             Scenario scenario = getScenario(scenarioID);
-            scenario.setHasBatteries(true);
-            updateScenario(scenario);
+            if (scenario != null) {
+                scenario.setHasBatteries(true);
+                updateScenario(scenario);
+            }
         }
         else {
             updateBattery(battery);

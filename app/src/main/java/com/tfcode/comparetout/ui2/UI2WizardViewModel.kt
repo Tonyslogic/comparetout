@@ -554,6 +554,8 @@ sealed class WizardSaveResult {
     object Idle : WizardSaveResult()
     object Saving : WizardSaveResult()
     data class Done(val scenarioId: Long, val runSimulation: Boolean, val pvgisStringsQueued: Int = 0) : WizardSaveResult()
+    /** The save could not be completed (e.g. a duplicate name). Surfaced to the user instead of dismissing silently. */
+    data class Failed(val message: String) : WizardSaveResult()
 }
 
 @HiltViewModel
@@ -1377,42 +1379,56 @@ class UI2WizardViewModel @Inject constructor(
                     }
                     b.isLinked -> {
                         // Full link: create shell scenario, then link load profile, EV, inverters,
-                        // panels, batteries and battery schedules
+                        // panels, batteries and battery schedules. insertScenarioAndReturnID returns 0 if the
+                        // name collides (UNIQUE index) — guard the per-component work so we never link to a
+                        // non-existent scenario id.
                         val newId = repository.insertScenarioAndReturnID(b.toScenarioShell(), false)
-                        repository.linkLoadProfileFromScenario(b.basedOnId, newId)
-                        repository.linkEVChargeFromScenario(b.basedOnId, newId)
-                        repository.linkInverterFromScenario(b.basedOnId, newId)
-                        repository.linkPanelFromScenario(b.basedOnId, newId)
-                        repository.linkBatteryFromScenario(b.basedOnId, newId)
-                        repository.linkLoadShiftFromScenario(b.basedOnId, newId)
-                        repository.linkDischargeFromScenario(b.basedOnId, newId)
-                        repository.linkHWSystemFromScenario(b.basedOnId, newId)
-                        repository.linkHWScheduleFromScenario(b.basedOnId, newId)
-                        // No linkHWDivert in repository — replay from builder state instead
-                        if (b.hwDivert.active) {
-                            repository.saveHWDivert(newId, b.hwDivert.toHwDivert())
+                        if (newId > 0L) {
+                            repository.linkLoadProfileFromScenario(b.basedOnId, newId)
+                            repository.linkEVChargeFromScenario(b.basedOnId, newId)
+                            repository.linkInverterFromScenario(b.basedOnId, newId)
+                            repository.linkPanelFromScenario(b.basedOnId, newId)
+                            repository.linkBatteryFromScenario(b.basedOnId, newId)
+                            repository.linkLoadShiftFromScenario(b.basedOnId, newId)
+                            repository.linkDischargeFromScenario(b.basedOnId, newId)
+                            repository.linkHWSystemFromScenario(b.basedOnId, newId)
+                            repository.linkHWScheduleFromScenario(b.basedOnId, newId)
+                            // No linkHWDivert in repository — replay from builder state instead
+                            if (b.hwDivert.active) {
+                                repository.saveHWDivert(newId, b.hwDivert.toHwDivert())
+                            }
                         }
                         newId
                     }
                     b.loadSource == LoadSource.LINKED -> {
                         // Load-profile link only: create scenario with EV+inverters+panels from builder, link load
                         val newId = repository.insertScenarioAndReturnID(b.toScenarioShellWithEV(), false)
-                        repository.linkLoadProfileFromScenario(b.basedOnId, newId)
-                        b.panelEntries.forEach { entry ->
-                            val panelId = repository.savePanel(newId, entry.toPanel())
-                            triggerPanelDataFetch(entry, panelId)
+                        if (newId > 0L) {
+                            repository.linkLoadProfileFromScenario(b.basedOnId, newId)
+                            b.panelEntries.forEach { entry ->
+                                val panelId = repository.savePanel(newId, entry.toPanel())
+                                triggerPanelDataFetch(entry, panelId)
+                            }
                         }
                         newId
                     }
                     else -> {
                         // NEW or COPY: save panels separately to capture their IDs for data fetch
                         val newId = repository.insertScenarioAndReturnID(b.toScenarioComponents(), false)
-                        b.panelEntries.forEach { entry ->
-                            val panelId = repository.savePanel(newId, entry.toPanel())
-                            triggerPanelDataFetch(entry, panelId)
+                        if (newId > 0L) {
+                            b.panelEntries.forEach { entry ->
+                                val panelId = repository.savePanel(newId, entry.toPanel())
+                                triggerPanelDataFetch(entry, panelId)
+                            }
                         }
                         newId
                     }
+                }
+                // A non-positive id means the insert failed (a duplicate name violated the UNIQUE index, now
+                // returned as 0 by the DAO rather than a dead id). Fail loudly instead of adopting id 0 and
+                // running the cleanup/notify path. The name check in the UI normally prevents reaching here.
+                if (savedId <= 0L) {
+                    throw IllegalStateException("Scenario not saved — the name is already in use.")
                 }
                 // An edit-save deletes-and-reinserts the scenario's components, leaving the old rows
                 // unreferenced. Prune all such orphans (battery, inverter, schedules, …) in one pass — a no-op
@@ -1425,8 +1441,8 @@ class UI2WizardViewModel @Inject constructor(
                 _scenarioId.value = savedId
                 _saveResult.value = WizardSaveResult.Done(savedId, runSimulation, pvgisCount)
             } catch (e: Exception) {
-                android.util.Log.e(PanelSourceFetchWorker.TAG, "save() threw — wizard will silently dismiss", e)
-                _saveResult.value = WizardSaveResult.Idle
+                android.util.Log.e(PanelSourceFetchWorker.TAG, "save() failed", e)
+                _saveResult.value = WizardSaveResult.Failed(e.message ?: "Couldn't save the scenario.")
             }
         }
     }
