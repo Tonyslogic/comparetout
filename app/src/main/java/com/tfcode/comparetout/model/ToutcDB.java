@@ -38,6 +38,7 @@ import com.tfcode.comparetout.model.scenario.EVDivert;
 import com.tfcode.comparetout.model.scenario.HWDivert;
 import com.tfcode.comparetout.model.scenario.HWSchedule;
 import com.tfcode.comparetout.model.scenario.HWSystem;
+import com.tfcode.comparetout.model.scenario.HeatPump;
 import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
 import com.tfcode.comparetout.model.scenario.LoadProfileData;
@@ -52,6 +53,7 @@ import com.tfcode.comparetout.model.scenario.Scenario2EVDivert;
 import com.tfcode.comparetout.model.scenario.Scenario2HWDivert;
 import com.tfcode.comparetout.model.scenario.Scenario2HWSchedule;
 import com.tfcode.comparetout.model.scenario.Scenario2HWSystem;
+import com.tfcode.comparetout.model.scenario.Scenario2HeatPump;
 import com.tfcode.comparetout.model.scenario.Scenario2Inverter;
 import com.tfcode.comparetout.model.scenario.Scenario2LoadProfile;
 import com.tfcode.comparetout.model.scenario.Scenario2LoadShift;
@@ -75,12 +77,13 @@ import java.util.concurrent.Executors;
         HWSchedule.class, Scenario2HWSchedule.class,
         HWDivert.class, Scenario2HWDivert.class,
         EVDivert.class, Scenario2EVDivert.class,
+        HeatPump.class, Scenario2HeatPump.class,
         LoadProfileData.class, ScenarioSimulationData.class,
         Costings.class, PanelData.class,
         AlphaESSRawPower.class, AlphaESSRawEnergy.class,
         AlphaESSTransformedData.class,
         AlphaESSTransformMeta.class
-        }, version = 8,
+        }, version = 9,
         autoMigrations = {
             @AutoMigration(from = 1, to = 2),
             @AutoMigration(from = 2, to = 3),
@@ -88,7 +91,8 @@ import java.util.concurrent.Executors;
             @AutoMigration(from = 4, to = 5),
             @AutoMigration(from = 5, to = 6),
             @AutoMigration(from = 6, to = 7),
-            @AutoMigration(from = 7, to = 8)})
+            @AutoMigration(from = 7, to = 8),
+            @AutoMigration(from = 8, to = 9)})
 
 @TypeConverters({Converters.class})
 

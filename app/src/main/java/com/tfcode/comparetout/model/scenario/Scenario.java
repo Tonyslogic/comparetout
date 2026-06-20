@@ -78,6 +78,8 @@ public class Scenario {
     private boolean hasHWSchedules = false;
     private boolean hasHWDivert = false;
     private boolean hasEVDivert = false;
+    @ColumnInfo(defaultValue = "0")
+    private boolean hasHeatPump = false;
     private boolean isActive = false;
 
     public boolean isHasInverters() {
@@ -174,6 +176,14 @@ public class Scenario {
 
     public void setHasEVDivert(boolean hasEVDivert) {
         this.hasEVDivert = hasEVDivert;
+    }
+
+    public boolean isHasHeatPump() {
+        return hasHeatPump;
+    }
+
+    public void setHasHeatPump(boolean hasHeatPump) {
+        this.hasHeatPump = hasHeatPump;
     }
 
     public boolean isActive() {

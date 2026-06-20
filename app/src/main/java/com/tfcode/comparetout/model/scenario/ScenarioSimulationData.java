@@ -48,6 +48,69 @@ public class ScenarioSimulationData {
     private double battery2Grid = 0;
     @ColumnInfo(defaultValue = "NULL")
     private Long millisSinceEpoch;
+    // Heat-pump channels (Phase 4 of plans/hp/plan.md). heatPumpLoad is total electrical (HP + backup) and
+    // is the only one added to the KPI/cost load sum; heatPumpBackupLoad is a subset of it; heatPumpHeat is
+    // thermal. Temp/wind/COP are averaged (not summed) per graph bucket — see design §8.
+    @ColumnInfo(defaultValue = "0")
+    private double heatPumpLoad = 0;
+    @ColumnInfo(defaultValue = "0")
+    private double heatPumpBackupLoad = 0;
+    @ColumnInfo(defaultValue = "0")
+    private double heatPumpHeat = 0;
+    @ColumnInfo(defaultValue = "0")
+    private double heatPumpCop = 0;
+    @ColumnInfo(defaultValue = "0")
+    private double heatPumpOutdoorTemp = 0;
+    @ColumnInfo(defaultValue = "0")
+    private double heatPumpWindSpeed = 0;
+
+    public double getHeatPumpLoad() {
+        return heatPumpLoad;
+    }
+
+    public void setHeatPumpLoad(double heatPumpLoad) {
+        this.heatPumpLoad = heatPumpLoad;
+    }
+
+    public double getHeatPumpBackupLoad() {
+        return heatPumpBackupLoad;
+    }
+
+    public void setHeatPumpBackupLoad(double heatPumpBackupLoad) {
+        this.heatPumpBackupLoad = heatPumpBackupLoad;
+    }
+
+    public double getHeatPumpHeat() {
+        return heatPumpHeat;
+    }
+
+    public void setHeatPumpHeat(double heatPumpHeat) {
+        this.heatPumpHeat = heatPumpHeat;
+    }
+
+    public double getHeatPumpCop() {
+        return heatPumpCop;
+    }
+
+    public void setHeatPumpCop(double heatPumpCop) {
+        this.heatPumpCop = heatPumpCop;
+    }
+
+    public double getHeatPumpOutdoorTemp() {
+        return heatPumpOutdoorTemp;
+    }
+
+    public void setHeatPumpOutdoorTemp(double heatPumpOutdoorTemp) {
+        this.heatPumpOutdoorTemp = heatPumpOutdoorTemp;
+    }
+
+    public double getHeatPumpWindSpeed() {
+        return heatPumpWindSpeed;
+    }
+
+    public void setHeatPumpWindSpeed(double heatPumpWindSpeed) {
+        this.heatPumpWindSpeed = heatPumpWindSpeed;
+    }
 
     public Long getMillisSinceEpoch() {
         return millisSinceEpoch;

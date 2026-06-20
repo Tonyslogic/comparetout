@@ -394,6 +394,12 @@ public class SimulationEngine {
                 case DIV_TO_WATER:     outputRow.setKWHDivToWater(e.getValue());  break;
                 case DIV_TO_EV:        outputRow.setKWHDivToEV(e.getValue());     break;
                 case WATER_TEMP:       outputRow.setWaterTemp(e.getValue());      break;
+                case HEAT_PUMP_LOAD:          outputRow.setHeatPumpLoad(e.getValue());        break;
+                case HEAT_PUMP_BACKUP_LOAD:   outputRow.setHeatPumpBackupLoad(e.getValue());  break;
+                case HEAT_PUMP_HEAT:          outputRow.setHeatPumpHeat(e.getValue());        break;
+                case HEAT_PUMP_COP:           outputRow.setHeatPumpCop(e.getValue());         break;
+                case HEAT_PUMP_OUTDOOR_TEMP:  outputRow.setHeatPumpOutdoorTemp(e.getValue()); break;
+                case HEAT_PUMP_WIND_SPEED:    outputRow.setHeatPumpWindSpeed(e.getValue());   break;
             }
         }
     }
