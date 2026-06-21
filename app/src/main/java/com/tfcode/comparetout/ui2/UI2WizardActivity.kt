@@ -123,6 +123,7 @@ import com.tfcode.comparetout.TOUTCApplication
 import com.tfcode.comparetout.model.json.scenario.ScenarioJsonFile
 import com.tfcode.comparetout.model.scenario.PanelPVSummary
 import com.tfcode.comparetout.model.scenario.Scenario
+import com.tfcode.comparetout.scenario.HeatPumpWeatherCache
 import com.tfcode.comparetout.scenario.loadprofile.StandardLoadProfiles
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -240,6 +241,12 @@ private fun WizardScreen(
         }
         if (result is WizardSaveResult.Done) {
             when {
+                result.needsWeatherFetch -> {
+                    // HP on CDS: chain GenerateLoad → WeatherFetch → Simulate → Cost so the sim runs on the
+                    // freshly-downloaded weather instead of racing it. Show sim progress only if Run was pressed.
+                    SimulatorLauncher.simulateWithWeatherFetch(context, result.scenarioId)
+                    simulationQueued = result.runSimulation
+                }
                 result.runSimulation -> {
                     SimulatorLauncher.simulateIfNeeded(context)
                     simulationQueued = true
@@ -2277,6 +2284,24 @@ private fun HpNumberField(
     )
 }
 
+@Composable
+private fun HpDoubleField(
+    label: String, value: Double, hint: String?, novice: Boolean,
+    modifier: Modifier = Modifier, onValue: (Double) -> Unit
+) {
+    // lat/long are Doubles in the entry (not String like the other fields). Keep the raw text locally so a
+    // partial edit ("-", "53.") doesn't fight the committed Double; commit only on a valid parse.
+    var text by remember(value) { mutableStateOf(value.toString()) }
+    OutlinedTextField(
+        value = text,
+        onValueChange = { text = it; it.toDoubleOrNull()?.let(onValue) },
+        label = { Text(label) },
+        singleLine = true,
+        modifier = modifier,
+        supportingText = if (novice && hint != null) ({ Text(hint) }) else null
+    )
+}
+
 /**
  * True if a CDS Personal Access Token is stored (and decryptable). Mirrors the
  * gate in [UI2DataSourceManagementViewModel] (DataStore key "cds_key"); the
@@ -2391,6 +2416,23 @@ private fun HeatPumpCard(
             }
             if (novice) {
                 Text("The 2001, Ireland sample lets you try the heat pump now; CDS fetches real weather for your location.",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            if (hp.weatherSource == "cds") {
+                // Surface what CDS will fetch — the criteria live in the HP section (design §4.1a-5) even
+                // though location defaults from the PV array and the period follows the load data.
+                Text("CDS fetch location", style = MaterialTheme.typography.labelMedium)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    HpDoubleField("Latitude", hp.latitude,
+                        "Weather point. Defaults to your PV array's location; edit for a different site.",
+                        novice, Modifier.width(160.dp)) { v -> update { it.copy(latitude = v) } }
+                    HpDoubleField("Longitude", hp.longitude, null, novice, Modifier.width(160.dp)) { v ->
+                        update { it.copy(longitude = v) } }
+                }
+                Text("Fetched at ERA5 grid node %.2f, %.2f · period follows this scenario's data (2001 for the sample year, or your imported years)."
+                    .format(HeatPumpWeatherCache.snapToEra5Grid(hp.latitude),
+                        HeatPumpWeatherCache.snapToEra5Grid(hp.longitude)),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }

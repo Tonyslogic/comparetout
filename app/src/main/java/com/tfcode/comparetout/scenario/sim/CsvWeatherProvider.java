@@ -22,11 +22,15 @@ import java.io.Reader;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Arrays;
+import java.util.Locale;
 
 /**
- * A {@link WeatherProvider} that parses the raw ERA5 single-levels time-series CSV
- * ({@code valid_time,latitude,longitude,t2m,u10,v10}; {@code t2m} in Kelvin, winds in m/s; {@code valid_time}
- * UTC ISO-8601) and interpolates it onto the sim grid. Phase 3 of {@code plans/hp/plan.md}.
+ * A {@link WeatherProvider} that parses the raw ERA5 single-levels time-series CSV and interpolates it onto
+ * the sim grid. Phase 3 of {@code plans/hp/plan.md}. Columns are resolved <b>by name</b> from the header —
+ * {@code valid_time} (UTC), {@code t2m} (Kelvin), {@code u10}/{@code v10} (m/s) — because the live CDS output
+ * does not match the documented column order (observed order {@code valid_time,u10,v10,t2m,latitude,longitude})
+ * and the synthetic fixture uses yet another. The timestamp accepts both the CDS {@code "yyyy-MM-dd HH:mm:ss"}
+ * (space) and ISO-8601 {@code 'T'} forms.
  *
  * <p>This is the <b>one parser for both byte sources</b> the design promised: the offline fixture / shipped
  * sample asset and the live CDS download (Phase 6) emit the identical CSV, so the conversions here
@@ -51,14 +55,38 @@ public final class CsvWeatherProvider implements WeatherProvider {
         double[] t = new double[8784];
         double[] w = new double[8784];
         try (BufferedReader r = new BufferedReader(csv)) {
-            String line = r.readLine(); // header
+            String header = r.readLine();
+            if (header == null) throw new IOException("empty weather CSV");
+            // Resolve columns by NAME, not position. The live CDS time-series CSV does NOT match the
+            // documented column order (header observed 2026-06-21:
+            // "valid_time,u10,v10,t2m,latitude,longitude") and could add columns; the synthetic fixture uses
+            // a different order again. Name-mapping makes the one parser tolerant of every layout.
+            String[] cols = header.split(",");
+            int tIdx = -1, tempIdx = -1, uIdx = -1, vIdx = -1;
+            for (int i = 0; i < cols.length; i++) {
+                switch (cols[i].trim().toLowerCase(Locale.ROOT)) {
+                    case "valid_time": tIdx = i; break;
+                    case "t2m": tempIdx = i; break;
+                    case "u10": uIdx = i; break;
+                    case "v10": vIdx = i; break;
+                    default: break;
+                }
+            }
+            if (tIdx < 0 || tempIdx < 0 || uIdx < 0 || vIdx < 0) {
+                throw new IOException("weather CSV missing a required column (valid_time/t2m/u10/v10): "
+                        + header);
+            }
+            String line;
             while ((line = r.readLine()) != null) {
                 if (line.isEmpty()) continue;
                 String[] f = line.split(",");
-                long millis = LocalDateTime.parse(f[0]).toInstant(ZoneOffset.UTC).toEpochMilli();
-                double celsius = Double.parseDouble(f[3]) - KELVIN;
-                double u = Double.parseDouble(f[4]);
-                double v = Double.parseDouble(f[5]);
+                // CDS stamps "yyyy-MM-dd HH:mm:ss" (space separator); the fixture uses ISO-8601 'T'. Accept
+                // both by normalising the space to 'T' before LocalDateTime.parse.
+                long millis = LocalDateTime.parse(f[tIdx].trim().replace(' ', 'T'))
+                        .toInstant(ZoneOffset.UTC).toEpochMilli();
+                double celsius = Double.parseDouble(f[tempIdx]) - KELVIN;
+                double u = Double.parseDouble(f[uIdx]);
+                double v = Double.parseDouble(f[vIdx]);
                 if (count == ms.length) {
                     ms = Arrays.copyOf(ms, ms.length * 2);
                     t = Arrays.copyOf(t, t.length * 2);

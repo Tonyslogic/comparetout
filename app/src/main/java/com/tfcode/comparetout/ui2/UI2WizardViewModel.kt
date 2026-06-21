@@ -649,7 +649,8 @@ private const val KEY_NOVICE_MODE = "wizard_novice_mode"
 sealed class WizardSaveResult {
     object Idle : WizardSaveResult()
     object Saving : WizardSaveResult()
-    data class Done(val scenarioId: Long, val runSimulation: Boolean, val pvgisStringsQueued: Int = 0) : WizardSaveResult()
+    data class Done(val scenarioId: Long, val runSimulation: Boolean, val pvgisStringsQueued: Int = 0,
+                    val needsWeatherFetch: Boolean = false) : WizardSaveResult()
     /** The save could not be completed (e.g. a duplicate name). Surfaced to the user instead of dismissing silently. */
     data class Failed(val message: String) : WizardSaveResult()
 }
@@ -1565,7 +1566,8 @@ class UI2WizardViewModel @Inject constructor(
                 // in use" (the just-saved name no longer counts against itself) and routes any further Save
                 // through the in-place edit path instead of a second INSERT that would hit the UNIQUE name index.
                 _scenarioId.value = savedId
-                _saveResult.value = WizardSaveResult.Done(savedId, runSimulation, pvgisCount)
+                val needsWeatherFetch = b.heatPumpEntries.any { it.weatherSource == "cds" }
+                _saveResult.value = WizardSaveResult.Done(savedId, runSimulation, pvgisCount, needsWeatherFetch)
             } catch (e: Exception) {
                 android.util.Log.e(PanelSourceFetchWorker.TAG, "save() failed", e)
                 _saveResult.value = WizardSaveResult.Failed(e.message ?: "Couldn't save the scenario.")

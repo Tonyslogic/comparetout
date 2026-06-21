@@ -27,6 +27,7 @@ import androidx.work.WorkManager;
 import com.tfcode.comparetout.scenario.SimulationWorker;
 import com.tfcode.comparetout.scenario.loadprofile.GenerateMissingLoadDataWorker;
 import com.tfcode.comparetout.scenario.panel.PVGISLoader;
+import com.tfcode.comparetout.ui2.HeatPumpWeatherFetchWorker;
 
 public class SimulatorLauncher {
 
@@ -46,6 +47,37 @@ public class SimulatorLauncher {
         WorkManager
                 .getInstance(context)
                 .beginUniqueWork("Simulation", ExistingWorkPolicy.APPEND,  generateLoadData)
+                .then(simulate)
+                .then(cost)
+                .enqueue();
+    }
+
+    /**
+     * Like {@link #simulateIfNeeded(Context)} but inserts a CDS weather fetch <b>between</b> load generation
+     * and the simulation, so a heat-pump-on-CDS scenario simulates on freshly-downloaded weather instead of
+     * racing it (Phase 6 of {@code plans/hp/plan.md}):
+     * <pre>GenerateLoad → HeatPumpWeatherFetch → Simulate → Cost</pre>
+     * The fetch must follow load generation because it derives the fetch period from the load grid; it never
+     * returns {@code failure()} (it falls back to the sample asset on give-up), so the chained sim always runs.
+     */
+    public static void simulateWithWeatherFetch(Context context, long scenarioId) {
+        OneTimeWorkRequest generateLoadData =
+                new OneTimeWorkRequest.Builder(GenerateMissingLoadDataWorker.class).build();
+        OneTimeWorkRequest weather =
+                new OneTimeWorkRequest.Builder(HeatPumpWeatherFetchWorker.class)
+                        .setInputData(new Data.Builder().putLong("scenarioID", scenarioId).build())
+                        .addTag("hp_weather_" + scenarioId)
+                        .build();
+        OneTimeWorkRequest simulate =
+                new OneTimeWorkRequest.Builder(SimulationWorker.class).build();
+        OneTimeWorkRequest cost =
+                new OneTimeWorkRequest.Builder(CostingWorker.class).build();
+
+        WorkManager.getInstance(context).pruneWork();
+        WorkManager
+                .getInstance(context)
+                .beginUniqueWork("Simulation", ExistingWorkPolicy.APPEND, generateLoadData)
+                .then(weather)
                 .then(simulate)
                 .then(cost)
                 .enqueue();

@@ -48,10 +48,12 @@ valid_time,latitude,longitude,t2m,u10,v10
 2001-01-01T00:00:00,53.490,-10.015,279.76,-7.44,-3.96
 ```
 
-> **One detail NOT verifiable from docs without an account:** the exact CSV **header spelling / column order**
-> the live endpoint emits (it may use full variable names, reorder columns, or add `number`/`expver`). This
-> fixture uses the ERA5 netCDF short names (`t2m`/`u10`/`v10`), the documented convention. Phase 6's first task
-> is one real fetch to pin the real header and adjust the parser if needed — an isolated, low-risk step.
+> **Header pinned by a real fetch (2026-06-21).** The live CDS time-series CSV header is
+> `valid_time,u10,v10,t2m,latitude,longitude` with timestamps like `2022-01-01 00:00:00` (a **space**, not
+> ISO `T`) — i.e. a **different column order** from this fixture and a different time separator. Rather than
+> regenerate the fixture, `CsvWeatherProvider` was made **header-driven** (resolves `valid_time`/`t2m`/`u10`/
+> `v10` by name) and timestamp-tolerant (accepts space or `T`), so it parses this fixture and live CDS output
+> identically — the golden master stays byte-identical. The short names (`t2m`/`u10`/`v10`) were correct.
 
 ## What the data looks like (sanity-checked)
 

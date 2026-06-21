@@ -302,11 +302,12 @@ private fun DataSourceManagementScreen(
                         showHints = showHints,
                         showCredentials = true,
                         emptyHint = "Set your Copernicus CDS Personal Access Token, then the heat-pump " +
-                            "section can fetch real weather for your location (coming with live fetch).",
+                            "section can fetch real weather for your location. Each fetched " +
+                            "(location, period) is cached here.",
                         entryNoun = "dataset",
                         onSetCredentials = viewModel::setCdsCredentials,
-                        onClearAll = { /* no CDS cache until Phase 6 */ },
-                        onDeleteEntry = { /* no CDS cache until Phase 6 */ },
+                        onClearAll = viewModel::deleteAllCdsCache,
+                        onDeleteEntry = viewModel::deleteCdsCacheEntry,
                         onRemoveSource = viewModel::removeCdsSource
                     )
                 }

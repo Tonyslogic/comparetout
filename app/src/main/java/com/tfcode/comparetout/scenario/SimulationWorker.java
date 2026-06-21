@@ -51,6 +51,8 @@ import com.tfcode.comparetout.scenario.sim.SimTime;
 import com.tfcode.comparetout.scenario.sim.TimeAxis;
 import com.tfcode.comparetout.scenario.sim.WeatherProvider;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -372,21 +374,41 @@ public class SimulationWorker extends Worker {
      * weather can't be loaded, so the rest of the simulation is unaffected.
      */
     private HeatPumpComponent buildHeatPumpComponent(HeatPump hp, List<SimulationInputData> gridRows) {
-        long[] gridMillis = new long[gridRows.size()];
-        for (int i = 0; i < gridRows.size(); i++) {
-            SimulationInputData r = gridRows.get(i);
-            gridMillis[i] = (r.getMillisSinceEpoch() != null) ? r.getMillisSinceEpoch()
-                    : SimTime.fromDateAndMinuteOfDay(r.getDate(), r.getMod(), ZoneOffset.UTC);
+        long[] gridMillis = HeatPumpWeatherCache.gridMillis(gridRows);
+        WeatherProvider weather = loadWeather(hp, gridMillis);
+        if (weather == null) return null; // weather unavailable ⇒ no heat-pump contribution
+        return HeatPumpComponent.build(configFromHeatPump(hp), weather, gridMillis);
+    }
+
+    /**
+     * Resolve the outdoor-weather series for the heat pump. {@code weatherSource == "cds"} reads the cached
+     * ERA5 CSV the fetch worker downloaded for this (location, grid period); any other value — or a missing /
+     * unreadable cache — falls back to the offline sample asset. Both paths feed the <b>same</b>
+     * {@link CsvWeatherProvider}, so the cache is a drop-in for the asset (Phase 6 of plans/hp/plan.md).
+     */
+    private WeatherProvider loadWeather(HeatPump hp, long[] gridMillis) {
+        if ("cds".equals(hp.getWeatherSource())) {
+            File cache = HeatPumpWeatherCache.cacheFile(
+                    getApplicationContext(), hp.getLatitude(), hp.getLongitude(), gridMillis);
+            if (cache.exists()) {
+                try (InputStream is = new FileInputStream(cache)) {
+                    return new CsvWeatherProvider(new InputStreamReader(is));
+                } catch (IOException e) {
+                    android.util.Log.e("HeatPump", "CDS weather cache unreadable ("
+                            + cache.getName() + ") — falling back to sample asset", e);
+                }
+            } else {
+                android.util.Log.w("HeatPump", "CDS weather not yet fetched ("
+                        + cache.getName() + ") — using sample asset until the fetch completes");
+            }
         }
-        WeatherProvider weather;
         try (InputStream is = getApplicationContext().getAssets()
                 .open("hp-weather/era5-timeseries-2001-synthetic.csv")) {
-            weather = new CsvWeatherProvider(new InputStreamReader(is));
+            return new CsvWeatherProvider(new InputStreamReader(is));
         } catch (IOException e) {
             android.util.Log.e("HeatPump", "weather asset load failed — HP will be absent from the sim", e);
-            return null; // weather unavailable ⇒ no heat-pump contribution
+            return null;
         }
-        return HeatPumpComponent.build(configFromHeatPump(hp), weather, gridMillis);
     }
 
     /** Maps a persisted {@link HeatPump} onto the pure model's {@link HeatPumpDemandModel.Config}. */

@@ -31,10 +31,12 @@ import com.tfcode.comparetout.importers.homeassistant.HACatchupWorker
 import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformMeta
 import com.tfcode.comparetout.model.scenario.PanelPVSummary
+import com.tfcode.comparetout.scenario.HeatPumpWeatherCache
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.File
 import java.text.SimpleDateFormat
 import java.time.LocalDateTime
 import java.util.Date
@@ -118,7 +120,8 @@ data class SourceState(
  * One cached weather/PV dataset the user can inspect or delete. For PVGIS this
  * is one fetched panel's PV series (the cache is per-panel `PanelData` in the
  * DB — the UI2 fetch worker writes straight to the DB, not to files); [id] is
- * the panelID. CDS entries arrive with Phase 6.
+ * the panelID. For CDS it is one downloaded ERA5 CSV (one per location+period)
+ * in [HeatPumpWeatherCache.CACHE_DIR]; [id] is the file name.
  */
 data class WeatherCacheEntry(
     val id: String,
@@ -809,14 +812,35 @@ class UI2DataSourceManagementViewModel @Inject constructor(
 
     private fun buildCdsState(): WeatherSourceState {
         val configured = decryptOrNull(app.getStringValueFromDataStore(CDS_KEY_KEY)) != null
-        // No live probe in Phase 5.5 — validity is unknown until the first
-        // real fetch (Phase 6). Never surface a fake "last check OK".
+        // Validity is unknown until the first real fetch flips CDS_GOOD_KEY to
+        // "True" (Phase 6). Never surface a fake "last check OK".
         val good = app.getStringValueFromDataStore(CDS_GOOD_KEY) == "True"
         return WeatherSourceState(
-            entries = emptyList(),  // CDS weather cache lands in Phase 6
+            entries = listCdsCacheEntries(),
             credentialsConfigured = configured,
             credentialsKnownGood = configured && good
         )
+    }
+
+    /**
+     * The cached CDS downloads on disk — one `cds_{lat}_{lon}_{start}_{end}.csv` per fetched
+     * (location, period) in [HeatPumpWeatherCache.CACHE_DIR]. [WeatherCacheEntry.id] is the file name so
+     * [deleteCdsCacheEntry] can delete it directly.
+     */
+    private fun listCdsCacheEntries(): List<WeatherCacheEntry> {
+        val dir = File(app.filesDir, HeatPumpWeatherCache.CACHE_DIR)
+        val files = dir.listFiles { f -> f.isFile && f.name.startsWith("cds_") && f.name.endsWith(".csv") }
+            ?: return emptyList()
+        return files.map { f ->
+            // cds_{lat}_{lon}_{start}_{end}.csv → "lat, lon" + "start → end" + size
+            val parts = f.name.removePrefix("cds_").removeSuffix(".csv").split("_")
+            val name = if (parts.size >= 2) "${parts[0]}, ${parts[1]}" else f.name
+            val detail = buildString {
+                if (parts.size >= 4) append("${parts[2]} → ${parts[3]}")
+                append(" · ${"%.0f".format(f.length() / 1024.0)} kB")
+            }.trim().removePrefix("· ")
+            WeatherCacheEntry(f.name, name, detail)
+        }.sortedBy { it.name }
     }
 
     /** Persist CDS credentials (encrypted), mirroring the AlphaESS/HA pattern. No probe. */
@@ -831,16 +855,37 @@ class UI2DataSourceManagementViewModel @Inject constructor(
         }
     }
 
-    /** Wipe CDS credentials (no cached weather to clear until Phase 6). */
+    /** Wipe CDS credentials and every cached download. */
     fun removeCdsSource() {
         viewModelScope.launch(Dispatchers.IO) {
             app.putStringValueIntoDataStore(CDS_URL_KEY, "")
             app.putStringValueIntoDataStore(CDS_KEY_KEY, "")
             app.putStringValueIntoDataStore(CDS_GOOD_KEY, "")
+            cdsCacheDir().listFiles()?.forEach { it.delete() }
             _cds.postValue(buildCdsState())
             _toast.postValue(Toast("CDS source removed"))
         }
     }
+
+    /** Delete one cached CDS download (by file name). It re-fetches on the next sim that needs it. */
+    fun deleteCdsCacheEntry(fileName: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            File(cdsCacheDir(), fileName).takeIf { it.isFile }?.delete()
+            _cds.postValue(buildCdsState())
+            _toast.postValue(Toast("CDS weather deleted · re-fetched on next save"))
+        }
+    }
+
+    /** Delete every cached CDS download (credentials retained). */
+    fun deleteAllCdsCache() {
+        viewModelScope.launch(Dispatchers.IO) {
+            cdsCacheDir().listFiles()?.forEach { it.delete() }
+            _cds.postValue(buildCdsState())
+            _toast.postValue(Toast("CDS cache cleared"))
+        }
+    }
+
+    private fun cdsCacheDir(): File = File(app.filesDir, HeatPumpWeatherCache.CACHE_DIR)
 
     /** Delete one panel's cached PV. The panelDataSummary observer refreshes the list. */
     fun deletePvCacheEntry(panelId: String) {
