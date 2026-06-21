@@ -23,5 +23,8 @@ public class ScenarioLineGraphData {
     @ColumnInfo(name= "minuteOfDay") public int mod = 0;
     @ColumnInfo(name= "SOC") public double soc = 0D;
     @ColumnInfo(name= "waterTemp") public double waterTemperature = 0D;
+    @ColumnInfo(name= "heatPumpCop") public double heatPumpCop = 0D;
+    @ColumnInfo(name= "heatPumpOutdoorTemp") public double heatPumpOutdoorTemp = 0D;
+    @ColumnInfo(name= "heatPumpWindSpeed") public double heatPumpWindSpeed = 0D;
 
 }

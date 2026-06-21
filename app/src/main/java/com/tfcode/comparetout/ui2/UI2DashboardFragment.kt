@@ -1252,6 +1252,39 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         }
                     }
 
+                    // 11. Heat Pump (mirrors the wizard/dashboard order — after EV)
+                    val heatPumps = sc.heatPumps.orEmpty()
+                    ExpandableCard(
+                        title = "Heat Pump",
+                        leadingIcon = {
+                            Text(if (heatPumps.isNotEmpty()) "♨️" else "❄️",
+                                style = MaterialTheme.typography.titleLarge)
+                        },
+                        trailingContent = { _ ->
+                            if (heatPumps.isNotEmpty()) {
+                                Icon(painterResource(R.drawable.tick), null,
+                                    Modifier.size(18.dp), tint = Color.Unspecified)
+                            }
+                        },
+                        onEdit = if (scenarioId != -1L) ({
+                            ctx.startActivity(
+                                Intent(ctx, UI2WizardActivity::class.java)
+                                    .putExtra("ScenarioID", scenarioId)
+                                    .putExtra("WizardSection", "heatpump")
+                            )
+                        }) else null
+                    ) {
+                        if (heatPumps.isEmpty()) Text("No heat pump configured")
+                        else heatPumps.forEach { hp ->
+                            val unit = if (hp.fuelType == "Natural gas") "kWh" else "L"
+                            Text("${hp.fuelType} · ${hp.fuelAnnual.toInt()} $unit/yr")
+                            Text("COP ${hp.copRated} · SCOP ${hp.scop} · ${hp.capacityKw} kW")
+                            Text("Weather: ${if (hp.weatherSource == "cds") "CDS" else "2001, Ireland"}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.outline)
+                        }
+                    }
+
                     // 8. (Tariff Plan moved to the top of the scenario list — pricing is
                     //     the headline answer once a scenario has been simulated.)
                 }

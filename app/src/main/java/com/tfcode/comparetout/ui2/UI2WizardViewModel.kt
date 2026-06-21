@@ -218,22 +218,23 @@ data class WizardHeatPumpEntry(
     val id: String = UUID.randomUUID().toString(),
     val heatPumpIndex: Long = 0L,
     val fuelType: String = "Kerosene/Oil",
-    val fuelAnnual: Double = 2300.0,
-    val calorificValue: Double = 10.35,
-    val boilerEfficiency: Double = 0.80,
-    val dhwAnnualKWh: Double = 2000.0,
-    val spaceHeatingFraction: Double? = null,
-    val desiredIndoorTemp: Double = 20.0,
-    val currentIndoorTemp: Double = 20.0,
-    val balancePoint: Double = 15.5,
-    val alphaWind: Double = 0.03,
+    // User-editable numerics are Strings (raw text in state, parsed on save) — matches the rest of the wizard.
+    val fuelAnnual: String = "2300",
+    val calorificValue: Double = 10.35,   // internal: set by fuel type, not exposed in the UI
+    val boilerEfficiencyPct: String = "80",
+    val dhwAnnualKWh: Double = 2000.0,    // internal: fixed DHW carve-out for basic mode
+    val spaceHeatingPct: String = "",     // advanced: blank ⇒ use the DHW default
+    val desiredIndoorTemp: String = "20",
+    val currentIndoorTemp: String = "20",
+    val balancePoint: String = "15.5",
+    val alphaWind: Double = 0.03,         // internal: not exposed in the UI
     val heatingSeasonStart: Int? = null,
     val heatingSeasonEnd: Int? = null,
-    val copRated: Double = 4.2,
-    val copRefTemp: Double = 7.0,
-    val copSlope: Double = 0.08,
-    val scop: Double = 3.6,
-    val capacityKw: Double = 7.0,
+    val copRated: String = "4.2",
+    val copRefTemp: String = "7",
+    val copSlope: String = "0.08",
+    val scop: String = "3.6",
+    val capacityKw: String = "7",
     val backupHeater: Boolean = true,
     val latitude: Double = 53.49,
     val longitude: Double = -10.015,
@@ -241,25 +242,27 @@ data class WizardHeatPumpEntry(
     val hourlyDist: List<Double>? = null,
     val dowDist: List<Double>? = null
 ) {
+    private fun String.d(default: Double) = toDoubleOrNull() ?: default
+
     fun toHeatPump(): HeatPump = HeatPump().also { hp ->
         if (heatPumpIndex > 0L) hp.heatPumpIndex = heatPumpIndex
         hp.fuelType = fuelType
-        hp.fuelAnnual = fuelAnnual
+        hp.fuelAnnual = fuelAnnual.d(2300.0)
         hp.calorificValue = calorificValue
-        hp.boilerEfficiency = boilerEfficiency
+        hp.boilerEfficiency = boilerEfficiencyPct.d(80.0) / 100.0
         hp.dhwAnnualKWh = dhwAnnualKWh
-        hp.spaceHeatingFraction = spaceHeatingFraction
-        hp.desiredIndoorTemp = desiredIndoorTemp
-        hp.currentIndoorTemp = currentIndoorTemp
-        hp.balancePoint = balancePoint
+        hp.spaceHeatingFraction = spaceHeatingPct.toDoubleOrNull()?.takeIf { it > 0.0 }?.let { it / 100.0 }
+        hp.desiredIndoorTemp = desiredIndoorTemp.d(20.0)
+        hp.currentIndoorTemp = currentIndoorTemp.d(20.0)
+        hp.balancePoint = balancePoint.d(15.5)
         hp.alphaWind = alphaWind
         hp.heatingSeasonStart = heatingSeasonStart
         hp.heatingSeasonEnd = heatingSeasonEnd
-        hp.copRated = copRated
-        hp.copRefTemp = copRefTemp
-        hp.copSlope = copSlope
-        hp.scop = scop
-        hp.capacityKw = capacityKw
+        hp.copRated = copRated.d(4.2)
+        hp.copRefTemp = copRefTemp.d(7.0)
+        hp.copSlope = copSlope.d(0.08)
+        hp.scop = scop.d(3.6)
+        hp.capacityKw = capacityKw.d(7.0)
         hp.isBackupHeater = backupHeater
         hp.latitude = latitude
         hp.longitude = longitude
@@ -269,26 +272,28 @@ data class WizardHeatPumpEntry(
     }
 }
 
+internal fun fmtNum(v: Double): String = if (v == v.toLong().toDouble()) v.toLong().toString() else v.toString()
+
 private fun HeatPump.toWizardHeatPumpEntry() = WizardHeatPumpEntry(
     id = if (heatPumpIndex > 0) heatPumpIndex.toString() else UUID.randomUUID().toString(),
     heatPumpIndex = heatPumpIndex,
     fuelType = fuelType ?: "Kerosene/Oil",
-    fuelAnnual = fuelAnnual,
+    fuelAnnual = fmtNum(fuelAnnual),
     calorificValue = calorificValue,
-    boilerEfficiency = boilerEfficiency,
+    boilerEfficiencyPct = fmtNum(boilerEfficiency * 100.0),
     dhwAnnualKWh = dhwAnnualKWh,
-    spaceHeatingFraction = spaceHeatingFraction,
-    desiredIndoorTemp = desiredIndoorTemp,
-    currentIndoorTemp = currentIndoorTemp,
-    balancePoint = balancePoint,
+    spaceHeatingPct = spaceHeatingFraction?.let { fmtNum(it * 100.0) } ?: "",
+    desiredIndoorTemp = fmtNum(desiredIndoorTemp),
+    currentIndoorTemp = fmtNum(currentIndoorTemp),
+    balancePoint = fmtNum(balancePoint),
     alphaWind = alphaWind,
     heatingSeasonStart = heatingSeasonStart,
     heatingSeasonEnd = heatingSeasonEnd,
-    copRated = copRated,
-    copRefTemp = copRefTemp,
-    copSlope = copSlope,
-    scop = scop,
-    capacityKw = capacityKw,
+    copRated = fmtNum(copRated),
+    copRefTemp = fmtNum(copRefTemp),
+    copSlope = fmtNum(copSlope),
+    scop = fmtNum(scop),
+    capacityKw = fmtNum(capacityKw),
     backupHeater = isBackupHeater,
     latitude = latitude,
     longitude = longitude,

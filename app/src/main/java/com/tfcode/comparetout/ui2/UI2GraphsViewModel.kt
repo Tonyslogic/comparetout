@@ -57,7 +57,9 @@ class UI2GraphsViewModel @Inject constructor(
         // Zero on simulation rows; populated when the v2 transform has run.
         EV_ACTUAL("EV Actual"),
         HW_SCHEDULE("HW Sched"), HW_DIVERT("HW Divert"),
-        BAT2GRID("Bat→Grid"), BAT_CHARGE("Bat Chg"), BAT_DISCHARGE("Bat Dis")
+        BAT2GRID("Bat→Grid"), BAT_CHARGE("Bat Chg"), BAT_DISCHARGE("Bat Dis"),
+        HEAT_PUMP("HP Load"), HEAT_PUMP_BACKUP("HP Backup"), HEAT_PUMP_HEAT("HP Heat"),
+        HEAT_PUMP_COP("HP COP"), HEAT_PUMP_TEMP("Outdoor °C"), HEAT_PUMP_WIND("Wind m/s")
     }
 
     data class GraphState(
@@ -89,6 +91,8 @@ class UI2GraphsViewModel @Inject constructor(
             components?.scenario?.isHasBatteries == true || components?.batteries?.isNotEmpty() == true
         val hasHW: Boolean get() =
             components?.scenario?.isHasHWSystem == true || components?.hwSystem != null
+        val hasHeatPump: Boolean get() =
+            components?.scenario?.isHasHeatPump == true || components?.heatPumps?.isNotEmpty() == true
         // True when the loaded interval data contains actual battery charge/discharge rows
         val hasBatteryData: Boolean get() =
             isDataSourceMode && intervalData.any { it.batCharge > 0.0 || it.batDischarge > 0.0 }
@@ -97,7 +101,7 @@ class UI2GraphsViewModel @Inject constructor(
         val hasEvActualData: Boolean get() =
             isDataSourceMode && intervalData.any { it.evActual > 0.0 }
         // Line fab only applies to simulation mode
-        val showLineFab: Boolean get() = !isDataSourceMode && isSingleDay && (hasBattery || hasHW)
+        val showLineFab: Boolean get() = !isDataSourceMode && isSingleDay && (hasBattery || hasHW || hasHeatPump)
 
         val availableFilters: Set<FilterSeries>
             get() {
@@ -118,9 +122,11 @@ class UI2GraphsViewModel @Inject constructor(
                 val evPresent = sc.scenario?.isHasEVCharges == true || sc.scenario?.isHasEVDivert == true ||
                         sc.evCharges?.isNotEmpty() == true || sc.evDiverts?.isNotEmpty() == true
                 val hwPresent = sc.scenario?.isHasHWSystem == true || sc.hwSystem != null
+                val heatPumpPresent = sc.scenario?.isHasHeatPump == true || sc.heatPumps?.isNotEmpty() == true
                 if (batteryPresent) set.addAll(BATTERY_FILTERS)
                 if (evPresent) set.addAll(EV_FILTERS)
                 if (hwPresent) set.addAll(HW_FILTERS)
+                if (heatPumpPresent) set.addAll(HEAT_PUMP_FILTERS)
                 return set
             }
     }
@@ -138,6 +144,9 @@ class UI2GraphsViewModel @Inject constructor(
         )
         val EV_FILTERS = setOf(FilterSeries.EV_SCHEDULE, FilterSeries.EV_DIVERT, FilterSeries.EV_ACTUAL)
         val HW_FILTERS = setOf(FilterSeries.HW_SCHEDULE, FilterSeries.HW_DIVERT)
+        val HEAT_PUMP_FILTERS = setOf(
+            FilterSeries.HEAT_PUMP, FilterSeries.HEAT_PUMP_BACKUP, FilterSeries.HEAT_PUMP_HEAT,
+            FilterSeries.HEAT_PUMP_COP, FilterSeries.HEAT_PUMP_TEMP, FilterSeries.HEAT_PUMP_WIND)
     }
 
     private val _state = MutableStateFlow(GraphState())

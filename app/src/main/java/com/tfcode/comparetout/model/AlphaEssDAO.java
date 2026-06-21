@@ -181,7 +181,7 @@ public abstract class AlphaEssDAO {
             "sum(pv2bat) AS PV2BAT, sum(pv2load) AS PV2LOAD, sum(bat2load) AS BAT2LOAD, sum(grid2bat) AS GRID2BAT, " +
             "sum(pv2grid) AS PV2GRID, sum(grid2load) AS GRID2LOAD, sum(evActual) AS EV_ACTUAL, " +
             "sum(batChargeIn) AS BAT_CHARGE_IN, sum(batDischargeOut) AS BAT_DISCHARGE_OUT, " +
-            "0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT, " +
+            "0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT, 0 AS HEATPUMP, 0 AS HEATPUMPBACKUP, 0 AS HEATPUMPHEAT, 0 AS HEATPUMPCOP, 0 AS HEATPUMPTEMP, 0 AS HEATPUMPWIND, " +
             "sum(bat2grid) AS BAT2GRID, TOTAL(CASE WHEN charge > 0 THEN charge ELSE 0 END) AS BAT_CHARGE, ABS(TOTAL(CASE WHEN charge < 0 THEN charge ELSE 0 END)) AS BAT_DISCHARGE, " +
             "cast (strftime('%H', minute) as INTEGER) AS INTERVAL " +
             "FROM alphaESSTransformedData WHERE date >= :from AND date <= :to AND sysSn = :sysSN GROUP BY  INTERVAL ORDER BY INTERVAL")
@@ -205,7 +205,7 @@ public abstract class AlphaEssDAO {
             "sum(pv2bat) AS PV2BAT, sum(pv2load) AS PV2LOAD, sum(bat2load) AS BAT2LOAD, sum(grid2bat) AS GRID2BAT, " +
             "sum(pv2grid) AS PV2GRID, sum(grid2load) AS GRID2LOAD, sum(evActual) AS EV_ACTUAL, " +
             "sum(batChargeIn) AS BAT_CHARGE_IN, sum(batDischargeOut) AS BAT_DISCHARGE_OUT, " +
-            "0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT, " +
+            "0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT, 0 AS HEATPUMP, 0 AS HEATPUMPBACKUP, 0 AS HEATPUMPHEAT, 0 AS HEATPUMPCOP, 0 AS HEATPUMPTEMP, 0 AS HEATPUMPWIND, " +
             "sum(bat2grid) AS BAT2GRID, TOTAL(CASE WHEN charge > 0 THEN charge ELSE 0 END) AS BAT_CHARGE, ABS(TOTAL(CASE WHEN charge < 0 THEN charge ELSE 0 END)) AS BAT_DISCHARGE, " +
             "cast (strftime('%j', date) as INTEGER) AS INTERVAL " +
     "FROM alphaESSTransformedData WHERE date >= :from AND date <= :to AND sysSn = :sysSN GROUP BY INTERVAL ORDER BY INTERVAL")
@@ -215,7 +215,7 @@ public abstract class AlphaEssDAO {
             "sum(pv2bat) AS PV2BAT, sum(pv2load) AS PV2LOAD, sum(bat2load) AS BAT2LOAD, sum(grid2bat) AS GRID2BAT, " +
             "sum(pv2grid) AS PV2GRID, sum(grid2load) AS GRID2LOAD, sum(evActual) AS EV_ACTUAL, " +
             "sum(batChargeIn) AS BAT_CHARGE_IN, sum(batDischargeOut) AS BAT_DISCHARGE_OUT, " +
-            "0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT, " +
+            "0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT, 0 AS HEATPUMP, 0 AS HEATPUMPBACKUP, 0 AS HEATPUMPHEAT, 0 AS HEATPUMPCOP, 0 AS HEATPUMPTEMP, 0 AS HEATPUMPWIND, " +
             "sum(bat2grid) AS BAT2GRID, TOTAL(CASE WHEN charge > 0 THEN charge ELSE 0 END) AS BAT_CHARGE, ABS(TOTAL(CASE WHEN charge < 0 THEN charge ELSE 0 END)) AS BAT_DISCHARGE, " +
             "cast (strftime('%w', date) as INTEGER) AS INTERVAL " +
             "FROM alphaESSTransformedData WHERE date >= :from AND date <= :to AND sysSn = :sysSN GROUP BY INTERVAL ORDER BY INTERVAL")
@@ -225,7 +225,7 @@ public abstract class AlphaEssDAO {
             "sum(pv2bat) AS PV2BAT, sum(pv2load) AS PV2LOAD, sum(bat2load) AS BAT2LOAD, sum(grid2bat) AS GRID2BAT, " +
             "sum(pv2grid) AS PV2GRID, sum(grid2load) AS GRID2LOAD, sum(evActual) AS EV_ACTUAL, " +
             "sum(batChargeIn) AS BAT_CHARGE_IN, sum(batDischargeOut) AS BAT_DISCHARGE_OUT, " +
-            "0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT, " +
+            "0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT, 0 AS HEATPUMP, 0 AS HEATPUMPBACKUP, 0 AS HEATPUMPHEAT, 0 AS HEATPUMPCOP, 0 AS HEATPUMPTEMP, 0 AS HEATPUMPWIND, " +
             "sum(bat2grid) AS BAT2GRID, TOTAL(CASE WHEN charge > 0 THEN charge ELSE 0 END) AS BAT_CHARGE, ABS(TOTAL(CASE WHEN charge < 0 THEN charge ELSE 0 END)) AS BAT_DISCHARGE, " +
             "strftime('%Y', date) || strftime('%m', date) AS INTERVAL " +
             "FROM alphaESSTransformedData WHERE date >= :from AND date <= :to AND sysSn = :sysSN GROUP BY INTERVAL ORDER BY INTERVAL")
@@ -235,7 +235,7 @@ public abstract class AlphaEssDAO {
             "sum(pv2bat) AS PV2BAT, sum(pv2load) AS PV2LOAD, sum(bat2load) AS BAT2LOAD, sum(grid2bat) AS GRID2BAT, " +
             "sum(pv2grid) AS PV2GRID, sum(grid2load) AS GRID2LOAD, sum(evActual) AS EV_ACTUAL, " +
             "sum(batChargeIn) AS BAT_CHARGE_IN, sum(batDischargeOut) AS BAT_DISCHARGE_OUT, " +
-            "0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT, " +
+            "0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT, 0 AS HEATPUMP, 0 AS HEATPUMPBACKUP, 0 AS HEATPUMPHEAT, 0 AS HEATPUMPCOP, 0 AS HEATPUMPTEMP, 0 AS HEATPUMPWIND, " +
             "sum(bat2grid) AS BAT2GRID, TOTAL(CASE WHEN charge > 0 THEN charge ELSE 0 END) AS BAT_CHARGE, ABS(TOTAL(CASE WHEN charge < 0 THEN charge ELSE 0 END)) AS BAT_DISCHARGE, " +
             "cast (strftime('%Y', date) as INTEGER) AS INTERVAL " +
             "FROM alphaESSTransformedData WHERE date >= :from AND date <= :to AND sysSn = :sysSN GROUP BY INTERVAL ORDER BY INTERVAL")
@@ -265,7 +265,7 @@ public abstract class AlphaEssDAO {
             "avg(PV2BAT) AS PV2BAT, avg(PV2LOAD) AS PV2LOAD, avg(BAT2LOAD) AS BAT2LOAD, avg(GRID2BAT) AS GRID2BAT, " +
             "avg(PV2GRID) AS PV2GRID, avg(GRID2LOAD) AS GRID2LOAD, avg(EV_ACTUAL) AS EV_ACTUAL, " +
             "avg(BAT_CHARGE_IN) AS BAT_CHARGE_IN, avg(BAT_DISCHARGE_OUT) AS BAT_DISCHARGE_OUT, " +
-            "0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT, " +
+            "0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT, 0 AS HEATPUMP, 0 AS HEATPUMPBACKUP, 0 AS HEATPUMPHEAT, 0 AS HEATPUMPCOP, 0 AS HEATPUMPTEMP, 0 AS HEATPUMPWIND, " +
             "avg(BAT2GRID) AS BAT2GRID, avg(BAT_CHARGE) AS BAT_CHARGE, avg(BAT_DISCHARGE) AS BAT_DISCHARGE, INTERVAL FROM (" +
             " SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
             "sum(pv2bat) AS PV2BAT, sum(pv2load) AS PV2LOAD, sum(bat2load) AS BAT2LOAD, sum(grid2bat) AS GRID2BAT, " +
@@ -282,7 +282,7 @@ public abstract class AlphaEssDAO {
             "avg(PV2BAT) AS PV2BAT, avg(PV2LOAD) AS PV2LOAD, avg(BAT2LOAD) AS BAT2LOAD, avg(GRID2BAT) AS GRID2BAT, " +
             "avg(PV2GRID) AS PV2GRID, avg(GRID2LOAD) AS GRID2LOAD, avg(EV_ACTUAL) AS EV_ACTUAL, " +
             "avg(BAT_CHARGE_IN) AS BAT_CHARGE_IN, avg(BAT_DISCHARGE_OUT) AS BAT_DISCHARGE_OUT, " +
-            "0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT, " +
+            "0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT, 0 AS HEATPUMP, 0 AS HEATPUMPBACKUP, 0 AS HEATPUMPHEAT, 0 AS HEATPUMPCOP, 0 AS HEATPUMPTEMP, 0 AS HEATPUMPWIND, " +
             "avg(BAT2GRID) AS BAT2GRID, avg(BAT_CHARGE) AS BAT_CHARGE, avg(BAT_DISCHARGE) AS BAT_DISCHARGE, INTERVAL FROM ( " +
             " SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
             "sum(pv2bat) AS PV2BAT, sum(pv2load) AS PV2LOAD, sum(bat2load) AS BAT2LOAD, sum(grid2bat) AS GRID2BAT, " +
@@ -298,7 +298,7 @@ public abstract class AlphaEssDAO {
             "avg(PV2BAT) AS PV2BAT, avg(PV2LOAD) AS PV2LOAD, avg(BAT2LOAD) AS BAT2LOAD, avg(GRID2BAT) AS GRID2BAT, " +
             "avg(PV2GRID) AS PV2GRID, avg(GRID2LOAD) AS GRID2LOAD, avg(EV_ACTUAL) AS EV_ACTUAL, " +
             "avg(BAT_CHARGE_IN) AS BAT_CHARGE_IN, avg(BAT_DISCHARGE_OUT) AS BAT_DISCHARGE_OUT, " +
-            "0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT, " +
+            "0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT, 0 AS HEATPUMP, 0 AS HEATPUMPBACKUP, 0 AS HEATPUMPHEAT, 0 AS HEATPUMPCOP, 0 AS HEATPUMPTEMP, 0 AS HEATPUMPWIND, " +
             "avg(BAT2GRID) AS BAT2GRID, avg(BAT_CHARGE) AS BAT_CHARGE, avg(BAT_DISCHARGE) AS BAT_DISCHARGE, INTERVAL FROM (" +
             " SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
             "sum(pv2bat) AS PV2BAT, sum(pv2load) AS PV2LOAD, sum(bat2load) AS BAT2LOAD, sum(grid2bat) AS GRID2BAT, " +
@@ -315,7 +315,7 @@ public abstract class AlphaEssDAO {
             "avg(PV2BAT) AS PV2BAT, avg(PV2LOAD) AS PV2LOAD, avg(BAT2LOAD) AS BAT2LOAD, avg(GRID2BAT) AS GRID2BAT, " +
             "avg(PV2GRID) AS PV2GRID, avg(GRID2LOAD) AS GRID2LOAD, avg(EV_ACTUAL) AS EV_ACTUAL, " +
             "avg(BAT_CHARGE_IN) AS BAT_CHARGE_IN, avg(BAT_DISCHARGE_OUT) AS BAT_DISCHARGE_OUT, " +
-            "0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT, " +
+            "0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT, 0 AS HEATPUMP, 0 AS HEATPUMPBACKUP, 0 AS HEATPUMPHEAT, 0 AS HEATPUMPCOP, 0 AS HEATPUMPTEMP, 0 AS HEATPUMPWIND, " +
             "avg(BAT2GRID) AS BAT2GRID, avg(BAT_CHARGE) AS BAT_CHARGE, avg(BAT_DISCHARGE) AS BAT_DISCHARGE, INTERVAL FROM (" +
             " SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
             "sum(pv2bat) AS PV2BAT, sum(pv2load) AS PV2LOAD, sum(bat2load) AS BAT2LOAD, sum(grid2bat) AS GRID2BAT, " +
@@ -331,7 +331,7 @@ public abstract class AlphaEssDAO {
             "avg(PV2BAT) AS PV2BAT, avg(PV2LOAD) AS PV2LOAD, avg(BAT2LOAD) AS BAT2LOAD, avg(GRID2BAT) AS GRID2BAT, " +
             "avg(PV2GRID) AS PV2GRID, avg(GRID2LOAD) AS GRID2LOAD, avg(EV_ACTUAL) AS EV_ACTUAL, " +
             "avg(BAT_CHARGE_IN) AS BAT_CHARGE_IN, avg(BAT_DISCHARGE_OUT) AS BAT_DISCHARGE_OUT, " +
-            "0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT, " +
+            "0 AS EVSCHEDULE, 0 AS EVDIVERT, 0 AS HWSCHEDULE, 0 AS HWDIVERT, 0 AS HEATPUMP, 0 AS HEATPUMPBACKUP, 0 AS HEATPUMPHEAT, 0 AS HEATPUMPCOP, 0 AS HEATPUMPTEMP, 0 AS HEATPUMPWIND, " +
             "avg(BAT2GRID) AS BAT2GRID, avg(BAT_CHARGE) AS BAT_CHARGE, avg(BAT_DISCHARGE) AS BAT_DISCHARGE, INTERVAL FROM (" +
             " SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
             "sum(pv2bat) AS PV2BAT, sum(pv2load) AS PV2LOAD, sum(bat2load) AS BAT2LOAD, sum(grid2bat) AS GRID2BAT, " +

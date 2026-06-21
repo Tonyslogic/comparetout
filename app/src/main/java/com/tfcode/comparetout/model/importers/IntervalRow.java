@@ -46,5 +46,14 @@ public class IntervalRow {
     @ColumnInfo(name= "BAT_CHARGE_IN") public double batChargeIn = 0.0;
     @ColumnInfo(name= "BAT_DISCHARGE_OUT") public double batDischargeOut = 0.0;
 
+    // Heat pump — scenario-only (0 for importer data). load/backup/heat are summed energies;
+    // cop/temp/wind are averaged drivers.
+    @ColumnInfo(name= "HEATPUMP") public double heatPump = 0.0;
+    @ColumnInfo(name= "HEATPUMPBACKUP") public double heatPumpBackup = 0.0;
+    @ColumnInfo(name= "HEATPUMPHEAT") public double heatPumpHeat = 0.0;
+    @ColumnInfo(name= "HEATPUMPCOP") public double heatPumpCop = 0.0;
+    @ColumnInfo(name= "HEATPUMPTEMP") public double heatPumpOutdoorTemp = 0.0;
+    @ColumnInfo(name= "HEATPUMPWIND") public double heatPumpWindSpeed = 0.0;
+
     @ColumnInfo(name= "INTERVAL") public String interval = "";
 }

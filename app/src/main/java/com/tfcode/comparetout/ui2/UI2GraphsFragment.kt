@@ -146,7 +146,13 @@ private val SERIES_COLORS: Map<FilterSeries, Color> = mapOf(
     FilterSeries.HW_DIVERT     to Color(0xFF795548),
     FilterSeries.BAT2GRID      to Color(0xFFFFD700),
     FilterSeries.BAT_CHARGE    to Color(0xFF00FF00),
-    FilterSeries.BAT_DISCHARGE to Color(0xFFCC6600)
+    FilterSeries.BAT_DISCHARGE to Color(0xFFCC6600),
+    FilterSeries.HEAT_PUMP        to Color(0xFFD81B60),
+    FilterSeries.HEAT_PUMP_BACKUP to Color(0xFFB71C1C),
+    FilterSeries.HEAT_PUMP_HEAT   to Color(0xFFFF7043),
+    FilterSeries.HEAT_PUMP_COP    to Color(0xFF6A1B9A),
+    FilterSeries.HEAT_PUMP_TEMP   to Color(0xFF1565C0),
+    FilterSeries.HEAT_PUMP_WIND   to Color(0xFF00838F)
 )
 
 private val DISPLAY_FMT = DateTimeFormatter.ofPattern("dd MMM yyyy")
@@ -655,7 +661,13 @@ private fun buildChartPoints(state: UI2GraphsViewModel.GraphState): List<ChartPo
                     FilterSeries.HW_DIVERT     to row.hwDivert,
                     FilterSeries.BAT2GRID      to row.bat2grid,
                     FilterSeries.BAT_CHARGE    to 0.0,
-                    FilterSeries.BAT_DISCHARGE to 0.0
+                    FilterSeries.BAT_DISCHARGE to 0.0,
+                    FilterSeries.HEAT_PUMP        to row.heatPump,
+                    FilterSeries.HEAT_PUMP_BACKUP to row.heatPumpBackup,
+                    FilterSeries.HEAT_PUMP_HEAT   to row.heatPumpHeat,
+                    FilterSeries.HEAT_PUMP_COP    to row.heatPumpCop,
+                    FilterSeries.HEAT_PUMP_TEMP   to row.heatPumpOutdoorTemp,
+                    FilterSeries.HEAT_PUMP_WIND   to row.heatPumpWindSpeed
                 )
             )
         }
@@ -679,7 +691,13 @@ private fun buildChartPoints(state: UI2GraphsViewModel.GraphState): List<ChartPo
                     FilterSeries.HW_DIVERT     to row.hwDivert,
                     FilterSeries.BAT2GRID      to row.bat2grid,
                     FilterSeries.BAT_CHARGE    to row.batCharge,
-                    FilterSeries.BAT_DISCHARGE to row.batDischarge
+                    FilterSeries.BAT_DISCHARGE to row.batDischarge,
+                    FilterSeries.HEAT_PUMP        to row.heatPump,
+                    FilterSeries.HEAT_PUMP_BACKUP to row.heatPumpBackup,
+                    FilterSeries.HEAT_PUMP_HEAT   to row.heatPumpHeat,
+                    FilterSeries.HEAT_PUMP_COP    to row.heatPumpCop,
+                    FilterSeries.HEAT_PUMP_TEMP   to row.heatPumpOutdoorTemp,
+                    FilterSeries.HEAT_PUMP_WIND   to row.heatPumpWindSpeed
                 )
             )
         }
@@ -1066,6 +1084,7 @@ private fun SankeyView(state: UI2GraphsViewModel.GraphState) {
     var pv = 0.0; var feed = 0.0; var buy = 0.0
     var pv2bat = 0.0; var pv2load = 0.0; var bat2load = 0.0; var grid2bat = 0.0
     var evSchedule = 0.0; var evDivert = 0.0; var hwSchedule = 0.0; var hwDivert = 0.0; var bat2grid = 0.0
+    var heatPump = 0.0   // sim-only (singleDayBarData); shown as a grid destination like scheduled HW/EV
 
     if (state.singleDayBarData.isNotEmpty()) {
         // Sum hourly bar data for a single simulation day
@@ -1074,6 +1093,7 @@ private fun SankeyView(state: UI2GraphsViewModel.GraphState) {
             pv2bat += row.pv2Battery; pv2load += row.pv2Load; bat2load += row.battery2Load
             grid2bat += row.grid2Battery; evSchedule += row.evSchedule; evDivert += row.evDivert
             hwSchedule += row.hwSchedule; hwDivert += row.hwDivert; bat2grid += row.bat2grid
+            heatPump += row.heatPump
         }
     } else {
         state.intervalData.forEach { row ->
@@ -1081,6 +1101,7 @@ private fun SankeyView(state: UI2GraphsViewModel.GraphState) {
             pv2bat += row.pv2bat; pv2load += row.pv2load; bat2load += row.bat2load
             grid2bat += row.grid2bat; evSchedule += row.evSchedule; evDivert += row.evDivert
             hwSchedule += row.hwSchedule; hwDivert += row.hwDivert; bat2grid += row.bat2grid
+            heatPump += row.heatPump
         }
     }
 
@@ -1095,6 +1116,7 @@ private fun SankeyView(state: UI2GraphsViewModel.GraphState) {
         if (grid2bat > 0)   add(SankeyFlow("Grid",    "Battery",   grid2bat,    SERIES_COLORS[FilterSeries.GRID2BAT]!!))
         if (hwSchedule > 0) add(SankeyFlow("Grid",    "Hot Water", hwSchedule,  SERIES_COLORS[FilterSeries.HW_SCHEDULE]!!))
         if (evSchedule > 0) add(SankeyFlow("Grid",    "EV",        evSchedule,  SERIES_COLORS[FilterSeries.EV_SCHEDULE]!!))
+        if (heatPump > 0)   add(SankeyFlow("Grid",    "Heat Pump", heatPump,    SERIES_COLORS[FilterSeries.HEAT_PUMP]!!))
         if (bat2load > 0)   add(SankeyFlow("Battery", "Load",      bat2load,    SERIES_COLORS[FilterSeries.BAT2LOAD]!!))
         if (bat2grid > 0)   add(SankeyFlow("Battery", "Export",    bat2grid,    SERIES_COLORS[FilterSeries.BAT2GRID]!!))
     }
@@ -1230,6 +1252,32 @@ private fun LinePopupContent(state: UI2GraphsViewModel.GraphState) {
                         enableDashedLine(10f, 5f, 0f); valueTextColor = labelColor
                     })
                 }
+                if (state.hasHeatPump) {
+                    // COP and outdoor temp on the right axis (both small-magnitude, averaged metrics — design §8).
+                    sets.add(LineDataSet(
+                        state.lineData.map { Entry(it.mod.toFloat(), it.heatPumpCop.toFloat()) }, "HP COP"
+                    ).apply {
+                        color = (SERIES_COLORS[FilterSeries.HEAT_PUMP] ?: Color.Magenta).toArgb()
+                        setDrawCircles(false); lineWidth = 2f; setDrawValues(false)
+                        axisDependency = YAxis.AxisDependency.RIGHT; valueTextColor = labelColor
+                    })
+                    sets.add(LineDataSet(
+                        state.lineData.map { Entry(it.mod.toFloat(), it.heatPumpOutdoorTemp.toFloat()) }, "Outdoor °C"
+                    ).apply {
+                        color = (SERIES_COLORS[FilterSeries.HEAT_PUMP_HEAT] ?: Color.Red).toArgb()
+                        setDrawCircles(false); lineWidth = 2f; setDrawValues(false)
+                        axisDependency = YAxis.AxisDependency.RIGHT
+                        enableDashedLine(10f, 5f, 0f); valueTextColor = labelColor
+                    })
+                    sets.add(LineDataSet(
+                        state.lineData.map { Entry(it.mod.toFloat(), it.heatPumpWindSpeed.toFloat()) }, "Wind m/s"
+                    ).apply {
+                        color = (SERIES_COLORS[FilterSeries.HEAT_PUMP_BACKUP] ?: Color.Gray).toArgb()
+                        setDrawCircles(false); lineWidth = 2f; setDrawValues(false)
+                        axisDependency = YAxis.AxisDependency.RIGHT
+                        enableDashedLine(4f, 4f, 0f); valueTextColor = labelColor
+                    })
+                }
                 // Left axis: SOC — auto-scales to actual data range (may be kWh, not %)
                 chart.axisLeft.axisMinimum = 0f
                 chart.axisLeft.resetAxisMaximum()
@@ -1267,6 +1315,11 @@ private fun FilterGroupContent(
         Text("Hot Water", style = MaterialTheme.typography.labelLarge,
             modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
         FilterGroup(null, UI2GraphsViewModel.HW_FILTERS, state, viewModel)
+    }
+    if (state.hasHeatPump) {
+        Text("Heat Pump", style = MaterialTheme.typography.labelLarge,
+            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
+        FilterGroup(null, UI2GraphsViewModel.HEAT_PUMP_FILTERS, state, viewModel)
     }
 }
 

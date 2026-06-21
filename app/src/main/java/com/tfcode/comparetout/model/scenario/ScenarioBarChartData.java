@@ -34,4 +34,10 @@ public class ScenarioBarChartData {
     @ColumnInfo(name= "EVDivert") public double evDivert = 0D;
     @ColumnInfo(name= "HWDivert") public double hwDivert = 0D;
     @ColumnInfo(name= "Bat2Grid") public double bat2grid = 0D;
+    @ColumnInfo(name= "HeatPump") public double heatPump = 0D;
+    @ColumnInfo(name= "HeatPumpBackup") public double heatPumpBackup = 0D;
+    @ColumnInfo(name= "HeatPumpHeat") public double heatPumpHeat = 0D;
+    @ColumnInfo(name= "HeatPumpCop") public double heatPumpCop = 0D;
+    @ColumnInfo(name= "HeatPumpTemp") public double heatPumpOutdoorTemp = 0D;
+    @ColumnInfo(name= "HeatPumpWind") public double heatPumpWindSpeed = 0D;
 }
