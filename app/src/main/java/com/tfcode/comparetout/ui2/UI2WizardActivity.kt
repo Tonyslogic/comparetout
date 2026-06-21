@@ -2343,25 +2343,27 @@ private fun HeatPumpCard(
         // other wizard sections), it does not hide these.
         run {
             // ── Fuel type ──
-            Text("Current heating fuel", style = MaterialTheme.typography.labelMedium)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("Kerosene/Oil", "Natural gas", "LPG").forEach { fuel ->
-                    FilterChip(
-                        selected = hp.fuelType == fuel,
-                        onClick = {
-                            update { it.copy(
-                                fuelType = fuel,
-                                calorificValue = defaultCalorific(fuel),
-                                fuelAnnual = defaultAnnualUse(fuel)
-                            ) }
-                        },
-                        label = { Text(fuel) }
-                    )
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Current heating fuel", style = MaterialTheme.typography.labelMedium)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("Kerosene/Oil", "Natural gas", "LPG").forEach { fuel ->
+                        FilterChip(
+                            selected = hp.fuelType == fuel,
+                            onClick = {
+                                update { it.copy(
+                                    fuelType = fuel,
+                                    calorificValue = defaultCalorific(fuel),
+                                    fuelAnnual = defaultAnnualUse(fuel)
+                                ) }
+                            },
+                            label = { Text(fuel) }
+                        )
+                    }
                 }
+                val unit = if (hp.fuelType == "Natural gas") "kWh / yr" else "litres / yr"
+                HpNumberField("Annual fuel use ($unit)", hp.fuelAnnual,
+                    "Your current annual oil/gas use.", novice, Modifier.fillMaxWidth()) { v -> update { it.copy(fuelAnnual = v) } }
             }
-            val unit = if (hp.fuelType == "Natural gas") "kWh / yr" else "litres / yr"
-            HpNumberField("Annual fuel use ($unit)", hp.fuelAnnual,
-                "Your current annual oil/gas use.", novice, Modifier.fillMaxWidth()) { v -> update { it.copy(fuelAnnual = v) } }
 
             // ── Implied result (always on — a live sanity-check, not a hint) ──
             val fuelN = hp.fuelAnnual.toDoubleOrNull() ?: 0.0
@@ -2371,13 +2373,21 @@ private fun HeatPumpCard(
             val frac = hp.spaceHeatingPct.toDoubleOrNull()?.takeIf { it > 0.0 }?.let { it / 100.0 }
             val heat = frac?.let { gross * it } ?: (gross - hp.dhwAnnualKWh).coerceAtLeast(0.0)
             val elec = if (scopN > 0) heat / scopN else 0.0
-            Text("≈ ${heat.roundToInt()} kWh heat/yr   ·   ≈ ${elec.roundToInt()} kWh elec @ SCOP ${fmtNum(scopN)}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.primary)
-            if (novice) {
-                Text("Ballpark — the final demand comes from the hourly simulation.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Box(Modifier.fillMaxWidth()
+                .clip(RoundedCornerShape(8.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant)
+                .padding(horizontal = 12.dp, vertical = 8.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                    Text("≈ ${heat.roundToInt()} kWh heat/yr   ·   ≈ ${elec.roundToInt()} kWh elec @ SCOP ${fmtNum(scopN)}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.primary)
+                    if (novice) {
+                        Text("Ballpark — the final demand comes from the hourly simulation.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
             }
 
             HpNumberField("Desired indoor temperature (°C)", hp.desiredIndoorTemp,
@@ -2386,55 +2396,64 @@ private fun HeatPumpCard(
             }
 
             // ── Candidate heat pump ──
-            Text("Candidate heat pump", style = MaterialTheme.typography.labelMedium)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                HpNumberField("Rated COP", hp.copRated,
-                    "Datasheet efficiency at 7 °C outdoor (A7/W35).", novice, Modifier.width(160.dp)) { v -> update { it.copy(copRated = v) } }
-                HpNumberField("SCOP", hp.scop,
-                    "Seasonal efficiency averaged across the year.", novice, Modifier.width(160.dp)) { v -> update { it.copy(scop = v) } }
-                HpNumberField("Capacity kW", hp.capacityKw,
-                    "Max heat output; the backup heater covers any shortfall.", novice, Modifier.width(170.dp)) { v -> update { it.copy(capacityKw = v) } }
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Candidate heat pump", style = MaterialTheme.typography.labelMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    HpNumberField("Rated COP", hp.copRated,
+                        "Datasheet efficiency at 7 °C outdoor (A7/W35).", novice, Modifier.weight(1f)) { v -> update { it.copy(copRated = v) } }
+                    HpNumberField("SCOP", hp.scop,
+                        "Seasonal efficiency averaged across the year.", novice, Modifier.weight(1f)) { v -> update { it.copy(scop = v) } }
+                }
+                HpNumberField("Capacity (kW)", hp.capacityKw,
+                    "Max heat output; the backup heater covers any shortfall.", novice, Modifier.fillMaxWidth()) { v -> update { it.copy(capacityKw = v) } }
             }
 
             // ── Weather source ──
-            Text("Weather data", style = MaterialTheme.typography.labelMedium)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                FilterChip(selected = hp.weatherSource == "sample",
-                    onClick = { update { it.copy(weatherSource = "sample") } },
-                    label = { Text("2001, Ireland") })
-                FilterChip(selected = hp.weatherSource == "cds",
-                    onClick = {
-                        // Gate: only switch to CDS if credentials are present.
-                        // Otherwise alert + point the user at Data Source Management.
-                        scope.launch {
-                            val ok = withContext(Dispatchers.IO) { cdsCredentialsPresent(context) }
-                            if (ok) update { it.copy(weatherSource = "cds") }
-                            else showCdsAlert = true
-                        }
-                    },
-                    label = { Text("CDS") })
-            }
-            if (novice) {
-                Text("The 2001, Ireland sample lets you try the heat pump now; CDS fetches real weather for your location.",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            if (hp.weatherSource == "cds") {
-                // Surface what CDS will fetch — the criteria live in the HP section (design §4.1a-5) even
-                // though location defaults from the PV array and the period follows the load data.
-                Text("CDS fetch location", style = MaterialTheme.typography.labelMedium)
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("Weather data", style = MaterialTheme.typography.labelMedium)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    HpDoubleField("Latitude", hp.latitude,
-                        "Weather point. Defaults to your PV array's location; edit for a different site.",
-                        novice, Modifier.width(160.dp)) { v -> update { it.copy(latitude = v) } }
-                    HpDoubleField("Longitude", hp.longitude, null, novice, Modifier.width(160.dp)) { v ->
-                        update { it.copy(longitude = v) } }
+                    FilterChip(selected = hp.weatherSource == "sample",
+                        onClick = { update { it.copy(weatherSource = "sample") } },
+                        label = { Text("2001, Ireland") })
+                    FilterChip(selected = hp.weatherSource == "cds",
+                        onClick = {
+                            // Gate: only switch to CDS if credentials are present.
+                            // Otherwise alert + point the user at Data Source Management.
+                            scope.launch {
+                                val ok = withContext(Dispatchers.IO) { cdsCredentialsPresent(context) }
+                                if (ok) update { it.copy(weatherSource = "cds") }
+                                else showCdsAlert = true
+                            }
+                        },
+                        label = { Text("CDS") })
                 }
-                Text("Fetched at ERA5 grid node %.2f, %.2f · period follows this scenario's data (2001 for the sample year, or your imported years)."
-                    .format(HeatPumpWeatherCache.snapToEra5Grid(hp.latitude),
-                        HeatPumpWeatherCache.snapToEra5Grid(hp.longitude)),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                if (novice) {
+                    Text("The 2001, Ireland sample lets you try the heat pump now; CDS fetches real weather for your location.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                if (hp.weatherSource == "cds") {
+                    // Surface what CDS will fetch — the criteria live in the HP section (design §4.1a-5) even
+                    // though location defaults from the PV array and the period follows the load data.
+                    Text("CDS fetch location", style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(top = 2.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        HpDoubleField("Latitude", hp.latitude, null, novice, Modifier.weight(1f)) { v ->
+                            update { it.copy(latitude = v) } }
+                        HpDoubleField("Longitude", hp.longitude, null, novice, Modifier.weight(1f)) { v ->
+                            update { it.copy(longitude = v) } }
+                    }
+                    Text("Fetched at ERA5 grid node %.2f, %.2f · period follows this scenario's data (2001 sample year, or your imported years)."
+                        .format(HeatPumpWeatherCache.snapToEra5Grid(hp.latitude),
+                            HeatPumpWeatherCache.snapToEra5Grid(hp.longitude)),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (novice) {
+                        Text("Defaults to your PV array's location — edit for a different site.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
             }
         }
 
@@ -2460,6 +2479,8 @@ private fun HeatPumpCard(
         }
         if (tab == 1) {
             // ── Advanced controls (appended — basic stays visible above) ──
+            Text("Advanced options", style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 4.dp))
             HpNumberField("Space heating %", hp.spaceHeatingPct,
                 "% of the fuel that was space heating, not hot water (blank = use the default).",
                 novice, Modifier.fillMaxWidth()) { v -> update { it.copy(spaceHeatingPct = v) } }
@@ -2467,9 +2488,9 @@ private fun HeatPumpCard(
             HpNumberField("Current indoor temperature (°C)", hp.currentIndoorTemp, null, novice, Modifier.fillMaxWidth()) { v -> update { it.copy(currentIndoorTemp = v) } }
             HpNumberField("Balance-point temperature (°C)", hp.balancePoint,
                 "Outdoor temperature below which the home needs heating.", novice, Modifier.fillMaxWidth()) { v -> update { it.copy(balancePoint = v) } }
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                HpNumberField("COP ref temp (°C)", hp.copRefTemp, null, novice, Modifier.width(160.dp)) { v -> update { it.copy(copRefTemp = v) } }
-                HpNumberField("COP slope (/°C)", hp.copSlope, null, novice, Modifier.width(160.dp)) { v -> update { it.copy(copSlope = v) } }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                HpNumberField("COP ref temp (°C)", hp.copRefTemp, null, novice, Modifier.weight(1f)) { v -> update { it.copy(copRefTemp = v) } }
+                HpNumberField("COP slope (/°C)", hp.copSlope, null, novice, Modifier.weight(1f)) { v -> update { it.copy(copSlope = v) } }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Switch(checked = hp.backupHeater, onCheckedChange = { c -> update { it.copy(backupHeater = c) } })
@@ -2478,7 +2499,11 @@ private fun HeatPumpCard(
             }
         }
 
-        TextButton(onClick = { onRemove(hp.id) }) { Text("Remove heat pump") }
+        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            TextButton(onClick = { onRemove(hp.id) }) {
+                Text("Remove heat pump", color = MaterialTheme.colorScheme.error)
+            }
+        }
     }
 }
 
