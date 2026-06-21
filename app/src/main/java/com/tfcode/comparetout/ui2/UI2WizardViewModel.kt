@@ -15,6 +15,7 @@ import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.model.json.JsonTools
 import com.tfcode.comparetout.model.json.scenario.ScenarioJsonFile
 import com.tfcode.comparetout.model.scenario.Battery
+import com.tfcode.comparetout.model.scenario.HeatPump
 import com.tfcode.comparetout.model.scenario.ChargeModel
 import com.tfcode.comparetout.model.scenario.DOWDist
 import com.tfcode.comparetout.model.scenario.DischargeToGrid
@@ -206,6 +207,94 @@ private fun Battery.toWizardBatteryEntry() = WizardBatteryEntry(
     cmPercent0 = chargeModel?.percent0 ?: 30,
     cmPercent12 = chargeModel?.percent12 ?: 100,
     cmPercent90 = chargeModel?.percent90 ?: 10
+)
+
+/**
+ * Wizard state for a heat pump (Phase 5 of plans/hp/plan.md). Mirrors the entity 1:1 so {@code toHeatPump}
+ * is mechanical. The hourly/day-of-week heating profiles are carried for round-trip but not yet editable in
+ * the wizard (deferred affordance — they default to flat); everything else is exposed in the section.
+ */
+data class WizardHeatPumpEntry(
+    val id: String = UUID.randomUUID().toString(),
+    val heatPumpIndex: Long = 0L,
+    val fuelType: String = "Kerosene/Oil",
+    val fuelAnnual: Double = 2300.0,
+    val calorificValue: Double = 10.35,
+    val boilerEfficiency: Double = 0.80,
+    val dhwAnnualKWh: Double = 2000.0,
+    val spaceHeatingFraction: Double? = null,
+    val desiredIndoorTemp: Double = 20.0,
+    val currentIndoorTemp: Double = 20.0,
+    val balancePoint: Double = 15.5,
+    val alphaWind: Double = 0.03,
+    val heatingSeasonStart: Int? = null,
+    val heatingSeasonEnd: Int? = null,
+    val copRated: Double = 4.2,
+    val copRefTemp: Double = 7.0,
+    val copSlope: Double = 0.08,
+    val scop: Double = 3.6,
+    val capacityKw: Double = 7.0,
+    val backupHeater: Boolean = true,
+    val latitude: Double = 53.49,
+    val longitude: Double = -10.015,
+    val weatherSource: String = "sample",
+    val hourlyDist: List<Double>? = null,
+    val dowDist: List<Double>? = null
+) {
+    fun toHeatPump(): HeatPump = HeatPump().also { hp ->
+        if (heatPumpIndex > 0L) hp.heatPumpIndex = heatPumpIndex
+        hp.fuelType = fuelType
+        hp.fuelAnnual = fuelAnnual
+        hp.calorificValue = calorificValue
+        hp.boilerEfficiency = boilerEfficiency
+        hp.dhwAnnualKWh = dhwAnnualKWh
+        hp.spaceHeatingFraction = spaceHeatingFraction
+        hp.desiredIndoorTemp = desiredIndoorTemp
+        hp.currentIndoorTemp = currentIndoorTemp
+        hp.balancePoint = balancePoint
+        hp.alphaWind = alphaWind
+        hp.heatingSeasonStart = heatingSeasonStart
+        hp.heatingSeasonEnd = heatingSeasonEnd
+        hp.copRated = copRated
+        hp.copRefTemp = copRefTemp
+        hp.copSlope = copSlope
+        hp.scop = scop
+        hp.capacityKw = capacityKw
+        hp.isBackupHeater = backupHeater
+        hp.latitude = latitude
+        hp.longitude = longitude
+        hp.weatherSource = weatherSource
+        hourlyDist?.let { hp.hourlyDist = HourlyDist().also { d -> d.dist = ArrayList(it) } }
+        dowDist?.let { hp.dowDist = DOWDist().also { d -> d.dowDist = ArrayList(it) } }
+    }
+}
+
+private fun HeatPump.toWizardHeatPumpEntry() = WizardHeatPumpEntry(
+    id = if (heatPumpIndex > 0) heatPumpIndex.toString() else UUID.randomUUID().toString(),
+    heatPumpIndex = heatPumpIndex,
+    fuelType = fuelType ?: "Kerosene/Oil",
+    fuelAnnual = fuelAnnual,
+    calorificValue = calorificValue,
+    boilerEfficiency = boilerEfficiency,
+    dhwAnnualKWh = dhwAnnualKWh,
+    spaceHeatingFraction = spaceHeatingFraction,
+    desiredIndoorTemp = desiredIndoorTemp,
+    currentIndoorTemp = currentIndoorTemp,
+    balancePoint = balancePoint,
+    alphaWind = alphaWind,
+    heatingSeasonStart = heatingSeasonStart,
+    heatingSeasonEnd = heatingSeasonEnd,
+    copRated = copRated,
+    copRefTemp = copRefTemp,
+    copSlope = copSlope,
+    scop = scop,
+    capacityKw = capacityKw,
+    backupHeater = isBackupHeater,
+    latitude = latitude,
+    longitude = longitude,
+    weatherSource = weatherSource ?: "sample",
+    hourlyDist = hourlyDist?.dist,
+    dowDist = dowDist?.dowDist
 )
 
 data class WizardBatteryChargeEntry(
@@ -463,7 +552,9 @@ data class WizardBuilder(
     // Hot Water
     val hwSystem: WizardHwSystemEntry? = null,
     val hwSchedules: List<WizardHwScheduleEntry> = emptyList(),
-    val hwDivert: WizardHwDivertEntry = WizardHwDivertEntry()
+    val hwDivert: WizardHwDivertEntry = WizardHwDivertEntry(),
+    // Heat Pump
+    val heatPumpEntries: List<WizardHeatPumpEntry> = emptyList()
 ) {
     val isStartComplete: Boolean get() = scenarioName.isNotBlank()
     val isLoadComplete: Boolean get() = annualUsage.toDoubleOrNull()?.let { it > 0.0 } == true
@@ -516,7 +607,7 @@ data class WizardBuilder(
             hwSchedules.map { it.toHwSchedule() },
             if (hwDivert.active) hwDivert.toHwDivert() else null,
             evDivertEntries.map { it.toEvDivert() }
-        )
+        ).also { it.heatPumps = heatPumpEntries.map { e -> e.toHeatPump() } }
     }
 
     // Shell with no load profile and no EV — used for full-link saves
@@ -544,7 +635,7 @@ data class WizardBuilder(
             hwSchedules.map { it.toHwSchedule() },
             if (hwDivert.active) hwDivert.toHwDivert() else null,
             evDivertEntries.map { it.toEvDivert() }
-        )
+        ).also { it.heatPumps = heatPumpEntries.map { e -> e.toHeatPump() } }
     }
 }
 
@@ -779,7 +870,8 @@ class UI2WizardViewModel @Inject constructor(
                 ?.distinctBy { it.hwScheduleIndex }
                 ?.map { it.toWizardHwScheduleEntry() }
                 ?: emptyList(),
-            hwDivert = c.hwDivert?.toWizardHwDivertEntry() ?: WizardHwDivertEntry()
+            hwDivert = c.hwDivert?.toWizardHwDivertEntry() ?: WizardHwDivertEntry(),
+            heatPumpEntries = c.heatPumps?.map { it.toWizardHeatPumpEntry() } ?: emptyList()
         )
     }
 
@@ -949,6 +1041,25 @@ class UI2WizardViewModel @Inject constructor(
     fun updateBatteryEntry(id: String, transform: (WizardBatteryEntry) -> WizardBatteryEntry) =
         updateBuilder { b ->
             b.copy(batteryEntries = b.batteryEntries.map { if (it.id == id) transform(it) else it })
+        }
+
+    // Heat pump entries (v1 is a single heat pump, but kept list-shaped to mirror the other components).
+    fun addHeatPumpEntry() = updateBuilder { b ->
+        // Reuse the PV location if one was entered, so the weather aligns with the solar by default.
+        val pvLat = b.panelEntries.firstOrNull()?.latitude
+        val pvLon = b.panelEntries.firstOrNull()?.longitude
+        b.copy(heatPumpEntries = b.heatPumpEntries + WizardHeatPumpEntry(
+            latitude = pvLat ?: 53.49,
+            longitude = pvLon ?: -10.015
+        ))
+    }
+
+    fun removeHeatPumpEntry(id: String) =
+        updateBuilder { it.copy(heatPumpEntries = it.heatPumpEntries.filter { e -> e.id != id }) }
+
+    fun updateHeatPumpEntry(id: String, transform: (WizardHeatPumpEntry) -> WizardHeatPumpEntry) =
+        updateBuilder { b ->
+            b.copy(heatPumpEntries = b.heatPumpEntries.map { if (it.id == id) transform(it) else it })
         }
 
     fun addBatteryChargeEntry() = updateBuilder { b ->
@@ -1284,6 +1395,7 @@ class UI2WizardViewModel @Inject constructor(
                             sc.isHasHWSystem = b.hwSystem != null
                             sc.isHasHWSchedules = b.hwSchedules.isNotEmpty()
                             sc.isHasHWDivert = b.hwDivert.active
+                            sc.isHasHeatPump = b.heatPumpEntries.isNotEmpty()
                         }?.let { repository.updateScenario(it) }
                         repository.saveLoadProfile(scenarioId, b.toLoadProfile())
                         // Replace EV charges
@@ -1318,6 +1430,14 @@ class UI2WizardViewModel @Inject constructor(
                         }
                         b.batteryEntries.forEach { entry ->
                             repository.saveBatteryForScenario(scenarioId, entry.toBattery().also { it.batteryIndex = 0 })
+                        }
+                        // Replace heat pumps. Reset the index so the scenario2heatpump junction is re-created
+                        // on the insert branch (same orphan-avoidance reason as batteries above).
+                        existing.heatPumps?.forEach { hp ->
+                            repository.deleteHeatPumpFromScenario(hp.heatPumpIndex, scenarioId)
+                        }
+                        b.heatPumpEntries.forEach { entry ->
+                            repository.saveHeatPumpForScenario(scenarioId, entry.toHeatPump().also { it.heatPumpIndex = 0 })
                         }
                         // Replace battery charge schedules (LoadShift) — replicated per inverter
                         existing.loadShifts?.forEach { ls ->
@@ -1389,6 +1509,7 @@ class UI2WizardViewModel @Inject constructor(
                             repository.linkInverterFromScenario(b.basedOnId, newId)
                             repository.linkPanelFromScenario(b.basedOnId, newId)
                             repository.linkBatteryFromScenario(b.basedOnId, newId)
+                            repository.linkHeatPumpFromScenario(b.basedOnId, newId)
                             repository.linkLoadShiftFromScenario(b.basedOnId, newId)
                             repository.linkDischargeFromScenario(b.basedOnId, newId)
                             repository.linkHWSystemFromScenario(b.basedOnId, newId)

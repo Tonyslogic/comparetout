@@ -103,6 +103,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlin.math.roundToInt
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
@@ -667,6 +669,32 @@ private fun WizardScreen(
                     onRemoveDivert = { viewModel.removeEvDivertEntry(it) },
                     onUpdateDivert = { id, fn -> viewModel.updateEvDivertEntry(id, fn) },
                     onImport = { importScope = WizardImportScope.EV }
+                )
+            }
+
+            // Heat Pump — placed after EV to mirror the dashboard order (Phase 5 of plans/hp/plan.md).
+            val heatPumpCount = builder.heatPumpEntries.size
+            WizardAccordionSection(
+                id = "heatpump",
+                iconContent = { Text(if (heatPumpCount > 0) "♨️" else "❄️", fontSize = 22.sp) },
+                title = "Heat Pump",
+                isLinked = builder.isLinked && heatPumpCount > 0,
+                subtitle = if (!expandedSections.contains("heatpump") && heatPumpCount > 0) {
+                    val hp = builder.heatPumpEntries.first()
+                    "${hp.fuelType} · SCOP ${hp.scop}"
+                } else if (noviceMode) "Model a heat pump from your current heating" else null,
+                isComplete = heatPumpCount > 0,
+                isLocked = !builder.isLoadComplete,
+                lockedHint = "Complete Usage Data first",
+                isExpanded = expandedSections.contains("heatpump"),
+                onToggle = { viewModel.toggleSection("heatpump") }
+            ) {
+                HeatPumpSectionContent(
+                    entries = builder.heatPumpEntries,
+                    noviceMode = noviceMode,
+                    onAdd = { viewModel.addHeatPumpEntry() },
+                    onRemove = { viewModel.removeHeatPumpEntry(it) },
+                    onUpdate = { id, fn -> viewModel.updateHeatPumpEntry(id, fn) }
                 )
             }
 
@@ -2184,6 +2212,152 @@ private fun EvSectionContent(
             Spacer(Modifier.width(4.dp))
             Text("Import EV setup (JSON)")
         }
+    }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Heat Pump section content (Phase 5 of plans/hp/plan.md)
+   ────────────────────────────────────────────────────────────────── */
+
+private fun defaultCalorific(fuel: String): Double = when (fuel) {
+    "Natural gas" -> 1.0      // entered in kWh already
+    "LPG" -> 7.08
+    else -> 10.35             // kerosene / home-heating oil
+}
+
+@Composable
+private fun HeatPumpSectionContent(
+    entries: List<WizardHeatPumpEntry>,
+    noviceMode: Boolean,
+    onAdd: () -> Unit,
+    onRemove: (String) -> Unit,
+    onUpdate: (String, (WizardHeatPumpEntry) -> WizardHeatPumpEntry) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        if (noviceMode && entries.isEmpty()) {
+            Text("Estimate the electricity a heat pump would use in place of your oil or gas boiler.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        entries.forEach { hp -> HeatPumpCard(hp, noviceMode, onRemove, onUpdate) }
+        if (entries.isEmpty()) {
+            FilledTonalButton(onClick = onAdd, modifier = Modifier.fillMaxWidth()) {
+                Text("Add heat pump")
+            }
+        }
+    }
+}
+
+@Composable
+private fun HpNumberField(
+    label: String, value: Double, hint: String?, novice: Boolean,
+    modifier: Modifier = Modifier, onValue: (Double) -> Unit
+) {
+    OutlinedTextField(
+        value = if (value == value.toLong().toDouble()) value.toLong().toString() else value.toString(),
+        onValueChange = { s -> s.toDoubleOrNull()?.let(onValue) },
+        label = { Text(label) },
+        singleLine = true,
+        modifier = modifier,
+        supportingText = if (novice && hint != null) ({ Text(hint) }) else null
+    )
+}
+
+@Composable
+private fun HeatPumpCard(
+    hp: WizardHeatPumpEntry,
+    novice: Boolean,
+    onRemove: (String) -> Unit,
+    onUpdate: (String, (WizardHeatPumpEntry) -> WizardHeatPumpEntry) -> Unit
+) {
+    var showAdvanced by remember { mutableStateOf(false) }
+    fun update(fn: (WizardHeatPumpEntry) -> WizardHeatPumpEntry) = onUpdate(hp.id, fn)
+
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // ── Fuel type ──
+        Text("Current heating fuel", style = MaterialTheme.typography.labelMedium)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            listOf("Kerosene/Oil", "Natural gas", "LPG").forEach { fuel ->
+                FilterChip(
+                    selected = hp.fuelType == fuel,
+                    onClick = { update { it.copy(fuelType = fuel, calorificValue = defaultCalorific(fuel)) } },
+                    label = { Text(fuel) }
+                )
+            }
+        }
+        val unit = if (hp.fuelType == "Natural gas") "kWh / yr" else "litres / yr"
+        HpNumberField("Annual fuel use ($unit)", hp.fuelAnnual,
+            "Your current annual oil/gas use.", novice, Modifier.fillMaxWidth()) { v -> update { it.copy(fuelAnnual = v) } }
+
+        // ── Implied result (always on — a live sanity-check, not a hint) ──
+        val gross = hp.fuelAnnual * hp.calorificValue * hp.boilerEfficiency
+        val heat = hp.spaceHeatingFraction?.let { gross * it } ?: (gross - hp.dhwAnnualKWh).coerceAtLeast(0.0)
+        val elec = if (hp.scop > 0) heat / hp.scop else 0.0
+        Text("≈ ${heat.roundToInt()} kWh heat/yr   ·   ≈ ${elec.roundToInt()} kWh elec @ SCOP ${hp.scop}",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.primary)
+        if (novice) {
+            Text("Ballpark — the final demand comes from the hourly simulation.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        HpNumberField("Desired indoor temperature (°C)", hp.desiredIndoorTemp,
+            "Leave equal to today's setpoint to keep current comfort.", novice, Modifier.fillMaxWidth()) {
+                v -> update { it.copy(desiredIndoorTemp = v) }
+        }
+
+        // ── Candidate heat pump ──
+        Text("Candidate heat pump", style = MaterialTheme.typography.labelMedium)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            HpNumberField("Rated COP", hp.copRated, null, novice, Modifier.width(110.dp)) { v -> update { it.copy(copRated = v) } }
+            HpNumberField("SCOP", hp.scop, null, novice, Modifier.width(110.dp)) { v -> update { it.copy(scop = v) } }
+            HpNumberField("Capacity kW", hp.capacityKw, null, novice, Modifier.width(120.dp)) { v -> update { it.copy(capacityKw = v) } }
+        }
+
+        // ── Weather source ──
+        Text("Weather data", style = MaterialTheme.typography.labelMedium)
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(selected = hp.weatherSource == "sample",
+                onClick = { update { it.copy(weatherSource = "sample") } },
+                label = { Text("Sample (offline)") })
+            FilterChip(selected = hp.weatherSource == "cds",
+                onClick = { update { it.copy(weatherSource = "cds") } },
+                label = { Text("CDS") })
+        }
+        if (novice) {
+            Text("Sample weather lets you try the heat pump now; CDS fetches real weather for your location.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+
+        // ── Advanced (additive disclosure — basic stays visible) ──
+        TextButton(onClick = { showAdvanced = !showAdvanced }) {
+            Text(if (showAdvanced) "Hide advanced options" else "Show advanced options")
+        }
+        if (showAdvanced) {
+            HpNumberField("Space-heating fraction (0–1, 0 = use DHW default)",
+                hp.spaceHeatingFraction ?: 0.0,
+                "What fraction of the fuel was space heating (not hot water).", novice, Modifier.fillMaxWidth()) {
+                    v -> update { it.copy(spaceHeatingFraction = if (v <= 0.0) null else v) }
+            }
+            HpNumberField("Old boiler efficiency", hp.boilerEfficiency, null, novice, Modifier.fillMaxWidth()) { v -> update { it.copy(boilerEfficiency = v) } }
+            HpNumberField("Calorific value (kWh/unit)", hp.calorificValue, null, novice, Modifier.fillMaxWidth()) { v -> update { it.copy(calorificValue = v) } }
+            HpNumberField("Current indoor temperature (°C)", hp.currentIndoorTemp, null, novice, Modifier.fillMaxWidth()) { v -> update { it.copy(currentIndoorTemp = v) } }
+            HpNumberField("Balance-point temperature (°C)", hp.balancePoint, null, novice, Modifier.fillMaxWidth()) { v -> update { it.copy(balancePoint = v) } }
+            HpNumberField("Wind coefficient (per m/s)", hp.alphaWind, null, novice, Modifier.fillMaxWidth()) { v -> update { it.copy(alphaWind = v) } }
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                HpNumberField("COP ref temp (°C)", hp.copRefTemp, null, novice, Modifier.width(150.dp)) { v -> update { it.copy(copRefTemp = v) } }
+                HpNumberField("COP slope (/°C)", hp.copSlope, null, novice, Modifier.width(150.dp)) { v -> update { it.copy(copSlope = v) } }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Switch(checked = hp.backupHeater, onCheckedChange = { c -> update { it.copy(backupHeater = c) } })
+                Spacer(Modifier.width(8.dp))
+                Text("Backup electric heater")
+            }
+        }
+
+        TextButton(onClick = { onRemove(hp.id) }) { Text("Remove heat pump") }
     }
 }
 
