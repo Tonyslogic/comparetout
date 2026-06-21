@@ -87,13 +87,11 @@ class HeatPumpWeatherFetchWorker(
         // Location + period → the shared cache path. The grid span derives the calendar period (both modes).
         val grid = repository.getSimulationInputNoSolar(scenarioID)
         if (grid.isEmpty()) {
-            // Load profile not generated yet. In the normal chain GenerateMissingLoadDataWorker runs first, so
-            // this is a transient ordering blip — retry (bounded by runAttemptCount below).
-            if (runAttemptCount >= Cds.MAX_RETRIES) {
-                finish("Heat-pump weather: load data not ready — using sample weather")
-                return Result.success()
-            }
-            return Result.retry()
+            // We run AFTER GenerateMissingLoadDataWorker in the chain, so its load rows are already committed —
+            // an empty grid here means the scenario genuinely has no load data, in which case the sim won't use
+            // weather anyway. Don't block the chained sim with retries; skip (it falls back to the sample asset).
+            finish("Heat-pump weather: no load data — using sample weather")
+            return Result.success()
         }
         val gridMillis = HeatPumpWeatherCache.gridMillis(grid)
         val span = HeatPumpWeatherCache.spanMillis(gridMillis)

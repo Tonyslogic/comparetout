@@ -19,10 +19,13 @@ package com.tfcode.comparetout;
 import android.content.Context;
 import android.net.Uri;
 
+import androidx.work.BackoffPolicy;
 import androidx.work.Data;
 import androidx.work.ExistingWorkPolicy;
 import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
+
+import java.util.concurrent.TimeUnit;
 
 import com.tfcode.comparetout.scenario.SimulationWorker;
 import com.tfcode.comparetout.scenario.loadprofile.GenerateMissingLoadDataWorker;
@@ -67,6 +70,9 @@ public class SimulatorLauncher {
                 new OneTimeWorkRequest.Builder(HeatPumpWeatherFetchWorker.class)
                         .setInputData(new Data.Builder().putLong("scenarioID", scenarioId).build())
                         .addTag("hp_weather_" + scenarioId)
+                        // Linear 15s backoff (not the default exponential ≈30s→minutes): a transient fetch retry
+                        // shouldn't leave the chained simulation blocked for minutes.
+                        .setBackoffCriteria(BackoffPolicy.LINEAR, 15, TimeUnit.SECONDS)
                         .build();
         OneTimeWorkRequest simulate =
                 new OneTimeWorkRequest.Builder(SimulationWorker.class).build();
