@@ -30,6 +30,7 @@ import com.tfcode.comparetout.importers.homeassistant.EnergySensors
 import com.tfcode.comparetout.importers.homeassistant.HACatchupWorker
 import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformMeta
+import com.tfcode.comparetout.model.scenario.PanelPVSummary
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -40,6 +41,7 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
+import kotlin.math.roundToLong
 
 // ──────────────────────────────────────────────────────────────────────────
 // UI2 Data Source Management ViewModel
@@ -68,6 +70,17 @@ private const val HA_SENSORS_KEY = "ha_sensors"
 
 private const val ESBN_SYSTEM_LIST_KEY = "esbn_system_list"
 private const val ESBN_SELECTED_KEY = "esbn_system_previously_selected"
+
+// Weather/PV "data sources" (Phase 5.5). PVGIS is anonymous (no credentials);
+// CDS stores an encrypted Personal Access Token mirroring AlphaESS/HA. The
+// PVGIS "cache" is the per-panel `PanelData` already in the DB (the UI2 fetch
+// worker writes straight to the DB), so there is no file/table to manage here
+// beyond what `removeOldPanelData` already deletes.
+private const val CDS_URL_KEY = "cds_url"
+private const val CDS_KEY_KEY = "cds_key"
+private const val CDS_GOOD_KEY = "cds_cred_good"
+/** Default CDS API endpoint, prefilled in the credential dialog (user can override). */
+const val CDS_DEFAULT_URL = "https://cds.climate.copernicus.eu/api"
 
 /** One configured system within a source — SN/MPRN + the date range we have. */
 data class ManagedSystem(
@@ -99,6 +112,30 @@ data class SourceState(
     val credentialsKnownGood: Boolean,
     val systems: List<ManagedSystem>,
     val selectedSn: String?
+)
+
+/**
+ * One cached weather/PV dataset the user can inspect or delete. For PVGIS this
+ * is one fetched panel's PV series (the cache is per-panel `PanelData` in the
+ * DB — the UI2 fetch worker writes straight to the DB, not to files); [id] is
+ * the panelID. CDS entries arrive with Phase 6.
+ */
+data class WeatherCacheEntry(
+    val id: String,
+    val name: String,
+    val detail: String?
+)
+
+/**
+ * State for a weather/PV data source (PVGIS, CDS). [entries] are the cached
+ * datasets (per-panel for PVGIS). [credentialsConfigured] is always true for
+ * PVGIS (anonymous) and `false` until set for CDS; [credentialsKnownGood]
+ * stays false until a real fetch validates them (no probe in Phase 5.5).
+ */
+data class WeatherSourceState(
+    val entries: List<WeatherCacheEntry>,
+    val credentialsConfigured: Boolean = false,
+    val credentialsKnownGood: Boolean = false
 )
 
 /** Discovered HA energy sensors for the read-only summary panel. */
@@ -133,6 +170,10 @@ class UI2DataSourceManagementViewModel @Inject constructor(
     val esbn: LiveData<SourceState> = _esbn
     private val _haSensors = MutableLiveData<HASensorSnapshot?>()
     val haSensors: LiveData<HASensorSnapshot?> = _haSensors
+    private val _pvgis = MutableLiveData<WeatherSourceState>()
+    val pvgis: LiveData<WeatherSourceState> = _pvgis
+    private val _cds = MutableLiveData<WeatherSourceState>()
+    val cds: LiveData<WeatherSourceState> = _cds
     private val _busy = MutableLiveData(false)
     val busy: LiveData<Boolean> = _busy
     private val _toast = MutableLiveData<Toast?>()
@@ -165,8 +206,16 @@ class UI2DataSourceManagementViewModel @Inject constructor(
     private val onceData = mutableMapOf<String, List<WorkInfo>>()
     private val dailyData = mutableMapOf<String, List<WorkInfo>>()
 
+    // PVGIS cache is the per-panel PanelData in the DB; observe its summary
+    // (a Room LiveData) so deletions/fetches reflect live without a manual
+    // refresh. Detached in onCleared().
+    private val panelSummaryObserver = Observer<List<PanelPVSummary>> {
+        rebuildPvgisFromSummary(it ?: emptyList())
+    }
+
     init {
         refresh()
+        repository.panelDataSummary.observeForever(panelSummaryObserver)
     }
 
     /** Re-read every persisted source state from DataStore + DB date ranges. */
@@ -179,6 +228,8 @@ class UI2DataSourceManagementViewModel @Inject constructor(
             _ha.postValue(h)
             _esbn.postValue(e)
             _haSensors.postValue(readHASensors())
+            // PVGIS state is driven by the panelDataSummary observer, not here.
+            _cds.postValue(buildCdsState())
             // (Re-)attach WorkManager observers for the union of all SNs
             // so the live "fetching" indicator stays accurate as systems
             // appear and disappear from the lists.
@@ -242,6 +293,7 @@ class UI2DataSourceManagementViewModel @Inject constructor(
         super.onCleared()
         val sns = onceObservers.keys.toList()
         for (sn in sns) detachWorkObserver(sn)
+        repository.panelDataSummary.removeObserver(panelSummaryObserver)
     }
 
     // ── AlphaESS ────────────────────────────────────────────────────────
@@ -719,6 +771,88 @@ class UI2DataSourceManagementViewModel @Inject constructor(
                 _busy.postValue(false)
             }
         }
+    }
+
+    // ── Weather/PV data sources (PVGIS, CDS) — Phase 5.5 ────────────────
+    //
+    // PVGIS data is cached as per-panel `PanelData` in the DB (the UI2 fetch
+    // worker writes straight there), so the "cache" we list/delete is those
+    // rows — surfaced via the `panelDataSummary` LiveData and removed with
+    // `removeOldPanelData`. CDS only stores credentials in Phase 5.5; its
+    // cached weather (the `heatpumpweather` series) arrives in Phase 6.
+
+    /** Rebuild the PVGIS state from the per-panel PV summary (one entry per fetched panel). */
+    private fun rebuildPvgisFromSummary(summary: List<PanelPVSummary>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val entries = summary.groupBy { it.panelID }.map { (panelId, rows) ->
+                val total = rows.sumOf { it.tot }
+                val panel = runCatching { repository.getPanelForID(panelId) }.getOrNull()
+                val name = panel?.panelName?.takeIf { it.isNotBlank() && it != "<Name>" }
+                    ?: "Panel $panelId"
+                val detail = buildString {
+                    if (panel != null) {
+                        append("%.3f, %.3f".format(panel.latitude, panel.longitude))
+                        append(" · ${panel.slope}°/${panel.azimuth}°")
+                        append(" · ")
+                    }
+                    append("${total.roundToLong()} kWh/yr")
+                }
+                WeatherCacheEntry(panelId.toString(), name, detail)
+            }.sortedBy { it.name }
+            _pvgis.postValue(WeatherSourceState(
+                entries = entries,
+                credentialsConfigured = true,   // PVGIS is anonymous
+                credentialsKnownGood = true
+            ))
+        }
+    }
+
+    private fun buildCdsState(): WeatherSourceState {
+        val configured = decryptOrNull(app.getStringValueFromDataStore(CDS_KEY_KEY)) != null
+        // No live probe in Phase 5.5 — validity is unknown until the first
+        // real fetch (Phase 6). Never surface a fake "last check OK".
+        val good = app.getStringValueFromDataStore(CDS_GOOD_KEY) == "True"
+        return WeatherSourceState(
+            entries = emptyList(),  // CDS weather cache lands in Phase 6
+            credentialsConfigured = configured,
+            credentialsKnownGood = configured && good
+        )
+    }
+
+    /** Persist CDS credentials (encrypted), mirroring the AlphaESS/HA pattern. No probe. */
+    fun setCdsCredentials(url: String, token: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            app.putStringValueIntoDataStore(CDS_URL_KEY, TOUTCApplication.encryptString(url))
+            app.putStringValueIntoDataStore(CDS_KEY_KEY, TOUTCApplication.encryptString(token))
+            // Unknown until a real fetch validates it (Phase 6).
+            app.putStringValueIntoDataStore(CDS_GOOD_KEY, "")
+            _cds.postValue(buildCdsState())
+            _toast.postValue(Toast("CDS credentials saved"))
+        }
+    }
+
+    /** Wipe CDS credentials (no cached weather to clear until Phase 6). */
+    fun removeCdsSource() {
+        viewModelScope.launch(Dispatchers.IO) {
+            app.putStringValueIntoDataStore(CDS_URL_KEY, "")
+            app.putStringValueIntoDataStore(CDS_KEY_KEY, "")
+            app.putStringValueIntoDataStore(CDS_GOOD_KEY, "")
+            _cds.postValue(buildCdsState())
+            _toast.postValue(Toast("CDS source removed"))
+        }
+    }
+
+    /** Delete one panel's cached PV. The panelDataSummary observer refreshes the list. */
+    fun deletePvCacheEntry(panelId: String) {
+        val id = panelId.toLongOrNull() ?: return
+        repository.removeOldPanelData(id)
+        _toast.postValue(Toast("PV data deleted · re-fetched on next save"))
+    }
+
+    /** Delete every panel's cached PV. The observer refreshes the list afterwards. */
+    fun deleteAllPvgisCache() {
+        _pvgis.value?.entries?.forEach { it.id.toLongOrNull()?.let(repository::removeOldPanelData) }
+        _toast.postValue(Toast("PVGIS cache cleared"))
     }
 
     // ── Helpers ────────────────────────────────────────────────────────

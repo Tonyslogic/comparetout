@@ -144,6 +144,8 @@ private fun DataSourceManagementScreen(
     val esbnRaw by viewModel.esbn.observeAsState()
     val fetchMap by viewModel.fetchStatus.observeAsState(emptyMap())
     val haSensors by viewModel.haSensors.observeAsState()
+    val pvgis by viewModel.pvgis.observeAsState()
+    val cds by viewModel.cds.observeAsState()
     val busy by viewModel.busy.observeAsState(false)
     val toast by viewModel.toast.observeAsState()
     // v2 enrichment status — used to decide which AlphaESS rows surface the
@@ -273,6 +275,39 @@ private fun DataSourceManagementScreen(
                                 onRemoveSource = { viewModel.deleteEntireSource(Importer.ESBNHDF) }
                             )
                         }
+                    )
+                }
+                item("pvgis") {
+                    WeatherSourceAccordion(
+                        title = "PVGIS (solar)",
+                        subtitle = "EU JRC solar irradiance · no account needed",
+                        state = pvgis,
+                        showHints = showHints,
+                        showCredentials = false,
+                        emptyHint = "PV is fetched per panel from its location and cached here. " +
+                            "Add a PV array to a scenario and run it, and the panel's solar data " +
+                            "appears in this list.",
+                        entryNoun = "panel",
+                        onSetCredentials = null,
+                        onClearAll = viewModel::deleteAllPvgisCache,
+                        onDeleteEntry = viewModel::deletePvCacheEntry,
+                        onRemoveSource = null
+                    )
+                }
+                item("cds") {
+                    WeatherSourceAccordion(
+                        title = "Copernicus CDS (weather)",
+                        subtitle = "ERA5 reanalysis for heat-pump weather · API key required",
+                        state = cds,
+                        showHints = showHints,
+                        showCredentials = true,
+                        emptyHint = "Set your Copernicus CDS Personal Access Token, then the heat-pump " +
+                            "section can fetch real weather for your location (coming with live fetch).",
+                        entryNoun = "dataset",
+                        onSetCredentials = viewModel::setCdsCredentials,
+                        onClearAll = { /* no CDS cache until Phase 6 */ },
+                        onDeleteEntry = { /* no CDS cache until Phase 6 */ },
+                        onRemoveSource = viewModel::removeCdsSource
                     )
                 }
             }
@@ -874,6 +909,235 @@ private fun EsbnSection(
             onDismiss = { showDeleteSource = false },
             onConfirm = { onRemoveSource(); showDeleteSource = false }
         )
+    }
+}
+
+// ── Weather/PV sources (PVGIS, CDS) — Phase 5.5 ────────────────────────
+//
+// File-cache-shaped, not credential-probe-shaped like the importers above.
+// One accordion lists the matching cached responses in the EPO folder and
+// offers per-file + clear-all deletion; CDS additionally carries an encrypted
+// API key (no live probe — validity is unknown until the first real fetch).
+
+@Composable
+private fun WeatherSourceAccordion(
+    title: String,
+    subtitle: String,
+    state: WeatherSourceState?,
+    showHints: Boolean,
+    showCredentials: Boolean,
+    emptyHint: String,
+    entryNoun: String,
+    onSetCredentials: ((String, String) -> Unit)?,
+    onClearAll: () -> Unit,
+    onDeleteEntry: (String) -> Unit,
+    onRemoveSource: (() -> Unit)?
+) {
+    var expanded by remember { mutableStateOf(false) }
+    Card(modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded }) {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                WeatherStatusChip(state, showCredentials)
+                Column(Modifier.weight(1f)) {
+                    Text(title, style = MaterialTheme.typography.titleSmall,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    Text(subtitle, style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+                val n = state?.entries?.size ?: 0
+                if (n > 0 && !expanded) {
+                    Text("$n cached", style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Icon(
+                    if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (expanded) {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    WeatherSourceBody(state, showHints, emptyHint, entryNoun,
+                        onSetCredentials, onClearAll, onDeleteEntry, onRemoveSource)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun WeatherSourceBody(
+    state: WeatherSourceState?,
+    showHints: Boolean,
+    emptyHint: String,
+    entryNoun: String,
+    onSetCredentials: ((String, String) -> Unit)?,
+    onClearAll: () -> Unit,
+    onDeleteEntry: (String) -> Unit,
+    onRemoveSource: (() -> Unit)?
+) {
+    var showCreds by remember { mutableStateOf(false) }
+    var showClearAll by remember { mutableStateOf(false) }
+
+    if (onSetCredentials != null) {
+        // CDS-specific strip: we don't probe in Phase 5.5, so we never claim
+        // "last check OK/failed" — only Not configured / Configured.
+        WeatherCredentialStrip(
+            configured = state?.credentialsConfigured == true,
+            onEdit = { showCreds = true },
+            onDeleteSource = if (state?.credentialsConfigured == true) onRemoveSource else null
+        )
+    }
+
+    if (state == null) {
+        Text("Loading…", style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        return
+    }
+
+    if (state.entries.isEmpty()) {
+        if (showHints) HintLine(emptyHint)
+        Text("Nothing cached yet.", style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    } else {
+        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            state.entries.forEach { e -> WeatherCacheRow(e, onDelete = { onDeleteEntry(e.id) }) }
+        }
+        OutlinedButton(
+            onClick = { showClearAll = true },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Icon(Icons.Default.Delete, null, Modifier.size(16.dp),
+                tint = MaterialTheme.colorScheme.error)
+            Spacer(Modifier.width(6.dp))
+            Text("Clear all (${state.entries.size})", color = MaterialTheme.colorScheme.error)
+        }
+    }
+
+    if (showCreds && onSetCredentials != null) {
+        CredentialDialog(
+            title = "Copernicus CDS",
+            userLabel = "CDS API URL",
+            passLabel = "Personal Access Token",
+            initialUser = CDS_DEFAULT_URL,
+            onDismiss = { showCreds = false },
+            onSubmit = { u, p -> onSetCredentials(u, p); showCreds = false }
+        )
+    }
+    if (showClearAll) {
+        AlertDialog(
+            onDismissRequest = { showClearAll = false },
+            title = { Text("Clear all cached data?") },
+            text = {
+                Text("This deletes the cached data for every $entryNoun in this source. " +
+                    "PV is re-fetched the next time you save a scenario that uses it. " +
+                    "There is no undo.",
+                    style = MaterialTheme.typography.bodyMedium)
+            },
+            confirmButton = {
+                Button(
+                    onClick = { onClearAll(); showClearAll = false },
+                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Icon(Icons.Default.Delete, null, Modifier.size(16.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Clear all")
+                }
+            },
+            dismissButton = { TextButton(onClick = { showClearAll = false }) { Text("Cancel") } }
+        )
+    }
+}
+
+@Composable
+private fun WeatherCacheRow(entry: WeatherCacheEntry, onDelete: () -> Unit) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        shape = RoundedCornerShape(8.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(start = 10.dp, top = 6.dp, bottom = 6.dp, end = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text(entry.name, style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                entry.detail?.let {
+                    Text(it, style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1, overflow = TextOverflow.Ellipsis)
+                }
+            }
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Default.Delete, contentDescription = "Delete cached data",
+                    tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
+            }
+        }
+    }
+}
+
+/** Status chip for a weather source: cache count for anonymous (PVGIS), credential state for CDS. */
+@Composable
+private fun WeatherStatusChip(state: WeatherSourceState?, showCredentials: Boolean) {
+    val (icon, tint) = when {
+        state == null -> Icons.Outlined.Warning to MaterialTheme.colorScheme.outline
+        showCredentials && !state.credentialsConfigured ->
+            Icons.Default.CloudOff to MaterialTheme.colorScheme.outline
+        else -> Icons.Default.CheckCircle to MaterialTheme.colorScheme.primary
+    }
+    Surface(color = tint.copy(alpha = 0.12f), shape = CircleShape, modifier = Modifier.size(36.dp)) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+        }
+    }
+}
+
+/** Honest credential strip for weather sources: Not configured / Configured (no probe). */
+@Composable
+private fun WeatherCredentialStrip(
+    configured: Boolean,
+    onEdit: () -> Unit,
+    onDeleteSource: (() -> Unit)?
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        shape = RoundedCornerShape(10.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("Credentials", style = MaterialTheme.typography.bodyMedium)
+                Text(
+                    if (configured) "Configured · validated on first fetch" else "Not configured",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            OutlinedButton(onClick = onEdit) {
+                Icon(Icons.Default.Edit, null, Modifier.size(16.dp))
+                Spacer(Modifier.width(4.dp))
+                Text(if (configured) "Update" else "Set")
+            }
+            if (onDeleteSource != null) {
+                Spacer(Modifier.width(4.dp))
+                IconButton(onClick = onDeleteSource) {
+                    Icon(Icons.Default.Delete, contentDescription = "Remove source",
+                        tint = MaterialTheme.colorScheme.error)
+                }
+            }
+        }
     }
 }
 

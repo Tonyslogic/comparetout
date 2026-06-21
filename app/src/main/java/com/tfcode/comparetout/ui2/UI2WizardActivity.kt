@@ -89,6 +89,7 @@ import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -118,12 +119,16 @@ import com.google.gson.reflect.TypeToken
 import com.tfcode.comparetout.ComparisonUIViewModel
 import com.tfcode.comparetout.R
 import com.tfcode.comparetout.SimulatorLauncher
+import com.tfcode.comparetout.TOUTCApplication
 import com.tfcode.comparetout.model.json.scenario.ScenarioJsonFile
 import com.tfcode.comparetout.model.scenario.PanelPVSummary
 import com.tfcode.comparetout.model.scenario.Scenario
 import com.tfcode.comparetout.scenario.loadprofile.StandardLoadProfiles
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 
 // Pixels of scroll delta before the collapsing header toggles — small enough to feel
@@ -2272,6 +2277,19 @@ private fun HpNumberField(
     )
 }
 
+/**
+ * True if a CDS Personal Access Token is stored (and decryptable). Mirrors the
+ * gate in [UI2DataSourceManagementViewModel] (DataStore key "cds_key"); the
+ * literal key is duplicated here because the VM's constant is file-private.
+ * Blocking DataStore read — call from a background dispatcher.
+ */
+private fun cdsCredentialsPresent(context: android.content.Context): Boolean {
+    val app = context.applicationContext as TOUTCApplication
+    val raw = app.getStringValueFromDataStore("cds_key")
+    if (raw.isNullOrEmpty()) return false
+    return runCatching { TOUTCApplication.decryptString(raw) }.getOrNull()?.isNotEmpty() == true
+}
+
 @Composable
 private fun HeatPumpCard(
     hp: WizardHeatPumpEntry,
@@ -2281,6 +2299,13 @@ private fun HeatPumpCard(
 ) {
     var tab by remember { mutableIntStateOf(0) }
     fun update(fn: (WizardHeatPumpEntry) -> WizardHeatPumpEntry) = onUpdate(hp.id, fn)
+
+    // CDS weather is gated on credentials configured in Data Source Management.
+    // We re-check on each tap (not a cached flag) so credentials set during a
+    // round-trip to that screen are picked up without re-entering the wizard.
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var showCdsAlert by remember { mutableStateOf(false) }
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         // Advanced is a Basic/Advanced tab, mirroring the Usage section.
@@ -2353,7 +2378,15 @@ private fun HeatPumpCard(
                     onClick = { update { it.copy(weatherSource = "sample") } },
                     label = { Text("2001, Ireland") })
                 FilterChip(selected = hp.weatherSource == "cds",
-                    onClick = { update { it.copy(weatherSource = "cds") } },
+                    onClick = {
+                        // Gate: only switch to CDS if credentials are present.
+                        // Otherwise alert + point the user at Data Source Management.
+                        scope.launch {
+                            val ok = withContext(Dispatchers.IO) { cdsCredentialsPresent(context) }
+                            if (ok) update { it.copy(weatherSource = "cds") }
+                            else showCdsAlert = true
+                        }
+                    },
                     label = { Text("CDS") })
             }
             if (novice) {
@@ -2361,6 +2394,27 @@ private fun HeatPumpCard(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
+        }
+
+        if (showCdsAlert) {
+            AlertDialog(
+                onDismissRequest = { showCdsAlert = false },
+                title = { Text("Set up CDS first") },
+                text = {
+                    Text("Fetching real weather needs a Copernicus CDS Personal Access Token. " +
+                        "Add it under Data Source Management, then choose CDS here.")
+                },
+                confirmButton = {
+                    TextButton(onClick = {
+                        showCdsAlert = false
+                        context.startActivity(
+                            android.content.Intent(context, UI2DataSourceManagementActivity::class.java))
+                    }) { Text("Open Data Source Management") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showCdsAlert = false }) { Text("Cancel") }
+                }
+            )
         }
         if (tab == 1) {
             // ── Advanced controls (appended — basic stays visible above) ──
