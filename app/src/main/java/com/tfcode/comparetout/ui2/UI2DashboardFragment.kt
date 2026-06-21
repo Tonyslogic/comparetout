@@ -2355,10 +2355,12 @@ private fun TopologyDiagram(sc: ScenarioComponents) {
     val evDiverts = sc.evDiverts.orEmpty()
     val hwSchedules = sc.hwSchedules.orEmpty()
     val hwDivertActive = sc.hwDivert?.isActive == true
+    val heatPumps = sc.heatPumps.orEmpty()
 
     val hasLoad = sc.loadProfile != null
     val hasHw = sc.hwSystem != null
     val hasEv = evCharges.isNotEmpty() || evDiverts.isNotEmpty()
+    val hasHeatPump = heatPumps.isNotEmpty()
     val hasInverter = inverters.isNotEmpty()
 
     val lineColor = MaterialTheme.colorScheme.outline
@@ -2443,7 +2445,8 @@ private fun TopologyDiagram(sc: ScenarioComponents) {
             val consumers = listOfNotNull(
                 if (hasLoad) Unit else null,
                 if (hasHw)   Unit else null,
-                if (hasEv)   Unit else null
+                if (hasEv)   Unit else null,
+                if (hasHeatPump) Unit else null
             )
             if (consumers.isNotEmpty() && hasInverter) {
                 val cardRightX = leftXPx + cardWPx
@@ -2537,7 +2540,8 @@ private fun TopologyDiagram(sc: ScenarioComponents) {
 
         // Consumers (left, stacked top-to-bottom)
         run {
-            data class C(val label: String, val sub: String?, val icon: Int, val deco: List<Int>)
+            data class C(val label: String, val sub: String?, val icon: Int, val deco: List<Int>,
+                         val emoji: String? = null)
             val consumers = mutableListOf<C>()
             if (hasLoad) consumers += C(
                 "House",
@@ -2563,6 +2567,15 @@ private fun TopologyDiagram(sc: ScenarioComponents) {
                     if (evDiverts.isNotEmpty()) R.drawable.ic_baseline_call_split_24 else null
                 )
             )
+            if (hasHeatPump) consumers += C(
+                "Heat pump",
+                heatPumps.first().let {
+                    "${"%.1f".format(it.capacityKw)} kW · ${if (it.weatherSource == "cds") "CDS" else "sample"}"
+                },
+                0,                       // no drawable — rendered via the emoji below
+                emptyList(),
+                emoji = "♨️"        // ♨️, matching the heat-pump glyph used elsewhere in the dashboard
+            )
             val total = consumers.size
             val topPad = 70.dp
             val bottomPad = 90.dp
@@ -2574,6 +2587,7 @@ private fun TopologyDiagram(sc: ScenarioComponents) {
                     subline = c.sub,
                     iconRes = c.icon,
                     decorationIcons = c.deco,
+                    emojiIcon = c.emoji,
                     modifier = Modifier
                         .width(cardW).height(cardH)
                         .offset(x = leftX, y = yCenter - cardH / 2)
@@ -2593,7 +2607,7 @@ private fun TopologyDiagram(sc: ScenarioComponents) {
         )
 
         // Empty state
-        if (!hasInverter && panels.isEmpty() && batteries.isEmpty() && !hasLoad && !hasHw && !hasEv) {
+        if (!hasInverter && panels.isEmpty() && batteries.isEmpty() && !hasLoad && !hasHw && !hasEv && !hasHeatPump) {
             Text(
                 "Nothing to draw yet — configure components in the wizard.",
                 style = MaterialTheme.typography.bodySmall,
@@ -2613,7 +2627,8 @@ private fun TopologyNode(
     badge: String? = null,
     highlight: Boolean = false,
     iconTinted: Boolean = false,
-    decorationIcons: List<Int> = emptyList()
+    decorationIcons: List<Int> = emptyList(),
+    emojiIcon: String? = null   // when set, drawn instead of [iconRes] (e.g. ♨️ for the heat pump, which has no drawable)
 ) {
     val container = if (highlight) MaterialTheme.colorScheme.primaryContainer
                     else MaterialTheme.colorScheme.surfaceVariant
@@ -2632,12 +2647,16 @@ private fun TopologyNode(
     ) {
         Row(verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-            Icon(
-                painter = painterResource(iconRes),
-                contentDescription = null,
-                modifier = Modifier.size(16.dp),
-                tint = if (iconTinted) textColor else Color.Unspecified
-            )
+            if (emojiIcon != null) {
+                Text(emojiIcon, style = MaterialTheme.typography.labelMedium)
+            } else {
+                Icon(
+                    painter = painterResource(iconRes),
+                    contentDescription = null,
+                    modifier = Modifier.size(16.dp),
+                    tint = if (iconTinted) textColor else Color.Unspecified
+                )
+            }
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelMedium,

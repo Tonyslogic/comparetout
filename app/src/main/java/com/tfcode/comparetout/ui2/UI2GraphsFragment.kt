@@ -1106,18 +1106,38 @@ private fun SankeyView(state: UI2GraphsViewModel.GraphState) {
     }
 
     val flows = buildList {
-        if (pv2load > 0)    add(SankeyFlow("Solar",   "Load",      pv2load,    SERIES_COLORS[FilterSeries.PV]!!))
+        // ── Load-serving partition (fixes the scheduled-load double count) ──────────────────────────────
+        // pv2load / bat2load / gridLoad each serve the FULL inputLoad: base load PLUS the scheduled extras
+        // (immersion HW, scheduled EV charge, heat pump). The extras also have their own columns. Drawing the
+        // full …→Load flows AND a separate Grid→{HW,EV,HP} on top double-counts the extras on the source side.
+        // Fix (plan §"Sankey double-counts", direction B): carve the extras OUT of the load-serving flows so
+        // the "Load" sink is base-only, and add matching source→{HW,EV,HP} flows. Proportional rule — the same
+        // per-destination fractions for every source — so no assumption the extras are grid-sourced and energy
+        // stays balanced. (hwDivert/evDivert are genuine surplus PV, separate from load, so they're untouched.)
+        val gridLoad = maxOf(0.0, buy - maxOf(0.0, bat2load - pv2bat))
+        val loadServe = pv2load + bat2load + gridLoad
+        val extras = hwSchedule + evSchedule + heatPump
+        val attributable = minOf(extras, loadServe)   // can't carve more than the load flows actually carry
+        val fBase = if (loadServe > 0) (loadServe - attributable) / loadServe else 0.0
+        val fHW = if (loadServe > 0 && extras > 0) attributable * hwSchedule / extras / loadServe else 0.0
+        val fEV = if (loadServe > 0 && extras > 0) attributable * evSchedule / extras / loadServe else 0.0
+        val fHP = if (loadServe > 0 && extras > 0) attributable * heatPump / extras / loadServe else 0.0
+        fun addLoadSource(name: String, value: Double, loadColor: Color) {
+            if (value <= 0.0) return
+            if (value * fBase > 0) add(SankeyFlow(name, "Load",      value * fBase, loadColor))
+            if (value * fHW > 0)   add(SankeyFlow(name, "Hot Water", value * fHW,   SERIES_COLORS[FilterSeries.HW_SCHEDULE]!!))
+            if (value * fEV > 0)   add(SankeyFlow(name, "EV",        value * fEV,   SERIES_COLORS[FilterSeries.EV_SCHEDULE]!!))
+            if (value * fHP > 0)   add(SankeyFlow(name, "Heat Pump", value * fHP,   SERIES_COLORS[FilterSeries.HEAT_PUMP]!!))
+        }
+
+        addLoadSource("Solar", pv2load, SERIES_COLORS[FilterSeries.PV]!!)
         if (pv2bat > 0)     add(SankeyFlow("Solar",   "Battery",   pv2bat,     SERIES_COLORS[FilterSeries.PV2BAT]!!))
         if (hwDivert > 0)   add(SankeyFlow("Solar",   "Hot Water", hwDivert,   SERIES_COLORS[FilterSeries.HW_DIVERT]!!))
         if (evDivert > 0)   add(SankeyFlow("Solar",   "EV",        evDivert,   SERIES_COLORS[FilterSeries.EV_DIVERT]!!))
         if (feed > 0)       add(SankeyFlow("Solar",   "Export",    feed,        SERIES_COLORS[FilterSeries.FEED]!!))
-        val gridLoad = maxOf(0.0, buy - maxOf(0.0, bat2load - pv2bat))
-        if (gridLoad > 0)   add(SankeyFlow("Grid",    "Load",      gridLoad,    SERIES_COLORS[FilterSeries.BUY]!!))
+        addLoadSource("Grid", gridLoad, SERIES_COLORS[FilterSeries.BUY]!!)
         if (grid2bat > 0)   add(SankeyFlow("Grid",    "Battery",   grid2bat,    SERIES_COLORS[FilterSeries.GRID2BAT]!!))
-        if (hwSchedule > 0) add(SankeyFlow("Grid",    "Hot Water", hwSchedule,  SERIES_COLORS[FilterSeries.HW_SCHEDULE]!!))
-        if (evSchedule > 0) add(SankeyFlow("Grid",    "EV",        evSchedule,  SERIES_COLORS[FilterSeries.EV_SCHEDULE]!!))
-        if (heatPump > 0)   add(SankeyFlow("Grid",    "Heat Pump", heatPump,    SERIES_COLORS[FilterSeries.HEAT_PUMP]!!))
-        if (bat2load > 0)   add(SankeyFlow("Battery", "Load",      bat2load,    SERIES_COLORS[FilterSeries.BAT2LOAD]!!))
+        addLoadSource("Battery", bat2load, SERIES_COLORS[FilterSeries.BAT2LOAD]!!)
         if (bat2grid > 0)   add(SankeyFlow("Battery", "Export",    bat2grid,    SERIES_COLORS[FilterSeries.BAT2GRID]!!))
     }
 
