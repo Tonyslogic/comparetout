@@ -252,15 +252,53 @@ If your component produces a number worth showing (an HP's electrical load, or a
      `SUM(load) + SUM(immersionLoad) + SUM(directEVcharge) AS load` (line ~852). **Add `+ SUM(heatPumpLoad)`**
      or your component's consumption won't count in the KPI/cost "load". This is the single easiest thing to
      forget.
-   - **Bar charts:** `getBarData` / `getMonthlyBarData` (lines ~1292/1320) build `ScenarioBarChartData` from
-     `SUM(...)` of the flow columns. Add `SUM(heatPumpLoad)` and a field on `ScenarioBarChartData`.
-   - **Line graphs (state metrics):** `getLineData` (line ~1314) selects `minuteOfDay, SOC, waterTemp` into
+   - **Bar charts:** `getBarData` / `getMonthlyBarData` / `getYearBarData` build `ScenarioBarChartData` from
+     `SUM(...)` of the flow columns. Add your column and a field on `ScenarioBarChartData`.
+   - **Line graphs (state metrics):** `getLineData` selects `minuteOfDay, SOC, waterTemp` into
      `ScenarioLineGraphData`. A thermal-state metric goes here alongside `waterTemp`.
-4. **UI series:** the legacy graph screens (`scenario/ScenarioMonthly.java`, the bar/line graph activities)
-   and the UI2 graphs (`ui2/UI2GraphsViewModel.kt`) + dashboard KPIs (`ui2/UI2DashboardViewModel.kt`) consume
-   those model objects — add your series/row where the existing flows are charted.
-5. **Comparison:** `ComparisonUIViewModel.java` and the UI2 Compare path render scenario vs source metrics —
-   add your metric to the compared set if it should appear there.
+
+   > **Two aggregation *kinds* (gotcha):** energies are **summed** per bucket (`SUM(heatPumpLoad)`), but
+   > *driver/state* metrics — COP, outdoor temp, wind speed — must be **averaged** (`AVG(heatPumpCop)`), not
+   > summed, or a daily bucket reports "24× the COP". The HP added three of each. The averaged queries have an
+   > **inner-`SUM` / outer-`AVG`** shape (the interval aggregation sums to a row, the windowing layer averages
+   > the rows) — add `avg(driver)` to the inner select **and** `avg(DRIVER)` to the outer. Sums only need the
+   > inner `SUM`.
+
+4. **The graph read path has TWO sources — wire BOTH or you get "all zeros" (the bug that cost us most):**
+   the UI2 graph (`ui2/UI2GraphsFragment.kt` + `UI2GraphsViewModel.kt`) builds its `ChartPoint`s from one of
+   two row types depending on the view:
+   - **Single-day view** → `ScenarioBarChartData` (via `getBarData`). Add your field here (step 3).
+   - **Windowed / multi-interval view (the default)** → `IntervalRow` (via the `sumHour`/`avgHour`/`…DOY`/
+     `…DOW`/`…Month`/`…Year` queries). **`IntervalRow` is in the `model.importers` package and is SHARED by
+     importer aggregation queries**, so adding a field there has two consequences:
+     1. Add the field + `@ColumnInfo` to `IntervalRow` and `SUM`/`AVG` it in **all ten** scenario interval
+        queries in `ScenarioDAO`.
+     2. **Every importer interval query (`AlphaEssDAO`, etc.) must also emit a placeholder** — `0 AS HEATPUMP,
+        0 AS HEATPUMPCOP, …` — for the new columns. Room fails at compile with *"columns returned by the query
+        do not have fields [heatPump…] though they are annotated non-null or primitive"* if any query that maps
+        to `IntervalRow` omits them. (There were ~10 importer queries to patch.)
+
+   If you populate `ScenarioBarChartData` but forget `IntervalRow`, the *single-day* view shows your data and
+   the *default windowed* view shows zeros — which looks like "the sim didn't run". It did; confirm with a
+   diagnostic `Log` of the written totals before chasing the engine.
+
+5. **Filter wiring is THREE places** (`UI2GraphsViewModel.kt` + `UI2GraphsFragment.kt`): (a) add the
+   `FilterSeries` enum value(s) + a label; (b) add a `FilterGroup` + `SERIES_COLORS` entry so the chip
+   renders; (c) **auto-enable** it — `availableFilters` must include your series when the scenario actually has
+   the component (`hasHeatPump`), and any line-only FAB (`showLineFab`) must include your `hasX` so line-only
+   components still get the line popup. Both `ChartPoint` builders (single-day and interval) must read your
+   field. Missing (c) is why a present component shows no chips.
+
+6. **Sankey reads the row fields DIRECTLY, in BOTH branches (gotcha):** `SankeyView` does not go through
+   `ChartPoint` — it accumulates straight from `state.singleDayBarData` **or** `state.intervalData` depending
+   on the view, in two separate loops. Add `heatPump += row.heatPump` (and a `Grid → <sink>` flow) to **both**
+   branches, or the sink appears in bar/line/area/table but is **missing from the Sankey** in the default view.
+   (See the double-counting caveat for scheduled grid sinks — Section 11 / the HP plan TODO.)
+
+7. **Legacy vs UI2:** the legacy graph screens (`scenario/ScenarioMonthly.java`, the bar/line graph
+   activities) consume the same model objects, but per the user **UI2 is the only surface that matters** — the
+   legacy screens and `ComparisonUIViewModel`/Compare were intentionally skipped for the HP. Add there only if
+   asked.
 
 > Adding a column invalidates existing simulation rows by definition — see Section 11.
 
@@ -370,6 +408,18 @@ output column (Section 7) also means any pre-existing sim rows lack it — they 
 8. **Wizard ↔ dashboard order** — the wizard section order must mirror the dashboard order.
 9. **Byte-identical discipline** — *adding* a component must not perturb existing goldens; if it does, you
    coupled into a shared path you shouldn't have.
+10. **Two graph read paths** — populate **both** `ScenarioBarChartData` (single-day) **and** `IntervalRow`
+    (windowed/default); forgetting `IntervalRow` shows zeros in the default view and looks like a dead sim.
+11. **Shared `IntervalRow` ⇒ importer placeholders** — `IntervalRow` is shared with importer queries; every
+    importer aggregation query must emit `0 AS YOURCOL` or Room won't compile.
+12. **Sum vs avg** — energies `SUM`, driver/state metrics `AVG` (inner-`SUM`/outer-`AVG`); summing a COP/temp
+    multiplies it by the bucket size.
+13. **Sankey reads rows directly, in both branches** — add your accumulation to *both* the `singleDayBarData`
+    and `intervalData` loops, or the sink is missing from the default-view Sankey.
+14. **Filter auto-enable** — adding the `FilterSeries` enum isn't enough; `availableFilters` (and `showLineFab`
+    for line-only metrics) must include your `hasX` flag or no chip renders.
+15. **JSON empty-field omission** — emit your JSON array/object only when non-empty (`null`, not `[]`/`{}`),
+    or pre-existing scenarios stop serialising byte-identically and the round-trip test breaks.
 
 ---
 

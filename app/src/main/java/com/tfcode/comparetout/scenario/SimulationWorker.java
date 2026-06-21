@@ -47,7 +47,6 @@ import com.tfcode.comparetout.model.scenario.SimulationInputData;
 import com.tfcode.comparetout.scenario.sim.CsvWeatherProvider;
 import com.tfcode.comparetout.scenario.sim.HeatPumpComponent;
 import com.tfcode.comparetout.scenario.sim.HeatPumpDemandModel;
-import com.tfcode.comparetout.scenario.sim.IntervalContext;
 import com.tfcode.comparetout.scenario.sim.SimTime;
 import com.tfcode.comparetout.scenario.sim.TimeAxis;
 import com.tfcode.comparetout.scenario.sim.WeatherProvider;
@@ -291,16 +290,6 @@ public class SimulationWorker extends Worker {
                     ArrayList<ScenarioSimulationData> outputRows =
                             SimulationEngine.simulate(scenarioID, scenarioInputs, axis, inputDataMap);
 
-                    // Diagnostic: did the engine actually WRITE heat-pump load? (axis millis must match the
-                    // HP component's lookup keys). Logs the persisted total + the axis's first millis vs the HP.
-                    if (heatPumpComponent != null) {
-                        double hpSum = 0;
-                        for (ScenarioSimulationData r : outputRows) hpSum += r.getHeatPumpLoad();
-                        android.util.Log.i("HeatPump", "sim wrote rows=" + outputRows.size()
-                                + " totalHeatPumpLoad=" + hpSum + " kWh; axisStart=" + axisStart
-                                + " (" + SimTime.toLocalDateTime(axisStart, ZoneOffset.UTC) + ")");
-                    }
-
                     /*
                      * RESULT STORAGE
                      * Save the simulation results for this scenario to the database.
@@ -397,22 +386,7 @@ public class SimulationWorker extends Worker {
             android.util.Log.e("HeatPump", "weather asset load failed — HP will be absent from the sim", e);
             return null; // weather unavailable ⇒ no heat-pump contribution
         }
-        HeatPumpComponent component = HeatPumpComponent.build(configFromHeatPump(hp), weather, gridMillis);
-        // Diagnostic: confirm the grid is non-empty, the weather year aligns, and the model yields demand.
-        if (gridMillis.length == 0) {
-            android.util.Log.w("HeatPump", "EMPTY sim-input grid — HP contributes nothing (all zero)");
-        } else {
-            int mid = gridMillis.length / 2;
-            double d0 = component.demand(new IntervalContext(gridMillis[0], 1, 1, 0, 0, 1d / 12d)).kWh;
-            double dMid = component.demand(new IntervalContext(gridMillis[mid], 1, 1, 0, 0, 1d / 12d)).kWh;
-            android.util.Log.i("HeatPump", "built rows=" + gridMillis.length
-                    + " start=" + SimTime.toLocalDateTime(gridMillis[0], ZoneOffset.UTC)
-                    + " T@start=" + weather.temperatureAt(gridMillis[0]) + "C"
-                    + " T@mid=" + weather.temperatureAt(gridMillis[mid]) + "C"
-                    + " demand@start=" + d0 + " demand@mid=" + dMid
-                    + " fuelAnnual=" + hp.getFuelAnnual() + " scop=" + hp.getScop());
-        }
-        return component;
+        return HeatPumpComponent.build(configFromHeatPump(hp), weather, gridMillis);
     }
 
     /** Maps a persisted {@link HeatPump} onto the pure model's {@link HeatPumpDemandModel.Config}. */
