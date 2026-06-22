@@ -1853,8 +1853,8 @@ private fun DataSourceExplorePies(
         if (isEsbn) {
             listOf(
                 "Import vs Export" to listOf(
-                    PieSlice("Import", periodTotals.buy,  Color(0xFFF44336)),
-                    PieSlice("Export", periodTotals.feed, Color(0xFF2196F3))
+                    PieSlice("Import", periodTotals.buy,  SeriesColors.gridImport),
+                    PieSlice("Export", periodTotals.feed, SeriesColors.export)
                 )
             )
         } else {
@@ -1872,27 +1872,27 @@ private fun DataSourceExplorePies(
                 .takeIf { it > 0 } ?: maxOf(0.0, periodTotals.pv - periodTotals.feed)
             val out = mutableListOf<Pair<String, List<PieSlice>>>()
             out += "Self Consumption" to listOf(
-                PieSlice("PV Used", pvUsed, Color(0xFF4CAF50)),
-                PieSlice("Exported", periodTotals.feed, Color(0xFF2196F3))
+                PieSlice("PV Used", pvUsed, SeriesColors.solar),
+                PieSlice("Exported", periodTotals.feed, SeriesColors.export)
             )
             out += "Load Source" to buildList {
-                if (periodTotals.pv2load > 0) add(PieSlice("Solar",   periodTotals.pv2load, Color(0xFF4CAF50)))
-                if (periodTotals.bat2load > 0) add(PieSlice("Battery", periodTotals.bat2load, Color(0xFFFFB300)))
-                if (gridToLoad > 0)            add(PieSlice("Grid",    gridToLoad,           Color(0xFFF44336)))
+                if (periodTotals.pv2load > 0) add(PieSlice("Solar",   periodTotals.pv2load, SeriesColors.solar))
+                if (periodTotals.bat2load > 0) add(PieSlice("Battery", periodTotals.bat2load, SeriesColors.battery))
+                if (gridToLoad > 0)            add(PieSlice("Grid",    gridToLoad,           SeriesColors.gridImport))
                 // Pre-v2 fallback: if no flow-decomposed slices, fall back to the
                 // legacy approximation so the pie is never empty.
                 if (isEmpty()) {
                     val approxSolar = maxOf(0.0, periodTotals.load - periodTotals.buy)
-                    if (approxSolar > 0) add(PieSlice("Solar",  approxSolar,        Color(0xFF4CAF50)))
-                    if (periodTotals.buy > 0) add(PieSlice("Grid",   periodTotals.buy,   Color(0xFFF44336)))
+                    if (approxSolar > 0) add(PieSlice("Solar",  approxSolar,        SeriesColors.solar))
+                    if (periodTotals.buy > 0) add(PieSlice("Grid",   periodTotals.buy,   SeriesColors.gridImport))
                 }
             }
             if (periodTotals.pv > 0) {
                 out += "Solar Distribution" to buildList {
-                    if (periodTotals.pv2load > 0)  add(PieSlice("To Load",  periodTotals.pv2load, Color(0xFF4CAF50)))
-                    if (periodTotals.pv2bat > 0)   add(PieSlice("Battery",  periodTotals.pv2bat,  Color(0xFF2196F3)))
-                    if (periodTotals.evActual > 0) add(PieSlice("EV",       periodTotals.evActual, Color(0xFFFF6F00)))
-                    if (periodTotals.feed > 0)     add(PieSlice("Exported", periodTotals.feed,    Color(0xFFFFEB3B)))
+                    if (periodTotals.pv2load > 0)  add(PieSlice("To Load",  periodTotals.pv2load, SeriesColors.house))
+                    if (periodTotals.pv2bat > 0)   add(PieSlice("Battery",  periodTotals.pv2bat,  SeriesColors.pvToBattery))
+                    if (periodTotals.evActual > 0) add(PieSlice("EV",       periodTotals.evActual, SeriesColors.ev))
+                    if (periodTotals.feed > 0)     add(PieSlice("Exported", periodTotals.feed,    SeriesColors.export))
                 }
             }
             val batteryActive = periodTotals.charging > 0 || periodTotals.discharging > 0 ||
@@ -1900,16 +1900,16 @@ private fun DataSourceExplorePies(
                     periodTotals.bat2load > 0 || periodTotals.bat2grid > 0
             if (batteryActive) {
                 val flows = buildList {
-                    if (periodTotals.pv2bat > 0)   add(PieSlice("Solar In", periodTotals.pv2bat,   Color(0xFF4CAF50)))
-                    if (periodTotals.grid2bat > 0) add(PieSlice("Grid In",  periodTotals.grid2bat, Color(0xFF00BCD4)))
-                    if (periodTotals.bat2load > 0) add(PieSlice("To Load",  periodTotals.bat2load, Color(0xFF2196F3)))
-                    if (periodTotals.bat2grid > 0) add(PieSlice("To Grid",  periodTotals.bat2grid, Color(0xFFFFD700)))
+                    if (periodTotals.pv2bat > 0)   add(PieSlice("Solar In", periodTotals.pv2bat,   SeriesColors.pvToBattery))
+                    if (periodTotals.grid2bat > 0) add(PieSlice("Grid In",  periodTotals.grid2bat, SeriesColors.gridToBattery))
+                    if (periodTotals.bat2load > 0) add(PieSlice("To Load",  periodTotals.bat2load, SeriesColors.battery))
+                    if (periodTotals.bat2grid > 0) add(PieSlice("To Grid",  periodTotals.bat2grid, SeriesColors.batteryToGrid))
                     // Pre-v2 fallback: no flow decomposition yet, so show net battery
                     // throughput from the legacy charge/discharge columns. Migration
                     // upgrades this to the four-source breakdown above.
                     if (isEmpty()) {
-                        if (periodTotals.charging > 0)    add(PieSlice("Charge",    periodTotals.charging,    Color(0xFF4CAF50)))
-                        if (periodTotals.discharging > 0) add(PieSlice("Discharge", periodTotals.discharging, Color(0xFFFFD700)))
+                        if (periodTotals.charging > 0)    add(PieSlice("Charge",    periodTotals.charging,    SeriesColors.batteryCharge))
+                        if (periodTotals.discharging > 0) add(PieSlice("Discharge", periodTotals.discharging, SeriesColors.batteryDischarge))
                     }
                 }
                 if (flows.isNotEmpty()) out += "Battery Flows" to flows
@@ -2200,24 +2200,24 @@ fun SimulationPieCharts(kpis: SimKPIs) {
     val charts = remember(kpis) {
         listOf(
             "Self Consumption" to listOf(
-                PieSlice("PV Used", maxOf(0.0, kpis.generated - kpis.sold), Color(0xFF4CAF50)),
-                PieSlice("Sold", kpis.sold, Color(0xFF2196F3))
+                PieSlice("PV Used", maxOf(0.0, kpis.generated - kpis.sold), SeriesColors.solar),
+                PieSlice("Sold", kpis.sold, SeriesColors.export)
             ),
             "Load Source" to listOf(
-                PieSlice("Solar", maxOf(0.0, kpis.totalLoad - kpis.bought), Color(0xFF4CAF50)),
-                PieSlice("Bought", kpis.bought, Color(0xFFF44336))
+                PieSlice("Solar", maxOf(0.0, kpis.totalLoad - kpis.bought), SeriesColors.solar),
+                PieSlice("Bought", kpis.bought, SeriesColors.gridImport)
             ),
             "Solar Distribution" to listOf(
-                PieSlice("To Load", kpis.pvToLoad, Color(0xFF4CAF50)),
-                PieSlice("Battery", kpis.pvToCharge, Color(0xFF2196F3)),
-                PieSlice("EV", kpis.evDiv, Color(0xFFFF9800)),
-                PieSlice("Hot Water", kpis.h2oDiv, Color(0xFF9C27B0)),
-                PieSlice("Sold", kpis.sold, Color(0xFF00BCD4))
+                PieSlice("To Load", kpis.pvToLoad, SeriesColors.house),
+                PieSlice("Battery", kpis.pvToCharge, SeriesColors.pvToBattery),
+                PieSlice("EV", kpis.evDiv, SeriesColors.ev),
+                PieSlice("Hot Water", kpis.h2oDiv, SeriesColors.hotWater),
+                PieSlice("Sold", kpis.sold, SeriesColors.export)
             ),
             "Load Distribution" to listOf(
-                PieSlice("House", kpis.house, Color(0xFF607D8B)),
-                PieSlice("Hot Water", kpis.h20, Color(0xFF00BCD4)),
-                PieSlice("EV", kpis.ev, Color(0xFFFF9800))
+                PieSlice("House", kpis.house, SeriesColors.house),
+                PieSlice("Hot Water", kpis.h20, SeriesColors.hotWater),
+                PieSlice("EV", kpis.ev, SeriesColors.ev)
             )
         )
     }

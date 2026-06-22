@@ -129,31 +129,8 @@ import java.time.format.DateTimeFormatter
 import android.graphics.Color as AndroidColor
 
 // ─── Colors ────────────────────────────────────────────────────────────────
-
-private val SERIES_COLORS: Map<FilterSeries, Color> = mapOf(
-    FilterSeries.LOAD          to Color(0xFF2196F3),
-    FilterSeries.FEED          to Color(0xFFFFEB3B),
-    FilterSeries.BUY           to Color(0xFF00BCD4),
-    FilterSeries.PV            to Color(0xFFF44336),
-    FilterSeries.PV2BAT        to Color(0xFF4CAF50),
-    FilterSeries.PV2LOAD       to Color(0xFF9E9E9E),
-    FilterSeries.BAT2LOAD      to Color(0xFF005666),
-    FilterSeries.GRID2BAT      to Color(0xFFE91E63),
-    FilterSeries.EV_SCHEDULE   to Color(0xFFFFA500),
-    FilterSeries.EV_DIVERT     to Color(0xFFE0F2D2),
-    FilterSeries.EV_ACTUAL     to Color(0xFFFF6F00),
-    FilterSeries.HW_SCHEDULE   to Color(0xFF9C27B0),
-    FilterSeries.HW_DIVERT     to Color(0xFF795548),
-    FilterSeries.BAT2GRID      to Color(0xFFFFD700),
-    FilterSeries.BAT_CHARGE    to Color(0xFF00FF00),
-    FilterSeries.BAT_DISCHARGE to Color(0xFFCC6600),
-    FilterSeries.HEAT_PUMP        to Color(0xFFD81B60),
-    FilterSeries.HEAT_PUMP_BACKUP to Color(0xFFB71C1C),
-    FilterSeries.HEAT_PUMP_HEAT   to Color(0xFFFF7043),
-    FilterSeries.HEAT_PUMP_COP    to Color(0xFF6A1B9A),
-    FilterSeries.HEAT_PUMP_TEMP   to Color(0xFF1565C0),
-    FilterSeries.HEAT_PUMP_WIND   to Color(0xFF00838F)
-)
+// The series colour registry (SERIES_COLORS + seriesColor()) lives in SeriesColors.kt — the single source of
+// truth shared by the graphs, the Sankey, the Comparison and the Dashboard pies.
 
 private val DISPLAY_FMT = DateTimeFormatter.ofPattern("dd MMM yyyy")
 
@@ -395,7 +372,7 @@ private fun PeriodTotalsRow(state: UI2GraphsViewModel.GraphState) {
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(3.dp)
             ) {
-                Box(modifier = Modifier.size(8.dp).background(SERIES_COLORS[series] ?: Color.Gray))
+                Box(modifier = Modifier.size(8.dp).background(seriesColor(series)))
                 Text(
                     "${series.displayName}: ${df.format(total)} kWh",
                     style = MaterialTheme.typography.labelSmall,
@@ -772,7 +749,7 @@ private fun BarChartView(state: UI2GraphsViewModel.GraphState) {
                     points.mapIndexed { i, pt -> BarEntry(i.toFloat(), pt.values[series]?.toFloat() ?: 0f) },
                     series.displayName
                 ).apply {
-                    color = (SERIES_COLORS[series] ?: Color.Gray).toArgb()
+                    color = (seriesColor(series)).toArgb()
                     setDrawValues(false)
                     valueTextColor = labelColor
                 }
@@ -836,7 +813,7 @@ private fun LineOrAreaChartView(state: UI2GraphsViewModel.GraphState, filled: Bo
                 override fun getFormattedValue(v: Float) = labels.getOrElse(v.toInt()) { "" }
             }
             val datasets: List<ILineDataSet> = activeSeries.map { series ->
-                val seriesArgb = (SERIES_COLORS[series] ?: Color.Gray).toArgb()
+                val seriesArgb = (seriesColor(series)).toArgb()
                 LineDataSet(
                     points.mapIndexed { i, pt -> Entry(i.toFloat(), pt.values[series]?.toFloat() ?: 0f) },
                     series.displayName
@@ -1125,20 +1102,20 @@ private fun SankeyView(state: UI2GraphsViewModel.GraphState) {
         fun addLoadSource(name: String, value: Double, loadColor: Color) {
             if (value <= 0.0) return
             if (value * fBase > 0) add(SankeyFlow(name, "Load",      value * fBase, loadColor))
-            if (value * fHW > 0)   add(SankeyFlow(name, "Hot Water", value * fHW,   SERIES_COLORS[FilterSeries.HW_SCHEDULE]!!))
-            if (value * fEV > 0)   add(SankeyFlow(name, "EV",        value * fEV,   SERIES_COLORS[FilterSeries.EV_SCHEDULE]!!))
-            if (value * fHP > 0)   add(SankeyFlow(name, "Heat Pump", value * fHP,   SERIES_COLORS[FilterSeries.HEAT_PUMP]!!))
+            if (value * fHW > 0)   add(SankeyFlow(name, "Hot Water", value * fHW,   seriesColor(FilterSeries.HW_SCHEDULE)))
+            if (value * fEV > 0)   add(SankeyFlow(name, "EV",        value * fEV,   seriesColor(FilterSeries.EV_SCHEDULE)))
+            if (value * fHP > 0)   add(SankeyFlow(name, "Heat Pump", value * fHP,   seriesColor(FilterSeries.HEAT_PUMP)))
         }
 
-        addLoadSource("Solar", pv2load, SERIES_COLORS[FilterSeries.PV]!!)
-        if (pv2bat > 0)     add(SankeyFlow("Solar",   "Battery",   pv2bat,     SERIES_COLORS[FilterSeries.PV2BAT]!!))
-        if (hwDivert > 0)   add(SankeyFlow("Solar",   "Hot Water", hwDivert,   SERIES_COLORS[FilterSeries.HW_DIVERT]!!))
-        if (evDivert > 0)   add(SankeyFlow("Solar",   "EV",        evDivert,   SERIES_COLORS[FilterSeries.EV_DIVERT]!!))
-        if (feed > 0)       add(SankeyFlow("Solar",   "Export",    feed,        SERIES_COLORS[FilterSeries.FEED]!!))
-        addLoadSource("Grid", gridLoad, SERIES_COLORS[FilterSeries.BUY]!!)
-        if (grid2bat > 0)   add(SankeyFlow("Grid",    "Battery",   grid2bat,    SERIES_COLORS[FilterSeries.GRID2BAT]!!))
-        addLoadSource("Battery", bat2load, SERIES_COLORS[FilterSeries.BAT2LOAD]!!)
-        if (bat2grid > 0)   add(SankeyFlow("Battery", "Export",    bat2grid,    SERIES_COLORS[FilterSeries.BAT2GRID]!!))
+        addLoadSource("Solar", pv2load, seriesColor(FilterSeries.PV))
+        if (pv2bat > 0)     add(SankeyFlow("Solar",   "Battery",   pv2bat,     seriesColor(FilterSeries.PV2BAT)))
+        if (hwDivert > 0)   add(SankeyFlow("Solar",   "Hot Water", hwDivert,   seriesColor(FilterSeries.HW_DIVERT)))
+        if (evDivert > 0)   add(SankeyFlow("Solar",   "EV",        evDivert,   seriesColor(FilterSeries.EV_DIVERT)))
+        if (feed > 0)       add(SankeyFlow("Solar",   "Export",    feed,        seriesColor(FilterSeries.FEED)))
+        addLoadSource("Grid", gridLoad, seriesColor(FilterSeries.BUY))
+        if (grid2bat > 0)   add(SankeyFlow("Grid",    "Battery",   grid2bat,    seriesColor(FilterSeries.GRID2BAT)))
+        addLoadSource("Battery", bat2load, seriesColor(FilterSeries.BAT2LOAD))
+        if (bat2grid > 0)   add(SankeyFlow("Battery", "Export",    bat2grid,    seriesColor(FilterSeries.BAT2GRID)))
     }
 
     if (flows.isEmpty()) {
@@ -1257,7 +1234,7 @@ private fun LinePopupContent(state: UI2GraphsViewModel.GraphState) {
                     sets.add(LineDataSet(
                         state.lineData.map { Entry(it.mod.toFloat(), it.soc.toFloat()) }, "SOC (%)"
                     ).apply {
-                        color = (SERIES_COLORS[FilterSeries.BAT_CHARGE] ?: Color.Green).toArgb()
+                        color = seriesColor(FilterSeries.BAT_CHARGE).toArgb()
                         setDrawCircles(false); lineWidth = 2f; setDrawValues(false)
                         axisDependency = YAxis.AxisDependency.LEFT; valueTextColor = labelColor
                     })
@@ -1266,7 +1243,7 @@ private fun LinePopupContent(state: UI2GraphsViewModel.GraphState) {
                     sets.add(LineDataSet(
                         state.lineData.map { Entry(it.mod.toFloat(), it.waterTemperature.toFloat()) }, "Water Temp (°C)"
                     ).apply {
-                        color = (SERIES_COLORS[FilterSeries.HW_SCHEDULE] ?: Color.Magenta).toArgb()
+                        color = seriesColor(FilterSeries.HW_SCHEDULE).toArgb()
                         setDrawCircles(false); lineWidth = 2f; setDrawValues(false)
                         axisDependency = YAxis.AxisDependency.RIGHT
                         enableDashedLine(10f, 5f, 0f); valueTextColor = labelColor
@@ -1277,14 +1254,14 @@ private fun LinePopupContent(state: UI2GraphsViewModel.GraphState) {
                     sets.add(LineDataSet(
                         state.lineData.map { Entry(it.mod.toFloat(), it.heatPumpCop.toFloat()) }, "HP COP"
                     ).apply {
-                        color = (SERIES_COLORS[FilterSeries.HEAT_PUMP] ?: Color.Magenta).toArgb()
+                        color = seriesColor(FilterSeries.HEAT_PUMP).toArgb()
                         setDrawCircles(false); lineWidth = 2f; setDrawValues(false)
                         axisDependency = YAxis.AxisDependency.RIGHT; valueTextColor = labelColor
                     })
                     sets.add(LineDataSet(
                         state.lineData.map { Entry(it.mod.toFloat(), it.heatPumpOutdoorTemp.toFloat()) }, "Outdoor °C"
                     ).apply {
-                        color = (SERIES_COLORS[FilterSeries.HEAT_PUMP_HEAT] ?: Color.Red).toArgb()
+                        color = seriesColor(FilterSeries.HEAT_PUMP_HEAT).toArgb()
                         setDrawCircles(false); lineWidth = 2f; setDrawValues(false)
                         axisDependency = YAxis.AxisDependency.RIGHT
                         enableDashedLine(10f, 5f, 0f); valueTextColor = labelColor
@@ -1292,7 +1269,7 @@ private fun LinePopupContent(state: UI2GraphsViewModel.GraphState) {
                     sets.add(LineDataSet(
                         state.lineData.map { Entry(it.mod.toFloat(), it.heatPumpWindSpeed.toFloat()) }, "Wind m/s"
                     ).apply {
-                        color = (SERIES_COLORS[FilterSeries.HEAT_PUMP_BACKUP] ?: Color.Gray).toArgb()
+                        color = seriesColor(FilterSeries.HEAT_PUMP_BACKUP).toArgb()
                         setDrawCircles(false); lineWidth = 2f; setDrawValues(false)
                         axisDependency = YAxis.AxisDependency.RIGHT
                         enableDashedLine(4f, 4f, 0f); valueTextColor = labelColor
@@ -1358,7 +1335,7 @@ private fun FilterGroup(
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             Checkbox(checked = s in state.activeFilters, onCheckedChange = { viewModel.toggleFilter(s) })
             Box(modifier = Modifier.size(10.dp)
-                .background(SERIES_COLORS[s] ?: Color.Gray)
+                .background(seriesColor(s))
                 .border(0.5.dp, MaterialTheme.colorScheme.outline))
             Spacer(Modifier.width(8.dp))
             Text(s.displayName, style = MaterialTheme.typography.bodySmall)

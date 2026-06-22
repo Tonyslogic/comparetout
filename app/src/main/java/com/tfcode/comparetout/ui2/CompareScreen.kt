@@ -113,30 +113,12 @@ import java.time.format.DateTimeFormatter
 
 private val USAGE_IDS = UI2CompareViewModel.USAGE_SERIES.map { it.first }.toSet()
 
-private fun seriesColor(id: String, primary: Color): Color = when (id.removePrefix("c_")) {
-    "net"      -> primary
-    "buy"      -> Color(0xFF22B8CE)
-    "sell"     -> Color(0xFFF5A623)
-    "feed"     -> Color(0xFFF5A623)
-    "bonus"    -> Color(0xFF4CAF50)
-    "fixed"    -> Color(0xFF9E9E9E)
-    "load"     -> Color(0xFF3B82F6)
-    // Solar generation as gold — red read as import/cost (and clashed with the
-    // subject palette's red); pv2load keeps green for "solar actually used".
-    "pv"       -> Color(0xFFFBC02D)
-    "pv2load"  -> Color(0xFF66BB6A)
-    "bat2load" -> Color(0xFF26A69A)
-    "grid2bat" -> Color(0xFF7E57C2)
-    // Simulation-only advanced flows — distinct hues so they don't all collapse
-    // to `primary` in the chart.
-    "charge"     -> Color(0xFF8E24AA)
-    "discharge"  -> Color(0xFFEC407A)
-    "evSchedule" -> Color(0xFF5C6BC0)
-    "evDivert"   -> Color(0xFF42A5F5)
-    "hwSchedule" -> Color(0xFFEF6C00)
-    "hwDivert"   -> Color(0xFFFF8A65)
-    else       -> primary
-}
+// Comparison series colours delegate to the central registry (SeriesColors.kt) so energy flows
+// (load/solar/import/export/battery/EV/HW) match the graphs, Sankey and Dashboard exactly. Cost columns keep
+// their own money palette (cyan buy / amber sell / grey fixed) — distinguished by [isEnergy], since buy/feed
+// appear in both groups. (Solar is amber registry-wide now, so the old PV=gold override here is gone.)
+private fun seriesColor(id: String, primary: Color, isEnergy: Boolean): Color =
+    compareSeriesColor(id, primary, isEnergy)
 
 private val moneyFmt = DecimalFormat("#,##0.00")
 private val kwhFmt = DecimalFormat("#,##0")
@@ -615,7 +597,7 @@ private fun FilterSection(state: CompareState, vm: UI2CompareViewModel, novice: 
                     },
                     label = { Text(label) },
                     leadingIcon = {
-                        Box(Modifier.size(10.dp).background(seriesColor(rawId, primary), CircleShape))
+                        Box(Modifier.size(10.dp).background(seriesColor(rawId, primary, isEnergy), CircleShape))
                     },
                     colors = chipColors,
                     border = FilterChipDefaults.filterChipBorder(
@@ -1187,7 +1169,7 @@ private fun ResultPanel(
         val ids = if (isCost) selectedCostSeries(state) else selectedUsageSeries(state)
         val defs = if (isCost) UI2CompareViewModel.COST_SERIES else UI2CompareViewModel.USAGE_SERIES
         ids.mapNotNull { id -> defs.firstOrNull { it.first == id } }
-            .map { SeriesDef(it.first, it.second, seriesColor(it.first, primary)) }
+            .map { SeriesDef(it.first, it.second, seriesColor(it.first, primary, isEnergy = !isCost)) }
     }
     // Share is only useful once there is a table to export — empty result
     // panels suppress the button to avoid offering a no-op action.
