@@ -74,6 +74,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 // ──────────────────────────────────────────────────────────────────────────
 // Directors tab — recreated from the touc-director handoff design.
@@ -479,12 +480,19 @@ private fun GroupAccordion(
     ) {
         Column(modifier = Modifier.clickable { onToggle() }.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    painter = painterResource(group.iconRes),
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp),
-                    tint = if (group.tintIcon) MaterialTheme.colorScheme.onSurface else Color.Unspecified
-                )
+                val emoji = group.emojiIcon
+                if (emoji != null) {
+                    Box(Modifier.size(24.dp), contentAlignment = Alignment.Center) {
+                        Text(emoji, fontSize = 18.sp)
+                    }
+                } else {
+                    Icon(
+                        painter = painterResource(group.iconRes),
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp),
+                        tint = if (group.tintIcon) MaterialTheme.colorScheme.onSurface else Color.Unspecified
+                    )
+                }
                 Spacer(Modifier.width(8.dp))
                 Column(Modifier.weight(1f)) {
                     Text(group.label, style = MaterialTheme.typography.titleMedium)

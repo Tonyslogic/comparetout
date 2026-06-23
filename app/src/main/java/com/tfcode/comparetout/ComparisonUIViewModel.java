@@ -614,7 +614,8 @@ public class ComparisonUIViewModel extends AndroidViewModel {
         ESBNHDF(java.util.Set.of("buy", "feed")),
         HOME_ASSISTANT(java.util.Set.of("load", "buy", "feed", "pv", "pv2load", "bat2load", "grid2bat")),
         SIMULATION(java.util.Set.of("load", "buy", "feed", "pv", "pv2load", "bat2load", "grid2bat",
-                "charge", "discharge", "evSchedule", "evDivert", "hwSchedule", "hwDivert"));
+                "charge", "discharge", "evSchedule", "evDivert", "hwSchedule", "hwDivert",
+                "heatPump", "heatPumpBackup", "heatPumpHeat"));
 
         private final java.util.Set<String> providedEnergySeries;
 

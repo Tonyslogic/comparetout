@@ -48,14 +48,17 @@ enum class DirectorGroup(
     val label: String,
     val iconRes: Int,
     val wizardSection: String,
-    val tintIcon: Boolean
+    val tintIcon: Boolean,
+    /** When set, rendered as an emoji glyph instead of [iconRes] (the heat pump has no vector asset). */
+    val emojiIcon: String? = null
 ) {
     USAGE(   "Usage Data", R.drawable.house,      "load",      true),
     INVERTER("Inverter",   R.drawable.inverter,   "inverters", true),
     PV(      "PV System",  R.drawable.solarpanel, "pv",        false),
     BATTERY( "Battery",    R.drawable.battery1,   "battery",   true),
     HW(      "Hot Water",  R.drawable.waterwarm,  "hotwater",  true),
-    EV(      "EV",         R.drawable.ev_on,      "ev",        false)
+    EV(      "EV",         R.drawable.ev_on,      "ev",        false),
+    HEAT_PUMP("Heat Pump", R.drawable.waterwarm,  "heatpump",  true, emojiIcon = "♨️")
 }
 
 /** Component kind the user can share. */
@@ -73,7 +76,8 @@ enum class DirectorSubject(
     HW_SETTINGS      ("Hot water settings", DirectorGroup.HW,       false),
     HW_SCHEDULE      ("Hot water schedule", DirectorGroup.HW,       true),
     EV_SCHEDULE      ("EV schedule",        DirectorGroup.EV,       true),
-    EV_DIVERT        ("EV divert",          DirectorGroup.EV,       true);
+    EV_DIVERT        ("EV divert",          DirectorGroup.EV,       true),
+    HEAT_PUMP_SETTINGS("Heat pump",         DirectorGroup.HEAT_PUMP, true);
 
     companion object {
         fun subjectsFor(g: DirectorGroup): List<DirectorSubject> =
@@ -285,6 +289,7 @@ class UI2DirectorViewModel @Inject constructor(
         DirectorSubject.EV_SCHEDULE       -> repository.deleteEVChargeFromScenario(componentId, scenarioId)
         DirectorSubject.EV_DIVERT         -> repository.deleteEVDivertFromScenario(componentId, scenarioId)
         DirectorSubject.HW_SCHEDULE       -> repository.deleteHWScheduleFromScenario(componentId, scenarioId)
+        DirectorSubject.HEAT_PUMP_SETTINGS -> repository.deleteHeatPumpFromScenario(componentId, scenarioId)
         else -> Unit                                      // USAGE_PROFILE, HW_SETTINGS: not supported by DAO
     }
 
@@ -298,6 +303,7 @@ class UI2DirectorViewModel @Inject constructor(
         DirectorSubject.EV_DIVERT         -> repository.linkEVDivertFromScenario(from, to)
         DirectorSubject.HW_SETTINGS       -> repository.linkHWSystemFromScenario(from, to)
         DirectorSubject.HW_SCHEDULE       -> repository.linkHWScheduleFromScenario(from, to)
+        DirectorSubject.HEAT_PUMP_SETTINGS -> repository.linkHeatPumpFromScenario(from, to)
         DirectorSubject.USAGE_PROFILE     -> repository.linkLoadProfileFromScenario(from, to)
     }
 
@@ -311,6 +317,7 @@ class UI2DirectorViewModel @Inject constructor(
         DirectorSubject.EV_DIVERT         -> repository.copyEVDivertFromScenario(from, to)
         DirectorSubject.HW_SETTINGS       -> repository.copyHWSettingsFromScenario(from, to)
         DirectorSubject.HW_SCHEDULE       -> repository.copyHWScheduleFromScenario(from, to)
+        DirectorSubject.HEAT_PUMP_SETTINGS -> repository.copyHeatPumpFromScenario(from, to)
         DirectorSubject.USAGE_PROFILE     -> repository.copyLoadProfileFromScenario(from, to)
     }
 
@@ -415,6 +422,27 @@ class UI2DirectorViewModel @Inject constructor(
                     "Annual" to "%.0f kWh".format(lp.annualUsage),
                     "Import max" to "%.1f kW".format(lp.gridImportMax),
                     "Export max" to "%.1f kW".format(lp.gridExportMax))
+            } else null
+        }
+
+        // Heat Pump — no relation LiveData wired; resolve per scenario via its components
+        // (same approach as Usage Data). A scenario can hold 1 heat pump; share it like HW.
+        val heatPumpRows = _scenarios.value.flatMap { s ->
+            val hps = runCatching {
+                repository.getScenarioComponentsForScenarioID(s.scenarioIndex)?.heatPumps
+            }.getOrNull() ?: emptyList()
+            hps.map { s.scenarioIndex to it.heatPumpIndex }
+        }
+        out += instancesOf(DirectorSubject.HEAT_PUMP_SETTINGS, heatPumpRows) { id, sid ->
+            val hp = runCatching {
+                repository.getScenarioComponentsForScenarioID(sid)?.heatPumps
+            }.getOrNull()?.firstOrNull { it.heatPumpIndex == id }
+            if (hp != null) {
+                "%.1f kW heat pump".format(hp.capacityKw) to listOf(
+                    "Capacity" to "%.1f kW".format(hp.capacityKw),
+                    "SCOP" to "%.1f".format(hp.scop),
+                    "Rated COP" to "%.1f".format(hp.copRated),
+                    "Backup" to if (hp.isBackupHeater) "Yes" else "No")
             } else null
         }
 

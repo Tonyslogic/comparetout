@@ -1836,6 +1836,8 @@ private fun usageValue(r: CompareUsageRow, id: String): Double = when (id) {
     "charge" -> r.charge; "discharge" -> r.discharge
     "evSchedule" -> r.evSchedule; "evDivert" -> r.evDivert
     "hwSchedule" -> r.hwSchedule; "hwDivert" -> r.hwDivert
+    "heatPump" -> r.heatPump; "heatPumpBackup" -> r.heatPumpBackup
+    "heatPumpHeat" -> r.heatPumpHeat
     else -> 0.0
 }
 
@@ -1901,7 +1903,9 @@ private fun usageData(rows: List<CompareUsageRow>): List<ChartDatum> = rows.map 
             "pv2load" to r.pv2load, "bat2load" to r.bat2load, "grid2bat" to r.grid2bat,
             "charge" to r.charge, "discharge" to r.discharge,
             "evSchedule" to r.evSchedule, "evDivert" to r.evDivert,
-            "hwSchedule" to r.hwSchedule, "hwDivert" to r.hwDivert),
+            "hwSchedule" to r.hwSchedule, "hwDivert" to r.hwDivert,
+            "heatPump" to r.heatPump, "heatPumpBackup" to r.heatPumpBackup,
+            "heatPumpHeat" to r.heatPumpHeat),
         axisLabels = r.timeline.axisLabels,
         seriesValues = r.timeline.seriesValues
     )

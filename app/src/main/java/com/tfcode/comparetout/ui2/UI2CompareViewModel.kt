@@ -184,6 +184,9 @@ data class CompareUsageRow(
     val evDivert: Double = 0.0,
     val hwSchedule: Double = 0.0,
     val hwDivert: Double = 0.0,
+    val heatPump: Double = 0.0,        // HP total electrical load (kWh)
+    val heatPumpBackup: Double = 0.0,  // backup-heater electrical load (kWh; subset of heatPump)
+    val heatPumpHeat: Double = 0.0,    // delivered thermal energy (kWh)
     val timeline: BucketSeries         // bucketed usage for line/area (one series per metric id)
 )
 
@@ -248,7 +251,9 @@ class UI2CompareViewModel @Inject constructor(
             // IntervalRow; greyed for importer sources via capability declaration.
             "charge" to "Charging", "discharge" to "Discharging",
             "evSchedule" to "EV Schedule", "evDivert" to "EV Divert",
-            "hwSchedule" to "HW Schedule", "hwDivert" to "HW Divert"
+            "hwSchedule" to "HW Schedule", "hwDivert" to "HW Divert",
+            "heatPump" to "HP Load", "heatPumpBackup" to "HP Backup",
+            "heatPumpHeat" to "HP Heat"
         )
         // Basic vs Advanced split for the Display filter (see UI). Cost columns
         // net/buy/sell are basic; bonus/fixed advanced. Energy load/buy/feed/pv
@@ -257,7 +262,8 @@ class UI2CompareViewModel @Inject constructor(
         val BASIC_ENERGY_IDS    = setOf("load", "buy", "feed", "pv")
         val ADVANCED_ENERGY_IDS = setOf(
             "pv2load", "bat2load", "grid2bat",
-            "charge", "discharge", "evSchedule", "evDivert", "hwSchedule", "hwDivert"
+            "charge", "discharge", "evSchedule", "evDivert", "hwSchedule", "hwDivert",
+            "heatPump", "heatPumpBackup", "heatPumpHeat"
         )
         val BASIC_COST_IDS      = setOf("net", "buy", "sell")
         val ADVANCED_COST_IDS   = setOf("bonus", "fixed")
@@ -360,6 +366,7 @@ class UI2CompareViewModel @Inject constructor(
         if (!sc.isHasEVDivert) out -= "evDivert"
         if (!sc.isHasHWSchedules) out -= "hwSchedule"
         if (!sc.isHasHWDivert) out -= "hwDivert"
+        if (!sc.isHasHeatPump) { out -= "heatPump"; out -= "heatPumpBackup"; out -= "heatPumpHeat" }
         return out
     }
 
@@ -783,6 +790,9 @@ class UI2CompareViewModel @Inject constructor(
             evDivert = rows.sumOf { it.evDivert },
             hwSchedule = rows.sumOf { it.hwSchedule },
             hwDivert = rows.sumOf { it.hwDivert },
+            heatPump = rows.sumOf { it.heatPump },
+            heatPumpBackup = rows.sumOf { it.heatPumpBackup },
+            heatPumpHeat = rows.sumOf { it.heatPumpHeat },
             timeline = bucketize(tlRows, scale)
         )
     }
@@ -900,6 +910,9 @@ class UI2CompareViewModel @Inject constructor(
             evDivert = rows.sumOf { it.evDivert },
             hwSchedule = rows.sumOf { it.hwSchedule },
             hwDivert = rows.sumOf { it.hwDivert },
+            heatPump = rows.sumOf { it.heatPump },
+            heatPumpBackup = rows.sumOf { it.heatPumpBackup },
+            heatPumpHeat = rows.sumOf { it.heatPumpHeat },
             timeline = bucketize(tlRows, scale)
         )
     }
@@ -1081,7 +1094,9 @@ class UI2CompareViewModel @Inject constructor(
         "pv2load" to { it.pv2load }, "bat2load" to { it.bat2load }, "grid2bat" to { it.grid2bat },
         "charge" to { it.batCharge }, "discharge" to { it.batDischarge },
         "evSchedule" to { it.evSchedule }, "evDivert" to { it.evDivert },
-        "hwSchedule" to { it.hwSchedule }, "hwDivert" to { it.hwDivert }
+        "hwSchedule" to { it.hwSchedule }, "hwDivert" to { it.hwDivert },
+        "heatPump" to { it.heatPump }, "heatPumpBackup" to { it.heatPumpBackup },
+        "heatPumpHeat" to { it.heatPumpHeat }
     )
 
     /**
@@ -1144,41 +1159,65 @@ class UI2CompareViewModel @Inject constructor(
     // BOTH-mode can offer per-panel Share buttons that export only the panel's
     // own table.
 
-    /** Serialise the current cost panel to CSV (RFC 4180 quoting). */
+    // The share/export honours the user's current Display-filter selection: only
+    // the series visible in the result panel are serialised. Selection lives in
+    // CompareState.series — usage ids are bare, cost ids carry the "c_" prefix in
+    // BOTH mode. Empty selection falls back to the full catalogue so the export is
+    // never blank.
+    private fun selectedUsageSeries(): List<Pair<String, String>> =
+        USAGE_SERIES.filter { it.first in _state.value.series }.ifEmpty { USAGE_SERIES }
+
+    private fun selectedCostSeries(): List<Pair<String, String>> {
+        val sel = _state.value.series.map { it.removePrefix("c_") }.toSet()
+        return COST_SERIES.filter { it.first in sel }.ifEmpty { COST_SERIES }
+    }
+
+    private fun usageMetric(r: CompareUsageRow, id: String): Double = when (id) {
+        "load" -> r.load; "buy" -> r.buy; "feed" -> r.feed; "pv" -> r.pv
+        "pv2load" -> r.pv2load; "bat2load" -> r.bat2load; "grid2bat" -> r.grid2bat
+        "charge" -> r.charge; "discharge" -> r.discharge
+        "evSchedule" -> r.evSchedule; "evDivert" -> r.evDivert
+        "hwSchedule" -> r.hwSchedule; "hwDivert" -> r.hwDivert
+        "heatPump" -> r.heatPump; "heatPumpBackup" -> r.heatPumpBackup
+        "heatPumpHeat" -> r.heatPumpHeat
+        else -> 0.0
+    }
+
+    private fun costMetric(r: CompareCostRow, id: String): Double = when (id) {
+        "net" -> r.net; "buy" -> r.buy; "sell" -> r.sell
+        "bonus" -> r.bonus; "fixed" -> r.fixed; else -> 0.0
+    }
+
+    /** Serialise the current cost panel to CSV (RFC 4180 quoting). Columns follow the selection. */
     fun costResultsCsv(): String? {
         val rows = _results.value?.cost ?: return null
         if (rows.isEmpty()) return null
-        val sb = StringBuilder("Subject,Plan,Available,Net,Buy,Sell,Fixed,Bonus\n")
+        val cols = selectedCostSeries()
+        val sb = StringBuilder("Subject,Plan,Available")
+        cols.forEach { (_, label) -> sb.append(',').append(csvField("$label (€)")) }
+        sb.append('\n')
         rows.forEach { r ->
             sb.append(csvField(r.subjectName)).append(',')
               .append(csvField(r.planName)).append(',')
-              .append(if (r.available) "yes" else "no").append(',')
-              .append(money(r.net)).append(',')
-              .append(money(r.buy)).append(',')
-              .append(money(r.sell)).append(',')
-              .append(money(r.fixed)).append(',')
-              .append(money(r.bonus)).append('\n')
+              .append(if (r.available) "yes" else "no")
+            cols.forEach { (id, _) -> sb.append(',').append(money(costMetric(r, id))) }
+            sb.append('\n')
         }
         return sb.toString()
     }
 
-    /** Serialise the current usage panel to CSV. */
+    /** Serialise the current usage panel to CSV. Columns follow the selection. */
     fun usageResultsCsv(): String? {
         val rows = _results.value?.usage ?: return null
         if (rows.isEmpty()) return null
-        val sb = StringBuilder(
-            "Subject,Load (kWh),Buy (kWh),Feed (kWh),PV (kWh)," +
-            "PV->Load (kWh),Battery->Load (kWh),Grid->Battery (kWh)\n"
-        )
+        val cols = selectedUsageSeries()
+        val sb = StringBuilder("Subject")
+        cols.forEach { (_, label) -> sb.append(',').append(csvField("$label (kWh)")) }
+        sb.append('\n')
         rows.forEach { r ->
-            sb.append(csvField(r.subjectName)).append(',')
-              .append(kwh(r.load)).append(',')
-              .append(kwh(r.buy)).append(',')
-              .append(kwh(r.feed)).append(',')
-              .append(kwh(r.pv)).append(',')
-              .append(kwh(r.pv2load)).append(',')
-              .append(kwh(r.bat2load)).append(',')
-              .append(kwh(r.grid2bat)).append('\n')
+            sb.append(csvField(r.subjectName))
+            cols.forEach { (id, _) -> sb.append(',').append(kwh(usageMetric(r, id))) }
+            sb.append('\n')
         }
         return sb.toString()
     }
@@ -1187,14 +1226,14 @@ class UI2CompareViewModel @Inject constructor(
     fun costResultsJson(): String? {
         val rows = _results.value?.cost ?: return null
         if (rows.isEmpty()) return null
+        val cols = selectedCostSeries()
         val arr = JSONArray()
         rows.forEach { r ->
             arr.put(JSONObject().apply {
                 put("subject", r.subjectName)
                 put("plan", r.planName)
                 put("available", r.available)
-                put("net", r.net); put("buy", r.buy); put("sell", r.sell)
-                put("fixed", r.fixed); put("bonus", r.bonus)
+                cols.forEach { (id, _) -> put(id, costMetric(r, id)) }
                 put("monthlyNet", JSONArray(r.timeline.seriesValues["net"] ?: emptyList<Double>()))
             })
         }
@@ -1205,14 +1244,12 @@ class UI2CompareViewModel @Inject constructor(
     fun usageResultsJson(): String? {
         val rows = _results.value?.usage ?: return null
         if (rows.isEmpty()) return null
+        val cols = selectedUsageSeries()
         val arr = JSONArray()
         rows.forEach { r ->
             arr.put(JSONObject().apply {
                 put("subject", r.subjectName)
-                put("load", r.load); put("buy", r.buy)
-                put("feed", r.feed); put("pv", r.pv)
-                put("pv2load", r.pv2load); put("bat2load", r.bat2load)
-                put("grid2bat", r.grid2bat)
+                cols.forEach { (id, _) -> put(id, usageMetric(r, id)) }
             })
         }
         return arr.toString(2)

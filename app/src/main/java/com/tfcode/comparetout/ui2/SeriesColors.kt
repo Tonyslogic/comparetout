@@ -105,7 +105,9 @@ private val compareEnergySeries: Map<String, FilterSeries> = mapOf(
     "evDivert" to FilterSeries.EV_DIVERT,
     "hwSchedule" to FilterSeries.HW_SCHEDULE,
     "hwDivert" to FilterSeries.HW_DIVERT,
-    "heatPump" to FilterSeries.HEAT_PUMP
+    "heatPump" to FilterSeries.HEAT_PUMP,
+    "heatPumpBackup" to FilterSeries.HEAT_PUMP_BACKUP,
+    "heatPumpHeat" to FilterSeries.HEAT_PUMP_HEAT
 )
 
 /**
