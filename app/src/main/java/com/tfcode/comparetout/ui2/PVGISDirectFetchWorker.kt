@@ -9,6 +9,7 @@ import androidx.work.WorkManager
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import com.google.gson.Gson
+import com.tfcode.comparetout.SimulatorLauncher
 import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.model.json.scenario.pgvis.PvGISData
 import com.tfcode.comparetout.model.scenario.PanelData
@@ -83,6 +84,10 @@ class PVGISDirectFetchWorker(
             }
 
             repository.savePanelData(panelDataList)
+            // PV data has landed — kick the recompute so a scenario the sim skipped for missing panel data now
+            // runs (mirrors HeatPumpWeatherFetchWorker). The sim is missing-only + panel-data-gated, so this is
+            // a no-op for scenarios that aren't ready or are already simulated.
+            SimulatorLauncher.simulateIfNeeded(applicationContext)
             Result.success()
         } catch (_: Exception) {
             Result.retry()

@@ -221,7 +221,7 @@ public abstract class AbstractGenerationWorker extends Worker {
             
             // Generate data for each MPPT string
             for (int i = 0; i < mpptCount; i++) {
-                PanelSet panelSet = getPanelSet(mStringPanelCount, i, mSystemSN, totalPV, totalPanelCount, scenarioKeys.assignedScenarioID);
+                PanelSet panelSet = getPanelSet(mStringPanelCount, i, mSystemSN, totalPV, totalPanelCount, scenarioKeys.assignedScenarioID, mFrom, mTo);
 
                 // Generate detailed panel generation data if requested
                 if (mPNLD)
@@ -427,7 +427,7 @@ public abstract class AbstractGenerationWorker extends Worker {
     abstract protected int getLoss(String mSystemSN);
 
     @NonNull
-    private PanelSet getPanelSet(List<Integer> mStringPanelCount, int i, String mSystemSN, double totalPV, int totalPanelCount, long assignedScenarioID) {
+    private PanelSet getPanelSet(List<Integer> mStringPanelCount, int i, String mSystemSN, double totalPV, int totalPanelCount, long assignedScenarioID, String mFrom, String mTo) {
         Integer stringSize = mStringPanelCount.get(i);
         Panel panel = new Panel();
         panel.setPanelCount(stringSize);
@@ -435,6 +435,13 @@ public abstract class AbstractGenerationWorker extends Worker {
         panel.setInverter(mSystemSN);
         panel.setMppt(i + 1);
         panel.setPanelkWp((int) (totalPV / totalPanelCount));
+        // Record the real historical provenance (DB v11). The source system serial matches the wizard's
+        // PV "Source" picker (SourceDateRange.sysSn) so an imported scenario reopens with the source + range
+        // selected. Unlike PVGIS (the 2001 reference year), this real window drives the heat-pump CDS weather
+        // dates even though the PV rows themselves are mapped onto the 2001 grid for simulation.
+        panel.setDataSource(mSystemSN);
+        if (null != mFrom) panel.setDataStartDate(mFrom);
+        if (null != mTo) panel.setDataEndDate(mTo);
         long panelID = mToutcRepository.savePanel(assignedScenarioID, panel);
         return new PanelSet(stringSize, panelID);
     }

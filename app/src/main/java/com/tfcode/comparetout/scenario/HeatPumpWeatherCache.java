@@ -18,15 +18,20 @@ package com.tfcode.comparetout.scenario;
 
 import android.content.Context;
 
+import com.tfcode.comparetout.model.scenario.Panel;
 import com.tfcode.comparetout.model.scenario.SimulationInputData;
 import com.tfcode.comparetout.scenario.sim.SimTime;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.StringReader;
 import java.text.DecimalFormat;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * The on-disk contract for cached CDS/ERA5 weather downloads (Phase 6 of {@code plans/hp/plan.md}).
@@ -91,6 +96,13 @@ public final class HeatPumpWeatherCache {
         return f.exists() && f.length() > 0;
     }
 
+    /** True iff the exact (location, period) CSV is already cached — period given as inclusive ISO days. */
+    public static boolean cacheExists(Context context, double latitude, double longitude,
+                                      String startIsoDate, String endIsoDate) {
+        File f = cacheFile(context, latitude, longitude, startIsoDate, endIsoDate);
+        return f.exists() && f.length() > 0;
+    }
+
     /**
      * True iff <i>any</i> cached CSV exists for this location's ERA5 node — a cheap dir scan (no grid load)
      * for the dashboard's "weather fetched?" readiness signal. The exact period is still gated by
@@ -137,5 +149,71 @@ public final class HeatPumpWeatherCache {
     /** UTC calendar day ({@code yyyy-MM-dd}) of an epoch-millis instant. */
     public static String isoDate(long millis) {
         return ISO_DATE.format(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate());
+    }
+
+    /** The 2001 reference year that PV (and therefore the realigned weather) sits on. */
+    private static final String REF_START = "2001-01-01";
+    private static final String REF_END = "2001-12-31";
+    private static final int REF_YEAR = 2001;
+    private static final DateTimeFormatter VALID_TIME =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
+    /**
+     * The <b>real</b> historical date range to drive the CDS weather query, or {@code null} to use the default
+     * 2001 grid period. PVGIS / synthetic / legacy panels record the {@code 2001-01-01 … 2001-12-31} reference
+     * range and are ignored here; only a historical local import (AlphaESS / Home Assistant) records an actual
+     * window, so its weather can be fetched for the real year and realigned onto the 2001 grid. Returns
+     * {@code {startIso, endIso}} (min start / max end across the importing panels), or {@code null} when no
+     * panel carries a non-2001 range.
+     */
+    public static String[] pvSourcePeriod(List<Panel> panels) {
+        if (panels == null) return null;
+        String start = null, end = null;
+        for (Panel p : panels) {
+            String s = p.getDataStartDate();
+            String e = p.getDataEndDate();
+            if (s == null || e == null) continue;
+            if (REF_START.equals(s) && REF_END.equals(e)) continue; // PVGIS/default reference year — skip
+            if (start == null || s.compareTo(start) < 0) start = s;  // ISO yyyy-MM-dd sorts chronologically
+            if (end == null || e.compareTo(end) > 0) end = e;
+        }
+        return (start == null) ? null : new String[]{start, end};
+    }
+
+    /**
+     * Rewrites a fetched ERA5 time-series CSV onto the 2001 reference grid: each row's {@code valid_time} keeps
+     * its month/day/time but is stamped to {@link #REF_YEAR}, mirroring {@code PVGISLoader}'s {@code
+     * withYear(2001)} so the realigned weather lands on the same UTC millis the 2001 PV/load grid uses. Rows on
+     * 29 Feb of a leap source year are dropped (2001 is non-leap), exactly as the PV mapping drops them. The
+     * {@code valid_time} column is resolved by name (it is not always first), matching {@link
+     * com.tfcode.comparetout.scenario.sim.CsvWeatherProvider}.
+     */
+    public static String remapWeatherTo2001(String csv) {
+        if (csv == null || csv.isEmpty()) return csv;
+        StringBuilder out = new StringBuilder(csv.length());
+        try (BufferedReader r = new BufferedReader(new StringReader(csv))) {
+            String header = r.readLine();
+            if (header == null) return csv;
+            out.append(header).append('\n');
+            int tIdx = -1;
+            String[] cols = header.split(",");
+            for (int i = 0; i < cols.length; i++) {
+                if ("valid_time".equals(cols[i].trim().toLowerCase(Locale.ROOT))) { tIdx = i; break; }
+            }
+            if (tIdx < 0) return csv; // unknown layout — leave untouched
+            String line;
+            while ((line = r.readLine()) != null) {
+                if (line.isEmpty()) continue;
+                String[] f = line.split(",", -1);
+                if (tIdx >= f.length) { out.append(line).append('\n'); continue; }
+                LocalDateTime t = LocalDateTime.parse(f[tIdx].trim().replace(' ', 'T'));
+                if (t.getMonthValue() == 2 && t.getDayOfMonth() == 29) continue; // drop leap day
+                f[tIdx] = VALID_TIME.format(t.withYear(REF_YEAR));
+                out.append(String.join(",", f)).append('\n');
+            }
+        } catch (Exception e) {
+            return csv; // never break the fetch over a remap parse hiccup — fall back to raw content
+        }
+        return out.toString();
     }
 }

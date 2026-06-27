@@ -96,26 +96,47 @@ class HeatPumpWeatherFetchWorker(
         }
         val gridMillis = HeatPumpWeatherCache.gridMillis(grid)
         val span = HeatPumpWeatherCache.spanMillis(gridMillis)
-        val startIso = HeatPumpWeatherCache.isoDate(span[0])
-        val endIso = HeatPumpWeatherCache.isoDate(span[1])
+        // When PV came from a historical local import (AlphaESS / Home Assistant), fetch ERA5 for that REAL
+        // year and realign it onto the 2001 grid below; otherwise the period is the load grid's own span
+        // (2001 for PVGIS/synthetic). pvPeriod is null unless a panel carries a non-2001 range, so PVGIS and
+        // legacy scenarios are byte-identical to before. The sim keys the same cache the same way.
+        val pvPeriod = HeatPumpWeatherCache.pvSourcePeriod(components.panels)
+        val startIso = pvPeriod?.get(0) ?: HeatPumpWeatherCache.isoDate(span[0])
+        val endIso = pvPeriod?.get(1) ?: HeatPumpWeatherCache.isoDate(span[1])
         val cacheFile = HeatPumpWeatherCache.cacheFile(
             applicationContext, hp.latitude, hp.longitude, startIso, endIso
         )
+        // Whether this period is the user's real PV-source year (→ aligned onto the 2001 grid below) or the
+        // 2001 reference year itself. Surfaced in the notifications so the download → align → simulate order
+        // is visible (a bare "2001" otherwise reads as if the real fetch was skipped).
+        val historical = pvPeriod != null
+        val periodLabel = if (historical) "$startIso → $endIso (your PV-source year)"
+                          else "2001 reference year"
+
         if (cacheFile.exists() && cacheFile.length() > 0) {
-            finish("Heat-pump weather: already cached for $startIso → $endIso")
+            finish("Heat-pump weather already cached: $periodLabel — simulating")
             // The sim skips CDS scenarios whose weather is missing, so a recompute that finds the cache
             // already present still needs a nudge to run now that the data is available.
             SimulatorLauncher.simulateIfNeeded(applicationContext)
             return Result.success() // immutable — reuse
         }
 
-        progress("Heat-pump weather: requesting $startIso → $endIso…", indeterminate = true)
+        progress("Downloading ERA5 weather: $periodLabel…", indeterminate = true)
         return try {
-            val csv = fetchCds(base, token, hp.latitude, hp.longitude, startIso, endIso)
+            var csv = fetchCds(base, token, hp.latitude, hp.longitude, startIso, endIso)
+            // Realign a real-year historical fetch onto the 2001 grid the PV/load sit on (no-op for the
+            // grid-period path, where pvPeriod is null).
+            if (historical) {
+                progress("Aligning $startIso → $endIso weather to the 2001 simulation grid…",
+                    indeterminate = true)
+                csv = HeatPumpWeatherCache.remapWeatherTo2001(csv)
+            }
             writeAtomic(cacheFile, csv)
             // Flag the credentials as known-good now that a fetch succeeded (Phase 5.5 deferred validation here).
             toutc.putStringValueIntoDataStore(CDS_GOOD_KEY, "True")
-            finish("Heat-pump weather ready ($startIso → $endIso)")
+            finish(if (historical)
+                       "Weather ready: $startIso → $endIso aligned to 2001 grid — simulating"
+                   else "Weather ready: 2001 reference year — simulating")
             // Real weather has landed — re-run the simulation so the scenario the sim skipped now completes.
             SimulatorLauncher.simulateIfNeeded(applicationContext)
             Result.success()

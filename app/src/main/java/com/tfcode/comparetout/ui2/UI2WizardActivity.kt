@@ -704,6 +704,7 @@ private fun WizardScreen(
                 HeatPumpSectionContent(
                     entries = builder.heatPumpEntries,
                     noviceMode = noviceMode,
+                    cdsDateRange = cdsQueryDates(builder.panelEntries),
                     onAdd = { viewModel.addHeatPumpEntry() },
                     onRemove = { viewModel.removeHeatPumpEntry(it) },
                     onUpdate = { id, fn -> viewModel.updateHeatPumpEntry(id, fn) },
@@ -2250,6 +2251,7 @@ private fun defaultAnnualUse(fuel: String): String = when (fuel) {
 private fun HeatPumpSectionContent(
     entries: List<WizardHeatPumpEntry>,
     noviceMode: Boolean,
+    cdsDateRange: Pair<String, String>,
     onAdd: () -> Unit,
     onRemove: (String) -> Unit,
     onUpdate: (String, (WizardHeatPumpEntry) -> WizardHeatPumpEntry) -> Unit,
@@ -2261,7 +2263,7 @@ private fun HeatPumpSectionContent(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        entries.forEach { hp -> HeatPumpCard(hp, noviceMode, onRemove, onUpdate) }
+        entries.forEach { hp -> HeatPumpCard(hp, noviceMode, cdsDateRange, onRemove, onUpdate) }
         if (entries.isEmpty()) {
             FilledTonalButton(onClick = onAdd, modifier = Modifier.fillMaxWidth()) {
                 Text("Add heat pump")
@@ -2349,6 +2351,21 @@ private fun windLevelFor(alphaWind: Double): WindLevel = when {
 private const val IRELAND_HDD_15_5 = 2200.0
 
 /**
+ * The (start, end) ISO dates the heat-pump CDS weather query will use — the wizard-side mirror of
+ * `HeatPumpWeatherCache.pvSourcePeriod`: a historical PV "Source" range drives the dates, otherwise the 2001
+ * reference year. min-start / max-end across any sourced strings (PVGIS/None panels stay on 2001).
+ */
+private fun cdsQueryDates(panels: List<WizardPanelEntry>): Pair<String, String> {
+    val sourced = panels.filter {
+        it.pvDataSource == PanelDataSource.SOURCE &&
+            it.pvSourceFrom.isNotBlank() && it.pvSourceTo.isNotBlank() &&
+            !(it.pvSourceFrom == "2001-01-01" && it.pvSourceTo == "2001-12-31")
+    }
+    if (sourced.isEmpty()) return "2001-01-01" to "2001-12-31"
+    return sourced.minOf { it.pvSourceFrom } to sourced.maxOf { it.pvSourceTo }
+}
+
+/**
  * A lightweight expandable sub-section used inside [HeatPumpCard] (Heat energy required / HP characteristics
  * / Location & weather). Deliberately not [WizardAccordionSection], which is the heavy top-level card.
  */
@@ -2390,6 +2407,7 @@ private fun HpSubSection(
 private fun HeatPumpCard(
     hp: WizardHeatPumpEntry,
     novice: Boolean,
+    cdsDateRange: Pair<String, String>,
     onRemove: (String) -> Unit,
     onUpdate: (String, (WizardHeatPumpEntry) -> WizardHeatPumpEntry) -> Unit
 ) {
@@ -2624,13 +2642,25 @@ private fun HeatPumpCard(
                         HpDoubleField("Longitude", hp.longitude, null, novice, Modifier.weight(1f)) { v ->
                             update { it.copy(longitude = v) } }
                     }
-                    Text("Fetched at ERA5 grid node %.2f, %.2f · period follows this scenario's data (2001 sample year, or your imported years)."
-                        .format(HeatPumpWeatherCache.snapToEra5Grid(hp.latitude),
+                    val onRefYear = cdsDateRange.first == "2001-01-01" && cdsDateRange.second == "2001-12-31"
+                    Text("CDS query: ${cdsDateRange.first} → ${cdsDateRange.second}" +
+                        (if (onRefYear) " (reference year)" else " (from your PV source data)"),
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(top = 2.dp))
+                    Text("Fetched at ERA5 grid node %.2f, %.2f.".format(
+                            HeatPumpWeatherCache.snapToEra5Grid(hp.latitude),
                             HeatPumpWeatherCache.snapToEra5Grid(hp.longitude)),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (novice) {
-                        Text("Defaults to your PV array's location — edit for a different site.",
+                        Text(if (onRefYear)
+                                "Uses the 2001 reference year. Add real PV data from a historical source " +
+                                    "(in the PV System section) to align weather to your measured year."
+                             else
+                                "The period matches your imported PV data so weather and solar share the same year.",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text("Location defaults to your PV array — edit for a different site.",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }

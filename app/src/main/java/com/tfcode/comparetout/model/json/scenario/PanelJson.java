@@ -59,4 +59,16 @@ public class PanelJson {
     @SerializedName("Optimized")
     public
     Boolean optimized;
+
+    @SerializedName("PV data source")
+    public
+    String dataSource;
+
+    @SerializedName("PV data start")
+    public
+    String dataStartDate;
+
+    @SerializedName("PV data end")
+    public
+    String dataEndDate;
 }

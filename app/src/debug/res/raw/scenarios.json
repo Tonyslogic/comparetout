@@ -40,7 +40,10 @@
 				"Inverter": "AlphaESS",
 				"MPPT": 1,
 				"PanelName": "Top",
-				"Optimized": false
+				"Optimized": false,
+				"PV data source": "PVGIS",
+				"PV data start": "2001-01-01",
+				"PV data end": "2001-12-31"
 			},
 			{
 				"PanelCount": 7,
@@ -52,7 +55,10 @@
 				"Inverter": "AlphaESS",
 				"MPPT": 2,
 				"PanelName": "Bottom",
-				"Optimized": false
+				"Optimized": false,
+				"PV data source": "PVGIS",
+				"PV data start": "2001-01-01",
+				"PV data end": "2001-12-31"
 			}
 		],
 		"HWSystem": {

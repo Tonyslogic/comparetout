@@ -458,6 +458,11 @@ public class JsonTools {
         panel.setMppt(pj.mppt);
         panel.setPanelName(pj.panelName);
         panel.setConnectionMode(pj.optimized?Panel.OPTIMIZED:Panel.PARALLEL);
+        // Provenance (DB v11). Older scenario JSON predates these fields, so default a missing source to PVGIS
+        // and a missing range to the 2001 reference year — byte-identical to pre-v11 behaviour.
+        panel.setDataSource(null == pj.dataSource ? "PVGIS" : pj.dataSource);
+        panel.setDataStartDate(null == pj.dataStartDate ? "2001-01-01" : pj.dataStartDate);
+        panel.setDataEndDate(null == pj.dataEndDate ? "2001-12-31" : pj.dataEndDate);
         return panel;
     }
 
@@ -880,6 +885,9 @@ public class JsonTools {
                 panelJson.mppt = panel.getMppt();
                 panelJson.panelName = panel.getPanelName();
                 panelJson.optimized = panel.getConnectionMode() == Panel.OPTIMIZED;
+                panelJson.dataSource = panel.getDataSource();
+                panelJson.dataStartDate = panel.getDataStartDate();
+                panelJson.dataEndDate = panel.getDataEndDate();
                 panelJsons.add(panelJson);
             }
         }

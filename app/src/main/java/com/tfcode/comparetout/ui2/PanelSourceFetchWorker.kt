@@ -17,6 +17,7 @@ import androidx.work.Worker
 import androidx.work.WorkerParameters
 import com.tfcode.comparetout.MainActivity
 import com.tfcode.comparetout.R
+import com.tfcode.comparetout.SimulatorLauncher
 import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.model.scenario.PanelData
 import com.tfcode.comparetout.scenario.sim.SimTime
@@ -139,6 +140,10 @@ class PanelSourceFetchWorker(
             val totalKwh = out.sumOf { it.pv }
             completeNotification(mgr, builder, notificationId,
                 "Done · ${"%.0f".format(totalKwh)} kWh saved", success = true)
+            // Source PV data has landed — kick the recompute so a scenario the sim skipped for missing panel
+            // data now runs (mirrors HeatPumpWeatherFetchWorker). simulateIfNeeded is missing-only +
+            // panel-data-gated, so it's a no-op when the scenario isn't ready or is already simulated.
+            SimulatorLauncher.simulateIfNeeded(applicationContext)
             return Result.success()
         } catch (e: Exception) {
             Log.e(TAG, "Worker failed", e)

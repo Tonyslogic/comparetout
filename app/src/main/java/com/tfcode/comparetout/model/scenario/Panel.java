@@ -16,6 +16,7 @@
 
 package com.tfcode.comparetout.model.scenario;
 
+import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
@@ -35,6 +36,17 @@ public class Panel {
     private int mppt = 1;
     private String panelName = "<Name>";
     private int connectionMode = PARALLEL;
+
+    // Provenance of the generation series (added in DB v11). PVGIS data is the 2001 reference year, so the
+    // default range is 2001; only a historical local import (AlphaESS / Home Assistant) records a real window,
+    // which then drives the heat-pump CDS weather dates. @ColumnInfo defaults keep the v10→v11 AutoMigration
+    // buildable and leave existing rows on the 2001 assumption.
+    @ColumnInfo(defaultValue = "'PVGIS'")
+    private String dataSource = "PVGIS";
+    @ColumnInfo(defaultValue = "'2001-01-01'")
+    private String dataStartDate = "2001-01-01"; // inclusive UTC calendar day
+    @ColumnInfo(defaultValue = "'2001-12-31'")
+    private String dataEndDate = "2001-12-31";
 
     public static final int PARALLEL = 0;
     public static final int OPTIMIZED = 1;
@@ -125,5 +137,29 @@ public class Panel {
 
     public void setMppt(int mppt) {
         this.mppt = mppt;
+    }
+
+    public String getDataSource() {
+        return dataSource;
+    }
+
+    public void setDataSource(String dataSource) {
+        this.dataSource = dataSource;
+    }
+
+    public String getDataStartDate() {
+        return dataStartDate;
+    }
+
+    public void setDataStartDate(String dataStartDate) {
+        this.dataStartDate = dataStartDate;
+    }
+
+    public String getDataEndDate() {
+        return dataEndDate;
+    }
+
+    public void setDataEndDate(String dataEndDate) {
+        this.dataEndDate = dataEndDate;
     }
 }

@@ -45,6 +45,7 @@ import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -990,11 +991,27 @@ fun WizardPanelCard(
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("Panel data", style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.outline)
+                    // Lift the selected chip to primaryContainer + a 1.5dp primary border so the active source
+                    // is obvious — matches the Compare screen's chip styling (default secondaryContainer fill
+                    // was too close to surface to read).
+                    val pvChipColors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                        selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                    @Composable
+                    fun pvChipBorder(selected: Boolean) = FilterChipDefaults.filterChipBorder(
+                        enabled = true, selected = selected,
+                        selectedBorderColor = MaterialTheme.colorScheme.primary,
+                        selectedBorderWidth = 1.5.dp
+                    )
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         FilterChip(
                             selected = entry.pvDataSource == PanelDataSource.NONE,
                             onClick = { onUpdate(entry.copy(pvDataSource = PanelDataSource.NONE, pvSourceSysSn = "")) },
-                            label = { Text("None") }
+                            label = { Text("None") },
+                            colors = pvChipColors,
+                            border = pvChipBorder(entry.pvDataSource == PanelDataSource.NONE)
                         )
                         FilterChip(
                             selected = entry.pvDataSource == PanelDataSource.PVGIS,
@@ -1003,16 +1020,22 @@ fun WizardPanelCard(
                             leadingIcon = {
                                 Icon(painterResource(R.drawable.ic_baseline_wb_sunny_36), null,
                                     Modifier.size(16.dp), tint = Color.Unspecified)
-                            }
+                            },
+                            colors = pvChipColors,
+                            border = pvChipBorder(entry.pvDataSource == PanelDataSource.PVGIS)
                         )
-                        if (pvSources.isNotEmpty() && showAdvanced) {
+                        // Show the Source chip in Advanced, or when this panel is already on a historical source
+                        // (recorded in the DB) — so its selection stays visible without forcing Advanced.
+                        if (showAdvanced || entry.pvDataSource == PanelDataSource.SOURCE) {
                             FilterChip(
                                 selected = entry.pvDataSource == PanelDataSource.SOURCE,
                                 onClick = { onUpdate(entry.copy(pvDataSource = PanelDataSource.SOURCE)) },
                                 label = { Text("Source") },
                                 leadingIcon = {
                                     Icon(Icons.Default.Download, null, Modifier.size(16.dp))
-                                }
+                                },
+                                colors = pvChipColors,
+                                border = pvChipBorder(entry.pvDataSource == PanelDataSource.SOURCE)
                             )
                         }
                     }
@@ -1051,6 +1074,24 @@ fun WizardPanelCard(
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                            }
+                        }
+                    }
+                    // SOURCE loaded from the DB but its import data is no longer available to re-pick: show the
+                    // recorded source + date range read-only (these are the dates the CDS weather query uses).
+                    if (entry.pvDataSource == PanelDataSource.SOURCE && pvSources.isEmpty()) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(MaterialTheme.colorScheme.surfaceVariant)
+                                .padding(horizontal = 12.dp, vertical = 10.dp)
+                        ) {
+                            Text("Source: ${entry.pvSourceSysSn.ifBlank { "—" }}",
+                                style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                            if (entry.pvSourceFrom.isNotBlank() && entry.pvSourceTo.isNotBlank()) {
+                                Text("${entry.pvSourceFrom} → ${entry.pvSourceTo}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
                     }

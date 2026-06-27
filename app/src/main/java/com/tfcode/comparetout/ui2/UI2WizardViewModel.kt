@@ -514,23 +514,52 @@ data class WizardPanelEntry(
         p.inverter = inverterName.ifBlank { "Inverter" }
         p.mppt = mppt
         p.connectionMode = connectionMode
+        // Persist the data-source provenance (DB v11). A historical "Source" records its real window, which
+        // drives the heat-pump CDS weather dates; PVGIS/None stay on the 2001 reference year. Without this the
+        // panel reverted to the PVGIS default on every save and CDS never used the source's real dates.
+        when (pvDataSource) {
+            PanelDataSource.SOURCE -> {
+                p.dataSource = pvSourceSysSn.ifBlank { "Source" }
+                p.dataStartDate = pvSourceFrom.ifBlank { "2001-01-01" }
+                p.dataEndDate = pvSourceTo.ifBlank { "2001-12-31" }
+            }
+            PanelDataSource.PVGIS -> {
+                p.dataSource = "PVGIS"; p.dataStartDate = "2001-01-01"; p.dataEndDate = "2001-12-31"
+            }
+            PanelDataSource.NONE -> {
+                p.dataSource = "None"; p.dataStartDate = "2001-01-01"; p.dataEndDate = "2001-12-31"
+            }
+        }
     }
 }
 
-private fun Panel.toWizardPanelEntry() = WizardPanelEntry(
-    id = panelIndex.toString(),
-    panelIndex = panelIndex,
-    panelName = panelName ?: "String 1",
-    panelCount = panelCount,
-    panelkWp = panelkWp,
-    azimuth = azimuth,
-    slope = slope,
-    latitude = latitude,
-    longitude = longitude,
-    inverterName = inverter ?: "",
-    mppt = mppt,
-    connectionMode = connectionMode
-)
+private fun Panel.toWizardPanelEntry(): WizardPanelEntry {
+    // Reselect the PV data-source from what's persisted (DB v11): PVGIS / None / a historical Source.
+    val label = dataSource ?: "PVGIS"
+    val source = when {
+        label.equals("PVGIS", ignoreCase = true) -> PanelDataSource.PVGIS
+        label.isBlank() || label.equals("None", true) || label.equals("Unknown", true) -> PanelDataSource.NONE
+        else -> PanelDataSource.SOURCE
+    }
+    return WizardPanelEntry(
+        id = panelIndex.toString(),
+        panelIndex = panelIndex,
+        panelName = panelName ?: "String 1",
+        panelCount = panelCount,
+        panelkWp = panelkWp,
+        azimuth = azimuth,
+        slope = slope,
+        latitude = latitude,
+        longitude = longitude,
+        inverterName = inverter ?: "",
+        mppt = mppt,
+        connectionMode = connectionMode,
+        pvDataSource = source,
+        pvSourceSysSn = if (source == PanelDataSource.SOURCE) label else "",
+        pvSourceFrom = if (source == PanelDataSource.SOURCE) (dataStartDate ?: "") else "",
+        pvSourceTo = if (source == PanelDataSource.SOURCE) (dataEndDate ?: "") else ""
+    )
+}
 
 data class WizardBuilder(
     // Start
@@ -1172,6 +1201,25 @@ class UI2WizardViewModel @Inject constructor(
     }
     fun locationRequestDismissed() { _pendingLocationRequest.value = null }
 
+    /**
+     * True if the fetch-relevant inputs differ between the persisted panel and the about-to-save one — i.e. the
+     * user changed the data source, its date range, the orientation or the array size this session. Compared on
+     * [WizardPanelEntry.toPanel] output so it round-trips exactly for an untouched reloaded panel (→ no fetch).
+     */
+    private fun panelFetchInputsChanged(before: com.tfcode.comparetout.model.scenario.Panel?,
+                                        after: com.tfcode.comparetout.model.scenario.Panel): Boolean {
+        if (before == null) return true
+        return before.latitude != after.latitude ||
+            before.longitude != after.longitude ||
+            before.slope != after.slope ||
+            before.azimuth != after.azimuth ||
+            before.panelCount != after.panelCount ||
+            before.panelkWp != after.panelkWp ||
+            before.dataSource != after.dataSource ||
+            before.dataStartDate != after.dataStartDate ||
+            before.dataEndDate != after.dataEndDate
+    }
+
     private fun triggerPanelDataFetch(entry: WizardPanelEntry, panelId: Long) {
         android.util.Log.i(PanelSourceFetchWorker.TAG,
             "triggerPanelDataFetch: panelId=$panelId panelName='${entry.panelName}' " +
@@ -1497,11 +1545,14 @@ class UI2WizardViewModel @Inject constructor(
                             .forEach { repository.deletePanelFromScenario(it.panelIndex, scenarioId) }
                         b.panelEntries.filter { it.panelIndex > 0L }
                             .forEach { entry ->
-                                repository.updatePanel(entry.toPanel())
-                                // pvDataSource / source config are wizard-only fields (not persisted
-                                // on the Panel row). If the user has configured a fetchable source
-                                // for an existing panel in this session, kick off the data fetch.
-                                if (entry.pvDataSource != PanelDataSource.NONE) {
+                                val before = existing.panels?.firstOrNull { it.panelIndex == entry.panelIndex }
+                                val after = entry.toPanel()
+                                repository.updatePanel(after)
+                                // Only (re)fetch when the source or its inputs actually changed this session.
+                                // Reloaded panels now round-trip their data-source (DB v11), so without this
+                                // guard every unrelated edit-save would needlessly re-download PVGIS/source data.
+                                if (entry.pvDataSource != PanelDataSource.NONE &&
+                                    panelFetchInputsChanged(before, after)) {
                                     triggerPanelDataFetch(entry, entry.panelIndex)
                                 }
                             }

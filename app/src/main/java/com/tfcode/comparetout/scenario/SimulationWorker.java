@@ -193,14 +193,22 @@ public class SimulationWorker extends Worker {
                             && !scenarioComponents.heatPumps.isEmpty()) {
                         HeatPump hp = scenarioComponents.heatPumps.get(0);
                         List<SimulationInputData> hpGrid = mToutcRepository.getSimulationInputNoSolar(scenarioID);
+                        // A historical PV import (AlphaESS / Home Assistant) drives the weather to its real year
+                        // (cached on the source-period key, content realigned to 2001 by the fetch worker);
+                        // PVGIS/legacy/no-PV ⇒ null ⇒ the load-grid period, exactly as before.
+                        String[] pvPeriod = HeatPumpWeatherCache.pvSourcePeriod(scenarioComponents.panels);
                         // CDS weather behaves like PV data: if the real weather hasn't been fetched yet we must
                         // NOT silently simulate on the bundled sample asset. Kick off the fetch and skip this
                         // scenario (leaving it "needs simulation" + flagged on the dashboard); the fetch worker
                         // re-runs the simulation once the weather lands.
                         if ("cds".equals(hp.getWeatherSource())) {
-                            long[] hpMillis = HeatPumpWeatherCache.gridMillis(hpGrid);
-                            if (!HeatPumpWeatherCache.cacheExists(getApplicationContext(),
-                                    hp.getLatitude(), hp.getLongitude(), hpMillis)) {
+                            boolean cached = (pvPeriod != null)
+                                    ? HeatPumpWeatherCache.cacheExists(getApplicationContext(),
+                                        hp.getLatitude(), hp.getLongitude(), pvPeriod[0], pvPeriod[1])
+                                    : HeatPumpWeatherCache.cacheExists(getApplicationContext(),
+                                        hp.getLatitude(), hp.getLongitude(),
+                                        HeatPumpWeatherCache.gridMillis(hpGrid));
+                            if (!cached) {
                                 enqueueWeatherFetch(scenarioID);
                                 builder.setContentText("Skipping " + scenario.getScenarioName()
                                         + " — heat-pump weather not ready");
@@ -208,7 +216,7 @@ public class SimulationWorker extends Worker {
                                 continue;
                             }
                         }
-                        heatPumpComponent = buildHeatPumpComponent(hp, hpGrid);
+                        heatPumpComponent = buildHeatPumpComponent(hp, hpGrid, pvPeriod);
                     }
 
                     /*
@@ -408,9 +416,10 @@ public class SimulationWorker extends Worker {
                 .enqueueUniqueWork("hp_weather_" + scenarioID, ExistingWorkPolicy.KEEP, fetch);
     }
 
-    private HeatPumpComponent buildHeatPumpComponent(HeatPump hp, List<SimulationInputData> gridRows) {
+    private HeatPumpComponent buildHeatPumpComponent(HeatPump hp, List<SimulationInputData> gridRows,
+                                                     String[] pvPeriod) {
         long[] gridMillis = HeatPumpWeatherCache.gridMillis(gridRows);
-        WeatherProvider weather = loadWeather(hp, gridMillis);
+        WeatherProvider weather = loadWeather(hp, gridMillis, pvPeriod);
         if (weather == null) return null; // weather unavailable ⇒ no heat-pump contribution
         return HeatPumpComponent.build(configFromHeatPump(hp), weather, gridMillis);
     }
@@ -421,10 +430,15 @@ public class SimulationWorker extends Worker {
      * unreadable cache — falls back to the offline sample asset. Both paths feed the <b>same</b>
      * {@link CsvWeatherProvider}, so the cache is a drop-in for the asset (Phase 6 of plans/hp/plan.md).
      */
-    private WeatherProvider loadWeather(HeatPump hp, long[] gridMillis) {
+    private WeatherProvider loadWeather(HeatPump hp, long[] gridMillis, String[] pvPeriod) {
         if ("cds".equals(hp.getWeatherSource())) {
-            File cache = HeatPumpWeatherCache.cacheFile(
-                    getApplicationContext(), hp.getLatitude(), hp.getLongitude(), gridMillis);
+            // Same key the fetch worker wrote: the historical source period when PV was imported, else the
+            // load-grid span. The cached content is already on the 2001 grid either way.
+            File cache = (pvPeriod != null)
+                    ? HeatPumpWeatherCache.cacheFile(getApplicationContext(),
+                        hp.getLatitude(), hp.getLongitude(), pvPeriod[0], pvPeriod[1])
+                    : HeatPumpWeatherCache.cacheFile(
+                        getApplicationContext(), hp.getLatitude(), hp.getLongitude(), gridMillis);
             if (cache.exists()) {
                 try (InputStream is = new FileInputStream(cache)) {
                     return new CsvWeatherProvider(new InputStreamReader(is));
