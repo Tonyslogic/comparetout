@@ -227,7 +227,7 @@ data class WizardHeatPumpEntry(
     val desiredIndoorTemp: String = "20",
     val currentIndoorTemp: String = "20",
     val balancePoint: String = "15.5",
-    val alphaWind: Double = 0.03,         // internal: not exposed in the UI
+    val alphaWind: Double = 0.03,         // set by the Basic-tab "When the wind blows…" chip group
     val heatingSeasonStart: Int? = null,
     val heatingSeasonEnd: Int? = null,
     val copRated: String = "4.2",

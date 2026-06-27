@@ -2315,6 +2315,25 @@ private fun cdsCredentialsPresent(context: android.content.Context): Boolean {
     return runCatching { TOUTCApplication.decryptString(raw) }.getOrNull()?.isNotEmpty() == true
 }
 
+/**
+ * Plain-language wind-sensitivity levels for the heat-pump Basic tab. Each maps to the model's
+ * `alphaWind` (wind-infiltration coefficient): higher ⇒ a draughtier home, which concentrates heat
+ * demand onto cold + windy peaks and pushes more onto the expensive backup heater. The default
+ * `0.03` lands in [WIND_LEVELS]`[1]` so existing scenarios open unchanged.
+ */
+private data class WindLevel(val label: String, val alphaWind: Double)
+private val WIND_LEVELS = listOf(
+    WindLevel("No difference", 0.0),
+    WindLevel("Gets cold quickly", 0.04),
+    WindLevel("Drafts / curtains move", 0.10)
+)
+/** Snap a stored `alphaWind` to the nearest [WindLevel] (bucket midpoints 0.02 / 0.07). */
+private fun windLevelFor(alphaWind: Double): WindLevel = when {
+    alphaWind < 0.02 -> WIND_LEVELS[0]
+    alphaWind < 0.07 -> WIND_LEVELS[1]
+    else             -> WIND_LEVELS[2]
+}
+
 @Composable
 private fun HeatPumpCard(
     hp: WizardHeatPumpEntry,
@@ -2393,6 +2412,27 @@ private fun HeatPumpCard(
             HpNumberField("Desired indoor temperature (°C)", hp.desiredIndoorTemp,
                 "Leave equal to today's setpoint to keep current comfort.", novice, Modifier.fillMaxWidth()) {
                     v -> update { it.copy(desiredIndoorTemp = v) }
+            }
+
+            // ── Wind sensitivity (maps to alphaWind) ──
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text("When the wind blows…", style = MaterialTheme.typography.labelMedium)
+                val selected = windLevelFor(hp.alphaWind)
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    WIND_LEVELS.forEach { level ->
+                        FilterChip(
+                            selected = selected == level,
+                            onClick = { update { it.copy(alphaWind = level.alphaWind) } },
+                            label = { Text(level.label) }
+                        )
+                    }
+                }
+                if (novice) {
+                    Text("A draughty home loses heat fastest on cold, windy days — that can push a heat " +
+                        "pump past its capacity onto the expensive backup heater.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
             }
 
             // ── Candidate heat pump ──
