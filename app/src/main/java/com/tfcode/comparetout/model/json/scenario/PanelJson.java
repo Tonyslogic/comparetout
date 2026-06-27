@@ -71,4 +71,8 @@ public class PanelJson {
     @SerializedName("PV data end")
     public
     String dataEndDate;
+
+    @SerializedName("PV system loss")
+    public
+    Integer systemLoss;
 }

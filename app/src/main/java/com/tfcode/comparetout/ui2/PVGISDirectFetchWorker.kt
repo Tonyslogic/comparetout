@@ -17,10 +17,12 @@ import com.tfcode.comparetout.scenario.sim.SimTime
 import java.net.HttpURLConnection
 import java.net.URL
 import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import java.util.Locale
 
 class PVGISDirectFetchWorker(
     context: Context,
@@ -34,14 +36,19 @@ class PVGISDirectFetchWorker(
         val repository = ToutcRepository(applicationContext as Application)
         val panel = repository.getPanelForID(panelID) ?: return Result.failure()
 
-        val df = DecimalFormat("#.000")
+        // Locale.ROOT so lat/lon/peakpower use a '.' decimal — a comma (German etc.) would corrupt the URL.
+        val df = DecimalFormat("#.000", DecimalFormatSymbols.getInstance(Locale.ROOT))
         val lat = df.format(panel.latitude)
         val lon = df.format(panel.longitude)
         var az = panel.azimuth
         if (az > 180) az = 360 - az
 
+        val peakKWp = DecimalFormat("#.###", DecimalFormatSymbols.getInstance(Locale.ROOT))
+            .format(panel.panelCount * panel.panelkWp / 1000.0)
+        val lossPct = panel.systemLoss
+
         val url = U1 + lat + U2 + lon + U3 + panel.slope + U4 + az +
-            U5 + panel.slope + U6 + az
+            U5 + panel.slope + U6 + az + U7 + peakKWp + U8 + lossPct
 
         return try {
             val connection = URL(url).openConnection() as HttpURLConnection
@@ -64,7 +71,9 @@ class PVGISDirectFetchWorker(
                 // stamp (:11,:16,…) lands on instants the load never has, silently dropping all PV. Then remap
                 // onto the synthetic 2001 grid (keep month/day/hour). Mirrors PVGISLoader.mapHourlyTo2001Rows.
                 val utc = LocalDateTime.parse(pp.time, pvGisFormat).truncatedTo(ChronoUnit.HOURS)
-                val pvPerInterval = (pp.gi / 12.0 / MAGIC_NUMBER) * panel.panelCount * panel.panelkWp
+                // P is the hour's average system power (W); spread over twelve 5-min slots, W→kW. No magic
+                // number, no count/kWp multiply — peakpower already scaled the PVGIS-computed result.
+                val pvPerInterval = pp.p / 12.0 / 1000.0
                 for (i in 0 until 12) {
                     val slot = utc.plusMinutes(5L * i)
                     // 2001 is non-leap: drop Feb 29 so the PV row count stays equal to the load's 105120.
@@ -95,17 +104,20 @@ class PVGISDirectFetchWorker(
     }
 
     companion object {
-        private const val MAGIC_NUMBER = 919821.0
         private const val U1 = "https://re.jrc.ec.europa.eu/api/v5_2/seriescalc?lat="
         private const val U2 = "&lon="
         private const val U3 = "&raddatabase=PVGIS-SARAH2&browser=1&outputformat=json" +
             "&userhorizon=&usehorizon=1&angle="
         private const val U4 = "&aspect="
-        private const val U5 = "&startyear=2019&endyear=2019&mountingplace=" +
+        private const val U5 = "&startyear=2019&endyear=2019&mountingplace=free" +
             "&optimalinclination=0&optimalangles=0&js=1" +
             "&select_database_hourly=PVGIS-SARAH2&hstartyear=2019&hendyear=2019" +
             "&trackingtype=0&hourlyangle="
         private const val U6 = "&hourlyaspect="
+        // Make PVGIS compute PV power: peakpower (array kWp) and loss% appended at build time. PVGIS then
+        // returns the temperature- and loss-derated P column, replacing the old local magic number.
+        private const val U7 = "&pvcalculation=1&pvtechchoice=crystSi&peakpower="
+        private const val U8 = "&loss="
 
         fun enqueue(context: Context, panelId: Long) {
             val data = Data.Builder().putLong("panelID", panelId).build()

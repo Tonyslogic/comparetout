@@ -1047,6 +1047,19 @@ fun WizardPanelCard(
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
+                        // PVGIS computes the power server-side and derates per-location temperature itself; this
+                        // is the flat non-temperature system loss it can't know. A change re-fetches (it's part of
+                        // panelFetchInputsChanged), so it lives with the other PVGIS settings.
+                        NumericIntField(
+                            value = entry.systemLoss,
+                            onValueChange = { onUpdate(entry.copy(systemLoss = it)) },
+                            label = "System loss %",
+                            modifier = Modifier.fillMaxWidth(),
+                            range = 0..30,
+                            supportingText = if (noviceMode)
+                                ({ Text("Cabling, inverter, soiling, mismatch. 14% is PVGIS's default.") }) else null
+                        )
+                        Spacer(Modifier.height(4.dp))
                         when {
                             hasData -> {
                                 Spacer(Modifier.height(4.dp))

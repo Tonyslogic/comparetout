@@ -48,6 +48,14 @@ public class Panel {
     @ColumnInfo(defaultValue = "'2001-12-31'")
     private String dataEndDate = "2001-12-31";
 
+    // PV system loss % for the PVGIS pvcalculation=1 query (added in DB v12). This is the flat, NON-temperature
+    // system loss — cabling, inverter, soiling, mismatch, low-light, spectral. PVGIS derives the per-location
+    // temperature derate itself from T2m/wind, so this single percentage replaces the old Ireland-fitted magic
+    // number. Per-panel (not a global config) so the wizard's re-fetch gate (panelFetchInputsChanged) notices a
+    // change; @ColumnInfo default 14 = PVGIS's own default, keeping the v11→v12 AutoMigration buildable.
+    @ColumnInfo(defaultValue = "14")
+    private int systemLoss = 14;
+
     public static final int PARALLEL = 0;
     public static final int OPTIMIZED = 1;
 
@@ -161,5 +169,13 @@ public class Panel {
 
     public void setDataEndDate(String dataEndDate) {
         this.dataEndDate = dataEndDate;
+    }
+
+    public int getSystemLoss() {
+        return systemLoss;
+    }
+
+    public void setSystemLoss(int systemLoss) {
+        this.systemLoss = systemLoss;
     }
 }

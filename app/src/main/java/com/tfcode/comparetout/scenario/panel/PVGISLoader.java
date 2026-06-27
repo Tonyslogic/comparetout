@@ -49,16 +49,17 @@ import java.io.InputStreamReader;
 import java.lang.reflect.Type;
 import java.nio.charset.StandardCharsets;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Locale;
 
 public class PVGISLoader extends Worker {
 
     private final ToutcRepository mToutcRepository;
-    private final static Double MAGIC_NUMBER = 919821d;
     private final Context mContext;
     private static final String TAG = "PVGISLoader";
 
@@ -83,11 +84,10 @@ public class PVGISLoader extends Worker {
         String text = context.getString(R.string.pvgis_notification_text);
 
         Panel mPanel = mToutcRepository.getPanelForID(panelID);
-        DecimalFormat df = new DecimalFormat("#.000");
-        String latitude = df.format(mPanel.getLatitude());
-        String longitude = df.format(mPanel.getLongitude());
-        String filename = "PVGIS(" + latitude + ")(" + longitude +
-                ")(" + mPanel.getSlope() + ")(" + mPanel.getAzimuth() + ")" ;
+        // The cached file name must match what PVGISActivity wrote. It now also encodes the PV-calc inputs
+        // (peak power + the panel's loss%) because the downloaded JSON carries PVGIS-computed power P that bakes
+        // those in — see pvgisCacheFilename — so an old G(i)-only file or a different array size can't be reused.
+        String filename = pvgisCacheFilename(mPanel);
 
         // NOTIFICATION SETUP
         int notificationId = 1;
@@ -131,8 +131,7 @@ public class PVGISLoader extends Worker {
 
             ArrayList<PanelData> panelDataList = new ArrayList<>();
             for (Hourly pp : pvGISData.hourlies.hourlies) {
-                panelDataList.addAll(mapHourlyTo2001Rows(mPanel.getPanelIndex(), pp.time, pp.gi,
-                        mPanel.getPanelCount(), mPanel.getPanelkWp()));
+                panelDataList.addAll(mapHourlyTo2001Rows(mPanel.getPanelIndex(), pp.time, pp.p));
             }
 
             builder.setProgress(PROGRESS_MAX, 60, false);
@@ -170,19 +169,20 @@ public class PVGISLoader extends Worker {
      *
      * @param panelIndex the owning panel's index (stored on each row)
      * @param pvgisTime  the PVGIS {@code time} field, formatted {@code yyyyMMdd:HHmm} (UTC)
-     * @param giWhm2     the PVGIS {@code G(i)} global irradiance for the hour
-     * @param panelCount the panel count for this PV string
-     * @param panelkWp   the per-panel peak power (kWp)
+     * @param pWatts     the PVGIS {@code P} system power output for the hour (W) — PVGIS has already applied
+     *                   the per-location temperature derate and the system loss%, and {@code peakpower}
+     *                   encoded the array's count×kWp, so this is the whole string's output
      * @return the 5-minute {@link PanelData} rows for this hour, on the 2001 UTC grid
      */
-    static java.util.List<PanelData> mapHourlyTo2001Rows(long panelIndex, String pvgisTime, double giWhm2,
-                                                         int panelCount, double panelkWp) {
+    static java.util.List<PanelData> mapHourlyTo2001Rows(long panelIndex, String pvgisTime, double pWatts) {
         java.util.List<PanelData> rows = new ArrayList<>(12);
         // Snap to the top of the hour: PVGIS stamps the hourly value at a minute offset (e.g. HH:11), but the
         // load grid — and hence the millis-keyed PV/load merge — is on HH:00,:05,…,:55. Expanding from the raw
         // offset would land every PV row between load instants and drop all of it (see method javadoc).
         LocalDateTime utc = LocalDateTime.parse(pvgisTime, PVGIS_FORMAT).truncatedTo(ChronoUnit.HOURS);
-        double pvPerInterval = (giWhm2 / 12d / MAGIC_NUMBER) * panelCount * panelkWp;
+        // P is the hour's average system power in W; the hour's energy P (Wh) spread over twelve 5-min slots,
+        // converted W→kW. No magic number, no count/kWp multiply — peakpower already scaled the PVGIS result.
+        double pvPerInterval = pWatts / 12d / 1000d;
         for (int i = 0; i < 12; i++) {
             LocalDateTime slot = utc.plusMinutes(5L * i);
             if (slot.getMonthValue() == 2 && slot.getDayOfMonth() == 29) continue;
@@ -199,6 +199,31 @@ public class PVGISLoader extends Worker {
             rows.add(row);
         }
         return rows;
+    }
+
+    /**
+     * The PVGIS array peak power in kWp ({@code panelCount × panelkWp ÷ 1000}; {@code panelkWp} is stored in
+     * Wp). Formatted with {@link Locale#ROOT} so the decimal is a {@code '.'} — required both for the PVGIS
+     * {@code peakpower=} query parameter and to keep the writer/reader cache file names identical regardless
+     * of device locale.
+     */
+    static String peakPowerKWp(Panel panel) {
+        double kWp = panel.getPanelCount() * (double) panel.getPanelkWp() / 1000d;
+        return new DecimalFormat("#.###", DecimalFormatSymbols.getInstance(Locale.ROOT)).format(kWp);
+    }
+
+    /**
+     * The deterministic cache file name for a panel's PVGIS download, shared by the writer
+     * ({@code PVGISActivity}) and this reader so they always agree. It encodes lat/lon/slope/azimuth (which
+     * shape the irradiance series) and now also the peak power and loss% — because the downloaded JSON carries
+     * PVGIS-computed power {@code P}, which already folds those in. The {@code _pv} marker also keeps these
+     * files distinct from pre-change {@code PVGIS(…)} files that held only {@code G(i)}.
+     */
+    static String pvgisCacheFilename(Panel panel) {
+        DecimalFormat df = new DecimalFormat("#.000", DecimalFormatSymbols.getInstance(Locale.ROOT));
+        return "PVGIS_pv(" + df.format(panel.getLatitude()) + ")(" + df.format(panel.getLongitude()) +
+                ")(" + panel.getSlope() + ")(" + panel.getAzimuth() +
+                ")(" + peakPowerKWp(panel) + ")(" + panel.getSystemLoss() + ")";
     }
 
 

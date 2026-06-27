@@ -463,6 +463,8 @@ public class JsonTools {
         panel.setDataSource(null == pj.dataSource ? "PVGIS" : pj.dataSource);
         panel.setDataStartDate(null == pj.dataStartDate ? "2001-01-01" : pj.dataStartDate);
         panel.setDataEndDate(null == pj.dataEndDate ? "2001-12-31" : pj.dataEndDate);
+        // PV system loss % (DB v12). Older JSON predates it → default to PVGIS's own 14%.
+        panel.setSystemLoss(null == pj.systemLoss ? 14 : pj.systemLoss);
         return panel;
     }
 
@@ -888,6 +890,7 @@ public class JsonTools {
                 panelJson.dataSource = panel.getDataSource();
                 panelJson.dataStartDate = panel.getDataStartDate();
                 panelJson.dataEndDate = panel.getDataEndDate();
+                panelJson.systemLoss = panel.getSystemLoss();
                 panelJsons.add(panelJson);
             }
         }

@@ -26,6 +26,12 @@ public class Hourly {
     @SerializedName("G(i)")
     public double gi;
 
+    // PVGIS PV system power output (W), returned when the seriescalc query sets pvcalculation=1.
+    // PVGIS has already applied the per-location module-temperature derate (from T2m/wind) and the
+    // flat system-loss%, so this is consumed directly instead of re-deriving power from G(i).
+    @SerializedName("P")
+    public double p;
+
 //    @SerializedName("H_sun")
 //    public double h_sun;
 //

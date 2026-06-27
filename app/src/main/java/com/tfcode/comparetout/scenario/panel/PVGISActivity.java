@@ -81,6 +81,8 @@ import com.tfcode.comparetout.util.LocalContentWebViewClient;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.util.Locale;
 import java.util.Objects;
 
 public class PVGISActivity extends AbstractEPOFolderActivity {
@@ -105,8 +107,12 @@ public class PVGISActivity extends AbstractEPOFolderActivity {
     private static final String U2 = "&lon="; // LONGITUDE
     private static final String U3 = "&raddatabase=PVGIS-SARAH2&browser=1&outputformat=json&userhorizon=&usehorizon=1&angle="; //SLOPE
     private static final String U4 = "&aspect="; // AZIMUTH
-    private static final String U5 = "&startyear=2019&endyear=2019&mountingplace=&optimalinclination=0&optimalangles=0&js=1&select_database_hourly=PVGIS-SARAH2&hstartyear=2019&hendyear=2019&trackingtype=0&hourlyangle="; // SLOPE
+    private static final String U5 = "&startyear=2019&endyear=2019&mountingplace=free&optimalinclination=0&optimalangles=0&js=1&select_database_hourly=PVGIS-SARAH2&hstartyear=2019&hendyear=2019&trackingtype=0&hourlyangle="; // SLOPE
     private static final String U6 = "&hourlyaspect="; //AZIMUTH
+    // Make PVGIS compute PV power: peakpower (array kWp) and loss% are per-fetch, appended at build time.
+    // PVGIS then returns the P column (temperature- and loss-derated), replacing the old local magic number.
+    private static final String U7 = "&pvcalculation=1&pvtechchoice=crystSi&peakpower="; // PEAK POWER kWp
+    private static final String U8 = "&loss="; // SYSTEM LOSS %
 
     private static final int STATE_ALL_GOOD = 0;
     private static final int STATE_LOCATION_CHANGED = 1;
@@ -449,11 +455,9 @@ public class PVGISActivity extends AbstractEPOFolderActivity {
 
     @NonNull
     private String getFilename() {
-        DecimalFormat df = new DecimalFormat("#.000");
-        String latitude = df.format(mPanel.getLatitude());
-        String longitude = df.format(mPanel.getLongitude());
-        return "PVGIS(" + latitude + ")(" + longitude +
-                ")(" + mPanel.getSlope() + ")(" + mPanel.getAzimuth() + ")";
+        // Shared with PVGISLoader (the reader) so writer/reader names always agree; encodes peak power + loss%
+        // because the downloaded JSON now carries PVGIS-computed power P that bakes those in.
+        return PVGISLoader.pvgisCacheFilename(mPanel);
     }
 
     private TableRow createRow(String title, String initialValue, AbstractTextWatcher action, TableRow.LayoutParams params, int inputType){
@@ -501,16 +505,20 @@ public class PVGISActivity extends AbstractEPOFolderActivity {
 
         String fileName = fileExist();
         if (!mFileCached) {
-            // U1 <LAT> U2 <LONG> U3 <SLOPE> U4 <AZIMUTH> U5 <SLOPE> U6 <AZIMUTH>
+            // U1 <LAT> U2 <LONG> U3 <SLOPE> U4 <AZIMUTH> U5 <SLOPE> U6 <AZIMUTH> U7 <PEAK kWp> U8 <LOSS%>
             int az = mPanel.getAzimuth();
             if (az > 180) az = 360 - az;
-            DecimalFormat df = new DecimalFormat("#.000");
+            // Locale.ROOT so lat/lon/peakpower use a '.' decimal — a comma (German etc.) would corrupt the URL.
+            DecimalFormat df = new DecimalFormat("#.000", DecimalFormatSymbols.getInstance(Locale.ROOT));
+            int lossPct = mPanel.getSystemLoss(); // legacy UI has no loss control → the panel's default (14%)
             String url = U1 + df.format(mPanel.getLatitude()) +
                     U2 + df.format(mPanel.getLongitude()) +
                     U3 + mPanel.getSlope() +
                     U4 + az +
                     U5 + mPanel.getSlope() +
-                    U6 + az;
+                    U6 + az +
+                    U7 + PVGISLoader.peakPowerKWp(mPanel) +
+                    U8 + lossPct;
 
             try {
                 Uri destinationFileUri = ContractFileUtils.createJSONFileInEPOFolder(getContentResolver(), getEPOFolderUri(), fileName);

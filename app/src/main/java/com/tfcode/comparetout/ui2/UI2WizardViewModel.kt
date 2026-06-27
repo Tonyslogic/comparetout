@@ -484,6 +484,9 @@ data class WizardPanelEntry(
     val panelName: String = "String 1",
     val panelCount: Int = 7,
     val panelkWp: Int = 325,
+    // PVGIS system loss % (non-temperature: cabling, inverter, soiling…); PVGIS does the temperature derate.
+    // Per-panel so a change re-fetches via panelFetchInputsChanged. 14 = PVGIS default.
+    val systemLoss: Int = 14,
     val azimuth: Int = 136,
     val slope: Int = 24,
     val latitude: Double = 53.490,
@@ -507,6 +510,7 @@ data class WizardPanelEntry(
         p.panelName = panelName
         p.panelCount = panelCount
         p.panelkWp = panelkWp
+        p.systemLoss = systemLoss
         p.azimuth = azimuth
         p.slope = slope
         p.latitude = latitude
@@ -547,6 +551,7 @@ private fun Panel.toWizardPanelEntry(): WizardPanelEntry {
         panelName = panelName ?: "String 1",
         panelCount = panelCount,
         panelkWp = panelkWp,
+        systemLoss = systemLoss,
         azimuth = azimuth,
         slope = slope,
         latitude = latitude,
@@ -1215,6 +1220,7 @@ class UI2WizardViewModel @Inject constructor(
             before.azimuth != after.azimuth ||
             before.panelCount != after.panelCount ||
             before.panelkWp != after.panelkWp ||
+            before.systemLoss != after.systemLoss ||
             before.dataSource != after.dataSource ||
             before.dataStartDate != after.dataStartDate ||
             before.dataEndDate != after.dataEndDate

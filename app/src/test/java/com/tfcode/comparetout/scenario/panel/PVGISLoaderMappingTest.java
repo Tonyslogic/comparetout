@@ -19,6 +19,7 @@ package com.tfcode.comparetout.scenario.panel;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import com.tfcode.comparetout.model.scenario.Panel;
 import com.tfcode.comparetout.model.scenario.PanelData;
 import com.tfcode.comparetout.scenario.sim.SimTime;
 
@@ -27,6 +28,7 @@ import org.junit.Test;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Unit coverage for {@link PVGISLoader#mapHourlyTo2001Rows} — the PVGIS ingestion mapping (Phase 4b).
@@ -42,19 +44,19 @@ public class PVGISLoaderMappingTest {
 
     private static final long PANEL = 7L;
     private static final double TOL = 1e-9;
-    private static final double MAGIC_NUMBER = 919821d; // mirrors PVGISLoader.MAGIC_NUMBER
 
     /** A normal hour expands into twelve 5-minute rows on the 2001 grid, stored as the raw UTC instant. */
     @Test
     public void mapsOneHourToTwelveRowsOnThe2001UtcGrid() {
-        // 2020-06-15 09:00 UTC. The year is remapped to 2001; month/day/HH:mm are kept.
-        List<PanelData> rows = PVGISLoader.mapHourlyTo2001Rows(PANEL, "20200615:0900", 500d, 2, 0.4);
+        // 2020-06-15 09:00 UTC. The year is remapped to 2001; month/day/HH:mm are kept. 500 = PVGIS P (W).
+        List<PanelData> rows = PVGISLoader.mapHourlyTo2001Rows(PANEL, "20200615:0900", 500d);
 
         assertEquals(12, rows.size());
 
         int expectedDow = LocalDateTime.of(2001, 6, 15, 9, 0).getDayOfWeek().getValue();
         int expectedDoY = LocalDateTime.of(2001, 6, 15, 9, 0).getDayOfYear();
-        double expectedPv = (500d / 12d / MAGIC_NUMBER) * 2 * 0.4;
+        // P (W) spread over twelve 5-min slots, W→kW; no magic number, no count/kWp (peakpower did that).
+        double expectedPv = 500d / 12d / 1000d;
 
         for (int i = 0; i < 12; i++) {
             PanelData row = rows.get(i);
@@ -74,7 +76,7 @@ public class PVGISLoaderMappingTest {
     /** The first slot's stored instant is exactly 2001-06-15T09:00:00Z (the "store UTC" contract). */
     @Test
     public void firstSlotIsTheRawUtcInstant() {
-        List<PanelData> rows = PVGISLoader.mapHourlyTo2001Rows(PANEL, "20240615:0900", 500d, 1, 1.0);
+        List<PanelData> rows = PVGISLoader.mapHourlyTo2001Rows(PANEL, "20240615:0900", 500d);
         long expected = LocalDateTime.of(2001, 6, 15, 9, 0).atZone(ZoneOffset.UTC).toInstant().toEpochMilli();
         assertEquals(expected, (long) rows.get(0).getMillisSinceEpoch());
         assertEquals(540, rows.get(0).getMod()); // 09:00
@@ -88,7 +90,7 @@ public class PVGISLoaderMappingTest {
      */
     @Test
     public void sarah2ElevenPastTheHourIsSnappedToTheFiveMinuteGrid() {
-        List<PanelData> rows = PVGISLoader.mapHourlyTo2001Rows(PANEL, "20190101:0011", 500d, 1, 1.0);
+        List<PanelData> rows = PVGISLoader.mapHourlyTo2001Rows(PANEL, "20190101:0011", 500d);
 
         assertEquals(12, rows.size());
         for (int i = 0; i < 12; i++) {
@@ -107,17 +109,36 @@ public class PVGISLoaderMappingTest {
     @Test
     public void feb29OfALeapYearIsDropped() {
         // 2020 is a leap year; 12:00–12:55 are all 29 Feb, so every slot is skipped.
-        List<PanelData> rows = PVGISLoader.mapHourlyTo2001Rows(PANEL, "20200229:1200", 500d, 1, 1.0);
+        List<PanelData> rows = PVGISLoader.mapHourlyTo2001Rows(PANEL, "20200229:1200", 500d);
         assertTrue("All Feb 29 slots must be dropped", rows.isEmpty());
     }
 
     /** The hour immediately before Feb 29 (28 Feb 23:00) is kept and maps to 2001-02-28. */
     @Test
     public void feb28OfALeapYearIsKept() {
-        List<PanelData> rows = PVGISLoader.mapHourlyTo2001Rows(PANEL, "20200228:2300", 500d, 1, 1.0);
+        List<PanelData> rows = PVGISLoader.mapHourlyTo2001Rows(PANEL, "20200228:2300", 500d);
         assertEquals(12, rows.size());
         assertEquals("2001-02-28", rows.get(0).getDate());
         assertEquals(23 * 60, rows.get(0).getMod());
         assertEquals(23 * 60 + 55, rows.get(11).getMod());
+    }
+
+    /**
+     * {@code peakPowerKWp} is the array total in kWp ({@code count × Wp ÷ 1000}) with a {@code '.'} decimal
+     * regardless of the JVM's default locale — it feeds the PVGIS {@code peakpower=} query param and the cache
+     * file name, both of which would break on a locale comma.
+     */
+    @Test
+    public void peakPowerIsArrayTotalKWpWithDotDecimal() {
+        Panel p = new Panel();
+        p.setPanelCount(7);
+        p.setPanelkWp(325); // Wp per panel → 7 × 325 = 2275 Wp = 2.275 kWp
+        Locale previous = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.GERMANY); // default locale would render 2,275 — ROOT must override it
+            assertEquals("2.275", PVGISLoader.peakPowerKWp(p));
+        } finally {
+            Locale.setDefault(previous);
+        }
     }
 }
