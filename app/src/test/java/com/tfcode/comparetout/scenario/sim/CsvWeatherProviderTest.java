@@ -28,6 +28,7 @@ import org.junit.Test;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
+import java.io.StringReader;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -123,6 +124,24 @@ public class CsvWeatherProviderTest {
             assertTrue("interpolated temp within bracketing hours",
                     t >= Math.min(a, b) - 1e-9 && t <= Math.max(a, b) + 1e-9);
         }
+    }
+
+    @Test
+    public void unsortedSeriesIsSortedSoLookupsDoNotClampAcrossTheWrap() throws Exception {
+        // A 2001-realigned series whose source window wrapped the calendar arrives out of order (Dec before
+        // Jan). Unsorted, binarySearch yields garbage and the Jan instant would clamp to a far-off endpoint;
+        // the provider must sort so each exact hour returns its own value.
+        String csv = "valid_time,u10,v10,t2m\n"
+                + "2001-12-31 23:00:00,3,4,290.0\n"   // out of order: December first
+                + "2001-01-01 00:00:00,0,0,275.0\n"   // January after it
+                + "2001-01-01 01:00:00,6,8,276.0\n";
+        CsvWeatherProvider p = new CsvWeatherProvider(new StringReader(csv));
+        long jan0 = LocalDateTime.parse("2001-01-01T00:00:00").toInstant(ZoneOffset.UTC).toEpochMilli();
+        long dec = LocalDateTime.parse("2001-12-31T23:00:00").toInstant(ZoneOffset.UTC).toEpochMilli();
+        assertEquals(275.0 - KELVIN, p.temperatureAt(jan0), 1e-9); // exact hour, not clamped to December
+        assertEquals(0d, p.windSpeedAt(jan0), 1e-9);
+        assertEquals(290.0 - KELVIN, p.temperatureAt(dec), 1e-9);
+        assertEquals(5d, p.windSpeedAt(dec), 1e-9); // hypot(3,4)
     }
 
     @Test

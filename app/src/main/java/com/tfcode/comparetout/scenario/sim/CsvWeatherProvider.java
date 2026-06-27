@@ -99,9 +99,46 @@ public final class CsvWeatherProvider implements WeatherProvider {
             }
         }
         if (count == 0) throw new IOException("empty weather CSV");
+        // The lookups binary-search hourMillis, which REQUIRES ascending order. The CDS download is ascending,
+        // but a series realigned to the 2001 reference year (HeatPumpWeatherCache.remapWeatherTo2001) wraps the
+        // calendar when its source window doesn't start on 1 Jan. The remap sorts its output, but enforce the
+        // invariant here too so no source can silently yield months of flat (clamped) temperature/wind.
+        if (!isAscending(ms, count)) {
+            sortByMillis(ms, t, w, count);
+        }
         this.hourMillis = Arrays.copyOf(ms, count);
         this.tempC = Arrays.copyOf(t, count);
         this.windMs = Arrays.copyOf(w, count);
+    }
+
+    private static boolean isAscending(long[] a, int count) {
+        for (int i = 1; i < count; i++) {
+            if (a[i] < a[i - 1]) return false;
+        }
+        return true;
+    }
+
+    /**
+     * Stable-sort the three parallel arrays by {@code ms}. A remap-to-2001 wrap is two ascending runs with the
+     * second wholly below the first — the O(n²) case for insertion sort — so sort an index permutation (O(n log
+     * n)) and apply it in place.
+     */
+    private static void sortByMillis(long[] ms, double[] t, double[] w, int count) {
+        Integer[] idx = new Integer[count];
+        for (int i = 0; i < count; i++) idx[i] = i;
+        Arrays.sort(idx, (a, b) -> Long.compare(ms[a], ms[b]));
+        long[] sm = new long[count];
+        double[] st = new double[count];
+        double[] sw = new double[count];
+        for (int i = 0; i < count; i++) {
+            int s = idx[i];
+            sm[i] = ms[s];
+            st[i] = t[s];
+            sw[i] = w[s];
+        }
+        System.arraycopy(sm, 0, ms, 0, count);
+        System.arraycopy(st, 0, t, 0, count);
+        System.arraycopy(sw, 0, w, 0, count);
     }
 
     @Override

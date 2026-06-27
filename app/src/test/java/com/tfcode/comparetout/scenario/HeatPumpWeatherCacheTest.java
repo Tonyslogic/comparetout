@@ -89,6 +89,30 @@ public class HeatPumpWeatherCacheTest {
     }
 
     @Test
+    public void remapSortsWrappedWindowAscending() {
+        // A source window that starts mid-year (May→May) wraps the calendar once stamped to 2001: in source
+        // order the rows run May…Dec then Jan…May, which is NOT ascending. CsvWeatherProvider binary-searches
+        // and assumes ascending order, so remap must re-sort or whole months read as flat clamped values.
+        String csv = "valid_time,u10,v10,t2m\n"
+                + "2025-05-06 00:00:00,1,1,280\n"   // first source row → mid-year in 2001
+                + "2025-12-31 23:00:00,1,1,281\n"   // last of the Dec tail
+                + "2026-01-01 00:00:00,1,1,282\n"   // wraps to the start of 2001
+                + "2026-05-05 23:00:00,1,1,283\n";  // last source row
+        String out = HeatPumpWeatherCache.remapWeatherTo2001(csv);
+        String[] lines = out.split("\n");
+        // line 0 is the header; the data rows must be in ascending valid_time order.
+        String prev = null;
+        for (int i = 1; i < lines.length; i++) {
+            String ts = lines[i].split(",")[0];
+            if (prev != null) assertTrue("rows not ascending: " + prev + " -> " + ts, prev.compareTo(ts) < 0);
+            prev = ts;
+        }
+        // The Jan row must now precede the May/Dec rows it followed in the source.
+        assertTrue(out.indexOf("2001-01-01") < out.indexOf("2001-05-06"));
+        assertTrue(out.indexOf("2001-05-06") < out.indexOf("2001-12-31"));
+    }
+
+    @Test
     public void remapDropsLeapDayForNonLeapReferenceYear() {
         String csv = "valid_time,u10,v10,t2m\n"
                 + "2024-02-28 12:00:00,1,1,280\n"

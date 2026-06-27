@@ -30,6 +30,8 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
@@ -187,6 +189,13 @@ public final class HeatPumpWeatherCache {
      * 29 Feb of a leap source year are dropped (2001 is non-leap), exactly as the PV mapping drops them. The
      * {@code valid_time} column is resolved by name (it is not always first), matching {@link
      * com.tfcode.comparetout.scenario.sim.CsvWeatherProvider}.
+     *
+     * <p>The remapped rows are <b>re-sorted ascending by the 2001 {@code valid_time}</b> before emission. A
+     * source window that does not begin on 1 Jan (e.g. a May→May import year) wraps the calendar once stamped to
+     * 2001 — the rows run May…Dec then Jan…May, which is <i>not</i> ascending. {@code CsvWeatherProvider}
+     * binary-searches the series and assumes ascending order, so an unsorted file makes it clamp/interpolate
+     * across the Dec→Jan discontinuity and report whole months of flat temperature and wind. Sorting here keeps
+     * the cached CSV on the contract the provider depends on.</p>
      */
     public static String remapWeatherTo2001(String csv) {
         if (csv == null || csv.isEmpty()) return csv;
@@ -201,15 +210,25 @@ public final class HeatPumpWeatherCache {
                 if ("valid_time".equals(cols[i].trim().toLowerCase(Locale.ROOT))) { tIdx = i; break; }
             }
             if (tIdx < 0) return csv; // unknown layout — leave untouched
+            // Buffer the remapped rows with their 2001 sort key: stamping to 2001 wraps any non-Jan-start window,
+            // and the provider's binary search needs the series ascending.
+            List<long[]> order = new ArrayList<>();
+            List<String> rows = new ArrayList<>();
             String line;
             while ((line = r.readLine()) != null) {
                 if (line.isEmpty()) continue;
                 String[] f = line.split(",", -1);
-                if (tIdx >= f.length) { out.append(line).append('\n'); continue; }
+                if (tIdx >= f.length) { continue; } // malformed row missing valid_time — drop, don't unsort
                 LocalDateTime t = LocalDateTime.parse(f[tIdx].trim().replace(' ', 'T'));
                 if (t.getMonthValue() == 2 && t.getDayOfMonth() == 29) continue; // drop leap day
-                f[tIdx] = VALID_TIME.format(t.withYear(REF_YEAR));
-                out.append(String.join(",", f)).append('\n');
+                LocalDateTime mapped = t.withYear(REF_YEAR);
+                f[tIdx] = VALID_TIME.format(mapped);
+                order.add(new long[]{mapped.toInstant(ZoneOffset.UTC).toEpochMilli(), rows.size()});
+                rows.add(String.join(",", f));
+            }
+            order.sort(Comparator.comparingLong(a -> a[0]));
+            for (long[] key : order) {
+                out.append(rows.get((int) key[1])).append('\n');
             }
         } catch (Exception e) {
             return csv; // never break the fetch over a remap parse hiccup — fall back to raw content
