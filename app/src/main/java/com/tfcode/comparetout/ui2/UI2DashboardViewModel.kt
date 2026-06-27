@@ -1,5 +1,6 @@
 package com.tfcode.comparetout.ui2
 
+import android.content.Context
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
@@ -14,8 +15,10 @@ import com.tfcode.comparetout.model.importers.IntervalRow
 import com.tfcode.comparetout.model.scenario.PanelPVSummary
 import com.tfcode.comparetout.model.scenario.ScenarioComponents
 import com.tfcode.comparetout.model.scenario.SimKPIs
+import com.tfcode.comparetout.scenario.HeatPumpWeatherCache
 import com.tfcode.comparetout.util.RateLookup
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -104,6 +107,7 @@ data class KpiMonthRow(
 @HiltViewModel
 class UI2DashboardViewModel @Inject constructor(
     private val repository: ToutcRepository,
+    @ApplicationContext private val context: Context,
     favouritePlanStore: FavouritePlanStore
 ) : ViewModel() {
 
@@ -709,6 +713,12 @@ class UI2DashboardViewModel @Inject constructor(
                     val bestCosting        = repository.getBestCostingForScenario(id)
                     val simKPIs            = repository.getSimKPIsForScenario(id)
                     val hasPanelData       = repository.checkForMissingPanelData(id)
+                    // CDS heat-pump weather is treated like PV data: flag when the real weather hasn't been
+                    // fetched yet so the dashboard can show "not ready" instead of stale sample-based results.
+                    val hpWeatherMissing   = scenarioComponents?.heatPumps?.firstOrNull()
+                        ?.takeIf { it.weatherSource == "cds" }
+                        ?.let { !HeatPumpWeatherCache.hasAnyCacheForLocation(context, it.latitude, it.longitude) }
+                        ?: false
                     val allCostings        = repository.getAllCostingsForScenario(id)
                     val plans              = repository.allPricePlansNow
                     val planChargesMap     = plans.associate { it.pricePlanIndex to it.standingCharges }
@@ -734,7 +744,8 @@ class UI2DashboardViewModel @Inject constructor(
                     Log.d("UI2", "fetched — scenarioName=${scenarioComponents?.scenario?.scenarioName} net=${bestCosting?.net} plans=${allCostings.size}")
                     DashboardData(scenarioComponents, bestCosting, simKPIs, hasPanelData,
                         allCostings = allCostings, planStandingCharges = planChargesMap,
-                        planActive = planActiveMap, simDays = simDays, micBreaches = micBreaches)
+                        planActive = planActiveMap, simDays = simDays, micBreaches = micBreaches,
+                        hpWeatherMissing = hpWeatherMissing)
                 })
             }
             is ActiveDashboardItem.DataSource -> flow {
@@ -980,7 +991,8 @@ data class DashboardData(
     val planStandingCharges: Map<Long, Double> = emptyMap(),
     val planActive: Map<Long, Boolean> = emptyMap(),
     val simDays: Long = 365L,
-    val micBreaches: MICBreachInfo? = null
+    val micBreaches: MICBreachInfo? = null,
+    val hpWeatherMissing: Boolean = false
 )
 
 /** A single grid-import (MIC) soft-cap breach interval for display (item 4c). */

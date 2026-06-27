@@ -422,6 +422,10 @@ fun <T> AdaptiveChipRow(
     labelLong: ((T) -> String)? = null,
     modifier: Modifier = Modifier,
     maxWrapRows: Int = AdaptiveLayout.CHIP_MAX_WRAP_ROWS,
+    // Comfortable per-item widths. Default to the month-strip tuning; callers with multi-word labels
+    // (e.g. "Kerosene/Oil") pass wider values so the short/long/wrap/dropdown tiering is sized correctly.
+    shortItemWidth: Dp = AdaptiveLayout.CHIP_MIN_SHORT,
+    longItemWidth: Dp = AdaptiveLayout.CHIP_MIN_LONG,
 ) {
     if (items.isEmpty()) return
     val scale = adaptiveFontScale()
@@ -429,9 +433,8 @@ fun <T> AdaptiveChipRow(
         val layout = stripLayout(
             available = maxWidth,
             itemCount = items.size,
-            shortItemWidth = AdaptiveLayout.CHIP_MIN_SHORT,
-            longItemWidth = if (labelLong != null) AdaptiveLayout.CHIP_MIN_LONG
-                            else AdaptiveLayout.CHIP_MIN_SHORT,
+            shortItemWidth = shortItemWidth,
+            longItemWidth = if (labelLong != null) longItemWidth else shortItemWidth,
             maxRows = maxWrapRows,
             fontScale = scale,
         )

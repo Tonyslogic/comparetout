@@ -224,6 +224,8 @@ data class WizardHeatPumpEntry(
     val boilerEfficiencyPct: String = "80",
     val dhwAnnualKWh: Double = 2000.0,    // internal: fixed DHW carve-out for basic mode
     val spaceHeatingPct: String = "",     // advanced: blank ⇒ use the DHW default
+    val floorAreaM2: String = "150",      // new build (fuelType "None"): heated floor area (m²)
+    val heatLossIndex: String = "1.0",    // new build: whole-house HLI (W/K/m², fabric + ventilation)
     val desiredIndoorTemp: String = "20",
     val currentIndoorTemp: String = "20",
     val balancePoint: String = "15.5",
@@ -252,6 +254,11 @@ data class WizardHeatPumpEntry(
         hp.boilerEfficiency = boilerEfficiencyPct.d(80.0) / 100.0
         hp.dhwAnnualKWh = dhwAnnualKWh
         hp.spaceHeatingFraction = spaceHeatingPct.toDoubleOrNull()?.takeIf { it > 0.0 }?.let { it / 100.0 }
+        // Fabric anchor only applies to a new build; zero it for fuel scenarios so the engine's
+        // "area & HLI both > 0" presence check never fires on a stale value.
+        val newBuild = fuelType == "None"
+        hp.floorAreaM2 = if (newBuild) floorAreaM2.d(0.0) else 0.0
+        hp.heatLossIndex = if (newBuild) heatLossIndex.d(0.0) else 0.0
         hp.desiredIndoorTemp = desiredIndoorTemp.d(20.0)
         hp.currentIndoorTemp = currentIndoorTemp.d(20.0)
         hp.balancePoint = balancePoint.d(15.5)
@@ -283,6 +290,8 @@ private fun HeatPump.toWizardHeatPumpEntry() = WizardHeatPumpEntry(
     boilerEfficiencyPct = fmtNum(boilerEfficiency * 100.0),
     dhwAnnualKWh = dhwAnnualKWh,
     spaceHeatingPct = spaceHeatingFraction?.let { fmtNum(it * 100.0) } ?: "",
+    floorAreaM2 = if (floorAreaM2 > 0) fmtNum(floorAreaM2) else "150",
+    heatLossIndex = if (heatLossIndex > 0) fmtNum(heatLossIndex) else "1.0",
     desiredIndoorTemp = fmtNum(desiredIndoorTemp),
     currentIndoorTemp = fmtNum(currentIndoorTemp),
     balancePoint = fmtNum(balancePoint),
@@ -1003,6 +1012,15 @@ class UI2WizardViewModel @Inject constructor(
                 evEntries = chargeDomain.map { it.toWizardEvEntry() },
                 evDivertEntries = divertDomain.map { it.toWizardEvDivertEntry() }
             )
+        }
+    }
+
+    fun replaceHeatPumpsFromJson(
+        jsons: List<com.tfcode.comparetout.model.json.scenario.HeatPumpJson>
+    ) {
+        val hpDomain = JsonTools.createHeatPumpList(ArrayList(jsons))
+        updateBuilder { b ->
+            b.copy(heatPumpEntries = hpDomain.map { it.toWizardHeatPumpEntry() })
         }
     }
 

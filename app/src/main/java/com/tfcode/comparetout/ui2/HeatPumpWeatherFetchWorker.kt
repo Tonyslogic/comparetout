@@ -28,6 +28,7 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.tfcode.comparetout.MainActivity.CHANNEL_ID
 import com.tfcode.comparetout.R
+import com.tfcode.comparetout.SimulatorLauncher
 import com.tfcode.comparetout.TOUTCApplication
 import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.scenario.HeatPumpWeatherCache
@@ -102,6 +103,9 @@ class HeatPumpWeatherFetchWorker(
         )
         if (cacheFile.exists() && cacheFile.length() > 0) {
             finish("Heat-pump weather: already cached for $startIso → $endIso")
+            // The sim skips CDS scenarios whose weather is missing, so a recompute that finds the cache
+            // already present still needs a nudge to run now that the data is available.
+            SimulatorLauncher.simulateIfNeeded(applicationContext)
             return Result.success() // immutable — reuse
         }
 
@@ -112,6 +116,8 @@ class HeatPumpWeatherFetchWorker(
             // Flag the credentials as known-good now that a fetch succeeded (Phase 5.5 deferred validation here).
             toutc.putStringValueIntoDataStore(CDS_GOOD_KEY, "True")
             finish("Heat-pump weather ready ($startIso → $endIso)")
+            // Real weather has landed — re-run the simulation so the scenario the sim skipped now completes.
+            SimulatorLauncher.simulateIfNeeded(applicationContext)
             Result.success()
         } catch (e: Exception) {
             Log.e(TAG, "CDS weather fetch failed for scenario $scenarioID (attempt $runAttemptCount)", e)
@@ -315,8 +321,10 @@ class HeatPumpWeatherFetchWorker(
         private const val CDS_URL_KEY = "cds_url"
         private const val CDS_KEY_KEY = "cds_key"
         private const val CDS_GOOD_KEY = "cds_cred_good"
-        // This worker is enqueued ONLY as a chained step inside SimulatorLauncher.simulateWithWeatherFetch
-        // (GenerateLoad → weather → Simulate → Cost) so the sim never races the download. Don't add a
-        // standalone enqueue here — that's the race this replaced.
+        // Enqueued two ways: (1) as a chained step in SimulatorLauncher.simulateWithWeatherFetch on wizard
+        // save (GenerateLoad → weather → Simulate → Cost), and (2) standalone, unique-per-scenario, by
+        // SimulationWorker when a recompute hits a CDS scenario whose weather isn't cached. The old "never
+        // standalone" race is gone: the sim now SKIPS a CDS scenario with missing weather (it never simulates
+        // it on the sample asset), and this worker re-runs the sim (simulateIfNeeded) once the download lands.
     }
 }

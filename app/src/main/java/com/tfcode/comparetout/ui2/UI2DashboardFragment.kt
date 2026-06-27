@@ -152,6 +152,7 @@ private fun simReadinessIssues(
     hasLoadProfile: Boolean,
     hasPanels: Boolean,
     hasPanelData: Boolean,
+    hpWeatherMissing: Boolean,
     resultsReady: Boolean
 ): List<SimReadinessIssue> {
     val issues = mutableListOf<SimReadinessIssue>()
@@ -170,6 +171,15 @@ private fun simReadinessIssues(
                 "or wait if a simulation is already running.",
             severity = IssueSeverity.WARNING,
             wizardSection = "pv"
+        )
+    }
+    if (hpWeatherMissing) {
+        issues += SimReadinessIssue(
+            title = "Heat-pump weather not fetched yet",
+            hint = "Real weather is fetched from Copernicus CDS when the simulation runs. Open Heat Pump to " +
+                "check the weather source / CDS token, or wait if a fetch is already running.",
+            severity = IssueSeverity.WARNING,
+            wizardSection = "heatpump"
         )
     }
     if (!resultsReady) {
@@ -852,6 +862,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         hasLoadProfile = sc.loadProfile != null,
                         hasPanels      = sc.panels.orEmpty().isNotEmpty(),
                         hasPanelData   = dashboardData?.hasPanelData == true,
+                        hpWeatherMissing = dashboardData?.hpWeatherMissing == true,
                         resultsReady   = kpis != null && costing != null
                     )
                     SimulationStatusAccordion(readiness) { section ->
@@ -1276,8 +1287,12 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     ) {
                         if (heatPumps.isEmpty()) Text("No heat pump configured")
                         else heatPumps.forEach { hp ->
-                            val unit = if (hp.fuelType == "Natural gas") "kWh" else "L"
-                            Text("${hp.fuelType} · ${hp.fuelAnnual.toInt()} $unit/yr")
+                            if (hp.fuelType == "None") {
+                                Text("New build · ${hp.floorAreaM2.toInt()} m² · HLI ${hp.heatLossIndex}")
+                            } else {
+                                val unit = if (hp.fuelType == "Natural gas") "kWh" else "L"
+                                Text("${hp.fuelType} · ${hp.fuelAnnual.toInt()} $unit/yr")
+                            }
                             Text("COP ${hp.copRated} · SCOP ${hp.scop} · ${hp.capacityKw} kW")
                             Text("Weather: ${if (hp.weatherSource == "cds") "CDS" else "2001, Ireland"}",
                                 style = MaterialTheme.typography.labelSmall,

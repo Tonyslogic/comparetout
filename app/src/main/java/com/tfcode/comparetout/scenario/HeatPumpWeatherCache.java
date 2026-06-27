@@ -85,6 +85,24 @@ public final class HeatPumpWeatherCache {
         return Math.round(coord / 0.25d) * 0.25d;
     }
 
+    /** True iff the exact (location, grid period) CSV the sim needs is already cached. */
+    public static boolean cacheExists(Context context, double latitude, double longitude, long[] gridMillis) {
+        File f = cacheFile(context, latitude, longitude, gridMillis);
+        return f.exists() && f.length() > 0;
+    }
+
+    /**
+     * True iff <i>any</i> cached CSV exists for this location's ERA5 node — a cheap dir scan (no grid load)
+     * for the dashboard's "weather fetched?" readiness signal. The exact period is still gated by
+     * {@link #cacheExists} at sim time; this only answers "has CDS weather ever landed for this point".
+     */
+    public static boolean hasAnyCacheForLocation(Context context, double latitude, double longitude) {
+        String prefix = "cds_" + LATLON.format(snapToEra5Grid(latitude)) + "_"
+                + LATLON.format(snapToEra5Grid(longitude)) + "_";
+        File[] files = cacheDir(context).listFiles((dir, name) -> name.startsWith(prefix) && name.endsWith(".csv"));
+        return files != null && files.length > 0;
+    }
+
     /** Convenience overload keyed directly off the grid millis (min/max → inclusive UTC days). */
     public static File cacheFile(Context context, double latitude, double longitude, long[] gridMillis) {
         long[] span = spanMillis(gridMillis);

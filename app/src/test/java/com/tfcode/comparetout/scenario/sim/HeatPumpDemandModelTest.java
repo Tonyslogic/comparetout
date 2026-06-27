@@ -154,6 +154,38 @@ public class HeatPumpDemandModelTest {
     }
 
     @Test
+    public void fabricAnchorReplacesFuelForANewBuild() {
+        // New build: anchor = area·HLI·HDD(base)·24/1000, with HDD from the weather at the balance point.
+        // hddSum is Σmax(0, base−T) over the hourly samples; with Δt = 1 h, anchor = area·HLI·hddSum/1000.
+        Config cfg = new Config();
+        cfg.floorAreaM2 = 150d;
+        cfg.heatLossIndex = 1.0d;
+        // Fuel fields are deliberately absurd — they must be ignored once the fabric inputs are present.
+        cfg.fuelAnnual = 999999d;
+        HeatPumpDemandModel m = new HeatPumpDemandModel(cfg, series);
+
+        double hddSum = 0d;
+        for (WeatherSample w : series) hddSum += Math.max(0d, cfg.balancePoint - w.tempC);
+        double expected = cfg.floorAreaM2 * cfg.heatLossIndex * hddSum * cfg.intervalHours / 1000d;
+
+        assertEquals("fabric anchor = area·HLI·hddSum·Δt/1000", expected, m.getAnnualSpaceHeat(), 1e-6);
+        double sumThermal = 0d;
+        for (int i = 0; i < series.size(); i++) sumThermal += m.thermalForIndex(i);
+        assertEquals("Σ thermal must equal the fabric anchor", m.getAnnualSpaceHeat(), sumThermal, 1e-6);
+    }
+
+    @Test
+    public void higherHeatLossIndexRaisesTheFabricAnchor() {
+        Config lean = new Config();
+        lean.floorAreaM2 = 150d; lean.heatLossIndex = 0.8d;
+        Config leaky = new Config();
+        leaky.floorAreaM2 = 150d; leaky.heatLossIndex = 1.4d;
+        double leanHeat = new HeatPumpDemandModel(lean, series).getAnnualSpaceHeat();
+        double leakyHeat = new HeatPumpDemandModel(leaky, series).getAnnualSpaceHeat();
+        assertTrue("a higher HLI must increase annual demand", leakyHeat > leanHeat);
+    }
+
+    @Test
     public void warmerSetpointRaisesTheAnchor() {
         Config base = new Config();
         Config warmer = new Config();

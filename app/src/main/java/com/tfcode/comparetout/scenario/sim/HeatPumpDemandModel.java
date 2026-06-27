@@ -74,6 +74,11 @@ public final class HeatPumpDemandModel {
         public double dhwAnnualKWh = 2000d;      // fixed DHW carve-out (basic mode)
         public Double spaceHeatingFraction = null; // advanced: if set, overrides the fixed DHW subtraction
 
+        // (1b) fabric anchor (new build): when both are > 0 they replace the fuel anchor above, deriving the
+        // annual space heat from the building fabric instead of a past fuel bill. HLC = area·HLI [W/K].
+        public double floorAreaM2 = 0d;          // heated floor area (m²); 0 ⇒ use the fuel anchor
+        public double heatLossIndex = 0d;        // whole-house HLI (W/K/m², fabric + ventilation); 0 ⇒ fuel anchor
+
         // (2) setpoint scale
         public double setpointNew = 20d;         // desired indoor temperature
         public double setpointOld = 20d;         // current indoor temperature (== new ⇒ no scaling)
@@ -129,11 +134,22 @@ public final class HeatPumpDemandModel {
         this.backupKWh = new double[n];
         this.heatDeliveredKWh = new double[n];
 
-        // (1) fuel → delivered space heat (the trusted annual anchor)
-        double deliveredGross = cfg.fuelAnnual * cfg.calorificValue * cfg.boilerEfficiency;
-        double spaceHeat = (cfg.spaceHeatingFraction != null)
-                ? deliveredGross * cfg.spaceHeatingFraction
-                : Math.max(0d, deliveredGross - cfg.dhwAnnualKWh);
+        // (1) annual space heat (the trusted anchor) — either the fabric anchor (new build) or the fuel anchor.
+        double spaceHeat;
+        if (cfg.floorAreaM2 > 0d && cfg.heatLossIndex > 0d) {
+            // Fabric anchor: HLC = area·HLI [W/K]; annual heat = HLC × HDD(base) × 24h ÷ 1000. The HDD is taken
+            // from the actual weather at the balance point, so the headline total is consistent with the hourly
+            // redistribution that follows. hddSum is Σmax(0, base−T) over the samples (= degree-hours / Δt), so
+            // degree-days = hddSum·Δt/24 and annual heat = HLC·(hddSum·Δt/24)·24/1000 = HLC·hddSum·Δt/1000.
+            spaceHeat = cfg.floorAreaM2 * cfg.heatLossIndex
+                    * hddSum(series, cfg.balancePoint) * cfg.intervalHours / 1000d;
+        } else {
+            // Fuel anchor: fuel × calorific × boilerEff, minus domestic hot water (fixed kWh or a fraction).
+            double deliveredGross = cfg.fuelAnnual * cfg.calorificValue * cfg.boilerEfficiency;
+            spaceHeat = (cfg.spaceHeatingFraction != null)
+                    ? deliveredGross * cfg.spaceHeatingFraction
+                    : Math.max(0d, deliveredGross - cfg.dhwAnnualKWh);
+        }
 
         // (2) setpoint scale: degree-day ratio between desired and current indoor temperature
         double hddNew = hddSum(series, cfg.setpointNew);

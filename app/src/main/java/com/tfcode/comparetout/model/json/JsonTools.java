@@ -405,6 +405,8 @@ public class JsonTools {
         if (!(null == hpj.boilerEfficiency)) heatPump.setBoilerEfficiency(hpj.boilerEfficiency);
         if (!(null == hpj.dhwAnnualKWh)) heatPump.setDhwAnnualKWh(hpj.dhwAnnualKWh);
         heatPump.setSpaceHeatingFraction(hpj.spaceHeatingFraction);
+        if (!(null == hpj.floorAreaM2)) heatPump.setFloorAreaM2(hpj.floorAreaM2);
+        if (!(null == hpj.heatLossIndex)) heatPump.setHeatLossIndex(hpj.heatLossIndex);
         if (!(null == hpj.desiredIndoorTemp)) heatPump.setDesiredIndoorTemp(hpj.desiredIndoorTemp);
         if (!(null == hpj.currentIndoorTemp)) heatPump.setCurrentIndoorTemp(hpj.currentIndoorTemp);
         if (!(null == hpj.balancePoint)) heatPump.setBalancePoint(hpj.balancePoint);
@@ -918,6 +920,8 @@ public class JsonTools {
                 hpj.boilerEfficiency = heatPump.getBoilerEfficiency();
                 hpj.dhwAnnualKWh = heatPump.getDhwAnnualKWh();
                 hpj.spaceHeatingFraction = heatPump.getSpaceHeatingFraction();
+                hpj.floorAreaM2 = heatPump.getFloorAreaM2();
+                hpj.heatLossIndex = heatPump.getHeatLossIndex();
                 hpj.desiredIndoorTemp = heatPump.getDesiredIndoorTemp();
                 hpj.currentIndoorTemp = heatPump.getCurrentIndoorTemp();
                 hpj.balancePoint = heatPump.getBalancePoint();

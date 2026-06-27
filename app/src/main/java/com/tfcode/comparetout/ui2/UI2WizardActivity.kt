@@ -706,7 +706,8 @@ private fun WizardScreen(
                     noviceMode = noviceMode,
                     onAdd = { viewModel.addHeatPumpEntry() },
                     onRemove = { viewModel.removeHeatPumpEntry(it) },
-                    onUpdate = { id, fn -> viewModel.updateHeatPumpEntry(id, fn) }
+                    onUpdate = { id, fn -> viewModel.updateHeatPumpEntry(id, fn) },
+                    onImport = { importScope = WizardImportScope.HEATPUMP }
                 )
             }
 
@@ -758,7 +759,7 @@ private fun WizardScreen(
 
 /** Each per-accordion Import button writes one of these into the wizard's
  *  scaffold state to open the matching sheet. */
-private enum class WizardImportScope { USAGE, INVERTERS, PV, BATTERY, HW, EV }
+private enum class WizardImportScope { USAGE, INVERTERS, PV, BATTERY, HW, EV, HEATPUMP }
 
 /* ──────────────────────────────────────────────────────────────────
    Progress strip
@@ -2251,7 +2252,8 @@ private fun HeatPumpSectionContent(
     noviceMode: Boolean,
     onAdd: () -> Unit,
     onRemove: (String) -> Unit,
-    onUpdate: (String, (WizardHeatPumpEntry) -> WizardHeatPumpEntry) -> Unit
+    onUpdate: (String, (WizardHeatPumpEntry) -> WizardHeatPumpEntry) -> Unit,
+    onImport: () -> Unit
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (noviceMode && entries.isEmpty()) {
@@ -2264,6 +2266,11 @@ private fun HeatPumpSectionContent(
             FilledTonalButton(onClick = onAdd, modifier = Modifier.fillMaxWidth()) {
                 Text("Add heat pump")
             }
+        }
+        OutlinedButton(onClick = onImport, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(4.dp))
+            Text("Import HP setup (JSON)")
         }
     }
 }
@@ -2316,22 +2323,67 @@ private fun cdsCredentialsPresent(context: android.content.Context): Boolean {
 }
 
 /**
- * Plain-language wind-sensitivity levels for the heat-pump Basic tab. Each maps to the model's
+ * Plain-language wind-sensitivity levels for the "Heat energy required" sub-section. Each maps to the model's
  * `alphaWind` (wind-infiltration coefficient): higher ⇒ a draughtier home, which concentrates heat
  * demand onto cold + windy peaks and pushes more onto the expensive backup heater. The default
  * `0.03` lands in [WIND_LEVELS]`[1]` so existing scenarios open unchanged.
  */
-private data class WindLevel(val label: String, val alphaWind: Double)
+private data class WindLevel(val label: String, val short: String, val alphaWind: Double)
 private val WIND_LEVELS = listOf(
-    WindLevel("No difference", 0.0),
-    WindLevel("Gets cold quickly", 0.04),
-    WindLevel("Drafts / curtains move", 0.10)
+    WindLevel("No difference", "Same", 0.0),
+    WindLevel("Gets cold quickly", "Cools rapidly", 0.04),
+    WindLevel("Drafts / curtains move", "Drafts", 0.10)
 )
 /** Snap a stored `alphaWind` to the nearest [WindLevel] (bucket midpoints 0.02 / 0.07). */
 private fun windLevelFor(alphaWind: Double): WindLevel = when {
     alphaWind < 0.02 -> WIND_LEVELS[0]
     alphaWind < 0.07 -> WIND_LEVELS[1]
     else             -> WIND_LEVELS[2]
+}
+
+/**
+ * Representative annual heating degree-days for Ireland at a 15.5 °C base — used **only** for the card's
+ * live "≈ kWh" headline on a new build (`area × HLI × 24 × HDD ÷ 1000`). The simulation itself derives the
+ * real HDD from the chosen weather series, so this constant just makes the on-screen estimate sensible.
+ */
+private const val IRELAND_HDD_15_5 = 2200.0
+
+/**
+ * A lightweight expandable sub-section used inside [HeatPumpCard] (Heat energy required / HP characteristics
+ * / Location & weather). Deliberately not [WizardAccordionSection], which is the heavy top-level card.
+ */
+@Composable
+private fun HpSubSection(
+    title: String,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    subtitle: String? = null,
+    content: @Composable () -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()
+        .clip(RoundedCornerShape(10.dp))
+        .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f))) {
+        Row(modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle)
+            .padding(horizontal = 12.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                // Summary of the section's current values, shown only while collapsed.
+                if (!expanded && subtitle != null) {
+                    Text(subtitle, style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            Icon(imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        AnimatedVisibility(visible = expanded) {
+            Column(modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                content()
+            }
+        }
+    }
 }
 
 @Composable
@@ -2341,7 +2393,6 @@ private fun HeatPumpCard(
     onRemove: (String) -> Unit,
     onUpdate: (String, (WizardHeatPumpEntry) -> WizardHeatPumpEntry) -> Unit
 ) {
-    var tab by remember { mutableIntStateOf(0) }
     fun update(fn: (WizardHeatPumpEntry) -> WizardHeatPumpEntry) = onUpdate(hp.id, fn)
 
     // CDS weather is gated on credentials configured in Data Source Management.
@@ -2351,53 +2402,104 @@ private fun HeatPumpCard(
     val scope = rememberCoroutineScope()
     var showCdsAlert by remember { mutableStateOf(false) }
 
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        // Advanced is a Basic/Advanced tab, mirroring the Usage section.
-        PrimaryTabRow(selectedTabIndex = tab) {
-            Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("Basic") })
-            Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("Advanced") })
+    // Basic/Advanced tab (mirrors the Hot-Water card): keeps advanced inputs + their hints out of the
+    // novice's way. Independent of noviceMode, which only governs the basic-field hints.
+    var showAdvanced by remember { mutableStateOf(false) }
+    // Three single-open sub-sections, none open by default.
+    var openSection by remember { mutableStateOf("") }
+    fun toggle(id: String) { openSection = if (openSection == id) "" else id }
+    val newBuild = hp.fuelType == "None"
+
+    // Shared derived values — also feed the collapsed sub-section summaries.
+    val scopN = hp.scop.toDoubleOrNull() ?: 3.6
+    val estHeat = if (newBuild) {
+        // Fabric estimate for the headline only: area·HLI·24·HDD/1000 with a representative Irish HDD.
+        // The simulation derives the real HDD from the chosen weather, so this is a ballpark.
+        val area = hp.floorAreaM2.toDoubleOrNull() ?: 0.0
+        val hli = hp.heatLossIndex.toDoubleOrNull() ?: 0.0
+        area * hli * 24.0 * IRELAND_HDD_15_5 / 1000.0
+    } else {
+        val fuelN = hp.fuelAnnual.toDoubleOrNull() ?: 0.0
+        val effN = (hp.boilerEfficiencyPct.toDoubleOrNull() ?: 80.0) / 100.0
+        val gross = fuelN * hp.calorificValue * effN
+        val frac = hp.spaceHeatingPct.toDoubleOrNull()?.takeIf { it > 0.0 }?.let { it / 100.0 }
+        frac?.let { gross * it } ?: (gross - hp.dhwAnnualKWh).coerceAtLeast(0.0)
+    }
+    val fuelShort = when (hp.fuelType) {
+        "Kerosene/Oil" -> "Kerosene"; "Natural gas" -> "Gas"; "LPG" -> "LPG"; "None" -> "New build"; else -> hp.fuelType
+    }
+    val weatherCached = remember(hp.latitude, hp.longitude, hp.weatherSource) {
+        hp.weatherSource == "cds" &&
+            HeatPumpWeatherCache.hasAnyCacheForLocation(context, hp.latitude, hp.longitude)
+    }
+    val heatSummary = "$fuelShort · ≈ ${estHeat.roundToInt()} kWh/yr"
+    val hpSummary = "${hp.capacityKw} kW · SCOP ${hp.scop}"
+    val weatherSummary = if (hp.weatherSource == "cds") "CDS${if (weatherCached) " · cached" else ""}"
+                         else "2001, Ireland"
+
+    // Per-section novice hints — shown above each sub-accordion (matches the other wizard sections).
+    val heatHint = "How much heat the home needs — from your current fuel use, or estimated from the " +
+        "building fabric for a new build."
+    val hpHint = "The heat pump unit's rated efficiency and heat output."
+    val weatherHint = "Where the outdoor weather for the hourly simulation comes from, plus how the home " +
+        "responds to wind."
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+
+        PrimaryTabRow(selectedTabIndex = if (showAdvanced) 1 else 0) {
+            Tab(selected = !showAdvanced, onClick = { showAdvanced = false }, text = { Text("Basic") })
+            Tab(selected = showAdvanced, onClick = { showAdvanced = true }, text = { Text("Advanced") })
         }
 
-        // Basic controls are ALWAYS visible; the Advanced tab APPENDS controls below (additive — matching the
-        // other wizard sections), it does not hide these.
-        run {
-            // ── Fuel type ──
+        // ── 1) Heat energy required — what the home needs (fuel history or new-build fabric) ──
+        if (novice) {
+            Text(heatHint, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        HpSubSection("Heat energy required", openSection == "heat", { toggle("heat") },
+            subtitle = heatSummary) {
+            // Fuel type (or None for a new build with no boiler history). AdaptiveChipRow gives short labels in
+            // portrait, full labels on wide screens, and a dropdown at large font — all managed centrally.
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Current heating fuel", style = MaterialTheme.typography.labelMedium)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    listOf("Kerosene/Oil", "Natural gas", "LPG").forEach { fuel ->
-                        FilterChip(
-                            selected = hp.fuelType == fuel,
-                            onClick = {
-                                update { it.copy(
-                                    fuelType = fuel,
-                                    calorificValue = defaultCalorific(fuel),
-                                    fuelAnnual = defaultAnnualUse(fuel)
-                                ) }
-                            },
-                            label = { Text(fuel) }
-                        )
+                AdaptiveChipRow(
+                    items = listOf("Kerosene/Oil", "Natural gas", "LPG", "None"),
+                    isSelected = { it == hp.fuelType },
+                    onSelect = { fuel ->
+                        if (fuel == "None") update { it.copy(fuelType = "None", alphaWind = 0.0) }
+                        else update { it.copy(
+                            fuelType = fuel,
+                            calorificValue = defaultCalorific(fuel),
+                            fuelAnnual = defaultAnnualUse(fuel)
+                        ) }
+                    },
+                    label = { when (it) { "Kerosene/Oil" -> "Kero"; "Natural gas" -> "Gas"; "LPG" -> "LPG"; else -> "None" } },
+                    labelLong = { if (it == "None") "None (new build)" else it },
+                    shortItemWidth = 60.dp, longItemWidth = 112.dp
+                )
+                if (newBuild) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        HpNumberField("Floor area (m²)", hp.floorAreaM2,
+                            "Total heated floor area.", novice, Modifier.weight(1f)) { v -> update { it.copy(floorAreaM2 = v) } }
+                        HpNumberField("HLI (W/K/m²)", hp.heatLossIndex,
+                            "Whole-house heat loss, fabric + ventilation. A compliant new build is ~0.7–1.2.",
+                            novice, Modifier.weight(1f)) { v -> update { it.copy(heatLossIndex = v) } }
                     }
+                } else {
+                    val unit = if (hp.fuelType == "Natural gas") "kWh / yr" else "litres / yr"
+                    HpNumberField("Annual fuel use ($unit)", hp.fuelAnnual,
+                        "Your current annual oil/gas use.", novice, Modifier.fillMaxWidth()) { v -> update { it.copy(fuelAnnual = v) } }
                 }
-                val unit = if (hp.fuelType == "Natural gas") "kWh / yr" else "litres / yr"
-                HpNumberField("Annual fuel use ($unit)", hp.fuelAnnual,
-                    "Your current annual oil/gas use.", novice, Modifier.fillMaxWidth()) { v -> update { it.copy(fuelAnnual = v) } }
             }
 
             // ── Implied result (always on — a live sanity-check, not a hint) ──
-            val fuelN = hp.fuelAnnual.toDoubleOrNull() ?: 0.0
-            val effN = (hp.boilerEfficiencyPct.toDoubleOrNull() ?: 80.0) / 100.0
-            val scopN = hp.scop.toDoubleOrNull() ?: 3.6
-            val gross = fuelN * hp.calorificValue * effN
-            val frac = hp.spaceHeatingPct.toDoubleOrNull()?.takeIf { it > 0.0 }?.let { it / 100.0 }
-            val heat = frac?.let { gross * it } ?: (gross - hp.dhwAnnualKWh).coerceAtLeast(0.0)
-            val elec = if (scopN > 0) heat / scopN else 0.0
+            val elec = if (scopN > 0) estHeat / scopN else 0.0
             Box(Modifier.fillMaxWidth()
                 .clip(RoundedCornerShape(8.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .padding(horizontal = 12.dp, vertical = 8.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text("≈ ${heat.roundToInt()} kWh heat/yr   ·   ≈ ${elec.roundToInt()} kWh elec @ SCOP ${fmtNum(scopN)}",
+                    Text("≈ ${estHeat.roundToInt()} kWh heat/yr   ·   ≈ ${elec.roundToInt()} kWh elec @ SCOP ${fmtNum(scopN)}",
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary)
@@ -2414,19 +2516,72 @@ private fun HeatPumpCard(
                     v -> update { it.copy(desiredIndoorTemp = v) }
             }
 
-            // ── Wind sensitivity (maps to alphaWind) ──
+            // ── Advanced (demand) — hidden until the Advanced tab is selected ──
+            if (showAdvanced) {
+                if (!newBuild) {
+                    HpNumberField("Space heating %", hp.spaceHeatingPct,
+                        "% of the fuel that was space heating, not hot water (blank = use the default).",
+                        novice, Modifier.fillMaxWidth()) { v -> update { it.copy(spaceHeatingPct = v) } }
+                    HpNumberField("Old boiler efficiency %", hp.boilerEfficiencyPct,
+                        "Seasonal efficiency of the boiler you're replacing.", novice, Modifier.fillMaxWidth()) { v -> update { it.copy(boilerEfficiencyPct = v) } }
+                }
+                HpNumberField("Current indoor temperature (°C)", hp.currentIndoorTemp,
+                    "Today's setpoint — used to rescale demand if the desired temperature differs.", novice, Modifier.fillMaxWidth()) { v -> update { it.copy(currentIndoorTemp = v) } }
+                HpNumberField("Balance-point temperature (°C)", hp.balancePoint,
+                    "Outdoor temperature below which the home needs heating.", novice, Modifier.fillMaxWidth()) { v -> update { it.copy(balancePoint = v) } }
+            }
+        }
+
+        // ── 2) HP characteristics — the unit itself ──
+        if (novice) {
+            Text(hpHint, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        HpSubSection("HP characteristics", openSection == "hp", { toggle("hp") },
+            subtitle = hpSummary) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                HpNumberField("Rated COP", hp.copRated,
+                    "Datasheet efficiency at 7 °C outdoor (A7/W35).", novice, Modifier.weight(1f)) { v -> update { it.copy(copRated = v) } }
+                HpNumberField("SCOP", hp.scop,
+                    "Seasonal efficiency averaged across the year.", novice, Modifier.weight(1f)) { v -> update { it.copy(scop = v) } }
+            }
+            HpNumberField("Capacity (kW)", hp.capacityKw,
+                "Max heat output; the backup heater covers any shortfall.", novice, Modifier.fillMaxWidth()) { v -> update { it.copy(capacityKw = v) } }
+
+            // ── Advanced (HP unit) — hidden until the Advanced tab is selected ──
+            if (showAdvanced) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    HpNumberField("COP ref temp (°C)", hp.copRefTemp,
+                        "Outdoor temperature the rated COP is quoted at.", novice, Modifier.weight(1f)) { v -> update { it.copy(copRefTemp = v) } }
+                    HpNumberField("COP slope (/°C)", hp.copSlope,
+                        "How much COP changes per °C outdoors.", novice, Modifier.weight(1f)) { v -> update { it.copy(copSlope = v) } }
+                }
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Switch(checked = hp.backupHeater, onCheckedChange = { c -> update { it.copy(backupHeater = c) } })
+                    Spacer(Modifier.width(8.dp))
+                    Text("Backup electric heater")
+                }
+            }
+        }
+
+        // ── 3) Location & weather ──
+        if (novice) {
+            Text(weatherHint, style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        HpSubSection("Location & weather", openSection == "weather", { toggle("weather") },
+            subtitle = weatherSummary) {
+            // ── Wind sensitivity (maps to alphaWind) — how fast the home loses heat on cold, windy days ──
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("When the wind blows…", style = MaterialTheme.typography.labelMedium)
-                val selected = windLevelFor(hp.alphaWind)
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    WIND_LEVELS.forEach { level ->
-                        FilterChip(
-                            selected = selected == level,
-                            onClick = { update { it.copy(alphaWind = level.alphaWind) } },
-                            label = { Text(level.label) }
-                        )
-                    }
-                }
+                AdaptiveChipRow(
+                    items = WIND_LEVELS,
+                    isSelected = { windLevelFor(hp.alphaWind) == it },
+                    onSelect = { level -> update { it.copy(alphaWind = level.alphaWind) } },
+                    label = { it.short },
+                    labelLong = { it.label },
+                    shortItemWidth = 76.dp, longItemWidth = 150.dp
+                )
                 if (novice) {
                     Text("A draughty home loses heat fastest on cold, windy days — that can push a heat " +
                         "pump past its capacity onto the expensive backup heater.",
@@ -2435,20 +2590,6 @@ private fun HeatPumpCard(
                 }
             }
 
-            // ── Candidate heat pump ──
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Candidate heat pump", style = MaterialTheme.typography.labelMedium)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    HpNumberField("Rated COP", hp.copRated,
-                        "Datasheet efficiency at 7 °C outdoor (A7/W35).", novice, Modifier.weight(1f)) { v -> update { it.copy(copRated = v) } }
-                    HpNumberField("SCOP", hp.scop,
-                        "Seasonal efficiency averaged across the year.", novice, Modifier.weight(1f)) { v -> update { it.copy(scop = v) } }
-                }
-                HpNumberField("Capacity (kW)", hp.capacityKw,
-                    "Max heat output; the backup heater covers any shortfall.", novice, Modifier.fillMaxWidth()) { v -> update { it.copy(capacityKw = v) } }
-            }
-
-            // ── Weather source ──
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text("Weather data", style = MaterialTheme.typography.labelMedium)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -2516,27 +2657,6 @@ private fun HeatPumpCard(
                     TextButton(onClick = { showCdsAlert = false }) { Text("Cancel") }
                 }
             )
-        }
-        if (tab == 1) {
-            // ── Advanced controls (appended — basic stays visible above) ──
-            Text("Advanced options", style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(top = 4.dp))
-            HpNumberField("Space heating %", hp.spaceHeatingPct,
-                "% of the fuel that was space heating, not hot water (blank = use the default).",
-                novice, Modifier.fillMaxWidth()) { v -> update { it.copy(spaceHeatingPct = v) } }
-            HpNumberField("Old boiler efficiency %", hp.boilerEfficiencyPct, null, novice, Modifier.fillMaxWidth()) { v -> update { it.copy(boilerEfficiencyPct = v) } }
-            HpNumberField("Current indoor temperature (°C)", hp.currentIndoorTemp, null, novice, Modifier.fillMaxWidth()) { v -> update { it.copy(currentIndoorTemp = v) } }
-            HpNumberField("Balance-point temperature (°C)", hp.balancePoint,
-                "Outdoor temperature below which the home needs heating.", novice, Modifier.fillMaxWidth()) { v -> update { it.copy(balancePoint = v) } }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                HpNumberField("COP ref temp (°C)", hp.copRefTemp, null, novice, Modifier.weight(1f)) { v -> update { it.copy(copRefTemp = v) } }
-                HpNumberField("COP slope (/°C)", hp.copSlope, null, novice, Modifier.weight(1f)) { v -> update { it.copy(copSlope = v) } }
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Switch(checked = hp.backupHeater, onCheckedChange = { c -> update { it.copy(backupHeater = c) } })
-                Spacer(Modifier.width(8.dp))
-                Text("Backup electric heater")
-            }
         }
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
@@ -2916,6 +3036,13 @@ private fun WizardImportSheet(
             },
             onDismiss = onDismiss
         )
+        WizardImportScope.HEATPUMP -> UI2ImportSheet(
+            title = "Import heat pump",
+            hint = "Replaces the heat pump. Accepts a heat-pump JSON array or a whole scenario JSON.",
+            parse = ::parseHeatPumpImport,
+            onApply = { viewModel.replaceHeatPumpsFromJson(it); onApplied() },
+            onDismiss = onDismiss
+        )
     }
 }
 
@@ -2982,6 +3109,21 @@ private fun parsePanelsImport(text: String): ParsedPreview<List<com.tfcode.compa
     )
     if (raw.isNullOrEmpty()) ParsedPreview.Err("No PV panel strings found in the JSON.")
     else ParsedPreview.Ok(raw, "Parsed ${raw.size} panel string${if (raw.size == 1) "" else "s"}")
+} catch (e: Throwable) {
+    ParsedPreview.Err(e.message ?: "Parse failed")
+}
+
+private fun parseHeatPumpImport(text: String): ParsedPreview<List<com.tfcode.comparetout.model.json.scenario.HeatPumpJson>> = try {
+    val gson = Gson()
+    val listType = object : TypeToken<List<com.tfcode.comparetout.model.json.scenario.HeatPumpJson>>() {}.type
+    val raw = tryParseSliceOrScenario(
+        text,
+        extract = { it.heatPumps?.toList() },
+        decodeTarget = { gson.fromJson<List<com.tfcode.comparetout.model.json.scenario.HeatPumpJson>?>(it, listType) },
+        convertTarget = { it.takeIf { l -> l.isNotEmpty() && l.any { hp -> hp.fuelAnnual != null } } }
+    )
+    if (raw.isNullOrEmpty()) ParsedPreview.Err("No heat pump found in the JSON.")
+    else ParsedPreview.Ok(raw, "Parsed heat pump · ${raw.first().fuelType ?: "?"}")
 } catch (e: Throwable) {
     ParsedPreview.Err(e.message ?: "Parse failed")
 }

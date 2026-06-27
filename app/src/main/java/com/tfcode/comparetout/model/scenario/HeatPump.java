@@ -16,6 +16,7 @@
 
 package com.tfcode.comparetout.model.scenario;
 
+import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
@@ -36,12 +37,19 @@ public class HeatPump {
     private long heatPumpIndex;
 
     // (1) fuel → delivered heat
-    private String fuelType = "Kerosene/Oil";   // Kerosene/Oil · Natural gas · LPG
+    private String fuelType = "Kerosene/Oil";   // Kerosene/Oil · Natural gas · LPG · None (new build)
     private double fuelAnnual = 2300d;           // litres/yr (oil/LPG) or kWh/yr (gas)
     private double calorificValue = 10.35d;      // kWh per unit
     private double boilerEfficiency = 0.80d;     // old-boiler seasonal efficiency
     private double dhwAnnualKWh = 2000d;         // fixed DHW carve-out (basic mode)
     private Double spaceHeatingFraction = null;  // advanced: overrides the fixed DHW subtraction when set
+
+    // (1b) fabric anchor (new build, fuelType "None"): when both > 0 they replace the fuel anchor, deriving
+    // annual space heat from the building fabric. @ColumnInfo defaults keep the v9→v10 AutoMigration buildable.
+    @ColumnInfo(defaultValue = "0")
+    private double floorAreaM2 = 0d;             // heated floor area (m²); 0 ⇒ use the fuel anchor
+    @ColumnInfo(defaultValue = "0")
+    private double heatLossIndex = 0d;           // whole-house HLI (W/K/m², fabric + ventilation); 0 ⇒ fuel anchor
 
     // (2) setpoint scale
     private double desiredIndoorTemp = 20d;      // setpointNew
@@ -90,6 +98,12 @@ public class HeatPump {
 
     public Double getSpaceHeatingFraction() { return spaceHeatingFraction; }
     public void setSpaceHeatingFraction(Double spaceHeatingFraction) { this.spaceHeatingFraction = spaceHeatingFraction; }
+
+    public double getFloorAreaM2() { return floorAreaM2; }
+    public void setFloorAreaM2(double floorAreaM2) { this.floorAreaM2 = floorAreaM2; }
+
+    public double getHeatLossIndex() { return heatLossIndex; }
+    public void setHeatLossIndex(double heatLossIndex) { this.heatLossIndex = heatLossIndex; }
 
     public double getDesiredIndoorTemp() { return desiredIndoorTemp; }
     public void setDesiredIndoorTemp(double desiredIndoorTemp) { this.desiredIndoorTemp = desiredIndoorTemp; }

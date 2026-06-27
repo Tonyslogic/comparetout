@@ -26,10 +26,15 @@ import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
+import androidx.work.Data;
+import androidx.work.ExistingWorkPolicy;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
 import com.tfcode.comparetout.R;
+import com.tfcode.comparetout.ui2.HeatPumpWeatherFetchWorker;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.DischargeToGrid;
@@ -186,8 +191,24 @@ public class SimulationWorker extends Worker {
                     HeatPumpComponent heatPumpComponent = null;
                     if (scenario.isHasHeatPump() && !(null == scenarioComponents.heatPumps)
                             && !scenarioComponents.heatPumps.isEmpty()) {
+                        HeatPump hp = scenarioComponents.heatPumps.get(0);
                         List<SimulationInputData> hpGrid = mToutcRepository.getSimulationInputNoSolar(scenarioID);
-                        heatPumpComponent = buildHeatPumpComponent(scenarioComponents.heatPumps.get(0), hpGrid);
+                        // CDS weather behaves like PV data: if the real weather hasn't been fetched yet we must
+                        // NOT silently simulate on the bundled sample asset. Kick off the fetch and skip this
+                        // scenario (leaving it "needs simulation" + flagged on the dashboard); the fetch worker
+                        // re-runs the simulation once the weather lands.
+                        if ("cds".equals(hp.getWeatherSource())) {
+                            long[] hpMillis = HeatPumpWeatherCache.gridMillis(hpGrid);
+                            if (!HeatPumpWeatherCache.cacheExists(getApplicationContext(),
+                                    hp.getLatitude(), hp.getLongitude(), hpMillis)) {
+                                enqueueWeatherFetch(scenarioID);
+                                builder.setContentText("Skipping " + scenario.getScenarioName()
+                                        + " — heat-pump weather not ready");
+                                notificationManager.notify(notificationId, builder.build());
+                                continue;
+                            }
+                        }
+                        heatPumpComponent = buildHeatPumpComponent(hp, hpGrid);
                     }
 
                     /*
@@ -373,6 +394,20 @@ public class SimulationWorker extends Worker {
      * the CDS-fetched series is Phase 6), and aligns/calibrates the model onto that grid. Returns null if the
      * weather can't be loaded, so the rest of the simulation is unaffected.
      */
+    /**
+     * Enqueue the CDS weather fetch for a scenario whose real weather isn't cached yet. Unique-per-scenario
+     * with {@link ExistingWorkPolicy#KEEP} so repeated recompute passes don't pile up duplicate fetches; the
+     * fetch worker re-runs the simulation once the download lands.
+     */
+    private void enqueueWeatherFetch(long scenarioID) {
+        OneTimeWorkRequest fetch = new OneTimeWorkRequest.Builder(HeatPumpWeatherFetchWorker.class)
+                .setInputData(new Data.Builder().putLong("scenarioID", scenarioID).build())
+                .addTag("hp_weather_" + scenarioID)
+                .build();
+        WorkManager.getInstance(getApplicationContext())
+                .enqueueUniqueWork("hp_weather_" + scenarioID, ExistingWorkPolicy.KEEP, fetch);
+    }
+
     private HeatPumpComponent buildHeatPumpComponent(HeatPump hp, List<SimulationInputData> gridRows) {
         long[] gridMillis = HeatPumpWeatherCache.gridMillis(gridRows);
         WeatherProvider weather = loadWeather(hp, gridMillis);
@@ -394,13 +429,14 @@ public class SimulationWorker extends Worker {
                 try (InputStream is = new FileInputStream(cache)) {
                     return new CsvWeatherProvider(new InputStreamReader(is));
                 } catch (IOException e) {
+                    // Unreadable cache ⇒ treat as missing (don't substitute the sample). doWork() already
+                    // gates CDS scenarios on cacheExists() and skips when absent, so we only reach here on a
+                    // genuinely corrupt file; returning null omits the HP rather than faking real weather.
                     android.util.Log.e("HeatPump", "CDS weather cache unreadable ("
-                            + cache.getName() + ") — falling back to sample asset", e);
+                            + cache.getName() + ") — skipping heat pump", e);
                 }
-            } else {
-                android.util.Log.w("HeatPump", "CDS weather not yet fetched ("
-                        + cache.getName() + ") — using sample asset until the fetch completes");
             }
+            return null; // CDS selected but no usable real weather ⇒ no HP contribution (never the sample asset)
         }
         try (InputStream is = getApplicationContext().getAssets()
                 .open("hp-weather/era5-timeseries-2001-synthetic.csv")) {
@@ -419,6 +455,8 @@ public class SimulationWorker extends Worker {
         c.boilerEfficiency = hp.getBoilerEfficiency();
         c.dhwAnnualKWh = hp.getDhwAnnualKWh();
         c.spaceHeatingFraction = hp.getSpaceHeatingFraction();
+        c.floorAreaM2 = hp.getFloorAreaM2();       // new-build fabric anchor (0 ⇒ use the fuel anchor above)
+        c.heatLossIndex = hp.getHeatLossIndex();
         c.setpointNew = hp.getDesiredIndoorTemp();
         c.setpointOld = hp.getCurrentIndoorTemp();
         c.balancePoint = hp.getBalancePoint();

@@ -44,6 +44,12 @@ public class HeatPumpJson {
     @SerializedName("Space heating fraction")
     public Double spaceHeatingFraction;
 
+    @SerializedName("Floor area m2")
+    public Double floorAreaM2;
+
+    @SerializedName("Heat loss index")
+    public Double heatLossIndex;
+
     @SerializedName("Desired indoor temp")
     public Double desiredIndoorTemp;
 

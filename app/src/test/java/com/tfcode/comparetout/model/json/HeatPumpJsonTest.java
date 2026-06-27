@@ -73,6 +73,22 @@ public class HeatPumpJsonTest {
     }
 
     @Test
+    public void roundTripPreservesNewBuildFabricInputs() {
+        HeatPump hp = new HeatPump();
+        hp.setFuelType("None");
+        hp.setFuelAnnual(2300d);   // still present (import gate requires it), but unused for a new build
+        hp.setFloorAreaM2(175d);
+        hp.setHeatLossIndex(0.9d);
+
+        List<HeatPumpJson> json = JsonTools.createHeatPumpListJson(Collections.singletonList(hp));
+        HeatPump back = JsonTools.createHeatPumpList(json).get(0);
+
+        assertEquals("None", back.getFuelType());
+        assertEquals(175d, back.getFloorAreaM2(), 0d);
+        assertEquals(0.9d, back.getHeatLossIndex(), 0d);
+    }
+
+    @Test
     public void emptyJsonObjectDoesNotMaterialiseADefaultHeatPump() {
         // A partial "{}" (no required fuel figure) must not become a fully-defaulted heat pump.
         HeatPumpJson empty = new Gson().fromJson("{}", HeatPumpJson.class);
