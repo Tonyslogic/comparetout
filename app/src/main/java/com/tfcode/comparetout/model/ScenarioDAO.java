@@ -60,6 +60,7 @@ import com.tfcode.comparetout.model.scenario.Scenario2Panel;
 import com.tfcode.comparetout.model.scenario.ScenarioBarChartData;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.model.scenario.ScenarioLineGraphData;
+import com.tfcode.comparetout.model.scenario.ScenarioReadiness;
 import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
 import com.tfcode.comparetout.model.scenario.SimKPIs;
 import com.tfcode.comparetout.model.scenario.MICBreachRow;
@@ -588,6 +589,104 @@ public abstract class ScenarioDAO {
             "(SELECT DISTINCT loadProfileID FROM loadprofiledata)")
     public abstract List<Long> checkForMissingLoadProfileData();
 
+    // ──────────────────────────────────────────────────────────────────────────────────────────────
+    // Readiness matrix (scenario_readiness) — see ScenarioReadiness. Replaces the old derive-by-scan
+    // gates (getAllScenariosThatNeedSimulation / getAllScenariosThatMayNeedCosting). simStatus int
+    // literals below mirror the ScenarioReadiness.SIM_* constants (0 up-to-date, 1 needs, 2 blocked on
+    // panel data, 3 blocked on weather) — SQL can't reference the Java constants, so keep them in sync.
+    //
+    // A MISSING readiness row is treated as "needs work" by both gates (defensive lazy-seed), but guarded
+    // by the underlying data so a scenario that predates the v13 migration is NOT needlessly recomputed:
+    //   - sim gate: no row counts as "needs sim" only if it has no rows in scenariosimulationdata;
+    //   - cost gate: no row counts as "needs costing" only if it DOES have simulation data to cost.
+    // Worker terminal-state setters upsert a row so the scenario then leaves the defensive no-row clause.
+    // ──────────────────────────────────────────────────────────────────────────────────────────────
+
+    /** Scenarios ready to simulate: flagged SIM_NEEDS, or no row yet AND not already simulated. Keeps the
+     *  old load-profile-data precondition so we never attempt a scenario with no load data. */
+    @Query("SELECT scenarioIndex FROM scenarios " +
+            "WHERE scenarioIndex IN (SELECT DISTINCT scenarioID FROM scenario2loadprofile) " +
+            "AND (SELECT DISTINCT loadProfileID FROM scenario2loadprofile WHERE scenarioID = scenarioIndex) IN (SELECT DISTINCT loadProfileID FROM loadprofiledata) " +
+            "AND (scenarioIndex IN (SELECT scenarioID FROM scenario_readiness WHERE simStatus = 1) " +
+            "  OR (scenarioIndex NOT IN (SELECT scenarioID FROM scenario_readiness) " +
+            "      AND scenarioIndex NOT IN (SELECT DISTINCT scenarioID FROM scenariosimulationdata)))")
+    public abstract List<Long> getScenarioIdsNeedingSimulation();
+
+    /** Scenarios needing (re)costing: flagged costingNeeded with sim up-to-date, or no row yet AND has
+     *  simulation data to cost. Per-plan precision is still handled by CostingDAO.costingExists. */
+    @Query("SELECT scenarioIndex FROM scenarios " +
+            "WHERE scenarioIndex IN (SELECT scenarioID FROM scenario_readiness WHERE costingNeeded = 1 AND simStatus = 0) " +
+            "  OR (scenarioIndex NOT IN (SELECT scenarioID FROM scenario_readiness) " +
+            "      AND scenarioIndex IN (SELECT DISTINCT scenarioID FROM scenariosimulationdata))")
+    public abstract List<Long> getScenarioIdsNeedingCosting();
+
+    // ── worker terminal-state setters (upsert so the row exists and leaves the no-row defensive clause) ──
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    public abstract void replaceReadiness(ScenarioReadiness readiness);
+
+    /** Simulation succeeded → up-to-date; a fresh sim invalidates costing. */
+    @Transaction
+    public void markSimulated(long scenarioID) {
+        replaceReadiness(new ScenarioReadiness(scenarioID,
+                ScenarioReadiness.SIM_UP_TO_DATE, true, System.currentTimeMillis()));
+    }
+
+    /** Simulation can't run yet — record why (SIM_BLOCKED_PANEL_DATA / SIM_BLOCKED_WEATHER) so the gate
+     *  skips it until a self-heal fetch unblocks it. */
+    @Transaction
+    public void markSimBlocked(long scenarioID, int blockedStatus) {
+        replaceReadiness(new ScenarioReadiness(scenarioID,
+                blockedStatus, true, System.currentTimeMillis()));
+    }
+
+    /** All (this scenario × plan) costings are present → costing up-to-date. */
+    @Transaction
+    public void markCosted(long scenarioID) {
+        replaceReadiness(new ScenarioReadiness(scenarioID,
+                ScenarioReadiness.SIM_UP_TO_DATE, false, System.currentTimeMillis()));
+    }
+
+    // ── invalidation markers (plain UPDATE; a no-row scenario is already covered by the defensive gate) ──
+
+    @Query("UPDATE scenario_readiness SET simStatus = 1, costingNeeded = 1, updated = :now WHERE scenarioID = :scenarioID")
+    public abstract void markScenarioNeedsSim(long scenarioID, long now);
+
+    @Query("UPDATE scenario_readiness SET costingNeeded = 1, updated = :now WHERE scenarioID = :scenarioID")
+    public abstract void markScenarioNeedsCosting(long scenarioID, long now);
+
+    @Query("UPDATE scenario_readiness SET simStatus = 1, costingNeeded = 1, updated = :now " +
+            "WHERE scenarioID IN (SELECT scenarioID FROM scenario2loadprofile WHERE loadProfileID = :loadProfileID)")
+    public abstract void markProfileScenariosNeedSim(long loadProfileID, long now);
+
+    @Query("UPDATE scenario_readiness SET costingNeeded = 1, updated = :now " +
+            "WHERE scenarioID IN (SELECT scenarioID FROM scenario2loadprofile WHERE loadProfileID = :loadProfileID)")
+    public abstract void markProfileScenariosNeedCosting(long loadProfileID, long now);
+
+    @Query("UPDATE scenario_readiness SET simStatus = 1, costingNeeded = 1, updated = :now " +
+            "WHERE scenarioID IN (SELECT scenarioID FROM scenario2panel WHERE panelID = :panelID)")
+    public abstract void markPanelScenarioNeedsSim(long panelID, long now);
+
+    @Query("UPDATE scenario_readiness SET costingNeeded = 1, updated = :now " +
+            "WHERE scenarioID IN (SELECT scenarioID FROM scenario2panel WHERE panelID = :panelID)")
+    public abstract void markPanelScenarioNeedsCosting(long panelID, long now);
+
+    /** A plan was added or edited → every scenario's costing for that plan is now missing/stale. */
+    @Query("UPDATE scenario_readiness SET costingNeeded = 1, updated = :now")
+    public abstract void markAllScenariosNeedCosting(long now);
+
+    // ── self-heal unblock (only flips a still-blocked row back to SIM_NEEDS; never disturbs up-to-date) ──
+
+    @Query("UPDATE scenario_readiness SET simStatus = 1, updated = :now " +
+            "WHERE simStatus = 2 AND scenarioID IN (SELECT scenarioID FROM scenario2panel WHERE panelID = :panelID)")
+    public abstract void unblockPanelScenarios(long panelID, long now);
+
+    @Query("UPDATE scenario_readiness SET simStatus = 1, updated = :now WHERE simStatus = 3 AND scenarioID = :scenarioID")
+    public abstract void unblockWeatherScenario(long scenarioID, long now);
+
+    @Query("DELETE FROM scenario_readiness WHERE scenarioID = :scenarioID")
+    public abstract void deleteReadinessForScenario(long scenarioID);
+
     /**
      * Completely delete a scenario and all its relationships.
      * <p>
@@ -649,6 +748,8 @@ public abstract class ScenarioDAO {
         deleteOrphanPanelData();
         deleteSimulationDataForScenarioID(id);
         deleteCostingDataForScenarioID(id);
+        // Drop the readiness row too so it can't orphan once the scenario is gone.
+        deleteReadinessForScenario(id);
     }
 
     /**

@@ -58,6 +58,7 @@ import com.tfcode.comparetout.model.scenario.Scenario2Inverter;
 import com.tfcode.comparetout.model.scenario.Scenario2LoadProfile;
 import com.tfcode.comparetout.model.scenario.Scenario2LoadShift;
 import com.tfcode.comparetout.model.scenario.Scenario2Panel;
+import com.tfcode.comparetout.model.scenario.ScenarioReadiness;
 import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
 
 import java.util.concurrent.ExecutorService;
@@ -82,8 +83,9 @@ import java.util.concurrent.Executors;
         Costings.class, PanelData.class,
         AlphaESSRawPower.class, AlphaESSRawEnergy.class,
         AlphaESSTransformedData.class,
-        AlphaESSTransformMeta.class
-        }, version = 12,
+        AlphaESSTransformMeta.class,
+        ScenarioReadiness.class
+        }, version = 13,
         autoMigrations = {
             @AutoMigration(from = 1, to = 2),
             @AutoMigration(from = 2, to = 3),
@@ -95,7 +97,8 @@ import java.util.concurrent.Executors;
             @AutoMigration(from = 8, to = 9),
             @AutoMigration(from = 9, to = 10),
             @AutoMigration(from = 10, to = 11),
-            @AutoMigration(from = 11, to = 12)})
+            @AutoMigration(from = 11, to = 12),
+            @AutoMigration(from = 12, to = 13)})
 
 @TypeConverters({Converters.class})
 

@@ -189,6 +189,8 @@ public class ToutcRepository {
         ToutcDB.databaseWriteExecutor.execute(() -> {
             long id = pricePlanDAO.addNewPricePlanWithDayRates(pp, drs, clobber);
             if (clobber) costingDAO.deleteRelatedCostings((int) id);
+            // A new/replaced plan means every scenario now has a missing costing for it.
+            scenarioDAO.markAllScenariosNeedCosting(System.currentTimeMillis());
         });
     }
 
@@ -260,22 +262,61 @@ public class ToutcRepository {
 
     public void deleteSimulationDataForProfileID(long loadProfileID) {
         scenarioDAO.deleteSimulationDataForProfileID(loadProfileID);
+        scenarioDAO.markProfileScenariosNeedSim(loadProfileID, System.currentTimeMillis());
     }
 
     public void deleteCostingDataForProfileID(long loadProfileID) {
         scenarioDAO.deleteCostingDataForProfileID(loadProfileID);
+        scenarioDAO.markProfileScenariosNeedCosting(loadProfileID, System.currentTimeMillis());
     }
 
     public void deleteSimulationDataForPanelID(long panelID) {
         scenarioDAO.deleteSimulationDataForPanelID(panelID);
+        scenarioDAO.markPanelScenarioNeedsSim(panelID, System.currentTimeMillis());
     }
 
     public void deleteCostingDataForPanelID(long panelID) {
         scenarioDAO.deleteCostingDataForPanelID(panelID);
+        scenarioDAO.markPanelScenarioNeedsCosting(panelID, System.currentTimeMillis());
     }
 
     public List<Long> getAllScenariosThatNeedSimulation() {
         return scenarioDAO.getAllScenariosThatNeedSimulation();
+    }
+
+    // ── readiness matrix (scenario_readiness) — fast gates + worker terminal-state setters ──
+
+    public List<Long> getScenarioIdsNeedingSimulation() {
+        return scenarioDAO.getScenarioIdsNeedingSimulation();
+    }
+
+    public List<Long> getScenarioIdsNeedingCosting() {
+        return scenarioDAO.getScenarioIdsNeedingCosting();
+    }
+
+    /** Simulation succeeded for a scenario → up-to-date; costing now stale. */
+    public void markSimulated(long scenarioID) {
+        scenarioDAO.markSimulated(scenarioID);
+    }
+
+    /** Simulation can't run yet (record the blocked reason so the gate skips it). */
+    public void markSimBlocked(long scenarioID, int blockedStatus) {
+        scenarioDAO.markSimBlocked(scenarioID, blockedStatus);
+    }
+
+    /** All (scenario × plan) costings present → costing up-to-date. */
+    public void markCosted(long scenarioID) {
+        scenarioDAO.markCosted(scenarioID);
+    }
+
+    /** Self-heal: panel data for this panel landed → unblock its scenario if it was blocked on panel data. */
+    public void unblockPanelScenarios(long panelID) {
+        scenarioDAO.unblockPanelScenarios(panelID, System.currentTimeMillis());
+    }
+
+    /** Self-heal: CDS weather for this scenario landed → unblock it if it was blocked on weather. */
+    public void unblockWeatherScenario(long scenarioID) {
+        scenarioDAO.unblockWeatherScenario(scenarioID, System.currentTimeMillis());
     }
 
     public Scenario getScenarioForID(long scenarioID) {
@@ -454,8 +495,11 @@ public class ToutcRepository {
     }
 
     public void removeCostingsForPricePlan(long pricePlanIndex) {
-        ToutcDB.databaseWriteExecutor.execute(() ->
-                costingDAO.deleteRelatedCostings((int)pricePlanIndex));
+        ToutcDB.databaseWriteExecutor.execute(() -> {
+            costingDAO.deleteRelatedCostings((int) pricePlanIndex);
+            // An edited plan invalidates its costing across every scenario.
+            scenarioDAO.markAllScenariosNeedCosting(System.currentTimeMillis());
+        });
     }
 
     public void pruneCostings() {
@@ -604,10 +648,13 @@ public class ToutcRepository {
 
     public void deleteSimulationDataForScenarioID(Long scenarioID) {
         scenarioDAO.deleteSimulationDataForScenarioID(scenarioID);
+        // Sim output gone → scenario needs re-sim (and therefore re-costing).
+        scenarioDAO.markScenarioNeedsSim(scenarioID, System.currentTimeMillis());
     }
 
     public void deleteCostingDataForScenarioID(Long scenarioID) {
         scenarioDAO.deleteCostingDataForScenarioID(scenarioID);
+        scenarioDAO.markScenarioNeedsCosting(scenarioID, System.currentTimeMillis());
     }
 
     public List<ScenarioBarChartData> getBarData(Long scenarioID, int dayOfYear) {
