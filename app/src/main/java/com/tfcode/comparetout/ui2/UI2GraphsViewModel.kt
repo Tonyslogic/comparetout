@@ -226,7 +226,7 @@ class UI2GraphsViewModel @Inject constructor(
         val (newFrom, newTo) = when (s.stepSize) {
             StepSize.DAY   -> Pair(fromDate.minusDays(1), toDate.minusDays(1))
             StepSize.WEEK  -> Pair(fromDate.minusWeeks(1), toDate.minusWeeks(1))
-            StepSize.MONTH -> Pair(fromDate.minusMonths(1), toDate.minusMonths(1))
+            StepSize.MONTH -> monthStep(fromDate, toDate, -1)
             StepSize.YEAR  -> Pair(fromDate.minusYears(1), toDate.minusYears(1))
         }
         _state.update { it.copy(from = newFrom.format(FMT), to = newTo.format(FMT)) }
@@ -240,11 +240,28 @@ class UI2GraphsViewModel @Inject constructor(
         val (newFrom, newTo) = when (s.stepSize) {
             StepSize.DAY   -> Pair(fromDate.plusDays(1), toDate.plusDays(1))
             StepSize.WEEK  -> Pair(fromDate.plusWeeks(1), toDate.plusWeeks(1))
-            StepSize.MONTH -> Pair(fromDate.plusMonths(1), toDate.plusMonths(1))
+            StepSize.MONTH -> monthStep(fromDate, toDate, 1)
             StepSize.YEAR  -> Pair(fromDate.plusYears(1), toDate.plusYears(1))
         }
         _state.update { it.copy(from = newFrom.format(FMT), to = newTo.format(FMT)) }
         viewModelScope.launch(Dispatchers.IO) { fetchData() }
+    }
+
+    /**
+     * Step a MONTH-sized window by [months]. When the current selection already covers a whole calendar month
+     * (1st → last day of the same month) the result snaps to the next/previous whole month, so a varying month
+     * length is honoured: Feb 1–28 → Mar 1–31 → Apr 1–30. Any other (partial) selection is just shifted by a
+     * month, preserving the existing behaviour.
+     */
+    private fun monthStep(from: LocalDate, to: LocalDate, months: Long): Pair<LocalDate, LocalDate> {
+        val wholeMonth = from.dayOfMonth == 1 && to.dayOfMonth == to.lengthOfMonth() &&
+            from.year == to.year && from.monthValue == to.monthValue
+        return if (wholeMonth) {
+            val nf = from.plusMonths(months)
+            nf to nf.withDayOfMonth(nf.lengthOfMonth())
+        } else {
+            Pair(from.plusMonths(months), to.plusMonths(months))
+        }
     }
 
     fun setDateRange(from: String, to: String) {
