@@ -28,6 +28,7 @@ import com.tfcode.comparetout.model.scenario.HWUse
 import com.tfcode.comparetout.model.scenario.HourlyDist
 import com.tfcode.comparetout.model.scenario.Inverter
 import com.tfcode.comparetout.model.scenario.LoadProfile
+import com.tfcode.comparetout.model.scenario.LoadProfileData
 import com.tfcode.comparetout.model.scenario.LoadShift
 import com.tfcode.comparetout.model.scenario.MonthHolder
 import com.tfcode.comparetout.model.scenario.MonthlyDist
@@ -36,6 +37,7 @@ import com.tfcode.comparetout.model.scenario.PanelPVSummary
 import com.tfcode.comparetout.model.scenario.Scenario
 import com.tfcode.comparetout.model.scenario.ScenarioComponents
 import com.tfcode.comparetout.scenario.loadprofile.StandardLoadProfiles
+import com.tfcode.comparetout.scenario.sim.SimTime
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -44,6 +46,9 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 import javax.inject.Inject
@@ -582,6 +587,14 @@ data class WizardBuilder(
     val gridExportMax: String = "5.0",
     val patchWithSlp: Boolean = true,
     val slpProfile: String = "",
+    // Absolute-year load: when set, save() materialises the source's REAL half-hourly/5-min series for
+    // [loadSourceFrom]..[loadSourceTo] onto the 2001 grid as loadprofiledata (in addition to the distribution),
+    // so the sim runs on the actual measured load instead of a synthesised distribution.
+    val loadAbsoluteYear: Boolean = false,
+    val loadSourceSysSn: String = "",
+    val loadSourceImporter: ComparisonUIViewModel.Importer? = null,
+    val loadSourceFrom: String = "",
+    val loadSourceTo: String = "",
     // Distribution charts (populated when load profile has real data)
     val loadProfileHourly: List<Double>? = null,
     val loadProfileDaily: List<Double>? = null,
@@ -1381,7 +1394,8 @@ class UI2WizardViewModel @Inject constructor(
         importerType: ComparisonUIViewModel.Importer,
         from: LocalDate,
         to: LocalDate,
-        fillGaps: Boolean
+        fillGaps: Boolean,
+        absoluteYear: Boolean = false
     ) {
         viewModelScope.launch(Dispatchers.IO) {
             _isDeriving.value = true
@@ -1426,17 +1440,69 @@ class UI2WizardViewModel @Inject constructor(
                 _builder.value = _builder.value.copy(
                     loadSource         = LoadSource.SOURCE,
                     isLoadLinked       = false,
-                    distributionSource = sourceName,
+                    distributionSource = if (absoluteYear) "$sourceName ($from→$to, actual)" else sourceName,
                     annualUsage        = "%.1f".format(scaledAnnual),
                     patchWithSlp       = fillGaps,
                     loadProfileHourly  = hourly,
                     loadProfileDaily   = daily,
-                    loadProfileMonthly = monthly
+                    loadProfileMonthly = monthly,
+                    // Absolute-year mode keeps the source identity so save() can write the REAL series; averages
+                    // mode clears it so an earlier absolute selection can't leak into a plain distribution.
+                    loadAbsoluteYear   = absoluteYear,
+                    loadSourceSysSn    = if (absoluteYear) sysSn else "",
+                    loadSourceImporter = if (absoluteYear) importerType else null,
+                    loadSourceFrom     = if (absoluteYear) from.toString() else "",
+                    loadSourceTo       = if (absoluteYear) to.toString() else ""
                 )
             } finally {
                 _isDeriving.value = false
             }
         }
+    }
+
+    /**
+     * Write the source's REAL measured load for [WizardBuilder.loadSourceFrom]..[WizardBuilder.loadSourceTo]
+     * onto the 2001 simulation grid as loadprofiledata — energy normalised to 2001 by day-of-year +
+     * time-of-day, on the canonical UTC millis axis, the same mapping the importer's generateLoadProfileData
+     * uses. Called on save for an absolute-year load profile so the sim runs on the actual measured series
+     * (in addition to the distribution already on the LoadProfile). Create-path only: the profile is fresh,
+     * so the plain @Insert can't collide and the load-data generator skips a profile that already has rows.
+     */
+    private fun materializeAbsoluteYearLoadData(scenarioId: Long, b: WizardBuilder) {
+        val lpId = repository.getScenarioComponentsForScenarioID(scenarioId)?.loadProfile?.loadProfileIndex
+            ?: return
+        val rows = repository.getAlphaESSTransformedData(b.loadSourceSysSn, b.loadSourceFrom, b.loadSourceTo)
+        if (rows.isEmpty()) return
+        // ESBN has no load channel, so estimate consumption from grid import (same as the averages path).
+        val esbn = b.loadSourceImporter == ComparisonUIViewModel.Importer.ESBNHDF
+        // Index real readings by day-of-year → (HH:mm → load); the 2001 walk below maps by the same key.
+        val byDoy = HashMap<Int, HashMap<String, Double>>()
+        rows.forEach { r ->
+            val e = if (esbn) r.buy else r.load
+            val d = runCatching { LocalDate.parse(r.date) }.getOrNull() ?: return@forEach
+            byDoy.getOrPut(d.dayOfYear) { HashMap() }[r.minute] = e
+        }
+        val dateFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+        val minFmt  = DateTimeFormatter.ofPattern("HH:mm")
+        val out = ArrayList<LoadProfileData>()
+        var active = LocalDateTime.of(2001, 1, 1, 0, 0)
+        val end    = LocalDateTime.of(2002, 1, 1, 0, 0)
+        while (active.isBefore(end)) {
+            val hhmm = active.format(minFmt)
+            val row = LoadProfileData()
+            row.loadProfileID    = lpId
+            row.do2001           = active.dayOfYear
+            row.date             = active.format(dateFmt)
+            row.minute           = hhmm
+            row.dow              = active.dayOfWeek.value
+            row.mod              = active.hour * 60 + active.minute
+            row.millisSinceEpoch = SimTime.toEpochMillis(active, ZoneOffset.UTC)
+            // No reading for this 2001 slot (gap, or a coarser source than 5-min) → 0, matching the importer.
+            row.load             = byDoy[active.dayOfYear]?.get(hhmm) ?: 0.0
+            out.add(row)
+            active = active.plusMinutes(5)
+        }
+        repository.createLoadProfileDataEntries(out)
     }
 
     fun save(runSimulation: Boolean) {
@@ -1656,6 +1722,14 @@ class UI2WizardViewModel @Inject constructor(
                 // running the cleanup/notify path. The name check in the UI normally prevents reaching here.
                 if (savedId <= 0L) {
                     throw IllegalStateException("Scenario not saved — the name is already in use.")
+                }
+                // Absolute-year load: write the source's REAL series onto the 2001 grid now. Create paths only
+                // (a fresh load profile has no loadprofiledata, so the plain @Insert can't collide and the
+                // GenerateMissingLoadDataWorker will skip a profile that already has rows). The loadSource/sysSn
+                // guards mean a stale absolute flag (left if the user later switched to SLP/Copy/Link) is ignored.
+                if (b.loadAbsoluteYear && b.loadSource == LoadSource.SOURCE &&
+                    b.loadSourceSysSn.isNotBlank() && !isEditMode) {
+                    materializeAbsoluteYearLoadData(savedId, b)
                 }
                 // An edit-save deletes-and-reinserts the scenario's components, leaving the old rows
                 // unreferenced. Prune all such orphans (battery, inverter, schedules, …) in one pass — a no-op

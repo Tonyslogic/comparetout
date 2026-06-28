@@ -479,8 +479,8 @@ private fun WizardScreen(
                     onLoadProfileForCopy = { viewModel.loadProfileForCopy(it) },
                     onLoadProfileForLink = { viewModel.loadProfileForLink(it) },
                     onInitHandCraft = { viewModel.initHandCraft() },
-                    onDeriveFromSource = { sysSn, importer, from, to, fillGaps ->
-                        viewModel.deriveLoadProfileFromSource(sysSn, importer, from, to, fillGaps)
+                    onDeriveFromSource = { sysSn, importer, from, to, fillGaps, absoluteYear ->
+                        viewModel.deriveLoadProfileFromSource(sysSn, importer, from, to, fillGaps, absoluteYear)
                     },
                     onImport = { importScope = WizardImportScope.USAGE }
                 )
@@ -1160,7 +1160,7 @@ private fun UsageDataSectionContent(
     onLoadProfileForCopy: (Long) -> Unit,
     onLoadProfileForLink: (Long) -> Unit,
     onInitHandCraft: () -> Unit,
-    onDeriveFromSource: (String, ComparisonUIViewModel.Importer, LocalDate, LocalDate, Boolean) -> Unit,
+    onDeriveFromSource: (String, ComparisonUIViewModel.Importer, LocalDate, LocalDate, Boolean, Boolean) -> Unit,
     onImport: () -> Unit
 ) {
     var advancedTab          by remember { mutableIntStateOf(0) }
@@ -1227,8 +1227,9 @@ private fun UsageDataSectionContent(
             Text("SOURCE", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
 
             val noviceVisible = USAGE_SOURCE_OPTIONS.filter {
-                // Source (derive from raw data) and Hand-craft are advanced — hide in novice mode
-                it.src != LoadSource.SOURCE && it.src != LoadSource.HAND
+                // "Derive from a source" is now novice-visible (it's how you turn your own imported smart-meter /
+                // inverter data into a load profile). Only Hand-craft stays advanced-only.
+                it.src != LoadSource.HAND
             }
             noviceVisible.forEach { opt ->
                 val selected = builder.loadSource == opt.src
@@ -1396,7 +1397,8 @@ private fun UsageDataSectionContent(
 private fun DeriveFromSourceDialog(
     availableSources: List<SourceDateRange>,
     isDeriving: Boolean,
-    onDerive: (String, ComparisonUIViewModel.Importer, LocalDate, LocalDate, Boolean) -> Unit,
+    // (sysSn, importer, from, to, fillGaps, absoluteYear)
+    onDerive: (String, ComparisonUIViewModel.Importer, LocalDate, LocalDate, Boolean, Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     var selectedSource by remember { mutableStateOf<SourceDateRange?>(null) }
@@ -1404,6 +1406,9 @@ private fun DeriveFromSourceDialog(
     var period         by remember { mutableStateOf(DataSourcePeriod.YEAR) }
     var anchor         by remember { mutableStateOf(LocalDate.now()) }
     var fillGaps       by remember { mutableStateOf(true) }
+    // Averages = an average hourly/daily/monthly shape over the window; Absolute year = the source's real
+    // measured series for the chosen year mapped onto the 2001 grid (plus that year's distribution).
+    var absoluteYear   by remember { mutableStateOf(false) }
 
     fun onSourcePicked(src: SourceDateRange) {
         selectedSource = src
@@ -1423,6 +1428,31 @@ private fun DeriveFromSourceDialog(
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 } else {
+                    item {
+                        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Text("Extraction", style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.outline)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                FilterChip(
+                                    selected = !absoluteYear,
+                                    onClick  = { absoluteYear = false },
+                                    label    = { Text("Averages") }
+                                )
+                                FilterChip(
+                                    selected = absoluteYear,
+                                    onClick  = { absoluteYear = true; period = DataSourcePeriod.YEAR },
+                                    label    = { Text("Absolute year") }
+                                )
+                            }
+                            Text(
+                                if (absoluteYear)
+                                    "Uses the actual measured load for the chosen year, mapped onto the 2001 simulation grid."
+                                else
+                                    "Builds an average hourly/daily/monthly shape over the chosen window.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
                     item {
                         Text("Select a data source:",
                             style = MaterialTheme.typography.labelMedium,
@@ -1534,7 +1564,7 @@ private fun DeriveFromSourceDialog(
                         val (rawFrom, rawTo) = periodDateRange(period, anchor, true, startD, finishD)
                         onDerive(src.sysSn, src.importerType,
                                  rawFrom.coerceIn(startD, finishD),
-                                 rawTo.coerceIn(startD, finishD), fillGaps)
+                                 rawTo.coerceIn(startD, finishD), fillGaps, absoluteYear)
                         onDismiss()
                     }
                 },
