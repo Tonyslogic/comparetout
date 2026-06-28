@@ -170,7 +170,10 @@ class UI2GraphsViewModel @Inject constructor(
             val dataStart = if (startDate.isNotEmpty()) {
                 try { LocalDate.parse(startDate, FMT) } catch (e: Exception) { dataEnd.minusMonths(1) }
             } else dataEnd.minusMonths(1)
-            val from = dataEnd.minusMonths(1).coerceAtLeast(dataStart).format(FMT)
+            // Default to the full simulation range (the whole 2001 grid) rather than just the last month, so
+            // Explore opens on the full year by default — the user can narrow with the step controls. The
+            // DOY display scale aggregates this to ~365 daily bars. Mirrors the data-source path below.
+            val from = dataStart.format(FMT)
             val to = dataEnd.format(FMT)
             _state.update {
                 it.copy(
