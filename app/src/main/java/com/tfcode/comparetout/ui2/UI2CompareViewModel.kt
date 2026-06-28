@@ -278,6 +278,9 @@ class UI2CompareViewModel @Inject constructor(
     private val dateFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd")
     private val rowFmt  = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
 
+    /** Simulations are computed on the synthetic 2001 grid, so a sim's last day with data is fixed. */
+    private val SIM_LAST_DAY: LocalDate = LocalDate.of(2001, 12, 31)
+
     // ── selectable catalogue ────────────────────────────────────────────────
     private val _scenarios    = MutableStateFlow<List<Scenario>>(emptyList())
     private val _alphaSources = MutableStateFlow<List<InverterDateRange>>(emptyList())
@@ -429,6 +432,49 @@ class UI2CompareViewModel @Inject constructor(
         recompute(next)
     }
 
+    /**
+     * The last day that actually holds data for a subject, used to default the
+     * timeframe anchor into the data instead of "today". Simulations live only on
+     * the 2001 grid; importer sources end at their finishDate. Falls back to today
+     * for an unknown subject (e.g. its catalogue entry hasn't loaded yet).
+     */
+    private fun subjectLatestDay(subjectId: String): LocalDate = when {
+        subjectId.startsWith("sim:") -> SIM_LAST_DAY
+        subjectId.startsWith("src:") -> {
+            val sn = subjectId.removePrefix("src:").substringBefore('#')
+            sourceItems.value.firstOrNull { it.sysSn == sn }
+                ?.let { runCatching { LocalDate.parse(it.finishDate, dateFmt) }.getOrNull() }
+                ?: LocalDate.now()
+        }
+        else -> LocalDate.now()
+    }
+
+    /** Default synced anchor: the latest day with data across every selected subject. */
+    private fun defaultGlobalAnchor(s: CompareState): LocalDate {
+        val days = buildList {
+            s.sources.forEach { sn -> add(subjectLatestDay("src:$sn")) }
+            s.sims.forEach { add(SIM_LAST_DAY) }
+        }
+        return days.maxOrNull() ?: LocalDate.now()
+    }
+
+    /**
+     * Change the synced range granularity, defaulting the anchor into the data
+     * when moving into a dated (non-ALL) period. A fresh Compare opens on "today",
+     * but sims live only in 2001 and sources end at their finishDate — so without
+     * this, picking "Year" would strand the anchor ~20 years past the data and
+     * force the user to step the picker all the way back. We only pull the anchor
+     * in when it sits beyond the data, so a year the user deliberately picked is
+     * left untouched.
+     */
+    fun setGlobalGran(g: DataSourcePeriod?) = update { s ->
+        if (g != null && g != DataSourcePeriod.ALL) {
+            val latest = defaultGlobalAnchor(s)
+            if (s.globalAnchor.isAfter(latest)) s.copy(globalGran = g, globalAnchor = latest)
+            else s.copy(globalGran = g)
+        } else s.copy(globalGran = g)
+    }
+
     /** Public view of slot rows for the UI. Computed off the current selection. */
     fun sourceSlots(s: CompareState): List<SourceSlot> {
         val byKey = sourceItems.value.associateBy { it.sysSn }
@@ -451,7 +497,7 @@ class UI2CompareViewModel @Inject constructor(
             val newOccurrence = s.sources.count { it == srcSlot.sysSn }
             val newId = sourceSubjectId(srcSlot.sysSn, newOccurrence)
             val seed = s.perSubjectRanges[subjectId]
-                ?: SubjectRange(s.globalGran, s.globalAnchor)
+                ?: SubjectRange(s.globalGran, subjectLatestDay(newId))
             s.copy(
                 sources = s.sources + srcSlot.sysSn,
                 perSubjectRanges = s.perSubjectRanges + (newId to seed)
@@ -461,7 +507,7 @@ class UI2CompareViewModel @Inject constructor(
             val newOccurrence = s.sims.count { it == simSlot.scenarioId }
             val newId = simSubjectId(simSlot.scenarioId, newOccurrence)
             val seed = s.perSubjectRanges[subjectId]
-                ?: SubjectRange(s.globalGran, s.globalAnchor)
+                ?: SubjectRange(s.globalGran, subjectLatestDay(newId))
             s.copy(
                 sims = s.sims + simSlot.scenarioId,
                 perSubjectRanges = s.perSubjectRanges + (newId to seed)
@@ -583,7 +629,9 @@ class UI2CompareViewModel @Inject constructor(
             if (currentIds.any { it !in r.perSubjectRanges }) {
                 val filled = r.perSubjectRanges.toMutableMap()
                 currentIds.forEach { id ->
-                    if (id !in filled) filled[id] = SubjectRange(r.globalGran, r.globalAnchor)
+                    // Seed each subject's anchor from its own data (sim → 2001, source → its
+                    // latest year) so an un-synced dated range opens on the data, not "today".
+                    if (id !in filled) filled[id] = SubjectRange(r.globalGran, subjectLatestDay(id))
                 }
                 r = r.copy(perSubjectRanges = filled)
             }
@@ -595,6 +643,13 @@ class UI2CompareViewModel @Inject constructor(
             r = r.copy(
                 perSubjectRanges = r.perSubjectRanges.filterKeys { it in currentIds }
             )
+        }
+        // Self-heal a stale synced anchor (e.g. restored "today" from before this default
+        // existed, or stepped past the data): a dated synced range should never sit beyond
+        // the latest day with data. Pulls a sims-only compare back to 2001 on open.
+        if (r.sync && r.globalGran != null && r.globalGran != DataSourcePeriod.ALL) {
+            val latest = defaultGlobalAnchor(r)
+            if (r.globalAnchor.isAfter(latest)) r = r.copy(globalAnchor = latest)
         }
         return r
     }

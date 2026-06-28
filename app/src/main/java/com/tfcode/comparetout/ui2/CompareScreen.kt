@@ -696,7 +696,7 @@ private fun TimeframeSection(
 
     if (state.sync) {
         RangePicker("Range", state.globalGran, state.globalAnchor, state.advanced, novice,
-            onGran = { g -> vm.update { it.copy(globalGran = g) } },
+            onGran = { g -> vm.setGlobalGran(g) },
             onAnchor = { a -> vm.update { it.copy(globalAnchor = a) } })
     } else if (selectedSubjects.isEmpty()) {
         Text("Select sources or simulations first.",

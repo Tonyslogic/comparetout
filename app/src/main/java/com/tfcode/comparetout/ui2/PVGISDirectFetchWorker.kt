@@ -12,7 +12,9 @@ import com.google.gson.Gson
 import com.tfcode.comparetout.SimulatorLauncher
 import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.model.json.scenario.pgvis.PvGISData
+import com.tfcode.comparetout.model.scenario.Panel
 import com.tfcode.comparetout.model.scenario.PanelData
+import com.tfcode.comparetout.scenario.PvgisCache
 import com.tfcode.comparetout.scenario.sim.SimTime
 import java.net.HttpURLConnection
 import java.net.URL
@@ -36,28 +38,21 @@ class PVGISDirectFetchWorker(
         val repository = ToutcRepository(applicationContext as Application)
         val panel = repository.getPanelForID(panelID) ?: return Result.failure()
 
-        // Locale.ROOT so lat/lon/peakpower use a '.' decimal — a comma (German etc.) would corrupt the URL.
-        val df = DecimalFormat("#.000", DecimalFormatSymbols.getInstance(Locale.ROOT))
-        val lat = df.format(panel.latitude)
-        val lon = df.format(panel.longitude)
-        var az = panel.azimuth
-        if (az > 180) az = 360 - az
-
-        val peakKWp = DecimalFormat("#.###", DecimalFormatSymbols.getInstance(Locale.ROOT))
-            .format(panel.panelCount * panel.panelkWp / 1000.0)
-        val lossPct = panel.systemLoss
-
-        val url = U1 + lat + U2 + lon + U3 + panel.slope + U4 + az +
-            U5 + panel.slope + U6 + az + U7 + peakKWp + U8 + lossPct
+        // This array's peak power (kWp). The cache holds a reference 1 kWp series, so this is the scale factor.
+        val peakKWp = panel.panelCount * panel.panelkWp / 1000.0
 
         return try {
-            val connection = URL(url).openConnection() as HttpURLConnection
-            connection.connectTimeout = 30_000
-            connection.readTimeout = 60_000
-            val json = connection.inputStream.bufferedReader().use { it.readText() }
-            connection.disconnect()
+            // One cached download per (location, orientation, loss), taken at a reference peakpower of 1 kWp.
+            // PVGIS's P is exactly linear in peakpower (and (1-loss)), so any panel's series is the per-kWp
+            // reference × its own kWp — a second panel sharing the location/orientation/loss reuses the file
+            // with NO network call. See PvgisCache.
+            val cacheFile = PvgisCache.cacheFile(applicationContext,
+                panel.latitude, panel.longitude, panel.slope, panel.azimuth, panel.systemLoss)
+            if (!cacheFile.exists() || cacheFile.length() == 0L) {
+                PvgisCache.writeAtomic(cacheFile, fetchReferenceJson(panel))
+            }
 
-            val pvGISData = Gson().fromJson(json, PvGISData::class.java)
+            val pvGISData = Gson().fromJson(cacheFile.readText(), PvGISData::class.java)
             val panelDataList = ArrayList<PanelData>()
             val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
             val minFormat = DateTimeFormatter.ofPattern("HH:mm")
@@ -71,9 +66,9 @@ class PVGISDirectFetchWorker(
                 // stamp (:11,:16,…) lands on instants the load never has, silently dropping all PV. Then remap
                 // onto the synthetic 2001 grid (keep month/day/hour). Mirrors PVGISLoader.mapHourlyTo2001Rows.
                 val utc = LocalDateTime.parse(pp.time, pvGisFormat).truncatedTo(ChronoUnit.HOURS)
-                // P is the hour's average system power (W); spread over twelve 5-min slots, W→kW. No magic
-                // number, no count/kWp multiply — peakpower already scaled the PVGIS-computed result.
-                val pvPerInterval = pp.p / 12.0 / 1000.0
+                // pp.p is W for the cached 1 kWp reference; scale to THIS array's kWp, then spread the hour's
+                // energy over twelve 5-min slots, W→kW. No magic number; peakpower/loss are linear in P.
+                val pvPerInterval = PvgisCache.intervalKwh(pp.p, peakKWp)
                 for (i in 0 until 12) {
                     val slot = utc.plusMinutes(5L * i)
                     // 2001 is non-leap: drop Feb 29 so the PV row count stays equal to the load's 105120.
@@ -103,7 +98,29 @@ class PVGISDirectFetchWorker(
         }
     }
 
+    /** Fetch the raw PVGIS JSON for this location/orientation at a reference peakpower of 1 kWp and the
+     *  panel's loss%. The result is cached and re-scaled per panel, so it is array-size independent. */
+    private fun fetchReferenceJson(panel: Panel): String {
+        // Locale.ROOT so lat/lon use a '.' decimal — a comma (German etc.) would corrupt the URL.
+        val df = DecimalFormat("0.000", DecimalFormatSymbols.getInstance(Locale.ROOT))
+        val lat = df.format(panel.latitude)
+        val lon = df.format(panel.longitude)
+        var az = panel.azimuth
+        if (az > 180) az = 360 - az
+        val url = U1 + lat + U2 + lon + U3 + panel.slope + U4 + az +
+            U5 + panel.slope + U6 + az + U7 + REFERENCE_PEAKPOWER + U8 + panel.systemLoss
+        val connection = URL(url).openConnection() as HttpURLConnection
+        connection.connectTimeout = 30_000
+        connection.readTimeout = 60_000
+        val json = connection.inputStream.bufferedReader().use { it.readText() }
+        connection.disconnect()
+        return json
+    }
+
     companion object {
+        /** Reference array size for the cached fetch (kWp). The cached P is per-kWp; panels rescale it. */
+        private const val REFERENCE_PEAKPOWER = "1"
+
         private const val U1 = "https://re.jrc.ec.europa.eu/api/v5_2/seriescalc?lat="
         private const val U2 = "&lon="
         private const val U3 = "&raddatabase=PVGIS-SARAH2&browser=1&outputformat=json" +

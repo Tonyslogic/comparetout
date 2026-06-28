@@ -440,6 +440,11 @@ public class ToutcRepository {
         return scenarioDAO.countPanelDataForParameters(lat, lon, azimuth, slope) > 0;
     }
 
+    /** Scenario names whose panels sit at this PVGIS location/orientation (for the PVGIS cache view). */
+    public List<String> getScenarioNamesAtLocation(double lat, double lon, int azimuth, int slope) {
+        return scenarioDAO.getScenarioNamesAtLocation(lat, lon, azimuth, slope);
+    }
+
     public void updatePanel(Panel panel) {
         scenarioDAO.updatePanel(panel);
     }

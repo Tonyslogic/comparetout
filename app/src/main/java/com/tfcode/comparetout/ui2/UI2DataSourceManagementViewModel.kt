@@ -32,6 +32,7 @@ import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformMeta
 import com.tfcode.comparetout.model.scenario.PanelPVSummary
 import com.tfcode.comparetout.scenario.HeatPumpWeatherCache
+import com.tfcode.comparetout.scenario.PvgisCache
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -43,7 +44,6 @@ import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
-import kotlin.math.roundToLong
 
 // ──────────────────────────────────────────────────────────────────────────
 // UI2 Data Source Management ViewModel
@@ -209,11 +209,12 @@ class UI2DataSourceManagementViewModel @Inject constructor(
     private val onceData = mutableMapOf<String, List<WorkInfo>>()
     private val dailyData = mutableMapOf<String, List<WorkInfo>>()
 
-    // PVGIS cache is the per-panel PanelData in the DB; observe its summary
-    // (a Room LiveData) so deletions/fetches reflect live without a manual
-    // refresh. Detached in onCleared().
+    // The PVGIS cache is the on-disk pvgis-cache dir (PvgisCache). We can't observe files, but a completed
+    // fetch writes the cache file AND saves PanelData, so observing the (Room LiveData) PV summary is a cheap
+    // change-signal: when it fires we rebuild the cache-file list so new entries appear without a manual
+    // refresh. The summary VALUE is ignored. Detached in onCleared().
     private val panelSummaryObserver = Observer<List<PanelPVSummary>> {
-        rebuildPvgisFromSummary(it ?: emptyList())
+        rebuildPvgisFromCache()
     }
 
     init {
@@ -784,23 +785,31 @@ class UI2DataSourceManagementViewModel @Inject constructor(
     // `removeOldPanelData`. CDS only stores credentials in Phase 5.5; its
     // cached weather (the `heatpumpweather` series) arrives in Phase 6.
 
-    /** Rebuild the PVGIS state from the per-panel PV summary (one entry per fetched panel). */
-    private fun rebuildPvgisFromSummary(summary: List<PanelPVSummary>) {
+    /**
+     * Rebuild the PVGIS state from the on-disk cache — one entry per `pvgis_{lat}_{lon}_{slope}_{az}_{loss}`
+     * file (the true cache), each showing the scenarios it feeds. A single cached download serves every
+     * panel that shares the location/orientation/loss (it is re-scaled per array size), so this no longer
+     * shows one duplicated row per panel. [WeatherCacheEntry.id] is the file name so [deletePvCacheEntry]
+     * can delete it directly (mirrors the CDS cache view).
+     */
+    private fun rebuildPvgisFromCache() {
         viewModelScope.launch(Dispatchers.IO) {
-            val entries = summary.groupBy { it.panelID }.map { (panelId, rows) ->
-                val total = rows.sumOf { it.tot }
-                val panel = runCatching { repository.getPanelForID(panelId) }.getOrNull()
-                val name = panel?.panelName?.takeIf { it.isNotBlank() && it != "<Name>" }
-                    ?: "Panel $panelId"
+            val entries = PvgisCache.listCacheFiles(app).mapNotNull { f ->
+                val k = PvgisCache.parse(f.name) ?: return@mapNotNull null
+                val scenarios = runCatching {
+                    repository.getScenarioNamesAtLocation(k.latitude, k.longitude, k.azimuth, k.slope)
+                }.getOrDefault(emptyList())
+                val name = "%.3f, %.3f · %d°/%d°".format(k.latitude, k.longitude, k.slope, k.azimuth)
                 val detail = buildString {
-                    if (panel != null) {
-                        append("%.3f, %.3f".format(panel.latitude, panel.longitude))
-                        append(" · ${panel.slope}°/${panel.azimuth}°")
-                        append(" · ")
-                    }
-                    append("${total.roundToLong()} kWh/yr")
+                    append("loss ${k.lossPct}%")
+                    append(" · ")
+                    append(
+                        if (scenarios.isEmpty()) "no scenarios"
+                        else "${scenarios.size} scenario(s): ${scenarios.joinToString(", ")}"
+                    )
+                    append(" · ${"%.0f".format(f.length() / 1024.0)} kB")
                 }
-                WeatherCacheEntry(panelId.toString(), name, detail)
+                WeatherCacheEntry(f.name, name, detail)
             }.sortedBy { it.name }
             _pvgis.postValue(WeatherSourceState(
                 entries = entries,
@@ -887,17 +896,23 @@ class UI2DataSourceManagementViewModel @Inject constructor(
 
     private fun cdsCacheDir(): File = File(app.filesDir, HeatPumpWeatherCache.CACHE_DIR)
 
-    /** Delete one panel's cached PV. The panelDataSummary observer refreshes the list. */
-    fun deletePvCacheEntry(panelId: String) {
-        val id = panelId.toLongOrNull() ?: return
-        repository.removeOldPanelData(id)
-        _toast.postValue(Toast("PV data deleted · re-fetched on next save"))
+    /** Delete one cached PVGIS download (by file name). Re-fetched on the next save that needs it; the
+     *  derived paneldata is left in place (delete-file-only). */
+    fun deletePvCacheEntry(fileName: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            File(PvgisCache.cacheDir(app), fileName).takeIf { it.isFile }?.delete()
+            rebuildPvgisFromCache()
+            _toast.postValue(Toast("PVGIS data deleted · re-fetched on next save"))
+        }
     }
 
-    /** Delete every panel's cached PV. The observer refreshes the list afterwards. */
+    /** Delete every cached PVGIS download. */
     fun deleteAllPvgisCache() {
-        _pvgis.value?.entries?.forEach { it.id.toLongOrNull()?.let(repository::removeOldPanelData) }
-        _toast.postValue(Toast("PVGIS cache cleared"))
+        viewModelScope.launch(Dispatchers.IO) {
+            PvgisCache.listCacheFiles(app).forEach { it.delete() }
+            rebuildPvgisFromCache()
+            _toast.postValue(Toast("PVGIS cache cleared"))
+        }
     }
 
     // ── Helpers ────────────────────────────────────────────────────────

@@ -1053,6 +1053,17 @@ public abstract class ScenarioDAO {
             "AND ROUND(longitude,3) = ROUND(:lon,3) AND azimuth = :azimuth AND slope = :slope)")
     public abstract int countPanelDataForParameters(double lat, double lon, int azimuth, int slope);
 
+    /** Names of the scenarios whose panels sit at this PVGIS location/orientation — for the PVGIS cache view
+     *  ("which scenarios this cached download feeds"). Matches the same lat/lon rounding as the cache key. */
+    @Query("SELECT DISTINCT scenarios.scenarioName FROM scenarios, scenario2panel, panels " +
+            "WHERE scenarios.scenarioIndex = scenario2panel.scenarioID " +
+            "AND scenario2panel.panelID = panels.panelIndex " +
+            "AND ROUND(panels.latitude,3) = ROUND(:lat,3) " +
+            "AND ROUND(panels.longitude,3) = ROUND(:lon,3) " +
+            "AND panels.azimuth = :azimuth AND panels.slope = :slope " +
+            "ORDER BY scenarios.scenarioName")
+    public abstract List<String> getScenarioNamesAtLocation(double lat, double lon, int azimuth, int slope);
+
     @Query("SELECT CASE WHEN " +
             "(SELECT COUNT (DISTINCT paneldata.panelID) AS Found FROM paneldata, scenario2panel WHERE scenario2panel.panelID = paneldata.panelID AND scenarioID = :scenarioID) = " +
             "(SELECT COUNT (DISTINCT panelID) AS Needed FROM scenario2panel WHERE scenarioID = :scenarioID) " +

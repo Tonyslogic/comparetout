@@ -284,10 +284,10 @@ private fun DataSourceManagementScreen(
                         state = pvgis,
                         showHints = showHints,
                         showCredentials = false,
-                        emptyHint = "PV is fetched per panel from its location and cached here. " +
-                            "Add a PV array to a scenario and run it, and the panel's solar data " +
-                            "appears in this list.",
-                        entryNoun = "panel",
+                        emptyHint = "Each location/orientation is fetched once from PVGIS and cached here, " +
+                            "then re-scaled to every panel that shares it. Add a PV array to a scenario and " +
+                            "run it, and the cached download appears in this list.",
+                        entryNoun = "location",
                         onSetCredentials = null,
                         onClearAll = viewModel::deleteAllPvgisCache,
                         onDeleteEntry = viewModel::deletePvCacheEntry,
