@@ -158,8 +158,10 @@ public class CostingWorker extends Worker {
                  */
                 for (long scenarioID : scenarioIDs) {
                     Scenario scenario = mToutcRepository.getScenarioForID(scenarioID);
-                    // Get the simulation output
+                    // Get the simulation output. Loaded ONCE here (outside the plan loop), then reused for
+                    // every plan below — the per-plan notifications make that visible (no per-plan reload).
                     builder.setContentText("Loading data: " + scenario.getScenarioName());
+                    builder.setSubText(scenario.getScenarioName());
                     sendNotification(notificationManager, notificationId, builder);
                     List<ScenarioSimulationData> scenarioData = mToutcRepository.getSimulationDataForScenario(scenarioID);
                     double gridExportMax = mToutcRepository.getGridExportMaxForScenario(scenarioID);
@@ -169,7 +171,8 @@ public class CostingWorker extends Worker {
                             // Skip if costing already exists to avoid duplicate work
                             if (mToutcRepository.costingExists(scenarioID, pp.getPricePlanIndex()))
                                 continue;
-                            builder.setContentText(pp.getPlanName());
+                            String planLabel = pp.getSupplier() + ": " + pp.getPlanName();
+                            builder.setContentText("Costing " + planLabel);
                             // Periodically update notification to avoid UI lag
                             if (System.nanoTime() - notifyTime > 1e+9) {
                                 notifyTime = System.nanoTime();
@@ -228,7 +231,7 @@ public class CostingWorker extends Worker {
                             net = ((buy - sell) + (pp.getStandingCharges() * 100 * (days / 365))) - (pp.getSignUpBonus() * 100);
                             costing.setNet(net);
                             // store in comparison table
-                            builder.setContentText("Saving data");
+                            builder.setContentText("Saving " + planLabel);
                             // Periodically update notification to avoid UI lag
                             if (System.nanoTime() - notifyTime > 1e+9) {
                                 notifyTime = System.nanoTime();
@@ -238,7 +241,7 @@ public class CostingWorker extends Worker {
                             // NOTIFICATION PROGRESS
                             PROGRESS_CURRENT += PROGRESS_CHUNK;
                             builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
-                            builder.setContentText("Data saved");
+                            builder.setContentText("Saved " + planLabel);
                             if (System.nanoTime() - notifyTime > 1e+9) {
                                 notifyTime = System.nanoTime();
                                 sendNotification(notificationManager, notificationId, builder);
