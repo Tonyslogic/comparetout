@@ -471,6 +471,13 @@ public class ToutcRepository {
 
     public void savePanelData(ArrayList<PanelData> panelDataList) {
         scenarioDAO.savePanelData(panelDataList);
+        // Panel data landed → unblock any scenario that was waiting on this panel's data (self-heal).
+        // Centralised here so every panel-data writer (PVGIS direct/legacy, source PV, importer) benefits
+        // without knowing about readiness. A no-op for scenarios that weren't blocked on panel data.
+        java.util.Set<Long> panelIds = new java.util.HashSet<>();
+        for (PanelData row : panelDataList) panelIds.add(row.getPanelID());
+        long now = System.currentTimeMillis();
+        for (Long panelID : panelIds) scenarioDAO.unblockPanelScenarios(panelID, now);
     }
 
     public LiveData<List<PanelPVSummary>> getPanelDataSummary() {

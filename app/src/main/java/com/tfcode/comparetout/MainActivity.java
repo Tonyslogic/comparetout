@@ -316,6 +316,9 @@ public class MainActivity extends InsetRespectingActivity {
                             }
                         }
                     }
+                    // Imported plans flipped the costing-readiness flags; trigger the recompute explicitly
+                    // now that the nav-fragment observers no longer do so.
+                    SimulatorLauncher.simulateIfNeeded(getApplicationContext());
                     mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
                 }
             });
@@ -363,6 +366,9 @@ public class MainActivity extends InsetRespectingActivity {
                             }
                         }
                     }
+                    // Imported scenarios need simulation + costing; trigger it explicitly now that the
+                    // nav-fragment observers no longer kick recompute.
+                    SimulatorLauncher.simulateIfNeeded(getApplicationContext());
                     mMainHandler.post(() -> mProgressBar.setVisibility(View.GONE));
                 }
             });

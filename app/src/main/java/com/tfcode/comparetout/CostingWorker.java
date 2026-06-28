@@ -109,7 +109,10 @@ public class CostingWorker extends Worker {
     public Result doWork() {
         // Clean up obsolete costings to maintain database performance
         mToutcRepository.pruneCostings();
-        List<Long> scenarioIDs = mToutcRepository.getAllScenariosThatMayNeedCosting();
+        // Readiness gate: only scenarios flagged costingNeeded with a current simulation (or, defensively,
+        // not-yet-tracked scenarios that already have simulation data). Fully-costed scenarios are never
+        // loaded — replacing the old "every scenario, load its whole sim series, then discover it's costed".
+        List<Long> scenarioIDs = mToutcRepository.getScenarioIdsNeedingCosting();
 
         Context context = getApplicationContext();
         String title = context.getString(R.string.cost_notification_title); //"Calculating costs"
@@ -241,6 +244,10 @@ public class CostingWorker extends Worker {
                                 sendNotification(notificationManager, notificationId, builder);
                             }
                         }
+                        // Every (this scenario × plan) costing is now present → costing is up to date.
+                        // (Runs even when nothing was computed — e.g. all pairs already existed, or no plans
+                        // exist — so the scenario leaves the readiness gate instead of being reloaded forever.)
+                        mToutcRepository.markCosted(scenarioID);
                     } else {
                         /*
                          * If simulation data is missing, notify the user and skip costing for this scenario.
@@ -273,6 +280,14 @@ public class CostingWorker extends Worker {
                     .setProgress(0, 0, false);
             sendNotification(notificationManager, notificationId, builder);
             return Result.success();
+        }
+        // Storm-safe completeness: external triggers coalesce via KEEP while this chain runs, so readiness
+        // flagged mid-pass (a concurrent edit, or a scenario just unblocked) could be missed by it. If the
+        // gates still show actionable work, append exactly one more pass — bounded, because each pass clears
+        // the flags it completes and blocked scenarios aren't in the gates, so this can't spin.
+        if (!mToutcRepository.getScenarioIdsNeedingSimulation().isEmpty()
+                || !mToutcRepository.getScenarioIdsNeedingCosting().isEmpty()) {
+            SimulatorLauncher.enqueueFollowupPass(context);
         }
         return Result.success();
     }

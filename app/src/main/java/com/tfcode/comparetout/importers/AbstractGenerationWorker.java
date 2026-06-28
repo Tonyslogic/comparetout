@@ -33,6 +33,7 @@ import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
 import com.tfcode.comparetout.R;
+import com.tfcode.comparetout.SimulatorLauncher;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.importers.IntervalRow;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
@@ -242,6 +243,9 @@ public abstract class AbstractGenerationWorker extends Worker {
 
         // Clean up notification if worker was stopped
         if (mStopped) mNotificationManager.cancel(mNotificationId);
+        // The generated scenario needs simulation + costing. The legacy nav-fragment observers used to kick
+        // this on navigation; now that those are gone, trigger the recompute explicitly here.
+        SimulatorLauncher.simulateIfNeeded(getApplicationContext());
         return Result.success();
     }
 

@@ -46,6 +46,7 @@ import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.Panel;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
+import com.tfcode.comparetout.model.scenario.ScenarioReadiness;
 import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
 import com.tfcode.comparetout.model.scenario.HeatPump;
 import com.tfcode.comparetout.model.scenario.SimulationInputData;
@@ -107,7 +108,7 @@ public class SimulationWorker extends Worker {
     @NonNull
     @Override
     public Result doWork() {
-        List<Long> scenarioIDs = mToutcRepository.getAllScenariosThatNeedSimulation();
+        List<Long> scenarioIDs = mToutcRepository.getScenarioIdsNeedingSimulation();
 
         Context context = getApplicationContext();
         String  title= context.getString(R.string.simulate_notification_title);
@@ -164,6 +165,9 @@ public class SimulationWorker extends Worker {
                             sendNotification(notificationManager, notificationId, builder);
                         }
                         if (!hasData) {
+                            // Record WHY we can't simulate yet, so this scenario drops out of the
+                            // readiness gate until the PV/source fetch lands its paneldata and unblocks it.
+                            mToutcRepository.markSimBlocked(scenarioID, ScenarioReadiness.SIM_BLOCKED_PANEL_DATA);
                             builder.setContentText("Skipping " + scenario.getScenarioName());
                             notificationManager.notify(notificationId, builder.build());
                             PROGRESS_CURRENT += PROGRESS_CHUNK;
@@ -209,6 +213,9 @@ public class SimulationWorker extends Worker {
                                         hp.getLatitude(), hp.getLongitude(),
                                         HeatPumpWeatherCache.gridMillis(hpGrid));
                             if (!cached) {
+                                // Blocked on weather: record it so the gate skips this scenario until the
+                                // CDS fetch worker lands the weather and unblocks it (then re-runs the sim).
+                                mToutcRepository.markSimBlocked(scenarioID, ScenarioReadiness.SIM_BLOCKED_WEATHER);
                                 enqueueWeatherFetch(scenarioID);
                                 builder.setContentText("Skipping " + scenario.getScenarioName()
                                         + " — heat-pump weather not ready");
@@ -333,6 +340,9 @@ public class SimulationWorker extends Worker {
                     }
 
                     mToutcRepository.saveSimulationDataForScenario(outputRows);
+                    // Simulation is current → mark up-to-date and flag costing stale (the chained
+                    // CostingWorker will pick it up). Clears any prior blocked state for this scenario.
+                    mToutcRepository.markSimulated(scenarioID);
 
                     // NOTIFICATION PROGRESS
                     PROGRESS_CURRENT += PROGRESS_CHUNK;

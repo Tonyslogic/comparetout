@@ -117,6 +117,7 @@ class HeatPumpWeatherFetchWorker(
             finish("Heat-pump weather already cached: $periodLabel — simulating")
             // The sim skips CDS scenarios whose weather is missing, so a recompute that finds the cache
             // already present still needs a nudge to run now that the data is available.
+            repository.unblockWeatherScenario(scenarioID)
             SimulatorLauncher.simulateIfNeeded(applicationContext)
             return Result.success() // immutable — reuse
         }
@@ -137,7 +138,9 @@ class HeatPumpWeatherFetchWorker(
             finish(if (historical)
                        "Weather ready: $startIso → $endIso aligned to 2001 grid — simulating"
                    else "Weather ready: 2001 reference year — simulating")
-            // Real weather has landed — re-run the simulation so the scenario the sim skipped now completes.
+            // Real weather has landed — unblock the scenario (it was flagged SIM_BLOCKED_WEATHER) and
+            // re-run the simulation so the scenario the sim skipped now completes.
+            repository.unblockWeatherScenario(scenarioID)
             SimulatorLauncher.simulateIfNeeded(applicationContext)
             Result.success()
         } catch (e: Exception) {

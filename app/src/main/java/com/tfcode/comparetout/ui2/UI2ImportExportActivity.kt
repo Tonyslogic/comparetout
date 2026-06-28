@@ -84,6 +84,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import com.google.gson.reflect.TypeToken
+import com.tfcode.comparetout.SimulatorLauncher
 import com.tfcode.comparetout.model.SnapshotExporter
 import com.tfcode.comparetout.model.SnapshotImporter
 import com.tfcode.comparetout.model.ToutcRepository
@@ -291,6 +292,8 @@ class UI2ImportExportViewModel @Inject constructor(
             repository.insert(plan, drs, clobber)
             if (plan.planName in existingNames) replaced += 1 else added += 1
         }
+        // Imported plans flipped the costing-readiness flags; kick the recompute (UI2 has no nav observer).
+        SimulatorLauncher.simulateIfNeeded(getApplication())
         ImportOutcome(replaced, added)
     }
 
@@ -308,6 +311,8 @@ class UI2ImportExportViewModel @Inject constructor(
             repository.insertScenario(sc, clobber)
             if (sc.scenario.scenarioName in existingNames) replaced += 1 else added += 1
         }
+        // Imported scenarios need simulation + costing; kick the recompute (UI2 has no nav observer).
+        SimulatorLauncher.simulateIfNeeded(getApplication())
         ImportOutcome(replaced, added)
     }
 }

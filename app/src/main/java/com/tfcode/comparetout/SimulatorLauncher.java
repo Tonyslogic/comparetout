@@ -47,9 +47,37 @@ public class SimulatorLauncher {
                         .build();
 
         WorkManager.getInstance(context).pruneWork();
+        // KEEP (was APPEND): the workers process ALL currently-flagged scenarios in one pass off the
+        // scenario_readiness gate, so concurrent triggers don't each need their own chain — KEEP coalesces
+        // them into the one queued/running chain instead of stacking duplicates (the bulk-import storm).
+        // CostingWorker's tail (enqueueFollowupPass) backstops any work flagged after the chain started.
         WorkManager
                 .getInstance(context)
-                .beginUniqueWork("Simulation", ExistingWorkPolicy.APPEND,  generateLoadData)
+                .beginUniqueWork("Simulation", ExistingWorkPolicy.KEEP,  generateLoadData)
+                .then(simulate)
+                .then(cost)
+                .enqueue();
+    }
+
+    /**
+     * Append one more Generate→Simulate→Cost pass, used by {@code CostingWorker}'s tail when the readiness
+     * gates still show work the just-finished chain couldn't see (flagged mid-run, or a scenario unblocked
+     * by a self-heal fetch). Uses {@link ExistingWorkPolicy#APPEND} (not KEEP) so it is <b>not</b> dropped
+     * while the current chain is still completing; it is bounded because every pass clears the flags it
+     * completes, and blocked scenarios never appear in the gates.
+     */
+    public static void enqueueFollowupPass(Context context) {
+        OneTimeWorkRequest generateLoadData =
+                new OneTimeWorkRequest.Builder(GenerateMissingLoadDataWorker.class).build();
+        OneTimeWorkRequest simulate =
+                new OneTimeWorkRequest.Builder(SimulationWorker.class).build();
+        OneTimeWorkRequest cost =
+                new OneTimeWorkRequest.Builder(CostingWorker.class).build();
+
+        WorkManager.getInstance(context).pruneWork();
+        WorkManager
+                .getInstance(context)
+                .beginUniqueWork("Simulation", ExistingWorkPolicy.APPEND, generateLoadData)
                 .then(simulate)
                 .then(cost)
                 .enqueue();
@@ -80,9 +108,10 @@ public class SimulatorLauncher {
                 new OneTimeWorkRequest.Builder(CostingWorker.class).build();
 
         WorkManager.getInstance(context).pruneWork();
+        // KEEP (was APPEND) — see simulateIfNeeded; the readiness gate makes one chain cover all flagged work.
         WorkManager
                 .getInstance(context)
-                .beginUniqueWork("Simulation", ExistingWorkPolicy.APPEND, generateLoadData)
+                .beginUniqueWork("Simulation", ExistingWorkPolicy.KEEP, generateLoadData)
                 .then(weather)
                 .then(simulate)
                 .then(cost)

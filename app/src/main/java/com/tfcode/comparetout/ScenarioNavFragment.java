@@ -94,6 +94,11 @@ public class ScenarioNavFragment extends Fragment {
         }
         mViewModel = new ViewModelProvider(this).get(ComparisonUIViewModel.class);
         mViewModel.getAllScenarios().observe(this, scenarios -> {
+            // Catch-all recompute trigger. This used to be the storm engine (fired on every scenario-list
+            // change × ExistingWorkPolicy.APPEND → a stacked chain per change). It is now safe: the launcher
+            // uses KEEP, so repeated triggers coalesce into the one queued/running chain, and the readiness
+            // gate makes any chain a near-no-op when nothing is flagged. Kept as the catch-all so no producer
+            // can ever strand a scenario as un-simulated.
             SimulatorLauncher.simulateIfNeeded(getContext());
             mScenarios = scenarios;
             updateView();

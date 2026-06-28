@@ -127,6 +127,9 @@ public class PanelDataRefreshWorker extends Worker {
             scenarioDAO.deleteAllPanelData();
             scenarioDAO.deleteAllSimulationData();
             costingDAO.deleteAllCostings();
+            // The readiness rows are now stale (they'd still read "up to date" while the output is gone) —
+            // clear them so every scenario is re-derived as needing sim/costing by the defensive gate.
+            scenarioDAO.deleteAllReadiness();
 
             // 2. Classify panels by origin.
             Set<String> sourceSerials = new HashSet<>(alphaEssDAO.getTransformedDataSysSns());

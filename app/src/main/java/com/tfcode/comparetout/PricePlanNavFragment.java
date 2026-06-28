@@ -95,6 +95,10 @@ public class PricePlanNavFragment extends Fragment {
         mViewModel = new ViewModelProvider(requireActivity()).get(ComparisonUIViewModel.class);
 //        ((MainActivity)requireActivity()).startProgressIndicator();
         mViewModel.getAllPricePlans().observe(this, plans -> {
+            // Catch-all recompute trigger — now safe (was a storm engine under APPEND). The launcher uses
+            // KEEP so repeated plan-list changes coalesce into one chain, and the readiness gate makes it a
+            // near-no-op when nothing is flagged. Kept as the catch-all so a plan edit can't leave costings
+            // stale forever even if a producer forgets to trigger.
             SimulatorLauncher.simulateIfNeeded(getContext());
             mPlans = plans;
             updateView();

@@ -212,6 +212,9 @@ public class ScenarioOverview extends Fragment {
         mMainHandler = new Handler(Looper.getMainLooper());
         setupButtons();
         setupMenu();
+        // Catch-all recompute trigger on open — now safe (the launcher uses KEEP, so this coalesces instead
+        // of stacking chains as it did under APPEND, and the readiness gate makes it a near-no-op when
+        // nothing is flagged).
         SimulatorLauncher.simulateIfNeeded(getContext());
         updateView();
     }

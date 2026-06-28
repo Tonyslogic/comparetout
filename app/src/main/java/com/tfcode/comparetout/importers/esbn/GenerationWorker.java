@@ -33,6 +33,7 @@ import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
 import com.tfcode.comparetout.R;
+import com.tfcode.comparetout.SimulatorLauncher;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.importers.IntervalRow;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
@@ -253,6 +254,9 @@ public class GenerationWorker extends Worker {
 
         
         if (mStopped) mNotificationManager.cancel(mNotificationId);
+        // The generated scenario needs simulation + costing — trigger it explicitly now that the legacy
+        // nav-fragment observers (which used to kick this on navigation) are gone.
+        SimulatorLauncher.simulateIfNeeded(getApplicationContext());
         return Result.success();
     }
 

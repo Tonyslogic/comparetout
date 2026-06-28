@@ -687,6 +687,11 @@ public abstract class ScenarioDAO {
     @Query("DELETE FROM scenario_readiness WHERE scenarioID = :scenarioID")
     public abstract void deleteReadinessForScenario(long scenarioID);
 
+    /** Bulk reset (e.g. the one-time panel-data rollout, which wipes all sim/costing output) — clearing
+     *  every row lets the defensive gate re-derive readiness from the (now empty) output tables. */
+    @Query("DELETE FROM scenario_readiness")
+    public abstract void deleteAllReadiness();
+
     /**
      * Completely delete a scenario and all its relationships.
      * <p>
