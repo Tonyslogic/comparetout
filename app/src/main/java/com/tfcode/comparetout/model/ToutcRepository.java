@@ -466,6 +466,18 @@ public class ToutcRepository {
                 scenarioDAO.copyPanelFromScenario(fromScenarioID, toScenarioID));
     }
 
+    /** Idempotently link one panel to a scenario (Directors per-string share — no duplicate junction rows). */
+    public void linkPanelToScenario(long panelID, long scenarioID) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                scenarioDAO.linkPanelToScenario(panelID, scenarioID));
+    }
+
+    /** Copy one panel (+ its data) onto a scenario (Directors per-string FORK). */
+    public void copyPanelToScenario(long panelID, long scenarioID) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                scenarioDAO.copyPanelToScenario(panelID, scenarioID));
+    }
+
     public void linkPanelFromScenario(long fromScenarioID, Long toScenarioID) {
         ToutcDB.databaseWriteExecutor.execute(() ->
                 scenarioDAO.linkPanelFromScenario(fromScenarioID, toScenarioID));

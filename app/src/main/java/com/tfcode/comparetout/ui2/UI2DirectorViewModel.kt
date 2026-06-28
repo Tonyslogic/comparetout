@@ -24,6 +24,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -214,16 +215,18 @@ class UI2DirectorViewModel @Inject constructor(
         viewModelScope.launch(Dispatchers.Main) {
             repository.allScenarios.asFlow().collect { _scenarios.value = it ?: emptyList() }
         }
+        // collectLatest (not collect): a fresh relation change cancels an in-flight rebuild, so two rebuilds
+        // racing off one save can't finish out of order and leave _instances holding the stale result.
         viewModelScope.launch(Dispatchers.Main) {
             combine(_panelRel, _batteryRel, _inverterRel, _evChargeRel, _evDivertRel) { _, _, _, _, _ -> }
-                .collect { rebuild() }
+                .collectLatest { rebuild() }
         }
         viewModelScope.launch(Dispatchers.Main) {
             combine(_hwRel, _hwSchedRel, _loadShiftRel, _dischargeRel) { _, _, _, _ -> }
-                .collect { rebuild() }
+                .collectLatest { rebuild() }
         }
         viewModelScope.launch(Dispatchers.Main) {
-            _scenarios.collect { rebuild() }
+            _scenarios.collectLatest { rebuild() }
         }
     }
 
@@ -265,17 +268,29 @@ class UI2DirectorViewModel @Inject constructor(
                             if (key.subject.supportsUnlink)
                                 deleteFor(key.subject, key.componentId, key.scenarioId)
                         DirectorEditOp.LINK ->
-                            if (source != null) linkFor(key.subject, source, key.scenarioId)
-                        DirectorEditOp.FORK -> if (source != null) {
-                            copyFor(key.subject, source, key.scenarioId)
-                            if (key.subject.supportsUnlink)
+                            // PV shares per-string: link the SPECIFIC panel idempotently (the scenario-level
+                            // linkFor links every source panel and can duplicate the junction row → double PV).
+                            if (key.subject == DirectorSubject.PV_PANEL)
+                                repository.linkPanelToScenario(key.componentId, key.scenarioId)
+                            else if (source != null)
+                                linkFor(key.subject, source, key.scenarioId)
+                        DirectorEditOp.FORK ->
+                            if (key.subject == DirectorSubject.PV_PANEL) {
+                                repository.copyPanelToScenario(key.componentId, key.scenarioId)
                                 deleteFor(key.subject, key.componentId, key.scenarioId)
-                        }
+                            } else if (source != null) {
+                                copyFor(key.subject, source, key.scenarioId)
+                                if (key.subject.supportsUnlink)
+                                    deleteFor(key.subject, key.componentId, key.scenarioId)
+                            }
                     }
                 }
             }
             _edits.value = emptyMap()
             _seeded.value = emptySet()
+            // The relation LiveData refreshes the view when the (async) writes commit, but recompute now too so
+            // edits that only changed an un-observed path still land without leaving + re-entering the screen.
+            rebuild()
             _saving.value = false
         }
     }
