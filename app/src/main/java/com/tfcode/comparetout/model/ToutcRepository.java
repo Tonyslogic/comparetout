@@ -697,6 +697,17 @@ public class ToutcRepository {
                 scenarioDAO.linkHWSystemFromScenario(fromScenarioID, toScenarioID));
     }
 
+    /**
+     * Link every component of {@code fromScenarioID} onto {@code toScenarioID} as one atomic transaction —
+     * used by the wizard's "Create scenario → Link from existing" path instead of firing each link separately
+     * (which raced on the 8-thread write executor and crashed on a missing optional component).
+     */
+    public void linkAllComponentsFromScenario(long fromScenarioID, long toScenarioID,
+                                              com.tfcode.comparetout.model.scenario.HWDivert hwDivert) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                scenarioDAO.linkAllComponentsFromScenario(fromScenarioID, toScenarioID, hwDivert));
+    }
+
     public void copyHWSettingsFromScenario(long fromScenarioID, Long toScenarioID) {
         ToutcDB.databaseWriteExecutor.execute(() ->
                 scenarioDAO.copyHWSettingsFromScenario(fromScenarioID, toScenarioID));

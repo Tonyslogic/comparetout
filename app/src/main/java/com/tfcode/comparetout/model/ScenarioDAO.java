@@ -980,6 +980,7 @@ public abstract class ScenarioDAO {
     @Transaction
     public void linkLoadProfileFromScenario(long fromScenarioID, Long toScenarioID) {
         LoadProfile lp = getLoadProfileForScenarioID(fromScenarioID);
+        if (lp == null) return; // source scenario has no load profile → nothing to link (don't NPE)
         deleteLoadProfileRelationsForScenario(Math.toIntExact(toScenarioID));
 
         Scenario2LoadProfile scenario2LoadProfile = new Scenario2LoadProfile();
@@ -1587,6 +1588,7 @@ public abstract class ScenarioDAO {
     @Transaction
     public void linkHWSystemFromScenario(long fromScenarioID, Long toScenarioID) {
         HWSystem hwSystem = getHWSystemForScenarioID(fromScenarioID);
+        if (hwSystem == null) return; // source scenario has no hot-water system → nothing to link (don't NPE)
 
         deleteHWSystemRelationsForScenario(Math.toIntExact(toScenarioID));
 
@@ -1857,6 +1859,33 @@ public abstract class ScenarioDAO {
         }
 
         deleteOrphanEVDiverts();
+    }
+
+    /**
+     * Atomically link every component of {@code fromScenarioID} onto {@code toScenarioID} in a single
+     * transaction on one thread (the order mirrors the wizard's "Create scenario → Link from existing" path).
+     * Previously the wizard fired these ten links as separate fire-and-forget tasks on the 8-thread write
+     * executor: they raced (the read-modify-write of the scenario's has* flags could lose updates), and a
+     * missing optional component (e.g. no hot-water system) threw an NPE mid-race that crashed the app before
+     * the load-profile/inverter links had run — losing them. Running them in order under one @Transaction
+     * (with the singleton links now null-safe) removes both problems.
+     */
+    @Transaction
+    public void linkAllComponentsFromScenario(long fromScenarioID, long toScenarioID, HWDivert hwDivert) {
+        Long to = toScenarioID;
+        linkLoadProfileFromScenario(fromScenarioID, to);
+        linkEVChargeFromScenario(fromScenarioID, to);
+        linkInverterFromScenario(fromScenarioID, to);
+        linkPanelFromScenario(fromScenarioID, to);
+        linkBatteryFromScenario(fromScenarioID, to);
+        linkHeatPumpFromScenario(fromScenarioID, to);
+        linkLoadShiftFromScenario(fromScenarioID, to);
+        linkDischargeFromScenario(fromScenarioID, to);
+        linkHWSystemFromScenario(fromScenarioID, to);
+        linkHWScheduleFromScenario(fromScenarioID, toScenarioID);
+        // The HW divert is replayed from wizard/builder state (not linked from the source), but it lives in
+        // the same transaction so its has*-flag write can't race/clobber the links' flag writes.
+        if (hwDivert != null) saveHWDivert(to, hwDivert);
     }
 
     @Query("SELECT DISTINCT gridExportMax FROM loadprofile, scenario2loadprofile WHERE loadProfileID = loadProfileIndex AND scenarioID = :scenarioID")

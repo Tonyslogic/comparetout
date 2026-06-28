@@ -21,6 +21,7 @@ import android.content.Context
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import androidx.work.WorkManager
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import com.google.gson.Gson
@@ -78,8 +79,9 @@ class HeatPumpWeatherFetchWorker(
         val token = decryptOrNull(toutc.getStringValueFromDataStore(CDS_KEY_KEY))
         if (token == null) {
             // The wizard gates CDS on a token, so this is unusual. Don't fail the chain (that would cancel the
-            // queued sim) — notify and let the sim run on the sample asset.
-            finish("Heat-pump weather: no CDS token — using sample weather")
+            // queued sim for the OTHER scenarios). The sim SKIPS this CDS scenario until weather lands, so be
+            // truthful: there's nothing to fetch, point the user at where to add the token.
+            finish("Heat-pump weather: no CDS token saved — add it in Data Source Management, then re-save the scenario")
             return Result.success()
         }
         val base = (decryptOrNull(toutc.getStringValueFromDataStore(CDS_URL_KEY)) ?: "")
@@ -143,15 +145,39 @@ class HeatPumpWeatherFetchWorker(
             repository.unblockWeatherScenario(scenarioID)
             SimulatorLauncher.simulateIfNeeded(applicationContext)
             Result.success()
+        } catch (stopped: InterruptedException) {
+            // The user tapped Cancel (WorkManager interrupts the worker thread, and we also throw this when
+            // isStopped is seen mid-poll). Clear the ongoing note and stop. The scenario stays "weather not
+            // ready"; re-saving it (which flips it back to SIM_NEEDS) re-triggers the fetch. The returned
+            // Result is ignored once stopped, but be explicit.
+            Log.i(TAG, "CDS weather fetch cancelled for scenario $scenarioID")
+            runCatching { notifier.cancel(NOTIFICATION_ID) }
+            Result.failure()
+        } catch (def: CdsJobFailed) {
+            // Definitive failure: the CDS job itself reported failed/dismissed, or the request was rejected
+            // (HTTP 4xx — bad token, malformed request). Re-submitting fails identically, so DON'T retry —
+            // surface CDS's own reason and stop. The scenario is NOT simulated on the bundled sample asset;
+            // fix the cause and re-save the scenario to retry. Return success so the chained sim/cost still
+            // run for the OTHER scenarios in this pass.
+            Log.e(TAG, "CDS weather fetch failed (definitive) for scenario $scenarioID", def)
+            failTerminal("Couldn't fetch heat-pump weather: ${reasonOf(def)}. This scenario won't be "
+                    + "simulated until weather is available — fix the cause and re-save the scenario to retry.")
+            Result.success()
         } catch (e: Exception) {
+            // Transient (network / timeout / 5xx): bounded retry, then give up with the reason visible.
             Log.e(TAG, "CDS weather fetch failed for scenario $scenarioID (attempt $runAttemptCount)", e)
-            if (runAttemptCount >= Cds.MAX_RETRIES) {
-                // Give up gracefully so the queued sim still runs (on the sample asset) rather than stalling.
-                finish("Heat-pump weather fetch failed — using sample weather")
-                Result.success()
-            } else {
-                progress("Heat-pump weather: fetch failed, retrying…", indeterminate = true)
+            if (isStopped) {
+                runCatching { notifier.cancel(NOTIFICATION_ID) }
+                Result.failure()
+            } else if (runAttemptCount + 1 < Cds.MAX_RETRIES) {
+                progress("Heat-pump weather: ${reasonOf(e)} — retrying "
+                        + "(attempt ${runAttemptCount + 2}/${Cds.MAX_RETRIES})…", indeterminate = true)
                 Result.retry()
+            } else {
+                failTerminal("Couldn't fetch heat-pump weather after ${Cds.MAX_RETRIES} attempts: "
+                        + "${reasonOf(e)}. This scenario won't be simulated until weather is available — fix "
+                        + "the cause and re-save the scenario to retry.")
+                Result.success()
             }
         }
     }
@@ -187,15 +213,23 @@ class HeatPumpWeatherFetchWorker(
         // poll so the (potentially minutes-long) async wait is visible, not a silent hang.
         var attempt = 0
         while (status != "successful") {
+            if (isStopped) throw InterruptedException("cancelled while polling CDS")
             if (status == "failed" || status == "dismissed") {
-                throw IllegalStateException("CDS job $jobId $status")
+                // The job itself was rejected — surface CDS's own reason (definitive, never retried).
+                val job = runCatching { getJson("$base/retrieve/v1/jobs/$jobId", token) }.getOrNull()
+                val reason = job?.get("message")?.asString
+                    ?: job?.get("detail")?.asString
+                    ?: "CDS reported the request '$status' (job $jobId)"
+                throw CdsJobFailed(reason)
             }
             if (attempt >= Cds.MAX_POLLS) {
-                throw IllegalStateException("CDS job $jobId still '$status' after ${Cds.MAX_POLLS} polls")
+                throw IllegalStateException("still '${humanStatus(status)}' after "
+                    + "${Cds.MAX_POLLS * Cds.POLL_INTERVAL_MS / 60_000} min at CDS")
             }
             attempt++
-            progress("Heat-pump weather: $status at CDS (check $attempt/${Cds.MAX_POLLS})…",
-                indeterminate = true)
+            val elapsedSec = attempt * Cds.POLL_INTERVAL_MS / 1000
+            progress("Heat-pump weather: ${humanStatus(status)} at CDS — check $attempt/${Cds.MAX_POLLS} "
+                + "(${elapsedSec}s elapsed)…", indeterminate = true)
             Thread.sleep(Cds.POLL_INTERVAL_MS)
             val job = getJson("$base/retrieve/v1/jobs/$jobId", token)
             status = job.get("status")?.asString ?: status
@@ -214,31 +248,72 @@ class HeatPumpWeatherFetchWorker(
 
     // --- Notifications (mirrors SimulationWorker: same CHANNEL_ID + icon, low-priority/silent) -------------
 
-    /** Ongoing progress note (indeterminate bar) for the submit/poll/download phases. */
+    /** Ongoing progress note (indeterminate bar) for the submit/poll/download phases, with a Cancel action. */
     private fun progress(text: String, indeterminate: Boolean) {
+        val cancel = WorkManager.getInstance(applicationContext).createCancelPendingIntent(id)
         val n = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
             .setContentTitle("Heat pump weather")
             .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setSmallIcon(R.drawable.housetick)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
             .setSilent(true)
             .setProgress(0, 0, indeterminate)
+            // Lets the user stop a stuck/queued CDS fetch. NOTE: on the wizard-save chain
+            // (GenerateLoad → weather → Simulate → Cost) cancelling also drops that pass's Simulate/Cost —
+            // the readiness gate re-runs them later for the other scenarios; only this heat-pump scenario
+            // stays "weather not ready" until re-saved.
+            .addAction(android.R.drawable.ic_menu_close_clear_cancel, "Cancel", cancel)
             .build()
         runCatching { notifier.notify(NOTIFICATION_ID, n) }
     }
 
-    /** Terminal note (no bar, auto-dismisses) for success / fallback. */
+    /** Terminal note (no bar, auto-dismisses) for the success / already-cached / nothing-to-do paths. */
     private fun finish(text: String) {
         val n = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
             .setContentTitle("Heat pump weather")
             .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setSmallIcon(R.drawable.housetick)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setSilent(true)
             .setTimeoutAfter(8000)
             .build()
         runCatching { notifier.notify(NOTIFICATION_ID, n) }
+    }
+
+    /**
+     * Terminal FAILURE note — stays until the user dismisses it (no auto-timeout) and shows the full reason
+     * via BigTextStyle, so the actual CDS error is visible instead of buried in logcat.
+     */
+    private fun failTerminal(text: String) {
+        val n = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
+            .setContentTitle("Heat pump weather — not available")
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setSmallIcon(R.drawable.housetick)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setOngoing(false)
+            .setAutoCancel(true)
+            .build()
+        runCatching { notifier.notify(NOTIFICATION_ID, n) }
+    }
+
+    /** A user-facing one-liner for the CDS poll status; the raw API words read oddly in a notification. */
+    private fun humanStatus(status: String): String = when (status) {
+        "accepted" -> "queued"
+        "running" -> "running"
+        else -> status
+    }
+
+    /** First line of an exception's message, trimmed for a notification. */
+    private fun reasonOf(e: Throwable): String =
+        (e.message ?: e.javaClass.simpleName).lineSequence().firstOrNull()?.trim()?.take(200).orEmpty()
+
+    override fun onStopped() {
+        // Cancelled/stopped: drop the ongoing progress note so it doesn't linger with a now-dead Cancel action.
+        runCatching { notifier.cancel(NOTIFICATION_ID) }
     }
 
     // --- HTTP helpers (HttpURLConnection, mirroring PVGISDirectFetchWorker — no extra deps) ----------------
@@ -272,7 +347,12 @@ class HeatPumpWeatherFetchWorker(
             val code = c.responseCode
             val stream = if (code in 200..299) c.inputStream else c.errorStream
             val text = stream?.bufferedReader()?.use { it.readText() }.orEmpty()
-            if (code !in 200..299) throw IllegalStateException("CDS HTTP $code: $text")
+            if (code !in 200..299) {
+                val detail = "CDS HTTP $code: ${text.take(300)}"
+                // 4xx = the request/credentials are wrong → definitive, retrying re-submits and fails the same
+                // way. 5xx / everything else = transient → let the bounded retry have a go.
+                if (code in 400..499) throw CdsJobFailed(detail) else throw IllegalStateException(detail)
+            }
             return JsonParser.parseString(text).asJsonObject
         } finally {
             c.disconnect()
@@ -329,6 +409,12 @@ class HeatPumpWeatherFetchWorker(
         return runCatching { TOUTCApplication.decryptString(s) }.getOrNull()?.ifBlank { null }
     }
 
+    /**
+     * Definitive, non-retryable CDS failure: the job reported failed/dismissed, or the request was rejected
+     * (HTTP 4xx). The outer catch surfaces the reason and stops, rather than re-submitting an identical request.
+     */
+    private class CdsJobFailed(message: String) : Exception(message)
+
     /** CDS protocol constants — the part to confirm on the first real fetch (plan §6). */
     private object Cds {
         const val DEFAULT_BASE_URL = "https://cds.climate.copernicus.eu/api"
@@ -336,7 +422,7 @@ class HeatPumpWeatherFetchWorker(
         const val AUTH_HEADER = "PRIVATE-TOKEN"
         const val POLL_INTERVAL_MS = 10_000L
         const val MAX_POLLS = 90 // ~15 min ceiling before WorkManager retry takes over
-        const val MAX_RETRIES = 3 // give up (fall back to sample) after this many worker attempts
+        const val MAX_RETRIES = 3 // total worker attempts for TRANSIENT failures; definitive ones never retry
     }
 
     companion object {

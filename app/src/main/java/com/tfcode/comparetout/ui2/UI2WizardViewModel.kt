@@ -1585,20 +1585,15 @@ class UI2WizardViewModel @Inject constructor(
                         // non-existent scenario id.
                         val newId = repository.insertScenarioAndReturnID(b.toScenarioShell(), false)
                         if (newId > 0L) {
-                            repository.linkLoadProfileFromScenario(b.basedOnId, newId)
-                            repository.linkEVChargeFromScenario(b.basedOnId, newId)
-                            repository.linkInverterFromScenario(b.basedOnId, newId)
-                            repository.linkPanelFromScenario(b.basedOnId, newId)
-                            repository.linkBatteryFromScenario(b.basedOnId, newId)
-                            repository.linkHeatPumpFromScenario(b.basedOnId, newId)
-                            repository.linkLoadShiftFromScenario(b.basedOnId, newId)
-                            repository.linkDischargeFromScenario(b.basedOnId, newId)
-                            repository.linkHWSystemFromScenario(b.basedOnId, newId)
-                            repository.linkHWScheduleFromScenario(b.basedOnId, newId)
-                            // No linkHWDivert in repository — replay from builder state instead
-                            if (b.hwDivert.active) {
-                                repository.saveHWDivert(newId, b.hwDivert.toHwDivert())
-                            }
+                            // One atomic transaction (was ten fire-and-forget tasks racing on the 8-thread
+                            // write executor): a source missing an optional component — e.g. no hot-water
+                            // system — no longer NPEs mid-race and crashes before the load-profile/inverter
+                            // links commit. The HW divert is replayed from builder state inside the same
+                            // transaction. See ScenarioDAO.linkAllComponentsFromScenario.
+                            repository.linkAllComponentsFromScenario(
+                                b.basedOnId, newId,
+                                if (b.hwDivert.active) b.hwDivert.toHwDivert() else null
+                            )
                         }
                         newId
                     }
