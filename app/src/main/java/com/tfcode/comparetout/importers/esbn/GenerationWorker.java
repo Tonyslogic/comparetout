@@ -309,7 +309,7 @@ public class GenerationWorker extends Worker {
         // Create a Notification channel
         CharSequence name = getApplicationContext().getString(R.string.esbn_channel_name);
         String description = getApplicationContext().getString(R.string.channel_description);
-        int importance = NotificationManager.IMPORTANCE_DEFAULT;
+        int importance = NotificationManager.IMPORTANCE_LOW;
         NotificationChannel channel = new NotificationChannel(
                 getApplicationContext().getString(R.string.esbn_channel_id), name, importance);
         channel.setDescription(description);

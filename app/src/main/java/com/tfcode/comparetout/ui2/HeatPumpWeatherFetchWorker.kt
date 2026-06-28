@@ -293,7 +293,10 @@ class HeatPumpWeatherFetchWorker(
             .setContentText(text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setSmallIcon(R.drawable.housetick)
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            // Silent by default like every other notification (the user can raise the channel in settings);
+            // it stays until dismissed so a quiet failure note is still seen.
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setSilent(true)
             .setOngoing(false)
             .setAutoCancel(true)
             .build()

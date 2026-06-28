@@ -193,7 +193,7 @@ public class PanelDataRefreshWorker extends Worker {
         NotificationManager nm = context.getSystemService(NotificationManager.class);
         if (nm == null) return;
         NotificationChannel channel = new NotificationChannel(CHANNEL_ID,
-                context.getString(R.string.channel_name), NotificationManager.IMPORTANCE_DEFAULT);
+                context.getString(R.string.channel_name), NotificationManager.IMPORTANCE_LOW);
         channel.setDescription(context.getString(R.string.channel_description));
         nm.createNotificationChannel(channel);
     }

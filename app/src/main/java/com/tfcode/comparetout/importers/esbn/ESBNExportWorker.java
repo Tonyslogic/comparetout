@@ -265,7 +265,7 @@ public class ESBNExportWorker extends Worker {
         String description = getApplicationContext().getString(R.string.channel_description);
         NotificationChannel channel = new NotificationChannel(
                 getApplicationContext().getString(R.string.esbn_channel_id),
-                name, NotificationManager.IMPORTANCE_DEFAULT);
+                name, NotificationManager.IMPORTANCE_LOW);
         channel.setDescription(description);
         NotificationManager nm = getApplicationContext().getSystemService(NotificationManager.class);
         nm.createNotificationChannel(channel);
