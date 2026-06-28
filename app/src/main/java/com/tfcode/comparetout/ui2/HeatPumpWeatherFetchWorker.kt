@@ -163,6 +163,14 @@ class HeatPumpWeatherFetchWorker(
             failTerminal("Couldn't fetch heat-pump weather: ${reasonOf(def)}. This scenario won't be "
                     + "simulated until weather is available — fix the cause and re-save the scenario to retry.")
             Result.success()
+        } catch (dns: java.net.UnknownHostException) {
+            // The CDS host can't be resolved (wrong URL, or no DNS/connectivity). Re-running does the same
+            // failing lookup, so this is definitive too — stop and surface it rather than burning the retries.
+            Log.e(TAG, "CDS host unresolved for scenario $scenarioID", dns)
+            failTerminal("Couldn't reach the CDS server — its address couldn't be resolved (${reasonOf(dns)}). "
+                    + "Check the CDS URL in Data Source Management and your network, then re-save the scenario "
+                    + "to retry.")
+            Result.success()
         } catch (e: Exception) {
             // Transient (network / timeout / 5xx): bounded retry, then give up with the reason visible.
             Log.e(TAG, "CDS weather fetch failed for scenario $scenarioID (attempt $runAttemptCount)", e)
