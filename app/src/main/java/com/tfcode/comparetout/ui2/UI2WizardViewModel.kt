@@ -1610,12 +1610,42 @@ class UI2WizardViewModel @Inject constructor(
                         newId
                     }
                     else -> {
-                        // NEW or COPY: save panels separately to capture their IDs for data fetch
+                        // NEW / COPY / IMPORT: save panels separately to capture their IDs for data fetch.
                         val newId = repository.insertScenarioAndReturnID(b.toScenarioComponents(), false)
                         if (newId > 0L) {
+                            val isCopy = b.scenarioMode == ScenarioMode.COPY
+                            // Source panels (by id) so a copied panel whose fetch inputs the user changed in
+                            // the wizard is re-fetched, while an unchanged one just clones the existing data.
+                            val sourcePanels = if (isCopy)
+                                repository.getPanelsForScenario(b.basedOnId).associateBy { it.panelIndex }
+                            else emptyMap()
                             b.panelEntries.forEach { entry ->
-                                val panelId = repository.savePanel(newId, entry.toPanel())
-                                triggerPanelDataFetch(entry, panelId)
+                                if (isCopy) {
+                                    // A COPY entry carries the SOURCE panel's id. Force a NEW panel (index 0)
+                                    // so savePanel INSERTs + links it to the copy — passing the source id would
+                                    // hit savePanel's else-branch (updatePanel), leaving the copy with no panel
+                                    // AND overwriting the original.
+                                    val sourcePanelId = entry.panelIndex
+                                    val before = sourcePanels[sourcePanelId]
+                                    val after = entry.toPanel().also { it.panelIndex = 0L }
+                                    val newPanelId = repository.savePanel(newId, after)
+                                    when {
+                                        // Edited fetch inputs (or a panel with no source row) → fetch fresh data
+                                        // that matches the new config, but only when the source is fetchable.
+                                        entry.pvDataSource != PanelDataSource.NONE &&
+                                                panelFetchInputsChanged(before, after) ->
+                                            triggerPanelDataFetch(entry, newPanelId)
+                                        // Unchanged copy → clone the source's generated data so the copy keeps
+                                        // its PV without a needless re-download (mirrors legacy copyScenario).
+                                        sourcePanelId > 0L ->
+                                            repository.copyPanelData(sourcePanelId, newPanelId)
+                                        // A NONE-source panel freshly added during the copy: nothing to do.
+                                        else -> { }
+                                    }
+                                } else {
+                                    val panelId = repository.savePanel(newId, entry.toPanel())
+                                    triggerPanelDataFetch(entry, panelId)
+                                }
                             }
                         }
                         newId

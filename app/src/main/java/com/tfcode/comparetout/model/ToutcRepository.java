@@ -455,6 +455,12 @@ public class ToutcRepository {
         return scenarioDAO.savePanel(scenarioID, panel);
     }
 
+    /** Clone the generated time-series of one panel onto another (used by the wizard's COPY path so a copied
+     *  scenario keeps its PV data instead of re-fetching or losing it). Synchronous, mirroring savePanel. */
+    public void copyPanelData(long fromPanelID, long toPanelID) {
+        scenarioDAO.copyPanelData(fromPanelID, toPanelID);
+    }
+
     public void copyPanelFromScenario(long fromScenarioID, Long toScenarioID) {
         ToutcDB.databaseWriteExecutor.execute(() ->
                 scenarioDAO.copyPanelFromScenario(fromScenarioID, toScenarioID));
