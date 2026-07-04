@@ -340,7 +340,8 @@ class UI2DashboardViewModel @Inject constructor(
             _usageTotals.value       = sharedTotals
             _usageDistribution.value = fetchDistribution(DataSourcePeriod.ALL, LocalDate.now(), false, item)
             _tariffCostings.value    = fetchCostings(DataSourcePeriod.ALL, LocalDate.now(), false, item)
-            if (importerType != ComparisonUIViewModel.Importer.ESBNHDF) {
+            if (importerType != ComparisonUIViewModel.Importer.ESBNHDF &&
+                importerType != ComparisonUIViewModel.Importer.OCTOPUS) {
                 _pvChartData.value = fetchPvChartData(DataSourcePeriod.ALL, LocalDate.now(), false, item)
             } else {
                 _pvChartData.value = emptyList()
@@ -585,11 +586,12 @@ class UI2DashboardViewModel @Inject constructor(
         item: ActiveDashboardItem.DataSource
     ): UsageDistribution? {
         val (from, to) = anchorDateRange(period, anchor, advanced, item.startDate, item.endDate)
-        // ESBN smart-meter data is import/export only — no load series. Every
-        // other importer (AlphaESS, Home Assistant) writes per-interval load to
-        // alphaESSTransformedData, so use it directly rather than re-deriving
-        // the user's consumption from grid import.
-        val useLoad = item.importerType != ComparisonUIViewModel.Importer.ESBNHDF
+        // ESBN / Octopus smart-meter data is import/export only — no load
+        // series. Every other importer (AlphaESS, Home Assistant) writes
+        // per-interval load to alphaESSTransformedData, so use it directly
+        // rather than re-deriving the user's consumption from grid import.
+        val useLoad = item.importerType != ComparisonUIViewModel.Importer.ESBNHDF &&
+                item.importerType != ComparisonUIViewModel.Importer.OCTOPUS
         val pick: (IntervalRow) -> Double = { if (useLoad) it.load else it.buy }
 
         val hourRows  = repository.getSumHour(item.sysSn, from, to)
@@ -803,8 +805,9 @@ class UI2DashboardViewModel @Inject constructor(
 
         when (item) {
             is ActiveDashboardItem.DataSource -> {
-                if (item.importerType == ComparisonUIViewModel.Importer.ESBNHDF) {
-                    // ESBN has no PV / load — KPIs would be nonsense.
+                if (item.importerType == ComparisonUIViewModel.Importer.ESBNHDF ||
+                    item.importerType == ComparisonUIViewModel.Importer.OCTOPUS) {
+                    // Meter-only sources have no PV / load — KPIs would be nonsense.
                     _kpiSummary.value = null
                     _kpiMonths.value = null
                     return
@@ -977,6 +980,7 @@ data class DashboardDataSourceInfo(
         ComparisonUIViewModel.Importer.ALPHAESS        -> "AlphaESS"
         ComparisonUIViewModel.Importer.ESBNHDF         -> "ESBN"
         ComparisonUIViewModel.Importer.HOME_ASSISTANT  -> "Home Assistant"
+        ComparisonUIViewModel.Importer.OCTOPUS         -> "Octopus"
         else -> importerType.name
     }
 }

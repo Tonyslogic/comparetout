@@ -79,7 +79,7 @@ sealed class ParsedPreview<out T> {
     data class Err(val message: String) : ParsedPreview<Nothing>()
 }
 
-private enum class ImportSource { FILE, PASTE, COMMUNITY, LLM }
+private enum class ImportSource { FILE, PASTE, COMMUNITY, LLM, EXTRA }
 
 private val IMPORT_MIME_TYPES = arrayOf(
     "application/json",
@@ -103,6 +103,12 @@ fun <T> UI2ImportSheet(
      * prompt, runs it through their own AI assistant, then pastes the JSON it
      * returns back via the "Paste JSON" source. */
     llmPrompt: String? = null,
+    /** When non-null, offers one extra self-contained source chip. Unlike the
+     * other sources it does not feed the parse/preview pipeline — the content
+     * carries its own action button (e.g. the Octopus tariff fetch, which
+     * inserts plans directly). */
+    extraSourceLabel: String? = null,
+    extraSourceContent: (@Composable () -> Unit)? = null,
     parse: (String) -> ParsedPreview<T>,
     onApply: (T) -> Unit,
     onDismiss: () -> Unit
@@ -251,6 +257,17 @@ fun <T> UI2ImportSheet(
                         }
                     )
                 }
+                if (extraSourceLabel != null && extraSourceContent != null) {
+                    FilterChip(
+                        selected = source == ImportSource.EXTRA,
+                        onClick = { source = ImportSource.EXTRA },
+                        label = { Text(extraSourceLabel) },
+                        leadingIcon = {
+                            Icon(Icons.Default.CloudDownload, contentDescription = null,
+                                modifier = Modifier.size(16.dp))
+                        }
+                    )
+                }
             }
 
             when (source) {
@@ -368,6 +385,9 @@ fun <T> UI2ImportSheet(
                             color = MaterialTheme.colorScheme.error
                         )
                     }
+                }
+                ImportSource.EXTRA -> {
+                    extraSourceContent?.invoke()
                 }
             }
 

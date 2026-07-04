@@ -33,6 +33,14 @@
         android:text="@string/home_assistant" />
 
     <com.google.android.material.button.MaterialButton
+        android:id="@+id/octopusLoader"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginTop="20dp"
+        android:text="@string/octopus_energy" />
+
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/solisLoader"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

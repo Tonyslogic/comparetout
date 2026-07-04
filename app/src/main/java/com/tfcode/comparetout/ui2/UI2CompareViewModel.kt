@@ -94,6 +94,7 @@ data class CompareSourceItem(
         ComparisonUIViewModel.Importer.ALPHAESS       -> "AlphaESS"
         ComparisonUIViewModel.Importer.ESBNHDF        -> "ESBN HDF"
         ComparisonUIViewModel.Importer.HOME_ASSISTANT -> "Home Assistant"
+        ComparisonUIViewModel.Importer.OCTOPUS        -> "Octopus"
         else -> importerType.name
     }
 }
@@ -298,8 +299,12 @@ class UI2CompareViewModel @Inject constructor(
                     add(CompareSourceItem(it.sysSn, ComparisonUIViewModel.Importer.ALPHAESS, it.startDate, it.finishDate))
             }
             esbn.forEach { r ->
-                val type = if (r.sysSn == "HomeAssistant") ComparisonUIViewModel.Importer.HOME_ASSISTANT
-                           else ComparisonUIViewModel.Importer.ESBNHDF
+                // The shared ranges query returns every sysSn namespace; classify by name.
+                val type = when {
+                    r.sysSn == "HomeAssistant" -> ComparisonUIViewModel.Importer.HOME_ASSISTANT
+                    r.sysSn.startsWith("Octopus-") -> ComparisonUIViewModel.Importer.OCTOPUS
+                    else -> ComparisonUIViewModel.Importer.ESBNHDF
+                }
                 if (seen.add(r.sysSn))
                     add(CompareSourceItem(r.sysSn, type, r.startDate, r.finishDate))
             }

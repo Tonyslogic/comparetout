@@ -41,6 +41,7 @@ import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.importers.alphaess.ImportAlphaActivity;
 import com.tfcode.comparetout.importers.esbn.ImportESBNActivity;
 import com.tfcode.comparetout.importers.homeassistant.ImportHomeAssistantActivity;
+import com.tfcode.comparetout.importers.octopus.ImportOctopusActivity;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 
@@ -54,6 +55,7 @@ public class DataManagementFragment extends Fragment {
     private MaterialButton mESBN_HDF;
     private MaterialButton mAlphaESS;
     private MaterialButton mHomeAssistant;
+    private MaterialButton mOctopus;
     private MaterialButton mSolisCloud;
     private LinearLayout mLinearLayout;
 
@@ -106,6 +108,7 @@ public class DataManagementFragment extends Fragment {
         mESBN_HDF = view.findViewById(R.id.esbnHDFLoader);
         mAlphaESS = view.findViewById(R.id.alphaESSLoader);
         mHomeAssistant = view.findViewById(R.id.haLoader);
+        mOctopus = view.findViewById(R.id.octopusLoader);
         mSolisCloud = view.findViewById(R.id.solisLoader);
 
         setupButtons();
@@ -158,6 +161,16 @@ public class DataManagementFragment extends Fragment {
             Activity activity = getActivity();
             if (!(null == activity)) {
                 Intent intent = new Intent(activity, ImportHomeAssistantActivity.class);
+                startActivity(intent);
+            }
+        });
+
+        mOctopus.setOnClickListener(v -> {
+            Activity activity = getActivity();
+            if (!(null == activity)) {
+                Intent intent = new Intent(activity, ImportOctopusActivity.class);
+                intent.putExtra("LoadProfileID", 0L);
+                intent.putExtra("ScenarioID", 0L);
                 startActivity(intent);
             }
         });

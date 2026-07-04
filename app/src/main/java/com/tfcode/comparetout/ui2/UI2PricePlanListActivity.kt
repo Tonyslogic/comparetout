@@ -16,6 +16,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -45,11 +47,14 @@ import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -77,7 +82,10 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile
 import dagger.hilt.android.AndroidEntryPoint
+import dagger.hilt.android.EntryPointAccessors
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.DecimalFormat
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -303,6 +311,8 @@ private fun PricePlanListScreen(
             communityNote = "Community-maintained Irish supplier tariffs — may be out of " +
                 "date. You can edit any plan after importing.",
             llmPrompt = PricePlanDownloader.LLM_PROMPT,
+            extraSourceLabel = "Octopus tariffs",
+            extraSourceContent = { OctopusTariffFetchPane() },
             parse = ::parsePricePlansJson,
             onApply = {
                 pendingImport = it
@@ -734,6 +744,120 @@ private fun EmptyListMessage(showHints: Boolean) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
+        }
+    }
+}
+
+// ── Octopus tariff fetch (public API, no login) ────────────────────────
+//
+// The Octopus /products/ and tariff-rate endpoints need no credentials, so
+// any user can pull the currently-open Octopus tariffs for their GSP region
+// into the plan list. Region comes from a postcode lookup (public endpoint),
+// with a manual A–P region picker as the fallback. Dynamic tariffs
+// (Agile/Tracker) are skipped — the repeating DayRate model cannot hold
+// per-day prices — and the export rate on every generated plan assumes
+// Outgoing Fixed (noted on the plan's reference).
+
+private val GSP_REGIONS = listOf(
+    "A" to "Eastern England", "B" to "East Midlands", "C" to "London",
+    "D" to "Merseyside & N Wales", "E" to "West Midlands", "F" to "North East England",
+    "G" to "North West England", "H" to "Southern England", "J" to "South East England",
+    "K" to "South Wales", "L" to "South West England", "M" to "Yorkshire",
+    "N" to "South Scotland", "P" to "North Scotland"
+)
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun OctopusTariffFetchPane() {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val tariffPlans = remember {
+        EntryPointAccessors
+            .fromApplication(context.applicationContext, OctopusTariffPlansEntryPoint::class.java)
+            .octopusTariffPlans()
+    }
+    var postcode by remember { mutableStateOf("") }
+    var region by remember { mutableStateOf<String?>(null) }
+    var busy by remember { mutableStateOf(false) }
+    var status by remember { mutableStateOf<String?>(null) }
+
+    fun runFetch() {
+        scope.launch {
+            busy = true
+            status = null
+            val outcome = withContext(Dispatchers.IO) {
+                val resolved = region
+                    ?: postcode.takeIf { it.isNotBlank() }?.let { pc ->
+                        runCatching { tariffPlans.resolveRegionBlocking(pc.trim()) }.getOrNull()
+                    }
+                if (resolved == null) {
+                    "Couldn't resolve a region — check the postcode or pick a region below."
+                } else {
+                    region = resolved
+                    when (val r = tariffPlans.generateForRegionBlocking(resolved)) {
+                        is OctopusTariffPlans.Result.Loaded ->
+                            "Added ${r.added} plan" + (if (r.added == 1) "" else "s") +
+                                " for region $resolved" +
+                                (if (r.existing > 0) " (${r.existing} already present)" else "") +
+                                (if (r.skipped > 0) " (${r.skipped} not representable)" else "")
+                        is OctopusTariffPlans.Result.NoRegion ->
+                            "Couldn't resolve a region — pick one below."
+                        is OctopusTariffPlans.Result.Failed ->
+                            r.error.message ?: "Octopus fetch failed"
+                    }
+                }
+            }
+            status = outcome
+            busy = false
+        }
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            "Fetches every Octopus Energy tariff open for sign-up in your region and adds " +
+                "each as a supplier plan. Dynamic tariffs (Agile/Tracker) are skipped; the " +
+                "export rate assumes Outgoing Fixed — edit any plan after importing.",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        OutlinedTextField(
+            value = postcode,
+            onValueChange = { postcode = it; region = null },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("UK postcode (resolves your region)") },
+            singleLine = true
+        )
+        Text(
+            "Or pick your region:",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            GSP_REGIONS.forEach { (letter, name) ->
+                FilterChip(
+                    selected = region == letter,
+                    onClick = { region = if (region == letter) null else letter },
+                    label = { Text("$letter · $name", style = MaterialTheme.typography.labelSmall) }
+                )
+            }
+        }
+        if (busy) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                CircularProgressIndicator(Modifier.size(20.dp))
+                Spacer(Modifier.width(12.dp))
+                Text("Fetching tariffs — this walks every open product…",
+                    style = MaterialTheme.typography.bodySmall)
+            }
+        } else {
+            Button(
+                onClick = { runFetch() },
+                enabled = region != null || postcode.isNotBlank(),
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("Fetch tariffs") }
+        }
+        status?.let {
+            Text(it, style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.Medium)
         }
     }
 }

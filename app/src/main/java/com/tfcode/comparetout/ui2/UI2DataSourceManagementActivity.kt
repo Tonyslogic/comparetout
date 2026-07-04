@@ -142,6 +142,7 @@ private fun DataSourceManagementScreen(
     val alphaRaw by viewModel.alpha.observeAsState()
     val haRaw by viewModel.ha.observeAsState()
     val esbnRaw by viewModel.esbn.observeAsState()
+    val octopusRaw by viewModel.octopus.observeAsState()
     val fetchMap by viewModel.fetchStatus.observeAsState(emptyMap())
     val haSensors by viewModel.haSensors.observeAsState()
     val pvgis by viewModel.pvgis.observeAsState()
@@ -166,6 +167,7 @@ private fun DataSourceManagementScreen(
     val alpha = alphaRaw?.withLiveFetch(fetchMap)
     val ha = haRaw?.withLiveFetch(fetchMap)
     val esbn = esbnRaw?.withLiveFetch(fetchMap)
+    val octopus = octopusRaw?.withLiveFetch(fetchMap)
     val (showHints, toggleShowHints) = rememberShowHints()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -273,6 +275,28 @@ private fun DataSourceManagementScreen(
                                 onDeleteRange = viewModel::deleteRange,
                                 onExportFolder = viewModel::exportEsbn,
                                 onRemoveSource = { viewModel.deleteEntireSource(Importer.ESBNHDF) }
+                            )
+                        }
+                    )
+                }
+                item("octopus") {
+                    SourceAccordion(
+                        title = "Octopus Energy",
+                        subtitle = "Half-hourly meter sync + tariff import",
+                        state = octopus,
+                        showHints = showHints,
+                        body = {
+                            OctopusSection(
+                                state = octopus,
+                                showHints = showHints,
+                                onSetCredentials = viewModel::setOctopusCredentials,
+                                onSelect = viewModel::selectOctopusSystem,
+                                onFetch = viewModel::fetchOctopus,
+                                onCancel = viewModel::cancelFetch,
+                                onDeleteAll = viewModel::deleteAllData,
+                                onDeleteRange = viewModel::deleteRange,
+                                onImportFile = viewModel::importOctopusFile,
+                                onRemoveSource = { viewModel.deleteEntireSource(Importer.OCTOPUS) }
                             )
                         }
                     )
@@ -909,6 +933,111 @@ private fun EsbnSection(
             mentionsCredentials = false,
             onDismiss = { showDeleteSource = false },
             onConfirm = { onRemoveSource(); showDeleteSource = false }
+        )
+    }
+}
+
+// ── Octopus Energy section ────────────────────────────────────────────
+
+@Composable
+private fun OctopusSection(
+    state: SourceState?,
+    showHints: Boolean,
+    onSetCredentials: (String, String) -> Unit,
+    onSelect: (String) -> Unit,
+    onFetch: (String, LocalDateTime) -> Unit,
+    onCancel: (String) -> Unit,
+    onDeleteAll: (String) -> Unit,
+    onDeleteRange: (String, LocalDateTime, LocalDateTime) -> Unit,
+    onImportFile: (String, String) -> Unit,
+    onRemoveSource: () -> Unit
+) {
+    var showCreds by remember { mutableStateOf(false) }
+    var showDeleteSource by remember { mutableStateOf(false) }
+    var pendingDelete by remember { mutableStateOf<ManagedSystem?>(null) }
+    var pendingFetch by remember { mutableStateOf<ManagedSystem?>(null) }
+    var importTargetSn by remember { mutableStateOf<String?>(null) }
+    val pickImportFile = rememberLauncherForActivityResult(
+        ActivityResultContracts.GetContent()
+    ) { uri ->
+        val sn = importTargetSn
+        importTargetSn = null
+        if (uri != null && sn != null) onImportFile(sn, uri.toString())
+    }
+    if (showHints) {
+        HintLine("Octopus needs your account number (A-XXXXXXXX) and an API key from the " +
+                "Octopus dashboard (Account → API access). Meter points are discovered " +
+                "automatically; fetching also builds supplier plans from your region's tariffs.")
+    }
+    CredentialStrip(
+        configured = state?.credentialsConfigured == true,
+        good = state?.credentialsKnownGood == true,
+        onEdit = { showCreds = true },
+        onDeleteSource = if (state?.credentialsConfigured == true || !state?.systems.isNullOrEmpty())
+            ({ showDeleteSource = true }) else null
+    )
+    SystemList(
+        systems = state?.systems.orEmpty(),
+        selected = state?.selectedSn,
+        canFetch = state?.credentialsKnownGood == true,
+        onSelect = onSelect,
+        onFetch = { sn ->
+            val sys = state?.systems?.firstOrNull { it.sysSn == sn } ?: return@SystemList
+            pendingFetch = sys
+        },
+        onCancel = onCancel,
+        onDelete = { sys -> pendingDelete = sys },
+        // Per-row CSV import: the dashboard-download fallback for keyless use.
+        onImport = { sn ->
+            importTargetSn = sn
+            pickImportFile.launch("*/*")
+        }
+    )
+    if (state?.systems.isNullOrEmpty() && showHints) {
+        Text("Meter points (MPANs) will appear here once credentials are validated.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    if (showCreds) {
+        CredentialDialog(
+            title = "Octopus credentials",
+            userLabel = "Account number",
+            passLabel = "API key",
+            initialUser = "",
+            onDismiss = { showCreds = false },
+            onSubmit = { u, p ->
+                onSetCredentials(u, p)
+                showCreds = false
+            }
+        )
+    }
+    if (showDeleteSource) {
+        DeleteSourceDialog(
+            sourceName = "Octopus Energy",
+            mentionsCredentials = true,
+            onDismiss = { showDeleteSource = false },
+            onConfirm = { onRemoveSource(); showDeleteSource = false }
+        )
+    }
+    pendingDelete?.let { sys ->
+        DeleteDialog(
+            sysSn = sys.sysSn,
+            availableStart = sys.startDate,
+            availableEnd = sys.endDate,
+            onDismiss = { pendingDelete = null },
+            onDeleteAll = { onDeleteAll(sys.sysSn); pendingDelete = null },
+            onDeleteRange = { f, t -> onDeleteRange(sys.sysSn, f, t); pendingDelete = null }
+        )
+    }
+    pendingFetch?.let { sys ->
+        FetchStartDialog(
+            sysSn = sys.sysSn,
+            lastDataDate = sys.endDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
+            onDismiss = { pendingFetch = null },
+            onConfirm = { start ->
+                onFetch(sys.sysSn, start)
+                pendingFetch = null
+            }
         )
     }
 }

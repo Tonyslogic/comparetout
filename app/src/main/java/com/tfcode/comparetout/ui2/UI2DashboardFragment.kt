@@ -739,8 +739,9 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                 }
 
                 // KPI accordion — only meaningful for sources that record PV + load.
-                // ESBN is import/export only, so the self-* KPIs would be nonsense.
-                if (dsInfo.importerType != ComparisonUIViewModel.Importer.ESBNHDF) {
+                // ESBN / Octopus are import/export only, so the self-* KPIs would be nonsense.
+                if (dsInfo.importerType != ComparisonUIViewModel.Importer.ESBNHDF &&
+                    dsInfo.importerType != ComparisonUIViewModel.Importer.OCTOPUS) {
                     KpiAccordion(
                         period = kpiPeriod,
                         anchor = kpiAnchor,
@@ -778,7 +779,8 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         onNavigate     = { fwd, adv -> viewModel.navigateUsage(fwd, adv) }
                     )
                     Spacer(Modifier.height(8.dp))
-                    val isEsbn = dsInfo.importerType == ComparisonUIViewModel.Importer.ESBNHDF
+                    val isEsbn = dsInfo.importerType == ComparisonUIViewModel.Importer.ESBNHDF ||
+                        dsInfo.importerType == ComparisonUIViewModel.Importer.OCTOPUS
                     val totals = usageTotals
                     when {
                         totals == null -> CircularProgressIndicator(
@@ -799,7 +801,8 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     }
                 }
 
-                if (dsInfo.importerType != ComparisonUIViewModel.Importer.ESBNHDF) {
+                if (dsInfo.importerType != ComparisonUIViewModel.Importer.ESBNHDF &&
+                    dsInfo.importerType != ComparisonUIViewModel.Importer.OCTOPUS) {
                     ExpandableCard(
                         title = "PV System",
                         leadingIcon = {
@@ -1863,7 +1866,8 @@ private fun DataSourceExplorePies(
         return
     }
 
-    val isEsbn = importerType == ComparisonUIViewModel.Importer.ESBNHDF
+    val isEsbn = importerType == ComparisonUIViewModel.Importer.ESBNHDF ||
+        importerType == ComparisonUIViewModel.Importer.OCTOPUS
     val charts = remember(periodTotals, isEsbn) {
         if (isEsbn) {
             listOf(

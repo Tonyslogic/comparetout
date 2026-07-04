@@ -88,6 +88,14 @@
             android:parentActivityName=".MainActivity">
         </activity>
         <activity
+            android:name=".importers.octopus.ImportOctopusActivity"
+            android:exported="false"
+            android:parentActivityName=".MainActivity">
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
+        </activity>
+        <activity
             android:name=".scenario.ev.EVDivertActivity"
             android:exported="false">
             <meta-data

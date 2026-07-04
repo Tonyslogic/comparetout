@@ -28,6 +28,10 @@ import com.tfcode.comparetout.importers.esbn.ESBNExportWorker
 import com.tfcode.comparetout.importers.esbn.ESBNImportWorker
 import com.tfcode.comparetout.importers.homeassistant.EnergySensors
 import com.tfcode.comparetout.importers.homeassistant.HACatchupWorker
+import com.tfcode.comparetout.importers.octopus.OctopusCatchUpWorker
+import com.tfcode.comparetout.importers.octopus.OctopusCsvImportWorker
+import com.tfcode.comparetout.importers.octopus.OctopusRestClient
+import com.tfcode.comparetout.importers.octopus.OctopusSystem
 import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformMeta
 import com.tfcode.comparetout.model.scenario.PanelPVSummary
@@ -72,6 +76,12 @@ private const val HA_SENSORS_KEY = "ha_sensors"
 
 private const val ESBN_SYSTEM_LIST_KEY = "esbn_system_list"
 private const val ESBN_SELECTED_KEY = "esbn_system_previously_selected"
+
+private const val OCTOPUS_ACCOUNT_KEY = "octopus_account"
+private const val OCTOPUS_API_KEY_KEY = "octopus_api_key"
+private const val OCTOPUS_GOOD_KEY = "octopus_cred_good"
+private const val OCTOPUS_SYSTEM_LIST_KEY = "octopus_system_list"
+private const val OCTOPUS_SELECTED_KEY = "octopus_system_previously_selected"
 
 // Weather/PV "data sources" (Phase 5.5). PVGIS is anonymous (no credentials);
 // CDS stores an encrypted Personal Access Token mirroring AlphaESS/HA. The
@@ -171,6 +181,8 @@ class UI2DataSourceManagementViewModel @Inject constructor(
     val ha: LiveData<SourceState> = _ha
     private val _esbn = MutableLiveData<SourceState>()
     val esbn: LiveData<SourceState> = _esbn
+    private val _octopus = MutableLiveData<SourceState>()
+    val octopus: LiveData<SourceState> = _octopus
     private val _haSensors = MutableLiveData<HASensorSnapshot?>()
     val haSensors: LiveData<HASensorSnapshot?> = _haSensors
     private val _pvgis = MutableLiveData<WeatherSourceState>()
@@ -228,16 +240,18 @@ class UI2DataSourceManagementViewModel @Inject constructor(
             val a = buildAlphaState()
             val h = buildHAState()
             val e = buildEsbnState()
+            val o = buildOctopusState()
             _alpha.postValue(a)
             _ha.postValue(h)
             _esbn.postValue(e)
+            _octopus.postValue(o)
             _haSensors.postValue(readHASensors())
             // PVGIS state is driven by the panelDataSummary observer, not here.
             _cds.postValue(buildCdsState())
             // (Re-)attach WorkManager observers for the union of all SNs
             // so the live "fetching" indicator stays accurate as systems
             // appear and disappear from the lists.
-            val sns = (a.systems + h.systems + e.systems).map { it.sysSn }.toSet()
+            val sns = (a.systems + h.systems + e.systems + o.systems).map { it.sysSn }.toSet()
             withContext(Dispatchers.Main) { syncWorkObservers(sns) }
         }
     }
@@ -692,12 +706,149 @@ class UI2DataSourceManagementViewModel @Inject constructor(
         }
     }
 
+    // ── Octopus Energy ──────────────────────────────────────────────────
+
+    private fun buildOctopusState(): SourceState {
+        val raw = app.getStringValueFromDataStore(OCTOPUS_SYSTEM_LIST_KEY)
+        val sns: List<String> = if (raw.isNullOrBlank()) emptyList()
+        else runCatching {
+            val parsed: List<OctopusSystem>? =
+                gson.fromJson(raw, object : TypeToken<List<OctopusSystem>>() {}.type)
+            parsed?.map { it.sysSn }.orEmpty()
+        }.getOrDefault(emptyList())
+        val good = app.getStringValueFromDataStore(OCTOPUS_GOOD_KEY) != "False"
+        val configured = app.getStringValueFromDataStore(OCTOPUS_API_KEY_KEY).orEmpty().isNotEmpty()
+        val selected = app.getStringValueFromDataStore(OCTOPUS_SELECTED_KEY)?.ifEmpty { null }
+        return SourceState(
+            importer = ComparisonUIViewModel.Importer.OCTOPUS,
+            credentialsConfigured = configured,
+            credentialsKnownGood = configured && good,
+            systems = sns.map { sn -> systemRow(sn) },
+            selectedSn = selected
+        )
+    }
+
+    /**
+     * Update Octopus credentials (account number + API key). Encrypts before
+     * storing — same scheme as legacy — and immediately probes /accounts/ to
+     * auto-discover the MPAN list.
+     */
+    fun setOctopusCredentials(account: String, apiKey: String) {
+        if (account.isBlank() || apiKey.isBlank()) {
+            _toast.postValue(Toast("Account number and API key are required"))
+            return
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            _busy.postValue(true)
+            try {
+                val encAccount = TOUTCApplication.encryptString(account.trim())
+                val encKey = TOUTCApplication.encryptString(apiKey.trim())
+                app.putStringValueIntoDataStore(OCTOPUS_ACCOUNT_KEY, encAccount)
+                app.putStringValueIntoDataStore(OCTOPUS_API_KEY_KEY, encKey)
+                // Probe the account to discover meter points.
+                val client = OctopusRestClient(apiKey.trim())
+                val systems = OctopusSystem.fromAccount(client.getAccount(account.trim()))
+                if (systems.isEmpty()) {
+                    app.putStringValueIntoDataStore(OCTOPUS_GOOD_KEY, "False")
+                    _toast.postValue(Toast("No electricity meter points found on $account"))
+                } else {
+                    app.putStringValueIntoDataStore(OCTOPUS_GOOD_KEY, "True")
+                    app.putStringValueIntoDataStore(OCTOPUS_SYSTEM_LIST_KEY, gson.toJson(systems))
+                    if (systems.size == 1) {
+                        app.putStringValueIntoDataStore(OCTOPUS_SELECTED_KEY, systems[0].sysSn)
+                    }
+                    _toast.postValue(Toast("Credentials saved (${systems.size} meter point(s))"))
+                }
+            } catch (t: Throwable) {
+                app.putStringValueIntoDataStore(OCTOPUS_GOOD_KEY, "False")
+                _toast.postValue(Toast(t.message ?: "Octopus error"))
+            } finally {
+                _octopus.postValue(buildOctopusState())
+                _busy.postValue(false)
+            }
+        }
+    }
+
+    fun selectOctopusSystem(sysSn: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            app.putStringValueIntoDataStore(OCTOPUS_SELECTED_KEY, sysSn)
+            _octopus.postValue(buildOctopusState())
+        }
+    }
+
+    /**
+     * Start Octopus fetch (catch-up + periodic daily). Mirrors the legacy
+     * `startWorkers(serialNumber, startDate)` flow, using the same tags so
+     * the legacy screen sees the same in-flight work if the user opens it.
+     */
+    fun fetchOctopus(sysSn: String, startDate: LocalDateTime) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val account = decryptOrNull(app.getStringValueFromDataStore(OCTOPUS_ACCOUNT_KEY))
+            val apiKey = decryptOrNull(app.getStringValueFromDataStore(OCTOPUS_API_KEY_KEY))
+            if (account == null || apiKey == null) {
+                _toast.postValue(Toast("Set Octopus credentials first"))
+                return@launch
+            }
+            val date = dateFmt.format(toDate(startDate))
+            val catchInput = Data.Builder()
+                .putString(OctopusCatchUpWorker.KEY_APP_ID, account)
+                .putString(OctopusCatchUpWorker.KEY_APP_SECRET, apiKey)
+                .putString(OctopusCatchUpWorker.KEY_SYSTEM_SN, sysSn)
+                .putString(OctopusCatchUpWorker.KEY_START_DATE, date)
+                .build()
+            val catchReq = OneTimeWorkRequest.Builder(OctopusCatchUpWorker::class.java)
+                .setInputData(catchInput)
+                .addTag(sysSn)
+                .build()
+            wm.pruneWork()
+            wm.beginUniqueWork(sysSn, ExistingWorkPolicy.APPEND, catchReq).enqueue()
+
+            // Daily incremental sync: the same worker resumes from the latest
+            // stored date when no start date is supplied.
+            val dailyInput = Data.Builder()
+                .putString(OctopusCatchUpWorker.KEY_APP_ID, account)
+                .putString(OctopusCatchUpWorker.KEY_APP_SECRET, apiKey)
+                .putString(OctopusCatchUpWorker.KEY_SYSTEM_SN, sysSn)
+                .build()
+            val initialDelayHours = (25 - LocalDateTime.now().hour).toLong()
+            val dailyReq = PeriodicWorkRequest.Builder(OctopusCatchUpWorker::class.java, 1, TimeUnit.DAYS)
+                .setInputData(dailyInput)
+                .setInitialDelay(initialDelayHours, TimeUnit.HOURS)
+                .addTag(sysSn + "daily")
+                .build()
+            wm.enqueueUniquePeriodicWork(sysSn + "daily", ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE, dailyReq)
+            _toast.postValue(Toast("Fetch started for $sysSn"))
+            _octopus.postValue(buildOctopusState())
+        }
+    }
+
+    /**
+     * Ingest an Octopus consumption CSV (the dashboard download) for [sysSn] —
+     * the offline fallback for users without an API key.
+     */
+    fun importOctopusFile(sysSn: String, uri: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val input = Data.Builder()
+                .putString(OctopusCsvImportWorker.KEY_SYSTEM_SN, sysSn)
+                .putString(OctopusCsvImportWorker.KEY_URI, uri)
+                .build()
+            val req = OneTimeWorkRequest.Builder(OctopusCsvImportWorker::class.java)
+                .setInputData(input)
+                .addTag(sysSn + "Import")
+                .build()
+            wm.pruneWork()
+            wm.beginUniqueWork(sysSn, ExistingWorkPolicy.APPEND, req).enqueue()
+            _toast.postValue(Toast("Importing Octopus CSV…"))
+            _octopus.postValue(buildOctopusState())
+        }
+    }
+
     // ── Common — deletion ──────────────────────────────────────────────
 
     /**
      * Delete every reading for [sysSn]. Same DAO call the legacy "Delete all data"
-     * dialog uses; works for AlphaESS, HA, and ESBN since the import schema is
-     * shared.
+     * dialog uses; works for AlphaESS, HA, ESBN, and Octopus since the import
+     * schema is shared.
      */
     fun deleteAllData(sysSn: String) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -706,6 +857,7 @@ class UI2DataSourceManagementViewModel @Inject constructor(
             _alpha.postValue(buildAlphaState())
             _ha.postValue(buildHAState())
             _esbn.postValue(buildEsbnState())
+            _octopus.postValue(buildOctopusState())
         }
     }
 
@@ -716,6 +868,7 @@ class UI2DataSourceManagementViewModel @Inject constructor(
             _alpha.postValue(buildAlphaState())
             _ha.postValue(buildHAState())
             _esbn.postValue(buildEsbnState())
+            _octopus.postValue(buildOctopusState())
         }
     }
 
@@ -735,6 +888,7 @@ class UI2DataSourceManagementViewModel @Inject constructor(
                     ComparisonUIViewModel.Importer.ALPHAESS -> buildAlphaState().systems
                     ComparisonUIViewModel.Importer.HOME_ASSISTANT -> buildHAState().systems
                     ComparisonUIViewModel.Importer.ESBNHDF -> buildEsbnState().systems
+                    ComparisonUIViewModel.Importer.OCTOPUS -> buildOctopusState().systems
                     else -> emptyList()
                 }.map { it.sysSn }
                 sns.forEach { sn ->
@@ -762,6 +916,13 @@ class UI2DataSourceManagementViewModel @Inject constructor(
                         app.putStringValueIntoDataStore(ESBN_SYSTEM_LIST_KEY, "")
                         app.putStringValueIntoDataStore(ESBN_SELECTED_KEY, "")
                     }
+                    ComparisonUIViewModel.Importer.OCTOPUS -> {
+                        app.putStringValueIntoDataStore(OCTOPUS_ACCOUNT_KEY, "")
+                        app.putStringValueIntoDataStore(OCTOPUS_API_KEY_KEY, "")
+                        app.putStringValueIntoDataStore(OCTOPUS_GOOD_KEY, "")
+                        app.putStringValueIntoDataStore(OCTOPUS_SYSTEM_LIST_KEY, "")
+                        app.putStringValueIntoDataStore(OCTOPUS_SELECTED_KEY, "")
+                    }
                     else -> {}
                 }
                 _toast.postValue(Toast("Source removed"))
@@ -771,6 +932,7 @@ class UI2DataSourceManagementViewModel @Inject constructor(
                 _alpha.postValue(buildAlphaState())
                 _ha.postValue(buildHAState())
                 _esbn.postValue(buildEsbnState())
+                _octopus.postValue(buildOctopusState())
                 _haSensors.postValue(readHASensors())
                 _busy.postValue(false)
             }

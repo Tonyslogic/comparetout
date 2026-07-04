@@ -1464,6 +1464,7 @@ private fun DeriveFromSourceDialog(
                             ComparisonUIViewModel.Importer.ALPHAESS        -> "AlphaESS"
                             ComparisonUIViewModel.Importer.ESBNHDF         -> "ESBN"
                             ComparisonUIViewModel.Importer.HOME_ASSISTANT  -> "Home Assistant"
+                            ComparisonUIViewModel.Importer.OCTOPUS         -> "Octopus"
                             else -> "Unknown"
                         }
                         Row(
@@ -1496,8 +1497,9 @@ private fun DeriveFromSourceDialog(
                         }
                     }
 
-                    // ESBN warning
-                    if (selectedSource?.importerType == ComparisonUIViewModel.Importer.ESBNHDF) {
+                    // Meter-only (ESBN / Octopus) warning
+                    if (selectedSource?.importerType == ComparisonUIViewModel.Importer.ESBNHDF ||
+                        selectedSource?.importerType == ComparisonUIViewModel.Importer.OCTOPUS) {
                         item {
                             Row(
                                 modifier = Modifier.fillMaxWidth()

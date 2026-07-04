@@ -107,7 +107,9 @@ class UI2GraphsViewModel @Inject constructor(
             get() {
                 if (isDataSourceMode) {
                     return when (importerType) {
-                        ComparisonUIViewModel.Importer.ESBNHDF -> ESBN_FILTERS
+                        // Meter-only sources: import/export series only.
+                        ComparisonUIViewModel.Importer.ESBNHDF,
+                        ComparisonUIViewModel.Importer.OCTOPUS -> ESBN_FILTERS
                         else -> {
                             val set = CORE_FILTERS.toMutableSet()
                             if (hasBatteryData) set.addAll(BATTERY_FILTERS)
@@ -199,7 +201,8 @@ class UI2GraphsViewModel @Inject constructor(
             _state.value.dataStartDate == startDate && _state.value.dataEndDate == endDate &&
             !_state.value.isLoading) return
         Log.d("UI2Graphs", "initializeDataSource($sysSn, $importerType)")
-        val initFilters = if (importerType == ComparisonUIViewModel.Importer.ESBNHDF) ESBN_FILTERS else CORE_FILTERS
+        val initFilters = if (importerType == ComparisonUIViewModel.Importer.ESBNHDF ||
+            importerType == ComparisonUIViewModel.Importer.OCTOPUS) ESBN_FILTERS else CORE_FILTERS
         _state.update { it.copy(dataSysSn = sysSn, importerType = importerType, scenarioId = 0L,
             scenarioName = sysSn, components = null, isLoading = true,
             displayScale = DisplayScale.HOUR, activeFilters = initFilters) }

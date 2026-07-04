@@ -1,0 +1,46 @@
+<html lang="en">
+    <head>
+        <title>Octopus Energy importer</title>
+        <link rel="stylesheet" href="/assets/stylesheet.css">
+    </head>
+    <body>
+        <img style="float: right;" src="/res/drawable/launcher.png" alt="launcher" width="100">
+        <p><b>Help: Octopus Energy importer</b></p>
+        <div style="clear: right">
+            <p>Octopus Energy provides API access to your half-hourly smart meter history
+                (import, and export where you have an export meter point), plus the tariffs
+                you are on. You need your account number (A-XXXXXXXX) and an API key from
+                the Octopus dashboard (Account &rarr; API access).</p>
+            <p>When your data is fetched, the app also creates supplier plans from the
+                Octopus tariffs available in your region, and marks your current tariff as
+                the favourite plan (unless you already chose one). Dynamic tariffs
+                (Agile/Tracker) cannot be represented as repeating plans and are skipped.</p>
+            <p>No API key? Download your consumption CSV from the Octopus dashboard and
+                import it with the folder icon above (import readings only).</p>
+            <p>There are three tabs presented:</p>
+            <table>
+                <tr>
+                    <th>Tab</th>
+                    <th>Purpose</th>
+                    <th>Details</th>
+                </tr>
+                <tr>
+                    <td>Octopus Overview</td>
+                    <td>Credentials, fetch, remove and cost range</td>
+                    <td><a href="./overview_tab.html">Overview</a></td>
+                </tr>
+                <tr>
+                    <td>Data graphs</td>
+                    <td>Visualise downloaded data in multiple different ways</td>
+                    <td><a href="./graphs_tab.html">Graphs</a></td>
+                </tr>
+                <tr>
+                    <td>Generate usage</td>
+                    <td>Create a new usage what-if scenario from a subset of the downloaded data</td>
+                    <td><a href="./generate_tab.html">Generate</a></td>
+                </tr>
+            </table>
+            <p>Long clicking on a tab title will provide more detailed help.</p>
+        </div>
+    </body>
+</html>

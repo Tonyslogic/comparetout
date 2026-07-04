@@ -783,8 +783,12 @@ class UI2WizardViewModel @Inject constructor(
                 if (seen.add(r.sysSn)) out.add(SourceDateRange(r.sysSn, r.startDate, r.finishDate, ComparisonUIViewModel.Importer.ALPHAESS))
             }
             esbnRanges.value?.forEach { r ->
-                val type = if (r.sysSn == "HomeAssistant") ComparisonUIViewModel.Importer.HOME_ASSISTANT
-                           else ComparisonUIViewModel.Importer.ESBNHDF
+                // The shared ranges query returns every sysSn namespace; classify by name.
+                val type = when {
+                    r.sysSn == "HomeAssistant" -> ComparisonUIViewModel.Importer.HOME_ASSISTANT
+                    r.sysSn.startsWith("Octopus-") -> ComparisonUIViewModel.Importer.OCTOPUS
+                    else -> ComparisonUIViewModel.Importer.ESBNHDF
+                }
                 if (seen.add(r.sysSn)) out.add(SourceDateRange(r.sysSn, r.startDate, r.finishDate, type))
             }
             haRanges.value?.forEach { r ->
@@ -1409,7 +1413,8 @@ class UI2WizardViewModel @Inject constructor(
                 var totalEnergy = 0.0
 
                 rows.forEach { row ->
-                    val e = if (importerType == ComparisonUIViewModel.Importer.ESBNHDF) row.buy else row.load
+                    val e = if (importerType == ComparisonUIViewModel.Importer.ESBNHDF ||
+                        importerType == ComparisonUIViewModel.Importer.OCTOPUS) row.buy else row.load
                     if (e <= 0.0) return@forEach
                     val date       = LocalDate.parse(row.date)
                     val hour       = row.minute.substringBefore(":").toIntOrNull() ?: return@forEach
@@ -1434,6 +1439,7 @@ class UI2WizardViewModel @Inject constructor(
                     ComparisonUIViewModel.Importer.ALPHAESS        -> "AlphaESS: $sysSn"
                     ComparisonUIViewModel.Importer.ESBNHDF         -> "ESBN: $sysSn"
                     ComparisonUIViewModel.Importer.HOME_ASSISTANT  -> "Home Assistant: $sysSn"
+                    ComparisonUIViewModel.Importer.OCTOPUS         -> "Octopus: $sysSn"
                     else -> sysSn
                 }
 
@@ -1473,8 +1479,10 @@ class UI2WizardViewModel @Inject constructor(
             ?: return
         val rows = repository.getAlphaESSTransformedData(b.loadSourceSysSn, b.loadSourceFrom, b.loadSourceTo)
         if (rows.isEmpty()) return
-        // ESBN has no load channel, so estimate consumption from grid import (same as the averages path).
-        val esbn = b.loadSourceImporter == ComparisonUIViewModel.Importer.ESBNHDF
+        // Meter-only sources (ESBN, Octopus) have no load channel, so estimate
+        // consumption from grid import (same as the averages path).
+        val esbn = b.loadSourceImporter == ComparisonUIViewModel.Importer.ESBNHDF ||
+                b.loadSourceImporter == ComparisonUIViewModel.Importer.OCTOPUS
         // Index real readings by day-of-year → (HH:mm → load); the 2001 walk below maps by the same key.
         val byDoy = HashMap<Int, HashMap<String, Double>>()
         rows.forEach { r ->

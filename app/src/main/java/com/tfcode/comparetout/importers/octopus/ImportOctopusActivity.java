@@ -1,0 +1,320 @@
+/*
+ * Copyright (c) 2026. Tony Finnerty
+ *
+ *   Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *        http://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+
+package com.tfcode.comparetout.importers.octopus;
+
+import android.annotation.SuppressLint;
+import android.content.Context;
+import android.content.Intent;
+import android.content.res.Configuration;
+import android.graphics.Color;
+import android.graphics.PorterDuff;
+import android.graphics.PorterDuffColorFilter;
+import android.net.Uri;
+import android.os.Bundle;
+import android.view.Gravity;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+import android.webkit.WebView;
+import android.widget.LinearLayout;
+import android.widget.PopupWindow;
+
+import androidx.activity.OnBackPressedCallback;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.ActionBar;
+import androidx.viewpager2.widget.ViewPager2;
+import androidx.webkit.WebViewAssetLoader;
+import androidx.work.Data;
+import androidx.work.ExistingWorkPolicy;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.WorkManager;
+
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.tabs.TabLayoutMediator;
+import com.tfcode.comparetout.R;
+import com.tfcode.comparetout.util.EdgeInsets;
+import com.tfcode.comparetout.util.GraphableActivity;
+import com.tfcode.comparetout.util.InsetRespectingActivity;
+import com.tfcode.comparetout.util.LocalContentWebViewClient;
+
+import java.util.ArrayList;
+import java.util.Objects;
+
+public class ImportOctopusActivity extends InsetRespectingActivity implements GraphableActivity {
+
+    ViewPager2 mViewPager;
+
+    private String mSerialNumber;
+
+    private WebViewAssetLoader mAssetLoader;
+    private View mPopupView;
+    private PopupWindow mHelpWindow;
+    MenuItem mCompareButton;
+
+    private boolean mZoom = false;
+
+    private Long mLoadProfileID = 0L;
+    private Long mScenarioID = 0L;
+    private static final String SCENARIO_KEY = "ScenarioID";
+    private static final String PROFILE_KEY = "LoadProfileID";
+
+    final ActivityResultLauncher<String> mLoadOctopusCsvFromFile = registerForActivityResult(new ActivityResultContracts.GetContent(),
+            new ActivityResultCallback<>() {
+                @Override
+                public void onActivityResult(Uri uri) {
+                    // Handle the returned Uri
+                    if (uri == null) return;
+                    String uri_s = uri.toString();
+
+                    // The Octopus CSV carries no MPAN; with no selected system
+                    // the worker files it under the "Octopus-CSV" fallback.
+                    String workerSn = (null == mSerialNumber)
+                            ? OctopusCsvImportWorker.CSV_FALLBACK_SYS_SN : mSerialNumber;
+                    Data inputData = new Data.Builder()
+                            .putString(OctopusCsvImportWorker.KEY_SYSTEM_SN, workerSn)
+                            .putString(OctopusCsvImportWorker.KEY_URI, uri_s)
+                            .build();
+                    OneTimeWorkRequest importWorkRequest =
+                            new OneTimeWorkRequest.Builder(OctopusCsvImportWorker.class)
+                                    .setInputData(inputData)
+                                    .addTag(workerSn + "Import")
+                                    .build();
+                    WorkManager.getInstance(getApplicationContext()).pruneWork();
+                    WorkManager
+                            .getInstance(getApplicationContext())
+                            .beginUniqueWork(workerSn, ExistingWorkPolicy.APPEND, importWorkRequest)
+                            .enqueue();
+                }
+            });
+
+    private void showFAB() {
+        FloatingActionButton fab = findViewById(R.id.zoom);
+        if (!(null == fab))
+            if ((mViewPager.getCurrentItem() != 1)) {
+                fab.hide();
+                if (mZoom) {
+                    ActionBar actionBar = getSupportActionBar();
+                    TabLayout tabLayout = findViewById(R.id.import_alpha_tab_layout);
+                    if (!(null == actionBar) && !(null == tabLayout)) {
+                        actionBar.show();
+                        tabLayout.setVisibility(View.VISIBLE);
+                        updateTopInsetTarget(tabLayout, mViewPager);
+                        mZoom = false;
+                    }
+                }
+            } else {
+                fab.show();
+            }
+        if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT) {
+            hideFAB();
+        }
+    }
+
+    public void hideFAB() {
+        FloatingActionButton fab = findViewById(R.id.zoom);
+        if (!(null == fab)) fab.hide();
+    }
+
+    private void showCompare() {
+        if (!(null == mCompareButton)) {
+            mCompareButton.setVisible(mViewPager.getCurrentItem() == 1);
+        }
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putLong(SCENARIO_KEY, mScenarioID);
+        outState.putLong(PROFILE_KEY, mLoadProfileID);
+    }
+
+    @SuppressLint({"MissingInflatedId", "InflateParams"})
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        applyInsetsToView(R.id.import_alpha_tab_layout, EdgeInsets.Edge.TOP);
+        applyInsetsToView(R.id.import_alpha_view_pager, EdgeInsets.Edge.RIGHT, EdgeInsets.Edge.BOTTOM);
+        applyInsetsToGuidelines(R.id.top_inset_guideline, R.id.bottom_inset_guideline, 0, R.id.right_inset_guideline);
+        setContentView(R.layout.activity_import_alpha);
+
+        if (!(null == savedInstanceState)) {
+            mScenarioID = savedInstanceState.getLong(SCENARIO_KEY);
+            mLoadProfileID = savedInstanceState.getLong(PROFILE_KEY);
+        } else {
+            Intent intent = getIntent();
+            mLoadProfileID = intent.getLongExtra("LoadProfileID", 0L);
+            mScenarioID = intent.getLongExtra("ScenarioID", 0L);
+        }
+
+        mAssetLoader = new WebViewAssetLoader.Builder()
+                .addPathHandler("/assets/", new WebViewAssetLoader.AssetsPathHandler(this))
+                .addPathHandler("/res/", new WebViewAssetLoader.ResourcesPathHandler(this))
+                .build();
+
+        mViewPager = findViewById(R.id.import_alpha_view_pager);
+        setupViewPager();
+
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (mViewPager.getCurrentItem() > 0) {
+                    mViewPager.setCurrentItem(mViewPager.getCurrentItem() - 1);
+                } else {
+                    setEnabled(false);
+                    getOnBackPressedDispatcher().onBackPressed();
+                }
+            }
+        });
+
+        LayoutInflater inflater = (LayoutInflater) this.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        mPopupView = inflater.inflate(R.layout.popup_help, null);
+        int width = LinearLayout.LayoutParams.WRAP_CONTENT;
+        int height = LinearLayout.LayoutParams.WRAP_CONTENT;
+        boolean focusable = true; // lets taps outside the popup also dismiss it
+        mHelpWindow = new PopupWindow(mPopupView, width, height, focusable);
+
+        ActionBar mActionBar = Objects.requireNonNull(getSupportActionBar());
+        mActionBar.setTitle("Octopus Energy Data");
+
+        FloatingActionButton fab = findViewById(R.id.zoom);
+        fab.setOnClickListener(view -> {
+            ActionBar actionBar = getSupportActionBar();
+            TabLayout tabLayout = findViewById(R.id.import_alpha_tab_layout);
+            if (!(null == actionBar) && !(null == tabLayout)) {
+                if (!(mZoom)) {
+                    actionBar.hide();
+                    tabLayout.setVisibility(View.GONE);
+                    updateTopInsetTarget(tabLayout, mViewPager);
+                    mZoom = true;
+                } else {
+                    actionBar.show();
+                    tabLayout.setVisibility(View.VISIBLE);
+                    updateTopInsetTarget(tabLayout, mViewPager);
+                    mZoom = false;
+                }
+            }
+        });
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_importer, menu);
+        int colour = Color.parseColor("White");
+        PorterDuffColorFilter colorFilter = new PorterDuffColorFilter(colour, PorterDuff.Mode.DST);
+        int[] menuItems = {
+                R.id.load, R.id.help, R.id.compare
+        };
+
+        for (int itemId : menuItems) {
+            MenuItem menuItem = menu.findItem(itemId);
+            if (menuItem != null && menuItem.getIcon() != null) {
+                menuItem.getIcon().setColorFilter(colorFilter);
+            }
+        }
+        menu.findItem(R.id.export).setVisible(false);
+        mCompareButton = menu.findItem(R.id.compare);
+        mCompareButton.setVisible(false);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int itemID = item.getItemId();
+        if (itemID == R.id.load) {
+            mLoadOctopusCsvFromFile.launch("*/*");
+            return (true);
+        }
+        if (itemID == R.id.help) {
+            showHelp("https://appassets.androidplatform.net/assets/main/data/octopus/help.html");
+        }
+
+        return (super.onOptionsItemSelected(item));
+    }
+
+    private void setupViewPager() {
+        mViewPager.setAdapter(new ImportOctopusViewPageAdapter(this, 3));
+        ArrayList<String> tabTitlesList = new ArrayList<>();
+        tabTitlesList.add("Overview");
+        tabTitlesList.add("Graphs");
+        if (mScenarioID == 0) tabTitlesList.add("Generate usage");
+        else tabTitlesList.add("Generate profile");
+        TabLayout tabLayout = findViewById(R.id.import_alpha_tab_layout);
+        TabLayoutMediator mMediator = new TabLayoutMediator(tabLayout, mViewPager,
+                (tab, position) -> tab.setText(tabTitlesList.get(position))
+        );
+        mMediator.attach();
+
+        LinearLayout linearLayout = (LinearLayout) tabLayout.getChildAt(0);
+        linearLayout.getChildAt(0).setOnLongClickListener(v -> {
+            showHelp("https://appassets.androidplatform.net/assets/main/data/octopus/overview_tab.html");
+            return true;
+        });
+        linearLayout.getChildAt(1).setOnLongClickListener(v -> {
+            showHelp("https://appassets.androidplatform.net/assets/main/data/octopus/graphs_tab.html");
+            return true;
+        });
+        linearLayout.getChildAt(2).setOnLongClickListener(v -> {
+            showHelp("https://appassets.androidplatform.net/assets/main/data/octopus/generate_tab.html");
+            return true;
+        });
+
+        mViewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+                super.onPageScrolled(position, positionOffset, positionOffsetPixels);
+                showFAB();
+                showCompare();
+            }
+        });
+    }
+
+    private void showHelp(String url) {
+        mHelpWindow.setHeight((int) (getWindow().getDecorView().getHeight() * 0.6));
+        mHelpWindow.setWidth(getWindow().getDecorView().getWidth());
+        mHelpWindow.showAtLocation(mViewPager.getRootView(), Gravity.CENTER, 0, 0);
+        WebView webView = mPopupView.findViewById(R.id.helpWebView);
+
+        webView.setWebViewClient(new LocalContentWebViewClient(mAssetLoader));
+        webView.loadUrl(url);
+    }
+
+    @Override
+    public String getSelectedSystemSN() {
+        return mSerialNumber;
+    }
+
+    @Override
+    public void setSelectedSystemSN(String serialNumber) {
+        mSerialNumber = serialNumber;
+        if (!(null == mViewPager) && !(null == mViewPager.getAdapter()))
+            ((GraphableActivity) mViewPager.getAdapter()).setSelectedSystemSN(mSerialNumber);
+    }
+
+    public long getScenarioID() {
+        return mScenarioID;
+    }
+
+    public long getLoadProfileID() {
+        return mLoadProfileID;
+    }
+}

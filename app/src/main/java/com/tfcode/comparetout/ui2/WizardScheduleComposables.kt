@@ -986,7 +986,11 @@ fun WizardPanelCard(
                 }
                 // Data source
                 val pvSources = remember(availableSources) {
-                    availableSources.filter { it.importerType != ComparisonUIViewModel.Importer.ESBNHDF }
+                    // Meter-only sources (ESBN, Octopus) carry no PV series.
+                    availableSources.filter {
+                        it.importerType != ComparisonUIViewModel.Importer.ESBNHDF &&
+                            it.importerType != ComparisonUIViewModel.Importer.OCTOPUS
+                    }
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text("Panel data", style = MaterialTheme.typography.labelSmall,

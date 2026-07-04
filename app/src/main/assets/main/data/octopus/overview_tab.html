@@ -1,0 +1,27 @@
+<html lang="en">
+    <head>
+        <title>Octopus overview tab</title>
+        <link rel="stylesheet" href="/assets/stylesheet.css">
+    </head>
+    <body>
+        <img style="float: right;" src="/res/drawable/launcher.png" alt="launcher" width="100">
+        <p><b>Help: Octopus overview tab</b></p>
+        <div style="clear: right">
+            <p><b>Set credentials</b>: enter your Octopus account number (A-XXXXXXXX) and
+                API key. The key is generated on the Octopus dashboard under
+                Account &rarr; API access. Credentials are stored encrypted on the device.</p>
+            <p><b>Select system</b>: valid credentials auto-discover your electricity meter
+                points (MPANs). Pick the one to work with — an export meter point on the same
+                property is fetched automatically alongside it.</p>
+            <p><b>Fetch data</b>: choose a start date; the fetch walks forward to today and
+                a daily worker keeps it up to date overnight. Import fills the
+                <i>buy</i> series, export fills <i>feed</i>.</p>
+            <p><b>Remove data</b> deletes stored readings for the selected system —
+                all of them, or just a selected date range.</p>
+            <p><b>Cost data</b> prices the selected date range against your supplier plans.
+                Note that as meter data, gross consumption behind solar panels is not
+                visible: self-consumed generation never crosses the meter, so the load seen
+                here understates a solar home's true usage (the same caveat as ESBN).</p>
+        </div>
+    </body>
+</html>
