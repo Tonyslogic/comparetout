@@ -1407,14 +1407,25 @@ class UI2WizardViewModel @Inject constructor(
                 val rows = repository.getAlphaESSTransformedData(sysSn, from.toString(), to.toString())
                 if (rows.isEmpty()) return@launch
 
+                // HA sources with classified individual devices derive net of the EV / hot-water
+                // slices (they come back as modelled components) — plans/ha/design.md §1c.
+                val haRoles = if (importerType == ComparisonUIViewModel.Importer.HOME_ASSISTANT)
+                    haDeviceRoles() else null
+
                 val hourlySum  = DoubleArray(24)
                 val dailySum   = DoubleArray(7)
                 val monthlySum = DoubleArray(12)
                 var totalEnergy = 0.0
 
                 rows.forEach { row ->
-                    val e = if (importerType == ComparisonUIViewModel.Importer.ESBNHDF ||
-                        importerType == ComparisonUIViewModel.Importer.OCTOPUS) row.buy else row.load
+                    val e = when {
+                        importerType == ComparisonUIViewModel.Importer.ESBNHDF ||
+                            importerType == ComparisonUIViewModel.Importer.OCTOPUS -> row.buy
+                        haRoles != null -> (row.load -
+                                (if (haRoles.subtractEv) row.evActual else 0.0) -
+                                (if (haRoles.subtractHw) row.hwActual else 0.0)).coerceAtLeast(0.0)
+                        else -> row.load
+                    }
                     if (e <= 0.0) return@forEach
                     val date       = LocalDate.parse(row.date)
                     val hour       = row.minute.substringBefore(":").toIntOrNull() ?: return@forEach
@@ -1460,8 +1471,140 @@ class UI2WizardViewModel @Inject constructor(
                     loadSourceFrom     = if (absoluteYear) from.toString() else "",
                     loadSourceTo       = if (absoluteYear) to.toString() else ""
                 )
+
+                // Re-add the removed slices as modelled components: infer the schedule from
+                // the measured pattern (OQ-1) — only into empty sections, never over a user's
+                // own entries.
+                if (haRoles != null) prefillHaDeviceComponents(haRoles, rows)
             } finally {
                 _isDeriving.value = false
+            }
+        }
+    }
+
+    /**
+     * Classified HA "Individual devices": whether EV / hot-water roles exist and whether their
+     * slices still need subtracting from a derived load (an adjust-flagged device was already
+     * removed at ingestion, so subtracting again would double-count).
+     */
+    private data class HaDeviceRoles(
+        val evClassified: Boolean,
+        val hwClassified: Boolean,
+        val subtractEv: Boolean,
+        val subtractHw: Boolean
+    )
+
+    private fun haDeviceRoles(): HaDeviceRoles {
+        val none = HaDeviceRoles(
+            evClassified = false, hwClassified = false, subtractEv = false, subtractHw = false)
+        val app = context.applicationContext as? com.tfcode.comparetout.TOUTCApplication ?: return none
+        val json = try {
+//            val key = androidx.datastore.preferences.core.PreferencesKeys.stringKey("ha_sensors")
+            val key = stringPreferencesKey("ha_sensors")
+            app.dataStore.data().firstOrError()
+                .map { prefs -> prefs[key]!! }
+                .onErrorReturnItem("{}")
+                .blockingGet()
+        } catch (e: Exception) {
+            return none
+        }
+        val sensors = runCatching {
+            com.google.gson.Gson().fromJson(
+                json, com.tfcode.comparetout.importers.homeassistant.EnergySensors::class.java)
+        }.getOrNull() ?: return none
+        var ev = false
+        var hw = false
+        var evAdjusted = false
+        var hwAdjusted = false
+        sensors.classifiedDevices.forEach { device ->
+            when (device.role) {
+                com.tfcode.comparetout.importers.homeassistant.DeviceSensor.Role.EV -> {
+                    ev = true
+                    if (device.adjust) evAdjusted = true
+                }
+                com.tfcode.comparetout.importers.homeassistant.DeviceSensor.Role.HOT_WATER -> {
+                    hw = true
+                    if (device.adjust) hwAdjusted = true
+                }
+                else -> {}
+            }
+        }
+        return HaDeviceRoles(ev, hw, ev && !evAdjusted, hw && !hwAdjusted)
+    }
+
+    /** Inferred usage pattern of one HA device role (same heuristics as the HA GenerationWorker). */
+    private data class HaUseProfile(
+        val windows: List<Pair<Int, Int>>,  // beginHour to endHourExclusive, split at midnight
+        val drawKw: Double,
+        val days: List<Int>,                // 0..6, Sunday = 0 (schedule convention)
+        val months: List<Int>               // 1..12
+    )
+
+    private fun inferHaUseProfile(
+        rows: List<com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData>,
+        slice: (com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData) -> Double
+    ): HaUseProfile? {
+        val hourEnergy = DoubleArray(24)
+        val dowEnergy = DoubleArray(7)
+        val monthEnergy = DoubleArray(12)
+        val hourBuckets = HashMap<String, Double>()
+        var total = 0.0
+        rows.forEach { row ->
+            val kwh = slice(row)
+            if (kwh <= 0.0) return@forEach
+            val date = runCatching { LocalDate.parse(row.date) }.getOrNull() ?: return@forEach
+            val hour = row.minute.substringBefore(":").toIntOrNull() ?: return@forEach
+            hourEnergy[hour] += kwh
+            dowEnergy[date.dayOfWeek.value % 7] += kwh
+            monthEnergy[date.monthValue - 1] += kwh
+            hourBuckets.merge("${row.date}#$hour", kwh) { a, b -> a + b }
+            total += kwh
+        }
+        if (total < 10.0) return null
+
+        var drawKw = 0.0
+        hourBuckets.values.forEach { drawKw = maxOf(drawKw, it) }
+        drawKw = maxOf(1.0, Math.round(drawKw * 10.0) / 10.0)
+
+        var peak = 0
+        for (h in 1 until 24) if (hourEnergy[h] > hourEnergy[peak]) peak = h
+        val include = BooleanArray(24) { hourEnergy[it] >= 0.25 * hourEnergy[peak] }
+        var left = peak
+        var right = peak
+        var span = 1
+        while (span < 24 && include[(left + 23) % 24]) { left = (left + 23) % 24; span++ }
+        while (span < 24 && include[(right + 1) % 24]) { right = (right + 1) % 24; span++ }
+        val windows = if (left <= right) listOf(left to right + 1)
+        else listOf(left to 24, 0 to right + 1) // schedule windows don't wrap midnight
+
+        val maxDow = dowEnergy.maxOrNull() ?: 0.0
+        val days = (0..6).filter { dowEnergy[it] >= 0.2 * maxDow }
+        val maxMonth = monthEnergy.maxOrNull() ?: 0.0
+        val months = (0..11).filter { monthEnergy[it] >= 0.15 * maxMonth }.map { it + 1 }
+        return HaUseProfile(windows, drawKw, days, months)
+    }
+
+    private fun prefillHaDeviceComponents(
+        roles: HaDeviceRoles,
+        rows: List<com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData>
+    ) {
+        if (roles.evClassified && _builder.value.evEntries.isEmpty()) {
+            inferHaUseProfile(rows) { it.evActual }?.let { p ->
+                _builder.value = _builder.value.copy(evEntries = p.windows.map { (b, e) ->
+                    WizardEvEntry(name = "EV (Home Assistant)", startHour = b, endHour = e,
+                        drawKw = p.drawKw, days = p.days, months = p.months)
+                })
+            }
+        }
+        if (roles.hwClassified && _builder.value.hwSchedules.isEmpty()) {
+            inferHaUseProfile(rows) { it.hwActual }?.let { p ->
+                _builder.value = _builder.value.copy(
+                    hwSystem = _builder.value.hwSystem
+                        ?: WizardHwSystemEntry(rate = p.drawKw.coerceIn(1.0, 3.0)),
+                    hwSchedules = p.windows.map { (b, e) ->
+                        WizardHwScheduleEntry(name = "Hot water (Home Assistant)",
+                            beginHour = b, endHour = e, days = p.days, months = p.months)
+                    })
             }
         }
     }
@@ -1483,10 +1626,20 @@ class UI2WizardViewModel @Inject constructor(
         // consumption from grid import (same as the averages path).
         val esbn = b.loadSourceImporter == ComparisonUIViewModel.Importer.ESBNHDF ||
                 b.loadSourceImporter == ComparisonUIViewModel.Importer.OCTOPUS
+        // HA absolute-year data is written net of modelled device slices, matching the
+        // distribution derived in deriveLoadProfileFromSource.
+        val haRoles = if (b.loadSourceImporter == ComparisonUIViewModel.Importer.HOME_ASSISTANT)
+            haDeviceRoles() else null
         // Index real readings by day-of-year → (HH:mm → load); the 2001 walk below maps by the same key.
         val byDoy = HashMap<Int, HashMap<String, Double>>()
         rows.forEach { r ->
-            val e = if (esbn) r.buy else r.load
+            val e = when {
+                esbn -> r.buy
+                haRoles != null -> (r.load -
+                        (if (haRoles.subtractEv) r.evActual else 0.0) -
+                        (if (haRoles.subtractHw) r.hwActual else 0.0)).coerceAtLeast(0.0)
+                else -> r.load
+            }
             val d = runCatching { LocalDate.parse(r.date) }.getOrNull() ?: return@forEach
             byDoy.getOrPut(d.dayOfYear) { HashMap() }[r.minute] = e
         }

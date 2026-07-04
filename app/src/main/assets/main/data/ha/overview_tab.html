@@ -45,8 +45,23 @@
             <p><b>Energy Sensors</b></p>
             <p>Once credentials are set, the app will fetch the energy sensors configuration
                 from HomeAssistant. These are used to identify the data to fetch. The sensors
-                are displayed in as a json snippet. The sensors are updated whenever the app
-                connects to HomeAssistant.</p>
+                are updated whenever the app connects to HomeAssistant.</p>
+
+            <p><b>Individual devices</b></p>
+            <p>If your HomeAssistant Energy dashboard tracks individual devices (an EV charger,
+                immersion/hot water, a heat pump), they are listed in the sensor dialog with a
+                suggested role. Assign <i>EV</i>, <i>Hot water</i> or <i>Heat pump</i> to the
+                devices that match — or leave them as <i>Ignore</i> to keep their energy inside
+                the flat load.</p>
+            <p>A classified device's energy is recorded alongside the load on every fetched
+                interval. When you later generate a scenario (or use HomeAssistant as a source
+                in the wizard), classified EV and hot-water energy is removed from the load
+                profile and re-added as an explicit schedule inferred from the measured
+                pattern, so the simulator can model the device. Heat-pump energy is recorded
+                but stays in the load — model a heat pump deliberately in the wizard.</p>
+            <p><i>Remove from load at import</i> is an opt-in exception that subtracts the
+                device's energy from the stored load as it is fetched. Prefer the default:
+                the raw load stays auditable.</p>
 
             <p><b>Fetching</b></p>
             <p>Once Energy Sensors are available, you can fetch historical data.</p>

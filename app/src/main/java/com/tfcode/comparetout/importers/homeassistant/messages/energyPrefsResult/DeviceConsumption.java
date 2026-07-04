@@ -23,11 +23,23 @@ public class DeviceConsumption {
     @SerializedName("stat_consumption")
     private String statConsumption;
 
+    // Optional display name the user gave the device in the Energy Dashboard.
+    @SerializedName("name")
+    private String name;
+
     public String getStatConsumption() {
         return statConsumption;
     }
 
     public void setStatConsumption(String statConsumption) {
         this.statConsumption = statConsumption;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 }

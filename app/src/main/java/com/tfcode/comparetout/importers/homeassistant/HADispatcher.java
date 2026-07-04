@@ -27,6 +27,8 @@ import com.tfcode.comparetout.importers.homeassistant.messages.authorization.Aut
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Logger;
 
@@ -36,6 +38,17 @@ import okhttp3.WebSocket;
 import okhttp3.WebSocketListener;
 
 public class HADispatcher {
+
+    /**
+     * Terminal-state callback for the WebSocket. Without this, a socket drop mid-fetch left
+     * workers blocked forever in their wait loops (onFailure/onClosed only logged). Register
+     * one before {@link #start()}; it fires at most once, and never for a {@link #stop()}
+     * initiated by us (normal closure).
+     */
+    public interface ConnectionListener {
+        void onConnectionLost(String reason);
+    }
+
     private final OkHttpClient client;
     private final Gson gson;
     private final Map<String, MessageHandler<? extends HAMessage>> handlers;
@@ -43,6 +56,9 @@ public class HADispatcher {
     private WebSocket webSocket;
     private final AtomicInteger idGenerator;
     private boolean authorized = false;
+    private ConnectionListener connectionListener;
+    private volatile boolean normalClosure = false;
+    private final AtomicBoolean lossNotified = new AtomicBoolean(false);
 
     private final String url;
 
@@ -60,7 +76,13 @@ public class HADispatcher {
      * @param auth_token The authentication token for the WebSocket API
      */
     public HADispatcher(String url, String auth_token) {
-        this.client = new OkHttpClient();
+        // Dead-socket detection: bounded connect, no read timeout (long-poll style waits are
+        // normal on this API) but a ping keepalive so a dropped peer surfaces as onFailure.
+        this.client = new OkHttpClient.Builder()
+                .connectTimeout(15, TimeUnit.SECONDS)
+                .readTimeout(0, TimeUnit.MILLISECONDS)
+                .pingInterval(20, TimeUnit.SECONDS)
+                .build();
         this.gson = new Gson();
         this.handlers = new HashMap<>();
         this.pendingRequests = new HashMap<>();
@@ -79,6 +101,21 @@ public class HADispatcher {
 
     public boolean isAuthorized() {
         return authorized;
+    }
+
+    public void setConnectionListener(ConnectionListener listener) {
+        this.connectionListener = listener;
+    }
+
+    /** Fire the connection-lost callback exactly once, and only for abnormal termination. */
+    private void notifyConnectionLost(String reason) {
+        authorized = false;
+        if (normalClosure) return;
+        if (lossNotified.compareAndSet(false, true)) {
+            LOGGER.warning("HADispatcher connection lost: " + reason);
+            ConnectionListener listener = connectionListener;
+            if (!(null == listener)) listener.onConnectionLost(reason);
+        }
     }
 
     /**
@@ -124,15 +161,18 @@ public class HADispatcher {
             @Override
             public void onClosed(@NonNull WebSocket webSocket, int code, @NonNull String reason) {
                 LOGGER.info("WebSocket closed: " + code + " " + reason);
+                notifyConnectionLost("closed: " + code + " " + reason);
             }
             @Override
             public void onFailure(@NonNull WebSocket webSocket, @NonNull Throwable t, okhttp3.Response response) {
                 LOGGER.info("WebSocket failure: " + t.getMessage());
-                t.printStackTrace();
+                notifyConnectionLost("failure: " + t.getMessage());
             }
             @Override
             public void onClosing(@NonNull WebSocket webSocket, int code, @NonNull String reason) {
                 LOGGER.info("WebSocket closing: " + code + " " + reason);
+                // Server-initiated close; complete the handshake so onClosed fires promptly.
+                webSocket.close(1000, null);
             }
             @Override
             public void onMessage(@NonNull WebSocket webSocket, @NonNull String text) {
@@ -143,7 +183,8 @@ public class HADispatcher {
                 LOGGER.info("Getting handler for type: " + type);
                 if ("result".equals(type)) {
                     int id = jsonElement.getAsJsonObject().get("id").getAsInt();
-                    MessageHandler<? extends HAMessage> handler = pendingRequests.get(id);
+                    // One result per id: remove on receipt so long sessions don't grow the map.
+                    MessageHandler<? extends HAMessage> handler = pendingRequests.remove(id);
                     if (handler != null) {
                         Class<? extends HAMessage> messageClass = handler.getMessageClass();
                         LOGGER.info("Got handler: " + messageClass.getName() + " for id: " + id);
@@ -175,7 +216,8 @@ public class HADispatcher {
      * </p>
      */
     public void stop() {
-        webSocket.close(1000, "Normal closure");
+        normalClosure = true;
+        if (!(null == webSocket)) webSocket.close(1000, "Normal closure");
     }
 
     /**
@@ -206,8 +248,13 @@ public class HADispatcher {
         }
         String messageJson = gson.toJson(message);
         LOGGER.fine("Sending message: " + messageJson);
-        webSocket.send(messageJson);
         if (!(null == resultMessage)) pendingRequests.put(message.getId(), resultMessage);
+        // send() returns false once the socket is closed/failed; surface that as a loss so the
+        // caller's wait loop terminates instead of waiting for a result that will never come.
+        if (!webSocket.send(messageJson)) {
+            pendingRequests.remove(message.getId());
+            notifyConnectionLost("send failed (socket closed)");
+        }
     }
 
     /**

@@ -48,6 +48,7 @@ import com.tfcode.comparetout.importers.homeassistant.messages.EnergyPrefsReques
 import com.tfcode.comparetout.importers.homeassistant.messages.HAMessage;
 import com.tfcode.comparetout.importers.homeassistant.messages.authorization.AuthInvalid;
 import com.tfcode.comparetout.importers.homeassistant.messages.authorization.AuthOK;
+import com.tfcode.comparetout.importers.homeassistant.messages.energyPrefsResult.DeviceConsumption;
 import com.tfcode.comparetout.importers.homeassistant.messages.energyPrefsResult.EnergyPrefsResult;
 import com.tfcode.comparetout.importers.homeassistant.messages.energyPrefsResult.EnergySource;
 import com.tfcode.comparetout.importers.homeassistant.messages.energyPrefsResult.Flow;
@@ -82,7 +83,7 @@ import io.reactivex.rxjava3.core.Single;
 public class ImportHAOverview extends ImportOverviewFragment {
 
     private static final Logger LOGGER = Logger.getLogger(ImportHAOverview.class.getName());
-    private static final String HA_SENSORS_KEY = "ha_sensors";
+    static final String HA_SENSORS_KEY = "ha_sensors";
     static final String HA_COBAT_KEY = "ha_cobat";
     private EnergySensors mEnergySensors;
     private ImportHAOverview mImportHAOverview;
@@ -251,19 +252,102 @@ public class ImportHAOverview extends ImportOverviewFragment {
      * what sensors were discovered before proceeding with data import.
      */
     private void showEnergySensors() {
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        String prettyJsonString = gson.toJson(mEnergySensors);
         Context context = getContext();
-        if (!(null == context)) new AlertDialog.Builder(context)
+        if (null == context) return;
+
+        android.widget.LinearLayout content = new android.widget.LinearLayout(context);
+        content.setOrientation(android.widget.LinearLayout.VERTICAL);
+        int pad = (int) (16 * context.getResources().getDisplayMetrics().density);
+        content.setPadding(pad, pad / 2, pad, 0);
+
+        // Compact summary of the core energy-dashboard sensors
+        TextView summary = new TextView(context);
+        summary.setText(buildSensorSummary());
+        content.addView(summary);
+
+        // Classification rows for the "Individual devices" entries. HA doesn't carry a
+        // device's purpose, so the role is user-assigned (with a suggestion pre-selected);
+        // devices that don't match the app's schemata stay "Ignore".
+        final List<DeviceSensor> devices =
+                (!(null == mEnergySensors) && !(null == mEnergySensors.devices))
+                        ? mEnergySensors.devices : new ArrayList<>();
+        final List<android.widget.Spinner> roleSpinners = new ArrayList<>();
+        final List<android.widget.CheckBox> adjustChecks = new ArrayList<>();
+        final String[] roleNames = {"Ignore", "EV", "Hot water", "Heat pump"};
+        final DeviceSensor.Role[] roleValues = {DeviceSensor.Role.OTHER, DeviceSensor.Role.EV,
+                DeviceSensor.Role.HOT_WATER, DeviceSensor.Role.HEAT_PUMP};
+        if (!devices.isEmpty()) {
+            TextView header = new TextView(context);
+            header.setText(R.string.ha_device_classification_header);
+            header.setPadding(0, pad / 2, 0, pad / 4);
+            content.addView(header);
+            for (DeviceSensor device : devices) {
+                TextView label = new TextView(context);
+                label.setText((null == device.label) ? device.statId : device.label);
+                content.addView(label);
+
+                android.widget.LinearLayout row = new android.widget.LinearLayout(context);
+                row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+                android.widget.Spinner spinner = new android.widget.Spinner(context);
+                android.widget.ArrayAdapter<String> adapter = new android.widget.ArrayAdapter<>(
+                        context, android.R.layout.simple_spinner_dropdown_item, roleNames);
+                spinner.setAdapter(adapter);
+                int selected = 0;
+                for (int i = 0; i < roleValues.length; i++)
+                    if (roleValues[i] == device.role) selected = i;
+                spinner.setSelection(selected);
+                roleSpinners.add(spinner);
+                row.addView(spinner);
+
+                android.widget.CheckBox adjust = new android.widget.CheckBox(context);
+                adjust.setText(R.string.ha_device_adjust_load);
+                adjust.setChecked(device.adjust);
+                adjustChecks.add(adjust);
+                row.addView(adjust);
+                content.addView(row);
+            }
+        }
+
+        android.widget.ScrollView scroll = new android.widget.ScrollView(context);
+        scroll.addView(content);
+
+        new AlertDialog.Builder(context)
                 .setTitle("Energy Sensors")
-                .setMessage(prettyJsonString)
+                .setView(scroll)
                 .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+                    for (int i = 0; i < devices.size(); i++) {
+                        devices.get(i).role = roleValues[roleSpinners.get(i).getSelectedItemPosition()];
+                        devices.get(i).adjust = adjustChecks.get(i).isChecked();
+                    }
+                    persistSensors();
                     mSerialNumber = "HomeAssistant";
                     mSystemSelected = true;
                     serialUpdated(context);
                     mMainHandler.post(this::updateView);
                 })
                 .show();
+    }
+
+    private String buildSensorSummary() {
+        if (null == mEnergySensors) return "No sensors discovered yet";
+        Gson gson = new GsonBuilder().setPrettyPrinting().create();
+        StringBuilder sb = new StringBuilder();
+        sb.append("Grid import: ").append(gson.toJson(mEnergySensors.gridImports)).append('\n');
+        sb.append("Grid export: ").append(gson.toJson(mEnergySensors.gridExports)).append('\n');
+        sb.append("Solar: ").append(gson.toJson(mEnergySensors.solarGeneration)).append('\n');
+        sb.append("Batteries: ")
+                .append((null == mEnergySensors.batteries) ? 0 : mEnergySensors.batteries.size());
+        return sb.toString();
+    }
+
+    private void persistSensors() {
+        Activity activity = getActivity();
+        if (!(null == activity) && !(null == activity.getApplication())) {
+            TOUTCApplication application = (TOUTCApplication) activity.getApplication();
+            boolean x = application.putStringValueIntoDataStore(
+                    HA_SENSORS_KEY, new Gson().toJson(mEnergySensors));
+            if (!x) System.out.println("ImportHAOverview::persistSensors, failed to store sensors");
+        }
     }
 
     /**
@@ -345,6 +429,12 @@ public class ImportHAOverview extends ImportOverviewFragment {
             HADispatcher mHAClient = new HADispatcher(host, token);
             mHAClient.registerHandler("auth_ok", new AuthOKHandler(mHAClient, host, token));
             mHAClient.registerHandler("auth_invalid", new AuthNotOKHandler(mHAClient));
+            // The probe is fire-and-forget; on a dropped socket just clear the in-flight flag
+            // so the UI doesn't show a fetch that can no longer complete.
+            mHAClient.setConnectionListener(reason -> {
+                LOGGER.warning("ImportHAOverview credential probe lost connection: " + reason);
+                mFetchOngoing = false;
+            });
             mHAClient.start();
         } catch (Exception e) {
             throw new ImportException("Failed to connect to Home Assistant");
@@ -373,6 +463,7 @@ public class ImportHAOverview extends ImportOverviewFragment {
         private List<BatterySensor> statBatteries;
         private List<String> statGridEnergyFrom;
         private List<String> statGridEnergyTo;
+        private List<DeviceSensor> statDevices;
         private final HADispatcher mHAClient;
         private final Activity mActivity;
 
@@ -392,6 +483,7 @@ public class ImportHAOverview extends ImportOverviewFragment {
             ret.batteries = statBatteries;
             ret.gridExports = statGridEnergyTo;
             ret.gridImports = statGridEnergyFrom;
+            ret.devices = statDevices;
             return ret;
         }
 
@@ -429,6 +521,27 @@ public class ImportHAOverview extends ImportOverviewFragment {
                 // Initialize sensor lists for discovered energy sources
                 statSolarEnergyFrom = new ArrayList<>();
                 statBatteries = new ArrayList<>();
+
+                // Capture the "Individual devices" stat ids (previously parsed and dropped).
+                // Keep any classification the user already made for a re-discovered id; new
+                // ids arrive with a name-based role suggestion for the user to confirm.
+                statDevices = new ArrayList<>();
+                java.util.Map<String, DeviceSensor> previouslyClassified = new java.util.HashMap<>();
+                if (!(null == mEnergySensors) && !(null == mEnergySensors.devices)) {
+                    for (DeviceSensor device : mEnergySensors.devices) {
+                        if (!(null == device.statId)) previouslyClassified.put(device.statId, device);
+                    }
+                }
+                List<DeviceConsumption> deviceConsumptions = result.getResult().getDeviceConsumption();
+                if (!(null == deviceConsumptions)) {
+                    for (DeviceConsumption dc : deviceConsumptions) {
+                        String statId = dc.getStatConsumption();
+                        if (null == statId) continue;
+                        DeviceSensor prior = previouslyClassified.get(statId);
+                        statDevices.add(!(null == prior) ? prior : new DeviceSensor(statId, dc.getName()));
+                    }
+                }
+
                 List<EnergySource> energySources = result.getResult().getEnergySources();
                 
                 // Process each energy source and categorize by type

@@ -22,6 +22,14 @@ public abstract class HAMessageWithID extends HAMessage{
     @SerializedName("id")
     private int id;
 
+    // Result frames carry success plus (on failure) an error payload. Declared once here so
+    // every *Result subclass surfaces HA-side errors to its handler instead of silently logging.
+    // Subclasses must NOT re-declare a "success" field (Gson rejects duplicate field names).
+    @SerializedName("success")
+    private Boolean success;
+    @SerializedName("error")
+    private HAError error;
+
     public int getId() {
         return id;
     }
@@ -30,4 +38,21 @@ public abstract class HAMessageWithID extends HAMessage{
         this.id = id;
     }
 
+    public boolean isSuccess() {
+        return !(null == success) && success;
+    }
+
+    public void setSuccess(boolean success) {
+        this.success = success;
+    }
+
+    public HAError getError() {
+        return error;
+    }
+
+    /** Human-readable error summary for logs/notifications; safe when no error payload exists. */
+    public String getErrorDescription() {
+        if (null == error) return "unspecified error";
+        return error.getCode() + ": " + error.getMessage();
+    }
 }

@@ -21,6 +21,17 @@ public class SensorData {
     private long start;
     private long end;
     private double change;
+    // Cumulative running total; only present when the request asked for the "sum" type
+    // (backfill anchoring). Nullable so "change"-only responses parse unchanged.
+    private Double sum;
+
+    public Double getSum() {
+        return sum;
+    }
+
+    public void setSum(Double sum) {
+        this.sum = sum;
+    }
 
     public long getStart() {
         return start;

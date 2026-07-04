@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2024. Tony Finnerty
+ * Copyright (c) 2026. Tony Finnerty
  *
  *   Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
@@ -17,19 +17,21 @@
 package com.tfcode.comparetout.importers.homeassistant.messages;
 
 import com.google.gson.annotations.SerializedName;
-import com.tfcode.comparetout.importers.homeassistant.messages.energyPrefsResult.Result;
 
-@SuppressWarnings("unused")
-public class RepairStatForTimeResult extends HAMessageWithID {
-    // success/error live on HAMessageWithID.
-    @SerializedName("result")
-    private Result result;
+/**
+ * Error payload carried by a Home Assistant result frame when {@code success} is false.
+ */
+public class HAError {
+    @SerializedName("code")
+    private String code;
+    @SerializedName("message")
+    private String message;
 
-    public Result getResult() {
-        return result;
+    public String getCode() {
+        return code;
     }
 
-    public void setResult(Result result) {
-        this.result = result;
+    public String getMessage() {
+        return message;
     }
 }

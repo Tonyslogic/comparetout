@@ -77,6 +77,16 @@ public class HACatchupWorker extends Worker {
 
     private String mProgress = "";
 
+    // Reconnect/resume support: the fetch walks day-by-day, so on a socket drop we
+    // reconnect (bounded) and resume from the last committed day instead of hanging
+    // (comms hardening, plans/ha/design.md). Re-fetching the cursor day is idempotent
+    // (rows upsert by (sysSn, date, minute)).
+    private static final int MAX_RECONNECT_ATTEMPTS = 3;
+    private static final long RECONNECT_BACKOFF_MS = 5000L;
+    private volatile LocalDate mCursorDate;
+    private volatile boolean mConnectionLost = false;
+    private volatile boolean mAuthFailed = false;
+
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
     private static final DateTimeFormatter INPUT_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private final DateTimeFormatter NOTIFY_FORMAT = DateTimeFormatter.ofPattern("yy-MM");
@@ -117,9 +127,8 @@ public class HACatchupWorker extends Worker {
     public Result doWork() {
         System.out.println("HACatchupWorker:doWork invoked ");
         Data inputData = getInputData();
-        HADispatcher mHAClient = new HADispatcher(
-                inputData.getString(KEY_HOST),
-                inputData.getString(KEY_TOKEN));
+        String host = inputData.getString(KEY_HOST);
+        String token = inputData.getString(KEY_TOKEN);
         String startDate = inputData.getString(KEY_START_DATE);
         // No start date is provided for daily runs, default to yesterday
         if (null == startDate) {
@@ -129,14 +138,52 @@ public class HACatchupWorker extends Worker {
         mEnergySensors = new Gson().fromJson(sensors, new TypeToken<EnergySensors>(){}.getType());
         mUseUI2 = UI2NotificationLaunch.isUI2Enabled(getApplicationContext());
 
-        LocalDate current = LocalDate.parse(startDate, INPUT_DATE_FORMAT);
-        mProgress = current.format(NOTIFY_FORMAT);
+        mCursorDate = LocalDate.parse(startDate, INPUT_DATE_FORMAT);
+        mProgress = mCursorDate.format(NOTIFY_FORMAT);
         publishProgress("Importing HomeAssistant data", true);
 
-        mHAClient.registerHandler("auth_ok", new HACatchupWorker.AuthOKHandler(mHAClient, startDate));
-        mHAClient.registerHandler("auth_invalid", new HACatchupWorker.AuthNotOKHandler(mHAClient));
-        mHAClient.start();
-        waitWorkCompletion();
+        // Session loop: each pass opens a fresh socket and fetches from mCursorDate. A
+        // connection loss ends the session (via the ConnectionListener) and we reconnect
+        // with linear backoff, resuming from the cursor, up to MAX_RECONNECT_ATTEMPTS.
+        int attempt = 0;
+        while (true) {
+            mConnectionLost = false;
+            synchronized (lock) {
+                isWorkCompleted = false;
+            }
+            HADispatcher mHAClient = new HADispatcher(host, token);
+            mHAClient.registerHandler("auth_ok", new HACatchupWorker.AuthOKHandler(mHAClient));
+            mHAClient.registerHandler("auth_invalid", new HACatchupWorker.AuthNotOKHandler(mHAClient));
+            mHAClient.setConnectionListener(reason -> {
+                mConnectionLost = true;
+                synchronized (lock) {
+                    isWorkCompleted = true;
+                    lock.notifyAll();
+                }
+            });
+            mHAClient.start();
+            waitWorkCompletion();
+
+            if (mStopped) break;
+            if (mAuthFailed) {
+                LOGGER.warning("HACatchupWorker: authentication failed");
+                publishProgress("HomeAssistant authentication failed", true);
+                return Result.failure();
+            }
+            if (!mConnectionLost) break; // ran to completion
+            attempt++;
+            if (attempt > MAX_RECONNECT_ATTEMPTS) {
+                LOGGER.warning("HACatchupWorker: connection lost, retries exhausted");
+                publishProgress("HomeAssistant unreachable, will retry later", true);
+                return Result.retry();
+            }
+            publishProgress("Connection lost, reconnecting ("
+                    + attempt + "/" + MAX_RECONNECT_ATTEMPTS + ")", true);
+            try {
+                Thread.sleep(RECONNECT_BACKOFF_MS * attempt);
+            } catch (InterruptedException ignored) {
+            }
+        }
 
         LOGGER.info("HACatchupWorker:doWork finished");
         publishProgress("All done importing HomeAssistant data", true);
@@ -182,6 +229,8 @@ public class HACatchupWorker extends Worker {
                         UserTimezoneStore.resolvedZone(mContext));
                 mToutcRepository.addTransformedData(dbRows);
                 updateBatteryCapacities(result);
+                // Everything before this handler's day is committed; a reconnect resumes here.
+                mCursorDate = startLDT.toLocalDate();
                 Long anyDate = null;
                 if (!pivotedResult.isEmpty()) {
                     anyDate = pivotedResult.keySet().iterator().next();
@@ -199,7 +248,8 @@ public class HACatchupWorker extends Worker {
                 }
             }
             else {
-                LOGGER.info("StatsForPeriodResultHandler.handleMessage.failure");
+                LOGGER.warning("StatsForPeriodResultHandler.handleMessage.failure: "
+                        + result.getErrorDescription());
             }
             if (!startLDT.isBefore(finishLDT) || mStopped) {
                 mHAClient.stop();
@@ -256,20 +306,18 @@ public class HACatchupWorker extends Worker {
 
     private class AuthOKHandler implements MessageHandler<HAMessage> {
         private final HADispatcher mHAClient;
-        private final String startDate;
 
-        public AuthOKHandler(HADispatcher mHAClient, String startDate) {
+        public AuthOKHandler(HADispatcher mHAClient) {
             this.mHAClient = mHAClient;
-            this.startDate = startDate;
         }
 
         @Override
         public void handleMessage(HAMessage message) {
             LOGGER.info("AuthOKHandler.handleMessage");
             mHAClient.setAuthorized(true);
-            // OK, authenticated, now fetch the energy stats
+            // OK, authenticated, now fetch the energy stats from the resume cursor
             StatsForPeriodRequest request = new StatsForPeriodRequest(mEnergySensors.getSenorList());
-            LocalDateTime startLDT = LocalDateTime.parse(startDate + " 00:00", DATE_FORMAT);
+            LocalDateTime startLDT = mCursorDate.atStartOfDay();
             request.setStartAndEndTimes(startLDT, startLDT.with(LocalTime.MAX), mHAClient.generateId());
             LocalDateTime finishLDT = LocalDateTime.of(LocalDateTime.now().toLocalDate(), LocalTime.MIDNIGHT);
             mHAClient.sendMessage(request, new StatsForPeriodResultHandler(mHAClient, startLDT, finishLDT));
@@ -290,6 +338,7 @@ public class HACatchupWorker extends Worker {
         public void handleMessage(HAMessage message) {
             LOGGER.info("AuthInvalidHandler.handleMessage");
             mHAClient.setAuthorized(false);
+            mAuthFailed = true;
             mHAClient.stop();
             synchronized (lock) {
                 isWorkCompleted = true;

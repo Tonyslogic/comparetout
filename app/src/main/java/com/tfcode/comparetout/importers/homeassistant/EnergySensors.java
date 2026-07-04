@@ -34,6 +34,11 @@ public class EnergySensors {
     @SerializedName("batteries")
     public List<BatterySensor> batteries;
 
+    // Individual devices from the Energy Dashboard, user-classified (may be null for
+    // configurations persisted before device capture existed).
+    @SerializedName("devices")
+    public List<DeviceSensor> devices;
+
     public List<String> getSenorList() {
         List<String> sensorList = new ArrayList<>();
         sensorList.addAll(gridImports);
@@ -43,6 +48,23 @@ public class EnergySensors {
             sensorList.add(battery.batteryCharging);
             sensorList.add(battery.batteryDischarging);
         }
+        // Classified devices ride along in the same statistics_during_period fetch.
+        for (DeviceSensor device : getClassifiedDevices()) {
+            sensorList.add(device.statId);
+        }
         return sensorList;
+    }
+
+    /** Devices assigned a modelled role (EV / hot water / heat pump); OTHER is ignored. */
+    public List<DeviceSensor> getClassifiedDevices() {
+        List<DeviceSensor> classified = new ArrayList<>();
+        if (null == devices) return classified;
+        for (DeviceSensor device : devices) {
+            if (!(null == device) && !(null == device.statId) && !(null == device.role)
+                    && device.role != DeviceSensor.Role.OTHER) {
+                classified.add(device);
+            }
+        }
+        return classified;
     }
 }

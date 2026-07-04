@@ -1,6 +1,7 @@
 package com.tfcode.comparetout.ui2
 
 import com.tfcode.comparetout.importers.homeassistant.BatterySensor
+import com.tfcode.comparetout.importers.homeassistant.DeviceSensor
 import com.tfcode.comparetout.importers.homeassistant.EnergySensors
 import com.tfcode.comparetout.importers.homeassistant.HADispatcher
 import com.tfcode.comparetout.importers.homeassistant.MessageHandler
@@ -85,6 +86,12 @@ suspend fun discoverHASensors(host: String, token: String): HADiscoveryResult =
                             this.batteries = batteries
                             gridImports = gridFrom
                             gridExports = gridTo
+                            // "Individual devices" arrive with a name-based role suggestion;
+                            // the caller merges any classification the user already made.
+                            devices = result.result.deviceConsumption.orEmpty()
+                                .mapNotNull { dc ->
+                                    dc.statConsumption?.let { DeviceSensor(it, dc.name) }
+                                }
                         }
                         finish(HADiscoveryResult(sensors, null))
                     }
@@ -104,6 +111,11 @@ suspend fun discoverHASensors(host: String, token: String): HADiscoveryResult =
             }
             override fun getMessageClass(): Class<out HAMessage> = AuthInvalid::class.java
         })
+
+        // Terminal signal: a dropped socket resumes with an error instead of hanging the caller.
+        dispatcher.setConnectionListener { reason ->
+            finish(HADiscoveryResult(null, "Connection lost: $reason"))
+        }
 
         cont.invokeOnCancellation { runCatching { dispatcher.stop() } }
 

@@ -18,6 +18,7 @@ package com.tfcode.comparetout.importers.homeassistant.messages;
 
 import com.google.gson.annotations.SerializedName;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -41,10 +42,11 @@ public class StatsForPeriodRequest extends HAMessageWithID {
     private final List<String> statistic_ids;
     @SerializedName("period")
     private String period = "hour";
-    // Populated for Gson serialisation; not read locally.
+    // Populated for Gson serialisation; not read locally. Null omits the key so HA returns
+    // each statistic in its own stored unit (backfill needs native-unit sums for anchoring).
     @SerializedName("units")
     @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
-    private final Map<String, String> units;
+    private Map<String, String> units;
     @SerializedName("types")
     @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
     private final List<String> types;
@@ -65,7 +67,24 @@ public class StatsForPeriodRequest extends HAMessageWithID {
         setId(id);
     }
 
+    /** Proper UTC instants (the legacy setter stamps local wall time with a literal Z). */
+    public void setStartAndEndUtc(Instant start, Instant end, int id) {
+        this.start_time = start.toString();
+        this.end_time = end.toString();
+        setId(id);
+    }
+
     public void set5MinutePeriod() {
         this.period = "5minute";
+    }
+
+    /** Also request cumulative sums (backfill anchoring / cutoff probing). */
+    public void requestSums() {
+        if (!types.contains("sum")) types.add("sum");
+    }
+
+    /** Drop the unit-conversion map so results arrive in each statistic's stored unit. */
+    public void useNativeUnits() {
+        this.units = null;
     }
 }

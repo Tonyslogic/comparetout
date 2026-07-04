@@ -18,11 +18,18 @@ package com.tfcode.comparetout.importers.homeassistant.messages;
 
 import com.google.gson.annotations.SerializedName;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * {@code recorder/adjust_sum_statistics}: shift every stored sum of a statistic from
+ * {@code start_time} onward by {@code adjustment}. Not a bulk backfill primitive — the
+ * backfill uses it once per commit to keep post-range totals consistent after
+ * {@code recorder/import_statistics} rewrites a range (plans/ha/design.md, Enhancement 2).
+ */
 @SuppressWarnings("unused")
 public class RepairStatForTimeRequest extends HAMessageWithID {
 
@@ -36,12 +43,23 @@ public class RepairStatForTimeRequest extends HAMessageWithID {
     @SerializedName("adjustment")
     private final double adjustment;
     @SerializedName("adjustment_unit_of_measurement")
-    private final String adjustment_unit_of_measurement = "kWh";
+    private final String adjustment_unit_of_measurement;
 
     public RepairStatForTimeRequest(String stat, LocalDateTime time, double adjustment) {
-        setType("recorder/recorder/adjust_sum_statistics");
+        // NOTE: the original type string doubled the "recorder/" prefix and never worked.
+        setType("recorder/adjust_sum_statistics");
         this.statistic_id = stat;
         this.start_time = ZonedDateTime.of(time, zoneId).format(formatter);
         this.adjustment = adjustment;
+        this.adjustment_unit_of_measurement = "kWh";
+    }
+
+    /** UTC-instant variant used by the backfill worker; unit must match the statistic's own unit. */
+    public RepairStatForTimeRequest(String stat, long startUtcMillis, double adjustment, String unit) {
+        setType("recorder/adjust_sum_statistics");
+        this.statistic_id = stat;
+        this.start_time = Instant.ofEpochMilli(startUtcMillis).toString();
+        this.adjustment = adjustment;
+        this.adjustment_unit_of_measurement = unit;
     }
 }

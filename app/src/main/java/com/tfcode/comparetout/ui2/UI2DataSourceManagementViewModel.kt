@@ -27,6 +27,7 @@ import com.tfcode.comparetout.importers.alphaess.responses.GetEssListResponse
 import com.tfcode.comparetout.importers.esbn.ESBNExportWorker
 import com.tfcode.comparetout.importers.esbn.ESBNImportWorker
 import com.tfcode.comparetout.importers.homeassistant.EnergySensors
+import com.tfcode.comparetout.importers.homeassistant.HABackfillWorker
 import com.tfcode.comparetout.importers.homeassistant.HACatchupWorker
 import com.tfcode.comparetout.importers.octopus.OctopusCatchUpWorker
 import com.tfcode.comparetout.importers.octopus.OctopusCsvImportWorker
@@ -34,6 +35,7 @@ import com.tfcode.comparetout.importers.octopus.OctopusRestClient
 import com.tfcode.comparetout.importers.octopus.OctopusSystem
 import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformMeta
+import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData
 import com.tfcode.comparetout.model.scenario.PanelPVSummary
 import com.tfcode.comparetout.scenario.HeatPumpWeatherCache
 import com.tfcode.comparetout.scenario.PvgisCache
@@ -43,6 +45,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.SimpleDateFormat
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.Date
 import java.util.Locale
@@ -127,6 +130,18 @@ data class SourceState(
 )
 
 /**
+ * Daily kWh overlay shown before committing an HA backfill — the user compares what HA
+ * currently holds against the source series about to be pushed (OQ-7: overwrite, but show
+ * the data graphically first).
+ */
+data class HaBackfillPreview(
+    val series: String,          // buy / feed / pv / charge / discharge
+    val labels: List<String>,    // yyyy-MM-dd, one per day in range
+    val source: List<Double>,    // source SN daily kWh
+    val ha: List<Double>         // locally imported HomeAssistant daily kWh
+)
+
+/**
  * One cached weather/PV dataset the user can inspect or delete. For PVGIS this
  * is one fetched panel's PV series (the cache is per-panel `PanelData` in the
  * DB — the UI2 fetch worker writes straight to the DB, not to files); [id] is
@@ -156,7 +171,8 @@ data class HASensorSnapshot(
     val grid: List<String>,
     val gridExports: List<String>,
     val solar: List<String>,
-    val batteries: List<Pair<String?, String?>> // (charging, discharging)
+    val batteries: List<Pair<String?, String?>>, // (charging, discharging)
+    val devices: List<Pair<String, String>> = emptyList() // (label, role) — classified in the legacy sensor dialog
 )
 
 /** One-shot user feedback (snackbar-style). */
@@ -564,7 +580,10 @@ class UI2DataSourceManagementViewModel @Inject constructor(
             grid = parsed.gridImports.orEmpty(),
             gridExports = parsed.gridExports.orEmpty(),
             solar = parsed.solarGeneration.orEmpty(),
-            batteries = parsed.batteries.orEmpty().map { it.batteryCharging to it.batteryDischarging }
+            batteries = parsed.batteries.orEmpty().map { it.batteryCharging to it.batteryDischarging },
+            devices = parsed.devices.orEmpty().mapNotNull { d ->
+                d.statId?.let { (d.label ?: it) to (d.role?.name ?: "OTHER") }
+            }
         )
     }
 
@@ -588,6 +607,14 @@ class UI2DataSourceManagementViewModel @Inject constructor(
                 app.putStringValueIntoDataStore(HA_TOKEN_KEY, encToken)
                 if (outcome.sensors != null) {
                     app.putStringValueIntoDataStore(HA_GOOD_KEY, "True")
+                    // Re-discovery must not wipe device classifications the user already made
+                    // (legacy sensor dialog): keep the prior DeviceSensor for re-discovered ids.
+                    val prior = runCatching {
+                        gson.fromJson(app.getStringValueFromDataStore(HA_SENSORS_KEY),
+                            EnergySensors::class.java)
+                    }.getOrNull()?.devices.orEmpty().associateBy { it.statId }
+                    outcome.sensors.devices = outcome.sensors.devices.orEmpty()
+                        .map { prior[it.statId] ?: it }
                     app.putStringValueIntoDataStore(HA_SENSORS_KEY, gson.toJson(outcome.sensors))
                     // Ensure the canonical HA system entry exists.
                     val existing = runCatching {
@@ -660,6 +687,91 @@ class UI2DataSourceManagementViewModel @Inject constructor(
             wm.enqueueUniquePeriodicWork(sysSn + "daily", ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE, dailyReq)
             _toast.postValue(Toast("Home Assistant fetch started"))
             _ha.postValue(buildHAState())
+        }
+    }
+
+    // ── HA backfill (plans/ha/design.md, Enhancement 2) ─────────────────
+
+    private val _haBackfillPreview = MutableLiveData<HaBackfillPreview?>(null)
+    val haBackfillPreview: LiveData<HaBackfillPreview?> = _haBackfillPreview
+
+    fun clearHaBackfillPreview() {
+        _haBackfillPreview.postValue(null)
+    }
+
+    private fun seriesExtractor(series: String): ((AlphaESSTransformedData) -> Double)? =
+        when (series) {
+            "buy" -> { r -> r.buy }
+            "feed" -> { r -> r.feed }
+            "pv" -> { r -> r.pv }
+            "charge" -> { r -> maxOf(0.0, r.charge) }
+            "discharge" -> { r -> maxOf(0.0, -r.charge) }
+            else -> null
+        }
+
+    /** Build the HA-vs-source daily overlay for one series over the candidate range. */
+    fun previewHaBackfill(sourceSysSn: String, from: LocalDate, to: LocalDate, series: String) {
+        val extractor = seriesExtractor(series) ?: return
+        viewModelScope.launch(Dispatchers.IO) {
+            fun daily(sysSn: String): Map<String, Double> {
+                val perDay = HashMap<String, Double>()
+                repository.getAlphaESSTransformedData(sysSn, from.toString(), to.toString())
+                    .forEach { r -> perDay.merge(r.date, extractor(r)) { a, b -> a + b } }
+                return perDay
+            }
+            val sourceDaily = daily(sourceSysSn)
+            val haDaily = daily("HomeAssistant")
+            val labels = generateSequence(from) { d -> if (d < to) d.plusDays(1) else null }
+                .map { it.toString() }.toList()
+            _haBackfillPreview.postValue(HaBackfillPreview(
+                series = series,
+                labels = labels,
+                source = labels.map { sourceDaily[it] ?: 0.0 },
+                ha = labels.map { haDaily[it] ?: 0.0 }
+            ))
+        }
+    }
+
+    /**
+     * Enqueue the backfill worker. [external]=false targets the user's real sensor
+     * statistics (fix missing/bad HA data — needs the discovered sensor ids);
+     * true writes app-owned comparetout:* series alongside.
+     */
+    fun startHaBackfill(sourceSysSn: String, from: LocalDate, to: LocalDate,
+                        external: Boolean, series: List<String>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val host = decryptOrNull(app.getStringValueFromDataStore(HA_HOST_KEY))
+            val token = decryptOrNull(app.getStringValueFromDataStore(HA_TOKEN_KEY))
+            val sensorsRaw = app.getStringValueFromDataStore(HA_SENSORS_KEY)
+            if (host == null || token == null) {
+                _toast.postValue(Toast("Set Home Assistant credentials first"))
+                return@launch
+            }
+            if (!external && sensorsRaw.isNullOrBlank()) {
+                _toast.postValue(Toast("Discover sensors first — they name the statistics to fix"))
+                return@launch
+            }
+            if (series.isEmpty()) {
+                _toast.postValue(Toast("Pick at least one series to backfill"))
+                return@launch
+            }
+            val input = Data.Builder()
+                .putString(HABackfillWorker.KEY_HOST, host)
+                .putString(HABackfillWorker.KEY_TOKEN, token)
+                .putString(HABackfillWorker.KEY_SOURCE_SYS_SN, sourceSysSn)
+                .putString(HABackfillWorker.KEY_FROM, from.toString())
+                .putString(HABackfillWorker.KEY_TO, to.toString())
+                .putBoolean(HABackfillWorker.KEY_TARGET_EXTERNAL, external)
+                .putString(HABackfillWorker.KEY_SENSORS, sensorsRaw ?: "")
+                .putString(HABackfillWorker.KEY_SERIES, series.joinToString(","))
+                .build()
+            val req = OneTimeWorkRequest.Builder(HABackfillWorker::class.java)
+                .setInputData(input)
+                .addTag("HABackfill")
+                .build()
+            wm.pruneWork()
+            wm.beginUniqueWork("HABackfill", ExistingWorkPolicy.KEEP, req).enqueue()
+            _toast.postValue(Toast("Home Assistant backfill started"))
         }
     }
 

@@ -21,17 +21,9 @@ import com.tfcode.comparetout.importers.homeassistant.messages.HAMessageWithID;
 
 @SuppressWarnings("unused")
 public class EnergyPrefsResult extends HAMessageWithID {
-    @SerializedName("success")
-    private boolean success;
+    // success/error live on HAMessageWithID.
     @SerializedName("result")
     private Result result;
-    public boolean isSuccess() {
-        return success;
-    }
-
-    public void setSuccess(boolean success) {
-        this.success = success;
-    }
 
     public Result getResult() {
         return result;

@@ -49,6 +49,11 @@ public class AlphaESSTransformedData {
     @ColumnInfo(defaultValue = "0") private double batChargeIn;
     @ColumnInfo(defaultValue = "0") private double batDischargeOut;
 
+    // v14: measured hot-water / heat-pump slices attributed from HA "Individual devices"
+    // (mirrors evActual; 0 when the source has no classified device).
+    @ColumnInfo(defaultValue = "0") private double hwActual;
+    @ColumnInfo(defaultValue = "0") private double hpActual;
+
     public Long getMillisSinceEpoch() {
         return millisSinceEpoch;
     }
@@ -145,4 +150,10 @@ public class AlphaESSTransformedData {
 
     public double getBatDischargeOut() { return batDischargeOut; }
     public void setBatDischargeOut(double batDischargeOut) { this.batDischargeOut = batDischargeOut; }
+
+    public double getHwActual() { return hwActual; }
+    public void setHwActual(double hwActual) { this.hwActual = hwActual; }
+
+    public double getHpActual() { return hpActual; }
+    public void setHpActual(double hpActual) { this.hpActual = hpActual; }
 }

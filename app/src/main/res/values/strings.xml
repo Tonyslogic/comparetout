@@ -282,6 +282,9 @@
     <string name="ha_channel_id">HA Importer</string>
     <string name="fetch_ha_notification_title">HA Catchup</string>
     <string name="ha_channel_name">HA Progress</string>
+    <string name="ha_device_classification_header">Individual devices — assign a role so the simulator can model the device (Ignore = leave in the flat load)</string>
+    <string name="ha_device_adjust_load">Remove from load at import</string>
+    <string name="backfill_ha_notification_title">HA Backfill</string>
     <string name="octopus_energy">Octopus Energy</string>
     <string name="octopus_channel_id">Octopus Importer</string>
     <string name="octopus_channel_name">Octopus Progress</string>

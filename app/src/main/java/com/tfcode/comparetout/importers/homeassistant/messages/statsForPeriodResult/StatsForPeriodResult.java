@@ -18,6 +18,7 @@ package com.tfcode.comparetout.importers.homeassistant.messages.statsForPeriodRe
 
 import com.google.gson.annotations.SerializedName;
 import com.tfcode.comparetout.importers.homeassistant.BatterySensor;
+import com.tfcode.comparetout.importers.homeassistant.DeviceSensor;
 import com.tfcode.comparetout.importers.homeassistant.EnergySensors;
 import com.tfcode.comparetout.importers.homeassistant.messages.HAMessageWithID;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
@@ -36,20 +37,11 @@ import java.util.logging.Logger;
 public class StatsForPeriodResult extends HAMessageWithID {
 
     private static final Logger LOGGER = Logger.getLogger(StatsForPeriodResult.class.getName());
-    @SerializedName("success")
-    private boolean success;
+    // success/error live on HAMessageWithID.
     @SerializedName("result")
     private Map<String, List<SensorData>> result;
 
     private final List<Double> estimatedBatteryCapacity = new ArrayList<>();
-
-    public boolean isSuccess() {
-        return success;
-    }
-
-    public void setSuccess(boolean success) {
-        this.success = success;
-    }
 
     public Map<String, List<SensorData>> getResult() {
         return result;
@@ -135,8 +127,38 @@ public class StatsForPeriodResult extends HAMessageWithID {
             for (String sensor : energySensors.gridImports) {
                 gridImport += doubleOrZero(sensorChanges, sensor);
             }
+
+            // Attribute classified "Individual devices" slices. Device energy is already part
+            // of the measured total, so MARK (default) only records the slice alongside the
+            // load; a device flagged adjust additionally removes its slice from the load
+            // (lossy, per-device opt-in — plans/ha/design.md §1c).
+            double evSlice = 0D;
+            double hwSlice = 0D;
+            double hpSlice = 0D;
+            double adjustSlice = 0D;
+            for (DeviceSensor device : energySensors.getClassifiedDevices()) {
+                double deviceKWh = doubleOrZero(sensorChanges, device.statId);
+                switch (device.role) {
+                    case EV:
+                        evSlice += deviceKWh;
+                        break;
+                    case HOT_WATER:
+                        hwSlice += deviceKWh;
+                        break;
+                    case HEAT_PUMP:
+                        hpSlice += deviceKWh;
+                        break;
+                    default:
+                        break;
+                }
+                if (device.adjust) adjustSlice += deviceKWh;
+            }
+
             double load = solarGen + (discharge - charge) + (gridImport - gridExport);
             if (load < 0) load = 0;
+            if (adjustSlice > 0) {
+                load = Math.max(0, load - adjustSlice);
+            }
             sensorChanges.put("load", load);
 
             AlphaESSTransformedData row = new AlphaESSTransformedData();
@@ -149,6 +171,9 @@ public class StatsForPeriodResult extends HAMessageWithID {
             row.setBuy(gridImport);
             row.setCharge(charge - discharge);
             row.setMillisSinceEpoch(date_long);
+            row.setEvActual(evSlice);
+            row.setHwActual(hwSlice);
+            row.setHpActual(hpSlice);
 
             rows.add(row);
         }

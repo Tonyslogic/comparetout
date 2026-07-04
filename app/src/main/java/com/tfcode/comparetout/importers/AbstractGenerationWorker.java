@@ -55,6 +55,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -201,13 +202,19 @@ public abstract class AbstractGenerationWorker extends Worker {
 
         Map<Integer, Map<String, AlphaESSTransformedData>> dbLookup = null;
 
-        // Generate load profile if requested - forms the basis of consumption patterns
+        // Generate load profile if requested - forms the basis of consumption patterns.
+        // Rows are loaded once and shared by profile aggregation, data generation and
+        // component inference (see loadForProfile / generateInferredComponents hooks).
         if (mLP) {
-            createdLoadProfileID = generateLoadProfile(mSystemSN, mFrom, mTo, scenarioKeys.assignedScenarioID);
+            report(getString(R.string.adding_data));
+            List<AlphaESSTransformedData> dbRows =
+                    mToutcRepository.getAlphaESSTransformedData(mSystemSN, mFrom, mTo);
+            dbRows = expandHoursIfNeeded(dbRows);
+            createdLoadProfileID = generateLoadProfile(
+                    mSystemSN, mFrom, mTo, scenarioKeys.assignedScenarioID, dbRows);
+            dbLookup = generateLoadProfileData(createdLoadProfileID, dbRows);
+            generateInferredComponents(mSystemSN, dbRows, scenarioKeys.assignedScenarioID);
         }
-
-        // Generate detailed load profile data for consumption modeling
-        if (mLP) dbLookup = generateLoadProfileData(mSystemSN, mFrom, mTo, createdLoadProfileID);
 
         // Generate inverter specifications based on system parameters
         if (mINV && mLP)
@@ -302,48 +309,77 @@ public abstract class AbstractGenerationWorker extends Worker {
      * @param assignedScenarioID The scenario ID to associate with the load profile
      * @return The database ID of the created load profile
      */
-    private long generateLoadProfile(String mSystemSN, String mFrom, String mTo, long assignedScenarioID) {
+    private long generateLoadProfile(String mSystemSN, String mFrom, String mTo, long assignedScenarioID,
+                                     List<AlphaESSTransformedData> dbRows) {
         long createdLoadProfileID;
         report(getString(R.string.gen_load_profile));
-        
-        // Retrieve historical consumption data aggregated by different time periods
-        List<IntervalRow> hourly = mToutcRepository.getSumHour(mSystemSN, mFrom, mTo);
-        List<IntervalRow> weekly = mToutcRepository.getSumDOW(mSystemSN, mFrom, mTo);
-        List<IntervalRow> monthly = mToutcRepository.getAvgMonth(mSystemSN, mFrom, mTo);
-        Double baseLoad = mToutcRepository.getBaseLoad(mSystemSN, mFrom, mTo);
+
+        double[] hourlySums = new double[24];
+        double[] dowSums = new double[7];
+        double[] monthlySums = new double[12];
+        Double baseLoad;
+        if (usesNetLoadAggregates()) {
+            // Aggregate in Java from the (possibly expanded) rows so the distributions see the
+            // same net-of-device load that generateLoadProfileData stores; the SQL aggregates
+            // below only know the raw load column.
+            List<Double> positiveLoads = new ArrayList<>();
+            for (AlphaESSTransformedData row : dbRows) {
+                double load = loadForProfile(row);
+                LocalDate rowDate = LocalDate.parse(row.getDate(), DATE_FORMAT);
+                int hour = Integer.parseInt(row.getMinute().substring(0, 2));
+                hourlySums[hour] += load;
+                // strftime('%w') convention: Sunday = 0
+                dowSums[rowDate.getDayOfWeek().getValue() % 7] += load;
+                monthlySums[rowDate.getMonthValue() - 1] += load;
+                if (load > 0) positiveLoads.add(load);
+            }
+            // Base load mirrors AlphaEssDAO.getBaseLoad: mean of the lowest 30% of positive
+            // 5-minute loads, scaled to an hourly rate.
+            Collections.sort(positiveLoads);
+            int baseCount = (int) (positiveLoads.size() * 0.3);
+            double baseSum = 0D;
+            for (int i = 0; i < baseCount; i++) baseSum += positiveLoads.get(i);
+            baseLoad = (baseCount > 0) ? (baseSum / baseCount) * 12D : 0D;
+        } else {
+            // Retrieve historical consumption data aggregated by different time periods
+            List<IntervalRow> hourly = mToutcRepository.getSumHour(mSystemSN, mFrom, mTo);
+            List<IntervalRow> weekly = mToutcRepository.getSumDOW(mSystemSN, mFrom, mTo);
+            List<IntervalRow> monthly = mToutcRepository.getAvgMonth(mSystemSN, mFrom, mTo);
+            baseLoad = mToutcRepository.getBaseLoad(mSystemSN, mFrom, mTo);
+            for (int i = 0; i < 24; i++) hourlySums[i] = hourly.get(i).load;
+            for (int i = 0; i < 7; i++) dowSums[i] = weekly.get(i).load;
+            for (int i = 0; i < 12; i++) monthlySums[i] = monthly.get(i).load;
+        }
 
         // Calculate total load for percentage distribution calculations
         Double totalLoad = 0D;
-        for (IntervalRow row : weekly) totalLoad += row.load;
+        for (double dv : dowSums) totalLoad += dv;
 
         // Build the load profile with consumption characteristics
         LoadProfile loadProfile = new LoadProfile();
         loadProfile.setAnnualUsage(totalLoad);
         loadProfile.setDistributionSource(mSystemSN);
         loadProfile.setHourlyBaseLoad(baseLoad);
-        
+
         // Create hourly distribution showing consumption patterns throughout the day
         HourlyDist hd = new HourlyDist();
         List<Double> hourOfDayDist = new ArrayList<>();
         for (int i = 0; i < 24; i++) {
-            Double hv = hourly.get(i).load;
-            hourOfDayDist.add((hv / totalLoad) * 100);
+            hourOfDayDist.add((hourlySums[i] / totalLoad) * 100);
         }
         hd.dist = hourOfDayDist;
         loadProfile.setHourlyDist(hd);
         DOWDist dd = new DOWDist();
         List<Double> dowDist = new ArrayList<>();
         for (int i = 0; i < 7; i++) {
-            Double dv = weekly.get(i).load;
-            dowDist.add((dv / totalLoad) * 100);
+            dowDist.add((dowSums[i] / totalLoad) * 100);
         }
         dd.dowDist = dowDist;
         loadProfile.setDowDist(dd);
         MonthlyDist md = new MonthlyDist();
         List<Double> moyDist = new ArrayList<>();
         for (int i = 0; i < 12; i++) {
-            Double mv = monthly.get(i).load;
-            moyDist.add((mv / totalLoad) * 100);
+            moyDist.add((monthlySums[i] / totalLoad) * 100);
         }
         md.monthlyDist = moyDist;
         loadProfile.setMonthlyDist(md);
@@ -351,15 +387,35 @@ public abstract class AbstractGenerationWorker extends Worker {
         return createdLoadProfileID;
     }
 
+    /**
+     * Per-row load used for profile derivation. Importers that attribute device slices
+     * (Home Assistant "Individual devices") override this to return the load net of the
+     * slices that will be re-added as modelled components (plans/ha/design.md §1c).
+     */
+    protected double loadForProfile(AlphaESSTransformedData row) {
+        return row.getLoad();
+    }
+
+    /**
+     * True when {@link #loadForProfile} differs from the raw load column; the profile
+     * distributions are then computed from the rows instead of the SQL aggregates.
+     */
+    protected boolean usesNetLoadAggregates() {
+        return false;
+    }
+
+    /**
+     * Hook for importers that can infer explicit scenario components (EV charge schedule,
+     * hot water schedule) from attributed device data. Default: none.
+     */
+    protected void generateInferredComponents(String mSystemSN,
+            List<AlphaESSTransformedData> dbRows, long assignedScenarioID) {
+    }
+
     @NonNull
     private Map<Integer, Map<String, AlphaESSTransformedData>> generateLoadProfileData(
-            String mSystemSN, String mFrom, String mTo, long createdLoadProfileID) {
+            long createdLoadProfileID, List<AlphaESSTransformedData> dbRows) {
         Map<Integer, Map<String, AlphaESSTransformedData>> dbLookup;
-        List<AlphaESSTransformedData> dbRows;
-        report(getString(R.string.adding_data));
-
-        dbRows = mToutcRepository.getAlphaESSTransformedData(mSystemSN, mFrom, mTo);
-        dbRows = expandHoursIfNeeded(dbRows);
         dbLookup = new HashMap<>();
         for (AlphaESSTransformedData dbRow : dbRows) {
             LocalDate dbDate = LocalDate.parse(dbRow.getDate(), DATE_FORMAT);
@@ -394,7 +450,7 @@ public abstract class AbstractGenerationWorker extends Worker {
             if (!(null == aDay)) {
                 AlphaESSTransformedData a5MinutePeriod = aDay.get(hhmm);
                 if (!(null == a5MinutePeriod)) {
-                    loadToSet = a5MinutePeriod.getLoad();
+                    loadToSet = loadForProfile(a5MinutePeriod);
                 }
             }
             row.setLoad(loadToSet);
