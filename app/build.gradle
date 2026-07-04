@@ -15,11 +15,11 @@ android {
     compileSdkVersion 37
 
     defaultConfig {
-        applicationId "com.tfcode.comparetout.test"
+        applicationId "com.tfcode.comparetout"
         minSdk 28
         targetSdk 37
-        versionCode 63
-        versionName "1.62"
+        versionCode 64
+        versionName "1.63"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments clearPackageData: 'true'
