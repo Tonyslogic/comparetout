@@ -71,13 +71,10 @@ class UI2SimulationsViewModel @Inject constructor(
         val dsItems = buildList {
             alpha.forEach { if (seen.add(it.sysSn)) add(SimListItem.DataSource(it.sysSn, ComparisonUIViewModel.Importer.ALPHAESS,        it.startDate, it.finishDate)) }
             esbn.forEach  { r ->
-                // The shared ranges query returns every sysSn namespace; classify by name.
-                val type = when {
-                    r.sysSn == "HomeAssistant" -> ComparisonUIViewModel.Importer.HOME_ASSISTANT
-                    r.sysSn.startsWith("Octopus-") -> ComparisonUIViewModel.Importer.OCTOPUS
-                    else -> ComparisonUIViewModel.Importer.ESBNHDF
-                }
-                if (seen.add(r.sysSn)) add(SimListItem.DataSource(r.sysSn, type, r.startDate, r.finishDate))
+                // The shared ranges query returns every sysSn namespace; classify
+                // via the central registry (Importer.forSysSn).
+                if (seen.add(r.sysSn)) add(SimListItem.DataSource(r.sysSn,
+                    ComparisonUIViewModel.Importer.forSysSn(r.sysSn), r.startDate, r.finishDate))
             }
             ha.forEach    { if (seen.add(it.sysSn)) add(SimListItem.DataSource(it.sysSn, ComparisonUIViewModel.Importer.HOME_ASSISTANT,    it.startDate, it.finishDate)) }
         }

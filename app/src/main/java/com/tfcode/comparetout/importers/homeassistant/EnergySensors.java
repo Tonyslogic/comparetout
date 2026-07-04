@@ -48,8 +48,9 @@ public class EnergySensors {
             sensorList.add(battery.batteryCharging);
             sensorList.add(battery.batteryDischarging);
         }
-        // Classified devices ride along in the same statistics_during_period fetch.
-        for (DeviceSensor device : getClassifiedDevices()) {
+        // Devices that matter to ingestion ride along in the same
+        // statistics_during_period fetch.
+        for (DeviceSensor device : getFetchDevices()) {
             sensorList.add(device.statId);
         }
         return sensorList;
@@ -66,5 +67,22 @@ public class EnergySensors {
             }
         }
         return classified;
+    }
+
+    /**
+     * Devices ingestion must fetch: everything with a modelled role, plus unmapped
+     * (OTHER) devices flagged adjust — those carry no role slice but their energy is
+     * still subtracted from the load at ingestion.
+     */
+    public List<DeviceSensor> getFetchDevices() {
+        List<DeviceSensor> fetch = getClassifiedDevices();
+        if (null == devices) return fetch;
+        for (DeviceSensor device : devices) {
+            if (!(null == device) && !(null == device.statId) && device.adjust
+                    && (null == device.role || device.role == DeviceSensor.Role.OTHER)) {
+                fetch.add(device);
+            }
+        }
+        return fetch;
     }
 }

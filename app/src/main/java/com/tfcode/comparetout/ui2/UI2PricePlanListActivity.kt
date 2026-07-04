@@ -47,6 +47,7 @@ import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -119,7 +120,17 @@ private fun PricePlanListScreen(
     onClose: () -> Unit
 ) {
     val context = LocalContext.current
-    val rows by viewModel.rows.collectAsState()
+    val allRows by viewModel.rows.collectAsState()
+    // Location filter: suppliers tagged with a different country than the phone
+    // are hidden (and auto-deactivated by the VM) unless the user reveals them.
+    var showOtherLocations by remember { mutableStateOf(false) }
+    val hiddenByLocation = remember(allRows) {
+        allRows.count { it.locationMismatch(viewModel.deviceCountry) }
+    }
+    val rows = remember(allRows, showOtherLocations) {
+        if (showOtherLocations) allRows
+        else allRows.filterNot { it.locationMismatch(viewModel.deviceCountry) }
+    }
     val favouriteId by viewModel.favouriteId.observeAsState(null)
     val (showHints, toggleShowHints) = rememberShowHints()
     var pendingDelete by remember { mutableStateOf<PricePlanListRow?>(null) }
@@ -192,6 +203,30 @@ private fun PricePlanListScreen(
                 }
                 if (showHints) {
                     item("hint") { ListHintCard() }
+                }
+                if (hiddenByLocation > 0 || showOtherLocations) {
+                    item("locationFilter") {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showOtherLocations = !showOtherLocations }
+                                .padding(horizontal = 4.dp, vertical = 2.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = showOtherLocations,
+                                onCheckedChange = { showOtherLocations = it }
+                            )
+                            Text(
+                                "Show plans for other locations" +
+                                        if (!showOtherLocations && hiddenByLocation > 0)
+                                            "  ·  $hiddenByLocation hidden (not ${viewModel.deviceCountry})"
+                                        else "",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
                 }
                 if (rows.isEmpty()) {
                     item("empty") { EmptyListMessage(showHints) }
@@ -581,6 +616,30 @@ private fun PricePlanAccordion(
                             Text("Deemed export",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp))
+                        }
+                    }
+
+                    if (row.hasRestrictions) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f),
+                            shape = CircleShape
+                        ) {
+                            Text("Usage restrictions — rate changes past a cap",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp))
+                        }
+                    }
+
+                    if (row.location.isNotBlank()) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
+                            shape = CircleShape
+                        ) {
+                            Text("Location: ${row.location}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp))
                         }
                     }

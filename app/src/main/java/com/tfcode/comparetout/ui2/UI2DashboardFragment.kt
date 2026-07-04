@@ -549,6 +549,9 @@ class UI2DashboardFragment : Fragment() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit, onLaunchGraphs: () -> Unit) {
+    // Component-visibility gating (App settings) — mirrors the wizard: a hidden
+    // component's accordion is not rendered, its data is untouched.
+    val uiVis = rememberUiVisibility()
     val dashboardData by viewModel.dashboardData.observeAsState(initial = null)
     val panelSummary by viewModel.panelPVSummary.observeAsState(emptyList())
     val explorePeriod  by viewModel.explorePeriod.observeAsState(DataSourcePeriod.ALL)
@@ -1058,7 +1061,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     }
 
                     // 6. Inverter
-                    ExpandableCard(
+                    if (uiVis.inverter) ExpandableCard(
                         title = "Inverter",
                         leadingIcon = {
                             Icon(painterResource(R.drawable.inverter), null, Modifier.size(24.dp),
@@ -1084,7 +1087,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     }
 
                     // 7. PV System
-                    ExpandableCard(
+                    if (uiVis.panels) ExpandableCard(
                         title = "PV System",
                         leadingIcon = {
                             Icon(painterResource(R.drawable.solarpanel), null, Modifier.size(24.dp), tint = Color.Unspecified)
@@ -1138,7 +1141,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     }
 
                     // 8. Battery
-                    ExpandableCard(
+                    if (uiVis.battery) ExpandableCard(
                         title = "Battery",
                         leadingIcon = {
                             Icon(painterResource(R.drawable.battery1), null, Modifier.size(24.dp),
@@ -1175,7 +1178,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     }
 
                     // 9. Hot Water
-                    ExpandableCard(
+                    if (uiVis.hotWater) ExpandableCard(
                         title = "Hot Water",
                         leadingIcon = {
                             val res = if (sc.hwSystem != null) R.drawable.waterwarm else R.drawable.watercold
@@ -1215,7 +1218,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     }
 
                     // 10. EV
-                    ExpandableCard(
+                    if (uiVis.ev) ExpandableCard(
                         title = "EV",
                         leadingIcon = {
                             val res = if (sc.evCharges.isNotEmpty() || sc.evDiverts.isNotEmpty())
@@ -1268,7 +1271,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
 
                     // 11. Heat Pump (mirrors the wizard/dashboard order — after EV)
                     val heatPumps = sc.heatPumps.orEmpty()
-                    ExpandableCard(
+                    if (uiVis.heatPump) ExpandableCard(
                         title = "Heat Pump",
                         leadingIcon = {
                             Text(if (heatPumps.isNotEmpty()) "♨️" else "❄️",

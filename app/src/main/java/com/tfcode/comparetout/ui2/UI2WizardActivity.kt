@@ -382,6 +382,11 @@ private fun WizardScreen(
             }
         }
 
+        // Component-visibility gating (App settings) — a hidden component's
+        // accordion disappears here AND on the dashboard; existing scenario
+        // content is untouched and still simulates.
+        val uiVis = rememberUiVisibility()
+
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
         Column(modifier = Modifier.fillMaxSize()) {
             // Fixed: progress strip + action buttons (collapses on scroll up)
@@ -488,7 +493,7 @@ private fun WizardScreen(
 
             // ── Inverters ────────────────────────────────────────────────
             val inverterCount = builder.inverterEntries.size
-            WizardAccordionSection(
+            if (uiVis.inverter) WizardAccordionSection(
                 id = "inverters",
                 iconContent = {
                     val res = if (inverterCount > 0) R.drawable.invertertick else R.drawable.inverter
@@ -518,7 +523,7 @@ private fun WizardScreen(
 
             // ── PV System ────────────────────────────────────────────────
             val panelCount = builder.panelEntries.size
-            WizardAccordionSection(
+            if (uiVis.panels) WizardAccordionSection(
                 id = "pv",
                 iconContent = {
                     val pvRes = if (panelCount > 0) R.drawable.solarpaneltick else R.drawable.solarpanel
@@ -557,7 +562,7 @@ private fun WizardScreen(
             val batteryCount = builder.batteryEntries.size
             val batteryChargeCount = builder.batteryChargeEntries.size
             val batteryDischargeCount = builder.batteryDischargeEntries.size
-            WizardAccordionSection(
+            if (uiVis.battery) WizardAccordionSection(
                 id = "battery",
                 iconContent = {
                     Icon(painterResource(R.drawable.battery1), null, Modifier.size(26.dp),
@@ -603,7 +608,7 @@ private fun WizardScreen(
             val hwSystemCount = if (builder.hwSystem != null) 1 else 0
             val hwScheduleCount = builder.hwSchedules.size
             val hwDivertActive = builder.hwDivert.active
-            WizardAccordionSection(
+            if (uiVis.hotWater) WizardAccordionSection(
                 id = "hotwater",
                 iconContent = {
                     val hwRes = if (hwSystemCount > 0) R.drawable.waterwarm else R.drawable.watercold
@@ -649,7 +654,7 @@ private fun WizardScreen(
             // ── EV ──────────────────────────────────────────────────────
             val evCount = builder.evEntries.size
             val evDivertCount = builder.evDivertEntries.size
-            WizardAccordionSection(
+            if (uiVis.ev) WizardAccordionSection(
                 id = "ev",
                 iconContent = {
                     val evRes = if (evCount > 0 || evDivertCount > 0) R.drawable.ev_on else R.drawable.ev_off
@@ -686,7 +691,7 @@ private fun WizardScreen(
 
             // Heat Pump — placed after EV to mirror the dashboard order (Phase 5 of plans/hp/plan.md).
             val heatPumpCount = builder.heatPumpEntries.size
-            WizardAccordionSection(
+            if (uiVis.heatPump) WizardAccordionSection(
                 id = "heatpump",
                 iconContent = { Text(if (heatPumpCount > 0) "♨️" else "❄️", fontSize = 22.sp) },
                 title = "Heat Pump",

@@ -54,6 +54,8 @@ internal val SERIES_COLORS: Map<FilterSeries, Color> = mapOf(
     // Hot water — purple / brown
     FilterSeries.HW_SCHEDULE   to Color(0xFF9C27B0), // purple
     FilterSeries.HW_DIVERT     to Color(0xFF795548), // brown
+    FilterSeries.HW_ACTUAL     to Color(0xFFBA68C8), // light purple (importer-only)
+    FilterSeries.HP_ACTUAL     to Color(0xFFEC407A), // pink — sits with the HP family (importer-only)
     // Heat pump — pinks (energy) + cool hues (line metrics)
     FilterSeries.HEAT_PUMP        to Color(0xFFD81B60), // magenta-pink — HP electrical load
     FilterSeries.HEAT_PUMP_BACKUP to Color(0xFFAD1457), // dark pink
@@ -107,7 +109,10 @@ private val compareEnergySeries: Map<String, FilterSeries> = mapOf(
     "hwDivert" to FilterSeries.HW_DIVERT,
     "heatPump" to FilterSeries.HEAT_PUMP,
     "heatPumpBackup" to FilterSeries.HEAT_PUMP_BACKUP,
-    "heatPumpHeat" to FilterSeries.HEAT_PUMP_HEAT
+    "heatPumpHeat" to FilterSeries.HEAT_PUMP_HEAT,
+    "evActual" to FilterSeries.EV_ACTUAL,
+    "hwActual" to FilterSeries.HW_ACTUAL,
+    "hpActual" to FilterSeries.HP_ACTUAL
 )
 
 /**

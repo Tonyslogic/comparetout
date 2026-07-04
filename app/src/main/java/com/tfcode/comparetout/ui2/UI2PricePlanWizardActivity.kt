@@ -53,6 +53,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -256,6 +258,24 @@ private fun PricePlanWizardScreen(
                                 onToggle = { viewModel.toggleSection("rates") }
                             ) {
                                 DayRatesSection(builder, expandedDayRates, issues, viewModel, showHints)
+                            }
+                        }
+                        item("restrictions") {
+                            val count = builder.restrictionEntries.size
+                            AccordionSection(
+                                title = "Restrictions",
+                                subtitle = when {
+                                    count == 0 -> "None — plan prices apply without usage caps"
+                                    builder.restrictionsActive ->
+                                        "$count usage cap" + (if (count > 1) "s" else "") + " active"
+                                    else -> "$count usage cap" + (if (count > 1) "s" else "") + " (disabled)"
+                                },
+                                isComplete = true,
+                                hasError = false,
+                                isExpanded = expanded.contains("restrictions"),
+                                onToggle = { viewModel.toggleSection("restrictions") }
+                            ) {
+                                RestrictionsSection(builder, viewModel, showHints)
                             }
                         }
                     }
@@ -626,6 +646,17 @@ private fun DetailsSection(
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
+        OutlinedTextField(
+            value = builder.location,
+            onValueChange = { v -> vm.updateBuilder { it.copy(location = v.take(2)) } },
+            label = { Text("Location (optional)") },
+            placeholder = { Text("ISO country, e.g. IE") },
+            supportingText = {
+                Text("Plans tagged with another country than the phone are hidden and deactivated.")
+            },
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth()
+        )
         SwitchRow(
             title = "Deemed export",
             sub = "Supplier estimates your export instead of measuring it.",
@@ -665,6 +696,141 @@ private fun ChargesSection(builder: PricePlanBuilder, vm: UI2PricePlanViewModel)
             value = builder.signUpBonus,
             onValue = { v -> vm.updateBuilder { it.copy(signUpBonus = v) } }
         )
+    }
+}
+
+// ── Restrictions ────────────────────────────────────────────────────────────
+//
+// Tiered usage caps, applied by RateLookup during costing: once the capped kWh
+// has been bought at a rate within the period, further usage at that rate is
+// charged the revised price (e.g. Octopus Zero: 4000 kWh/year fair use, then a
+// different unit rate). NB restrictions attach to a rate VALUE, not a band —
+// two bands with the same price share the cap, and changing a band's price
+// detaches its restriction.
+@Composable
+private fun RestrictionsSection(
+    builder: PricePlanBuilder,
+    vm: UI2PricePlanViewModel,
+    showHints: Boolean
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        if (showHints) {
+            Text(
+                "A restriction caps how many kWh the plan sells at a rate within a " +
+                        "period; usage beyond the cap is charged the revised price. " +
+                        "Restrictions attach to a rate value — if you change that " +
+                        "band's price, re-attach the restriction.",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        if (builder.restrictionEntries.isNotEmpty()) {
+            SwitchRow(
+                title = "Apply restrictions",
+                sub = "Costings honour the usage caps below.",
+                checked = builder.restrictionsActive
+            ) { v -> vm.setRestrictionsActive(v) }
+        }
+        builder.restrictionEntries.forEach { entry ->
+            RestrictionEntryCard(entry, builder.uniqueRates, vm)
+        }
+        OutlinedButton(onClick = { vm.addRestriction() }) {
+            Icon(Icons.Default.Add, null, Modifier.size(16.dp))
+            Spacer(Modifier.width(4.dp))
+            Text("Add restriction")
+        }
+    }
+}
+
+@Composable
+private fun RestrictionEntryCard(
+    entry: RestrictionEntryBuilder,
+    uniqueRates: List<Double>,
+    vm: UI2PricePlanViewModel
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        shape = RoundedCornerShape(10.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                // Rate the cap attaches to — offered from the plan's current bands.
+                var rateMenu by remember { mutableStateOf(false) }
+                Box {
+                    OutlinedButton(onClick = { rateMenu = true }) {
+                        Text(if (entry.rate.isBlank()) "Rate…" else "${entry.rate} c/kWh")
+                    }
+                    DropdownMenu(expanded = rateMenu, onDismissRequest = { rateMenu = false }) {
+                        uniqueRates.forEach { r ->
+                            val label = formatRateValue(r)
+                            DropdownMenuItem(
+                                text = { Text("$label c/kWh") },
+                                onClick = {
+                                    rateMenu = false
+                                    vm.updateRestriction(entry.id) { it.copy(rate = label) }
+                                }
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.width(8.dp))
+                var periodMenu by remember { mutableStateOf(false) }
+                Box {
+                    OutlinedButton(onClick = { periodMenu = true }) {
+                        Text(entry.period)
+                    }
+                    DropdownMenu(expanded = periodMenu, onDismissRequest = { periodMenu = false }) {
+                        listOf("Annual", "Monthly", "Bimonthly").forEach { p ->
+                            DropdownMenuItem(
+                                text = { Text(p) },
+                                onClick = {
+                                    periodMenu = false
+                                    vm.updateRestriction(entry.id) { it.copy(period = p) }
+                                }
+                            )
+                        }
+                    }
+                }
+                Spacer(Modifier.weight(1f))
+                IconButton(onClick = { vm.removeRestriction(entry.id) }) {
+                    Icon(Icons.Default.Delete, "Remove restriction",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                var limitText by remember(entry.id) { mutableStateOf(
+                    if (entry.kwhLimit > 0) entry.kwhLimit.toString() else "") }
+                OutlinedTextField(
+                    value = limitText,
+                    onValueChange = { v ->
+                        limitText = v
+                        v.toIntOrNull()?.let { n ->
+                            vm.updateRestriction(entry.id) { it.copy(kwhLimit = n) }
+                        }
+                    },
+                    label = { Text("Cap (kWh)") },
+                    isError = limitText.toIntOrNull()?.takeIf { it > 0 } == null,
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+                var priceText by remember(entry.id) { mutableStateOf(
+                    if (entry.revisedPrice != 0.0) formatRateValue(entry.revisedPrice) else "") }
+                OutlinedTextField(
+                    value = priceText,
+                    onValueChange = { v ->
+                        priceText = v
+                        v.toDoubleOrNull()?.let { p ->
+                            vm.updateRestriction(entry.id) { it.copy(revisedPrice = p) }
+                        }
+                    },
+                    label = { Text("Then (c/kWh)") },
+                    isError = priceText.toDoubleOrNull() == null,
+                    singleLine = true,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
     }
 }
 

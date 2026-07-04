@@ -632,8 +632,10 @@ private fun buildChartPoints(state: UI2GraphsViewModel.GraphState): List<ChartPo
                     FilterSeries.EV_SCHEDULE   to row.evSchedule,
                     FilterSeries.EV_DIVERT     to row.evDivert,
                     // singleDayBarData is sim-only (see UI2GraphsViewModel.fetchData);
-                    // AlphaESS data flows through intervalData, so 0 here is correct.
+                    // importer data flows through intervalData, so 0 here is correct.
                     FilterSeries.EV_ACTUAL     to 0.0,
+                    FilterSeries.HW_ACTUAL     to 0.0,
+                    FilterSeries.HP_ACTUAL     to 0.0,
                     FilterSeries.HW_SCHEDULE   to row.hwSchedule,
                     FilterSeries.HW_DIVERT     to row.hwDivert,
                     FilterSeries.BAT2GRID      to row.bat2grid,
@@ -664,6 +666,8 @@ private fun buildChartPoints(state: UI2GraphsViewModel.GraphState): List<ChartPo
                     FilterSeries.EV_SCHEDULE   to row.evSchedule,
                     FilterSeries.EV_DIVERT     to row.evDivert,
                     FilterSeries.EV_ACTUAL     to row.evActual,
+                    FilterSeries.HW_ACTUAL     to row.hwActual,
+                    FilterSeries.HP_ACTUAL     to row.hpActual,
                     FilterSeries.HW_SCHEDULE   to row.hwSchedule,
                     FilterSeries.HW_DIVERT     to row.hwDivert,
                     FilterSeries.BAT2GRID      to row.bat2grid,
@@ -1294,29 +1298,24 @@ private fun FilterGroupContent(
     state: UI2GraphsViewModel.GraphState,
     viewModel: UI2GraphsViewModel
 ) {
+    // Groups are driven by availableFilters — the single source of truth that
+    // already encodes both scenario components (sim mode) and what the importer
+    // actually stores (data-source mode). The old component-based checks left
+    // data sources with no EV/HW/HP chips at all (components == null) and
+    // offered HA every battery flow it never records.
     FilterGroup("Core", state.availableFilters.intersect(UI2GraphsViewModel.CORE_FILTERS), state, viewModel)
-    if (state.hasBattery || state.hasBatteryData) {
-        Text("Battery", style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
-        FilterGroup(null, UI2GraphsViewModel.BATTERY_FILTERS, state, viewModel)
-    }
-    val sc = state.components
-    val hasEV = sc?.scenario?.isHasEVCharges == true || sc?.scenario?.isHasEVDivert == true ||
-            sc?.evCharges?.isNotEmpty() == true || sc?.evDiverts?.isNotEmpty() == true
-    if (hasEV) {
-        Text("EV", style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
-        FilterGroup(null, UI2GraphsViewModel.EV_FILTERS, state, viewModel)
-    }
-    if (state.hasHW) {
-        Text("Hot Water", style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
-        FilterGroup(null, UI2GraphsViewModel.HW_FILTERS, state, viewModel)
-    }
-    if (state.hasHeatPump) {
-        Text("Heat Pump", style = MaterialTheme.typography.labelLarge,
-            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
-        FilterGroup(null, UI2GraphsViewModel.HEAT_PUMP_FILTERS, state, viewModel)
+    listOf(
+        "Battery" to UI2GraphsViewModel.BATTERY_FILTERS,
+        "EV" to UI2GraphsViewModel.EV_FILTERS,
+        "Hot Water" to UI2GraphsViewModel.HW_FILTERS + FilterSeries.HW_ACTUAL,
+        "Heat Pump" to UI2GraphsViewModel.HEAT_PUMP_FILTERS + FilterSeries.HP_ACTUAL
+    ).forEach { (title, series) ->
+        val present = state.availableFilters.intersect(series)
+        if (present.isNotEmpty()) {
+            Text(title, style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.padding(top = 8.dp, bottom = 4.dp))
+            FilterGroup(null, present, state, viewModel)
+        }
     }
 }
 

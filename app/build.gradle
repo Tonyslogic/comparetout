@@ -15,7 +15,7 @@ android {
     compileSdkVersion 37
 
     defaultConfig {
-        applicationId "com.tfcode.comparetout"
+        applicationId "com.tfcode.comparetout.test"
         minSdk 28
         targetSdk 37
         versionCode 64

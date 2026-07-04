@@ -1905,7 +1905,8 @@ private fun usageData(rows: List<CompareUsageRow>): List<ChartDatum> = rows.map 
             "evSchedule" to r.evSchedule, "evDivert" to r.evDivert,
             "hwSchedule" to r.hwSchedule, "hwDivert" to r.hwDivert,
             "heatPump" to r.heatPump, "heatPumpBackup" to r.heatPumpBackup,
-            "heatPumpHeat" to r.heatPumpHeat),
+            "heatPumpHeat" to r.heatPumpHeat,
+            "evActual" to r.evActual, "hwActual" to r.hwActual, "hpActual" to r.hpActual),
         axisLabels = r.timeline.axisLabels,
         seriesValues = r.timeline.seriesValues
     )

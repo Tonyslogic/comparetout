@@ -149,7 +149,21 @@ fun ScenariosScreen(
     val shareScope = rememberCoroutineScope()
 
     val simItems = remember(items) { items.filterIsInstance<UI2SimulationsViewModel.SimListItem.Simulation>() }
-    val dataSourceItems = remember(items) { items.filterIsInstance<UI2SimulationsViewModel.SimListItem.DataSource>() }
+    // Source-visibility gating (App settings): hidden sources drop out of the
+    // list — their imported data stays put.
+    val uiVis = rememberUiVisibility()
+    val dataSourceItems = remember(items, uiVis) {
+        items.filterIsInstance<UI2SimulationsViewModel.SimListItem.DataSource>()
+            .filter {
+                when (it.importerType) {
+                    com.tfcode.comparetout.ComparisonUIViewModel.Importer.ALPHAESS -> uiVis.alphaess
+                    com.tfcode.comparetout.ComparisonUIViewModel.Importer.HOME_ASSISTANT -> uiVis.homeassistant
+                    com.tfcode.comparetout.ComparisonUIViewModel.Importer.ESBNHDF -> uiVis.esbn
+                    com.tfcode.comparetout.ComparisonUIViewModel.Importer.OCTOPUS -> uiVis.octopus
+                    else -> true
+                }
+            }
+    }
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
 

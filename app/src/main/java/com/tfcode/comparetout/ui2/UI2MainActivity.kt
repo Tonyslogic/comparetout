@@ -117,6 +117,45 @@ class UI2MainActivity : AppCompatActivity() {
         // First-use disclaimer now lives here (UI2 is the default entry point),
         // shown over UI2 rather than the legacy screen.
         maybeShowDisclaimer()
+
+        // Android 13+ requires a runtime grant before notify() does anything — without
+        // it every importer/backfill progress notification is silently dropped. Ask
+        // once here; a denial is respected (the system won't re-prompt after two).
+        requestNotificationPermissionIfNeeded()
+    }
+
+    private fun requestNotificationPermissionIfNeeded() {
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.TIRAMISU) return
+        val granted = androidx.core.content.ContextCompat.checkSelfPermission(
+            this, android.Manifest.permission.POST_NOTIFICATIONS
+        ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (!granted) {
+            notificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+
+    private val notificationPermissionLauncher =
+        registerForActivityResult(
+            androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+        ) { /* work runs either way; notifications stay suppressed if denied */ }
+
+    override fun onResume() {
+        super.onResume()
+        applyTabVisibility()
+    }
+
+    /**
+     * Hide bottom-nav tabs the user gated off in App settings. Re-applied on
+     * every resume so returning from the settings screen takes effect at once.
+     * Dashboard/Scenarios are never hidden — they are the app's core surface.
+     */
+    private fun applyTabVisibility() {
+        val bottomNav = findViewById<BottomNavigationView>(R.id.bottom_nav_view) ?: return
+        lifecycleScope.launch {
+            val vis = withContext(Dispatchers.IO) { UiVisibilityStore.read(this@UI2MainActivity) }
+            bottomNav.menu.findItem(R.id.ui2ComparisonsFragment)?.isVisible = vis.comparisons
+            bottomNav.menu.findItem(R.id.ui2DirectorsFragment)?.isVisible = vis.directors
+        }
     }
 
     /** Show the one-time legal disclaimer on first launch, then record it. */

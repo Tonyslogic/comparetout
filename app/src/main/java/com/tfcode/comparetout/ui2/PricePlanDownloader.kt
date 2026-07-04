@@ -227,6 +227,11 @@ SCHEMA (embedded — use field names, types, and enums exactly as defined)
         "format": "uri",
         "description": "A direct URL to the supplier’s official plan details or tariff page."
       },
+      "Location": {
+        "type": "string",
+        "description": "Optional ISO 3166-1 alpha-2 country the supplier operates in (e.g. IE, GB). Omit or leave empty for plans that apply everywhere; the app hides plans whose Location differs from the phone's country.",
+        "examples": ["IE", "GB"]
+      },
       "Restrictions": {
         "type": "object",
         "description": "Limitations or conditions associated with the plan.",

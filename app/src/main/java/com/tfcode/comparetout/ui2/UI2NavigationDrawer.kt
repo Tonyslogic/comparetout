@@ -127,6 +127,15 @@ fun UI2DrawerContent(
         }
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
         // Preferences — global formatting choices.
+        if (!simpleMode) {
+            // Visibility gating (tabs / components / sources) only makes sense in
+            // the full UI — the simple screen is already a single focused flow.
+            UI2DrawerItem(R.drawable.ic_baseline_settings_24, "App settings") {
+                onClose()
+                context.startActivity(
+                    android.content.Intent(context, UI2SettingsActivity::class.java))
+            }
+        }
         UI2DrawerItem(R.drawable.ic_baseline_settings_24,     "Units",                  onClose)
         UI2DrawerItem(R.drawable.ic_baseline_access_time_24,  "Timezone") {
             onClose()

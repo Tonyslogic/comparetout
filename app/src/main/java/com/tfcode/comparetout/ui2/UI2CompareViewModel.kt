@@ -188,6 +188,10 @@ data class CompareUsageRow(
     val heatPump: Double = 0.0,        // HP total electrical load (kWh)
     val heatPumpBackup: Double = 0.0,  // backup-heater electrical load (kWh; subset of heatPump)
     val heatPumpHeat: Double = 0.0,    // delivered thermal energy (kWh)
+    // Measured device slices (importer sources; 0 for simulations).
+    val evActual: Double = 0.0,
+    val hwActual: Double = 0.0,
+    val hpActual: Double = 0.0,
     val timeline: BucketSeries         // bucketed usage for line/area (one series per metric id)
 )
 
@@ -254,7 +258,9 @@ class UI2CompareViewModel @Inject constructor(
             "evSchedule" to "EV Schedule", "evDivert" to "EV Divert",
             "hwSchedule" to "HW Schedule", "hwDivert" to "HW Divert",
             "heatPump" to "HP Load", "heatPumpBackup" to "HP Backup",
-            "heatPumpHeat" to "HP Heat"
+            "heatPumpHeat" to "HP Heat",
+            // Measured device slices (AlphaESS EV charger; HA classified devices).
+            "evActual" to "EV Actual", "hwActual" to "HW Actual", "hpActual" to "HP Actual"
         )
         // Basic vs Advanced split for the Display filter (see UI). Cost columns
         // net/buy/sell are basic; bonus/fixed advanced. Energy load/buy/feed/pv
@@ -264,7 +270,8 @@ class UI2CompareViewModel @Inject constructor(
         val ADVANCED_ENERGY_IDS = setOf(
             "pv2load", "bat2load", "grid2bat",
             "charge", "discharge", "evSchedule", "evDivert", "hwSchedule", "hwDivert",
-            "heatPump", "heatPumpBackup", "heatPumpHeat"
+            "heatPump", "heatPumpBackup", "heatPumpHeat",
+            "evActual", "hwActual", "hpActual"
         )
         val BASIC_COST_IDS      = setOf("net", "buy", "sell")
         val ADVANCED_COST_IDS   = setOf("bonus", "fixed")
@@ -299,14 +306,11 @@ class UI2CompareViewModel @Inject constructor(
                     add(CompareSourceItem(it.sysSn, ComparisonUIViewModel.Importer.ALPHAESS, it.startDate, it.finishDate))
             }
             esbn.forEach { r ->
-                // The shared ranges query returns every sysSn namespace; classify by name.
-                val type = when {
-                    r.sysSn == "HomeAssistant" -> ComparisonUIViewModel.Importer.HOME_ASSISTANT
-                    r.sysSn.startsWith("Octopus-") -> ComparisonUIViewModel.Importer.OCTOPUS
-                    else -> ComparisonUIViewModel.Importer.ESBNHDF
-                }
+                // The shared ranges query returns every sysSn namespace; classify
+                // via the central registry (Importer.forSysSn).
                 if (seen.add(r.sysSn))
-                    add(CompareSourceItem(r.sysSn, type, r.startDate, r.finishDate))
+                    add(CompareSourceItem(r.sysSn,
+                        ComparisonUIViewModel.Importer.forSysSn(r.sysSn), r.startDate, r.finishDate))
             }
             ha.forEach {
                 if (seen.add(it.sysSn))
@@ -853,6 +857,9 @@ class UI2CompareViewModel @Inject constructor(
             heatPump = rows.sumOf { it.heatPump },
             heatPumpBackup = rows.sumOf { it.heatPumpBackup },
             heatPumpHeat = rows.sumOf { it.heatPumpHeat },
+            evActual = rows.sumOf { it.evActual },
+            hwActual = rows.sumOf { it.hwActual },
+            hpActual = rows.sumOf { it.hpActual },
             timeline = bucketize(tlRows, scale)
         )
     }
@@ -1097,7 +1104,9 @@ class UI2CompareViewModel @Inject constructor(
     ): List<com.tfcode.comparetout.model.importers.IntervalRow> = when (scale) {
         CompareAxisScale.AUTO  -> repository.getSumMonth(sysSn, from, to)
         CompareAxisScale.HOUR  -> repository.getSumHour(sysSn, from, to)
-        CompareAxisScale.DAY   -> repository.getSumDOY(sysSn, from, to)
+        // Calendar-date grouping, NOT day-of-year: a DOY key folds the same day of
+        // different years into one summed bucket, which corrupted multi-year ranges.
+        CompareAxisScale.DAY   -> repository.getSumByDate(sysSn, from, to)
         CompareAxisScale.DOW   -> repository.getSumDOW(sysSn, from, to)
         CompareAxisScale.MONTH -> repository.getSumMonth(sysSn, from, to)
         CompareAxisScale.YEAR  -> repository.getSumYear(sysSn, from, to)
@@ -1131,7 +1140,9 @@ class UI2CompareViewModel @Inject constructor(
                 labels = (0..23).map { "%02d".format(it) }) { it.trim().toIntOrNull() }
             CompareAxisScale.DOW   -> bucketizeFixed(rows, 7,
                 labels = DOWLABELS) { it.trim().toIntOrNull() }
-            CompareAxisScale.DAY   -> bucketizeSparse(rows) { it }            // DOY label
+            // Source rows key DAY buckets by calendar date (yyyy-MM-dd); sim rows
+            // still key by DOY on the synthetic 2001 grid. Render both as "d MMM yy".
+            CompareAxisScale.DAY   -> bucketizeSparse(rows) { key -> dayBucketLabel(key) }
             CompareAxisScale.MONTH -> bucketizeSparse(rows) { key ->
                 // DAO emits "yyyyMM"; render as "MMM yy".
                 if (key.length == 6) {
@@ -1156,8 +1167,20 @@ class UI2CompareViewModel @Inject constructor(
         "evSchedule" to { it.evSchedule }, "evDivert" to { it.evDivert },
         "hwSchedule" to { it.hwSchedule }, "hwDivert" to { it.hwDivert },
         "heatPump" to { it.heatPump }, "heatPumpBackup" to { it.heatPumpBackup },
-        "heatPumpHeat" to { it.heatPumpHeat }
+        "heatPumpHeat" to { it.heatPumpHeat },
+        "evActual" to { it.evActual }, "hwActual" to { it.hwActual }, "hpActual" to { it.hpActual }
     )
+
+    private val dayLabelFmt = DateTimeFormatter.ofPattern("d MMM yy")
+
+    /** DAY bucket key → label: "yyyy-MM-dd" (source rows) or DOY int (sim rows, 2001 grid). */
+    private fun dayBucketLabel(key: String): String {
+        runCatching { return LocalDate.parse(key, dateFmt).format(dayLabelFmt) }
+        key.toIntOrNull()?.let { doy ->
+            if (doy in 1..365) return LocalDate.ofYearDay(2001, doy).format(dayLabelFmt)
+        }
+        return key
+    }
 
     /**
      * Aggregate into a fixed-size axis (HOUR=24, DOW=7) where [keyToIndex]
@@ -1240,6 +1263,7 @@ class UI2CompareViewModel @Inject constructor(
         "hwSchedule" -> r.hwSchedule; "hwDivert" -> r.hwDivert
         "heatPump" -> r.heatPump; "heatPumpBackup" -> r.heatPumpBackup
         "heatPumpHeat" -> r.heatPumpHeat
+        "evActual" -> r.evActual; "hwActual" -> r.hwActual; "hpActual" -> r.hpActual
         else -> 0.0
     }
 

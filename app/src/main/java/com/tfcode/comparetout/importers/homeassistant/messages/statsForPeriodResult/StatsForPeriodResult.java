@@ -128,17 +128,18 @@ public class StatsForPeriodResult extends HAMessageWithID {
                 gridImport += doubleOrZero(sensorChanges, sensor);
             }
 
-            // Attribute classified "Individual devices" slices. Device energy is already part
-            // of the measured total, so MARK (default) only records the slice alongside the
-            // load; a device flagged adjust additionally removes its slice from the load
-            // (lossy, per-device opt-in — plans/ha/design.md §1c).
+            // Attribute "Individual devices" slices. Device energy is already part of the
+            // measured total, so MARK (default) only records the slice alongside the load;
+            // a device flagged adjust additionally removes its slice from the load (lossy,
+            // per-device opt-in — plans/ha/design.md §1c). Unmapped (OTHER) devices carry
+            // no role slice but still subtract when flagged adjust.
             double evSlice = 0D;
             double hwSlice = 0D;
             double hpSlice = 0D;
             double adjustSlice = 0D;
-            for (DeviceSensor device : energySensors.getClassifiedDevices()) {
+            for (DeviceSensor device : energySensors.getFetchDevices()) {
                 double deviceKWh = doubleOrZero(sensorChanges, device.statId);
-                switch (device.role) {
+                if (!(null == device.role)) switch (device.role) {
                     case EV:
                         evSlice += deviceKWh;
                         break;

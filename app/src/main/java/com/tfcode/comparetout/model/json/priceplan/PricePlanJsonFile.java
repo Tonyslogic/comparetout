@@ -61,6 +61,11 @@ public class PricePlanJsonFile {
     @SerializedName("DeemedExport")
     public Boolean deemedExport = false;
 
+    // Optional ISO 3166-1 alpha-2 country the supplier operates in. Absent/empty
+    // means "everywhere" — the plan is never hidden by the phone-location filter.
+    @SerializedName("Location")
+    public String location;
+
     @SerializedName("Restrictions")
     public RestrictionJson restrictions = new RestrictionJson();
 }

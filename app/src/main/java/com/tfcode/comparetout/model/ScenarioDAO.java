@@ -1943,7 +1943,7 @@ public abstract class ScenarioDAO {
             "sum(gridToBattery) AS GRID2BAT, sum(directEVcharge) AS EVSCHEDULE, sum(kWHDivToEV) AS EVDIVERT, " +
             "sum(immersionLoad) AS HWSCHEDULE, sum(kWHDivToWater) AS HWDIVERT, sum(battery2Grid) AS BAT2GRID, " +
             "sum(pvToCharge + gridToBattery) AS BAT_CHARGE, sum(batToLoad + battery2Grid) AS BAT_DISCHARGE, " +
-            "0 AS PV2GRID, 0 AS GRID2LOAD, 0 AS EV_ACTUAL, 0 AS BAT_CHARGE_IN, 0 AS BAT_DISCHARGE_OUT, sum(heatPumpLoad) AS HEATPUMP, sum(heatPumpBackupLoad) AS HEATPUMPBACKUP, sum(heatPumpHeat) AS HEATPUMPHEAT, avg(heatPumpCop) AS HEATPUMPCOP, avg(heatPumpOutdoorTemp) AS HEATPUMPTEMP, avg(heatPumpWindSpeed) AS HEATPUMPWIND, " +
+            "0 AS PV2GRID, 0 AS GRID2LOAD, 0 AS EV_ACTUAL, 0 AS BAT_CHARGE_IN, 0 AS BAT_DISCHARGE_OUT, 0 AS HW_ACTUAL, 0 AS HP_ACTUAL, sum(heatPumpLoad) AS HEATPUMP, sum(heatPumpBackupLoad) AS HEATPUMPBACKUP, sum(heatPumpHeat) AS HEATPUMPHEAT, avg(heatPumpCop) AS HEATPUMPCOP, avg(heatPumpOutdoorTemp) AS HEATPUMPTEMP, avg(heatPumpWindSpeed) AS HEATPUMPWIND, " +
             "cast ((minuteOfDay / 60) as INTEGER) AS INTERVAL " +
             "FROM scenariosimulationdata WHERE date >= :from AND date <= :to AND scenarioID = :sysSN GROUP BY  INTERVAL ORDER BY INTERVAL")
     public abstract List<IntervalRow> sumHour(String sysSN, String from, String to);
@@ -1953,7 +1953,7 @@ public abstract class ScenarioDAO {
             "sum(gridToBattery) AS GRID2BAT, sum(directEVcharge) AS EVSCHEDULE, sum(kWHDivToEV) AS EVDIVERT, " +
             "sum(immersionLoad) AS HWSCHEDULE, sum(kWHDivToWater) AS HWDIVERT, sum(battery2Grid) AS BAT2GRID, " +
             "sum(pvToCharge + gridToBattery) AS BAT_CHARGE, sum(batToLoad + battery2Grid) AS BAT_DISCHARGE, " +
-            "0 AS PV2GRID, 0 AS GRID2LOAD, 0 AS EV_ACTUAL, 0 AS BAT_CHARGE_IN, 0 AS BAT_DISCHARGE_OUT, sum(heatPumpLoad) AS HEATPUMP, sum(heatPumpBackupLoad) AS HEATPUMPBACKUP, sum(heatPumpHeat) AS HEATPUMPHEAT, avg(heatPumpCop) AS HEATPUMPCOP, avg(heatPumpOutdoorTemp) AS HEATPUMPTEMP, avg(heatPumpWindSpeed) AS HEATPUMPWIND, " +
+            "0 AS PV2GRID, 0 AS GRID2LOAD, 0 AS EV_ACTUAL, 0 AS BAT_CHARGE_IN, 0 AS BAT_DISCHARGE_OUT, 0 AS HW_ACTUAL, 0 AS HP_ACTUAL, sum(heatPumpLoad) AS HEATPUMP, sum(heatPumpBackupLoad) AS HEATPUMPBACKUP, sum(heatPumpHeat) AS HEATPUMPHEAT, avg(heatPumpCop) AS HEATPUMPCOP, avg(heatPumpOutdoorTemp) AS HEATPUMPTEMP, avg(heatPumpWindSpeed) AS HEATPUMPWIND, " +
             "cast (strftime('%j', date) as INTEGER) AS INTERVAL " +
             "FROM scenariosimulationdata WHERE date >= :from AND date <= :to AND scenarioID = :sysSN GROUP BY INTERVAL ORDER BY INTERVAL")
     public abstract List<IntervalRow> sumDOY(String sysSN, String from, String to);
@@ -1963,7 +1963,7 @@ public abstract class ScenarioDAO {
             "sum(gridToBattery) AS GRID2BAT, sum(directEVcharge) AS EVSCHEDULE, sum(kWHDivToEV) AS EVDIVERT, " +
             "sum(immersionLoad) AS HWSCHEDULE, sum(kWHDivToWater) AS HWDIVERT, sum(battery2Grid) AS BAT2GRID, " +
             "sum(pvToCharge + gridToBattery) AS BAT_CHARGE, sum(batToLoad + battery2Grid) AS BAT_DISCHARGE, " +
-            "0 AS PV2GRID, 0 AS GRID2LOAD, 0 AS EV_ACTUAL, 0 AS BAT_CHARGE_IN, 0 AS BAT_DISCHARGE_OUT, sum(heatPumpLoad) AS HEATPUMP, sum(heatPumpBackupLoad) AS HEATPUMPBACKUP, sum(heatPumpHeat) AS HEATPUMPHEAT, avg(heatPumpCop) AS HEATPUMPCOP, avg(heatPumpOutdoorTemp) AS HEATPUMPTEMP, avg(heatPumpWindSpeed) AS HEATPUMPWIND, " +
+            "0 AS PV2GRID, 0 AS GRID2LOAD, 0 AS EV_ACTUAL, 0 AS BAT_CHARGE_IN, 0 AS BAT_DISCHARGE_OUT, 0 AS HW_ACTUAL, 0 AS HP_ACTUAL, sum(heatPumpLoad) AS HEATPUMP, sum(heatPumpBackupLoad) AS HEATPUMPBACKUP, sum(heatPumpHeat) AS HEATPUMPHEAT, avg(heatPumpCop) AS HEATPUMPCOP, avg(heatPumpOutdoorTemp) AS HEATPUMPTEMP, avg(heatPumpWindSpeed) AS HEATPUMPWIND, " +
             "cast (strftime('%w', date) as INTEGER) AS INTERVAL " +
             "FROM scenariosimulationdata WHERE date >= :from AND date <= :to AND scenarioID = :sysSN GROUP BY INTERVAL ORDER BY INTERVAL")
     public abstract List<IntervalRow> sumDOW(String sysSN, String from, String to);
@@ -1973,7 +1973,7 @@ public abstract class ScenarioDAO {
             "sum(gridToBattery) AS GRID2BAT, sum(directEVcharge) AS EVSCHEDULE, sum(kWHDivToEV) AS EVDIVERT, " +
             "sum(immersionLoad) AS HWSCHEDULE, sum(kWHDivToWater) AS HWDIVERT, sum(battery2Grid) AS BAT2GRID, " +
             "sum(pvToCharge + gridToBattery) AS BAT_CHARGE, sum(batToLoad + battery2Grid) AS BAT_DISCHARGE, " +
-            "0 AS PV2GRID, 0 AS GRID2LOAD, 0 AS EV_ACTUAL, 0 AS BAT_CHARGE_IN, 0 AS BAT_DISCHARGE_OUT, sum(heatPumpLoad) AS HEATPUMP, sum(heatPumpBackupLoad) AS HEATPUMPBACKUP, sum(heatPumpHeat) AS HEATPUMPHEAT, avg(heatPumpCop) AS HEATPUMPCOP, avg(heatPumpOutdoorTemp) AS HEATPUMPTEMP, avg(heatPumpWindSpeed) AS HEATPUMPWIND, " +
+            "0 AS PV2GRID, 0 AS GRID2LOAD, 0 AS EV_ACTUAL, 0 AS BAT_CHARGE_IN, 0 AS BAT_DISCHARGE_OUT, 0 AS HW_ACTUAL, 0 AS HP_ACTUAL, sum(heatPumpLoad) AS HEATPUMP, sum(heatPumpBackupLoad) AS HEATPUMPBACKUP, sum(heatPumpHeat) AS HEATPUMPHEAT, avg(heatPumpCop) AS HEATPUMPCOP, avg(heatPumpOutdoorTemp) AS HEATPUMPTEMP, avg(heatPumpWindSpeed) AS HEATPUMPWIND, " +
             "strftime('%Y', date) || strftime('%m', date) AS INTERVAL " +
             "FROM scenariosimulationdata WHERE date >= :from AND date <= :to AND scenarioID = :sysSN GROUP BY INTERVAL ORDER BY INTERVAL")
     public abstract List<IntervalRow> sumMonth(String sysSN, String from, String to);
@@ -1983,7 +1983,7 @@ public abstract class ScenarioDAO {
             "sum(gridToBattery) AS GRID2BAT, sum(directEVcharge) AS EVSCHEDULE, sum(kWHDivToEV) AS EVDIVERT, " +
             "sum(immersionLoad) AS HWSCHEDULE, sum(kWHDivToWater) AS HWDIVERT, sum(battery2Grid) AS BAT2GRID, " +
             "sum(pvToCharge + gridToBattery) AS BAT_CHARGE, sum(batToLoad + battery2Grid) AS BAT_DISCHARGE, " +
-            "0 AS PV2GRID, 0 AS GRID2LOAD, 0 AS EV_ACTUAL, 0 AS BAT_CHARGE_IN, 0 AS BAT_DISCHARGE_OUT, sum(heatPumpLoad) AS HEATPUMP, sum(heatPumpBackupLoad) AS HEATPUMPBACKUP, sum(heatPumpHeat) AS HEATPUMPHEAT, avg(heatPumpCop) AS HEATPUMPCOP, avg(heatPumpOutdoorTemp) AS HEATPUMPTEMP, avg(heatPumpWindSpeed) AS HEATPUMPWIND, " +
+            "0 AS PV2GRID, 0 AS GRID2LOAD, 0 AS EV_ACTUAL, 0 AS BAT_CHARGE_IN, 0 AS BAT_DISCHARGE_OUT, 0 AS HW_ACTUAL, 0 AS HP_ACTUAL, sum(heatPumpLoad) AS HEATPUMP, sum(heatPumpBackupLoad) AS HEATPUMPBACKUP, sum(heatPumpHeat) AS HEATPUMPHEAT, avg(heatPumpCop) AS HEATPUMPCOP, avg(heatPumpOutdoorTemp) AS HEATPUMPTEMP, avg(heatPumpWindSpeed) AS HEATPUMPWIND, " +
             "cast (strftime('%Y', date) as INTEGER) AS INTERVAL " +
             "FROM scenariosimulationdata WHERE date >= :from AND date <= :to AND scenarioID = :sysSN GROUP BY INTERVAL ORDER BY INTERVAL")
     public abstract List<IntervalRow> sumYear(String sysSN, String from, String to);
@@ -1991,13 +1991,13 @@ public abstract class ScenarioDAO {
     @Query("SELECT avg(PV) AS PV, AVG(LOAD) AS LOAD, AVG(FEED) AS FEED, AVG(BUY) AS BUY, " +
             "avg(PV2BAT) AS PV2BAT, avg(PV2LOAD) AS PV2LOAD, avg(BAT2LOAD) AS BAT2LOAD, avg(GRID2BAT) AS GRID2BAT, " +
             "avg(EVSCHEDULE) AS EVSCHEDULE, avg(EVDIVERT) AS EVDIVERT, avg(HWSCHEDULE) AS HWSCHEDULE, avg(HWDIVERT) AS HWDIVERT," +
-            "avg(BAT2GRID) AS BAT2GRID, avg(BAT_CHARGE) AS BAT_CHARGE, avg(BAT_DISCHARGE) AS BAT_DISCHARGE, avg(PV2GRID) AS PV2GRID, avg(GRID2LOAD) AS GRID2LOAD, avg(EV_ACTUAL) AS EV_ACTUAL, avg(BAT_CHARGE_IN) AS BAT_CHARGE_IN, avg(BAT_DISCHARGE_OUT) AS BAT_DISCHARGE_OUT, avg(HEATPUMP) AS HEATPUMP, avg(HEATPUMPBACKUP) AS HEATPUMPBACKUP, avg(HEATPUMPHEAT) AS HEATPUMPHEAT, avg(HEATPUMPCOP) AS HEATPUMPCOP, avg(HEATPUMPTEMP) AS HEATPUMPTEMP, avg(HEATPUMPWIND) AS HEATPUMPWIND, INTERVAL FROM (" +
+            "avg(BAT2GRID) AS BAT2GRID, avg(BAT_CHARGE) AS BAT_CHARGE, avg(BAT_DISCHARGE) AS BAT_DISCHARGE, avg(PV2GRID) AS PV2GRID, avg(GRID2LOAD) AS GRID2LOAD, avg(EV_ACTUAL) AS EV_ACTUAL, avg(BAT_CHARGE_IN) AS BAT_CHARGE_IN, avg(BAT_DISCHARGE_OUT) AS BAT_DISCHARGE_OUT, avg(HW_ACTUAL) AS HW_ACTUAL, avg(HP_ACTUAL) AS HP_ACTUAL, avg(HEATPUMP) AS HEATPUMP, avg(HEATPUMPBACKUP) AS HEATPUMPBACKUP, avg(HEATPUMPHEAT) AS HEATPUMPHEAT, avg(HEATPUMPCOP) AS HEATPUMPCOP, avg(HEATPUMPTEMP) AS HEATPUMPTEMP, avg(HEATPUMPWIND) AS HEATPUMPWIND, INTERVAL FROM (" +
             " SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
             "sum(pvToCharge) AS PV2BAT, sum(pvToLoad) AS PV2LOAD, sum(batToLoad) AS BAT2LOAD, " +
             "sum(gridToBattery) AS GRID2BAT, sum(directEVcharge) AS EVSCHEDULE, sum(kWHDivToEV) AS EVDIVERT, " +
             "sum(immersionLoad) AS HWSCHEDULE, sum(kWHDivToWater) AS HWDIVERT, sum(battery2Grid) AS BAT2GRID, " +
             "sum(pvToCharge + gridToBattery) AS BAT_CHARGE, sum(batToLoad + battery2Grid) AS BAT_DISCHARGE, " +
-            "0 AS PV2GRID, 0 AS GRID2LOAD, 0 AS EV_ACTUAL, 0 AS BAT_CHARGE_IN, 0 AS BAT_DISCHARGE_OUT, sum(heatPumpLoad) AS HEATPUMP, sum(heatPumpBackupLoad) AS HEATPUMPBACKUP, sum(heatPumpHeat) AS HEATPUMPHEAT, avg(heatPumpCop) AS HEATPUMPCOP, avg(heatPumpOutdoorTemp) AS HEATPUMPTEMP, avg(heatPumpWindSpeed) AS HEATPUMPWIND, " +
+            "0 AS PV2GRID, 0 AS GRID2LOAD, 0 AS EV_ACTUAL, 0 AS BAT_CHARGE_IN, 0 AS BAT_DISCHARGE_OUT, 0 AS HW_ACTUAL, 0 AS HP_ACTUAL, sum(heatPumpLoad) AS HEATPUMP, sum(heatPumpBackupLoad) AS HEATPUMPBACKUP, sum(heatPumpHeat) AS HEATPUMPHEAT, avg(heatPumpCop) AS HEATPUMPCOP, avg(heatPumpOutdoorTemp) AS HEATPUMPTEMP, avg(heatPumpWindSpeed) AS HEATPUMPWIND, " +
             "cast ((minuteOfDay / 60) as INTEGER) AS INTERVAL " +
             " FROM scenariosimulationdata WHERE date >= :from AND date <= :to AND scenarioID = :sysSN " +
             " GROUP BY cast (strftime('%Y', date) as integer), cast (strftime('%j', date) as integer), INTERVAL ORDER BY INTERVAL " +
@@ -2007,13 +2007,13 @@ public abstract class ScenarioDAO {
     @Query("SELECT avg(PV) AS PV, AVG(LOAD) AS LOAD, AVG(FEED) AS FEED, AVG(BUY) AS BUY, " +
             "avg(PV2BAT) AS PV2BAT, avg(PV2LOAD) AS PV2LOAD, avg(BAT2LOAD) AS BAT2LOAD, avg(GRID2BAT) AS GRID2BAT, " +
             "avg(EVSCHEDULE) AS EVSCHEDULE, avg(EVDIVERT) AS EVDIVERT, avg(HWSCHEDULE) AS HWSCHEDULE, avg(HWDIVERT) AS HWDIVERT," +
-            "avg(BAT2GRID) AS BAT2GRID, avg(BAT_CHARGE) AS BAT_CHARGE, avg(BAT_DISCHARGE) AS BAT_DISCHARGE, avg(PV2GRID) AS PV2GRID, avg(GRID2LOAD) AS GRID2LOAD, avg(EV_ACTUAL) AS EV_ACTUAL, avg(BAT_CHARGE_IN) AS BAT_CHARGE_IN, avg(BAT_DISCHARGE_OUT) AS BAT_DISCHARGE_OUT, avg(HEATPUMP) AS HEATPUMP, avg(HEATPUMPBACKUP) AS HEATPUMPBACKUP, avg(HEATPUMPHEAT) AS HEATPUMPHEAT, avg(HEATPUMPCOP) AS HEATPUMPCOP, avg(HEATPUMPTEMP) AS HEATPUMPTEMP, avg(HEATPUMPWIND) AS HEATPUMPWIND, INTERVAL FROM ( " +
+            "avg(BAT2GRID) AS BAT2GRID, avg(BAT_CHARGE) AS BAT_CHARGE, avg(BAT_DISCHARGE) AS BAT_DISCHARGE, avg(PV2GRID) AS PV2GRID, avg(GRID2LOAD) AS GRID2LOAD, avg(EV_ACTUAL) AS EV_ACTUAL, avg(BAT_CHARGE_IN) AS BAT_CHARGE_IN, avg(BAT_DISCHARGE_OUT) AS BAT_DISCHARGE_OUT, avg(HW_ACTUAL) AS HW_ACTUAL, avg(HP_ACTUAL) AS HP_ACTUAL, avg(HEATPUMP) AS HEATPUMP, avg(HEATPUMPBACKUP) AS HEATPUMPBACKUP, avg(HEATPUMPHEAT) AS HEATPUMPHEAT, avg(HEATPUMPCOP) AS HEATPUMPCOP, avg(HEATPUMPTEMP) AS HEATPUMPTEMP, avg(HEATPUMPWIND) AS HEATPUMPWIND, INTERVAL FROM ( " +
             " SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
             "sum(pvToCharge) AS PV2BAT, sum(pvToLoad) AS PV2LOAD, sum(batToLoad) AS BAT2LOAD, " +
             "sum(gridToBattery) AS GRID2BAT, sum(directEVcharge) AS EVSCHEDULE, sum(kWHDivToEV) AS EVDIVERT, " +
             "sum(immersionLoad) AS HWSCHEDULE, sum(kWHDivToWater) AS HWDIVERT, sum(battery2Grid) AS BAT2GRID, " +
             "sum(pvToCharge + gridToBattery) AS BAT_CHARGE, sum(batToLoad + battery2Grid) AS BAT_DISCHARGE, " +
-            "0 AS PV2GRID, 0 AS GRID2LOAD, 0 AS EV_ACTUAL, 0 AS BAT_CHARGE_IN, 0 AS BAT_DISCHARGE_OUT, sum(heatPumpLoad) AS HEATPUMP, sum(heatPumpBackupLoad) AS HEATPUMPBACKUP, sum(heatPumpHeat) AS HEATPUMPHEAT, avg(heatPumpCop) AS HEATPUMPCOP, avg(heatPumpOutdoorTemp) AS HEATPUMPTEMP, avg(heatPumpWindSpeed) AS HEATPUMPWIND, " +
+            "0 AS PV2GRID, 0 AS GRID2LOAD, 0 AS EV_ACTUAL, 0 AS BAT_CHARGE_IN, 0 AS BAT_DISCHARGE_OUT, 0 AS HW_ACTUAL, 0 AS HP_ACTUAL, sum(heatPumpLoad) AS HEATPUMP, sum(heatPumpBackupLoad) AS HEATPUMPBACKUP, sum(heatPumpHeat) AS HEATPUMPHEAT, avg(heatPumpCop) AS HEATPUMPCOP, avg(heatPumpOutdoorTemp) AS HEATPUMPTEMP, avg(heatPumpWindSpeed) AS HEATPUMPWIND, " +
             "cast (strftime('%j', date) as INTEGER) AS INTERVAL " +
             " FROM scenariosimulationdata WHERE date >= :from AND date <= :to AND scenarioID = :sysSN GROUP BY cast (strftime('%Y', date) as integer), INTERVAL ORDER BY INTERVAL " +
             " ) GROUP BY INTERVAL")
@@ -2022,13 +2022,13 @@ public abstract class ScenarioDAO {
     @Query("SELECT avg(PV) AS PV, AVG(LOAD) AS LOAD, AVG(FEED) AS FEED, AVG(BUY) AS BUY, " +
             "avg(PV2BAT) AS PV2BAT, avg(PV2LOAD) AS PV2LOAD, avg(BAT2LOAD) AS BAT2LOAD, avg(GRID2BAT) AS GRID2BAT, " +
             "avg(EVSCHEDULE) AS EVSCHEDULE, avg(EVDIVERT) AS EVDIVERT, avg(HWSCHEDULE) AS HWSCHEDULE, avg(HWDIVERT) AS HWDIVERT," +
-            "avg(BAT2GRID) AS BAT2GRID, avg(BAT_CHARGE) AS BAT_CHARGE, avg(BAT_DISCHARGE) AS BAT_DISCHARGE, avg(PV2GRID) AS PV2GRID, avg(GRID2LOAD) AS GRID2LOAD, avg(EV_ACTUAL) AS EV_ACTUAL, avg(BAT_CHARGE_IN) AS BAT_CHARGE_IN, avg(BAT_DISCHARGE_OUT) AS BAT_DISCHARGE_OUT, avg(HEATPUMP) AS HEATPUMP, avg(HEATPUMPBACKUP) AS HEATPUMPBACKUP, avg(HEATPUMPHEAT) AS HEATPUMPHEAT, avg(HEATPUMPCOP) AS HEATPUMPCOP, avg(HEATPUMPTEMP) AS HEATPUMPTEMP, avg(HEATPUMPWIND) AS HEATPUMPWIND, INTERVAL FROM (" +
+            "avg(BAT2GRID) AS BAT2GRID, avg(BAT_CHARGE) AS BAT_CHARGE, avg(BAT_DISCHARGE) AS BAT_DISCHARGE, avg(PV2GRID) AS PV2GRID, avg(GRID2LOAD) AS GRID2LOAD, avg(EV_ACTUAL) AS EV_ACTUAL, avg(BAT_CHARGE_IN) AS BAT_CHARGE_IN, avg(BAT_DISCHARGE_OUT) AS BAT_DISCHARGE_OUT, avg(HW_ACTUAL) AS HW_ACTUAL, avg(HP_ACTUAL) AS HP_ACTUAL, avg(HEATPUMP) AS HEATPUMP, avg(HEATPUMPBACKUP) AS HEATPUMPBACKUP, avg(HEATPUMPHEAT) AS HEATPUMPHEAT, avg(HEATPUMPCOP) AS HEATPUMPCOP, avg(HEATPUMPTEMP) AS HEATPUMPTEMP, avg(HEATPUMPWIND) AS HEATPUMPWIND, INTERVAL FROM (" +
             " SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
             "sum(pvToCharge) AS PV2BAT, sum(pvToLoad) AS PV2LOAD, sum(batToLoad) AS BAT2LOAD, " +
             "sum(gridToBattery) AS GRID2BAT, sum(directEVcharge) AS EVSCHEDULE, sum(kWHDivToEV) AS EVDIVERT, " +
             "sum(immersionLoad) AS HWSCHEDULE, sum(kWHDivToWater) AS HWDIVERT, sum(battery2Grid) AS BAT2GRID, " +
             "sum(pvToCharge + gridToBattery) AS BAT_CHARGE, sum(batToLoad + battery2Grid) AS BAT_DISCHARGE, " +
-            "0 AS PV2GRID, 0 AS GRID2LOAD, 0 AS EV_ACTUAL, 0 AS BAT_CHARGE_IN, 0 AS BAT_DISCHARGE_OUT, sum(heatPumpLoad) AS HEATPUMP, sum(heatPumpBackupLoad) AS HEATPUMPBACKUP, sum(heatPumpHeat) AS HEATPUMPHEAT, avg(heatPumpCop) AS HEATPUMPCOP, avg(heatPumpOutdoorTemp) AS HEATPUMPTEMP, avg(heatPumpWindSpeed) AS HEATPUMPWIND, " +
+            "0 AS PV2GRID, 0 AS GRID2LOAD, 0 AS EV_ACTUAL, 0 AS BAT_CHARGE_IN, 0 AS BAT_DISCHARGE_OUT, 0 AS HW_ACTUAL, 0 AS HP_ACTUAL, sum(heatPumpLoad) AS HEATPUMP, sum(heatPumpBackupLoad) AS HEATPUMPBACKUP, sum(heatPumpHeat) AS HEATPUMPHEAT, avg(heatPumpCop) AS HEATPUMPCOP, avg(heatPumpOutdoorTemp) AS HEATPUMPTEMP, avg(heatPumpWindSpeed) AS HEATPUMPWIND, " +
             "cast (strftime('%w', date) as INTEGER) AS INTERVAL " +
             " FROM scenariosimulationdata WHERE date >= :from AND date <= :to AND scenarioID = :sysSN " +
             " GROUP BY cast (strftime('%Y', date) as integer), cast (strftime('%W', date) as integer), INTERVAL ORDER BY INTERVAL" +
@@ -2038,13 +2038,13 @@ public abstract class ScenarioDAO {
     @Query("SELECT avg(PV) AS PV, AVG(LOAD) AS LOAD, AVG(FEED) AS FEED, AVG(BUY) AS BUY, " +
             "avg(PV2BAT) AS PV2BAT, avg(PV2LOAD) AS PV2LOAD, avg(BAT2LOAD) AS BAT2LOAD, avg(GRID2BAT) AS GRID2BAT, " +
             "avg(EVSCHEDULE) AS EVSCHEDULE, avg(EVDIVERT) AS EVDIVERT, avg(HWSCHEDULE) AS HWSCHEDULE, avg(HWDIVERT) AS HWDIVERT," +
-            "avg(BAT2GRID) AS BAT2GRID, avg(BAT_CHARGE) AS BAT_CHARGE, avg(BAT_DISCHARGE) AS BAT_DISCHARGE, avg(PV2GRID) AS PV2GRID, avg(GRID2LOAD) AS GRID2LOAD, avg(EV_ACTUAL) AS EV_ACTUAL, avg(BAT_CHARGE_IN) AS BAT_CHARGE_IN, avg(BAT_DISCHARGE_OUT) AS BAT_DISCHARGE_OUT, avg(HEATPUMP) AS HEATPUMP, avg(HEATPUMPBACKUP) AS HEATPUMPBACKUP, avg(HEATPUMPHEAT) AS HEATPUMPHEAT, avg(HEATPUMPCOP) AS HEATPUMPCOP, avg(HEATPUMPTEMP) AS HEATPUMPTEMP, avg(HEATPUMPWIND) AS HEATPUMPWIND, INTERVAL FROM (" +
+            "avg(BAT2GRID) AS BAT2GRID, avg(BAT_CHARGE) AS BAT_CHARGE, avg(BAT_DISCHARGE) AS BAT_DISCHARGE, avg(PV2GRID) AS PV2GRID, avg(GRID2LOAD) AS GRID2LOAD, avg(EV_ACTUAL) AS EV_ACTUAL, avg(BAT_CHARGE_IN) AS BAT_CHARGE_IN, avg(BAT_DISCHARGE_OUT) AS BAT_DISCHARGE_OUT, avg(HW_ACTUAL) AS HW_ACTUAL, avg(HP_ACTUAL) AS HP_ACTUAL, avg(HEATPUMP) AS HEATPUMP, avg(HEATPUMPBACKUP) AS HEATPUMPBACKUP, avg(HEATPUMPHEAT) AS HEATPUMPHEAT, avg(HEATPUMPCOP) AS HEATPUMPCOP, avg(HEATPUMPTEMP) AS HEATPUMPTEMP, avg(HEATPUMPWIND) AS HEATPUMPWIND, INTERVAL FROM (" +
             " SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
             "sum(pvToCharge) AS PV2BAT, sum(pvToLoad) AS PV2LOAD, sum(batToLoad) AS BAT2LOAD, " +
             "sum(gridToBattery) AS GRID2BAT, sum(directEVcharge) AS EVSCHEDULE, sum(kWHDivToEV) AS EVDIVERT, " +
             "sum(immersionLoad) AS HWSCHEDULE, sum(kWHDivToWater) AS HWDIVERT, sum(battery2Grid) AS BAT2GRID, " +
             "sum(pvToCharge + gridToBattery) AS BAT_CHARGE, sum(batToLoad + battery2Grid) AS BAT_DISCHARGE, " +
-            "0 AS PV2GRID, 0 AS GRID2LOAD, 0 AS EV_ACTUAL, 0 AS BAT_CHARGE_IN, 0 AS BAT_DISCHARGE_OUT, sum(heatPumpLoad) AS HEATPUMP, sum(heatPumpBackupLoad) AS HEATPUMPBACKUP, sum(heatPumpHeat) AS HEATPUMPHEAT, avg(heatPumpCop) AS HEATPUMPCOP, avg(heatPumpOutdoorTemp) AS HEATPUMPTEMP, avg(heatPumpWindSpeed) AS HEATPUMPWIND, " +
+            "0 AS PV2GRID, 0 AS GRID2LOAD, 0 AS EV_ACTUAL, 0 AS BAT_CHARGE_IN, 0 AS BAT_DISCHARGE_OUT, 0 AS HW_ACTUAL, 0 AS HP_ACTUAL, sum(heatPumpLoad) AS HEATPUMP, sum(heatPumpBackupLoad) AS HEATPUMPBACKUP, sum(heatPumpHeat) AS HEATPUMPHEAT, avg(heatPumpCop) AS HEATPUMPCOP, avg(heatPumpOutdoorTemp) AS HEATPUMPTEMP, avg(heatPumpWindSpeed) AS HEATPUMPWIND, " +
             "strftime('%m', date) as INTERVAL" +
             " FROM scenariosimulationdata WHERE date >= :from AND date <= :to AND scenarioID = :sysSN " +
             " GROUP BY INTERVAL ORDER BY INTERVAL, date) GROUP BY INTERVAL")
@@ -2053,13 +2053,13 @@ public abstract class ScenarioDAO {
     @Query("SELECT avg(PV) AS PV, AVG(LOAD) AS LOAD, AVG(FEED) AS FEED, AVG(BUY) AS BUY, " +
             "avg(PV2BAT) AS PV2BAT, avg(PV2LOAD) AS PV2LOAD, avg(BAT2LOAD) AS BAT2LOAD, avg(GRID2BAT) AS GRID2BAT, " +
             "avg(EVSCHEDULE) AS EVSCHEDULE, avg(EVDIVERT) AS EVDIVERT, avg(HWSCHEDULE) AS HWSCHEDULE, avg(HWDIVERT) AS HWDIVERT," +
-            "avg(BAT2GRID) AS BAT2GRID, avg(BAT_CHARGE) AS BAT_CHARGE, avg(BAT_DISCHARGE) AS BAT_DISCHARGE, avg(PV2GRID) AS PV2GRID, avg(GRID2LOAD) AS GRID2LOAD, avg(EV_ACTUAL) AS EV_ACTUAL, avg(BAT_CHARGE_IN) AS BAT_CHARGE_IN, avg(BAT_DISCHARGE_OUT) AS BAT_DISCHARGE_OUT, avg(HEATPUMP) AS HEATPUMP, avg(HEATPUMPBACKUP) AS HEATPUMPBACKUP, avg(HEATPUMPHEAT) AS HEATPUMPHEAT, avg(HEATPUMPCOP) AS HEATPUMPCOP, avg(HEATPUMPTEMP) AS HEATPUMPTEMP, avg(HEATPUMPWIND) AS HEATPUMPWIND, INTERVAL FROM (" +
+            "avg(BAT2GRID) AS BAT2GRID, avg(BAT_CHARGE) AS BAT_CHARGE, avg(BAT_DISCHARGE) AS BAT_DISCHARGE, avg(PV2GRID) AS PV2GRID, avg(GRID2LOAD) AS GRID2LOAD, avg(EV_ACTUAL) AS EV_ACTUAL, avg(BAT_CHARGE_IN) AS BAT_CHARGE_IN, avg(BAT_DISCHARGE_OUT) AS BAT_DISCHARGE_OUT, avg(HW_ACTUAL) AS HW_ACTUAL, avg(HP_ACTUAL) AS HP_ACTUAL, avg(HEATPUMP) AS HEATPUMP, avg(HEATPUMPBACKUP) AS HEATPUMPBACKUP, avg(HEATPUMPHEAT) AS HEATPUMPHEAT, avg(HEATPUMPCOP) AS HEATPUMPCOP, avg(HEATPUMPTEMP) AS HEATPUMPTEMP, avg(HEATPUMPWIND) AS HEATPUMPWIND, INTERVAL FROM (" +
             " SELECT sum(pv) as PV, sum(load) AS LOAD, sum(feed) AS FEED, sum(buy) AS BUY, " +
             "sum(pvToCharge) AS PV2BAT, sum(pvToLoad) AS PV2LOAD, sum(batToLoad) AS BAT2LOAD, " +
             "sum(gridToBattery) AS GRID2BAT, sum(directEVcharge) AS EVSCHEDULE, sum(kWHDivToEV) AS EVDIVERT, " +
             "sum(immersionLoad) AS HWSCHEDULE, sum(kWHDivToWater) AS HWDIVERT, sum(battery2Grid) AS BAT2GRID, " +
             "sum(pvToCharge + gridToBattery) AS BAT_CHARGE, sum(batToLoad + battery2Grid) AS BAT_DISCHARGE, " +
-            "0 AS PV2GRID, 0 AS GRID2LOAD, 0 AS EV_ACTUAL, 0 AS BAT_CHARGE_IN, 0 AS BAT_DISCHARGE_OUT, sum(heatPumpLoad) AS HEATPUMP, sum(heatPumpBackupLoad) AS HEATPUMPBACKUP, sum(heatPumpHeat) AS HEATPUMPHEAT, avg(heatPumpCop) AS HEATPUMPCOP, avg(heatPumpOutdoorTemp) AS HEATPUMPTEMP, avg(heatPumpWindSpeed) AS HEATPUMPWIND, " +
+            "0 AS PV2GRID, 0 AS GRID2LOAD, 0 AS EV_ACTUAL, 0 AS BAT_CHARGE_IN, 0 AS BAT_DISCHARGE_OUT, 0 AS HW_ACTUAL, 0 AS HP_ACTUAL, sum(heatPumpLoad) AS HEATPUMP, sum(heatPumpBackupLoad) AS HEATPUMPBACKUP, sum(heatPumpHeat) AS HEATPUMPHEAT, avg(heatPumpCop) AS HEATPUMPCOP, avg(heatPumpOutdoorTemp) AS HEATPUMPTEMP, avg(heatPumpWindSpeed) AS HEATPUMPWIND, " +
             "cast (strftime('%Y', date) as INTEGER) AS INTERVAL" +
             " FROM scenariosimulationdata WHERE date >= :from AND date <= :to AND scenarioID = :sysSN GROUP BY INTERVAL ORDER BY INTERVAL )")
     public abstract List<IntervalRow> avgYear(String sysSN, String from, String to);

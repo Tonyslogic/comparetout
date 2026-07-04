@@ -606,13 +606,18 @@ public class ComparisonUIViewModel extends AndroidViewModel {
         // Compare UI can grey out series a selected subject has no data for. The
         // ids match USAGE_SERIES in UI2CompareViewModel.kt. ESBN HDF is meter data
         // (import/export only); AlphaESS / Home Assistant carry the measured
-        // inverter flows. SIMULATION declares the full catalogue (including the
-        // simulation-only schedule/divert/charge flows); the UI narrows it per
-        // scenario (e.g. no PV / battery / EV / HW flows when the scenario lacks
-        // those components).
-        ALPHAESS(java.util.Set.of("load", "buy", "feed", "pv", "pv2load", "bat2load", "grid2bat")),
+        // inverter flows. Declare only series the importer actually POPULATES —
+        // a declared-but-always-zero series renders as an empty chart, which is
+        // worse than a greyed chip (HA never writes the pv2load/bat2load/grid2bat
+        // decomposition; it stores signed battery charge plus the device actuals).
+        // SIMULATION declares the full catalogue (including the simulation-only
+        // schedule/divert/charge flows); the UI narrows it per scenario (e.g. no
+        // PV / battery / EV / HW flows when the scenario lacks those components).
+        ALPHAESS(java.util.Set.of("load", "buy", "feed", "pv", "pv2load", "bat2load", "grid2bat",
+                "charge", "discharge", "evActual")),
         ESBNHDF(java.util.Set.of("buy", "feed")),
-        HOME_ASSISTANT(java.util.Set.of("load", "buy", "feed", "pv", "pv2load", "bat2load", "grid2bat")),
+        HOME_ASSISTANT(java.util.Set.of("load", "buy", "feed", "pv",
+                "charge", "discharge", "evActual", "hwActual", "hpActual")),
         OCTOPUS(java.util.Set.of("buy", "feed")),
         SIMULATION(java.util.Set.of("load", "buy", "feed", "pv", "pv2load", "bat2load", "grid2bat",
                 "charge", "discharge", "evSchedule", "evDivert", "hwSchedule", "hwDivert",
@@ -627,6 +632,22 @@ public class ComparisonUIViewModel extends AndroidViewModel {
         /** Energy-flow series ids this importer can provide (see USAGE_SERIES). */
         public java.util.Set<String> getProvidedEnergySeries() {
             return providedEnergySeries;
+        }
+
+        /**
+         * The single sysSn-namespace registry. Every importer that shares the
+         * transformed-data table claims its rows here, so list builders and the
+         * legacy compare dialog classify identically. AlphaESS serials carry no
+         * marker prefix — callers that mix AlphaESS rows in must check their own
+         * system list first; for the shared ESBN/HA/Octopus namespaces the
+         * fallback is ESBNHDF (MPRNs), matching the pre-existing behaviour.
+         * Adding a source = one new rule here.
+         */
+        public static Importer forSysSn(String sysSn) {
+            if (null == sysSn) return ESBNHDF;
+            if ("HomeAssistant".equals(sysSn)) return HOME_ASSISTANT;
+            if (sysSn.startsWith("Octopus-")) return OCTOPUS;
+            return ESBNHDF;
         }
     }
 

@@ -133,6 +133,7 @@ public class JsonTools {
         p.setLastUpdate(pp.lastUpdate);
         p.setReference(pp.reference);
         p.setDeemedExport(pp.deemedExport);
+        if (!(null == pp.location)) p.setLocation(pp.location);
         Restrictions restrictions = new Restrictions();
         RestrictionJson rj = pp.restrictions;
         if (!(null == rj)) {
@@ -237,6 +238,7 @@ public class JsonTools {
                 ppj.reference = entry.getKey().getReference();
                 ppj.supplier = entry.getKey().getSupplier();
                 ppj.deemedExport = entry.getKey().isDeemedExport();
+                ppj.location = entry.getKey().getLocation();
                 RestrictionJson restrictions = new RestrictionJson();
                 restrictions.active = entry.getKey().getRestrictions().isActive();
                 restrictions.restrictionEntries = new ArrayList<>();
@@ -298,6 +300,7 @@ public class JsonTools {
         ppj.reference = pp.getReference();
         ppj.supplier = pp.getSupplier();
         ppj.deemedExport = pp.isDeemedExport();
+        ppj.location = pp.getLocation();
         RestrictionJson restrictions = new RestrictionJson();
         if (!(null == pp.getRestrictions())) {
             restrictions.active = pp.getRestrictions().isActive();

@@ -46,6 +46,11 @@ public class IntervalRow {
     @ColumnInfo(name= "BAT_CHARGE_IN") public double batChargeIn = 0.0;
     @ColumnInfo(name= "BAT_DISCHARGE_OUT") public double batDischargeOut = 0.0;
 
+    // v14 device actuals — populated by Home Assistant ingestion when devices are
+    // classified (hot water / heat pump slices). 0 for other importers and sims.
+    @ColumnInfo(name= "HW_ACTUAL") public double hwActual = 0.0;
+    @ColumnInfo(name= "HP_ACTUAL") public double hpActual = 0.0;
+
     // Heat pump — scenario-only (0 for importer data). load/backup/heat are summed energies;
     // cop/temp/wind are averaged drivers.
     @ColumnInfo(name= "HEATPUMP") public double heatPump = 0.0;

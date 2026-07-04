@@ -383,9 +383,12 @@ public class ImportHAOverview extends ImportOverviewFragment {
                             .build();
 
             WorkManager.getInstance(context).pruneWork();
+            // APPEND_OR_REPLACE, not APPEND: APPEND chains onto the existing unique
+            // work even when it FAILED/CANCELLED, so one bad run silently strands
+            // every later fetch (no worker, no notification, no data).
             WorkManager
                     .getInstance(context)
-                    .beginUniqueWork(serialNumber, ExistingWorkPolicy.APPEND, catchupWorkRequest)
+                    .beginUniqueWork(serialNumber, ExistingWorkPolicy.APPEND_OR_REPLACE, catchupWorkRequest)
                     .enqueue();
 
             // Start the daily recurring worker for ongoing data synchronization

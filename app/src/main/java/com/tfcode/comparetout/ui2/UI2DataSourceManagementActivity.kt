@@ -13,14 +13,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -38,6 +35,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudOff
@@ -55,8 +53,11 @@ import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.DateRangePicker
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -88,9 +89,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -145,13 +146,13 @@ private fun DataSourceManagementScreen(
     viewModel: UI2DataSourceManagementViewModel = hiltViewModel(),
     onClose: () -> Unit
 ) {
+    val uiVis = rememberUiVisibility()
     val alphaRaw by viewModel.alpha.observeAsState()
     val haRaw by viewModel.ha.observeAsState()
     val esbnRaw by viewModel.esbn.observeAsState()
     val octopusRaw by viewModel.octopus.observeAsState()
     val fetchMap by viewModel.fetchStatus.observeAsState(emptyMap())
     val haSensors by viewModel.haSensors.observeAsState()
-    val haBackfillPreview by viewModel.haBackfillPreview.observeAsState()
     val pvgis by viewModel.pvgis.observeAsState()
     val cds by viewModel.cds.observeAsState()
     val busy by viewModel.busy.observeAsState(false)
@@ -221,7 +222,9 @@ private fun DataSourceManagementScreen(
                 if (showHints) {
                     item("intro") { IntroHint() }
                 }
-                item("alpha") {
+                // Source-visibility gating (App settings): a hidden source's card is
+                // not rendered — its data and any scheduled fetches are untouched.
+                if (uiVis.alphaess) item("alpha") {
                     SourceAccordion(
                         title = "AlphaESS Cloud",
                         subtitle = "Inverter sync via OpenAPI",
@@ -246,7 +249,7 @@ private fun DataSourceManagementScreen(
                         }
                     )
                 }
-                item("ha") {
+                if (uiVis.homeassistant) item("ha") {
                     SourceAccordion(
                         title = "Home Assistant",
                         subtitle = "WebSocket + Energy dashboard",
@@ -263,20 +266,12 @@ private fun DataSourceManagementScreen(
                                 onDeleteAll = viewModel::deleteAllData,
                                 onDeleteRange = viewModel::deleteRange,
                                 onRemoveSource = { viewModel.deleteEntireSource(Importer.HOME_ASSISTANT) },
-                                // Backfill candidates: any other source with stored data.
-                                backfillSources = (alpha?.systems.orEmpty() +
-                                        esbn?.systems.orEmpty() +
-                                        octopus?.systems.orEmpty())
-                                    .filter { it.startDate != null },
-                                backfillPreview = haBackfillPreview,
-                                onBackfillPreview = viewModel::previewHaBackfill,
-                                onBackfillCommit = viewModel::startHaBackfill,
-                                onBackfillClear = viewModel::clearHaBackfillPreview
+                                onDeviceChange = viewModel::setHaDeviceClassification
                             )
                         }
                     )
                 }
-                item("esbn") {
+                if (uiVis.esbn) item("esbn") {
                     SourceAccordion(
                         title = "ESBN Smart Meter",
                         subtitle = "HDF file import (cloud sync deprecated)",
@@ -295,7 +290,7 @@ private fun DataSourceManagementScreen(
                         }
                     )
                 }
-                item("octopus") {
+                if (uiVis.octopus) item("octopus") {
                     SourceAccordion(
                         title = "Octopus Energy",
                         subtitle = "Half-hourly meter sync + tariff import",
@@ -620,11 +615,7 @@ private fun HASection(
     onDeleteAll: (String) -> Unit,
     onDeleteRange: (String, LocalDateTime, LocalDateTime) -> Unit,
     onRemoveSource: () -> Unit,
-    backfillSources: List<ManagedSystem>,
-    backfillPreview: HaBackfillPreview?,
-    onBackfillPreview: (String, LocalDate, LocalDate, String) -> Unit,
-    onBackfillCommit: (String, LocalDate, LocalDate, Boolean, List<String>) -> Unit,
-    onBackfillClear: () -> Unit
+    onDeviceChange: (String, String, Boolean) -> Unit
 ) {
     var showCreds by remember { mutableStateOf(false) }
     var showDeleteSource by remember { mutableStateOf(false) }
@@ -669,18 +660,43 @@ private fun HASection(
             // Re-discovery needs current credentials — we ask again rather
             // than decrypt-and-reuse, so users see what's about to be sent.
             showCreds = true
-        }
+        },
+        onDeviceChange = onDeviceChange
     )
 
-    HaBackfillPanel(
-        enabled = state?.credentialsKnownGood == true,
-        haveSensors = sensors != null,
-        sources = backfillSources,
-        preview = backfillPreview,
-        onPreview = onBackfillPreview,
-        onCommit = onBackfillCommit,
-        onClear = onBackfillClear
-    )
+    // Backfill is a multi-step flow (source → timeframe → series → preview →
+    // commit) — too much for a nested accordion, so it opens its own wizard.
+    run {
+        val context = LocalContext.current
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+            shape = RoundedCornerShape(10.dp),
+            modifier = Modifier.fillMaxWidth().clickable(
+                enabled = state?.credentialsKnownGood == true
+            ) {
+                context.startActivity(
+                    android.content.Intent(context, UI2HaBackfillActivity::class.java))
+            }
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text("Backfill Home Assistant",
+                        style = MaterialTheme.typography.titleSmall)
+                    Text(
+                        if (state?.credentialsKnownGood == true)
+                            "Push another source's history into HA statistics"
+                        else "Connect Home Assistant first",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
 
     if (showCreds) {
         CredentialDialog(
@@ -736,7 +752,8 @@ private fun HASensorsAccordion(
     sensors: HASensorSnapshot?,
     showHints: Boolean,
     canRediscover: Boolean,
-    onRediscover: () -> Unit
+    onRediscover: () -> Unit,
+    onDeviceChange: (String, String, Boolean) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
     val summary = when {
@@ -810,14 +827,18 @@ private fun HASensorsAccordion(
                             }
                         }
                         if (sensors.devices.isNotEmpty()) {
-                            Text("Individual devices (classify in the legacy HA import screen)",
+                            Text("Individual devices",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            sensors.devices.forEach { (label, role) ->
-                                Text("  $label · ${role.lowercase().replace('_', ' ')}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontFamily = FontFamily.Monospace,
-                                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            if (showHints) {
+                                Text("EV / hot water / heat pump devices feed scenario " +
+                                        "derivation; \"Remove from load\" also subtracts the " +
+                                        "device's energy at import (any role).",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            sensors.devices.forEach { device ->
+                                HADeviceClassifyRow(device, onDeviceChange)
                             }
                         }
                     } else if (!canRediscover) {
@@ -827,6 +848,55 @@ private fun HASensorsAccordion(
                     }
                 }
             }
+        }
+    }
+}
+
+/**
+ * One editable device row: label, role dropdown (Ignore / EV / Hot water /
+ * Heat pump) and the "Remove from load" opt-in. Persists per change via
+ * [UI2DataSourceManagementViewModel.setHaDeviceClassification] — the sensor
+ * mapping to the table columns is handled here; no legacy screen involved.
+ */
+@Composable
+private fun HADeviceClassifyRow(
+    device: HADeviceRow,
+    onDeviceChange: (String, String, Boolean) -> Unit
+) {
+    val roleNames = listOf("OTHER", "EV", "HOT_WATER", "HEAT_PUMP")
+    val roleLabels = listOf("Ignore", "EV", "Hot water", "Heat pump")
+    var menuOpen by remember { mutableStateOf(false) }
+    Column(Modifier.fillMaxWidth().padding(start = 8.dp)) {
+        Text(device.label,
+            style = MaterialTheme.typography.bodySmall,
+            fontFamily = FontFamily.Monospace,
+            maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box {
+                OutlinedButton(onClick = { menuOpen = true }) {
+                    Text(roleLabels.getOrElse(roleNames.indexOf(device.role)) { "Ignore" })
+                    Icon(Icons.Default.KeyboardArrowDown, null, Modifier.size(16.dp))
+                }
+                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                    roleLabels.forEachIndexed { i, label ->
+                        DropdownMenuItem(
+                            text = { Text(label) },
+                            onClick = {
+                                menuOpen = false
+                                onDeviceChange(device.statId, roleNames[i], device.adjust)
+                            }
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.width(8.dp))
+            Checkbox(
+                checked = device.adjust,
+                onCheckedChange = { onDeviceChange(device.statId, device.role, it) }
+            )
+            Text("Remove from load",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
@@ -842,239 +912,6 @@ private fun SensorList(label: String, sensors: List<String>) {
             style = MaterialTheme.typography.bodySmall,
             fontFamily = FontFamily.Monospace,
             maxLines = 1, overflow = TextOverflow.Ellipsis)
-    }
-}
-
-/**
- * "Backfill Home Assistant" — replaces the old "Push to HA · coming soon" placeholder.
- * Pushes another source's stored history into HA hourly statistics via [HABackfillWorker];
- * commit is gated on the graphical HA-vs-source preview (plans/ha/design.md, Enhancement 2).
- */
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun HaBackfillPanel(
-    enabled: Boolean,
-    haveSensors: Boolean,
-    sources: List<ManagedSystem>,
-    preview: HaBackfillPreview?,
-    onPreview: (String, LocalDate, LocalDate, String) -> Unit,
-    onCommit: (String, LocalDate, LocalDate, Boolean, List<String>) -> Unit,
-    onClear: () -> Unit
-) {
-    var expanded by remember { mutableStateOf(false) }
-    var sourceSn by remember { mutableStateOf<String?>(null) }
-    var fromText by remember { mutableStateOf("") }
-    var toText by remember { mutableStateOf("") }
-    var series by remember { mutableStateOf(setOf("buy")) }
-    var fixReal by remember { mutableStateOf(true) }
-
-    val from = runCatching { LocalDate.parse(fromText) }.getOrNull()
-    val to = runCatching { LocalDate.parse(toText) }.getOrNull()
-    val rangeValid = from != null && to != null && !from.isAfter(to)
-    val ready = enabled && sourceSn != null && rangeValid && series.isNotEmpty() &&
-            (!fixReal || haveSensors)
-
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
-        shape = RoundedCornerShape(10.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { expanded = !expanded; if (!expanded) onClear() }
-                    .padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text("Backfill Home Assistant",
-                        style = MaterialTheme.typography.titleSmall)
-                    Text("Push another source's history into HA statistics",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-                Icon(
-                    if (expanded) Icons.Default.KeyboardArrowUp
-                    else Icons.Default.KeyboardArrowDown,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            if (expanded) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
-                Column(
-                    Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    if (!enabled) {
-                        Text("Connect Home Assistant first.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    if (sources.isEmpty()) {
-                        Text("No other source has stored data to push.",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    } else {
-                        Text("Source", style = MaterialTheme.typography.labelMedium)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            sources.forEach { sys ->
-                                FilterChip(
-                                    selected = sourceSn == sys.sysSn,
-                                    onClick = {
-                                        sourceSn = sys.sysSn
-                                        // Default the range to what the source holds.
-                                        fromText = sys.startDate.orEmpty()
-                                        toText = sys.endDate.orEmpty()
-                                        onClear()
-                                    },
-                                    label = { Text(sys.sysSn) }
-                                )
-                            }
-                        }
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedTextField(
-                                value = fromText, onValueChange = { fromText = it; onClear() },
-                                label = { Text("From (yyyy-mm-dd)") },
-                                isError = fromText.isNotEmpty() && from == null,
-                                singleLine = true, modifier = Modifier.weight(1f)
-                            )
-                            OutlinedTextField(
-                                value = toText, onValueChange = { toText = it; onClear() },
-                                label = { Text("To (yyyy-mm-dd)") },
-                                isError = toText.isNotEmpty() && to == null,
-                                singleLine = true, modifier = Modifier.weight(1f)
-                            )
-                        }
-                        Text("Series", style = MaterialTheme.typography.labelMedium)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            listOf(
-                                "buy" to "Grid import",
-                                "feed" to "Grid export",
-                                "pv" to "Solar",
-                                "charge" to "Battery charge",
-                                "discharge" to "Battery discharge"
-                            ).forEach { (key, label) ->
-                                FilterChip(
-                                    selected = key in series,
-                                    onClick = {
-                                        series = if (key in series) series - key else series + key
-                                        onClear()
-                                    },
-                                    label = { Text(label) }
-                                )
-                            }
-                        }
-                        Text("Target", style = MaterialTheme.typography.labelMedium)
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                            FilterChip(
-                                selected = fixReal,
-                                onClick = { fixReal = true; onClear() },
-                                label = { Text("Fix my sensor statistics") }
-                            )
-                            FilterChip(
-                                selected = !fixReal,
-                                onClick = { fixReal = false; onClear() },
-                                label = { Text("Separate app-owned series") }
-                            )
-                        }
-                        val targetCaption = when {
-                            fixReal && haveSensors ->
-                                "Overwrites the selected range of your HA sensor statistics " +
-                                        "(hourly); later totals are shifted so history stays consistent."
-                            fixReal ->
-                                "Overwrites the selected range of your HA sensor statistics " +
-                                        "(hourly). Discover sensors first."
-                            else ->
-                                "Writes comparetout:* statistics alongside your sensors — " +
-                                        "non-destructive, easy to remove in HA."
-                        }
-                        Text(
-                            targetCaption,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedButton(
-                                enabled = ready,
-                                onClick = {
-                                    onPreview(sourceSn!!, from!!, to!!, series.first())
-                                }
-                            ) { Text("Preview") }
-                            // Committing requires looking at the preview first (OQ-7).
-                            Button(
-                                enabled = ready && preview != null,
-                                onClick = {
-                                    onCommit(sourceSn!!, from!!, to!!, !fixReal, series.toList())
-                                    onClear()
-                                    expanded = false
-                                }
-                            ) { Text("Backfill") }
-                        }
-                        preview?.let { p ->
-                            BackfillPreviewChart(p)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-/**
- * Daily-kWh overlay of the source series (about to be pushed) against what HA currently
- * holds locally for the same days — the look-before-you-overwrite step (OQ-7).
- */
-@Composable
-private fun BackfillPreviewChart(preview: HaBackfillPreview) {
-    val sourceColor = MaterialTheme.colorScheme.primary
-    val haColor = MaterialTheme.colorScheme.tertiary
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        val seriesLabel = when (preview.series) {
-            "buy" -> "Grid import"
-            "feed" -> "Grid export"
-            "pv" -> "Solar"
-            "charge" -> "Battery charge"
-            "discharge" -> "Battery discharge"
-            else -> preview.series
-        }
-        Text("$seriesLabel · daily kWh",
-            style = MaterialTheme.typography.labelMedium)
-        Canvas(Modifier.fillMaxWidth().height(140.dp)) {
-            val maxY = maxOf(
-                preview.source.maxOrNull() ?: 0.0,
-                preview.ha.maxOrNull() ?: 0.0,
-                0.01
-            )
-            val n = preview.labels.size
-            fun points(values: List<Double>): List<Offset> = values.mapIndexed { i, v ->
-                Offset(
-                    x = if (n <= 1) 0f else size.width * i / (n - 1f),
-                    y = size.height * (1f - (v / maxY).toFloat())
-                )
-            }
-            fun drawSeries(values: List<Double>, color: Color) {
-                val pts = points(values)
-                for (i in 1 until pts.size) {
-                    drawLine(color, pts[i - 1], pts[i], strokeWidth = 3f)
-                }
-                if (pts.size == 1) drawCircle(color, radius = 4f, center = pts[0])
-            }
-            drawSeries(preview.ha, haColor)
-            drawSeries(preview.source, sourceColor)
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically) {
-            Box(Modifier.size(10.dp).background(sourceColor, CircleShape))
-            Text("Source", style = MaterialTheme.typography.labelSmall)
-            Box(Modifier.size(10.dp).background(haColor, CircleShape))
-            Text("Home Assistant", style = MaterialTheme.typography.labelSmall)
-            Spacer(Modifier.weight(1f))
-            Text("${preview.labels.firstOrNull().orEmpty()} → ${preview.labels.lastOrNull().orEmpty()}",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
     }
 }
 

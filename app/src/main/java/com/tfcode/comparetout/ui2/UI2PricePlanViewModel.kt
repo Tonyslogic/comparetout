@@ -70,6 +70,21 @@ data class DayRateIssues(
     val isClean: Boolean get() = gaps.isEmpty() && overlaps.isEmpty() && dateRangeInvalid == null
 }
 
+/**
+ * UI representation of one tiered-usage restriction: once [kwhLimit] kWh have
+ * been bought at [rate] within the [period], further usage at that rate is
+ * charged [revisedPrice] instead. NB the model keys restrictions by the rate
+ * VALUE (c/kWh as a string) — editing a band's price breaks the link, so the
+ * editor offers the plan's current rate values in a dropdown.
+ */
+data class RestrictionEntryBuilder(
+    val id: Long = DayRateBuilder.nextLocalId(),
+    val period: String = "Annual",      // Annual / Monthly / Bimonthly
+    val rate: String = "",              // rate value the restriction attaches to
+    val kwhLimit: Int = 0,
+    val revisedPrice: Double = 0.0
+)
+
 /** Whole-plan validation. The day-rate map keys the [DayRateBuilder.id]. */
 data class PlanIssues(
     val supplierBlank: Boolean = false,
@@ -95,11 +110,19 @@ data class PricePlanBuilder(
     val signUpBonus: Double = 0.0,     // € one-off
     val deemedExport: Boolean = false,
     val lastUpdate: String = "",
+    // ISO 3166-1 alpha-2 country the supplier operates in; "" = everywhere.
+    // Drives the phone-location filter in the plan list.
+    val location: String = "",
     val dayRates: List<DayRateBuilder> = listOf(DayRateBuilder()),
-    // Restrictions are not yet editable in UI2 — round-trip the legacy blob so
-    // plans created in the legacy editor preserve their tiered-usage caps.
-    val restrictions: Restrictions? = null
-)
+    // Tiered-usage restrictions (e.g. Octopus Zero: 4000 kWh/year at the base
+    // rate, then a different unit price). Costing applies them via RateLookup.
+    val restrictionsActive: Boolean = false,
+    val restrictionEntries: List<RestrictionEntryBuilder> = emptyList()
+) {
+    /** Distinct rate values (c/kWh) across all day-rate bands — the values a restriction can attach to. */
+    val uniqueRates: List<Double>
+        get() = dayRates.flatMap { dr -> dr.bands.map { it.price } }.distinct().sorted()
+}
 
 enum class PricePlanSaveResult { Idle, Saving, Saved, Failed }
 
@@ -175,6 +198,34 @@ class UI2PricePlanViewModel @Inject constructor(
     fun updateDayRate(id: Long, transform: (DayRateBuilder) -> DayRateBuilder) {
         _builder.update { b ->
             b.copy(dayRates = b.dayRates.map { if (it.id == id) transform(it) else it })
+        }
+    }
+
+    fun setRestrictionsActive(active: Boolean) {
+        _builder.update { it.copy(restrictionsActive = active) }
+    }
+
+    fun addRestriction() {
+        _builder.update { b ->
+            val defaultRate = b.uniqueRates.firstOrNull()?.let { formatRateValue(it) } ?: ""
+            b.copy(
+                restrictionsActive = true,
+                restrictionEntries = b.restrictionEntries + RestrictionEntryBuilder(rate = defaultRate)
+            )
+        }
+    }
+
+    fun removeRestriction(id: Long) {
+        _builder.update { b ->
+            b.copy(restrictionEntries = b.restrictionEntries.filterNot { it.id == id })
+        }
+    }
+
+    fun updateRestriction(id: Long, transform: (RestrictionEntryBuilder) -> RestrictionEntryBuilder) {
+        _builder.update { b ->
+            b.copy(restrictionEntries = b.restrictionEntries.map {
+                if (it.id == id) transform(it) else it
+            })
         }
     }
 
@@ -267,8 +318,10 @@ class UI2PricePlanViewModel @Inject constructor(
                 signUpBonus = parsedPlan.signUpBonus,
                 deemedExport = parsedPlan.isDeemedExport,
                 lastUpdate = parsedPlan.lastUpdate ?: "",
+                location = parsedPlan.location,
                 dayRates = dayRateBuilders,
-                restrictions = parsedPlan.restrictions
+                restrictionsActive = parsedPlan.restrictions?.isActive == true,
+                restrictionEntries = parsedPlan.restrictions.toEntryBuilders()
             )
         }
         // Expand the day-rates accordion so the user immediately sees what
@@ -404,9 +457,50 @@ private fun PricePlan.toBuilder(rates: List<DayRate>): PricePlanBuilder = PriceP
     signUpBonus = signUpBonus,
     deemedExport = isDeemedExport,
     lastUpdate = lastUpdate,
+    location = location,
     dayRates = if (rates.isEmpty()) listOf(DayRateBuilder()) else rates.map { it.toBuilder() },
-    restrictions = restrictions
+    restrictionsActive = restrictions?.isActive == true,
+    restrictionEntries = restrictions.toEntryBuilders()
 )
+
+/**
+ * Render a rate value the way restriction keys store it. RateLookup parses the
+ * key back with Double.parseDouble, so any canonical decimal form works —
+ * trim a trailing ".0" for readability.
+ */
+fun formatRateValue(v: Double): String =
+    if (v == v.toLong().toDouble()) v.toLong().toString() else v.toString()
+
+/** Flatten the model's grouped-by-period restrictions into editable rows. */
+private fun Restrictions?.toEntryBuilders(): List<RestrictionEntryBuilder> =
+    this?.restrictions.orEmpty().flatMap { r ->
+        r.restrictionEntries.entries.map { (rate, pair) ->
+            RestrictionEntryBuilder(
+                period = r.periodicity?.value ?: "Annual",
+                rate = rate,
+                kwhLimit = pair.first ?: 0,
+                revisedPrice = pair.second ?: 0.0
+            )
+        }
+    }
+
+/** Regroup the editor rows by period into the model shape RateLookup consumes. */
+private fun buildRestrictions(active: Boolean, entries: List<RestrictionEntryBuilder>): Restrictions {
+    val out = Restrictions()
+    val valid = entries.filter { it.rate.isNotBlank() && it.kwhLimit > 0 }
+    out.isActive = active && valid.isNotEmpty()
+    val list = ArrayList<com.tfcode.comparetout.model.priceplan.Restriction>()
+    valid.groupBy { it.period }.forEach { (period, group) ->
+        val type = runCatching {
+            com.tfcode.comparetout.model.priceplan.Restriction.RestrictionType.fromValue(period)
+        }.getOrNull() ?: return@forEach
+        val r = com.tfcode.comparetout.model.priceplan.Restriction()
+        group.forEach { e -> r.addEntry(type, e.rate, e.kwhLimit, e.revisedPrice) }
+        list.add(r)
+    }
+    out.restrictions = list
+    return out
+}
 
 private fun DayRate.toBuilder(): DayRateBuilder {
     // Prefer the minute-precision rate range. Legacy plans (and plans saved by
@@ -438,8 +532,10 @@ private fun PricePlanBuilder.toEntities(): Pair<PricePlan, List<DayRate>> {
         signUpBonus = this@toEntities.signUpBonus
         reference = this@toEntities.reference
         isDeemedExport = this@toEntities.deemedExport
+        location = this@toEntities.location.trim().uppercase()
         isActive = true   // UI2 does not surface the "inactive" flag; always active.
-        this@toEntities.restrictions?.let { restrictions = it }
+        restrictions = buildRestrictions(
+            this@toEntities.restrictionsActive, this@toEntities.restrictionEntries)
     }
     val rates = dayRates.map { dr ->
         DayRate().apply {

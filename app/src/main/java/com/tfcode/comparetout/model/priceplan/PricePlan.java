@@ -90,6 +90,11 @@ public class PricePlan {
     private String lastUpdate = (new SimpleDateFormat("yyyy-MM-dd").format(new Date()));
     @NonNull private String reference = "<REFERENCE>";
     private boolean active = true;
+    // ISO 3166-1 alpha-2 country the supplier operates in; "" = everywhere
+    // (never location-filtered). v15 — drives the phone-location supplier filter.
+    @NonNull
+    @ColumnInfo(name = "location", defaultValue = "")
+    private String location = "";
 
 
     @Override
@@ -190,6 +195,15 @@ public class PricePlan {
     }
 
     @NonNull
+    public String getLocation() {
+        return location;
+    }
+
+    public void setLocation(@NonNull String location) {
+        this.location = location;
+    }
+
+    @NonNull
     public String getLastUpdate() {
         return lastUpdate;
     }
@@ -216,6 +230,7 @@ public class PricePlan {
         copy.lastUpdate = lastUpdate;
         copy.reference = reference;
         copy.active = active;
+        copy.location = location;
         copy.pricePlanIndex = 0;
         copy.restrictions = restrictions;
         return copy;

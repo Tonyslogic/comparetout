@@ -436,9 +436,12 @@ public abstract class BaseGraphsFragment extends Fragment {
                                     }
                                     else {
                                         mCompareActive = true;
-                                        if ("ESBNHDF".equals(type)) {
+                                        // Anything that isn't a simulation is a data source; the
+                                        // dialog delivers the importer name from the sysSn registry
+                                        // (Importer.forSysSn), so new sources classify without edits here.
+                                        if (!"SIMULATION".equals(type)) {
                                             mCompareSN = mCompareDisplayName = sysSN;
-                                            mCompareType = ComparisonUIViewModel.Importer.ESBNHDF;
+                                            mCompareType = ComparisonUIViewModel.Importer.valueOf(type);
                                             mCompareFrom = mFrom;
                                             mCompareTo = mTo;
                                         } else {

@@ -35,6 +35,7 @@ import androidx.constraintlayout.widget.ConstraintLayout;
 import androidx.constraintlayout.widget.ConstraintSet;
 
 import com.google.android.material.button.MaterialButton;
+import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.model.ComparisonSenarioRow;
 import com.tfcode.comparetout.model.ToutcRepository;
@@ -116,8 +117,14 @@ public class CompareScenarioSelectDialog extends Dialog  {
             TableRow tableRow = new TableRow(getContext());
             MaterialButton button = new MaterialButton(getContext());
             button.setText(scenario.sysSN);
+            // The DAO query labels every transformed-data row 'ESBNHDF' (it predates
+            // the shared-namespace importers). Re-classify from the sysSn registry so
+            // listeners receive the real importer name; 'SIMULATION' passes through.
+            String category = "SIMULATION".equals(scenario.category)
+                    ? scenario.category
+                    : ComparisonUIViewModel.Importer.forSysSn(scenario.sysSN).name();
             button.setOnClickListener(v -> {
-                mScenarioSelectDialogListener.scenarioSelected(scenario.sysSN, scenario.category, scenario.scenarioID);
+                mScenarioSelectDialogListener.scenarioSelected(scenario.sysSN, category, scenario.scenarioID);
                 dismiss();
             });
 

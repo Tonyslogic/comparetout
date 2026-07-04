@@ -885,6 +885,10 @@ public class ToutcRepository {
         return alphaEssDAO.sumDOY(systemSN, from, to);
     }
 
+    public List<IntervalRow> getSumByDate(String systemSN, String from, String to) {
+        return alphaEssDAO.sumByDate(systemSN, from, to);
+    }
+
     public List<IntervalRow> getSumDOW(String systemSN, String from, String to) {
         return alphaEssDAO.sumDOW(systemSN, from, to);
     }

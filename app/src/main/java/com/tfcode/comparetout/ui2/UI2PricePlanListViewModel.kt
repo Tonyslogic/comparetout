@@ -38,8 +38,30 @@ data class PricePlanListRow(
     val rateCount: Int,
     val deemedExport: Boolean,
     val lastUpdate: String,
-    val active: Boolean
-)
+    val active: Boolean,
+    val location: String = "",
+    val hasRestrictions: Boolean = false
+) {
+    /** True when [location] is set and differs from the device's country. */
+    fun locationMismatch(deviceCountry: String): Boolean =
+        isLocationMismatch(location, deviceCountry)
+}
+
+/** A plan is location-mismatched only when BOTH sides are known and differ. */
+fun isLocationMismatch(location: String, deviceCountry: String): Boolean =
+    location.isNotBlank() && deviceCountry.isNotBlank() &&
+            !location.equals(deviceCountry, ignoreCase = true)
+
+/** SIM country → network country → locale. Uppercase ISO 3166-1 alpha-2, or "". */
+fun resolveDeviceCountry(context: android.content.Context): String {
+    val tm = context.getSystemService(android.content.Context.TELEPHONY_SERVICE)
+            as? android.telephony.TelephonyManager
+    val sim = tm?.simCountryIso.orEmpty()
+    if (sim.isNotBlank()) return sim.uppercase()
+    val network = tm?.networkCountryIso.orEmpty()
+    if (network.isNotBlank()) return network.uppercase()
+    return java.util.Locale.getDefault().country.uppercase()
+}
 
 @HiltViewModel
 class UI2PricePlanListViewModel @Inject constructor(
@@ -54,6 +76,9 @@ class UI2PricePlanListViewModel @Inject constructor(
     )
 
     val favouriteId = favouriteStore.id.asLiveData()
+
+    /** Device country the location filter compares against (fixed per session). */
+    val deviceCountry: String = resolveDeviceCountry(application)
 
     init {
         viewModelScope.launch(Dispatchers.IO) { favouriteStore.ensureLoaded() }
@@ -72,11 +97,21 @@ class UI2PricePlanListViewModel @Inject constructor(
                         rateCount = drs.size,
                         deemedExport = plan.isDeemedExport,
                         lastUpdate = plan.lastUpdate,
-                        active = plan.isActive
+                        active = plan.isActive,
+                        location = plan.location,
+                        hasRestrictions = plan.restrictions?.isActive == true &&
+                                plan.restrictions?.restrictions.orEmpty().isNotEmpty()
                     )
                 }.sortedWith(compareBy({ it.supplier.lowercase() }, { it.planName.lowercase() }))
                 // Drop the favourite if the plan it points to has been deleted.
                 favouriteStore.reconcile(entries.keys.map { it.pricePlanIndex })
+                // Location filter: plans for another country are auto-DEACTIVATED so
+                // costing/compare skip them. One-way — never auto-activate; the user
+                // may have deliberately switched a local plan off, and can manually
+                // re-activate a revealed foreign plan.
+                entries.keys
+                    .filter { it.isActive && isLocationMismatch(it.location, deviceCountry) }
+                    .forEach { repository.updatePricePlanActiveStatus(it.pricePlanIndex.toInt(), false) }
             }
         }
     }

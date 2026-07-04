@@ -783,13 +783,10 @@ class UI2WizardViewModel @Inject constructor(
                 if (seen.add(r.sysSn)) out.add(SourceDateRange(r.sysSn, r.startDate, r.finishDate, ComparisonUIViewModel.Importer.ALPHAESS))
             }
             esbnRanges.value?.forEach { r ->
-                // The shared ranges query returns every sysSn namespace; classify by name.
-                val type = when {
-                    r.sysSn == "HomeAssistant" -> ComparisonUIViewModel.Importer.HOME_ASSISTANT
-                    r.sysSn.startsWith("Octopus-") -> ComparisonUIViewModel.Importer.OCTOPUS
-                    else -> ComparisonUIViewModel.Importer.ESBNHDF
-                }
-                if (seen.add(r.sysSn)) out.add(SourceDateRange(r.sysSn, r.startDate, r.finishDate, type))
+                // The shared ranges query returns every sysSn namespace; classify
+                // via the central registry (Importer.forSysSn).
+                if (seen.add(r.sysSn)) out.add(SourceDateRange(r.sysSn, r.startDate, r.finishDate,
+                    ComparisonUIViewModel.Importer.forSysSn(r.sysSn)))
             }
             haRanges.value?.forEach { r ->
                 if (seen.add(r.sysSn)) out.add(SourceDateRange(r.sysSn, r.startDate, r.finishDate, ComparisonUIViewModel.Importer.HOME_ASSISTANT))

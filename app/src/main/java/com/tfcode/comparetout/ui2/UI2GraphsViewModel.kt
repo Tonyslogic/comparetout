@@ -53,9 +53,11 @@ class UI2GraphsViewModel @Inject constructor(
         LOAD("Load"), FEED("Export"), BUY("Import"), PV("Solar"),
         PV2BAT("PV→Bat"), PV2LOAD("PV→Load"), BAT2LOAD("Bat→Load"), GRID2BAT("Grid→Bat"),
         EV_SCHEDULE("EV Sched"), EV_DIVERT("EV Divert"),
-        // AlphaESS-only: real EV charger draw (pchargingPile, scaled to daily total).
-        // Zero on simulation rows; populated when the v2 transform has run.
+        // Measured device draws (zero on simulation rows): EV_ACTUAL from the
+        // AlphaESS v2 transform or an HA-classified EV charger; HW/HP_ACTUAL from
+        // HA-classified hot-water / heat-pump devices (v14 columns).
         EV_ACTUAL("EV Actual"),
+        HW_ACTUAL("HW Actual"), HP_ACTUAL("HP Actual"),
         HW_SCHEDULE("HW Sched"), HW_DIVERT("HW Divert"),
         BAT2GRID("Bat→Grid"), BAT_CHARGE("Bat Chg"), BAT_DISCHARGE("Bat Dis"),
         HEAT_PUMP("HP Load"), HEAT_PUMP_BACKUP("HP Backup"), HEAT_PUMP_HEAT("HP Heat"),
@@ -100,6 +102,11 @@ class UI2GraphsViewModel @Inject constructor(
         // Gates the EV chip in the data-source mode filter group below.
         val hasEvActualData: Boolean get() =
             isDataSourceMode && intervalData.any { it.evActual > 0.0 }
+        // HA device slices (v14) — gate the HW/HP actual chips the same way.
+        val hasHwActualData: Boolean get() =
+            isDataSourceMode && intervalData.any { it.hwActual > 0.0 }
+        val hasHpActualData: Boolean get() =
+            isDataSourceMode && intervalData.any { it.hpActual > 0.0 }
         // Line fab only applies to simulation mode
         val showLineFab: Boolean get() = !isDataSourceMode && isSingleDay && (hasBattery || hasHW || hasHeatPump)
 
@@ -112,8 +119,19 @@ class UI2GraphsViewModel @Inject constructor(
                         ComparisonUIViewModel.Importer.OCTOPUS -> ESBN_FILTERS
                         else -> {
                             val set = CORE_FILTERS.toMutableSet()
-                            if (hasBatteryData) set.addAll(BATTERY_FILTERS)
+                            if (hasBatteryData) {
+                                if (importerType == ComparisonUIViewModel.Importer.HOME_ASSISTANT) {
+                                    // HA stores only the signed battery charge — it has no
+                                    // pv2bat/bat2load/... flow decomposition to offer.
+                                    set.add(FilterSeries.BAT_CHARGE)
+                                    set.add(FilterSeries.BAT_DISCHARGE)
+                                } else {
+                                    set.addAll(BATTERY_FILTERS)
+                                }
+                            }
                             if (hasEvActualData) set.add(FilterSeries.EV_ACTUAL)
+                            if (hasHwActualData) set.add(FilterSeries.HW_ACTUAL)
+                            if (hasHpActualData) set.add(FilterSeries.HP_ACTUAL)
                             set
                         }
                     }
