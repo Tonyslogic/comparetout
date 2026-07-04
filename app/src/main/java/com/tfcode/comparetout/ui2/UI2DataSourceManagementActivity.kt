@@ -312,7 +312,7 @@ private fun DataSourceManagementScreen(
                         }
                     )
                 }
-                item("pvgis") {
+                if (uiVis.pvgis) item("pvgis") {
                     WeatherSourceAccordion(
                         title = "PVGIS (solar)",
                         subtitle = "EU JRC solar irradiance · no account needed",
@@ -329,7 +329,7 @@ private fun DataSourceManagementScreen(
                         onRemoveSource = null
                     )
                 }
-                item("cds") {
+                if (uiVis.cds) item("cds") {
                     WeatherSourceAccordion(
                         title = "Copernicus CDS (weather)",
                         subtitle = "ERA5 reanalysis for heat-pump weather · API key required",

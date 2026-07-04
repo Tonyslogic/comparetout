@@ -30,7 +30,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -43,6 +42,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -105,6 +105,7 @@ private fun HaBackfillScreen(
     val haReady by viewModel.haReady.observeAsState(false)
     val haveSensors by viewModel.haveSensors.observeAsState(false)
     val preview by viewModel.preview.observeAsState(null)
+    val previewLoading by viewModel.previewLoading.observeAsState(false)
     val toast by viewModel.toast.observeAsState(null)
     val snackbar = remember { SnackbarHostState() }
     val (showHints, _) = rememberShowHints()
@@ -119,6 +120,11 @@ private fun HaBackfillScreen(
     var anchor by remember { mutableStateOf(LocalDate.now()) }
     var series by remember { mutableStateOf(setOf("buy")) }
     var fixReal by remember { mutableStateOf(true) }
+    // Discrepancy walk: the day list captured when "Show discrepancies" zooms
+    // in, the cursor within it, and the hour picked on the single-day view.
+    var discrepancyDays by remember { mutableStateOf<List<LocalDate>>(emptyList()) }
+    var discrepancyIndex by remember { mutableStateOf(0) }
+    var selectedHour by remember { mutableStateOf<Int?>(null) }
 
     val source = sources.firstOrNull { it.sysSn == sourceSn }
     val dataStart = source?.startDate?.takeIf { it.isNotEmpty() }
@@ -140,6 +146,20 @@ private fun HaBackfillScreen(
 
     val ready = haReady && source != null && range != null &&
             series.isNotEmpty() && (!fixReal || haveSensors)
+
+    // Auto-preview: any selection change recomputes the overlay after a short
+    // debounce (the timeframe arrows can be tapped rapidly). At the single-day
+    // period the preview drops to hourly buckets for the hour-repair drill-down.
+    LaunchedEffect(sourceSn, period, anchor, series) {
+        selectedHour = null
+        if (source != null && range != null && series.isNotEmpty()) {
+            kotlinx.coroutines.delay(350)
+            viewModel.previewBackfill(source.sysSn, range.first, range.second,
+                series.toList(), hourly = period == DataSourcePeriod.YESTERDAY)
+        } else {
+            viewModel.clearPreview()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -193,6 +213,7 @@ private fun HaBackfillScreen(
                             anchor = runCatching { LocalDate.parse(s.finishDate) }
                                 .getOrDefault(LocalDate.now())
                             period = DataSourcePeriod.MONTH
+                            discrepancyDays = emptyList()
                             viewModel.clearPreview()
                         },
                         label = { Text(s.sysSn) }
@@ -207,13 +228,14 @@ private fun HaBackfillScreen(
                     anchorDate = anchor,
                     dataStart = dataStart,
                     dataEnd = dataEnd,
+                    // No explicit preview clear — the auto-preview effect recomputes
+                    // and the stale chart stays visible under the progress bar.
                     onPeriodChange = { p, a, _ ->
-                        period = p; anchor = a; viewModel.clearPreview()
+                        period = p; anchor = a
                     },
                     onNavigate = { forward, _ ->
                         anchor = stepAnchor(anchor, period, forward,
                             LocalDate.parse(dataStart), LocalDate.parse(dataEnd))
-                        viewModel.clearPreview()
                     }
                 )
                 range?.let { (f, t) ->
@@ -230,7 +252,6 @@ private fun HaBackfillScreen(
                             enabled = key in provided,
                             onClick = {
                                 series = if (key in series) series - key else series + key
-                                viewModel.clearPreview()
                             },
                             label = { Text(label) }
                         )
@@ -239,14 +260,16 @@ private fun HaBackfillScreen(
 
                 SectionLabel("Target")
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    // The preview compares stored data, so the target choice
+                    // doesn't invalidate it — no clear.
                     FilterChip(
                         selected = fixReal,
-                        onClick = { fixReal = true; viewModel.clearPreview() },
+                        onClick = { fixReal = true },
                         label = { Text("Fix my sensor statistics") }
                     )
                     FilterChip(
                         selected = !fixReal,
-                        onClick = { fixReal = false; viewModel.clearPreview() },
+                        onClick = { fixReal = false },
                         label = { Text("Separate app-owned series") }
                     )
                 }
@@ -265,28 +288,94 @@ private fun HaBackfillScreen(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(
-                        enabled = ready,
-                        onClick = {
-                            range?.let { (f, t) ->
-                                viewModel.previewBackfill(source.sysSn, f, t, series.first())
-                            }
-                        }
-                    ) { Text("Preview") }
-                    // Committing requires looking at the preview first (OQ-7).
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically) {
+                    // Committing requires the preview to have landed first (OQ-7) —
+                    // it computes automatically, so this gates on the load.
                     Button(
-                        enabled = ready && preview != null,
+                        enabled = ready && preview != null && !previewLoading,
                         onClick = {
                             range?.let { (f, t) ->
                                 viewModel.startBackfill(source.sysSn, f, t, !fixReal, series.toList())
                             }
-                            viewModel.clearPreview()
                         }
-                    ) { Text("Backfill") }
+                    ) { Text("Backfill range") }
+                    preview?.takeIf { !it.hourly && it.discrepancies.isNotEmpty() }?.let { p ->
+                        OutlinedButton(onClick = {
+                            val days = p.discrepancies.mapNotNull { i ->
+                                runCatching { LocalDate.parse(p.labels[i]) }.getOrNull()
+                            }
+                            if (days.isNotEmpty()) {
+                                discrepancyDays = days
+                                discrepancyIndex = 0
+                                anchor = days.first()
+                                period = DataSourcePeriod.YESTERDAY
+                            }
+                        }) { Text("Show discrepancies (${p.discrepancies.size})") }
+                    }
                 }
 
-                preview?.let { p -> HaBackfillPreviewChart(p, source.sysSn) }
+                if (previewLoading) {
+                    LinearProgressIndicator(Modifier.fillMaxWidth())
+                }
+
+                preview?.let { p ->
+                    if (p.hourly && discrepancyDays.isNotEmpty()) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically) {
+                            Text("Discrepancy day ${discrepancyIndex + 1} of ${discrepancyDays.size}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            OutlinedButton(
+                                enabled = discrepancyDays.size > 1,
+                                onClick = {
+                                    discrepancyIndex = (discrepancyIndex + 1) % discrepancyDays.size
+                                    anchor = discrepancyDays[discrepancyIndex]
+                                }
+                            ) { Text("Next") }
+                        }
+                    }
+
+                    HaBackfillPreviewCharts(p, source.sysSn)
+
+                    if (p.hourly) {
+                        SectionLabel("Repair a single hour")
+                        if (showHints) {
+                            Text("Hours where Home Assistant disagrees with the source " +
+                                    "are marked ⚠. Pick one to compare the values and " +
+                                    "backfill just that hour.",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            p.labels.forEachIndexed { i, label ->
+                                FilterChip(
+                                    selected = selectedHour == i,
+                                    onClick = {
+                                        selectedHour = if (selectedHour == i) null else i
+                                    },
+                                    label = {
+                                        Text(if (i in p.discrepancies) "$label ⚠" else label)
+                                    }
+                                )
+                            }
+                        }
+                        selectedHour?.takeIf { it < p.hourStarts.size }?.let { hi ->
+                            HourRepairCard(
+                                preview = p,
+                                hourIndex = hi,
+                                sourceName = source.sysSn,
+                                commitEnabled = ready && !previewLoading,
+                                onBackfillHour = {
+                                    range?.let { (f, t) ->
+                                        viewModel.startBackfill(source.sysSn, f, t,
+                                            !fixReal, series.toList(), p.hourStarts[hi])
+                                    }
+                                }
+                            )
+                        }
+                    }
+                }
             }
             Spacer(Modifier.size(24.dp))
         }
@@ -302,33 +391,58 @@ private fun SectionLabel(text: String) {
     )
 }
 
+private fun seriesLabel(key: String): String =
+    SERIES_OPTIONS.firstOrNull { it.first == key }?.second ?: key
+
 /**
- * Daily-kWh overlay of the source series (about to be pushed) against what HA
- * currently holds for the same days — rendered with the Compare line chart so
- * the preview looks like every other comparison in the app.
+ * The look-before-you-overwrite preview: one chart per subject — the source
+ * (about to be pushed) above what HA currently holds — like the Compare tab's
+ * per-subject cards. Both charts share the y-scale and the series colour
+ * registry, so a divergence between them reads directly.
  */
 @Composable
-private fun HaBackfillPreviewChart(preview: HaBackfillPreview, sourceName: String) {
-    val sourceColor = MaterialTheme.colorScheme.primary
-    val haColor = MaterialTheme.colorScheme.tertiary
-    val seriesLabel = SERIES_OPTIONS.firstOrNull { it.first == preview.series }?.second
-        ?: preview.series
-    val defs = listOf(
-        SeriesDef("source", sourceName, sourceColor),
-        SeriesDef("ha", "Home Assistant", haColor)
-    )
+private fun HaBackfillPreviewCharts(preview: HaBackfillPreview, sourceName: String) {
+    val primary = MaterialTheme.colorScheme.primary
+    val defs = preview.seriesKeys.map { key ->
+        SeriesDef(key, seriesLabel(key), compareSeriesColor(key, primary, isEnergy = true))
+    }
+    val caption = if (preview.hourly) "hourly kWh" else "daily kWh"
+    // Shared y-scale — a value present in one graph but not the other must
+    // stand out, not be re-normalised away.
+    val yMax = (preview.source.values + preview.ha.values)
+        .flatten().maxOrNull()?.takeIf { it > 0.0 } ?: 1.0
+
+    BackfillSubjectChart(sourceName, defs, preview.labels, preview.source, yMax, caption)
+    BackfillSubjectChart("Home Assistant", defs, preview.labels, preview.ha, yMax, caption)
+
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically) {
+        defs.forEach { def ->
+            Box(Modifier.size(10.dp).background(def.color, CircleShape))
+            Text(def.label, style = MaterialTheme.typography.labelSmall)
+        }
+        Spacer(Modifier.weight(1f))
+        Text("${preview.labels.firstOrNull().orEmpty()} → ${preview.labels.lastOrNull().orEmpty()}",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun BackfillSubjectChart(
+    title: String,
+    defs: List<SeriesDef>,
+    labels: List<String>,
+    values: Map<String, List<Double>>,
+    yMax: Double,
+    caption: String
+) {
     val datum = ChartDatum(
-        title = seriesLabel,
-        shortLabel = seriesLabel,
-        values = mapOf(
-            "source" to preview.source.sum(),
-            "ha" to preview.ha.sum()
-        ),
-        axisLabels = preview.labels,
-        seriesValues = mapOf(
-            "source" to preview.source,
-            "ha" to preview.ha
-        )
+        title = title,
+        shortLabel = title,
+        values = values.mapValues { it.value.sum() },
+        axisLabels = labels,
+        seriesValues = values
     )
     Surface(
         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
@@ -336,18 +450,40 @@ private fun HaBackfillPreviewChart(preview: HaBackfillPreview, sourceName: Strin
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("$seriesLabel · daily kWh", style = MaterialTheme.typography.labelMedium)
-            CompareLineChart(data = listOf(datum), series = defs, area = false, unit = "kWh")
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                Box(Modifier.size(10.dp).background(sourceColor, CircleShape))
-                Text(sourceName, style = MaterialTheme.typography.labelSmall)
-                Box(Modifier.size(10.dp).background(haColor, CircleShape))
-                Text("Home Assistant", style = MaterialTheme.typography.labelSmall)
-                Spacer(Modifier.weight(1f))
-                Text("${preview.labels.firstOrNull().orEmpty()} → ${preview.labels.lastOrNull().orEmpty()}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("$title · $caption", style = MaterialTheme.typography.labelMedium)
+            CompareLineChart(data = listOf(datum), series = defs, area = false,
+                unit = "kWh", yMax = yMax)
+        }
+    }
+}
+
+/** Hour drill-down: the selected hour's per-series values side by side + commit. */
+@Composable
+private fun HourRepairCard(
+    preview: HaBackfillPreview,
+    hourIndex: Int,
+    sourceName: String,
+    commitEnabled: Boolean,
+    onBackfillHour: () -> Unit
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),
+        shape = RoundedCornerShape(10.dp),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Text("Hour ${preview.labels[hourIndex]}",
+                style = MaterialTheme.typography.labelMedium)
+            preview.seriesKeys.forEach { key ->
+                val s = preview.source[key]?.getOrNull(hourIndex) ?: 0.0
+                val h = preview.ha[key]?.getOrNull(hourIndex) ?: 0.0
+                Text(String.format(java.util.Locale.UK,
+                        "%s — %s: %.2f kWh · Home Assistant: %.2f kWh",
+                        seriesLabel(key), sourceName, s, h),
+                    style = MaterialTheme.typography.bodySmall)
+            }
+            Button(enabled = commitEnabled, onClick = onBackfillHour) {
+                Text("Backfill this hour")
             }
         }
     }

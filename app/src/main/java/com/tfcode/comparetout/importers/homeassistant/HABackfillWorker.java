@@ -28,6 +28,8 @@ import android.content.Context;
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import androidx.work.Data;
+import androidx.work.ExistingWorkPolicy;
+import androidx.work.OneTimeWorkRequest;
 import androidx.work.WorkManager;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
@@ -98,6 +100,7 @@ public class HABackfillWorker extends Worker {
     public static final String KEY_TARGET_EXTERNAL = "KEY_TARGET_EXTERNAL";
     public static final String KEY_SENSORS = "KEY_SENSORS"; // EnergySensors JSON (real-entity mapping)
     public static final String KEY_SERIES = "KEY_SERIES";   // csv of: buy,feed,pv,charge,discharge
+    public static final String KEY_HOUR = "KEY_HOUR";       // epoch-millis hour start; -1 = whole range
     public static final String PROGRESS = "PROGRESS";
 
     public static final String EXTERNAL_SOURCE = "comparetout";
@@ -168,6 +171,7 @@ public class HABackfillWorker extends Worker {
         boolean external = inputData.getBoolean(KEY_TARGET_EXTERNAL, true);
         String seriesCsv = inputData.getString(KEY_SERIES);
         String sensorsJson = inputData.getString(KEY_SENSORS);
+        long hourStart = inputData.getLong(KEY_HOUR, -1L);
         mUseUI2 = UI2NotificationLaunch.isUI2Enabled(getApplicationContext());
 
         if (null == host || null == token || null == sourceSysSn || null == from || null == to
@@ -210,6 +214,12 @@ public class HABackfillWorker extends Worker {
 
             long rangeStartMillis = LocalDate.parse(from).atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli();
             long rangeEndMillis = LocalDate.parse(to).plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC).toEpochMilli();
+            if (hourStart >= 0) {
+                // Hour-scoped repair (the wizard's drill-down): write only this
+                // hour's point; sum anchoring/adjustment logic is unchanged.
+                rangeStartMillis = hourStart;
+                rangeEndMillis = hourStart + HOUR_MILLIS;
+            }
 
             for (SeriesTarget target : targets) {
                 if (mStopped) break;
@@ -223,7 +233,31 @@ public class HABackfillWorker extends Worker {
                 backfillSeries(target, rows, rangeStartMillis, rangeEndMillis, unit, scale, external);
             }
 
-            publishProgress(mStopped ? "Backfill cancelled" : "Backfill complete", true);
+            if (mStopped) {
+                publishProgress("Backfill cancelled", true);
+                return Result.success();
+            }
+            if (!external) {
+                // The repaired sensor statistics are the source of truth for the
+                // local "HomeAssistant" rows — resync the backfilled range so the
+                // graphs and Compare reflect the corrected values without a manual
+                // re-fetch (ingestion REPLACEs by (sysSn, date, minute)).
+                Data resyncInput = new Data.Builder()
+                        .putString(HACatchupWorker.KEY_HOST, host)
+                        .putString(HACatchupWorker.KEY_TOKEN, token)
+                        .putString(HACatchupWorker.KEY_SENSORS, sensorsJson)
+                        .putString(HACatchupWorker.KEY_START_DATE, from)
+                        .build();
+                OneTimeWorkRequest resync = new OneTimeWorkRequest.Builder(HACatchupWorker.class)
+                        .setInputData(resyncInput)
+                        .addTag("HomeAssistant")
+                        .build();
+                WorkManager.getInstance(mContext).beginUniqueWork(
+                        "HomeAssistant", ExistingWorkPolicy.APPEND_OR_REPLACE, resync).enqueue();
+                publishProgress("Backfill complete — resyncing from Home Assistant", true);
+            } else {
+                publishProgress("Backfill complete", true);
+            }
             return Result.success();
         } catch (BackfillException e) {
             LOGGER.warning("HABackfillWorker: " + e.getMessage());
@@ -338,6 +372,13 @@ public class HABackfillWorker extends Worker {
             if (kwh <= 0) continue;
             long hourStart = millis - (millis % HOUR_MILLIS);
             hourly.merge(hourStart, kwh, Double::sum);
+        }
+        // The write window may be narrower than the loaded rows (hour-scoped repair).
+        hourly = new TreeMap<>(hourly.subMap(rangeStartMillis, rangeEndMillis));
+        if (rangeEndMillis - rangeStartMillis == HOUR_MILLIS && hourly.isEmpty()) {
+            // An hour-scoped repair must be able to zero out a spurious HA value
+            // even when the source recorded no energy — write the flat sum point.
+            hourly.put(rangeStartMillis, 0D);
         }
         if (hourly.isEmpty()) {
             LOGGER.info("HABackfillWorker: no " + target.seriesKey + " energy in range, skipping");

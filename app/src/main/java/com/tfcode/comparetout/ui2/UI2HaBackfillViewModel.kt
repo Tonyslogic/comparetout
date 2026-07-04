@@ -37,12 +37,20 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
 
-/** Daily-kWh overlay data for the look-before-you-overwrite preview (OQ-7). */
+/**
+ * Look-before-you-overwrite preview (OQ-7): every selected series, bucketed
+ * daily across the range — or hourly when the range is a single day, at which
+ * point [hourStarts] carries the epoch-millis hour keys the worker backfills by.
+ * [discrepancies] indexes the buckets where HA and the source disagree.
+ */
 data class HaBackfillPreview(
-    val series: String,
+    val seriesKeys: List<String>,
     val labels: List<String>,
-    val source: List<Double>,
-    val ha: List<Double>
+    val hourly: Boolean,
+    val hourStarts: List<Long>,
+    val source: Map<String, List<Double>>,
+    val ha: Map<String, List<Double>>,
+    val discrepancies: List<Int>
 )
 
 /** A backfill candidate — any non-HA source with stored history. */
@@ -87,6 +95,13 @@ class UI2HaBackfillViewModel @Inject constructor(
     private val _preview = MutableLiveData<HaBackfillPreview?>(null)
     val preview: LiveData<HaBackfillPreview?> = _preview
 
+    private val _previewLoading = MutableLiveData(false)
+    /** A preview query is in flight — selection changes recompute automatically. */
+    val previewLoading: LiveData<Boolean> = _previewLoading
+
+    /** Monotonic ticket so a stale (superseded) preview result never lands. */
+    @Volatile private var previewGeneration = 0L
+
     private val _toast = MutableLiveData<Toast?>(null)
     val toast: LiveData<Toast?> = _toast
 
@@ -124,7 +139,9 @@ class UI2HaBackfillViewModel @Inject constructor(
     }
 
     fun clearPreview() {
+        previewGeneration++
         _preview.postValue(null)
+        _previewLoading.postValue(false)
     }
 
     private fun seriesExtractor(series: String): ((AlphaESSTransformedData) -> Double)? =
@@ -137,36 +154,105 @@ class UI2HaBackfillViewModel @Inject constructor(
             else -> null
         }
 
-    /** Build the HA-vs-source daily overlay for one series over the candidate range. */
-    fun previewBackfill(sourceSysSn: String, from: LocalDate, to: LocalDate, series: String) {
-        val extractor = seriesExtractor(series) ?: return
+    /**
+     * Build the HA-vs-source overlay for the selected series over the candidate
+     * range — daily buckets, or hourly when [hourly] (single-day range) so the
+     * user can drill into and repair one specific hour.
+     */
+    fun previewBackfill(sourceSysSn: String, from: LocalDate, to: LocalDate,
+                        seriesKeys: List<String>, hourly: Boolean) {
+        val extractors = seriesKeys.mapNotNull { k -> seriesExtractor(k)?.let { k to it } }
+        if (extractors.isEmpty()) {
+            clearPreview()
+            return
+        }
+        val generation = ++previewGeneration
+        _previewLoading.postValue(true)
         viewModelScope.launch(Dispatchers.IO) {
-            fun daily(sysSn: String): Map<String, Double> {
-                val perDay = HashMap<String, Double>()
-                repository.getAlphaESSTransformedData(sysSn, from.toString(), to.toString())
-                    .forEach { r -> perDay.merge(r.date, extractor(r)) { a, b -> a + b } }
-                return perDay
+            val sourceRows = repository.getAlphaESSTransformedData(
+                sourceSysSn, from.toString(), to.toString())
+            val haRows = repository.getAlphaESSTransformedData(
+                "HomeAssistant", from.toString(), to.toString())
+
+            val labels: List<String>
+            val hourStarts: List<Long>
+            val sourceBySeries: Map<String, List<Double>>
+            val haBySeries: Map<String, List<Double>>
+            if (hourly) {
+                // Hour buckets keyed the same way the worker buckets them
+                // (UTC-hour-aligned millis), labelled in the user's zone.
+                val zone = UserTimezoneStore.resolvedZone(app)
+                val starts = mutableListOf<Long>()
+                val hourLabels = mutableListOf<String>()
+                var t = from.atStartOfDay(zone)
+                while (t.toLocalDate() == from) {
+                    // Snap to the containing UTC hour so the key matches the
+                    // worker's bucketing even for non-whole-hour zone offsets.
+                    val ms = t.toInstant().toEpochMilli()
+                    starts.add(ms - ms % HOUR_MILLIS)
+                    hourLabels.add(String.format(java.util.Locale.UK, "%02d:00", t.hour))
+                    t = t.plusHours(1)
+                }
+                fun buckets(rows: List<AlphaESSTransformedData>,
+                            extractor: (AlphaESSTransformedData) -> Double): List<Double> {
+                    val perHour = HashMap<Long, Double>()
+                    rows.forEach { r ->
+                        val millis = r.millisSinceEpoch ?: return@forEach
+                        perHour.merge(millis - millis % HOUR_MILLIS, extractor(r)) { a, b -> a + b }
+                    }
+                    return starts.map { perHour[it] ?: 0.0 }
+                }
+                labels = hourLabels
+                hourStarts = starts
+                sourceBySeries = extractors.associate { (k, e) -> k to buckets(sourceRows, e) }
+                haBySeries = extractors.associate { (k, e) -> k to buckets(haRows, e) }
+            } else {
+                val days = generateSequence(from) { d -> if (d < to) d.plusDays(1) else null }
+                    .map { it.toString() }.toList()
+                fun buckets(rows: List<AlphaESSTransformedData>,
+                            extractor: (AlphaESSTransformedData) -> Double): List<Double> {
+                    val perDay = HashMap<String, Double>()
+                    rows.forEach { r -> perDay.merge(r.date, extractor(r)) { a, b -> a + b } }
+                    return days.map { perDay[it] ?: 0.0 }
+                }
+                labels = days
+                hourStarts = emptyList()
+                sourceBySeries = extractors.associate { (k, e) -> k to buckets(sourceRows, e) }
+                haBySeries = extractors.associate { (k, e) -> k to buckets(haRows, e) }
             }
-            val sourceDaily = daily(sourceSysSn)
-            val haDaily = daily("HomeAssistant")
-            val labels = generateSequence(from) { d -> if (d < to) d.plusDays(1) else null }
-                .map { it.toString() }.toList()
+
+            val discrepancies = labels.indices.filter { i ->
+                extractors.any { (k, _) ->
+                    val s = sourceBySeries[k]?.get(i) ?: 0.0
+                    val h = haBySeries[k]?.get(i) ?: 0.0
+                    kotlin.math.abs(s - h) > maxOf(DISCREPANCY_FLOOR_KWH,
+                        DISCREPANCY_FRACTION * maxOf(kotlin.math.abs(s), kotlin.math.abs(h)))
+                }
+            }
+
+            if (generation != previewGeneration) return@launch // superseded
             _preview.postValue(HaBackfillPreview(
-                series = series,
+                seriesKeys = extractors.map { it.first },
                 labels = labels,
-                source = labels.map { sourceDaily[it] ?: 0.0 },
-                ha = labels.map { haDaily[it] ?: 0.0 }
+                hourly = hourly,
+                hourStarts = hourStarts,
+                source = sourceBySeries,
+                ha = haBySeries,
+                discrepancies = discrepancies
             ))
+            _previewLoading.postValue(false)
         }
     }
 
     /**
      * Enqueue the backfill worker. [external]=false targets the user's real sensor
      * statistics (fix missing/bad HA data — needs the discovered sensor ids);
-     * true writes app-owned comparetout:* series alongside.
+     * true writes app-owned comparetout:* series alongside. A non-null [hourStart]
+     * (epoch-millis, UTC-hour-aligned — from [HaBackfillPreview.hourStarts])
+     * narrows the write to that single hour.
      */
     fun startBackfill(sourceSysSn: String, from: LocalDate, to: LocalDate,
-                      external: Boolean, series: List<String>) {
+                      external: Boolean, series: List<String>, hourStart: Long? = null) {
         viewModelScope.launch(Dispatchers.IO) {
             val host = decryptOrNull(app.getStringValueFromDataStore(HA_HOST_KEY))
             val token = decryptOrNull(app.getStringValueFromDataStore(HA_TOKEN_KEY))
@@ -192,6 +278,7 @@ class UI2HaBackfillViewModel @Inject constructor(
                 .putBoolean(HABackfillWorker.KEY_TARGET_EXTERNAL, external)
                 .putString(HABackfillWorker.KEY_SENSORS, sensorsRaw ?: "")
                 .putString(HABackfillWorker.KEY_SERIES, series.joinToString(","))
+                .putLong(HABackfillWorker.KEY_HOUR, hourStart ?: -1L)
                 .build()
             val req = OneTimeWorkRequest.Builder(HABackfillWorker::class.java)
                 .setInputData(input)
@@ -214,5 +301,11 @@ class UI2HaBackfillViewModel @Inject constructor(
         private const val HA_HOST_KEY = "ha_host"
         private const val HA_TOKEN_KEY = "ha_token"
         private const val HA_SENSORS_KEY = "ha_sensors"
+
+        private const val HOUR_MILLIS = 3_600_000L
+        // A bucket is flagged as a discrepancy when HA and the source differ by
+        // more than 5%, with a 0.1 kWh floor so near-zero noise never flags.
+        private const val DISCREPANCY_FLOOR_KWH = 0.1
+        private const val DISCREPANCY_FRACTION = 0.05
     }
 }

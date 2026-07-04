@@ -28,6 +28,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import com.google.gson.Gson
+import com.google.gson.JsonParser
 import com.tfcode.comparetout.TOUTCApplication
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -64,19 +65,46 @@ data class UiVisibility(
     val alphaess: Boolean = true,
     val homeassistant: Boolean = true,
     val esbn: Boolean = true,
-    val octopus: Boolean = true
+    val octopus: Boolean = true,
+    // Weather/PV caches (PVGIS solar, Copernicus CDS weather)
+    val pvgis: Boolean = true,
+    val cds: Boolean = true
 )
 
 object UiVisibilityStore {
     private val gson = Gson()
 
-    /** Synchronous read (call off the main thread where possible); missing/bad JSON → all visible. */
+    /**
+     * Synchronous read (call off the main thread where possible); missing/bad JSON → all visible.
+     *
+     * Field-by-field with a missing-key default of true: Gson bypasses Kotlin
+     * constructor defaults, so a flag added after the JSON was persisted would
+     * otherwise deserialize as false and silently hide the new UI.
+     */
     fun read(context: Context): UiVisibility {
         val app = context.applicationContext as? TOUTCApplication ?: return UiVisibility()
         val raw = runCatching { app.getStringValueFromDataStore(UI_VISIBILITY_KEY) }.getOrNull()
         if (raw.isNullOrBlank()) return UiVisibility()
-        return runCatching { gson.fromJson(raw, UiVisibility::class.java) }
-            .getOrNull() ?: UiVisibility()
+        return runCatching {
+            val obj = JsonParser.parseString(raw).asJsonObject
+            fun flag(name: String): Boolean = obj.get(name)?.takeIf { it.isJsonPrimitive }?.asBoolean ?: true
+            UiVisibility(
+                comparisons = flag("comparisons"),
+                directors = flag("directors"),
+                inverter = flag("inverter"),
+                panels = flag("panels"),
+                battery = flag("battery"),
+                hotWater = flag("hotWater"),
+                ev = flag("ev"),
+                heatPump = flag("heatPump"),
+                alphaess = flag("alphaess"),
+                homeassistant = flag("homeassistant"),
+                esbn = flag("esbn"),
+                octopus = flag("octopus"),
+                pvgis = flag("pvgis"),
+                cds = flag("cds")
+            )
+        }.getOrNull() ?: UiVisibility()
     }
 
     fun write(context: Context, visibility: UiVisibility) {
