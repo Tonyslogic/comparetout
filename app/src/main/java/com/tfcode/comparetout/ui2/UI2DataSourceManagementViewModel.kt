@@ -79,6 +79,9 @@ private const val HA_GOOD_KEY = "ha_cred_good"
 private const val HA_SYSTEM_LIST_KEY = "ha_system_list"
 private const val HA_SELECTED_KEY = "ha_system_previously_selected"
 private const val HA_SENSORS_KEY = "ha_sensors"
+// "start ↔ end" of the statistics the HA server holds — refreshed by every
+// (re)discovery; UI2-only (no legacy key to mirror).
+private const val HA_SERVER_RANGE_KEY = "ha_server_range"
 
 private const val ESBN_SYSTEM_LIST_KEY = "esbn_system_list"
 private const val ESBN_SELECTED_KEY = "esbn_system_previously_selected"
@@ -189,7 +192,8 @@ data class HASensorSnapshot(
     val gridExports: List<String>,
     val solar: List<String>,
     val batteries: List<Pair<String?, String?>>, // (charging, discharging)
-    val devices: List<HADeviceRow> = emptyList()
+    val devices: List<HADeviceRow> = emptyList(),
+    val serverRange: String? = null // "start ↔ end" the HA recorder holds; null until probed
 )
 
 /** One-shot user feedback (snackbar-style). */
@@ -611,7 +615,8 @@ class UI2DataSourceManagementViewModel @Inject constructor(
                 d.statId?.let { id ->
                     HADeviceRow(id, d.label ?: id, d.role?.name ?: "OTHER", d.adjust)
                 }
-            }
+            },
+            serverRange = app.getStringValueFromDataStore(HA_SERVER_RANGE_KEY)?.ifBlank { null }
         )
     }
 
@@ -664,6 +669,12 @@ class UI2DataSourceManagementViewModel @Inject constructor(
                     outcome.sensors.devices = outcome.sensors.devices.orEmpty()
                         .map { prior[it.statId] ?: it }
                     app.putStringValueIntoDataStore(HA_SENSORS_KEY, gson.toJson(outcome.sensors))
+                    // Best-effort server range: keep the previous value when the probe
+                    // came back empty rather than blanking a known-good answer.
+                    if (outcome.serverStart != null && outcome.serverEnd != null) {
+                        app.putStringValueIntoDataStore(HA_SERVER_RANGE_KEY,
+                            "${outcome.serverStart} ↔ ${outcome.serverEnd}")
+                    }
                     // Ensure the canonical HA system entry exists.
                     val existing = runCatching {
                         gson.fromJson<List<String>>(
@@ -686,6 +697,24 @@ class UI2DataSourceManagementViewModel @Inject constructor(
                 _ha.postValue(buildHAState())
             }
             _busy.postValue(false)
+        }
+    }
+
+    /**
+     * Re-run sensor discovery (and the server-range probe) with the stored
+     * credentials — the "Re-discover" button must not make the user retype a
+     * long-lived token that is already saved. Falls back to a toast when the
+     * stored credentials are missing or unreadable (edit via the credential strip).
+     */
+    fun rediscoverHA() {
+        viewModelScope.launch(Dispatchers.IO) {
+            val host = decryptOrNull(app.getStringValueFromDataStore(HA_HOST_KEY))
+            val token = decryptOrNull(app.getStringValueFromDataStore(HA_TOKEN_KEY))
+            if (host == null || token == null) {
+                _toast.postValue(Toast("Set Home Assistant credentials first"))
+                return@launch
+            }
+            discoverHA(host, token)
         }
     }
 
@@ -1140,6 +1169,7 @@ class UI2DataSourceManagementViewModel @Inject constructor(
                         app.putStringValueIntoDataStore(HA_SYSTEM_LIST_KEY, "")
                         app.putStringValueIntoDataStore(HA_SELECTED_KEY, "")
                         app.putStringValueIntoDataStore(HA_SENSORS_KEY, "")
+                        app.putStringValueIntoDataStore(HA_SERVER_RANGE_KEY, "")
                     }
                     ComparisonUIViewModel.Importer.ESBNHDF -> {
                         app.putStringValueIntoDataStore(ESBN_SYSTEM_LIST_KEY, "")

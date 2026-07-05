@@ -78,6 +78,16 @@ public class StatsForPeriodRequest extends HAMessageWithID {
         this.period = "5minute";
     }
 
+    /** Daily buckets — cheap probes over a month-scale window (server-range discovery). */
+    public void setDayPeriod() {
+        this.period = "day";
+    }
+
+    /** Monthly buckets — cheap probes over a year-scale window (server-range discovery). */
+    public void setMonthPeriod() {
+        this.period = "month";
+    }
+
     /** Also request cumulative sums (backfill anchoring / cutoff probing). */
     public void requestSums() {
         if (!types.contains("sum")) types.add("sum");

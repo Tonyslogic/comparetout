@@ -14,6 +14,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -95,6 +96,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -263,6 +265,7 @@ private fun DataSourceManagementScreen(
                                 sensors = haSensors,
                                 showHints = showHints,
                                 onRediscover = viewModel::discoverHA,
+                                onRediscoverStored = viewModel::rediscoverHA,
                                 onFetch = viewModel::fetchHA,
                                 onCancel = viewModel::cancelFetch,
                                 onDeleteAll = viewModel::deleteAllData,
@@ -633,6 +636,7 @@ private fun HASection(
     sensors: HASensorSnapshot?,
     showHints: Boolean,
     onRediscover: (String, String) -> Unit,
+    onRediscoverStored: () -> Unit,
     onFetch: (LocalDateTime) -> Unit,
     onCancel: (String) -> Unit,
     onDeleteAll: (String) -> Unit,
@@ -679,11 +683,11 @@ private fun HASection(
         sensors = sensors,
         showHints = showHints,
         canRediscover = state?.credentialsConfigured == true,
-        onRediscover = {
-            // Re-discovery needs current credentials — we ask again rather
-            // than decrypt-and-reuse, so users see what's about to be sent.
-            showCreds = true
-        },
+        // Re-discovery reuses the stored credentials — retyping a long-lived
+        // token to refresh a sensor list was a dead end (users cancelled the
+        // dialog and nothing happened). Changing credentials is the strip's
+        // Edit action, which still opens the dialog.
+        onRediscover = onRediscoverStored,
         onDeviceChange = onDeviceChange
     )
 
@@ -836,19 +840,12 @@ private fun HASensorsAccordion(
                         }
                     }
                     if (sensors != null) {
-                        SensorList("Grid import", sensors.grid)
-                        SensorList("Grid export", sensors.gridExports)
-                        SensorList("Solar", sensors.solar)
-                        if (sensors.batteries.isNotEmpty()) {
-                            Text("Batteries",
+                        if (sensors.serverRange != null) {
+                            Text("Statistics on server: ${sensors.serverRange}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            sensors.batteries.forEach { (charge, discharge) ->
-                                Text("  ↓ ${discharge ?: "—"}  ↑ ${charge ?: "—"}",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontFamily = FontFamily.Monospace)
-                            }
                         }
+                        HASensorTable(sensors)
                         if (sensors.devices.isNotEmpty()) {
                             Text("Individual devices",
                                 style = MaterialTheme.typography.labelSmall,
@@ -860,9 +857,7 @@ private fun HASensorsAccordion(
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
-                            sensors.devices.forEach { device ->
-                                HADeviceClassifyRow(device, onDeviceChange)
-                            }
+                            HADeviceTable(sensors.devices, onDeviceChange)
                         }
                     } else if (!canRediscover) {
                         Text("Set credentials first to discover sensors.",
@@ -875,66 +870,145 @@ private fun HASensorsAccordion(
     }
 }
 
+// Fixed column widths so the row layout never reflows when a different role
+// is selected (a variable-width role button made everything after it jump).
+private val DEVICE_ROLE_COLUMN = 116.dp
+private val DEVICE_REMOVE_COLUMN = 68.dp
+
 /**
- * One editable device row: label, role dropdown (Ignore / EV / Hot water /
- * Heat pump) and the "Remove from load" opt-in. Persists per change via
- * [UI2DataSourceManagementViewModel.setHaDeviceClassification] — the sensor
- * mapping to the table columns is handled here; no legacy screen involved.
+ * "Individual devices" as a fixed-column Device | Role | Remove-from-load
+ * table. Each row keeps its editable controls: role dropdown (Ignore / EV /
+ * Hot water / Heat pump) and the "Remove from load" opt-in. Persists per
+ * change via [UI2DataSourceManagementViewModel.setHaDeviceClassification] —
+ * the sensor mapping is handled here; no legacy screen involved.
  */
 @Composable
-private fun HADeviceClassifyRow(
+private fun HADeviceTable(
+    devices: List<HADeviceRow>,
+    onDeviceChange: (String, String, Boolean) -> Unit
+) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                RoundedCornerShape(6.dp))
+            .padding(horizontal = 8.dp, vertical = 6.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Device",
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Role",
+                modifier = Modifier.width(DEVICE_ROLE_COLUMN),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Remove from load",
+                modifier = Modifier.width(DEVICE_REMOVE_COLUMN),
+                textAlign = TextAlign.Center,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        devices.forEach { device ->
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+            HADeviceTableRow(device, onDeviceChange)
+        }
+    }
+}
+
+@Composable
+private fun HADeviceTableRow(
     device: HADeviceRow,
     onDeviceChange: (String, String, Boolean) -> Unit
 ) {
     val roleNames = listOf("OTHER", "EV", "HOT_WATER", "HEAT_PUMP")
     val roleLabels = listOf("Ignore", "EV", "Hot water", "Heat pump")
     var menuOpen by remember { mutableStateOf(false) }
-    Column(Modifier.fillMaxWidth().padding(start = 8.dp)) {
+    Row(
+        Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
         Text(device.label,
+            modifier = Modifier.weight(1f).padding(end = 4.dp),
             style = MaterialTheme.typography.bodySmall,
-            fontFamily = FontFamily.Monospace,
-            maxLines = 1, overflow = TextOverflow.Ellipsis)
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Box {
-                OutlinedButton(onClick = { menuOpen = true }) {
-                    Text(roleLabels.getOrElse(roleNames.indexOf(device.role)) { "Ignore" })
-                    Icon(Icons.Default.KeyboardArrowDown, null, Modifier.size(16.dp))
-                }
-                DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
-                    roleLabels.forEachIndexed { i, label ->
-                        DropdownMenuItem(
-                            text = { Text(label) },
-                            onClick = {
-                                menuOpen = false
-                                onDeviceChange(device.statId, roleNames[i], device.adjust)
-                            }
-                        )
-                    }
+            fontFamily = FontFamily.Monospace)
+        Box(Modifier.width(DEVICE_ROLE_COLUMN)) {
+            OutlinedButton(
+                onClick = { menuOpen = true },
+                modifier = Modifier.fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 8.dp)
+            ) {
+                Text(roleLabels.getOrElse(roleNames.indexOf(device.role)) { "Ignore" },
+                    maxLines = 1)
+                Icon(Icons.Default.KeyboardArrowDown, null, Modifier.size(16.dp))
+            }
+            DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                roleLabels.forEachIndexed { i, label ->
+                    DropdownMenuItem(
+                        text = { Text(label) },
+                        onClick = {
+                            menuOpen = false
+                            onDeviceChange(device.statId, roleNames[i], device.adjust)
+                        }
+                    )
                 }
             }
-            Spacer(Modifier.width(8.dp))
+        }
+        Box(Modifier.width(DEVICE_REMOVE_COLUMN), contentAlignment = Alignment.Center) {
             Checkbox(
                 checked = device.adjust,
                 onCheckedChange = { onDeviceChange(device.statId, device.role, it) }
             )
-            Text("Remove from load",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
 
+/**
+ * Two-column Role | Sensor table of the discovered energy sensors. Read-only —
+ * the "Individual devices" table below keeps the editable controls.
+ * Sensor ids wrap rather than ellipsize: the distinguishing suffix of an
+ * entity id is exactly what gets cut off by single-line truncation.
+ */
 @Composable
-private fun SensorList(label: String, sensors: List<String>) {
-    if (sensors.isEmpty()) return
-    Text(label,
-        style = MaterialTheme.typography.labelSmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant)
-    sensors.forEach { s ->
-        Text("  · $s",
-            style = MaterialTheme.typography.bodySmall,
-            fontFamily = FontFamily.Monospace,
-            maxLines = 1, overflow = TextOverflow.Ellipsis)
+private fun HASensorTable(sensors: HASensorSnapshot) {
+    val rows = buildList {
+        sensors.grid.forEach { add("Grid import" to it) }
+        sensors.gridExports.forEach { add("Grid export" to it) }
+        sensors.solar.forEach { add("Solar" to it) }
+        sensors.batteries.forEachIndexed { index, (charging, discharging) ->
+            val battery = if (sensors.batteries.size > 1) "Battery ${index + 1}" else "Battery"
+            charging?.let { add("$battery charge" to it) }
+            discharging?.let { add("$battery discharge" to it) }
+        }
+    }
+    if (rows.isEmpty()) return
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .border(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.2f),
+                RoundedCornerShape(6.dp))
+            .padding(horizontal = 8.dp, vertical = 6.dp)
+    ) {
+        Row {
+            Text("Role",
+                modifier = Modifier.width(104.dp),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("Sensor",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        rows.forEach { (role, statId) ->
+            HorizontalDivider(color = MaterialTheme.colorScheme.outline.copy(alpha = 0.15f))
+            Row(Modifier.padding(vertical = 3.dp)) {
+                Text(role,
+                    modifier = Modifier.width(104.dp),
+                    style = MaterialTheme.typography.bodySmall)
+                Text(statId,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontFamily = FontFamily.Monospace)
+            }
+        }
     }
 }
 

@@ -26,6 +26,11 @@
         "description": "The last date when this plan was updated in the system.",
         "examples": ["2025-06-07", "YYYY-MM-DD"]
       },
+      "Location": {
+        "type": "string",
+        "description": "Optional ISO 3166-1 alpha-2 country code the supplier operates in (e.g. 'IE' for Ireland, 'GB' for the United Kingdom). Plans tagged with a country other than the device's are hidden and auto-deactivated. Omit or leave empty ('') for plans available everywhere.",
+        "examples": ["IE", "GB", ""]
+      },
       "Plan": {
         "type": "string",
         "description": "The official name of the electricity plan as defined by the supplier."
