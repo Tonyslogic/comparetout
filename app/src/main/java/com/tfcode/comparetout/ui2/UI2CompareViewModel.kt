@@ -95,6 +95,7 @@ data class CompareSourceItem(
         ComparisonUIViewModel.Importer.ESBNHDF        -> "ESBN HDF"
         ComparisonUIViewModel.Importer.HOME_ASSISTANT -> "Home Assistant"
         ComparisonUIViewModel.Importer.OCTOPUS        -> "Octopus"
+        ComparisonUIViewModel.Importer.SOLIS          -> "Solis"
         else -> importerType.name
     }
 }

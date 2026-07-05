@@ -160,6 +160,7 @@ fun ScenariosScreen(
                     com.tfcode.comparetout.ComparisonUIViewModel.Importer.HOME_ASSISTANT -> uiVis.homeassistant
                     com.tfcode.comparetout.ComparisonUIViewModel.Importer.ESBNHDF -> uiVis.esbn
                     com.tfcode.comparetout.ComparisonUIViewModel.Importer.OCTOPUS -> uiVis.octopus
+                    com.tfcode.comparetout.ComparisonUIViewModel.Importer.SOLIS -> uiVis.solis
                     else -> true
                 }
             }

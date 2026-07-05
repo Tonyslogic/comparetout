@@ -44,6 +44,7 @@ class UI2SimulationsViewModel @Inject constructor(
                 ComparisonUIViewModel.Importer.ESBNHDF -> "ESBN"
                 ComparisonUIViewModel.Importer.HOME_ASSISTANT -> "Home Assistant"
                 ComparisonUIViewModel.Importer.OCTOPUS -> "Octopus"
+                ComparisonUIViewModel.Importer.SOLIS -> "Solis"
                 else -> importerType.name
             }
         }

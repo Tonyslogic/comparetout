@@ -825,7 +825,10 @@ class UI2DashboardViewModel @Inject constructor(
                 val stats = when (item.importerType) {
                     ComparisonUIViewModel.Importer.ALPHAESS        ->
                         repository.getKeyStats(item.startDate, item.endDate, item.sysSn)
-                    ComparisonUIViewModel.Importer.HOME_ASSISTANT  ->
+                    // The HA key-stats query is generic over the transformed
+                    // table; Solis rows carry pv/load/charge so it applies too.
+                    ComparisonUIViewModel.Importer.HOME_ASSISTANT,
+                    ComparisonUIViewModel.Importer.SOLIS           ->
                         repository.getHAKeyStats(item.startDate, item.endDate, item.sysSn)
                     else -> emptyList()
                 }
@@ -981,6 +984,7 @@ data class DashboardDataSourceInfo(
         ComparisonUIViewModel.Importer.ESBNHDF         -> "ESBN"
         ComparisonUIViewModel.Importer.HOME_ASSISTANT  -> "Home Assistant"
         ComparisonUIViewModel.Importer.OCTOPUS         -> "Octopus"
+        ComparisonUIViewModel.Importer.SOLIS           -> "Solis"
         else -> importerType.name
     }
 }

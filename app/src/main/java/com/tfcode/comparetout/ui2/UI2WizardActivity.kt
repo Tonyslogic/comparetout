@@ -1470,6 +1470,7 @@ private fun DeriveFromSourceDialog(
                             ComparisonUIViewModel.Importer.ESBNHDF         -> "ESBN"
                             ComparisonUIViewModel.Importer.HOME_ASSISTANT  -> "Home Assistant"
                             ComparisonUIViewModel.Importer.OCTOPUS         -> "Octopus"
+                            ComparisonUIViewModel.Importer.SOLIS           -> "Solis"
                             else -> "Unknown"
                         }
                         Row(

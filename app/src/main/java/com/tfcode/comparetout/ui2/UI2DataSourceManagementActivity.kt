@@ -151,6 +151,7 @@ private fun DataSourceManagementScreen(
     val haRaw by viewModel.ha.observeAsState()
     val esbnRaw by viewModel.esbn.observeAsState()
     val octopusRaw by viewModel.octopus.observeAsState()
+    val solisRaw by viewModel.solis.observeAsState()
     val fetchMap by viewModel.fetchStatus.observeAsState(emptyMap())
     val haSensors by viewModel.haSensors.observeAsState()
     val pvgis by viewModel.pvgis.observeAsState()
@@ -176,6 +177,7 @@ private fun DataSourceManagementScreen(
     val ha = haRaw?.withLiveFetch(fetchMap)
     val esbn = esbnRaw?.withLiveFetch(fetchMap)
     val octopus = octopusRaw?.withLiveFetch(fetchMap)
+    val solis = solisRaw?.withLiveFetch(fetchMap)
     val (showHints, toggleShowHints) = rememberShowHints()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -308,6 +310,27 @@ private fun DataSourceManagementScreen(
                                 onDeleteRange = viewModel::deleteRange,
                                 onImportFile = viewModel::importOctopusFile,
                                 onRemoveSource = { viewModel.deleteEntireSource(Importer.OCTOPUS) }
+                            )
+                        }
+                    )
+                }
+                if (uiVis.solis) item("solis") {
+                    SourceAccordion(
+                        title = "Solis Cloud",
+                        subtitle = "Station sync via Platform API",
+                        state = solis,
+                        showHints = showHints,
+                        body = {
+                            SolisSection(
+                                state = solis,
+                                showHints = showHints,
+                                onSetCredentials = viewModel::setSolisCredentials,
+                                onSelect = viewModel::selectSolisStation,
+                                onFetch = viewModel::fetchSolis,
+                                onCancel = viewModel::cancelFetch,
+                                onDeleteAll = viewModel::deleteAllData,
+                                onDeleteRange = viewModel::deleteRange,
+                                onRemoveSource = { viewModel.deleteEntireSource(Importer.SOLIS) }
                             )
                         }
                     )
@@ -1103,6 +1126,96 @@ private fun OctopusSection(
     if (showDeleteSource) {
         DeleteSourceDialog(
             sourceName = "Octopus Energy",
+            mentionsCredentials = true,
+            onDismiss = { showDeleteSource = false },
+            onConfirm = { onRemoveSource(); showDeleteSource = false }
+        )
+    }
+    pendingDelete?.let { sys ->
+        DeleteDialog(
+            sysSn = sys.sysSn,
+            availableStart = sys.startDate,
+            availableEnd = sys.endDate,
+            onDismiss = { pendingDelete = null },
+            onDeleteAll = { onDeleteAll(sys.sysSn); pendingDelete = null },
+            onDeleteRange = { f, t -> onDeleteRange(sys.sysSn, f, t); pendingDelete = null }
+        )
+    }
+    pendingFetch?.let { sys ->
+        FetchStartDialog(
+            sysSn = sys.sysSn,
+            lastDataDate = sys.endDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
+            onDismiss = { pendingFetch = null },
+            onConfirm = { start ->
+                onFetch(sys.sysSn, start)
+                pendingFetch = null
+            }
+        )
+    }
+}
+
+@Composable
+private fun SolisSection(
+    state: SourceState?,
+    showHints: Boolean,
+    onSetCredentials: (String, String) -> Unit,
+    onSelect: (String) -> Unit,
+    onFetch: (String, LocalDateTime) -> Unit,
+    onCancel: (String) -> Unit,
+    onDeleteAll: (String) -> Unit,
+    onDeleteRange: (String, LocalDateTime, LocalDateTime) -> Unit,
+    onRemoveSource: () -> Unit
+) {
+    var showCreds by remember { mutableStateOf(false) }
+    var showDeleteSource by remember { mutableStateOf(false) }
+    var pendingDelete by remember { mutableStateOf<ManagedSystem?>(null) }
+    var pendingFetch by remember { mutableStateOf<ManagedSystem?>(null) }
+    if (showHints) {
+        HintLine("Solis needs an API Key ID and secret from soliscloud.com (Account → " +
+                "API Management — raise a service ticket if the menu is missing). Stations " +
+                "are discovered automatically; data updates every 5 minutes on the Solis side.")
+    }
+    CredentialStrip(
+        configured = state?.credentialsConfigured == true,
+        good = state?.credentialsKnownGood == true,
+        onEdit = { showCreds = true },
+        onDeleteSource = if (state?.credentialsConfigured == true || !state?.systems.isNullOrEmpty())
+            ({ showDeleteSource = true }) else null
+    )
+    SystemList(
+        systems = state?.systems.orEmpty(),
+        selected = state?.selectedSn,
+        canFetch = state?.credentialsKnownGood == true,
+        onSelect = onSelect,
+        onFetch = { sn ->
+            val sys = state?.systems?.firstOrNull { it.sysSn == sn } ?: return@SystemList
+            pendingFetch = sys
+        },
+        onCancel = onCancel,
+        onDelete = { sys -> pendingDelete = sys }
+        // No per-row file import — Solis is cloud-sync only (UI2-only source).
+    )
+    if (state?.systems.isNullOrEmpty() && showHints) {
+        Text("Stations will appear here once credentials are validated.",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    if (showCreds) {
+        CredentialDialog(
+            title = "Solis Cloud credentials",
+            userLabel = "API Key ID",
+            passLabel = "API secret",
+            initialUser = "",
+            onDismiss = { showCreds = false },
+            onSubmit = { u, p ->
+                onSetCredentials(u, p)
+                showCreds = false
+            }
+        )
+    }
+    if (showDeleteSource) {
+        DeleteSourceDialog(
+            sourceName = "Solis Cloud",
             mentionsCredentials = true,
             onDismiss = { showDeleteSource = false },
             onConfirm = { onRemoveSource(); showDeleteSource = false }

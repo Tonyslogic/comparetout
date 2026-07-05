@@ -66,6 +66,7 @@ data class UiVisibility(
     val homeassistant: Boolean = true,
     val esbn: Boolean = true,
     val octopus: Boolean = true,
+    val solis: Boolean = true,
     // Weather/PV caches (PVGIS solar, Copernicus CDS weather)
     val pvgis: Boolean = true,
     val cds: Boolean = true
@@ -101,6 +102,7 @@ object UiVisibilityStore {
                 homeassistant = flag("homeassistant"),
                 esbn = flag("esbn"),
                 octopus = flag("octopus"),
+                solis = flag("solis"),
                 pvgis = flag("pvgis"),
                 cds = flag("cds")
             )

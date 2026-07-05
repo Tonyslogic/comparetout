@@ -2308,6 +2308,7 @@ private fun PvSourceDialog(
                     val typeLabel = when (src.importerType) {
                         ComparisonUIViewModel.Importer.ALPHAESS       -> "AlphaESS"
                         ComparisonUIViewModel.Importer.HOME_ASSISTANT -> "Home Assistant"
+                        ComparisonUIViewModel.Importer.SOLIS          -> "Solis"
                         else -> src.sysSn
                     }
                     Row(

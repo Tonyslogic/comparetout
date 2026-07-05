@@ -150,6 +150,7 @@ private fun SettingsScreen(onClose: () -> Unit) {
             ToggleRow("Home Assistant", null, vis.homeassistant) { update(vis.copy(homeassistant = it)) }
             ToggleRow("ESBN Smart Meter", null, vis.esbn) { update(vis.copy(esbn = it)) }
             ToggleRow("Octopus Energy", null, vis.octopus) { update(vis.copy(octopus = it)) }
+            ToggleRow("Solis Cloud", null, vis.solis) { update(vis.copy(solis = it)) }
             ToggleRow("PVGIS", "Solar irradiance cache", vis.pvgis) { update(vis.copy(pvgis = it)) }
             ToggleRow("Copernicus CDS", "Heat-pump weather cache", vis.cds) { update(vis.copy(cds = it)) }
         }

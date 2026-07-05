@@ -292,6 +292,9 @@
     <string name="octopus_import_notification_title">Octopus CSV import</string>
     <string name="octopusAccountPrompt">Account number (A-XXXXXXXX)</string>
     <string name="octopusApiKeyPrompt">API key</string>
+    <string name="solis_channel_id">Solis Importer</string>
+    <string name="solis_channel_name">Solis Progress</string>
+    <string name="fetch_solis_notification_title">Solis Catchup</string>
     <string name="restrictions_apply">Restrictions Apply</string>
     <string name="cost">Rate</string>
     <string name="annually">Year</string>

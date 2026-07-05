@@ -1448,6 +1448,7 @@ class UI2WizardViewModel @Inject constructor(
                     ComparisonUIViewModel.Importer.ESBNHDF         -> "ESBN: $sysSn"
                     ComparisonUIViewModel.Importer.HOME_ASSISTANT  -> "Home Assistant: $sysSn"
                     ComparisonUIViewModel.Importer.OCTOPUS         -> "Octopus: $sysSn"
+                    ComparisonUIViewModel.Importer.SOLIS           -> "Solis: $sysSn"
                     else -> sysSn
                 }
 

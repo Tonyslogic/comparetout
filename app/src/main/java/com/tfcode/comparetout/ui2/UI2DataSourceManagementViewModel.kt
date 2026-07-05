@@ -6,6 +6,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import androidx.lifecycle.viewModelScope
+import androidx.work.BackoffPolicy
 import androidx.work.Data
 import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.ExistingWorkPolicy
@@ -33,6 +34,10 @@ import com.tfcode.comparetout.importers.octopus.OctopusCatchUpWorker
 import com.tfcode.comparetout.importers.octopus.OctopusCsvImportWorker
 import com.tfcode.comparetout.importers.octopus.OctopusRestClient
 import com.tfcode.comparetout.importers.octopus.OctopusSystem
+import com.tfcode.comparetout.importers.solis.SolisCatchUpWorker
+import com.tfcode.comparetout.importers.solis.SolisCloudAuthException
+import com.tfcode.comparetout.importers.solis.SolisCloudClient
+import com.tfcode.comparetout.importers.solis.SolisCloudClockSkewException
 import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformMeta
 import com.tfcode.comparetout.model.scenario.PanelPVSummary
@@ -84,6 +89,12 @@ private const val OCTOPUS_GOOD_KEY = "octopus_cred_good"
 private const val OCTOPUS_SYSTEM_LIST_KEY = "octopus_system_list"
 private const val OCTOPUS_SELECTED_KEY = "octopus_system_previously_selected"
 
+private const val SOLIS_KEY_ID_KEY = "solis_key_id"
+private const val SOLIS_SECRET_KEY = "solis_secret"
+private const val SOLIS_GOOD_KEY = "solis_cred_good"
+private const val SOLIS_SYSTEM_LIST_KEY = "solis_station_list"
+private const val SOLIS_SELECTED_KEY = "solis_selected"
+
 // Weather/PV "data sources" (Phase 5.5). PVGIS is anonymous (no credentials);
 // CDS stores an encrypted Personal Access Token mirroring AlphaESS/HA. The
 // PVGIS "cache" is the per-panel `PanelData` already in the DB (the UI2 fetch
@@ -94,6 +105,18 @@ private const val CDS_KEY_KEY = "cds_key"
 private const val CDS_GOOD_KEY = "cds_cred_good"
 /** Default CDS API endpoint, prefilled in the credential dialog (user can override). */
 const val CDS_DEFAULT_URL = "https://cds.climate.copernicus.eu/api"
+
+/**
+ * One SolisCloud plant from the credential probe, persisted as JSON under
+ * [SOLIS_SYSTEM_LIST_KEY]. The id is the sysSn minus the "Solis-" prefix
+ * (String — 19-digit ids exceed double precision); [money] is the plant's
+ * currency code, echoed into stationDay requests.
+ */
+data class SolisStation(
+    val id: String,
+    val name: String,
+    val money: String?
+)
 
 /** One configured system within a source — SN/MPRN + the date range we have. */
 data class ManagedSystem(
@@ -193,6 +216,8 @@ class UI2DataSourceManagementViewModel @Inject constructor(
     val esbn: LiveData<SourceState> = _esbn
     private val _octopus = MutableLiveData<SourceState>()
     val octopus: LiveData<SourceState> = _octopus
+    private val _solis = MutableLiveData<SourceState>()
+    val solis: LiveData<SourceState> = _solis
     private val _haSensors = MutableLiveData<HASensorSnapshot?>()
     val haSensors: LiveData<HASensorSnapshot?> = _haSensors
     private val _pvgis = MutableLiveData<WeatherSourceState>()
@@ -251,17 +276,20 @@ class UI2DataSourceManagementViewModel @Inject constructor(
             val h = buildHAState()
             val e = buildEsbnState()
             val o = buildOctopusState()
+            val s = buildSolisState()
             _alpha.postValue(a)
             _ha.postValue(h)
             _esbn.postValue(e)
             _octopus.postValue(o)
+            _solis.postValue(s)
             _haSensors.postValue(readHASensors())
             // PVGIS state is driven by the panelDataSummary observer, not here.
             _cds.postValue(buildCdsState())
             // (Re-)attach WorkManager observers for the union of all SNs
             // so the live "fetching" indicator stays accurate as systems
             // appear and disappear from the lists.
-            val sns = (a.systems + h.systems + e.systems + o.systems).map { it.sysSn }.toSet()
+            val sns = (a.systems + h.systems + e.systems + o.systems + s.systems)
+                .map { it.sysSn }.toSet()
             withContext(Dispatchers.Main) { syncWorkObservers(sns) }
         }
     }
@@ -516,6 +544,7 @@ class UI2DataSourceManagementViewModel @Inject constructor(
             _toast.postValue(Toast("Fetch cancelled for $sysSn"))
             _alpha.postValue(buildAlphaState())
             _ha.postValue(buildHAState())
+            _solis.postValue(buildSolisState())
         }
     }
 
@@ -898,6 +927,148 @@ class UI2DataSourceManagementViewModel @Inject constructor(
         }
     }
 
+    // ── Solis Cloud ─────────────────────────────────────────────────────
+
+    private fun parseSolisStations(raw: String?): List<SolisStation> {
+        if (raw.isNullOrBlank()) return emptyList()
+        return runCatching {
+            gson.fromJson<List<SolisStation>>(raw,
+                object : TypeToken<List<SolisStation>>() {}.type) ?: emptyList()
+        }.getOrDefault(emptyList())
+    }
+
+    private fun buildSolisState(): SourceState {
+        val stations = parseSolisStations(app.getStringValueFromDataStore(SOLIS_SYSTEM_LIST_KEY))
+        val good = app.getStringValueFromDataStore(SOLIS_GOOD_KEY) != "False"
+        val configured = app.getStringValueFromDataStore(SOLIS_KEY_ID_KEY).orEmpty().isNotEmpty()
+        val selected = app.getStringValueFromDataStore(SOLIS_SELECTED_KEY)?.ifEmpty { null }
+        return SourceState(
+            importer = ComparisonUIViewModel.Importer.SOLIS,
+            credentialsConfigured = configured,
+            credentialsKnownGood = configured && good,
+            systems = stations.map { systemRow("Solis-" + it.id) },
+            selectedSn = selected
+        )
+    }
+
+    /**
+     * Update SolisCloud credentials (API KeyID + secret from soliscloud.com →
+     * API Management). Encrypts before storing and probes userStationList to
+     * discover the plants — clock-skew and auth failures get distinct toasts
+     * because their fixes differ (device clock vs re-entered key).
+     */
+    fun setSolisCredentials(keyId: String, secret: String) {
+        if (keyId.isBlank() || secret.isBlank()) {
+            _toast.postValue(Toast("API Key ID and secret are required"))
+            return
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            _busy.postValue(true)
+            try {
+                app.putStringValueIntoDataStore(SOLIS_KEY_ID_KEY,
+                    TOUTCApplication.encryptString(keyId.trim()))
+                app.putStringValueIntoDataStore(SOLIS_SECRET_KEY,
+                    TOUTCApplication.encryptString(secret.trim()))
+                val client = SolisCloudClient(keyId.trim(), secret.trim())
+                val stations = client.stationList.mapNotNull { s ->
+                    s.id?.let { SolisStation(it, s.stationName ?: it, s.money) }
+                }
+                if (stations.isEmpty()) {
+                    app.putStringValueIntoDataStore(SOLIS_GOOD_KEY, "False")
+                    _toast.postValue(Toast("No stations found on this SolisCloud account"))
+                } else {
+                    app.putStringValueIntoDataStore(SOLIS_GOOD_KEY, "True")
+                    app.putStringValueIntoDataStore(SOLIS_SYSTEM_LIST_KEY, gson.toJson(stations))
+                    if (stations.size == 1) {
+                        app.putStringValueIntoDataStore(SOLIS_SELECTED_KEY,
+                            "Solis-" + stations[0].id)
+                    }
+                    _toast.postValue(Toast("Credentials saved (${stations.size} station(s))"))
+                }
+            } catch (e: SolisCloudClockSkewException) {
+                app.putStringValueIntoDataStore(SOLIS_GOOD_KEY, "False")
+                _toast.postValue(Toast("SolisCloud rejected the request time — check the device clock"))
+            } catch (e: SolisCloudAuthException) {
+                app.putStringValueIntoDataStore(SOLIS_GOOD_KEY, "False")
+                _toast.postValue(Toast("SolisCloud rejected the credentials — check Key ID and secret"))
+            } catch (t: Throwable) {
+                app.putStringValueIntoDataStore(SOLIS_GOOD_KEY, "False")
+                _toast.postValue(Toast(t.message ?: "SolisCloud error"))
+            } finally {
+                _solis.postValue(buildSolisState())
+                _busy.postValue(false)
+            }
+        }
+    }
+
+    fun selectSolisStation(sysSn: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            app.putStringValueIntoDataStore(SOLIS_SELECTED_KEY, sysSn)
+            _solis.postValue(buildSolisState())
+        }
+    }
+
+    /**
+     * Start Solis fetch (catch-up + periodic daily). Same tag conventions as
+     * the other importers so the shared fetch indicator / cancel paths apply.
+     * The workers carry EXPONENTIAL backoff criteria because SolisCloudClient
+     * surfaces transient exhaustion as Result.retry().
+     */
+    fun fetchSolis(sysSn: String, startDate: LocalDateTime) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val keyId = decryptOrNull(app.getStringValueFromDataStore(SOLIS_KEY_ID_KEY))
+            val secret = decryptOrNull(app.getStringValueFromDataStore(SOLIS_SECRET_KEY))
+            if (keyId == null || secret == null) {
+                _toast.postValue(Toast("Set SolisCloud credentials first"))
+                return@launch
+            }
+            val station = parseSolisStations(app.getStringValueFromDataStore(SOLIS_SYSTEM_LIST_KEY))
+                .firstOrNull { "Solis-" + it.id == sysSn }
+            if (station == null) {
+                _toast.postValue(Toast("Unknown Solis station $sysSn"))
+                return@launch
+            }
+            val date = dateFmt.format(toDate(startDate))
+            val catchInput = Data.Builder()
+                .putString(SolisCatchUpWorker.KEY_KEY_ID, keyId)
+                .putString(SolisCatchUpWorker.KEY_SECRET, secret)
+                .putString(SolisCatchUpWorker.KEY_STATION_ID, station.id)
+                .putString(SolisCatchUpWorker.KEY_STATION_NAME, station.name)
+                .putString(SolisCatchUpWorker.KEY_CURRENCY, station.money)
+                .putString(SolisCatchUpWorker.KEY_START_DATE, date)
+                .build()
+            val catchReq = OneTimeWorkRequest.Builder(SolisCatchUpWorker::class.java)
+                .setInputData(catchInput)
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
+                .addTag(sysSn)
+                .build()
+            wm.pruneWork()
+            // APPEND_OR_REPLACE, not APPEND: APPEND chains onto the existing unique
+            // work even when it FAILED/CANCELLED, so one bad run silently strands
+            // every later fetch (no worker, no notification, no data).
+            wm.beginUniqueWork(sysSn, ExistingWorkPolicy.APPEND_OR_REPLACE, catchReq).enqueue()
+
+            // Daily incremental sync: no start date ⇒ the worker fetches yesterday.
+            val dailyInput = Data.Builder()
+                .putString(SolisCatchUpWorker.KEY_KEY_ID, keyId)
+                .putString(SolisCatchUpWorker.KEY_SECRET, secret)
+                .putString(SolisCatchUpWorker.KEY_STATION_ID, station.id)
+                .putString(SolisCatchUpWorker.KEY_STATION_NAME, station.name)
+                .putString(SolisCatchUpWorker.KEY_CURRENCY, station.money)
+                .build()
+            val initialDelayHours = (25 - LocalDateTime.now().hour).toLong()
+            val dailyReq = PeriodicWorkRequest.Builder(SolisCatchUpWorker::class.java, 1, TimeUnit.DAYS)
+                .setInputData(dailyInput)
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
+                .setInitialDelay(initialDelayHours, TimeUnit.HOURS)
+                .addTag(sysSn + "daily")
+                .build()
+            wm.enqueueUniquePeriodicWork(sysSn + "daily", ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE, dailyReq)
+            _toast.postValue(Toast("Fetch started for ${station.name}"))
+            _solis.postValue(buildSolisState())
+        }
+    }
+
     // ── Common — deletion ──────────────────────────────────────────────
 
     /**
@@ -913,6 +1084,7 @@ class UI2DataSourceManagementViewModel @Inject constructor(
             _ha.postValue(buildHAState())
             _esbn.postValue(buildEsbnState())
             _octopus.postValue(buildOctopusState())
+            _solis.postValue(buildSolisState())
         }
     }
 
@@ -924,6 +1096,7 @@ class UI2DataSourceManagementViewModel @Inject constructor(
             _ha.postValue(buildHAState())
             _esbn.postValue(buildEsbnState())
             _octopus.postValue(buildOctopusState())
+            _solis.postValue(buildSolisState())
         }
     }
 
@@ -944,6 +1117,7 @@ class UI2DataSourceManagementViewModel @Inject constructor(
                     ComparisonUIViewModel.Importer.HOME_ASSISTANT -> buildHAState().systems
                     ComparisonUIViewModel.Importer.ESBNHDF -> buildEsbnState().systems
                     ComparisonUIViewModel.Importer.OCTOPUS -> buildOctopusState().systems
+                    ComparisonUIViewModel.Importer.SOLIS -> buildSolisState().systems
                     else -> emptyList()
                 }.map { it.sysSn }
                 sns.forEach { sn ->
@@ -978,6 +1152,13 @@ class UI2DataSourceManagementViewModel @Inject constructor(
                         app.putStringValueIntoDataStore(OCTOPUS_SYSTEM_LIST_KEY, "")
                         app.putStringValueIntoDataStore(OCTOPUS_SELECTED_KEY, "")
                     }
+                    ComparisonUIViewModel.Importer.SOLIS -> {
+                        app.putStringValueIntoDataStore(SOLIS_KEY_ID_KEY, "")
+                        app.putStringValueIntoDataStore(SOLIS_SECRET_KEY, "")
+                        app.putStringValueIntoDataStore(SOLIS_GOOD_KEY, "")
+                        app.putStringValueIntoDataStore(SOLIS_SYSTEM_LIST_KEY, "")
+                        app.putStringValueIntoDataStore(SOLIS_SELECTED_KEY, "")
+                    }
                     else -> {}
                 }
                 _toast.postValue(Toast("Source removed"))
@@ -988,6 +1169,7 @@ class UI2DataSourceManagementViewModel @Inject constructor(
                 _ha.postValue(buildHAState())
                 _esbn.postValue(buildEsbnState())
                 _octopus.postValue(buildOctopusState())
+                _solis.postValue(buildSolisState())
                 _haSensors.postValue(readHASensors())
                 _busy.postValue(false)
             }

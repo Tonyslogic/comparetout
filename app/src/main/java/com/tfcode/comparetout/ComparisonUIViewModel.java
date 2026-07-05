@@ -619,6 +619,10 @@ public class ComparisonUIViewModel extends AndroidViewModel {
         HOME_ASSISTANT(java.util.Set.of("load", "buy", "feed", "pv",
                 "charge", "discharge", "evActual", "hwActual", "hpActual")),
         OCTOPUS(java.util.Set.of("buy", "feed")),
+        // SolisCloud station data: the normalised 5-minute curves carry the
+        // measured flows plus the signed battery charge — no flow
+        // decomposition and no device actuals.
+        SOLIS(java.util.Set.of("load", "buy", "feed", "pv", "charge", "discharge")),
         SIMULATION(java.util.Set.of("load", "buy", "feed", "pv", "pv2load", "bat2load", "grid2bat",
                 "charge", "discharge", "evSchedule", "evDivert", "hwSchedule", "hwDivert",
                 "heatPump", "heatPumpBackup", "heatPumpHeat"));
@@ -647,6 +651,7 @@ public class ComparisonUIViewModel extends AndroidViewModel {
             if (null == sysSn) return ESBNHDF;
             if ("HomeAssistant".equals(sysSn)) return HOME_ASSISTANT;
             if (sysSn.startsWith("Octopus-")) return OCTOPUS;
+            if (sysSn.startsWith("Solis-")) return SOLIS;
             return ESBNHDF;
         }
     }
@@ -655,9 +660,9 @@ public class ComparisonUIViewModel extends AndroidViewModel {
     public LiveData<List<InverterDateRange>> getLiveDateRanges(Importer importer) {
         return switch (importer) {
             case ALPHAESS -> toutcRepository.getLiveDateRanges();
-            // ESBN / HA / Octopus share the unfiltered transformed-data ranges query;
-            // callers filter by their own sysSn namespace.
-            case ESBNHDF, OCTOPUS -> toutcRepository.getESBNLiveDateRanges();
+            // ESBN / HA / Octopus / Solis share the unfiltered transformed-data ranges
+            // query; callers filter by their own sysSn namespace.
+            case ESBNHDF, OCTOPUS, SOLIS -> toutcRepository.getESBNLiveDateRanges();
             case HOME_ASSISTANT -> toutcRepository.getHALiveDateRanges();
             case SIMULATION -> toutcRepository.getScenarioLiveDateRanges();
         };
@@ -669,6 +674,7 @@ public class ComparisonUIViewModel extends AndroidViewModel {
             case ESBNHDF:
             case HOME_ASSISTANT:
             case OCTOPUS:
+            case SOLIS:
                 toutcRepository.clearAlphaESSDataForSN(sysSN); break;
         }
     }
@@ -679,13 +685,14 @@ public class ComparisonUIViewModel extends AndroidViewModel {
             case ESBNHDF:
             case HOME_ASSISTANT:
             case OCTOPUS:
+            case SOLIS:
                 toutcRepository.deleteInverterDatesBySN(sysSN, selectedStart, selectedEnd); break;
         }
     }
 
     public List<IntervalRow> getSumHour(Importer importer, String systemSN, String from, String to) {
         return switch (importer) {
-            case ALPHAESS, ESBNHDF, HOME_ASSISTANT, OCTOPUS ->
+            case ALPHAESS, ESBNHDF, HOME_ASSISTANT, OCTOPUS, SOLIS ->
                     toutcRepository.getSumHour(systemSN, from, to);
             case SIMULATION -> toutcRepository.getSimSumHour(systemSN, from, to);
         };
@@ -693,21 +700,21 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public List<IntervalRow> getSumDOY(Importer importer, String systemSN, String from, String to) {
         return switch (importer) {
-            case ALPHAESS, ESBNHDF, HOME_ASSISTANT, OCTOPUS -> toutcRepository.getSumDOY(systemSN, from, to);
+            case ALPHAESS, ESBNHDF, HOME_ASSISTANT, OCTOPUS, SOLIS -> toutcRepository.getSumDOY(systemSN, from, to);
             case SIMULATION -> toutcRepository.getSimSumDOY(systemSN, from, to);
         };
     }
 
     public List<IntervalRow> getSumDOW(Importer importer, String systemSN, String from, String to) {
         return switch (importer) {
-            case ALPHAESS, ESBNHDF, HOME_ASSISTANT, OCTOPUS -> toutcRepository.getSumDOW(systemSN, from, to);
+            case ALPHAESS, ESBNHDF, HOME_ASSISTANT, OCTOPUS, SOLIS -> toutcRepository.getSumDOW(systemSN, from, to);
             case SIMULATION -> toutcRepository.getSimSumDOW(systemSN, from, to);
         };
     }
 
     public List<IntervalRow> getSumMonth(Importer importer, String systemSN, String from, String to) {
         return switch (importer) {
-            case ALPHAESS, ESBNHDF, HOME_ASSISTANT, OCTOPUS ->
+            case ALPHAESS, ESBNHDF, HOME_ASSISTANT, OCTOPUS, SOLIS ->
                     toutcRepository.getSumMonth(systemSN, from, to);
             case SIMULATION -> toutcRepository.getSimSumMonth(systemSN, from, to);
         };
@@ -715,7 +722,7 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public List<IntervalRow> getSumYear(Importer importer, String systemSN, String from, String to) {
         return switch (importer) {
-            case ALPHAESS, ESBNHDF, HOME_ASSISTANT, OCTOPUS ->
+            case ALPHAESS, ESBNHDF, HOME_ASSISTANT, OCTOPUS, SOLIS ->
                     toutcRepository.getSumYear(systemSN, from, to);
             case SIMULATION -> toutcRepository.getSimSumYear(systemSN, from, to);
         };
@@ -723,7 +730,7 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public List<IntervalRow> getAvgHour(Importer importer, String systemSN, String from, String to) {
         return switch (importer) {
-            case ALPHAESS, ESBNHDF, HOME_ASSISTANT, OCTOPUS ->
+            case ALPHAESS, ESBNHDF, HOME_ASSISTANT, OCTOPUS, SOLIS ->
                     toutcRepository.getAvgHour(systemSN, from, to);
             case SIMULATION -> toutcRepository.getSimAvgHour(systemSN, from, to);
         };
@@ -731,21 +738,21 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public List<IntervalRow> getAvgDOY(Importer importer, String systemSN, String from, String to) {
         return switch (importer) {
-            case ALPHAESS, ESBNHDF, HOME_ASSISTANT, OCTOPUS -> toutcRepository.getAvgDOY(systemSN, from, to);
+            case ALPHAESS, ESBNHDF, HOME_ASSISTANT, OCTOPUS, SOLIS -> toutcRepository.getAvgDOY(systemSN, from, to);
             case SIMULATION -> toutcRepository.getSimAvgDOY(systemSN, from, to);
         };
     }
 
     public List<IntervalRow> getAvgDOW(Importer importer, String systemSN, String from, String to) {
         return switch (importer) {
-            case ALPHAESS, ESBNHDF, HOME_ASSISTANT, OCTOPUS -> toutcRepository.getAvgDOW(systemSN, from, to);
+            case ALPHAESS, ESBNHDF, HOME_ASSISTANT, OCTOPUS, SOLIS -> toutcRepository.getAvgDOW(systemSN, from, to);
             case SIMULATION -> toutcRepository.getSimAvgDOW(systemSN, from, to);
         };
     }
 
     public List<IntervalRow> getAvgMonth(Importer importer, String systemSN, String from, String to) {
         return switch (importer) {
-            case ALPHAESS, ESBNHDF, HOME_ASSISTANT, OCTOPUS ->
+            case ALPHAESS, ESBNHDF, HOME_ASSISTANT, OCTOPUS, SOLIS ->
                     toutcRepository.getAvgMonth(systemSN, from, to);
             case SIMULATION -> toutcRepository.getSimAvgMonth(systemSN, from, to);
         };
@@ -753,7 +760,7 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public List<IntervalRow> getAvgYear(Importer importer, String systemSN, String from, String to) {
         return switch (importer) {
-            case ALPHAESS, ESBNHDF, HOME_ASSISTANT, OCTOPUS ->
+            case ALPHAESS, ESBNHDF, HOME_ASSISTANT, OCTOPUS, SOLIS ->
                     toutcRepository.getAvgYear(systemSN, from, to);
             case SIMULATION -> toutcRepository.getSimAvgYear(systemSN, from, to);
         };
@@ -761,7 +768,7 @@ public class ComparisonUIViewModel extends AndroidViewModel {
 
     public List<CostInputRow> getSelectedAlphaESSData(Importer importer, String serialNumber, String from, String to) {
         return switch (importer) {
-            case ALPHAESS, ESBNHDF, HOME_ASSISTANT, OCTOPUS ->
+            case ALPHAESS, ESBNHDF, HOME_ASSISTANT, OCTOPUS, SOLIS ->
                     toutcRepository.getSelectedAlphaESSData(serialNumber, from, to);
             default -> null;
         };
@@ -770,14 +777,16 @@ public class ComparisonUIViewModel extends AndroidViewModel {
     public List<KeyStatsRow> getKeyStats(Importer importer, String from, String to, String systemSN) {
         return switch (importer) {
             case ALPHAESS -> toutcRepository.getKeyStats(from, to, systemSN);
-            case HOME_ASSISTANT -> toutcRepository.getHAKeyStats(from, to, systemSN);
+            // The HA key-stats query is generic over the transformed table,
+            // and Solis rows carry load+pv+charge, so the stats are meaningful.
+            case HOME_ASSISTANT, SOLIS -> toutcRepository.getHAKeyStats(from, to, systemSN);
             case ESBNHDF, OCTOPUS, SIMULATION -> null;
         };
     }
 
     public KPIRow getKPIs(Importer importer, String from, String to, String systemSN) {
         return switch (importer) {
-            case ALPHAESS, HOME_ASSISTANT -> toutcRepository.getKPIs(from, to, systemSN);
+            case ALPHAESS, HOME_ASSISTANT, SOLIS -> toutcRepository.getKPIs(from, to, systemSN);
             case ESBNHDF, OCTOPUS, SIMULATION -> null;
         };
     }
