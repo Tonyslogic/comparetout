@@ -102,6 +102,15 @@ internal object AdaptiveLayout {
     // larger Display-size step (or larger font) pushes it to two.
     val PERIOD_ONE_ROW_MIN_WIDTH = 320.dp
 
+    // Comfortable per-segment chip width in the period control with the long
+    // label ("All time"), and the floor the inline date slot (chevrons + span
+    // text) needs beside the chips. Long vs short chip text is decided by
+    // whether these fit the MEASURED width — the same central fit question as
+    // every other strip — so the labels track the actual horizontal space
+    // instead of a fixed width tier.
+    val PERIOD_CHIP_LONG     = 76.dp
+    val PERIOD_DATE_SLOT_MIN = 150.dp
+
     // Minimum 48 dp touch target for tap surfaces in every tier (a11y).
     val MIN_TOUCH = 48.dp
 
@@ -302,8 +311,13 @@ fun <T> AdaptivePeriodControl(
         // effective width) AND a larger font both push it to two rows.
         val oneRow = fitsWidth(maxWidth, AdaptiveLayout.PERIOD_ONE_ROW_MIN_WIDTH * fontScale)
         if (oneRow) {
-            // In landscape (MEDIUM+) there's room for full segment names.
-            val useLong = maxWidth >= AdaptiveLayout.WIDTH_MEDIUM_AT
+            // Full segment names only when they measurably fit beside the
+            // date slot (landscape / tablets / small Display-size).
+            val useLong = fitsWidth(
+                maxWidth,
+                (AdaptiveLayout.PERIOD_CHIP_LONG * segments.size +
+                        AdaptiveLayout.PERIOD_DATE_SLOT_MIN) * fontScale
+            )
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth()
@@ -326,6 +340,12 @@ fun <T> AdaptivePeriodControl(
                 Box(Modifier.weight(1f)) { dateSlot() }
             }
         } else {
+            // With the date slot on its own row the segments get the full
+            // width, so long names fit more often — same measured test.
+            val useLong = fitsWidth(
+                maxWidth,
+                AdaptiveLayout.PERIOD_CHIP_LONG * segments.size * fontScale
+            )
             Column(modifier = Modifier.fillMaxWidth()) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -338,7 +358,7 @@ fun <T> AdaptivePeriodControl(
                             onClick = { onSelect(seg) },
                             label = {
                                 Text(
-                                    labelFor(seg),
+                                    if (useLong) longLabelFor(seg) else labelFor(seg),
                                     style = MaterialTheme.typography.labelSmall
                                 )
                             },

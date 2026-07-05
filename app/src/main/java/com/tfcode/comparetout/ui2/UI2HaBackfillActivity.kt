@@ -68,8 +68,9 @@ import java.time.LocalDate
 // ──────────────────────────────────────────────────────────────────────────
 // Backfill Home Assistant — a standalone wizard (launched from the HA card in
 // Data Source Management). The flow is too involved for a nested accordion:
-// pick a source, a timeframe, the series and the target; preview the HA-vs-
-// source overlay; then commit. Selection, date handling and chart rendering
+// pick a source, the series and the target; then steer the timeframe (kept
+// beside the charts it drives) over the auto-computed HA-vs-source preview
+// and commit. Selection, date handling and chart rendering
 // follow the Compare screen idioms: FilterChips for subjects/series, the
 // shared PeriodSelector ("D / M / Y / *  < >") for the timeframe, and the
 // Compare line-chart renderer for the preview.
@@ -222,28 +223,6 @@ private fun HaBackfillScreen(
             }
 
             if (source != null && dataStart != null && dataEnd != null) {
-                SectionLabel("Timeframe")
-                PeriodSelector(
-                    selectedPeriod = period,
-                    anchorDate = anchor,
-                    dataStart = dataStart,
-                    dataEnd = dataEnd,
-                    // No explicit preview clear — the auto-preview effect recomputes
-                    // and the stale chart stays visible under the progress bar.
-                    onPeriodChange = { p, a, _ ->
-                        period = p; anchor = a
-                    },
-                    onNavigate = { forward, _ ->
-                        anchor = stepAnchor(anchor, period, forward,
-                            LocalDate.parse(dataStart), LocalDate.parse(dataEnd))
-                    }
-                )
-                range?.let { (f, t) ->
-                    Text("$f → $t",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-
                 SectionLabel("Series")
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     SERIES_OPTIONS.forEach { (key, label) ->
@@ -288,6 +267,30 @@ private fun HaBackfillScreen(
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
 
+                // Timeframe sits last, right above the charts it drives — the
+                // arrows and the discrepancy walk both re-anchor what's shown.
+                SectionLabel("Timeframe")
+                PeriodSelector(
+                    selectedPeriod = period,
+                    anchorDate = anchor,
+                    dataStart = dataStart,
+                    dataEnd = dataEnd,
+                    // No explicit preview clear — the auto-preview effect recomputes
+                    // and the stale chart stays visible under the progress bar.
+                    onPeriodChange = { p, a, _ ->
+                        period = p; anchor = a
+                    },
+                    onNavigate = { forward, _ ->
+                        anchor = stepAnchor(anchor, period, forward,
+                            LocalDate.parse(dataStart), LocalDate.parse(dataEnd))
+                    }
+                )
+                range?.let { (f, t) ->
+                    Text("$f → $t",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalAlignment = Alignment.CenterVertically) {
                     // Committing requires the preview to have landed first (OQ-7) —
@@ -326,6 +329,14 @@ private fun HaBackfillScreen(
                             Text("Discrepancy day ${discrepancyIndex + 1} of ${discrepancyDays.size}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            OutlinedButton(
+                                enabled = discrepancyDays.size > 1,
+                                onClick = {
+                                    discrepancyIndex = (discrepancyIndex - 1 +
+                                            discrepancyDays.size) % discrepancyDays.size
+                                    anchor = discrepancyDays[discrepancyIndex]
+                                }
+                            ) { Text("Previous") }
                             OutlinedButton(
                                 enabled = discrepancyDays.size > 1,
                                 onClick = {
