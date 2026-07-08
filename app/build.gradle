@@ -15,7 +15,9 @@ android {
     compileSdkVersion 37
 
     defaultConfig {
-        applicationId "com.tfcode.comparetout.test"
+        // Base id = the signed store id. The historical hand-edited ".test"
+        // suffix is now automatic on the debug build type below.
+        applicationId "com.tfcode.comparetout"
         minSdk 28
         targetSdk 37
         versionCode 64
@@ -33,12 +35,37 @@ android {
 
     buildTypes {
         debug {
-            // Produces a JaCoCo exec for the JVM unit tests (testDebugUnitTest) -> jacocoTestReport.
+            // Test builds install side-by-side with the store app — this
+            // replaces the manual ".test" applicationId edit that used to be
+            // reverted by hand when creating signed store bundles.
+            applicationIdSuffix ".test"
+            // Produces a JaCoCo exec for the JVM unit tests (testIeDebugUnitTest) -> jacocoTestReport.
             enableUnitTestCoverage true
         }
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    // Region editions (plans/region/survey.md §3a). The flavor *is* the region:
+    // BuildConfig.REGION selects the RegionProfile that gates region-specific
+    // content (importers, deemed export, MIC, currency symbol) at runtime.
+    //  - ie keeps the base applicationId so existing store users update in place
+    //  - gb gets a distinct id and its own Play listing
+    flavorDimensions "region"
+    productFlavors {
+        ie {
+            dimension "region"
+            // Without this the IDE/tooling default is the alphabetically first
+            // flavor (gb) — IE is the incumbent edition, so it stays default.
+            isDefault true
+            buildConfigField "String", "REGION", '"IE"'
+        }
+        gb {
+            dimension "region"
+            applicationIdSuffix ".gb"
+            buildConfigField "String", "REGION", '"GB"'
         }
     }
     compileOptions {
@@ -48,6 +75,8 @@ android {
     buildFeatures {
         viewBinding true
         compose true
+        // Custom BuildConfig fields (REGION) need this on AGP 8+.
+        buildConfig true
     }
     testOptions {
         execution 'ANDROIDX_TEST_ORCHESTRATOR'
@@ -148,9 +177,11 @@ dependencies {
 //   ./gradlew :app:jacocoTestReport
 // HTML at app/build/reports/jacoco/jacocoTestReport/html/index.html
 tasks.register('jacocoTestReport', JacocoReport) {
-    dependsOn 'testDebugUnitTest'
+    // Coverage is measured on the IE flavor (region-conditional code is the
+    // same classes either way; only BuildConfig.REGION differs).
+    dependsOn 'testIeDebugUnitTest'
     group = 'verification'
-    description = 'Generates JaCoCo coverage for the debug JVM unit tests.'
+    description = 'Generates JaCoCo coverage for the ieDebug JVM unit tests.'
 
     reports {
         html.required = true
@@ -166,8 +197,8 @@ tasks.register('jacocoTestReport', JacocoReport) {
             '**/databinding/**', '**/*Binding.*', '**/*Test*.*', 'android/**/*.*'
     ]
     classDirectories.setFrom(files(
-            fileTree(dir: "${buildDir}/intermediates/javac/debug", includes: ['**/*.class'], excludes: excludes),
-            fileTree(dir: "${buildDir}/tmp/kotlin-classes/debug", includes: ['**/*.class'], excludes: excludes)
+            fileTree(dir: "${buildDir}/intermediates/javac/ieDebug", includes: ['**/*.class'], excludes: excludes),
+            fileTree(dir: "${buildDir}/tmp/kotlin-classes/ieDebug", includes: ['**/*.class'], excludes: excludes)
     ))
     sourceDirectories.setFrom(files('src/main/java', 'src/main/kotlin'))
     // AGP writes the unit-test exec under build/ (location varies by version); pick it up wherever it lands.

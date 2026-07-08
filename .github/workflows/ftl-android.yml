@@ -51,7 +51,9 @@ jobs:
         run: chmod +x gradlew
 
       - name: Build app + androidTest APKs
-        run: ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest --stacktrace
+        # FTL smoke-tests the IE edition (region flavors share all code paths;
+        # only BuildConfig.REGION differs).
+        run: ./gradlew :app:assembleIeDebug :app:assembleIeDebugAndroidTest --stacktrace
 
       - name: Authenticate to GCP via Workload Identity Federation
         uses: google-github-actions/auth@v2
@@ -68,8 +70,8 @@ jobs:
         run: |
           gcloud firebase test android run \
             --type instrumentation \
-            --app app/build/outputs/apk/debug/app-debug.apk \
-            --test app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk \
+            --app app/build/outputs/apk/ie/debug/app-ie-debug.apk \
+            --test app/build/outputs/apk/androidTest/ie/debug/app-ie-debug-androidTest.apk \
             --device "model=${{ inputs.device }},version=${{ inputs.version }},locale=en,orientation=portrait" \
             --test-targets "class com.tfcode.comparetout.SmokeLaunchTest" \
             --results-bucket=comparetout-ftl-results \

@@ -5,6 +5,7 @@ package com.tfcode.comparetout.ui2
 import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
+import com.tfcode.comparetout.region.RegionProfiles
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
@@ -379,7 +380,8 @@ private fun HelpText(text: String, novice: Boolean) {
 @Composable
 private fun WhatSection(state: CompareState, vm: UI2CompareViewModel, novice: Boolean) {
     val opts = listOf(
-        Triple(CompareWhat.COST, "Cost", "Compare € across plans & scenarios"),
+        Triple(CompareWhat.COST, "Cost",
+            "Compare ${RegionProfiles.current.currencySymbol} across plans & scenarios"),
         Triple(CompareWhat.USAGE, "Usage", "Compare kWh flows across scenarios"),
         Triple(CompareWhat.BOTH, "Combined", "Side-by-side cost & usage")
     )
@@ -1246,15 +1248,17 @@ private fun CostContent(
         CompareMode.PIE -> {
             val pies = costPies(rows, series)
             ComparePieGrid(pies, MaterialTheme.colorScheme.surfaceVariant,
-                unit = "€", onZoom = { zoomedPie = it })
+                unit = RegionProfiles.current.currencySymbol, onZoom = { zoomedPie = it })
         }
-        else -> ChartArea(state, "Cost", chartData, series, explanation, "€")
+        else -> ChartArea(state, "Cost", chartData, series, explanation,
+            RegionProfiles.current.currencySymbol)
     }
     ResultLegends(state, series, chartData)
 
     zoomedPie?.let { d ->
         val hole = MaterialTheme.colorScheme.surfaceVariant
-        ChartPopout(d.title, emptyList(), explanation, pieInfo = d to "€",
+        ChartPopout(d.title, emptyList(), explanation,
+            pieInfo = d to RegionProfiles.current.currencySymbol,
             onDismiss = { zoomedPie = null }) { h ->
             Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 ComparePieCanvas(d.slices, hole, h)
@@ -1283,7 +1287,7 @@ private fun CostStackArea(
                             Box(Modifier.padding(8.dp)) {
                                 ZoomableChart(bar.title, series.map { it.color to it.label }, explanation) { h ->
                                     CompareCostStackChart(
-                                        listOf(bar), "€", h,
+                                        listOf(bar), RegionProfiles.current.currencySymbol, h,
                                         posExtent = sharedPos, negExtent = sharedNeg
                                     )
                                 }
@@ -1296,7 +1300,7 @@ private fun CostStackArea(
         }
     } else {
         ZoomableChart("Cost", series.map { it.color to it.label }, explanation) { h ->
-            CompareCostStackChart(bars, "€", h)
+            CompareCostStackChart(bars, RegionProfiles.current.currencySymbol, h)
         }
     }
 }
@@ -1357,7 +1361,10 @@ private fun graphExplanationText(
     series: List<SeriesDef>,
     data: List<ChartDatum>
 ): String {
-    val unit = if (metric == CompareWhat.COST) "euro (€)" else "energy (kWh)"
+    val unit = if (metric == CompareWhat.COST) {
+        val p = RegionProfiles.current
+        (if (p.currencySymbol == "£") "sterling" else "euro") + " (${p.currencySymbol})"
+    } else "energy (kWh)"
     val seriesNames = if (series.isEmpty()) "the selected series"
         else series.joinToString(", ") { it.label }
     val firstSeries = series.firstOrNull()?.label ?: "the first series"
@@ -1944,7 +1951,8 @@ private fun costPies(rows: List<CompareCostRow>, series: List<SeriesDef>): List<
                     // Show the actual c/kWh rate instead of "Buy band N" — far more
                     // useful in the pop-out legend where the user is comparing tariffs.
                     val rate = r.buyBandRates.getOrNull(i)
-                    val label = if (rate != null) "${rateLabel(rate)} c/kWh" else "Band ${i + 1}"
+                    val label = if (rate != null)
+                        "${rateLabel(rate)} ${RegionProfiles.current.rateUnit}" else "Band ${i + 1}"
                     add(ComparePieSlice(label, BUY_BAND_COLOR, b, bandPattern(i)))
                 }
             }

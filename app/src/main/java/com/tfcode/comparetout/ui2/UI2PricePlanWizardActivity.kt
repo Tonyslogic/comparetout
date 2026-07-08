@@ -97,6 +97,7 @@ import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import com.google.gson.reflect.TypeToken
 import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile
+import com.tfcode.comparetout.region.RegionProfiles
 import dagger.hilt.android.AndroidEntryPoint
 
 // ──────────────────────────────────────────────────────────────────────────
@@ -231,8 +232,10 @@ private fun PricePlanWizardScreen(
                         item("charges") {
                             AccordionSection(
                                 title = "Charges",
-                                subtitle = "Feed €${"%.2f".format(builder.feed)} c · " +
-                                    "Standing €${"%.2f".format(builder.standingCharges)}/yr",
+                                subtitle = "Feed ${"%.2f".format(builder.feed)} " +
+                                    "${RegionProfiles.current.minorSymbol} · " +
+                                    "Standing ${RegionProfiles.current.currencySymbol}" +
+                                    "${"%.2f".format(builder.standingCharges)}/yr",
                                 isComplete = true,
                                 hasError = false,
                                 isExpanded = expanded.contains("charges"),
@@ -657,11 +660,15 @@ private fun DetailsSection(
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
-        SwitchRow(
-            title = "Deemed export",
-            sub = "Supplier estimates your export instead of measuring it.",
-            checked = builder.deemedExport
-        ) { v -> vm.updateBuilder { it.copy(deemedExport = v) } }
+        // Deemed export is an IE-only concept — other editions never show the
+        // switch (the underlying field stays false, its JSON default).
+        if (RegionProfiles.current.hasDeemedExport) {
+            SwitchRow(
+                title = "Deemed export",
+                sub = "Supplier estimates your export instead of measuring it.",
+                checked = builder.deemedExport
+            ) { v -> vm.updateBuilder { it.copy(deemedExport = v) } }
+        }
         if (builder.lastUpdate.isNotBlank()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Info, null, modifier = Modifier.size(14.dp),
@@ -682,17 +689,17 @@ private fun DetailsSection(
 private fun ChargesSection(builder: PricePlanBuilder, vm: UI2PricePlanViewModel) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         DoubleField(
-            label = "Feed-in tariff (c/kWh)",
+            label = "Feed-in tariff (${RegionProfiles.current.rateUnit})",
             value = builder.feed,
             onValue = { v -> vm.updateBuilder { it.copy(feed = v) } }
         )
         DoubleField(
-            label = "Standing charges (€/year)",
+            label = "Standing charges (${RegionProfiles.current.currencySymbol}/year)",
             value = builder.standingCharges,
             onValue = { v -> vm.updateBuilder { it.copy(standingCharges = v) } }
         )
         DoubleField(
-            label = "Sign-up bonus (€)",
+            label = "Sign-up bonus (${RegionProfiles.current.currencySymbol})",
             value = builder.signUpBonus,
             onValue = { v -> vm.updateBuilder { it.copy(signUpBonus = v) } }
         )
@@ -759,13 +766,14 @@ private fun RestrictionEntryCard(
                 var rateMenu by remember { mutableStateOf(false) }
                 Box {
                     OutlinedButton(onClick = { rateMenu = true }) {
-                        Text(if (entry.rate.isBlank()) "Rate…" else "${entry.rate} c/kWh")
+                        Text(if (entry.rate.isBlank()) "Rate…"
+                             else "${entry.rate} ${RegionProfiles.current.rateUnit}")
                     }
                     DropdownMenu(expanded = rateMenu, onDismissRequest = { rateMenu = false }) {
                         uniqueRates.forEach { r ->
                             val label = formatRateValue(r)
                             DropdownMenuItem(
-                                text = { Text("$label c/kWh") },
+                                text = { Text("$label ${RegionProfiles.current.rateUnit}") },
                                 onClick = {
                                     rateMenu = false
                                     vm.updateRestriction(entry.id) { it.copy(rate = label) }
@@ -824,7 +832,7 @@ private fun RestrictionEntryCard(
                             vm.updateRestriction(entry.id) { it.copy(revisedPrice = p) }
                         }
                     },
-                    label = { Text("Then (c/kWh)") },
+                    label = { Text("Then (${RegionProfiles.current.rateUnit})") },
                     isError = priceText.toDoubleOrNull() == null,
                     singleLine = true,
                     modifier = Modifier.weight(1f)
@@ -847,7 +855,7 @@ private fun DayRatesSection(
         if (showHints) {
             Text(
                 "Each day rate covers a date window and a set of weekdays. Add costs " +
-                    "(c/kWh) and assign time ranges to each — together they must cover " +
+                    "(${RegionProfiles.current.rateUnit}) and assign time ranges to each — together they must cover " +
                     "the full 24-hour day. Across all day rates, the dates must tile " +
                     "the calendar year and every weekday must be covered.",
                 style = MaterialTheme.typography.labelSmall,
@@ -992,7 +1000,7 @@ private fun DayRatePanel(
                     CoverageSummary(issues)
 
                     // Rates — grouped by price
-                    Text("RATES (c/kWh)", style = MaterialTheme.typography.labelSmall,
+                    Text("RATES (${RegionProfiles.current.rateUnit})", style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     val groups = remember(dr.bands) {
                         // Group by price; preserve first-seen ordering so reordering doesn't
@@ -1082,7 +1090,7 @@ private fun PriceCard(
         Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 DoubleField(
-                    label = "Cost (c/kWh)",
+                    label = "Cost (${RegionProfiles.current.rateUnit})",
                     value = price,
                     onValue = onPriceChange,
                     modifier = Modifier.weight(1f)

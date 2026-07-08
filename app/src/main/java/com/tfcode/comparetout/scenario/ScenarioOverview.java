@@ -62,6 +62,7 @@ import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.SimulatorLauncher;
 import com.tfcode.comparetout.model.costings.Costings;
 import com.tfcode.comparetout.model.scenario.HWDivert;
+import com.tfcode.comparetout.region.RegionProfiles;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioComponents;
 import com.tfcode.comparetout.model.scenario.SimKPIs;
@@ -617,7 +618,8 @@ public class ScenarioOverview extends Fragment {
                 b.setSingleLine(false);
                 if (!(null == mBestCosting)) {
                     DecimalFormat df = new DecimalFormat("#.00");
-                    String price =  "Best cost, €" + df.format(mBestCosting.getNet() /100);
+                    String price =  "Best cost, " + RegionProfiles.current.currencySymbol
+                            + df.format(mBestCosting.getNet() /100);
                     a.setText(price);
                     String value = mBestCosting.getFullPlanName();
                     b.setText(value);

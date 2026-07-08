@@ -17,6 +17,7 @@
 package com.tfcode.comparetout.ui2
 
 import androidx.compose.animation.AnimatedVisibility
+import com.tfcode.comparetout.region.RegionProfiles
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -476,7 +477,8 @@ private fun ResultCard(
                     } else {
                         Text("Estimated yearly cost", style = MaterialTheme.typography.titleMedium)
                         Text(
-                            String.format(Locale.US, "€%,.0f", r.annualNetEuro),
+                            String.format(Locale.US,
+                                "${RegionProfiles.current.currencySymbol}%,.0f", r.annualNetEuro),
                             style = MaterialTheme.typography.headlineMedium,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -488,7 +490,9 @@ private fun ResultCard(
                         }
                         Text(
                             String.format(
-                                Locale.US, "Buy €%,.0f · Sell €%,.0f per year",
+                                Locale.US,
+                                "Buy ${RegionProfiles.current.currencySymbol}%,.0f · " +
+                                    "Sell ${RegionProfiles.current.currencySymbol}%,.0f per year",
                                 r.annualBuyEuro, r.annualSellEuro
                             ),
                             style = MaterialTheme.typography.labelSmall,

@@ -80,6 +80,7 @@ import androidx.navigation.fragment.findNavController
 import com.tfcode.comparetout.MainActivity
 import com.tfcode.comparetout.R
 import com.tfcode.comparetout.TOUTCApplication
+import com.tfcode.comparetout.region.RegionProfiles
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -440,7 +441,7 @@ private fun SimulationCard(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 item.bestCostPerYear?.let { cost ->
                     Text(
-                        "€${costFmt.format(cost)}/yr",
+                        "${RegionProfiles.current.currencySymbol}${costFmt.format(cost)}/yr",
                         style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.secondary
                     )

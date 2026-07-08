@@ -8,6 +8,7 @@ import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import com.tfcode.comparetout.ComparisonUIViewModel
 import com.tfcode.comparetout.TOUTCApplication
+import com.tfcode.comparetout.region.RegionProfiles
 import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.model.costings.SubTotals
 import com.tfcode.comparetout.model.importers.InverterDateRange
@@ -1279,7 +1280,9 @@ class UI2CompareViewModel @Inject constructor(
         if (rows.isEmpty()) return null
         val cols = selectedCostSeries()
         val sb = StringBuilder("Subject,Plan,Available")
-        cols.forEach { (_, label) -> sb.append(',').append(csvField("$label (€)")) }
+        cols.forEach { (_, label) ->
+            sb.append(',').append(csvField("$label (${RegionProfiles.current.currencySymbol})"))
+        }
         sb.append('\n')
         rows.forEach { r ->
             sb.append(csvField(r.subjectName)).append(',')

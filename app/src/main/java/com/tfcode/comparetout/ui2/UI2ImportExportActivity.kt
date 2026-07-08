@@ -85,6 +85,7 @@ import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import com.google.gson.reflect.TypeToken
 import com.tfcode.comparetout.SimulatorLauncher
+import com.tfcode.comparetout.region.RegionProfiles
 import com.tfcode.comparetout.model.SnapshotExporter
 import com.tfcode.comparetout.model.SnapshotImporter
 import com.tfcode.comparetout.model.ToutcRepository
@@ -619,9 +620,10 @@ private fun ImportExportScreen(
                 hint = "Accepts the JSON shape produced by the Share button on a plan, " +
                         "or the bulk export above.",
                 applyLabel = "Continue",
-                communityUrl = PricePlanDownloader.RATES_URL,
-                communityNote = "Community-maintained Irish supplier tariffs — may be out of " +
-                    "date. You can edit any plan after importing.",
+                communityUrl = RegionProfiles.current.pricePlanFeedUrl,
+                // Note is paired with the URL in the profile; when the URL is
+                // null the community source never renders, so "" is never seen.
+                communityNote = RegionProfiles.current.pricePlanFeedNote ?: "",
                 llmPrompt = PricePlanDownloader.LLM_PROMPT,
                 parse = ::parsePricePlansJson,
                 onApply = {

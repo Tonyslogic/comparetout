@@ -22,6 +22,7 @@ import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.model.json.JsonTools
 import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile
 import com.tfcode.comparetout.model.priceplan.DayRate
+import com.tfcode.comparetout.region.RegionProfiles
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
@@ -37,8 +38,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Downloads the community-maintained Irish supplier tariffs published on the
- * project's doc site and inserts them as price plans.
+ * Downloads the community-maintained supplier tariffs for the installed
+ * edition's region ([RegionProfiles.current.pricePlanFeedUrl]) and inserts
+ * them as price plans. Editions without a curated feed (GB) get [Result.Empty].
  *
  * This is the same payload + transform the legacy `MainActivity` "download"
  * menu used (`MainActivity.java:600-665`), ported to Kotlin/coroutines and
@@ -71,8 +73,12 @@ class PricePlanDownloader @Inject constructor(
      *   download is effectively additive.
      */
     suspend fun download(clobber: Boolean = false): Result = withContext(Dispatchers.IO) {
+        // The feed is region-specific; an edition without a curated feed
+        // (currently GB) simply has nothing to download.
+        val feedUrl = RegionProfiles.current.pricePlanFeedUrl
+            ?: return@withContext Result.Empty
         try {
-            val plans: List<PricePlanJsonFile> = URL(RATES_URL).openStream().use { stream ->
+            val plans: List<PricePlanJsonFile> = URL(feedUrl).openStream().use { stream ->
                 InputStreamReader(stream).use { reader ->
                     Gson().fromJson(reader, object : TypeToken<List<PricePlanJsonFile>>() {}.type)
                 }
@@ -106,8 +112,6 @@ class PricePlanDownloader @Inject constructor(
     }
 
     companion object {
-        const val RATES_URL =
-            "https://raw.githubusercontent.com/Tonyslogic/comparetout-doc/main/price-plans/rates.json"
 
         /**
          * Prompt the user copies into a general-purpose LLM to generate a

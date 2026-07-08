@@ -30,6 +30,7 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.google.gson.Gson
 import com.google.gson.JsonParser
 import com.tfcode.comparetout.TOUTCApplication
+import com.tfcode.comparetout.region.RegionProfiles
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -76,6 +77,19 @@ object UiVisibilityStore {
     private val gson = Gson()
 
     /**
+     * Region hard-gate, applied on top of the user's toggles: a data source the
+     * installed edition doesn't support (Octopus outside GB, ESBN outside IE)
+     * reads as hidden no matter what the persisted JSON says. Every UI2 surface
+     * consumes visibility through [read], so this one mask gates them all; the
+     * settings screen additionally hides the unsupported rows (see
+     * UI2SettingsActivity) so the toggle can't even be seen.
+     */
+    private fun maskForRegion(v: UiVisibility): UiVisibility = v.copy(
+        octopus = v.octopus && RegionProfiles.current.hasOctopus,
+        esbn = v.esbn && RegionProfiles.current.hasEsbn
+    )
+
+    /**
      * Synchronous read (call off the main thread where possible); missing/bad JSON → all visible.
      *
      * Field-by-field with a missing-key default of true: Gson bypasses Kotlin
@@ -83,10 +97,11 @@ object UiVisibilityStore {
      * otherwise deserialize as false and silently hide the new UI.
      */
     fun read(context: Context): UiVisibility {
-        val app = context.applicationContext as? TOUTCApplication ?: return UiVisibility()
+        val app = context.applicationContext as? TOUTCApplication
+            ?: return maskForRegion(UiVisibility())
         val raw = runCatching { app.getStringValueFromDataStore(UI_VISIBILITY_KEY) }.getOrNull()
-        if (raw.isNullOrBlank()) return UiVisibility()
-        return runCatching {
+        if (raw.isNullOrBlank()) return maskForRegion(UiVisibility())
+        return maskForRegion(runCatching {
             val obj = JsonParser.parseString(raw).asJsonObject
             fun flag(name: String): Boolean = obj.get(name)?.takeIf { it.isJsonPrimitive }?.asBoolean ?: true
             UiVisibility(
@@ -106,7 +121,7 @@ object UiVisibilityStore {
                 pvgis = flag("pvgis"),
                 cds = flag("cds")
             )
-        }.getOrNull() ?: UiVisibility()
+        }.getOrNull() ?: UiVisibility())
     }
 
     fun write(context: Context, visibility: UiVisibility) {

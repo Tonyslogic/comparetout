@@ -58,6 +58,7 @@ import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.priceplan.RangeRate;
+import com.tfcode.comparetout.region.RegionProfiles;
 import com.tfcode.comparetout.model.priceplan.Restriction;
 import com.tfcode.comparetout.model.priceplan.Restrictions;
 import com.tfcode.comparetout.util.AbstractTextWatcher;
@@ -697,22 +698,25 @@ public class PricePlanEditFragment extends Fragment {
         mPropertiesTable.addView(tableRow);
         mEditFields.add(b);
 
-        tableRow = new TableRow(getActivity());
-        tableRow.setOnLongClickListener(v -> {
-            showHelp();
-            return true;
-        });
-        a = new MaterialTextView(getActivity());
-        a.setText(R.string.deemed_export_calculation);
-        a.setMinimumHeight(80);
-        a.setHeight(80);
-        MaterialCheckBox cb = getMaterialCheckBoxForDeemedExport();
-        a.setLayoutParams(planParams);
-//        b.setLayoutParams(textParams);
-        tableRow.addView(a);
-        tableRow.addView(cb);
-        mPropertiesTable.addView(tableRow);
-        mEditFields.add(cb);
+        // Deemed export is an IE-only concept — other editions skip the row
+        // (the plan's flag stays at its default, false).
+        if (RegionProfiles.current.hasDeemedExport) {
+            tableRow = new TableRow(getActivity());
+            tableRow.setOnLongClickListener(v -> {
+                showHelp();
+                return true;
+            });
+            a = new MaterialTextView(getActivity());
+            a.setText(R.string.deemed_export_calculation);
+            a.setMinimumHeight(80);
+            a.setHeight(80);
+            MaterialCheckBox cb = getMaterialCheckBoxForDeemedExport();
+            a.setLayoutParams(planParams);
+            tableRow.addView(a);
+            tableRow.addView(cb);
+            mPropertiesTable.addView(tableRow);
+            mEditFields.add(cb);
+        }
     }
 
     @NonNull

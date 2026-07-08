@@ -118,6 +118,11 @@ class UI2MainActivity : AppCompatActivity() {
         // shown over UI2 rather than the legacy screen.
         maybeShowDisclaimer()
 
+        // Region guard: the edition is fixed at build time, so a device whose
+        // SIM/locale says another country gets a one-time pointer to the right
+        // edition (wrong tariffs + currency otherwise).
+        maybeShowRegionMismatch()
+
         // Android 13+ requires a runtime grant before notify() does anything — without
         // it every importer/backfill progress notification is silently dropped. Ask
         // once here; a denial is respected (the system won't re-prompt after two).
@@ -178,6 +183,39 @@ class UI2MainActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * One-time warning when the installed edition's region doesn't match the
+     * device country (SIM → network → locale). Fixed by the build flavor, so
+     * the only remedy is installing the right edition — hence warn-once, never
+     * nag, and never block.
+     */
+    private fun maybeShowRegionMismatch() {
+        val app = application as TOUTCApplication
+        lifecycleScope.launch {
+            val acked = withContext(Dispatchers.IO) {
+                runCatching { app.getStringValueFromDataStore(REGION_MISMATCH_ACK_KEY) }.getOrDefault("")
+            } == "True"
+            if (acked || isFinishing) return@launch
+            val profile = com.tfcode.comparetout.region.RegionProfiles.current
+            val deviceCountry = resolveDeviceCountry(this@UI2MainActivity)
+            if (deviceCountry.isBlank() ||
+                deviceCountry.equals(profile.regionCode, ignoreCase = true)) return@launch
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(this@UI2MainActivity)
+                .setTitle("Different region detected")
+                .setMessage(
+                    "This is the ${profile.editionName} edition, but your device looks " +
+                        "like $deviceCountry. Tariffs and currency are region-specific — " +
+                        "if that's not right, install the edition for your country instead."
+                )
+                .setPositiveButton("Got it") { _, _ ->
+                    kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
+                        runCatching { app.putStringValueIntoDataStore(REGION_MISMATCH_ACK_KEY, "True") }
+                    }
+                }
+                .show()
+        }
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
@@ -210,6 +248,7 @@ class UI2MainActivity : AppCompatActivity() {
     companion object {
         /** Matches TOUTCApplication.FIRST_USE (package-private in the legacy package). */
         private const val FIRST_USE_KEY = "first_use"
+        private const val REGION_MISMATCH_ACK_KEY = "region_mismatch_ack"
 
         private const val DISCLAIMER_TEXT =
             "Solar data is variable. This app uses historical solar data in estimations.\n\n" +

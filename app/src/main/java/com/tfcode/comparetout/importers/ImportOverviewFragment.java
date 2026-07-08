@@ -75,6 +75,7 @@ import com.tfcode.comparetout.importers.alphaess.SelectSerialDialogListener;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.costings.Costings;
 import com.tfcode.comparetout.model.costings.SubTotals;
+import com.tfcode.comparetout.region.RegionProfiles;
 import com.tfcode.comparetout.model.importers.CostInputRow;
 import com.tfcode.comparetout.model.importers.InverterDateRange;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
@@ -796,8 +797,9 @@ public abstract class ImportOverviewFragment extends Fragment {
             mStatusTable.setColumnShrinkable(0, true);
             mStatusTable.setColumnStretchable(0, false);
 
-            createRow("Supplier:Plan", "Net(€)",
-                    "Buy(€)", "Sell(€)", "Fixed(€)", true, null);
+            String cur = RegionProfiles.current.currencySymbol;
+            createRow("Supplier:Plan", "Net(" + cur + ")",
+                    "Buy(" + cur + ")", "Sell(" + cur + ")", "Fixed(" + cur + ")", true, null);
 
             ArrayList<Row> rows = new ArrayList<>();
             if (!(null == mCostViewModel.getCostings()) && !mCostViewModel.getCostings().isEmpty()

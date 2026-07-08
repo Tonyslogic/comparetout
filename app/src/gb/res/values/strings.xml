@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- GB edition overrides — currency-bearing legacy strings (the Compose UI
+     reads RegionProfile directly; these cover the legacy XML screens). -->
+<resources>
+    <string name="NoBestCost">Best cost = £???.??</string>
+    <string name="SignUpBonus">Sign up bonus (£)</string>
+    <string name="StandingCharges">Standing charges (£)</string>
+</resources>

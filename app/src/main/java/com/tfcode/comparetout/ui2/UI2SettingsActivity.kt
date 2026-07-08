@@ -49,6 +49,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import com.tfcode.comparetout.region.RegionProfiles
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -148,8 +149,14 @@ private fun SettingsScreen(onClose: () -> Unit) {
             GroupHeader("Data sources")
             ToggleRow("AlphaESS", null, vis.alphaess) { update(vis.copy(alphaess = it)) }
             ToggleRow("Home Assistant", null, vis.homeassistant) { update(vis.copy(homeassistant = it)) }
-            ToggleRow("ESBN Smart Meter", null, vis.esbn) { update(vis.copy(esbn = it)) }
-            ToggleRow("Octopus Energy", null, vis.octopus) { update(vis.copy(octopus = it)) }
+            // Region-specific sources only offer a toggle in the editions where
+            // they exist (UiVisibilityStore hard-gates them everywhere else).
+            if (RegionProfiles.current.hasEsbn) {
+                ToggleRow("ESBN Smart Meter", null, vis.esbn) { update(vis.copy(esbn = it)) }
+            }
+            if (RegionProfiles.current.hasOctopus) {
+                ToggleRow("Octopus Energy", null, vis.octopus) { update(vis.copy(octopus = it)) }
+            }
             ToggleRow("Solis Cloud", null, vis.solis) { update(vis.copy(solis = it)) }
             ToggleRow("PVGIS", "Solar irradiance cache", vis.pvgis) { update(vis.copy(pvgis = it)) }
             ToggleRow("Copernicus CDS", "Heat-pump weather cache", vis.cds) { update(vis.copy(cds = it)) }

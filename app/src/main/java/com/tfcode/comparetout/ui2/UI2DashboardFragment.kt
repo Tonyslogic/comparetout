@@ -113,6 +113,7 @@ import com.tfcode.comparetout.ComparisonUIViewModel
 import com.tfcode.comparetout.MainActivity
 import com.tfcode.comparetout.R
 import com.tfcode.comparetout.TOUTCApplication
+import com.tfcode.comparetout.region.RegionProfiles
 import com.tfcode.comparetout.model.costings.Costings
 import com.tfcode.comparetout.model.scenario.LoadProfile
 import com.tfcode.comparetout.model.scenario.Panel
@@ -846,7 +847,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     Card(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(
-                                text = "Best Cost/Year: €${df.format(costing.net / 100.0)}",
+                                text = "Best Cost/Year: ${RegionProfiles.current.currencySymbol}${df.format(costing.net / 100.0)}",
                                 style = MaterialTheme.typography.titleMedium
                             )
                             Text(text = costing.fullPlanName ?: "", style = MaterialTheme.typography.bodyMedium)
@@ -993,9 +994,13 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                                 SimulationPieCharts(kpis = kpis)
                             }
                         }
-                        dashboardData?.micBreaches?.let { micb ->
-                            Spacer(Modifier.height(8.dp))
-                            MICBreachFlag(micb, showHints)
+                        // MIC (Maximum Import Capacity) is an IE grid concept —
+                        // other editions never show the breach flag.
+                        if (RegionProfiles.current.hasMIC) {
+                            dashboardData?.micBreaches?.let { micb ->
+                                Spacer(Modifier.height(8.dp))
+                                MICBreachFlag(micb, showHints)
+                            }
                         }
                     }
 

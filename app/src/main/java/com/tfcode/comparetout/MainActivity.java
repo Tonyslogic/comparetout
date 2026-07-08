@@ -64,6 +64,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.json.priceplan.DayRateJson;
+import com.tfcode.comparetout.region.RegionProfiles;
 import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
 import com.tfcode.comparetout.model.json.scenario.ScenarioJsonFile;
 import com.tfcode.comparetout.model.priceplan.DayRate;
@@ -626,7 +627,11 @@ public class MainActivity extends InsetRespectingActivity {
         if (itemID == R.id.download) {
             //add the function to perform here
             System.out.println("Download attempt");
-            AtomicReference<String> urlString = new AtomicReference<>("https://raw.githubusercontent.com/Tonyslogic/comparetout-doc/main/price-plans/rates.json");
+            // Region-specific community feed; editions without one (GB) start
+            // the dialog empty and the user can paste a URL.
+            AtomicReference<String> urlString = new AtomicReference<>(
+                    RegionProfiles.current.pricePlanFeedUrl == null
+                            ? "" : RegionProfiles.current.pricePlanFeedUrl);
             if (pos == USAGE_FRAGMENT) urlString.set("https://raw.githubusercontent.com/Tonyslogic/comparetout-doc/main/usage-profiles/scenarios.json");
 
             DownloadDialog downloadDialog = new DownloadDialog(this, urlString.get(), (newURL, clobber) -> {

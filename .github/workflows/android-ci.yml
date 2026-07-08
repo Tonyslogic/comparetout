@@ -41,8 +41,12 @@ jobs:
       run: ./gradlew --version
 
     - name: Build with Gradle
+      # assembleDebug builds every region flavor (ieDebug + gbDebug), so a
+      # GB-breaking change fails CI even before GB ships.
       run: ./gradlew assembleDebug --stacktrace
 
     - name: Run unit tests
-      run: ./gradlew test --stacktrace
+      # One flavor is enough for the JVM tests — the classes are identical
+      # across regions (only BuildConfig.REGION differs).
+      run: ./gradlew testIeDebugUnitTest --stacktrace
 

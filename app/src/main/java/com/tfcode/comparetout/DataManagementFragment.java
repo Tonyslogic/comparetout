@@ -42,6 +42,7 @@ import com.tfcode.comparetout.importers.alphaess.ImportAlphaActivity;
 import com.tfcode.comparetout.importers.esbn.ImportESBNActivity;
 import com.tfcode.comparetout.importers.homeassistant.ImportHomeAssistantActivity;
 import com.tfcode.comparetout.importers.octopus.ImportOctopusActivity;
+import com.tfcode.comparetout.region.RegionProfiles;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
 
 
@@ -110,6 +111,11 @@ public class DataManagementFragment extends Fragment {
         mHomeAssistant = view.findViewById(R.id.haLoader);
         mOctopus = view.findViewById(R.id.octopusLoader);
         mSolisCloud = view.findViewById(R.id.solisLoader);
+
+        // Region-specific importers only exist in the editions where the
+        // supplier/meter operator does (Octopus = GB, ESBN = IE).
+        if (!RegionProfiles.current.hasOctopus) mOctopus.setVisibility(View.GONE);
+        if (!RegionProfiles.current.hasEsbn) mESBN_HDF.setVisibility(View.GONE);
 
         setupButtons();
 

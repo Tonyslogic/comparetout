@@ -82,6 +82,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile
+import com.tfcode.comparetout.region.RegionProfiles
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.Dispatchers
@@ -337,17 +338,24 @@ private fun PricePlanListScreen(
     }
 
     if (showImport) {
+        // Region-gated sources: the community feed URL/wording comes from the
+        // edition's profile (null hides the entry), and the Octopus tariff
+        // browser is only offered where Octopus operates (GB).
+        val region = RegionProfiles.current
         UI2ImportSheet(
             title = "Import supplier plans",
             hint = "Accepts the JSON shape produced by the Share button on a plan, " +
                 "or a bulk export.",
             applyLabel = "Continue",
-            communityUrl = PricePlanDownloader.RATES_URL,
-            communityNote = "Community-maintained Irish supplier tariffs — may be out of " +
-                "date. You can edit any plan after importing.",
+            communityUrl = region.pricePlanFeedUrl,
+            // Note is paired with the URL in the profile; when the URL is null
+            // the community source never renders, so "" is never seen.
+            communityNote = region.pricePlanFeedNote ?: "",
             llmPrompt = PricePlanDownloader.LLM_PROMPT,
-            extraSourceLabel = "Octopus tariffs",
-            extraSourceContent = { OctopusTariffFetchPane() },
+            extraSourceLabel = if (region.hasOctopus) "Octopus tariffs" else null,
+            extraSourceContent = if (region.hasOctopus) {
+                { OctopusTariffFetchPane() }
+            } else null,
             parse = ::parsePricePlansJson,
             onApply = {
                 pendingImport = it
@@ -597,10 +605,11 @@ private fun PricePlanAccordion(
                     // Spec strip — standing / feed / bonus / day-rate count.
                     // Routed through AdaptiveCellRow so the strip wraps to 2/1
                     // cells per row under font scaling instead of clipping.
+                    val cur = RegionProfiles.current.currencySymbol
                     val specs = listOf(
-                        "Standing" to "€${moneyFmt.format(row.standingCharges)}/yr",
-                        "Feed-in" to "${moneyFmt.format(row.feed)} c/kWh",
-                        "Bonus" to "€${moneyFmt.format(row.signUpBonus)}",
+                        "Standing" to "$cur${moneyFmt.format(row.standingCharges)}/yr",
+                        "Feed-in" to "${moneyFmt.format(row.feed)} ${RegionProfiles.current.rateUnit}",
+                        "Bonus" to "$cur${moneyFmt.format(row.signUpBonus)}",
                         "Rates" to "${row.rateCount} day-rate" +
                             if (row.rateCount == 1) "" else "s"
                     )
@@ -608,7 +617,9 @@ private fun PricePlanAccordion(
                         SpecCell(label, value)
                     }
 
-                    if (row.deemedExport) {
+                    // Deemed export is an IE-only concept — other editions never
+                    // surface the badge even if an imported plan carries the flag.
+                    if (row.deemedExport && RegionProfiles.current.hasDeemedExport) {
                         Surface(
                             color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f),
                             shape = CircleShape

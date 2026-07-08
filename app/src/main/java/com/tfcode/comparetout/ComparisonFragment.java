@@ -53,6 +53,7 @@ import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.tfcode.comparetout.model.costings.Costings;
 import com.tfcode.comparetout.model.costings.SubTotals;
+import com.tfcode.comparetout.region.RegionProfiles;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
@@ -398,8 +399,10 @@ public class ComparisonFragment extends Fragment {
             mTableLayout.setColumnCollapsed(5, !mShowBonus);
             mTableLayout.setColumnCollapsed(6, !mShowFixed);
 
-            createRow("Usage", "Supplier:Plan", "Net(€)",
-                    "Buy(€)","Sell(€)", "Bonus(€)", "Fixed(€)", true, null);
+            String cur = RegionProfiles.current.currencySymbol;
+            createRow("Usage", "Supplier:Plan", "Net(" + cur + ")",
+                    "Buy(" + cur + ")", "Sell(" + cur + ")", "Bonus(" + cur + ")",
+                    "Fixed(" + cur + ")", true, null);
             ArrayList<Row> rows = new ArrayList<>();
             for (Costings costing : mCostings) {
                 Scenario scenario = findScenarioByID(costing.getScenarioID());
