@@ -100,6 +100,9 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -287,10 +290,11 @@ private fun WizardScreen(
             .map { it.scenarioName }
             .toSet()
     }
+    val nameInUse = stringResource(R.string.ui2_wiz_name_in_use)
     val nameError = remember(builder.scenarioName, usedNames) {
         when {
             builder.scenarioName.isBlank() -> null
-            usedNames.contains(builder.scenarioName) -> "Name already in use"
+            usedNames.contains(builder.scenarioName) -> nameInUse
             else -> null
         }
     }
@@ -302,9 +306,9 @@ private fun WizardScreen(
     var importScope by remember { mutableStateOf<WizardImportScope?>(null) }
     val title = when {
         viewModel.isEditMode && builder.scenarioName.isNotBlank() ->
-            "Edit scenario · ${builder.scenarioName}"
-        viewModel.isEditMode -> "Edit scenario"
-        else -> "Build your scenario"
+            stringResource(R.string.ui2_wiz_title_edit_named, builder.scenarioName)
+        viewModel.isEditMode -> stringResource(R.string.ui2_wiz_title_edit)
+        else -> stringResource(R.string.ui2_wiz_title_new)
     }
 
     // Capture the wizard's pristine baseline so close-confirm only fires after real
@@ -330,13 +334,17 @@ private fun WizardScreen(
     if (showCloseConfirm) {
         AlertDialog(
             onDismissRequest = { showCloseConfirm = false },
-            title = { Text("Leave without saving?") },
-            text = { Text("You have unsaved changes. Leave anyway?") },
+            title = { Text(stringResource(R.string.ui2_ppw_discard_title)) },
+            text = { Text(stringResource(R.string.ui2_wiz_unsaved_body)) },
             confirmButton = {
-                Button(onClick = { showCloseConfirm = false; onClose() }) { Text("Leave") }
+                Button(onClick = { showCloseConfirm = false; onClose() }) {
+                    Text(stringResource(R.string.ui2_wiz_leave))
+                }
             },
             dismissButton = {
-                TextButton(onClick = { showCloseConfirm = false }) { Text("Stay") }
+                TextButton(onClick = { showCloseConfirm = false }) {
+                    Text(stringResource(R.string.ui2_wiz_stay))
+                }
             }
         )
     }
@@ -352,12 +360,14 @@ private fun WizardScreen(
                 title = { Text(title, style = MaterialTheme.typography.titleMedium) },
                 navigationIcon = {
                     IconButton(onClick = handleClose) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.ui2_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { showDrawer = true }) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menu")
+                        Icon(Icons.Default.Menu,
+                            contentDescription = stringResource(R.string.ui2_menu))
                     }
                 },
                 scrollBehavior = scrollBehavior
@@ -426,18 +436,18 @@ private fun WizardScreen(
                 }
 
                 if (noviceMode) {
-                    WizardHintBanner("Tap any section to expand it. Start and Usage Data are required to run a simulation.")
+                    WizardHintBanner(stringResource(R.string.ui2_wiz_banner_hint))
                 }
 
                 // ── Start ───────────────────────────────────────────────────
             WizardAccordionSection(
                 id = "start",
                 iconContent = { Text("🌱", style = MaterialTheme.typography.titleMedium) },
-                title = "Start",
+                title = stringResource(R.string.ui2_wiz_start),
                 isLinked = false,
                 subtitle = if (!expandedSections.contains("start") && builder.scenarioName.isNotBlank())
                     builder.scenarioName
-                else if (noviceMode) "How do you want to begin?" else null,
+                else if (noviceMode) stringResource(R.string.ui2_wiz_start_sub) else null,
                 isComplete = builder.isStartComplete && nameError == null,
                 isLocked = false,
                 isExpanded = expandedSections.contains("start"),
@@ -462,14 +472,14 @@ private fun WizardScreen(
                     Icon(painterResource(R.drawable.house), contentDescription = null,
                         modifier = Modifier.size(26.dp), tint = MaterialTheme.colorScheme.onSurface)
                 },
-                title = "Usage Data",
+                title = stringResource(R.string.ui2_dash_usage_data),
                 isLinked = builder.isLinked || builder.isLoadLinked,
                 subtitle = if (!expandedSections.contains("load") && builder.isLoadComplete)
-                    "${builder.annualUsage} kWh / yr"
-                else if (noviceMode) "How much electricity does the home use?" else null,
+                    stringResource(R.string.ui2_wiz_kwh_yr, builder.annualUsage)
+                else if (noviceMode) stringResource(R.string.ui2_wiz_load_sub) else null,
                 isComplete = builder.isLoadComplete,
                 isLocked = !builder.isStartComplete,
-                lockedHint = "Complete Start first",
+                lockedHint = stringResource(R.string.ui2_wiz_complete_start_first),
                 isExpanded = expandedSections.contains("load"),
                 onToggle = { viewModel.toggleSection("load") }
             ) {
@@ -500,14 +510,15 @@ private fun WizardScreen(
                     Icon(painterResource(res), null, Modifier.size(26.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 },
-                title = "Inverters",
+                title = stringResource(R.string.ui2_wiz_inverters),
                 isLinked = builder.isLinked && inverterCount > 0,
                 subtitle = if (!expandedSections.contains("inverters") && inverterCount > 0)
-                    "$inverterCount inverter${if (inverterCount > 1) "s" else ""}  ·  ${builder.inverterEntries.sumOf { it.maxInverterLoad }} kW"
-                else if (noviceMode) "Solar inverter configuration" else null,
+                    pluralStringResource(R.plurals.ui2_wiz_n_inverters, inverterCount, inverterCount) +
+                        "  ·  ${builder.inverterEntries.sumOf { it.maxInverterLoad }} kW"
+                else if (noviceMode) stringResource(R.string.ui2_wiz_inverters_sub) else null,
                 isComplete = inverterCount > 0,
                 isLocked = !builder.isStartComplete,
-                lockedHint = "Complete Start first",
+                lockedHint = stringResource(R.string.ui2_wiz_complete_start_first),
                 isExpanded = expandedSections.contains("inverters"),
                 onToggle = { viewModel.toggleSection("inverters") }
             ) {
@@ -529,14 +540,15 @@ private fun WizardScreen(
                     val pvRes = if (panelCount > 0) R.drawable.solarpaneltick else R.drawable.solarpanel
                     Icon(painterResource(pvRes), null, Modifier.size(26.dp), tint = Color.Unspecified)
                 },
-                title = "PV System",
+                title = stringResource(R.string.ui2_dash_pv_system),
                 isLinked = builder.isLinked && panelCount > 0,
                 subtitle = if (!expandedSections.contains("pv") && panelCount > 0)
-                    "$panelCount string${if (panelCount > 1) "s" else ""}  ·  ${builder.panelEntries.sumOf { it.panelCount * it.panelkWp }} Wp"
-                else if (noviceMode) "Solar panel strings" else null,
+                    pluralStringResource(R.plurals.ui2_wiz_n_strings, panelCount, panelCount) +
+                        "  ·  ${builder.panelEntries.sumOf { it.panelCount * it.panelkWp }} Wp"
+                else if (noviceMode) stringResource(R.string.ui2_wiz_pv_sub) else null,
                 isComplete = panelCount > 0,
                 isLocked = !builder.isStartComplete,
-                lockedHint = "Complete Start first",
+                lockedHint = stringResource(R.string.ui2_wiz_complete_start_first),
                 isExpanded = expandedSections.contains("pv"),
                 onToggle = { viewModel.toggleSection("pv") }
             ) {
@@ -568,20 +580,27 @@ private fun WizardScreen(
                     Icon(painterResource(R.drawable.battery1), null, Modifier.size(26.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 },
-                title = "Battery",
+                title = stringResource(R.string.ui2_component_battery),
                 isLinked = builder.isLinked && batteryCount > 0,
                 subtitle = if (!expandedSections.contains("battery") && batteryCount > 0) {
                     buildString {
-                        append("$batteryCount batter${if (batteryCount > 1) "ies" else "y"}")
+                        append(pluralStringResource(R.plurals.ui2_wiz_n_batteries,
+                            batteryCount, batteryCount))
                         append("  ·  ")
                         append("${builder.batteryEntries.sumOf { it.batterySize }} kWh")
-                        if (batteryChargeCount > 0) append("  ·  $batteryChargeCount charge")
-                        if (batteryDischargeCount > 0) append("  ·  $batteryDischargeCount discharge")
+                        if (batteryChargeCount > 0) {
+                            append("  ·  ")
+                            append(stringResource(R.string.ui2_wiz_n_charge, batteryChargeCount))
+                        }
+                        if (batteryDischargeCount > 0) {
+                            append("  ·  ")
+                            append(stringResource(R.string.ui2_wiz_n_discharge, batteryDischargeCount))
+                        }
                     }
-                } else if (noviceMode) "Battery storage and schedules" else null,
+                } else if (noviceMode) stringResource(R.string.ui2_wiz_battery_sub) else null,
                 isComplete = batteryCount > 0,
                 isLocked = !builder.isStartComplete,
-                lockedHint = "Complete Start first",
+                lockedHint = stringResource(R.string.ui2_wiz_complete_start_first),
                 isExpanded = expandedSections.contains("battery"),
                 onToggle = { viewModel.toggleSection("battery") }
             ) {
@@ -614,24 +633,25 @@ private fun WizardScreen(
                     val hwRes = if (hwSystemCount > 0) R.drawable.waterwarm else R.drawable.watercold
                     Icon(painterResource(hwRes), null, Modifier.size(26.dp), tint = Color.Unspecified)
                 },
-                title = "Hot Water",
+                title = stringResource(R.string.ui2_graphs_hot_water),
                 isLinked = builder.isLinked && (hwSystemCount > 0 || hwScheduleCount > 0),
                 subtitle = if (!expandedSections.contains("hotwater") && (hwSystemCount > 0 || hwScheduleCount > 0 || hwDivertActive)) {
                     buildString {
                         builder.hwSystem?.let { append("${it.capacity} L  ·  ${it.rate} kW") }
                         if (hwScheduleCount > 0) {
                             if (isNotEmpty()) append("  ·  ")
-                            append("$hwScheduleCount schedule${if (hwScheduleCount > 1) "s" else ""}")
+                            append(pluralStringResource(R.plurals.ui2_wiz_n_schedules,
+                                hwScheduleCount, hwScheduleCount))
                         }
                         if (hwDivertActive) {
                             if (isNotEmpty()) append("  ·  ")
-                            append("divert")
+                            append(stringResource(R.string.ui2_wiz_divert_word))
                         }
                     }
-                } else if (noviceMode) "Immersion heater and solar divert" else null,
+                } else if (noviceMode) stringResource(R.string.ui2_wiz_hw_sub) else null,
                 isComplete = hwSystemCount > 0,
                 isLocked = !builder.isStartComplete,
-                lockedHint = "Complete Start first",
+                lockedHint = stringResource(R.string.ui2_wiz_complete_start_first),
                 isExpanded = expandedSections.contains("hotwater"),
                 onToggle = { viewModel.toggleSection("hotwater") }
             ) {
@@ -660,18 +680,20 @@ private fun WizardScreen(
                     val evRes = if (evCount > 0 || evDivertCount > 0) R.drawable.ev_on else R.drawable.ev_off
                     Icon(painterResource(evRes), null, Modifier.size(26.dp), tint = Color.Unspecified)
                 },
-                title = "EV",
+                title = stringResource(R.string.ui2_component_ev),
                 isLinked = builder.isLinked && (evCount > 0 || evDivertCount > 0),
                 subtitle = if (!expandedSections.contains("ev") && (evCount > 0 || evDivertCount > 0)) {
                     buildString {
-                        if (evCount > 0) append("$evCount schedule${if (evCount > 1) "s" else ""}")
+                        if (evCount > 0) append(pluralStringResource(
+                            R.plurals.ui2_wiz_n_schedules, evCount, evCount))
                         if (evCount > 0 && evDivertCount > 0) append(" · ")
-                        if (evDivertCount > 0) append("$evDivertCount divert${if (evDivertCount > 1) "s" else ""}")
+                        if (evDivertCount > 0) append(pluralStringResource(
+                            R.plurals.ui2_wiz_n_diverts, evDivertCount, evDivertCount))
                     }
-                } else if (noviceMode) "EV charge schedules and solar divert" else null,
+                } else if (noviceMode) stringResource(R.string.ui2_wiz_ev_sub) else null,
                 isComplete = evCount > 0 || evDivertCount > 0,
                 isLocked = !builder.isLoadComplete,
-                lockedHint = "Complete Usage Data first",
+                lockedHint = stringResource(R.string.ui2_wiz_complete_load_first),
                 isExpanded = expandedSections.contains("ev"),
                 onToggle = { viewModel.toggleSection("ev") }
             ) {
@@ -694,15 +716,15 @@ private fun WizardScreen(
             if (uiVis.heatPump) WizardAccordionSection(
                 id = "heatpump",
                 iconContent = { Text(if (heatPumpCount > 0) "♨️" else "❄️", fontSize = 22.sp) },
-                title = "Heat Pump",
+                title = stringResource(R.string.ui2_graphs_heat_pump),
                 isLinked = builder.isLinked && heatPumpCount > 0,
                 subtitle = if (!expandedSections.contains("heatpump") && heatPumpCount > 0) {
                     val hp = builder.heatPumpEntries.first()
                     "${hp.fuelType} · SCOP ${hp.scop}"
-                } else if (noviceMode) "Model a heat pump from your current heating" else null,
+                } else if (noviceMode) stringResource(R.string.ui2_wiz_hp_sub) else null,
                 isComplete = heatPumpCount > 0,
                 isLocked = !builder.isLoadComplete,
-                lockedHint = "Complete Usage Data first",
+                lockedHint = stringResource(R.string.ui2_wiz_complete_load_first),
                 isExpanded = expandedSections.contains("heatpump"),
                 onToggle = { viewModel.toggleSection("heatpump") }
             ) {
@@ -791,7 +813,7 @@ private fun WizardProgressStrip(builder: WizardBuilder) {
             }
         }
         Spacer(Modifier.height(4.dp))
-        Text("$done of ${sections.size} configured",
+        Text(stringResource(R.string.ui2_wiz_n_of_m, done, sections.size),
             style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -849,7 +871,9 @@ private fun WizardAccordionSection(
             // can't see Compose testTags, so this is the canonical way to expose the
             // toggle. See plans/roboscript/robo-plan.md (Phase 4A).
             modifier = Modifier.fillMaxWidth().clickable(onClick = onToggle)
-                .semantics { contentDescription = "Wizard section: $title" }
+                .semantics {
+                    contentDescription = "Wizard section: $title"
+                }
                 .padding(horizontal = 16.dp, vertical = 14.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp)
@@ -862,7 +886,8 @@ private fun WizardAccordionSection(
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                     if (isLinked) {
-                        Icon(Icons.Default.Link, contentDescription = "Linked",
+                        Icon(Icons.Default.Link,
+                            contentDescription = stringResource(R.string.ui2_wiz_linked_cd),
                             modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.primary)
                     }
                 }
@@ -872,9 +897,11 @@ private fun WizardAccordionSection(
                 }
             }
             when {
-                isComplete -> Icon(Icons.Default.CheckCircle, contentDescription = "Complete",
+                isComplete -> Icon(Icons.Default.CheckCircle,
+                    contentDescription = stringResource(R.string.ui2_ppw_complete_cd),
                     tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                isLocked   -> Icon(Icons.Default.Lock, contentDescription = "Locked",
+                isLocked   -> Icon(Icons.Default.Lock,
+                    contentDescription = stringResource(R.string.ui2_wiz_locked_cd),
                     tint = MaterialTheme.colorScheme.outline, modifier = Modifier.size(16.dp))
             }
             Icon(imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
@@ -919,7 +946,8 @@ private fun ScenarioPickerDialog(
         title = { Text(title) },
         text = {
             if (scenarios.isEmpty()) {
-                Text("No existing simulations found.", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.ui2_wiz_no_sims_found),
+                    style = MaterialTheme.typography.bodyMedium)
             } else {
                 LazyColumn(modifier = Modifier.height(280.dp)) {
                     items(scenarios) { scenario ->
@@ -932,7 +960,9 @@ private fun ScenarioPickerDialog(
             }
         },
         confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.dialog_cancel)) }
+        }
     )
 }
 
@@ -962,7 +992,7 @@ private fun StartSectionContent(
 
     if (showCopyPicker) {
         ScenarioPickerDialog(
-            title = "Copy from simulation",
+            title = stringResource(R.string.ui2_wiz_copy_from),
             scenarios = allScenarios,
             onSelect = { id -> onLoadForCopy(id) },
             onDismiss = { showCopyPicker = false }
@@ -970,7 +1000,7 @@ private fun StartSectionContent(
     }
     if (showLinkPicker) {
         ScenarioPickerDialog(
-            title = "Link to simulation",
+            title = stringResource(R.string.ui2_wiz_link_to),
             scenarios = allScenarios,
             onSelect = { id -> onLoadForLink(id) },
             onDismiss = { showLinkPicker = false }
@@ -979,27 +1009,27 @@ private fun StartSectionContent(
     if (showScratchConfirm) {
         AlertDialog(
             onDismissRequest = { showScratchConfirm = false },
-            title = { Text("Start from scratch?") },
-            text = { Text("This will clear the Usage Data and EV sections. Your simulation name will be kept. Continue?") },
+            title = { Text(stringResource(R.string.ui2_wiz_scratch_title)) },
+            text = { Text(stringResource(R.string.ui2_wiz_scratch_body)) },
             confirmButton = {
                 Button(onClick = {
                     onUpdate { b -> WizardBuilder(scenarioMode = ScenarioMode.NEW, scenarioName = b.scenarioName) }
                     showScratchConfirm = false
-                }) { Text("Clear") }
+                }) { Text(stringResource(R.string.ui2_clear)) }
             },
             dismissButton = {
-                TextButton(onClick = { showScratchConfirm = false }) { Text("Cancel") }
+                TextButton(onClick = { showScratchConfirm = false }) {
+                    Text(stringResource(R.string.dialog_cancel))
+                }
             }
         )
     }
 
     if (showImportSheet) {
         UI2ImportSheet(
-            title = "Import scenario from JSON",
-            hint = "Accepts the JSON shape produced by the Share button on a scenario, " +
-                    "or a single scenario from a bulk export. The accordions will be pre-filled — " +
-                    "you can edit anything before saving.",
-            applyLabel = "Load into wizard",
+            title = stringResource(R.string.ui2_wiz_import_scenario_title),
+            hint = stringResource(R.string.ui2_wiz_import_scenario_hint),
+            applyLabel = stringResource(R.string.ui2_ppw_import_apply),
             parse = ::parseScenarioImportJson,
             onApply = { list ->
                 showImportSheet = false
@@ -1013,15 +1043,14 @@ private fun StartSectionContent(
     importPicker?.let { list ->
         AlertDialog(
             onDismissRequest = { importPicker = null },
-            title = { Text("Multiple scenarios") },
+            title = { Text(stringResource(R.string.ui2_wiz_multi_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        "This file contains ${list.size} scenarios. Pick the one to load into " +
-                            "the wizard. (To import them all into the library instead, use the " +
-                            "drawer's Import / Export screen.)",
+                        stringResource(R.string.ui2_wiz_multi_body, list.size),
                         style = MaterialTheme.typography.bodyMedium
                     )
+                    val unnamed = stringResource(R.string.ui2_ppw_unnamed)
                     list.forEachIndexed { idx, file ->
                         OutlinedButton(
                             onClick = {
@@ -1031,7 +1060,7 @@ private fun StartSectionContent(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
-                                "${idx + 1}. ${file.name ?: "(unnamed)"}",
+                                "${idx + 1}. ${file.name ?: unnamed}",
                                 modifier = Modifier.fillMaxWidth()
                             )
                         }
@@ -1039,21 +1068,31 @@ private fun StartSectionContent(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { importPicker = null }) { Text("Cancel") }
+                TextButton(onClick = { importPicker = null }) {
+                    Text(stringResource(R.string.dialog_cancel))
+                }
             }
         )
     }
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (noviceMode) {
-            Text("Every simulation starts from one of four places. Pick what fits.",
+            Text(stringResource(R.string.ui2_wiz_start_hint),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
             listOf(
-                Triple(ScenarioMode.NEW,    "From scratch",   "Start with empty sections and build up."),
-                Triple(ScenarioMode.COPY,   "Copy existing",  "Duplicate a saved simulation, then edit freely."),
-                Triple(ScenarioMode.LINK,   "Link existing",  "Re-use components from a saved simulation."),
-                Triple(ScenarioMode.IMPORT, "Import JSON",    "Paste or pick a scenario JSON file to pre-fill every section.")
+                Triple(ScenarioMode.NEW,
+                    stringResource(R.string.ui2_wiz_mode_new),
+                    stringResource(R.string.ui2_wiz_mode_new_desc)),
+                Triple(ScenarioMode.COPY,
+                    stringResource(R.string.ui2_wiz_mode_copy),
+                    stringResource(R.string.ui2_wiz_mode_copy_desc)),
+                Triple(ScenarioMode.LINK,
+                    stringResource(R.string.ui2_wiz_mode_link),
+                    stringResource(R.string.ui2_wiz_mode_link_desc)),
+                Triple(ScenarioMode.IMPORT,
+                    stringResource(R.string.ui2_wiz_mode_import),
+                    stringResource(R.string.ui2_wiz_mode_import_desc))
             ).forEach { (mode, modeTitle, desc) ->
                 val selected = builder.scenarioMode == mode
                 Column(
@@ -1087,25 +1126,25 @@ private fun StartSectionContent(
                 FilterChip(
                     selected = builder.scenarioMode == ScenarioMode.NEW,
                     onClick = { if (builder.scenarioMode != ScenarioMode.NEW) showScratchConfirm = true },
-                    label = { Text("New") },
+                    label = { Text(stringResource(R.string.ui2_wiz_chip_new)) },
                     leadingIcon = { Icon(Icons.Default.Build, null, Modifier.size(16.dp)) }
                 )
                 FilterChip(
                     selected = builder.scenarioMode == ScenarioMode.COPY,
                     onClick = { showCopyPicker = true },
-                    label = { Text("Copy") },
+                    label = { Text(stringResource(R.string.ui2_wiz_chip_copy)) },
                     leadingIcon = { Icon(Icons.Default.ContentCopy, null, Modifier.size(16.dp)) }
                 )
                 FilterChip(
                     selected = builder.scenarioMode == ScenarioMode.LINK,
                     onClick = { showLinkPicker = true },
-                    label = { Text("Link") },
+                    label = { Text(stringResource(R.string.ui2_wiz_chip_link)) },
                     leadingIcon = { Icon(Icons.Default.Link, null, Modifier.size(16.dp)) }
                 )
                 FilterChip(
                     selected = builder.scenarioMode == ScenarioMode.IMPORT,
                     onClick = { showImportSheet = true },
-                    label = { Text("Import") },
+                    label = { Text(stringResource(R.string.ui2_ie_import)) },
                     leadingIcon = { Icon(Icons.Default.FileUpload, null, Modifier.size(16.dp)) }
                 )
             }
@@ -1115,14 +1154,14 @@ private fun StartSectionContent(
         OutlinedTextField(
             value = builder.scenarioName,
             onValueChange = { onUpdate { b -> b.copy(scenarioName = it) } },
-            label = { Text("Simulation name") },
+            label = { Text(stringResource(R.string.ui2_wiz_sim_name)) },
             modifier = Modifier.fillMaxWidth(),
             singleLine = true,
             isError = nameError != null,
             supportingText = {
                 when {
                     nameError != null -> Text(nameError, color = MaterialTheme.colorScheme.error)
-                    noviceMode -> Text("A unique name — shown everywhere in the app.")
+                    noviceMode -> Text(stringResource(R.string.ui2_wiz_sim_name_hint))
                 }
             }
         )
@@ -1135,22 +1174,22 @@ private fun StartSectionContent(
 
 private data class SourceOption(
     val src: LoadSource,
-    val title: String,
-    val desc: String,
+    val titleRes: Int,
+    val descRes: Int,
     val disabled: Boolean = false
 )
 
 private val USAGE_SOURCE_OPTIONS = listOf(
-    SourceOption(LoadSource.SOURCE, "Derive from a source",
-        "Smart-meter export or utility import."),
-    SourceOption(LoadSource.SLP, "Standard load profile",
-        "One of 6 pre-built Irish residential profiles."),
-    SourceOption(LoadSource.COPY_PROFILE, "Copy from existing",
-        "Import distribution from another simulation, then edit freely."),
-    SourceOption(LoadSource.HAND, "Hand-craft",
-        "Set hourly, daily and monthly weightings manually."),
-    SourceOption(LoadSource.LINKED, "Link to existing profile",
-        "Re-use a profile from another simulation. Changes in source propagate here.")
+    SourceOption(LoadSource.SOURCE,
+        R.string.ui2_wiz_src_derive, R.string.ui2_wiz_src_derive_desc),
+    SourceOption(LoadSource.SLP,
+        R.string.ui2_wiz_src_slp, R.string.ui2_wiz_src_slp_desc),
+    SourceOption(LoadSource.COPY_PROFILE,
+        R.string.ui2_wiz_src_copy, R.string.ui2_wiz_src_copy_desc),
+    SourceOption(LoadSource.HAND,
+        R.string.ui2_wiz_src_hand, R.string.ui2_wiz_src_hand_desc),
+    SourceOption(LoadSource.LINKED,
+        R.string.ui2_wiz_src_link, R.string.ui2_wiz_src_link_desc)
 )
 
 @Composable
@@ -1177,7 +1216,7 @@ private fun UsageDataSectionContent(
 
     if (showCopyProfilePicker) {
         ScenarioPickerDialog(
-            title = "Copy load profile from",
+            title = stringResource(R.string.ui2_wiz_copy_profile_from),
             scenarios = allScenarios,
             onSelect = { id -> onLoadProfileForCopy(id) },
             onDismiss = { showCopyProfilePicker = false }
@@ -1185,7 +1224,7 @@ private fun UsageDataSectionContent(
     }
     if (showLinkProfilePicker) {
         ScenarioPickerDialog(
-            title = "Link load profile from",
+            title = stringResource(R.string.ui2_wiz_link_profile_from),
             scenarios = allScenarios,
             onSelect = { id -> onLoadProfileForLink(id) },
             onDismiss = { showLinkProfilePicker = false }
@@ -1220,16 +1259,19 @@ private fun UsageDataSectionContent(
 
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         PrimaryTabRow(selectedTabIndex = advancedTab) {
-            Tab(selected = advancedTab == 0, onClick = { advancedTab = 0 }, text = { Text("Basic") })
-            Tab(selected = advancedTab == 1, onClick = { advancedTab = 1 }, text = { Text("Advanced") })
+            Tab(selected = advancedTab == 0, onClick = { advancedTab = 0 },
+                text = { Text(stringResource(R.string.ui2_cmp_basic)) })
+            Tab(selected = advancedTab == 1, onClick = { advancedTab = 1 },
+                text = { Text(stringResource(R.string.ui2_cmp_advanced)) })
         }
 
         if (noviceMode) {
-            Text("Choose how the load profile is built. Annual usage (kWh) is always required.",
+            Text(stringResource(R.string.ui2_wiz_load_hint),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-            Text("SOURCE", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
+            Text(stringResource(R.string.ui2_wiz_source_header),
+                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.outline)
 
             val noviceVisible = USAGE_SOURCE_OPTIONS.filter {
                 // "Derive from a source" is now novice-visible (it's how you turn your own imported smart-meter /
@@ -1258,11 +1300,11 @@ private fun UsageDataSectionContent(
                         }
                         .padding(12.dp)
                 ) {
-                    Text(opt.title,
+                    Text(stringResource(opt.titleRes),
                         style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold,
                         color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface)
                     Spacer(Modifier.height(2.dp))
-                    Text(opt.desc, style = MaterialTheme.typography.labelSmall,
+                    Text(stringResource(opt.descRes), style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -1271,31 +1313,31 @@ private fun UsageDataSectionContent(
                 FilterChip(
                     selected = builder.loadSource == LoadSource.SOURCE,
                     onClick  = { onUpdate { it.copy(loadSource = LoadSource.SOURCE, isLoadLinked = false) }; showDeriveDialog = true },
-                    label    = { Text("Source") },
+                    label    = { Text(stringResource(R.string.ui2_habf_source)) },
                     leadingIcon = { Icon(painterResource(R.drawable.house), null, Modifier.size(16.dp)) }
                 )
                 FilterChip(
                     selected = builder.loadSource == LoadSource.SLP,
                     onClick  = { onUpdate { it.copy(loadSource = LoadSource.SLP, isLoadLinked = false) }; showSLPDialog = true },
-                    label    = { Text("SLP") },
+                    label    = { Text(stringResource(R.string.ui2_wiz_chip_slp)) },
                     leadingIcon = { Icon(Icons.Default.Build, null, Modifier.size(16.dp)) }
                 )
                 FilterChip(
                     selected = builder.loadSource == LoadSource.COPY_PROFILE,
                     onClick  = { showCopyProfilePicker = true },
-                    label    = { Text("Copy") },
+                    label    = { Text(stringResource(R.string.ui2_wiz_chip_copy)) },
                     leadingIcon = { Icon(Icons.Default.ContentCopy, null, Modifier.size(16.dp)) }
                 )
                 FilterChip(
                     selected = builder.loadSource == LoadSource.HAND,
                     onClick  = { onInitHandCraft(); showHandCraftDialog = true },
-                    label    = { Text("Craft") },
+                    label    = { Text(stringResource(R.string.ui2_wiz_chip_craft)) },
                     leadingIcon = { Icon(Icons.Default.Build, null, Modifier.size(16.dp)) }
                 )
                 FilterChip(
                     selected = builder.loadSource == LoadSource.LINKED,
                     onClick  = { showLinkProfilePicker = true },
-                    label    = { Text("Link") },
+                    label    = { Text(stringResource(R.string.ui2_wiz_chip_link)) },
                     leadingIcon = { Icon(Icons.Default.Link, null, Modifier.size(16.dp)) }
                 )
             }
@@ -1313,10 +1355,10 @@ private fun UsageDataSectionContent(
                 value = sourceLabel,
                 onValueChange = {},
                 readOnly = true,
-                label = { Text("Distribution source") },
+                label = { Text(stringResource(R.string.ui2_wiz_distribution_source)) },
                 modifier = Modifier.fillMaxWidth(),
                 supportingText = if (noviceMode) ({
-                    Text("Derived automatically from how the profile was created.")
+                    Text(stringResource(R.string.ui2_wiz_distribution_source_hint))
                 }) else null
             )
         }
@@ -1330,10 +1372,11 @@ private fun UsageDataSectionContent(
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(if (builder.hasDistributionData) "Edit distribution" else "Set distribution")
+                Text(stringResource(if (builder.hasDistributionData)
+                    R.string.ui2_wiz_edit_distribution else R.string.ui2_wiz_set_distribution))
             }
             if (!builder.hasDistributionData && noviceMode) {
-                Text("Tap to set hourly, daily and monthly usage patterns.",
+                Text(stringResource(R.string.ui2_wiz_set_distribution_hint),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -1344,10 +1387,11 @@ private fun UsageDataSectionContent(
                 OutlinedTextField(
                     value = builder.annualUsage,
                     onValueChange = { onUpdate { b -> b.copy(annualUsage = it) } },
-                    label = { Text("Annual usage (kWh)") },
+                    label = { Text(stringResource(R.string.ui2_wiz_annual_usage)) },
                     modifier = Modifier.fillMaxWidth(), singleLine = true,
                     readOnly = builder.loadSource == LoadSource.LINKED,
-                    supportingText = if (noviceMode) ({ Text("Total electricity used in a year.") }) else null
+                    supportingText = if (noviceMode)
+                        ({ Text(stringResource(R.string.ui2_wiz_annual_usage_hint)) }) else null
                 )
             }
 
@@ -1362,33 +1406,37 @@ private fun UsageDataSectionContent(
 
         // ── Advanced fields ─────────────────────────────────────────
         if (advancedTab == 1) {
-            Text("ADVANCED", style = MaterialTheme.typography.labelSmall,
+            Text(stringResource(R.string.ui2_wiz_advanced_header),
+                style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.outline)
             OutlinedTextField(
                 value = builder.hourlyBaseLoad,
                 onValueChange = { onUpdate { b -> b.copy(hourlyBaseLoad = it) } },
-                label = { Text("Hourly base load (kWh)") },
+                label = { Text(stringResource(R.string.ui2_wiz_hourly_base)) },
                 modifier = Modifier.fillMaxWidth(), singleLine = true,
-                supportingText = if (noviceMode) ({ Text("Always-on load — fridge, standby, etc.") }) else null
+                supportingText = if (noviceMode)
+                    ({ Text(stringResource(R.string.ui2_wiz_hourly_base_hint)) }) else null
             )
             OutlinedTextField(
                 value = builder.gridImportMax,
                 onValueChange = { onUpdate { b -> b.copy(gridImportMax = it) } },
-                label = { Text("Grid import max (kW)") },
+                label = { Text(stringResource(R.string.ui2_wiz_grid_import_max)) },
                 modifier = Modifier.fillMaxWidth(), singleLine = true,
-                supportingText = if (noviceMode) ({ Text("Highest single-hour draw from the grid.") }) else null
+                supportingText = if (noviceMode)
+                    ({ Text(stringResource(R.string.ui2_wiz_grid_import_max_hint)) }) else null
             )
             OutlinedTextField(
                 value = builder.gridExportMax,
                 onValueChange = { onUpdate { b -> b.copy(gridExportMax = it) } },
-                label = { Text("Grid export max (kW)") },
+                label = { Text(stringResource(R.string.ui2_wiz_grid_export_max)) },
                 modifier = Modifier.fillMaxWidth(), singleLine = true,
-                supportingText = if (noviceMode) ({ Text("Highest single-hour export — set by your contract.") }) else null
+                supportingText = if (noviceMode)
+                    ({ Text(stringResource(R.string.ui2_wiz_grid_export_max_hint)) }) else null
             )
             OutlinedButton(onClick = onImport, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Import load profile (JSON)")
+                Text(stringResource(R.string.ui2_wiz_import_load_json))
             }
         }
     }
@@ -1423,56 +1471,55 @@ private fun DeriveFromSourceDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Derive from a source") },
+        title = { Text(stringResource(R.string.ui2_wiz_src_derive)) },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 if (availableSources.isEmpty()) {
                     item {
-                        Text("No imported data found. Import smart-meter or inverter data first.",
+                        Text(stringResource(R.string.ui2_wiz_no_imported_data),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 } else {
                     item {
                         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("Extraction", style = MaterialTheme.typography.labelMedium,
+                            Text(stringResource(R.string.ui2_wiz_extraction),
+                                style = MaterialTheme.typography.labelMedium,
                                 color = MaterialTheme.colorScheme.outline)
                             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 FilterChip(
                                     selected = !absoluteYear,
                                     onClick  = { absoluteYear = false },
-                                    label    = { Text("Averages") }
+                                    label    = { Text(stringResource(R.string.ui2_wiz_averages)) }
                                 )
                                 FilterChip(
                                     selected = absoluteYear,
                                     onClick  = { absoluteYear = true; period = DataSourcePeriod.YEAR },
-                                    label    = { Text("Absolute year") }
+                                    label    = { Text(stringResource(R.string.ui2_wiz_absolute_year)) }
                                 )
                             }
                             Text(
-                                if (absoluteYear)
-                                    "Uses the actual measured load for the chosen year, mapped onto the 2001 simulation grid."
-                                else
-                                    "Builds an average hourly/daily/monthly shape over the chosen window.",
+                                stringResource(if (absoluteYear) R.string.ui2_wiz_absolute_desc
+                                               else R.string.ui2_wiz_averages_desc),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     item {
-                        Text("Select a data source:",
+                        Text(stringResource(R.string.ui2_wiz_select_data_source),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.outline)
                     }
                     items(availableSources) { src ->
                         val sel = selectedSource == src
-                        val typeLabel = when (src.importerType) {
-                            ComparisonUIViewModel.Importer.ALPHAESS        -> "AlphaESS"
-                            ComparisonUIViewModel.Importer.ESBNHDF         -> "ESBN"
-                            ComparisonUIViewModel.Importer.HOME_ASSISTANT  -> "Home Assistant"
-                            ComparisonUIViewModel.Importer.OCTOPUS         -> "Octopus"
-                            ComparisonUIViewModel.Importer.SOLIS           -> "Solis"
-                            else -> "Unknown"
-                        }
+                        val typeLabel = stringResource(when (src.importerType) {
+                            ComparisonUIViewModel.Importer.ALPHAESS        -> R.string.brand_alphaess
+                            ComparisonUIViewModel.Importer.ESBNHDF         -> R.string.ui2_wiz_esbn_word
+                            ComparisonUIViewModel.Importer.HOME_ASSISTANT  -> R.string.home_assistant
+                            ComparisonUIViewModel.Importer.OCTOPUS         -> R.string.ui2_wiz_octopus_word
+                            ComparisonUIViewModel.Importer.SOLIS           -> R.string.ui2_wiz_solis
+                            else -> R.string.ui2_wiz_unknown
+                        })
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -1517,9 +1564,7 @@ private fun DeriveFromSourceDialog(
                             ) {
                                 Icon(Icons.Default.Warning, null, Modifier.size(16.dp),
                                     tint = MaterialTheme.colorScheme.error)
-                                Text("ESBN provides import/export only (no solar or load readings). " +
-                                     "Load is estimated from grid import — this will be inaccurate if " +
-                                     "solar panels or a battery are present.",
+                                Text(stringResource(R.string.ui2_wiz_esbn_warning),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onErrorContainer)
                             }
@@ -1550,8 +1595,9 @@ private fun DeriveFromSourceDialog(
                                 horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Column(modifier = Modifier.weight(1f)) {
-                                    Text("Fill gaps with SLP", style = MaterialTheme.typography.bodySmall)
-                                    Text("Patch missing days using a standard load profile.",
+                                    Text(stringResource(R.string.ui2_wiz_fill_gaps),
+                                        style = MaterialTheme.typography.bodySmall)
+                                    Text(stringResource(R.string.ui2_wiz_fill_gaps_hint),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
@@ -1577,9 +1623,12 @@ private fun DeriveFromSourceDialog(
                     }
                 },
                 enabled = src != null && !isDeriving
-            ) { Text(if (isDeriving) "Deriving…" else "Derive") }
+            ) { Text(stringResource(if (isDeriving) R.string.ui2_wiz_deriving
+                                    else R.string.ui2_wiz_derive)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.dialog_cancel)) }
+        }
     )
 }
 
@@ -1595,7 +1644,7 @@ private fun SLPPickerDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Standard load profile") },
+        title = { Text(stringResource(R.string.ui2_wiz_src_slp)) },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 items(StandardLoadProfiles.standardLoadProfiles.toList()) { profileName ->
@@ -1624,7 +1673,9 @@ private fun SLPPickerDialog(
             }
         },
         confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.dialog_cancel)) }
+        }
     )
 }
 
@@ -1652,26 +1703,31 @@ private fun HandCraftDialog(
             Scaffold(
                 topBar = {
                     TopAppBar(
-                        title = { Text("Edit distribution", style = MaterialTheme.typography.titleMedium) },
+                        title = { Text(stringResource(R.string.ui2_wiz_edit_distribution),
+                            style = MaterialTheme.typography.titleMedium) },
                         navigationIcon = {
                             IconButton(onClick = onDismiss) {
-                                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Cancel")
+                                Icon(Icons.AutoMirrored.Filled.ArrowBack,
+                                    stringResource(R.string.dialog_cancel))
                             }
                         },
                         actions = {
                             TextButton(onClick = {
                                 onSave(localHourly, localDaily, localMonthly)
                                 onDismiss()
-                            }) { Text("Save") }
+                            }) { Text(stringResource(R.string.ui2_save)) }
                         }
                     )
                 }
             ) { paddingValues ->
                 Column(modifier = Modifier.padding(paddingValues)) {
                     PrimaryTabRow(selectedTabIndex = tab) {
-                        Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("Hourly") })
-                        Tab(selected = tab == 1, onClick = { tab = 1 }, text = { Text("Daily") })
-                        Tab(selected = tab == 2, onClick = { tab = 2 }, text = { Text("Monthly") })
+                        Tab(selected = tab == 0, onClick = { tab = 0 },
+                            text = { Text(stringResource(R.string.ui2_wiz_tab_hourly)) })
+                        Tab(selected = tab == 1, onClick = { tab = 1 },
+                            text = { Text(stringResource(R.string.ui2_wiz_tab_daily)) })
+                        Tab(selected = tab == 2, onClick = { tab = 2 },
+                            text = { Text(stringResource(R.string.ui2_wiz_tab_monthly)) })
                     }
                     when (tab) {
                         0 -> DistributionSliderList(
@@ -1683,14 +1739,14 @@ private fun HandCraftDialog(
                         )
                         1 -> DistributionSliderList(
                             values = localDaily,
-                            labels = listOf("Mon","Tue","Wed","Thu","Fri","Sat","Sun"),
+                            labels = stringArrayResource(R.array.ui2_days_short_mon_first).toList(),
                             uniformValue = 100.0 / 7.0,
                             onChange = { idx, v -> localDaily   = localDaily.toMutableList().also   { it[idx] = v } },
                             onReset  = { localDaily = List(7) { 100.0 / 7.0 } }
                         )
                         2 -> DistributionSliderList(
                             values = localMonthly,
-                            labels = listOf("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"),
+                            labels = stringArrayResource(R.array.ui2_months_short).toList(),
                             uniformValue = 100.0 / 12.0,
                             onChange = { idx, v -> localMonthly = localMonthly.toMutableList().also { it[idx] = v } },
                             onReset  = { localMonthly = List(12) { 100.0 / 12.0 } }
@@ -1717,8 +1773,9 @@ private fun DistributionSliderList(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Sum: ${"%.1f".format(values.sum())}%", style = MaterialTheme.typography.labelMedium)
-            TextButton(onClick = onReset) { Text("Reset to flat") }
+            Text(stringResource(R.string.ui2_wiz_sum_pct, "%.1f".format(values.sum())),
+                style = MaterialTheme.typography.labelMedium)
+            TextButton(onClick = onReset) { Text(stringResource(R.string.ui2_wiz_reset_flat)) }
         }
         LazyColumn {
             itemsIndexed(values) { idx, value ->
@@ -1780,15 +1837,16 @@ private fun BatterySectionContent(
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         PrimaryTabRow(selectedTabIndex = advancedTab) {
-            Tab(selected = advancedTab == 0, onClick = { advancedTab = 0 }, text = { Text("Basic") })
-            Tab(selected = advancedTab == 1, onClick = { advancedTab = 1 }, text = { Text("Advanced") })
+            Tab(selected = advancedTab == 0, onClick = { advancedTab = 0 },
+                text = { Text(stringResource(R.string.ui2_cmp_basic)) })
+            Tab(selected = advancedTab == 1, onClick = { advancedTab = 1 },
+                text = { Text(stringResource(R.string.ui2_cmp_advanced)) })
         }
         Spacer(Modifier.height(4.dp))
         // ── Batteries ──────────────────────────────────────────────
-        WizardScheduleLabel("Batteries")
+        WizardScheduleLabel(stringResource(R.string.ui2_wiz_batteries_header))
         if (noviceMode) {
-            Text("Each battery stores excess solar (or off-peak grid) energy for use later. " +
-                "Add one battery per physical unit; multiple batteries on the same inverter are fine.",
+            Text(stringResource(R.string.ui2_wiz_batteries_hint),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
@@ -1803,10 +1861,11 @@ private fun BatterySectionContent(
                     Icon(painterResource(R.drawable.battery1), null, Modifier.size(40.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
                     Spacer(Modifier.height(6.dp))
-                    Text("No batteries yet", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.ui2_wiz_no_batteries_yet),
+                        style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     if (noviceMode) {
                         Spacer(Modifier.height(4.dp))
-                        Text("Optional — skip if you have no battery storage.",
+                        Text(stringResource(R.string.ui2_wiz_no_batteries_hint),
                             style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -1830,22 +1889,20 @@ private fun BatterySectionContent(
         FilledTonalButton(onClick = onAdd, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(4.dp))
-            Text("Add battery")
+            Text(stringResource(R.string.ui2_wiz_add_battery))
         }
 
         Spacer(Modifier.height(4.dp))
 
         // ── Charge Schedule ────────────────────────────────────────
-        WizardScheduleLabel("Charge schedule")
+        WizardScheduleLabel(stringResource(R.string.ui2_wiz_charge_schedule))
         if (noviceMode) {
-            Text("Charge from the grid during cheap windows (e.g. night-saver) so the stored energy " +
-                "covers expensive peak hours. Add a window for each cheap-rate period; leave empty if " +
-                "you only want solar charging.",
+            Text(stringResource(R.string.ui2_wiz_charge_hint),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
         if (entries.isEmpty() && chargeEntries.isEmpty()) {
-            Text("Add a battery above to enable charge scheduling.",
+            Text(stringResource(R.string.ui2_wiz_add_battery_first_charge),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.padding(vertical = 6.dp))
@@ -1857,17 +1914,18 @@ private fun BatterySectionContent(
                 .padding(vertical = 16.dp),
                 contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("No charge windows", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.ui2_wiz_no_charge_windows),
+                        style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     if (noviceMode) {
                         Spacer(Modifier.height(4.dp))
-                        Text("Add one if your tariff has cheap off-peak hours worth pre-charging from.",
+                        Text(stringResource(R.string.ui2_wiz_charge_windows_hint),
                             style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
         } else {
             if (entries.isEmpty()) {
-                Text("⚠  Schedules below target an inverter with no batteries — add a battery to make them effective.",
+                Text(stringResource(R.string.ui2_wiz_orphan_schedules),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(vertical = 4.dp))
@@ -1893,22 +1951,20 @@ private fun BatterySectionContent(
         ) {
             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(4.dp))
-            Text("Add charge window")
+            Text(stringResource(R.string.ui2_wiz_add_charge_window))
         }
 
         Spacer(Modifier.height(4.dp))
 
         // ── Discharge Schedule ─────────────────────────────────────
-        WizardScheduleLabel("Discharge schedule")
+        WizardScheduleLabel(stringResource(R.string.ui2_wiz_discharge_schedule))
         if (noviceMode) {
-            Text("Force the battery to export to the grid during a chosen window — useful when feed-in " +
-                "rates are higher than the avoided import cost (peak-export tariffs). Leave empty for " +
-                "standard self-consumption only.",
+            Text(stringResource(R.string.ui2_wiz_discharge_hint),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
         if (entries.isEmpty() && dischargeEntries.isEmpty()) {
-            Text("Add a battery above to enable discharge scheduling.",
+            Text(stringResource(R.string.ui2_wiz_add_battery_first_discharge),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.padding(vertical = 6.dp))
@@ -1920,17 +1976,18 @@ private fun BatterySectionContent(
                 .padding(vertical = 16.dp),
                 contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("No discharge windows", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.ui2_wiz_no_discharge_windows),
+                        style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     if (noviceMode) {
                         Spacer(Modifier.height(4.dp))
-                        Text("Add one if your tariff has high feed-in rates worth exporting to.",
+                        Text(stringResource(R.string.ui2_wiz_discharge_windows_hint),
                             style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
         } else {
             if (entries.isEmpty()) {
-                Text("⚠  Schedules below target an inverter with no batteries — add a battery to make them effective.",
+                Text(stringResource(R.string.ui2_wiz_orphan_schedules),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(vertical = 4.dp))
@@ -1956,12 +2013,12 @@ private fun BatterySectionContent(
         ) {
             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(4.dp))
-            Text("Add discharge window")
+            Text(stringResource(R.string.ui2_wiz_add_discharge_window))
         }
         OutlinedButton(onClick = onImport, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(4.dp))
-            Text("Import battery setup (JSON)")
+            Text(stringResource(R.string.ui2_wiz_import_battery_json))
         }
     }
 }
@@ -1991,16 +2048,17 @@ private fun HwSectionContent(
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         PrimaryTabRow(selectedTabIndex = advancedTab) {
-            Tab(selected = advancedTab == 0, onClick = { advancedTab = 0 }, text = { Text("Basic") })
-            Tab(selected = advancedTab == 1, onClick = { advancedTab = 1 }, text = { Text("Advanced") })
+            Tab(selected = advancedTab == 0, onClick = { advancedTab = 0 },
+                text = { Text(stringResource(R.string.ui2_cmp_basic)) })
+            Tab(selected = advancedTab == 1, onClick = { advancedTab = 1 },
+                text = { Text(stringResource(R.string.ui2_cmp_advanced)) })
         }
         Spacer(Modifier.height(4.dp))
 
         // ── Tank ────────────────────────────────────────────────────
-        WizardScheduleLabel("Tank")
+        WizardScheduleLabel(stringResource(R.string.ui2_wiz_tank_header))
         if (noviceMode) {
-            Text("Configure the hot-water cylinder so the simulation can model when the immersion " +
-                "is needed and how much excess solar can be diverted to it.",
+            Text(stringResource(R.string.ui2_wiz_tank_hint),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
@@ -2015,10 +2073,11 @@ private fun HwSectionContent(
                     Icon(painterResource(R.drawable.watercold), null, Modifier.size(40.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
                     Spacer(Modifier.height(6.dp))
-                    Text("No hot-water tank", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.ui2_wiz_no_tank),
+                        style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     if (noviceMode) {
                         Spacer(Modifier.height(4.dp))
-                        Text("Optional — skip if hot water isn't part of this scenario.",
+                        Text(stringResource(R.string.ui2_wiz_no_tank_hint),
                             style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -2026,7 +2085,7 @@ private fun HwSectionContent(
             FilledTonalButton(onClick = onEnableSystem, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Add hot-water tank")
+                Text(stringResource(R.string.ui2_wiz_add_tank))
             }
         } else {
             WizardHwSystemCard(
@@ -2043,15 +2102,14 @@ private fun HwSectionContent(
         Spacer(Modifier.height(4.dp))
 
         // ── Schedule ────────────────────────────────────────────────
-        WizardScheduleLabel("Heater schedule")
+        WizardScheduleLabel(stringResource(R.string.ui2_wiz_heater_schedule))
         if (noviceMode) {
-            Text("Windows when the immersion is allowed to run from the grid (e.g. cheap night-rate). " +
-                "Leave empty if you only want hot water from solar divert.",
+            Text(stringResource(R.string.ui2_wiz_heater_hint),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
         if (system == null && schedules.isEmpty()) {
-            Text("Add a tank above to enable scheduling.",
+            Text(stringResource(R.string.ui2_wiz_add_tank_first),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.padding(vertical = 6.dp))
@@ -2063,10 +2121,11 @@ private fun HwSectionContent(
                 .padding(vertical = 16.dp),
                 contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("No heater windows", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.ui2_wiz_no_heater_windows),
+                        style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     if (noviceMode) {
                         Spacer(Modifier.height(4.dp))
-                        Text("Add one if your tariff has a cheap window worth heating the tank in.",
+                        Text(stringResource(R.string.ui2_wiz_heater_windows_hint),
                             style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -2095,16 +2154,15 @@ private fun HwSectionContent(
         ) {
             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(4.dp))
-            Text("Add heater window")
+            Text(stringResource(R.string.ui2_wiz_add_heater_window))
         }
 
         Spacer(Modifier.height(4.dp))
 
         // ── Solar Divert ───────────────────────────────────────────
-        WizardScheduleLabel("Solar divert")
+        WizardScheduleLabel(stringResource(R.string.ui2_wiz_solar_divert))
         if (noviceMode) {
-            Text("Send excess solar to the immersion instead of exporting it. Free hot water when " +
-                "the panels are producing more than the house is using.",
+            Text(stringResource(R.string.ui2_wiz_hw_divert_hint),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
@@ -2115,10 +2173,11 @@ private fun HwSectionContent(
             .padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically) {
             Column(modifier = Modifier.weight(1f)) {
-                Text("Divert excess solar to hot water",
+                Text(stringResource(R.string.ui2_wiz_divert_to_hw),
                     style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                 Text(
-                    if (divert.active) "Active" else "Off",
+                    stringResource(if (divert.active) R.string.ui2_wiz_active
+                                   else R.string.ui2_wiz_off),
                     style = MaterialTheme.typography.labelSmall,
                     color = if (divert.active) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.onSurfaceVariant
@@ -2131,7 +2190,7 @@ private fun HwSectionContent(
             )
         }
         if (system == null && noviceMode) {
-            Text("Add a tank above to enable solar divert.",
+            Text(stringResource(R.string.ui2_wiz_add_tank_divert),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.padding(vertical = 4.dp))
@@ -2140,7 +2199,7 @@ private fun HwSectionContent(
         OutlinedButton(onClick = onImport, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(4.dp))
-            Text("Import hot-water setup (JSON)")
+            Text(stringResource(R.string.ui2_wiz_import_hw_json))
         }
     }
 }
@@ -2167,9 +2226,9 @@ private fun EvSectionContent(
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         // ── Charging Schedules ───────────────────────────────────
-        WizardScheduleLabel("Charging Schedules")
+        WizardScheduleLabel(stringResource(R.string.ui2_wiz_charging_schedules))
         if (noviceMode) {
-            Text("Add scheduled EV charging windows. Each window defines when the car charges and at what rate.",
+            Text(stringResource(R.string.ui2_wiz_ev_hint),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
@@ -2183,10 +2242,11 @@ private fun EvSectionContent(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text("🚗", style = MaterialTheme.typography.headlineMedium)
                     Spacer(Modifier.height(6.dp))
-                    Text("No EV schedules yet", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.ui2_wiz_no_ev_schedules),
+                        style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     if (noviceMode) {
                         Spacer(Modifier.height(4.dp))
-                        Text("This section is optional — skip it if you don't have an EV.",
+                        Text(stringResource(R.string.ui2_wiz_no_ev_hint),
                             style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -2208,15 +2268,15 @@ private fun EvSectionContent(
         FilledTonalButton(onClick = onAdd, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(4.dp))
-            Text("Add EV schedule")
+            Text(stringResource(R.string.ui2_wiz_add_ev_schedule))
         }
 
         Spacer(Modifier.height(4.dp))
 
         // ── Solar Divert ─────────────────────────────────────────
-        WizardScheduleLabel("Solar Divert")
+        WizardScheduleLabel(stringResource(R.string.ui2_wiz_solar_divert_caps))
         if (noviceMode) {
-            Text("Divert surplus solar energy to charge the EV within a defined time window.",
+            Text(stringResource(R.string.ui2_wiz_ev_divert_sec_hint),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
@@ -2232,10 +2292,11 @@ private fun EvSectionContent(
                         Modifier.size(40.dp),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f))
                     Spacer(Modifier.height(6.dp))
-                    Text("No divert windows", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.ui2_wiz_no_divert_windows),
+                        style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     if (noviceMode) {
                         Spacer(Modifier.height(4.dp))
-                        Text("Optional — add if you want to charge the EV from excess solar.",
+                        Text(stringResource(R.string.ui2_wiz_divert_windows_hint),
                             style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -2257,12 +2318,12 @@ private fun EvSectionContent(
         FilledTonalButton(onClick = onAddDivert, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(4.dp))
-            Text("Add divert window")
+            Text(stringResource(R.string.ui2_wiz_add_divert_window))
         }
         OutlinedButton(onClick = onImport, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(4.dp))
-            Text("Import EV setup (JSON)")
+            Text(stringResource(R.string.ui2_wiz_import_ev_json))
         }
     }
 }
@@ -2297,20 +2358,20 @@ private fun HeatPumpSectionContent(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (noviceMode && entries.isEmpty()) {
-            Text("Estimate the electricity a heat pump would use in place of your oil or gas boiler.",
+            Text(stringResource(R.string.ui2_wiz_hp_intro),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         entries.forEach { hp -> HeatPumpCard(hp, noviceMode, cdsDateRange, onRemove, onUpdate) }
         if (entries.isEmpty()) {
             FilledTonalButton(onClick = onAdd, modifier = Modifier.fillMaxWidth()) {
-                Text("Add heat pump")
+                Text(stringResource(R.string.ui2_wiz_add_hp))
             }
         }
         OutlinedButton(onClick = onImport, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(4.dp))
-            Text("Import HP setup (JSON)")
+            Text(stringResource(R.string.ui2_wiz_import_hp_json))
         }
     }
 }
@@ -2368,11 +2429,11 @@ private fun cdsCredentialsPresent(context: android.content.Context): Boolean {
  * demand onto cold + windy peaks and pushes more onto the expensive backup heater. The default
  * `0.03` lands in [WIND_LEVELS]`[1]` so existing scenarios open unchanged.
  */
-private data class WindLevel(val label: String, val short: String, val alphaWind: Double)
+private data class WindLevel(val labelRes: Int, val shortRes: Int, val alphaWind: Double)
 private val WIND_LEVELS = listOf(
-    WindLevel("No difference", "Same", 0.0),
-    WindLevel("Gets cold quickly", "Cools rapidly", 0.04),
-    WindLevel("Drafts / curtains move", "Drafts", 0.10)
+    WindLevel(R.string.ui2_wiz_wind_same, R.string.ui2_wiz_wind_same_short, 0.0),
+    WindLevel(R.string.ui2_wiz_wind_cools, R.string.ui2_wiz_wind_cools_short, 0.04),
+    WindLevel(R.string.ui2_wiz_wind_drafts, R.string.ui2_wiz_wind_drafts_short, 0.10)
 )
 /** Snap a stored `alphaWind` to the nearest [WindLevel] (bucket midpoints 0.02 / 0.07). */
 private fun windLevelFor(alphaWind: Double): WindLevel = when {
@@ -2482,7 +2543,11 @@ private fun HeatPumpCard(
         frac?.let { gross * it } ?: (gross - hp.dhwAnnualKWh).coerceAtLeast(0.0)
     }
     val fuelShort = when (hp.fuelType) {
-        "Kerosene/Oil" -> "Kerosene"; "Natural gas" -> "Gas"; "LPG" -> "LPG"; "None" -> "New build"; else -> hp.fuelType
+        "Kerosene/Oil" -> stringResource(R.string.ui2_wiz_fuel_kerosene)
+        "Natural gas" -> stringResource(R.string.ui2_wiz_fuel_gas)
+        "LPG" -> "LPG"
+        "None" -> stringResource(R.string.ui2_wiz_fuel_newbuild)
+        else -> hp.fuelType
     }
     val weatherCached = remember(hp.latitude, hp.longitude, hp.weatherSource) {
         hp.weatherSource == "cds" &&
@@ -2490,21 +2555,23 @@ private fun HeatPumpCard(
     }
     val heatSummary = "$fuelShort · ≈ ${estHeat.roundToInt()} kWh/yr"
     val hpSummary = "${hp.capacityKw} kW · SCOP ${hp.scop}"
-    val weatherSummary = if (hp.weatherSource == "cds") "CDS${if (weatherCached) " · cached" else ""}"
-                         else "2001, Ireland"
+    val weatherSummary = if (hp.weatherSource == "cds")
+        stringResource(R.string.ui2_wiz_cds) +
+            (if (weatherCached) " · " + stringResource(R.string.ui2_wiz_cached) else "")
+    else stringResource(R.string.ui2_dash_weather_2001)
 
     // Per-section novice hints — shown above each sub-accordion (matches the other wizard sections).
-    val heatHint = "How much heat the home needs — from your current fuel use, or estimated from the " +
-        "building fabric for a new build."
-    val hpHint = "The heat pump unit's rated efficiency and heat output."
-    val weatherHint = "Where the outdoor weather for the hourly simulation comes from, plus how the home " +
-        "responds to wind."
+    val heatHint = stringResource(R.string.ui2_wiz_heat_hint)
+    val hpHint = stringResource(R.string.ui2_wiz_hp_char_hint)
+    val weatherHint = stringResource(R.string.ui2_wiz_weather_hint)
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
 
         PrimaryTabRow(selectedTabIndex = if (showAdvanced) 1 else 0) {
-            Tab(selected = !showAdvanced, onClick = { showAdvanced = false }, text = { Text("Basic") })
-            Tab(selected = showAdvanced, onClick = { showAdvanced = true }, text = { Text("Advanced") })
+            Tab(selected = !showAdvanced, onClick = { showAdvanced = false },
+                text = { Text(stringResource(R.string.ui2_cmp_basic)) })
+            Tab(selected = showAdvanced, onClick = { showAdvanced = true },
+                text = { Text(stringResource(R.string.ui2_cmp_advanced)) })
         }
 
         // ── 1) Heat energy required — what the home needs (fuel history or new-build fabric) ──
@@ -2512,12 +2579,21 @@ private fun HeatPumpCard(
             Text(heatHint, style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        HpSubSection("Heat energy required", openSection == "heat", { toggle("heat") },
+        HpSubSection(stringResource(R.string.ui2_wiz_heat_required),
+            openSection == "heat", { toggle("heat") },
             subtitle = heatSummary) {
             // Fuel type (or None for a new build with no boiler history). AdaptiveChipRow gives short labels in
             // portrait, full labels on wide screens, and a dropdown at large font — all managed centrally.
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Current heating fuel", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(R.string.ui2_wiz_current_fuel),
+                    style = MaterialTheme.typography.labelMedium)
+                // Resolved outside the label lambdas — AdaptiveChipRow's label
+                // callbacks are not composable. fuelType values stay literal
+                // (persisted data).
+                val keroShort = stringResource(R.string.ui2_wiz_fuel_kero_short)
+                val gasShort = stringResource(R.string.ui2_wiz_fuel_gas)
+                val noneWord = stringResource(R.string.ui2_wiz_none)
+                val noneLong = stringResource(R.string.ui2_wiz_none_newbuild)
                 AdaptiveChipRow(
                     items = listOf("Kerosene/Oil", "Natural gas", "LPG", "None"),
                     isSelected = { it == hp.fuelType },
@@ -2529,22 +2605,25 @@ private fun HeatPumpCard(
                             fuelAnnual = defaultAnnualUse(fuel)
                         ) }
                     },
-                    label = { when (it) { "Kerosene/Oil" -> "Kero"; "Natural gas" -> "Gas"; "LPG" -> "LPG"; else -> "None" } },
-                    labelLong = { if (it == "None") "None (new build)" else it },
+                    label = { when (it) { "Kerosene/Oil" -> keroShort; "Natural gas" -> gasShort; "LPG" -> "LPG"; else -> noneWord } },
+                    labelLong = { if (it == "None") noneLong else it },
                     shortItemWidth = 60.dp, longItemWidth = 112.dp
                 )
                 if (newBuild) {
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        HpNumberField("Floor area (m²)", hp.floorAreaM2,
-                            "Total heated floor area.", novice, Modifier.weight(1f)) { v -> update { it.copy(floorAreaM2 = v) } }
-                        HpNumberField("HLI (W/K/m²)", hp.heatLossIndex,
-                            "Whole-house heat loss, fabric + ventilation. A compliant new build is ~0.7–1.2.",
+                        HpNumberField(stringResource(R.string.ui2_wiz_floor_area), hp.floorAreaM2,
+                            stringResource(R.string.ui2_wiz_floor_area_hint),
+                            novice, Modifier.weight(1f)) { v -> update { it.copy(floorAreaM2 = v) } }
+                        HpNumberField(stringResource(R.string.ui2_wiz_hli), hp.heatLossIndex,
+                            stringResource(R.string.ui2_wiz_hli_hint),
                             novice, Modifier.weight(1f)) { v -> update { it.copy(heatLossIndex = v) } }
                     }
                 } else {
-                    val unit = if (hp.fuelType == "Natural gas") "kWh / yr" else "litres / yr"
-                    HpNumberField("Annual fuel use ($unit)", hp.fuelAnnual,
-                        "Your current annual oil/gas use.", novice, Modifier.fillMaxWidth()) { v -> update { it.copy(fuelAnnual = v) } }
+                    val unit = stringResource(if (hp.fuelType == "Natural gas")
+                        R.string.ui2_wiz_kwh_yr_unit else R.string.ui2_wiz_litres_yr)
+                    HpNumberField(stringResource(R.string.ui2_wiz_annual_fuel, unit), hp.fuelAnnual,
+                        stringResource(R.string.ui2_wiz_annual_fuel_hint),
+                        novice, Modifier.fillMaxWidth()) { v -> update { it.copy(fuelAnnual = v) } }
                 }
             }
 
@@ -2555,36 +2634,40 @@ private fun HeatPumpCard(
                 .background(MaterialTheme.colorScheme.surfaceVariant)
                 .padding(horizontal = 12.dp, vertical = 8.dp)) {
                 Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text("≈ ${estHeat.roundToInt()} kWh heat/yr   ·   ≈ ${elec.roundToInt()} kWh elec @ SCOP ${fmtNum(scopN)}",
+                    Text(stringResource(R.string.ui2_wiz_implied,
+                            estHeat.roundToInt(), elec.roundToInt(), fmtNum(scopN)),
                         style = MaterialTheme.typography.bodyMedium,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.primary)
                     if (novice) {
-                        Text("Ballpark — the final demand comes from the hourly simulation.",
+                        Text(stringResource(R.string.ui2_wiz_ballpark),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
 
-            HpNumberField("Desired indoor temperature (°C)", hp.desiredIndoorTemp,
-                "Leave equal to today's setpoint to keep current comfort.", novice, Modifier.fillMaxWidth()) {
+            HpNumberField(stringResource(R.string.ui2_wiz_desired_temp), hp.desiredIndoorTemp,
+                stringResource(R.string.ui2_wiz_desired_temp_hint), novice, Modifier.fillMaxWidth()) {
                     v -> update { it.copy(desiredIndoorTemp = v) }
             }
 
             // ── Advanced (demand) — hidden until the Advanced tab is selected ──
             if (showAdvanced) {
                 if (!newBuild) {
-                    HpNumberField("Space heating %", hp.spaceHeatingPct,
-                        "% of the fuel that was space heating, not hot water (blank = use the default).",
+                    HpNumberField(stringResource(R.string.ui2_wiz_space_heating), hp.spaceHeatingPct,
+                        stringResource(R.string.ui2_wiz_space_heating_hint),
                         novice, Modifier.fillMaxWidth()) { v -> update { it.copy(spaceHeatingPct = v) } }
-                    HpNumberField("Old boiler efficiency %", hp.boilerEfficiencyPct,
-                        "Seasonal efficiency of the boiler you're replacing.", novice, Modifier.fillMaxWidth()) { v -> update { it.copy(boilerEfficiencyPct = v) } }
+                    HpNumberField(stringResource(R.string.ui2_wiz_boiler_eff), hp.boilerEfficiencyPct,
+                        stringResource(R.string.ui2_wiz_boiler_eff_hint),
+                        novice, Modifier.fillMaxWidth()) { v -> update { it.copy(boilerEfficiencyPct = v) } }
                 }
-                HpNumberField("Current indoor temperature (°C)", hp.currentIndoorTemp,
-                    "Today's setpoint — used to rescale demand if the desired temperature differs.", novice, Modifier.fillMaxWidth()) { v -> update { it.copy(currentIndoorTemp = v) } }
-                HpNumberField("Balance-point temperature (°C)", hp.balancePoint,
-                    "Outdoor temperature below which the home needs heating.", novice, Modifier.fillMaxWidth()) { v -> update { it.copy(balancePoint = v) } }
+                HpNumberField(stringResource(R.string.ui2_wiz_current_temp), hp.currentIndoorTemp,
+                    stringResource(R.string.ui2_wiz_current_temp_hint),
+                    novice, Modifier.fillMaxWidth()) { v -> update { it.copy(currentIndoorTemp = v) } }
+                HpNumberField(stringResource(R.string.ui2_wiz_balance_point), hp.balancePoint,
+                    stringResource(R.string.ui2_wiz_balance_point_hint),
+                    novice, Modifier.fillMaxWidth()) { v -> update { it.copy(balancePoint = v) } }
             }
         }
 
@@ -2593,29 +2676,35 @@ private fun HeatPumpCard(
             Text(hpHint, style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        HpSubSection("HP characteristics", openSection == "hp", { toggle("hp") },
+        HpSubSection(stringResource(R.string.ui2_wiz_hp_characteristics),
+            openSection == "hp", { toggle("hp") },
             subtitle = hpSummary) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                HpNumberField("Rated COP", hp.copRated,
-                    "Datasheet efficiency at 7 °C outdoor (A7/W35).", novice, Modifier.weight(1f)) { v -> update { it.copy(copRated = v) } }
-                HpNumberField("SCOP", hp.scop,
-                    "Seasonal efficiency averaged across the year.", novice, Modifier.weight(1f)) { v -> update { it.copy(scop = v) } }
+                HpNumberField(stringResource(R.string.ui2_wiz_rated_cop), hp.copRated,
+                    stringResource(R.string.ui2_wiz_rated_cop_hint),
+                    novice, Modifier.weight(1f)) { v -> update { it.copy(copRated = v) } }
+                HpNumberField(stringResource(R.string.ui2_wiz_scop), hp.scop,
+                    stringResource(R.string.ui2_wiz_scop_hint),
+                    novice, Modifier.weight(1f)) { v -> update { it.copy(scop = v) } }
             }
-            HpNumberField("Capacity (kW)", hp.capacityKw,
-                "Max heat output; the backup heater covers any shortfall.", novice, Modifier.fillMaxWidth()) { v -> update { it.copy(capacityKw = v) } }
+            HpNumberField(stringResource(R.string.ui2_wiz_capacity), hp.capacityKw,
+                stringResource(R.string.ui2_wiz_capacity_hint),
+                novice, Modifier.fillMaxWidth()) { v -> update { it.copy(capacityKw = v) } }
 
             // ── Advanced (HP unit) — hidden until the Advanced tab is selected ──
             if (showAdvanced) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    HpNumberField("COP ref temp (°C)", hp.copRefTemp,
-                        "Outdoor temperature the rated COP is quoted at.", novice, Modifier.weight(1f)) { v -> update { it.copy(copRefTemp = v) } }
-                    HpNumberField("COP slope (/°C)", hp.copSlope,
-                        "How much COP changes per °C outdoors.", novice, Modifier.weight(1f)) { v -> update { it.copy(copSlope = v) } }
+                    HpNumberField(stringResource(R.string.ui2_wiz_cop_ref), hp.copRefTemp,
+                        stringResource(R.string.ui2_wiz_cop_ref_hint),
+                        novice, Modifier.weight(1f)) { v -> update { it.copy(copRefTemp = v) } }
+                    HpNumberField(stringResource(R.string.ui2_wiz_cop_slope), hp.copSlope,
+                        stringResource(R.string.ui2_wiz_cop_slope_hint),
+                        novice, Modifier.weight(1f)) { v -> update { it.copy(copSlope = v) } }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Switch(checked = hp.backupHeater, onCheckedChange = { c -> update { it.copy(backupHeater = c) } })
                     Spacer(Modifier.width(8.dp))
-                    Text("Backup electric heater")
+                    Text(stringResource(R.string.ui2_wiz_backup_heater))
                 }
             }
         }
@@ -2625,33 +2714,41 @@ private fun HeatPumpCard(
             Text(weatherHint, style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        HpSubSection("Location & weather", openSection == "weather", { toggle("weather") },
+        HpSubSection(stringResource(R.string.ui2_wiz_location_weather),
+            openSection == "weather", { toggle("weather") },
             subtitle = weatherSummary) {
             // ── Wind sensitivity (maps to alphaWind) — how fast the home loses heat on cold, windy days ──
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("When the wind blows…", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(R.string.ui2_wiz_wind_blows),
+                    style = MaterialTheme.typography.labelMedium)
+                // Labels resolved here — AdaptiveChipRow's label callbacks are
+                // not composable.
+                data class WindUi(val level: WindLevel, val label: String, val short: String)
+                val windUi = WIND_LEVELS.map {
+                    WindUi(it, stringResource(it.labelRes), stringResource(it.shortRes))
+                }
                 AdaptiveChipRow(
-                    items = WIND_LEVELS,
-                    isSelected = { windLevelFor(hp.alphaWind) == it },
-                    onSelect = { level -> update { it.copy(alphaWind = level.alphaWind) } },
+                    items = windUi,
+                    isSelected = { windLevelFor(hp.alphaWind) == it.level },
+                    onSelect = { ui -> update { it.copy(alphaWind = ui.level.alphaWind) } },
                     label = { it.short },
                     labelLong = { it.label },
                     shortItemWidth = 76.dp, longItemWidth = 150.dp
                 )
                 if (novice) {
-                    Text("A draughty home loses heat fastest on cold, windy days — that can push a heat " +
-                        "pump past its capacity onto the expensive backup heater.",
+                    Text(stringResource(R.string.ui2_wiz_wind_hint),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
 
             Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text("Weather data", style = MaterialTheme.typography.labelMedium)
+                Text(stringResource(R.string.ui2_wiz_weather_data),
+                    style = MaterialTheme.typography.labelMedium)
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     FilterChip(selected = hp.weatherSource == "sample",
                         onClick = { update { it.copy(weatherSource = "sample") } },
-                        label = { Text("2001, Ireland") })
+                        label = { Text(stringResource(R.string.ui2_dash_weather_2001)) })
                     FilterChip(selected = hp.weatherSource == "cds",
                         onClick = {
                             // Gate: only switch to CDS if credentials are present.
@@ -2662,43 +2759,45 @@ private fun HeatPumpCard(
                                 else showCdsAlert = true
                             }
                         },
-                        label = { Text("CDS") })
+                        label = { Text(stringResource(R.string.ui2_wiz_cds)) })
                 }
                 if (novice) {
-                    Text("The 2001, Ireland sample lets you try the heat pump now; CDS fetches real weather for your location.",
+                    Text(stringResource(R.string.ui2_wiz_weather_sample_hint),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 if (hp.weatherSource == "cds") {
                     // Surface what CDS will fetch — the criteria live in the HP section (design §4.1a-5) even
                     // though location defaults from the PV array and the period follows the load data.
-                    Text("CDS fetch location", style = MaterialTheme.typography.labelMedium,
+                    Text(stringResource(R.string.ui2_wiz_cds_location),
+                        style = MaterialTheme.typography.labelMedium,
                         modifier = Modifier.padding(top = 2.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        HpDoubleField("Latitude", hp.latitude, null, novice, Modifier.weight(1f)) { v ->
+                        HpDoubleField(stringResource(R.string.ui2_wiz_latitude),
+                            hp.latitude, null, novice, Modifier.weight(1f)) { v ->
                             update { it.copy(latitude = v) } }
-                        HpDoubleField("Longitude", hp.longitude, null, novice, Modifier.weight(1f)) { v ->
+                        HpDoubleField(stringResource(R.string.ui2_wiz_longitude),
+                            hp.longitude, null, novice, Modifier.weight(1f)) { v ->
                             update { it.copy(longitude = v) } }
                     }
                     val onRefYear = cdsDateRange.first == "2001-01-01" && cdsDateRange.second == "2001-12-31"
-                    Text("CDS query: ${cdsDateRange.first} → ${cdsDateRange.second}" +
-                        (if (onRefYear) " (reference year)" else " (from your PV source data)"),
+                    Text(stringResource(R.string.ui2_wiz_cds_query,
+                            cdsDateRange.first, cdsDateRange.second) + " " +
+                        stringResource(if (onRefYear) R.string.ui2_wiz_ref_year
+                                       else R.string.ui2_wiz_from_pv_source),
                         style = MaterialTheme.typography.labelMedium,
                         modifier = Modifier.padding(top = 2.dp))
-                    Text("Fetched at ERA5 grid node %.2f, %.2f.".format(
+                    Text(stringResource(R.string.ui2_wiz_era5_node,
                             HeatPumpWeatherCache.snapToEra5Grid(hp.latitude),
                             HeatPumpWeatherCache.snapToEra5Grid(hp.longitude)),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     if (novice) {
-                        Text(if (onRefYear)
-                                "Uses the 2001 reference year. Add real PV data from a historical source " +
-                                    "(in the PV System section) to align weather to your measured year."
-                             else
-                                "The period matches your imported PV data so weather and solar share the same year.",
+                        Text(stringResource(if (onRefYear) R.string.ui2_wiz_ref_year_hint
+                                            else R.string.ui2_wiz_pv_period_hint),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("Location defaults to your PV array — edit for a different site.",
+                        Text(stringResource(R.string.ui2_wiz_location_default_hint),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -2709,27 +2808,29 @@ private fun HeatPumpCard(
         if (showCdsAlert) {
             AlertDialog(
                 onDismissRequest = { showCdsAlert = false },
-                title = { Text("Set up CDS first") },
+                title = { Text(stringResource(R.string.ui2_wiz_cds_setup_title)) },
                 text = {
-                    Text("Fetching real weather needs a Copernicus CDS Personal Access Token. " +
-                        "Add it under Data Source Management, then choose CDS here.")
+                    Text(stringResource(R.string.ui2_wiz_cds_setup_body))
                 },
                 confirmButton = {
                     TextButton(onClick = {
                         showCdsAlert = false
                         context.startActivity(
                             android.content.Intent(context, UI2DataSourceManagementActivity::class.java))
-                    }) { Text("Open Data Source Management") }
+                    }) { Text(stringResource(R.string.ui2_wiz_open_dsm)) }
                 },
                 dismissButton = {
-                    TextButton(onClick = { showCdsAlert = false }) { Text("Cancel") }
+                    TextButton(onClick = { showCdsAlert = false }) {
+                        Text(stringResource(R.string.dialog_cancel))
+                    }
                 }
             )
         }
 
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
             TextButton(onClick = { onRemove(hp.id) }) {
-                Text("Remove heat pump", color = MaterialTheme.colorScheme.error)
+                Text(stringResource(R.string.ui2_wiz_remove_hp),
+                    color = MaterialTheme.colorScheme.error)
             }
         }
     }
@@ -2752,7 +2853,7 @@ private fun InverterSectionContent(
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (noviceMode) {
-            Text("Add solar inverters. Each inverter can serve multiple panel arrays and batteries.",
+            Text(stringResource(R.string.ui2_wiz_inverters_hint),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
@@ -2767,10 +2868,11 @@ private fun InverterSectionContent(
                     Icon(painterResource(R.drawable.inverter), contentDescription = null,
                         modifier = Modifier.size(40.dp), tint = Color.Unspecified)
                     Spacer(Modifier.height(6.dp))
-                    Text("No inverters yet", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.ui2_wiz_no_inverters_yet),
+                        style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     if (noviceMode) {
                         Spacer(Modifier.height(4.dp))
-                        Text("This section is optional — skip it if you have no solar or battery.",
+                        Text(stringResource(R.string.ui2_wiz_no_inverters_hint),
                             style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -2793,12 +2895,12 @@ private fun InverterSectionContent(
             FilledTonalButton(onClick = onAdd, modifier = Modifier.weight(1f)) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Add inverter")
+                Text(stringResource(R.string.ui2_wiz_add_inverter))
             }
             OutlinedButton(onClick = onImport, modifier = Modifier.weight(1f)) {
                 Icon(Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Import JSON")
+                Text(stringResource(R.string.ui2_wiz_import_json))
             }
         }
     }
@@ -2828,13 +2930,15 @@ private fun PVSystemSectionContent(
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         PrimaryTabRow(selectedTabIndex = advancedTab) {
-            Tab(selected = advancedTab == 0, onClick = { advancedTab = 0 }, text = { Text("Basic") })
-            Tab(selected = advancedTab == 1, onClick = { advancedTab = 1 }, text = { Text("Advanced") })
+            Tab(selected = advancedTab == 0, onClick = { advancedTab = 0 },
+                text = { Text(stringResource(R.string.ui2_cmp_basic)) })
+            Tab(selected = advancedTab == 1, onClick = { advancedTab = 1 },
+                text = { Text(stringResource(R.string.ui2_cmp_advanced)) })
         }
         Spacer(Modifier.height(4.dp))
 
         if (noviceMode && advancedTab == 0) {
-            Text("Add panel strings. Each string is an independent array with its own orientation and data source.",
+            Text(stringResource(R.string.ui2_wiz_pv_hint),
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
@@ -2851,10 +2955,11 @@ private fun PVSystemSectionContent(
                     Icon(painterResource(R.drawable.solarpanel), contentDescription = null,
                         modifier = Modifier.size(40.dp), tint = Color.Unspecified)
                     Spacer(Modifier.height(6.dp))
-                    Text("No panel strings yet", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                    Text(stringResource(R.string.ui2_wiz_no_strings_yet),
+                        style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     if (noviceMode) {
                         Spacer(Modifier.height(4.dp))
-                        Text("This section is optional — skip it if you have no solar panels.",
+                        Text(stringResource(R.string.ui2_wiz_no_strings_hint),
                             style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -2884,12 +2989,12 @@ private fun PVSystemSectionContent(
             FilledTonalButton(onClick = onAdd, modifier = Modifier.weight(1f)) {
                 Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Add string")
+                Text(stringResource(R.string.ui2_wiz_add_string))
             }
             OutlinedButton(onClick = onImport, modifier = Modifier.weight(1f)) {
                 Icon(Icons.Default.FileUpload, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Import JSON")
+                Text(stringResource(R.string.ui2_wiz_import_json))
             }
         }
     }
@@ -2910,18 +3015,17 @@ private fun PvgisBackgroundBanner(stringCount: Int, onClose: () -> Unit) {
             ) {
                 Icon(Icons.Default.Download, null, Modifier.size(20.dp),
                     tint = MaterialTheme.colorScheme.onSecondaryContainer)
-                Text("Fetching solar data",
+                Text(stringResource(R.string.ui2_wiz_fetching_solar),
                     style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSecondaryContainer)
             }
             Text(
-                "PVGIS data for $stringCount panel string${if (stringCount > 1) "s" else ""} is being downloaded in the background. " +
-                    "The dashboard PV System card will show solar data once complete.",
+                pluralStringResource(R.plurals.ui2_wiz_pvgis_banner, stringCount, stringCount),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSecondaryContainer
             )
             FilledTonalButton(onClick = onClose, modifier = Modifier.fillMaxWidth()) {
-                Text("Close")
+                Text(stringResource(R.string.ui2_close))
             }
         }
     }
@@ -2961,10 +3065,11 @@ private fun WizardFooter(
     ) {
         Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)) {
             if (noviceMode) {
-                Text("Run the simulation", style = MaterialTheme.typography.titleSmall,
+                Text(stringResource(R.string.ui2_wiz_run_title),
+                    style = MaterialTheme.typography.titleSmall,
                     fontWeight = FontWeight.SemiBold)
                 Spacer(Modifier.height(2.dp))
-                Text("Required: Start and Usage Data. EV is optional.",
+                Text(stringResource(R.string.ui2_wiz_run_hint),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(8.dp))
@@ -2985,9 +3090,9 @@ private fun WizardFooter(
                     Icon(Icons.Default.CheckCircle, contentDescription = null,
                         modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Saved")
+                    Text(stringResource(R.string.ui2_ppw_saved))
                 } else {
-                    Text("Save")
+                    Text(stringResource(R.string.ui2_save))
                 }
             }
             Button(
@@ -2997,35 +3102,36 @@ private fun WizardFooter(
                     simButtonState != SimButtonState.Running
             ) {
                 when {
-                    isSaving -> Text("Saving…")
+                    isSaving -> Text(stringResource(R.string.ui2_ppw_saving))
                     simButtonState == SimButtonState.Running -> {
                         CircularProgressIndicator(
                             modifier = Modifier.size(14.dp), strokeWidth = 2.dp,
                             color = MaterialTheme.colorScheme.onPrimary)
                         Spacer(Modifier.width(6.dp))
-                        Text("Running…")
+                        Text(stringResource(R.string.ui2_wiz_running))
                     }
                     simButtonState == SimButtonState.Done -> {
                         Icon(Icons.Default.CheckCircle, contentDescription = null,
                             modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Done")
+                        Text(stringResource(R.string.ui2_done))
                     }
-                    simButtonState == SimButtonState.Failed -> Text("Failed — retry?")
+                    simButtonState == SimButtonState.Failed ->
+                        Text(stringResource(R.string.ui2_wiz_failed_retry))
                     simButtonState == SimButtonState.Queued -> {
                         Icon(Icons.Default.CheckCircle, contentDescription = null,
                             modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Queued")
+                        Text(stringResource(R.string.ui2_wiz_queued))
                     }
-                    else -> Text("Run simulation")
+                    else -> Text(stringResource(R.string.ui2_director_run_sim))
                 }
             }
             OutlinedButton(
                 onClick = onClose,
                 modifier = Modifier.weight(1f)
             ) {
-                Text("Close")
+                Text(stringResource(R.string.ui2_close))
             }
         }
         }
@@ -3047,34 +3153,29 @@ private fun WizardImportSheet(
 ) {
     when (scope) {
         WizardImportScope.USAGE -> UI2ImportSheet(
-            title = "Import load profile",
-            hint = "Accepts a load-profile JSON or a whole scenario JSON. " +
-                    "Annual usage and all distributions will be replaced.",
+            title = stringResource(R.string.ui2_wiz_imp_load_title),
+            hint = stringResource(R.string.ui2_wiz_imp_load_hint),
             parse = ::parseLoadProfileImport,
             onApply = { viewModel.replaceLoadProfileFromJson(it); onApplied() },
             onDismiss = onDismiss
         )
         WizardImportScope.INVERTERS -> UI2ImportSheet(
-            title = "Import inverters",
-            hint = "Replaces the current inverter list. Accepts an inverter JSON " +
-                    "array or a whole scenario JSON.",
+            title = stringResource(R.string.ui2_wiz_imp_inv_title),
+            hint = stringResource(R.string.ui2_wiz_imp_inv_hint),
             parse = ::parseInvertersImport,
             onApply = { viewModel.replaceInvertersFromJson(it); onApplied() },
             onDismiss = onDismiss
         )
         WizardImportScope.PV -> UI2ImportSheet(
-            title = "Import PV panel strings",
-            hint = "Replaces the current panel-string list. Accepts a panel JSON " +
-                    "array or a whole scenario JSON.",
+            title = stringResource(R.string.ui2_wiz_imp_pv_title),
+            hint = stringResource(R.string.ui2_wiz_imp_pv_hint),
             parse = ::parsePanelsImport,
             onApply = { viewModel.replacePanelsFromJson(it); onApplied() },
             onDismiss = onDismiss
         )
         WizardImportScope.BATTERY -> UI2ImportSheet(
-            title = "Import battery setup",
-            hint = "Replaces batteries, charge and discharge schedules together — " +
-                    "schedules reference inverter and battery names. Accepts a " +
-                    "battery slice or a whole scenario JSON.",
+            title = stringResource(R.string.ui2_wiz_imp_batt_title),
+            hint = stringResource(R.string.ui2_wiz_imp_batt_hint),
             parse = ::parseBatteryImport,
             onApply = {
                 viewModel.replaceBatteryGroupFromJson(it.batteries, it.loadShifts, it.discharges)
@@ -3083,9 +3184,8 @@ private fun WizardImportSheet(
             onDismiss = onDismiss
         )
         WizardImportScope.HW -> UI2ImportSheet(
-            title = "Import hot-water setup",
-            hint = "Replaces hot-water system, schedules and divert. Accepts a hot-water " +
-                    "slice or a whole scenario JSON.",
+            title = stringResource(R.string.ui2_wiz_imp_hw_title),
+            hint = stringResource(R.string.ui2_wiz_imp_hw_hint),
             parse = ::parseHwImport,
             onApply = {
                 viewModel.replaceHwGroupFromJson(it.system, it.schedules, it.divert)
@@ -3094,9 +3194,8 @@ private fun WizardImportSheet(
             onDismiss = onDismiss
         )
         WizardImportScope.EV -> UI2ImportSheet(
-            title = "Import EV setup",
-            hint = "Replaces EV charge schedules and diverts. Accepts an EV " +
-                    "slice or a whole scenario JSON.",
+            title = stringResource(R.string.ui2_wiz_imp_ev_title),
+            hint = stringResource(R.string.ui2_wiz_imp_ev_hint),
             parse = ::parseEvImport,
             onApply = {
                 viewModel.replaceEvGroupFromJson(it.charges, it.diverts, it.legacyDivert)
@@ -3105,8 +3204,8 @@ private fun WizardImportSheet(
             onDismiss = onDismiss
         )
         WizardImportScope.HEATPUMP -> UI2ImportSheet(
-            title = "Import heat pump",
-            hint = "Replaces the heat pump. Accepts a heat-pump JSON array or a whole scenario JSON.",
+            title = stringResource(R.string.ui2_wiz_imp_hp_title),
+            hint = stringResource(R.string.ui2_wiz_imp_hp_hint),
             parse = ::parseHeatPumpImport,
             onApply = { viewModel.replaceHeatPumpsFromJson(it); onApplied() },
             onDismiss = onDismiss

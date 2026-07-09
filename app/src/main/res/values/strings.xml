@@ -1271,4 +1271,416 @@
     <string name="ui2_dsm_fetch_title">Fetch start date for \"%1$s\"</string>
     <string name="ui2_dsm_catch_up_hint">Pick a date · catch-up runs up to %1$s</string>
     <string name="ui2_dsm_no_later_than">Must be no later than %1$s</string>
+
+    <!-- Tranche 6: WizardScheduleComposables -->
+    <string-array name="ui2_days_letters_mon_first">
+        <item>M</item><item>T</item><item>W</item><item>T</item>
+        <item>F</item><item>S</item><item>S</item>
+    </string-array>
+    <string-array name="ui2_days_full_mon_first">
+        <item>Monday</item><item>Tuesday</item><item>Wednesday</item><item>Thursday</item>
+        <item>Friday</item><item>Saturday</item><item>Sunday</item>
+    </string-array>
+    <string-array name="ui2_months_full">
+        <item>January</item><item>February</item><item>March</item><item>April</item>
+        <item>May</item><item>June</item><item>July</item><item>August</item>
+        <item>September</item><item>October</item><item>November</item><item>December</item>
+    </string-array>
+    <string name="ui2_wiz_weekdays">Weekdays</string>
+    <string name="ui2_wiz_weekend">Weekend</string>
+    <string name="ui2_wiz_none">None</string>
+    <string name="ui2_wiz_all_year">All year</string>
+    <string name="ui2_wiz_winter">Winter</string>
+    <string name="ui2_wiz_spring">Spring</string>
+    <string name="ui2_wiz_summer">Summer</string>
+    <string name="ui2_wiz_autumn">Autumn</string>
+    <string name="ui2_wiz_no_days">(no days)</string>
+    <string name="ui2_wiz_every_day">Every day</string>
+    <string name="ui2_wiz_from">From</string>
+    <string name="ui2_wiz_to">To</string>
+    <string name="ui2_wiz_time_window">Time window</string>
+    <string name="ui2_wiz_crosses_midnight">Crosses midnight — runs %1$s until %2$s next day.</string>
+    <string name="ui2_wiz_days_of_week">Days of week</string>
+    <string name="ui2_wiz_months">Months</string>
+    <string name="ui2_wiz_ev_schedule">EV Schedule</string>
+    <string name="ui2_wiz_schedule_name">Schedule name</string>
+    <string name="ui2_wiz_draw_rate">Draw rate (kW)</string>
+    <string name="ui2_wiz_draw_rate_hint">How much power the charger draws from the grid during the window.</string>
+    <string name="ui2_wiz_ev_divert">EV Divert</string>
+    <string name="ui2_wiz_divert_name">Divert name</string>
+    <string name="ui2_wiz_active">Active</string>
+    <string name="ui2_wiz_active_hint">Enable this solar divert window.</string>
+    <string name="ui2_wiz_ev_priority">EV priority</string>
+    <string name="ui2_wiz_ev_priority_hint">EV charges before other solar divert loads (e.g. hot water).</string>
+    <string name="ui2_wiz_daily_max">Daily max (kWh)</string>
+    <string name="ui2_wiz_min_excess">Min excess (kW)</string>
+    <string name="ui2_wiz_inverter_name">Inverter name</string>
+    <string name="ui2_wiz_max_load">Max load (kW)</string>
+    <string name="ui2_wiz_max_load_hint">Rated AC output capacity.</string>
+    <string name="ui2_wiz_mppt_count">MPPT count</string>
+    <string name="ui2_wiz_mppt_count_hint">Independent string inputs.</string>
+    <string name="ui2_wiz_ac2dc_loss" formatted="false">AC→DC loss %</string>
+    <string name="ui2_wiz_dc2ac_loss" formatted="false">DC→AC loss %</string>
+    <string name="ui2_wiz_dc2dc_loss" formatted="false">DC→DC loss %</string>
+    <string name="ui2_wiz_string_n">String %1$d</string>
+    <string name="ui2_wiz_src_badge" translatable="false">SRC</string>
+    <string name="ui2_wiz_string_name">String name</string>
+    <string name="ui2_wiz_count">Count</string>
+    <string name="ui2_wiz_count_hint">Number of panels.</string>
+    <string name="ui2_wiz_wp_panel">Wp / panel</string>
+    <string name="ui2_wiz_wp_hint">Rated power per panel.</string>
+    <string name="ui2_wiz_lat">Lat</string>
+    <string name="ui2_wiz_long">Long</string>
+    <string name="ui2_wiz_use_gps">Use GPS</string>
+    <string name="ui2_wiz_azimuth">Azimuth °</string>
+    <string name="ui2_wiz_azimuth_hint">0/360=N · 90=E · 180=S · 270=W</string>
+    <string name="ui2_wiz_slope">Slope °</string>
+    <string name="ui2_wiz_slope_hint">0=flat, 90=vertical</string>
+    <string name="ui2_wiz_select_ellipsis">Select…</string>
+    <string name="ui2_wiz_mppt" translatable="false">MPPT</string>
+    <string name="ui2_wiz_panel_data">Panel data</string>
+    <string name="ui2_wiz_pvgis_params">lat %1$s, lon %2$s, slope %3$d°, az %4$d°</string>
+    <string name="ui2_wiz_system_loss" formatted="false">System loss %</string>
+    <string name="ui2_wiz_system_loss_hint" formatted="false">Cabling, inverter, soiling, mismatch. 14% is PVGIS\'s default.</string>
+    <string name="ui2_wiz_data_fetched">Data already fetched · %1$s kWh/yr</string>
+    <string name="ui2_wiz_data_in_system">Data for these settings is already in the system · will be visible after save</string>
+    <string name="ui2_wiz_will_fetch">Will be fetched from PVGIS in background after save</string>
+    <string name="ui2_wiz_select_source">Select source…</string>
+    <string name="ui2_wiz_on_save_note">On save: processed in the background with a progress notification.</string>
+    <string name="ui2_wiz_source_date_range">Source date range</string>
+    <string name="ui2_wiz_source_kwp">Source kWp</string>
+    <string name="ui2_wiz_source_kwp_hint">Rated kWp of the source. Data is scaled when it differs from the string total (%1$s kWp).</string>
+    <string name="ui2_wiz_azimuth_factoring">Apply azimuth factoring</string>
+    <string name="ui2_wiz_azimuth_factoring_hint">Rotate the source generation curve to match this string\'s azimuth.</string>
+    <string name="ui2_wiz_source_azimuth">Source azimuth °</string>
+    <string name="ui2_wiz_source_azimuth_hint">Azimuth of the source string (0/360=N · 90=E · 180=S · 270=W). Target: %1$d°.</string>
+    <string name="ui2_wiz_optimised">Optimised</string>
+    <string name="ui2_wiz_optimised_hint">Individual MPPT optimiser per panel</string>
+    <string name="ui2_wiz_battery_size">Battery size (kWh)</string>
+    <string name="ui2_wiz_battery_size_hint">Total usable capacity.</string>
+    <string name="ui2_wiz_unknown_inverter">\"%1$s\" is not in the inverter list — pick one above.</string>
+    <string name="ui2_wiz_add_inverter_hint">Add an Inverter above to link this battery.</string>
+    <string name="ui2_wiz_min_soc" formatted="false">Min SOC %</string>
+    <string name="ui2_wiz_storage_loss" formatted="false">Storage loss %</string>
+    <string name="ui2_wiz_max_charge">Max charge kWh/5min</string>
+    <string name="ui2_wiz_max_discharge">Max discharge kWh/5min</string>
+    <string name="ui2_wiz_charge_curve" formatted="false">Charge curve — % of max rate at each SOC band</string>
+    <string name="ui2_wiz_soc_0_12" formatted="false">0–12% SOC</string>
+    <string name="ui2_wiz_soc_12_90" formatted="false">12–90% SOC</string>
+    <string name="ui2_wiz_soc_90_100" formatted="false">90–100% SOC</string>
+    <string name="ui2_wiz_no_batteries_option">(no batteries)</string>
+    <string name="ui2_wiz_applies_to_inverter">Applies to inverter</string>
+    <string name="ui2_wiz_unknown_batt_inverter">\"%1$s\" is not in the battery inverter list — pick one above.</string>
+    <string name="ui2_wiz_applies_every">Applies to every battery attached to this inverter.</string>
+    <string name="ui2_wiz_applies_all_on">Applies to all batteries on %1$s.</string>
+    <string name="ui2_wiz_charge_schedule">Charge schedule</string>
+    <string name="ui2_wiz_charge_to">charge to %1$d%%</string>
+    <string name="ui2_wiz_target_soc" formatted="false">Target SOC %</string>
+    <string name="ui2_wiz_target_soc_hint">Charge stops once the battery reaches this state of charge.</string>
+    <string name="ui2_wiz_discharge_schedule">Discharge schedule</string>
+    <string name="ui2_wiz_kw_down_to">%1$s kW down to %2$d%%</string>
+    <string name="ui2_wiz_discharge_stop_hint">Discharge stops at this SOC.</string>
+    <string name="ui2_wiz_rate_kw">Rate (kW)</string>
+    <string name="ui2_wiz_rate_hint">Export power to grid.</string>
+    <string name="ui2_wiz_hw_tank">Hot water tank</string>
+    <string name="ui2_wiz_hw_subtitle">"%1$s L  ·  %2$s L/day  ·  %3$s kW heater"</string>
+    <string name="ui2_wiz_tank_size">Tank size (L)</string>
+    <string name="ui2_wiz_tank_size_hint">Cylinder volume.</string>
+    <string name="ui2_wiz_daily_use">Daily use (L)</string>
+    <string name="ui2_wiz_daily_use_hint">Litres drawn per day.</string>
+    <string name="ui2_wiz_heater_power">Heater power (kW)</string>
+    <string name="ui2_wiz_heater_power_hint">How fast the immersion can put energy into the tank.</string>
+    <string name="ui2_wiz_cold_intake">Cold intake °C</string>
+    <string name="ui2_wiz_target_temp">Target °C</string>
+    <string name="ui2_wiz_heat_loss">Daily heat loss °C</string>
+    <string name="ui2_wiz_heat_loss_hint">Temperature drop per day with no top-up — depends on tank insulation.</string>
+    <string name="ui2_wiz_remove_tank">Remove tank</string>
+    <string name="ui2_wiz_usage_pattern">Usage pattern</string>
+    <string name="ui2_wiz_usage_pattern_hint">Mark the hours when hot water gets used and what share of the day\'s total each draw takes. Defaults model a typical morning shower / midday rinse / evening peak.</string>
+    <string name="ui2_wiz_hour">Hour</string>
+    <string name="ui2_wiz_pct_daily" formatted="false">% of daily</string>
+    <string name="ui2_wiz_totals_pct">Totals %1$s%%</string>
+    <string name="ui2_wiz_add_draw">Add draw</string>
+    <string name="ui2_wiz_hw_schedule">HW Schedule</string>
+    <string name="ui2_wiz_hourly_dist" formatted="false">Hourly distribution (%)</string>
+    <string name="ui2_wiz_dow_dist" formatted="false">Day-of-week distribution (%)</string>
+    <string name="ui2_wiz_monthly_dist" formatted="false">Monthly distribution (%)</string>
+    <string name="ui2_wiz_tap_zoom_out">Tap chart to zoom out</string>
+    <string name="ui2_wiz_tap_zoom_in">Tap a chart to zoom in</string>
+    <string name="ui2_wiz_select_pv_source">Select PV source</string>
+    <string name="ui2_wiz_solis" translatable="false">Solis</string>
+
+    <!-- Tranche 7: UI2WizardActivity -->
+    <string name="ui2_wiz_name_in_use">Name already in use</string>
+    <string name="ui2_wiz_title_edit_named">Edit scenario · %1$s</string>
+    <string name="ui2_wiz_title_edit">Edit scenario</string>
+    <string name="ui2_wiz_title_new">Build your scenario</string>
+    <string name="ui2_wiz_unsaved_body">You have unsaved changes. Leave anyway?</string>
+    <string name="ui2_wiz_leave">Leave</string>
+    <string name="ui2_wiz_stay">Stay</string>
+    <string name="ui2_wiz_banner_hint">Tap any section to expand it. Start and Usage Data are required to run a simulation.</string>
+    <string name="ui2_wiz_start">Start</string>
+    <string name="ui2_wiz_inverters">Inverters</string>
+    <string name="ui2_wiz_start_sub">How do you want to begin?</string>
+    <string name="ui2_wiz_load_sub">How much electricity does the home use?</string>
+    <string name="ui2_wiz_inverters_sub">Solar inverter configuration</string>
+    <string name="ui2_wiz_pv_sub">Solar panel strings</string>
+    <string name="ui2_wiz_battery_sub">Battery storage and schedules</string>
+    <string name="ui2_wiz_hw_sub">Immersion heater and solar divert</string>
+    <string name="ui2_wiz_ev_sub">EV charge schedules and solar divert</string>
+    <string name="ui2_wiz_hp_sub">Model a heat pump from your current heating</string>
+    <string name="ui2_wiz_kwh_yr">%1$s kWh / yr</string>
+    <plurals name="ui2_wiz_n_inverters">
+        <item quantity="one">%1$d inverter</item>
+        <item quantity="other">%1$d inverters</item>
+    </plurals>
+    <plurals name="ui2_wiz_n_strings">
+        <item quantity="one">%1$d string</item>
+        <item quantity="other">%1$d strings</item>
+    </plurals>
+    <plurals name="ui2_wiz_n_batteries">
+        <item quantity="one">%1$d battery</item>
+        <item quantity="other">%1$d batteries</item>
+    </plurals>
+    <string name="ui2_wiz_n_charge">%1$d charge</string>
+    <string name="ui2_wiz_n_discharge">%1$d discharge</string>
+    <plurals name="ui2_wiz_n_schedules">
+        <item quantity="one">%1$d schedule</item>
+        <item quantity="other">%1$d schedules</item>
+    </plurals>
+    <plurals name="ui2_wiz_n_diverts">
+        <item quantity="one">%1$d divert</item>
+        <item quantity="other">%1$d diverts</item>
+    </plurals>
+    <string name="ui2_wiz_divert_word">divert</string>
+    <string name="ui2_wiz_complete_start_first">Complete Start first</string>
+    <string name="ui2_wiz_complete_load_first">Complete Usage Data first</string>
+    <string name="ui2_wiz_n_of_m">%1$d of %2$d configured</string>
+    <string name="ui2_wiz_section_cd">Wizard section: %1$s</string>
+    <string name="ui2_wiz_linked_cd">Linked</string>
+    <string name="ui2_wiz_locked_cd">Locked</string>
+    <string name="ui2_wiz_no_sims_found">No existing simulations found.</string>
+    <string name="ui2_wiz_copy_from">Copy from simulation</string>
+    <string name="ui2_wiz_link_to">Link to simulation</string>
+    <string name="ui2_wiz_copy_profile_from">Copy load profile from</string>
+    <string name="ui2_wiz_link_profile_from">Link load profile from</string>
+    <string name="ui2_wiz_scratch_title">Start from scratch?</string>
+    <string name="ui2_wiz_scratch_body">This will clear the Usage Data and EV sections. Your simulation name will be kept. Continue?</string>
+    <string name="ui2_wiz_import_scenario_title">Import scenario from JSON</string>
+    <string name="ui2_wiz_import_scenario_hint">Accepts the JSON shape produced by the Share button on a scenario, or a single scenario from a bulk export. The accordions will be pre-filled — you can edit anything before saving.</string>
+    <string name="ui2_wiz_multi_title">Multiple scenarios</string>
+    <string name="ui2_wiz_multi_body">This file contains %1$d scenarios. Pick the one to load into the wizard. (To import them all into the library instead, use the drawer\'s Import / Export screen.)</string>
+    <string name="ui2_wiz_start_hint">Every simulation starts from one of four places. Pick what fits.</string>
+    <string name="ui2_wiz_mode_new">From scratch</string>
+    <string name="ui2_wiz_mode_new_desc">Start with empty sections and build up.</string>
+    <string name="ui2_wiz_mode_copy">Copy existing</string>
+    <string name="ui2_wiz_mode_copy_desc">Duplicate a saved simulation, then edit freely.</string>
+    <string name="ui2_wiz_mode_link">Link existing</string>
+    <string name="ui2_wiz_mode_link_desc">Re-use components from a saved simulation.</string>
+    <string name="ui2_wiz_mode_import">Import JSON</string>
+    <string name="ui2_wiz_mode_import_desc">Paste or pick a scenario JSON file to pre-fill every section.</string>
+    <string name="ui2_wiz_chip_new">New</string>
+    <string name="ui2_wiz_chip_copy">Copy</string>
+    <string name="ui2_wiz_chip_link">Link</string>
+    <string name="ui2_wiz_sim_name">Simulation name</string>
+    <string name="ui2_wiz_sim_name_hint">A unique name — shown everywhere in the app.</string>
+    <string name="ui2_wiz_src_derive">Derive from a source</string>
+    <string name="ui2_wiz_src_derive_desc">Smart-meter export or utility import.</string>
+    <string name="ui2_wiz_src_slp">Standard load profile</string>
+    <string name="ui2_wiz_src_slp_desc">One of 6 pre-built Irish residential profiles.</string>
+    <string name="ui2_wiz_src_copy">Copy from existing</string>
+    <string name="ui2_wiz_src_copy_desc">Import distribution from another simulation, then edit freely.</string>
+    <string name="ui2_wiz_src_hand">Hand-craft</string>
+    <string name="ui2_wiz_src_hand_desc">Set hourly, daily and monthly weightings manually.</string>
+    <string name="ui2_wiz_src_link">Link to existing profile</string>
+    <string name="ui2_wiz_src_link_desc">Re-use a profile from another simulation. Changes in source propagate here.</string>
+    <string name="ui2_wiz_load_hint">Choose how the load profile is built. Annual usage (kWh) is always required.</string>
+    <string name="ui2_wiz_source_header">SOURCE</string>
+    <string name="ui2_wiz_chip_slp" translatable="false">SLP</string>
+    <string name="ui2_wiz_chip_craft">Craft</string>
+    <string name="ui2_wiz_distribution_source">Distribution source</string>
+    <string name="ui2_wiz_distribution_source_hint">Derived automatically from how the profile was created.</string>
+    <string name="ui2_wiz_edit_distribution">Edit distribution</string>
+    <string name="ui2_wiz_set_distribution">Set distribution</string>
+    <string name="ui2_wiz_set_distribution_hint">Tap to set hourly, daily and monthly usage patterns.</string>
+    <string name="ui2_wiz_annual_usage">Annual usage (kWh)</string>
+    <string name="ui2_wiz_annual_usage_hint">Total electricity used in a year.</string>
+    <string name="ui2_wiz_advanced_header">ADVANCED</string>
+    <string name="ui2_wiz_hourly_base">Hourly base load (kWh)</string>
+    <string name="ui2_wiz_hourly_base_hint">Always-on load — fridge, standby, etc.</string>
+    <string name="ui2_wiz_grid_import_max">Grid import max (kW)</string>
+    <string name="ui2_wiz_grid_import_max_hint">Highest single-hour draw from the grid.</string>
+    <string name="ui2_wiz_grid_export_max">Grid export max (kW)</string>
+    <string name="ui2_wiz_grid_export_max_hint">Highest single-hour export — set by your contract.</string>
+    <string name="ui2_wiz_import_load_json">Import load profile (JSON)</string>
+    <string name="ui2_wiz_no_imported_data">No imported data found. Import smart-meter or inverter data first.</string>
+    <string name="ui2_wiz_extraction">Extraction</string>
+    <string name="ui2_wiz_averages">Averages</string>
+    <string name="ui2_wiz_absolute_year">Absolute year</string>
+    <string name="ui2_wiz_absolute_desc">Uses the actual measured load for the chosen year, mapped onto the 2001 simulation grid.</string>
+    <string name="ui2_wiz_averages_desc">Builds an average hourly/daily/monthly shape over the chosen window.</string>
+    <string name="ui2_wiz_select_data_source">Select a data source:</string>
+    <string name="ui2_wiz_esbn_word" translatable="false">ESBN</string>
+    <string name="ui2_wiz_octopus_word" translatable="false">Octopus</string>
+    <string name="ui2_wiz_unknown">Unknown</string>
+    <string name="ui2_wiz_esbn_warning">ESBN provides import/export only (no solar or load readings). Load is estimated from grid import — this will be inaccurate if solar panels or a battery are present.</string>
+    <string name="ui2_wiz_fill_gaps">Fill gaps with SLP</string>
+    <string name="ui2_wiz_fill_gaps_hint">Patch missing days using a standard load profile.</string>
+    <string name="ui2_wiz_deriving">Deriving…</string>
+    <string name="ui2_wiz_derive">Derive</string>
+    <string name="ui2_wiz_tab_hourly">Hourly</string>
+    <string name="ui2_wiz_tab_daily">Daily</string>
+    <string name="ui2_wiz_tab_monthly">Monthly</string>
+    <string name="ui2_wiz_sum_pct">Sum: %1$s%%</string>
+    <string name="ui2_wiz_reset_flat">Reset to flat</string>
+    <string name="ui2_wiz_batteries_header">Batteries</string>
+    <string name="ui2_wiz_batteries_hint">Each battery stores excess solar (or off-peak grid) energy for use later. Add one battery per physical unit; multiple batteries on the same inverter are fine.</string>
+    <string name="ui2_wiz_no_batteries_yet">No batteries yet</string>
+    <string name="ui2_wiz_no_batteries_hint">Optional — skip if you have no battery storage.</string>
+    <string name="ui2_wiz_add_battery">Add battery</string>
+    <string name="ui2_wiz_charge_hint">Charge from the grid during cheap windows (e.g. night-saver) so the stored energy covers expensive peak hours. Add a window for each cheap-rate period; leave empty if you only want solar charging.</string>
+    <string name="ui2_wiz_add_battery_first_charge">Add a battery above to enable charge scheduling.</string>
+    <string name="ui2_wiz_no_charge_windows">No charge windows</string>
+    <string name="ui2_wiz_charge_windows_hint">Add one if your tariff has cheap off-peak hours worth pre-charging from.</string>
+    <string name="ui2_wiz_orphan_schedules">"⚠  Schedules below target an inverter with no batteries — add a battery to make them effective."</string>
+    <string name="ui2_wiz_add_charge_window">Add charge window</string>
+    <string name="ui2_wiz_discharge_hint">Force the battery to export to the grid during a chosen window — useful when feed-in rates are higher than the avoided import cost (peak-export tariffs). Leave empty for standard self-consumption only.</string>
+    <string name="ui2_wiz_add_battery_first_discharge">Add a battery above to enable discharge scheduling.</string>
+    <string name="ui2_wiz_no_discharge_windows">No discharge windows</string>
+    <string name="ui2_wiz_discharge_windows_hint">Add one if your tariff has high feed-in rates worth exporting to.</string>
+    <string name="ui2_wiz_add_discharge_window">Add discharge window</string>
+    <string name="ui2_wiz_import_battery_json">Import battery setup (JSON)</string>
+    <string name="ui2_wiz_tank_header">Tank</string>
+    <string name="ui2_wiz_tank_hint">Configure the hot-water cylinder so the simulation can model when the immersion is needed and how much excess solar can be diverted to it.</string>
+    <string name="ui2_wiz_no_tank">No hot-water tank</string>
+    <string name="ui2_wiz_no_tank_hint">Optional — skip if hot water isn\'t part of this scenario.</string>
+    <string name="ui2_wiz_add_tank">Add hot-water tank</string>
+    <string name="ui2_wiz_heater_schedule">Heater schedule</string>
+    <string name="ui2_wiz_heater_hint">Windows when the immersion is allowed to run from the grid (e.g. cheap night-rate). Leave empty if you only want hot water from solar divert.</string>
+    <string name="ui2_wiz_add_tank_first">Add a tank above to enable scheduling.</string>
+    <string name="ui2_wiz_no_heater_windows">No heater windows</string>
+    <string name="ui2_wiz_heater_windows_hint">Add one if your tariff has a cheap window worth heating the tank in.</string>
+    <string name="ui2_wiz_add_heater_window">Add heater window</string>
+    <string name="ui2_wiz_solar_divert">Solar divert</string>
+    <string name="ui2_wiz_hw_divert_hint">Send excess solar to the immersion instead of exporting it. Free hot water when the panels are producing more than the house is using.</string>
+    <string name="ui2_wiz_divert_to_hw">Divert excess solar to hot water</string>
+    <string name="ui2_wiz_off">Off</string>
+    <string name="ui2_wiz_add_tank_divert">Add a tank above to enable solar divert.</string>
+    <string name="ui2_wiz_import_hw_json">Import hot-water setup (JSON)</string>
+    <string name="ui2_wiz_charging_schedules">Charging Schedules</string>
+    <string name="ui2_wiz_ev_hint">Add scheduled EV charging windows. Each window defines when the car charges and at what rate.</string>
+    <string name="ui2_wiz_no_ev_schedules">No EV schedules yet</string>
+    <string name="ui2_wiz_no_ev_hint">This section is optional — skip it if you don\'t have an EV.</string>
+    <string name="ui2_wiz_add_ev_schedule">Add EV schedule</string>
+    <string name="ui2_wiz_solar_divert_caps">Solar Divert</string>
+    <string name="ui2_wiz_ev_divert_sec_hint">Divert surplus solar energy to charge the EV within a defined time window.</string>
+    <string name="ui2_wiz_no_divert_windows">No divert windows</string>
+    <string name="ui2_wiz_divert_windows_hint">Optional — add if you want to charge the EV from excess solar.</string>
+    <string name="ui2_wiz_add_divert_window">Add divert window</string>
+    <string name="ui2_wiz_import_ev_json">Import EV setup (JSON)</string>
+    <string name="ui2_wiz_hp_intro">Estimate the electricity a heat pump would use in place of your oil or gas boiler.</string>
+    <string name="ui2_wiz_add_hp">Add heat pump</string>
+    <string name="ui2_wiz_import_hp_json">Import HP setup (JSON)</string>
+    <string name="ui2_wiz_wind_same">No difference</string>
+    <string name="ui2_wiz_wind_same_short">Same</string>
+    <string name="ui2_wiz_wind_cools">Gets cold quickly</string>
+    <string name="ui2_wiz_wind_cools_short">Cools rapidly</string>
+    <string name="ui2_wiz_wind_drafts">Drafts / curtains move</string>
+    <string name="ui2_wiz_wind_drafts_short">Drafts</string>
+    <string name="ui2_wiz_fuel_kerosene">Kerosene</string>
+    <string name="ui2_wiz_fuel_gas">Gas</string>
+    <string name="ui2_wiz_fuel_newbuild">New build</string>
+    <string name="ui2_wiz_fuel_kero_short">Kero</string>
+    <string name="ui2_wiz_none_newbuild">None (new build)</string>
+    <string name="ui2_wiz_cached">cached</string>
+    <string name="ui2_wiz_heat_hint">How much heat the home needs — from your current fuel use, or estimated from the building fabric for a new build.</string>
+    <string name="ui2_wiz_hp_char_hint">The heat pump unit\'s rated efficiency and heat output.</string>
+    <string name="ui2_wiz_weather_hint">Where the outdoor weather for the hourly simulation comes from, plus how the home responds to wind.</string>
+    <string name="ui2_wiz_heat_required">Heat energy required</string>
+    <string name="ui2_wiz_hp_characteristics">HP characteristics</string>
+    <string name="ui2_wiz_location_weather">Location &amp; weather</string>
+    <string name="ui2_wiz_current_fuel">Current heating fuel</string>
+    <string name="ui2_wiz_floor_area">Floor area (m²)</string>
+    <string name="ui2_wiz_floor_area_hint">Total heated floor area.</string>
+    <string name="ui2_wiz_hli">HLI (W/K/m²)</string>
+    <string name="ui2_wiz_hli_hint">Whole-house heat loss, fabric + ventilation. A compliant new build is ~0.7–1.2.</string>
+    <string name="ui2_wiz_annual_fuel">Annual fuel use (%1$s)</string>
+    <string name="ui2_wiz_kwh_yr_unit">kWh / yr</string>
+    <string name="ui2_wiz_litres_yr">litres / yr</string>
+    <string name="ui2_wiz_annual_fuel_hint">Your current annual oil/gas use.</string>
+    <string name="ui2_wiz_implied">"≈ %1$d kWh heat/yr   ·   ≈ %2$d kWh elec @ SCOP %3$s"</string>
+    <string name="ui2_wiz_ballpark">Ballpark — the final demand comes from the hourly simulation.</string>
+    <string name="ui2_wiz_desired_temp">Desired indoor temperature (°C)</string>
+    <string name="ui2_wiz_desired_temp_hint">Leave equal to today\'s setpoint to keep current comfort.</string>
+    <string name="ui2_wiz_space_heating" formatted="false">Space heating %</string>
+    <string name="ui2_wiz_space_heating_hint" formatted="false">% of the fuel that was space heating, not hot water (blank = use the default).</string>
+    <string name="ui2_wiz_boiler_eff" formatted="false">Old boiler efficiency %</string>
+    <string name="ui2_wiz_boiler_eff_hint">Seasonal efficiency of the boiler you\'re replacing.</string>
+    <string name="ui2_wiz_current_temp">Current indoor temperature (°C)</string>
+    <string name="ui2_wiz_current_temp_hint">Today\'s setpoint — used to rescale demand if the desired temperature differs.</string>
+    <string name="ui2_wiz_balance_point">Balance-point temperature (°C)</string>
+    <string name="ui2_wiz_balance_point_hint">Outdoor temperature below which the home needs heating.</string>
+    <string name="ui2_wiz_rated_cop">Rated COP</string>
+    <string name="ui2_wiz_rated_cop_hint">Datasheet efficiency at 7 °C outdoor (A7/W35).</string>
+    <string name="ui2_wiz_scop" translatable="false">SCOP</string>
+    <string name="ui2_wiz_scop_hint">Seasonal efficiency averaged across the year.</string>
+    <string name="ui2_wiz_capacity">Capacity (kW)</string>
+    <string name="ui2_wiz_capacity_hint">Max heat output; the backup heater covers any shortfall.</string>
+    <string name="ui2_wiz_cop_ref">COP ref temp (°C)</string>
+    <string name="ui2_wiz_cop_ref_hint">Outdoor temperature the rated COP is quoted at.</string>
+    <string name="ui2_wiz_cop_slope">COP slope (/°C)</string>
+    <string name="ui2_wiz_cop_slope_hint">How much COP changes per °C outdoors.</string>
+    <string name="ui2_wiz_backup_heater">Backup electric heater</string>
+    <string name="ui2_wiz_wind_blows">When the wind blows…</string>
+    <string name="ui2_wiz_wind_hint">A draughty home loses heat fastest on cold, windy days — that can push a heat pump past its capacity onto the expensive backup heater.</string>
+    <string name="ui2_wiz_weather_data">Weather data</string>
+    <string name="ui2_wiz_cds" translatable="false">CDS</string>
+    <string name="ui2_wiz_weather_sample_hint">The 2001, Ireland sample lets you try the heat pump now; CDS fetches real weather for your location.</string>
+    <string name="ui2_wiz_cds_location">CDS fetch location</string>
+    <string name="ui2_wiz_latitude">Latitude</string>
+    <string name="ui2_wiz_longitude">Longitude</string>
+    <string name="ui2_wiz_cds_query">CDS query: %1$s → %2$s</string>
+    <string name="ui2_wiz_ref_year">(reference year)</string>
+    <string name="ui2_wiz_from_pv_source">(from your PV source data)</string>
+    <string name="ui2_wiz_era5_node">Fetched at ERA5 grid node %1$.2f, %2$.2f.</string>
+    <string name="ui2_wiz_ref_year_hint">Uses the 2001 reference year. Add real PV data from a historical source (in the PV System section) to align weather to your measured year.</string>
+    <string name="ui2_wiz_pv_period_hint">The period matches your imported PV data so weather and solar share the same year.</string>
+    <string name="ui2_wiz_location_default_hint">Location defaults to your PV array — edit for a different site.</string>
+    <string name="ui2_wiz_cds_setup_title">Set up CDS first</string>
+    <string name="ui2_wiz_cds_setup_body">Fetching real weather needs a Copernicus CDS Personal Access Token. Add it under Data Source Management, then choose CDS here.</string>
+    <string name="ui2_wiz_open_dsm">Open Data Source Management</string>
+    <string name="ui2_wiz_remove_hp">Remove heat pump</string>
+    <string name="ui2_wiz_inverters_hint">Add solar inverters. Each inverter can serve multiple panel arrays and batteries.</string>
+    <string name="ui2_wiz_no_inverters_yet">No inverters yet</string>
+    <string name="ui2_wiz_no_inverters_hint">This section is optional — skip it if you have no solar or battery.</string>
+    <string name="ui2_wiz_add_inverter">Add inverter</string>
+    <string name="ui2_wiz_import_json">Import JSON</string>
+    <string name="ui2_wiz_pv_hint">Add panel strings. Each string is an independent array with its own orientation and data source.</string>
+    <string name="ui2_wiz_no_strings_yet">No panel strings yet</string>
+    <string name="ui2_wiz_no_strings_hint">This section is optional — skip it if you have no solar panels.</string>
+    <string name="ui2_wiz_add_string">Add string</string>
+    <string name="ui2_wiz_fetching_solar">Fetching solar data</string>
+    <plurals name="ui2_wiz_pvgis_banner">
+        <item quantity="one">PVGIS data for %1$d panel string is being downloaded in the background. The dashboard PV System card will show solar data once complete.</item>
+        <item quantity="other">PVGIS data for %1$d panel strings is being downloaded in the background. The dashboard PV System card will show solar data once complete.</item>
+    </plurals>
+    <string name="ui2_wiz_run_title">Run the simulation</string>
+    <string name="ui2_wiz_run_hint">Required: Start and Usage Data. EV is optional.</string>
+    <string name="ui2_wiz_running">Running…</string>
+    <string name="ui2_wiz_failed_retry">Failed — retry?</string>
+    <string name="ui2_wiz_queued">Queued</string>
+    <string name="ui2_wiz_imp_load_title">Import load profile</string>
+    <string name="ui2_wiz_imp_load_hint">Accepts a load-profile JSON or a whole scenario JSON. Annual usage and all distributions will be replaced.</string>
+    <string name="ui2_wiz_imp_inv_title">Import inverters</string>
+    <string name="ui2_wiz_imp_inv_hint">Replaces the current inverter list. Accepts an inverter JSON array or a whole scenario JSON.</string>
+    <string name="ui2_wiz_imp_pv_title">Import PV panel strings</string>
+    <string name="ui2_wiz_imp_pv_hint">Replaces the current panel-string list. Accepts a panel JSON array or a whole scenario JSON.</string>
+    <string name="ui2_wiz_imp_batt_title">Import battery setup</string>
+    <string name="ui2_wiz_imp_batt_hint">Replaces batteries, charge and discharge schedules together — schedules reference inverter and battery names. Accepts a battery slice or a whole scenario JSON.</string>
+    <string name="ui2_wiz_imp_hw_title">Import hot-water setup</string>
+    <string name="ui2_wiz_imp_hw_hint">Replaces hot-water system, schedules and divert. Accepts a hot-water slice or a whole scenario JSON.</string>
+    <string name="ui2_wiz_imp_ev_title">Import EV setup</string>
+    <string name="ui2_wiz_imp_ev_hint">Replaces EV charge schedules and diverts. Accepts an EV slice or a whole scenario JSON.</string>
+    <string name="ui2_wiz_imp_hp_title">Import heat pump</string>
+    <string name="ui2_wiz_imp_hp_hint">Replaces the heat pump. Accepts a heat-pump JSON array or a whole scenario JSON.</string>
 </resources>

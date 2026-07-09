@@ -68,6 +68,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -96,10 +98,6 @@ private val WIDE_BREAKPOINT: Dp = 380.dp
    Landscape: "Mon"…"Sun" labels, fills full width
 ────────────────────────────────────────────────────────────────── */
 
-private val DAY_SHORT  = listOf("M","T","W","T","F","S","S")
-private val DAY_LONG   = listOf("Mon","Tue","Wed","Thu","Fri","Sat","Sun")
-private val DAY_FULL   = listOf("Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday")
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun WizardDayPicker(
@@ -107,11 +105,14 @@ fun WizardDayPicker(
     onSelectedChange: (List<Int>) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val dayShort = stringArrayResource(R.array.ui2_days_letters_mon_first)
+    val dayLong = stringArrayResource(R.array.ui2_days_short_mon_first)
+    val dayFull = stringArrayResource(R.array.ui2_days_full_mon_first)
     val quickChips = listOf(
-        "All"      to (0..6).toList(),
-        "Weekdays" to (0..4).toList(),
-        "Weekend"  to listOf(5, 6),
-        "None"     to emptyList()
+        stringResource(R.string.ui2_all)          to (0..6).toList(),
+        stringResource(R.string.ui2_wiz_weekdays) to (0..4).toList(),
+        stringResource(R.string.ui2_wiz_weekend)  to listOf(5, 6),
+        stringResource(R.string.ui2_wiz_none)     to emptyList()
     )
     BoxWithConstraints(modifier = modifier) {
         val boxWidth = maxWidth
@@ -122,7 +123,7 @@ fun WizardDayPicker(
                 // wraps onto extra lines instead of clipping. At WIDE+ we use
                 // full day names ("Monday", "Tuesday") — the chips still wrap
                 // when there's not enough room.
-                val labels = if (boxWidth >= AdaptiveLayout.WIDTH_WIDE_AT) DAY_FULL else DAY_LONG
+                val labels = if (boxWidth >= AdaptiveLayout.WIDTH_WIDE_AT) dayFull else dayLong
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -136,7 +137,7 @@ fun WizardDayPicker(
                 }
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    DAY_SHORT.forEachIndexed { idx, label ->
+                    dayShort.forEachIndexed { idx, label ->
                         DayChipCircle(label = label, on = selected.contains(idx)) {
                             onSelectedChange(toggleInt(selected, idx))
                         }
@@ -194,11 +195,6 @@ private fun DayChipWide(label: String, on: Boolean, modifier: Modifier = Modifie
    Landscape: single row with "Jan"…"Dec" labels, fills full width
 ────────────────────────────────────────────────────────────────── */
 
-private val MONTH_ABBREV = listOf("J","F","M","A","M","J","J","A","S","O","N","D")
-private val MONTH_LONG   = listOf("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
-private val MONTH_FULL   = listOf("January","February","March","April","May","June",
-                                  "July","August","September","October","November","December")
-
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun WizardMonthPicker(
@@ -206,12 +202,15 @@ fun WizardMonthPicker(
     onSelectedChange: (List<Int>) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val monthAbbrev = stringArrayResource(R.array.ui2_months_letters)
+    val monthLong = stringArrayResource(R.array.ui2_months_short)
+    val monthFull = stringArrayResource(R.array.ui2_months_full)
     val quickChips = listOf(
-        "All year" to (1..12).toList(),
-        "Winter"   to listOf(1, 2, 11, 12),
-        "Spring"   to listOf(3, 4, 5),
-        "Summer"   to listOf(6, 7, 8),
-        "Autumn"   to listOf(9, 10)
+        stringResource(R.string.ui2_wiz_all_year) to (1..12).toList(),
+        stringResource(R.string.ui2_wiz_winter)   to listOf(1, 2, 11, 12),
+        stringResource(R.string.ui2_wiz_spring)   to listOf(3, 4, 5),
+        stringResource(R.string.ui2_wiz_summer)   to listOf(6, 7, 8),
+        stringResource(R.string.ui2_wiz_autumn)   to listOf(9, 10)
     )
     BoxWithConstraints(modifier = modifier) {
         val boxWidth = maxWidth
@@ -222,7 +221,7 @@ fun WizardMonthPicker(
                 // clip each chip to ~32 dp; FlowRow sizes to content and wraps
                 // onto multiple rows under font scaling. At ULTRA widths the
                 // chips show full month names ("January", "February", …).
-                val labels = if (boxWidth >= AdaptiveLayout.WIDTH_ULTRA_AT) MONTH_FULL else MONTH_LONG
+                val labels = if (boxWidth >= AdaptiveLayout.WIDTH_ULTRA_AT) monthFull else monthLong
                 FlowRow(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(3.dp),
@@ -240,7 +239,7 @@ fun WizardMonthPicker(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                     (0..5).forEach { idx ->
                         val month = idx + 1
-                        MonthChipWide(label = MONTH_ABBREV[idx], on = selected.contains(month),
+                        MonthChipWide(label = monthAbbrev[idx], on = selected.contains(month),
                             modifier = Modifier.weight(1f)) {
                             onSelectedChange(toggleInt(selected, month))
                         }
@@ -249,7 +248,7 @@ fun WizardMonthPicker(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
                     (6..11).forEach { idx ->
                         val month = idx + 1
-                        MonthChipWide(label = MONTH_ABBREV[idx], on = selected.contains(month),
+                        MonthChipWide(label = monthAbbrev[idx], on = selected.contains(month),
                             modifier = Modifier.weight(1f)) {
                             onSelectedChange(toggleInt(selected, month))
                         }
@@ -300,8 +299,8 @@ fun WizardHourRangePicker(
     // From/To dropdowns side-by-side at fs<1.6, stacked at fs>=1.6.
     data class HourSlot(val label: String, val hour: Int, val onChange: (Int) -> Unit)
     val slots = listOf(
-        HourSlot("From", startHour, onStartChange),
-        HourSlot("To", endHour, onEndChange),
+        HourSlot(stringResource(R.string.ui2_wiz_from), startHour, onStartChange),
+        HourSlot(stringResource(R.string.ui2_wiz_to), endHour, onEndChange),
     )
     // COMPACT: dropdowns above the range bar (stacked). MEDIUM+: dropdowns on
     // the left, range bar on the right so landscape / tablets use the width.
@@ -386,19 +385,20 @@ fun WizardScheduleBlock(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        WizardScheduleLabel("Time window")
+        WizardScheduleLabel(stringResource(R.string.ui2_wiz_time_window))
         WizardHourRangePicker(startHour = startHour, endHour = endHour,
             onStartChange = onStartHourChange, onEndChange = onEndHourChange)
         if (noviceMode && startHour > endHour) {
             Text(
-                text = "Crosses midnight — runs ${fmtHour(startHour)} until ${fmtHour(endHour)} next day.",
+                text = stringResource(R.string.ui2_wiz_crosses_midnight,
+                    fmtHour(startHour), fmtHour(endHour)),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        WizardScheduleLabel("Days of week")
+        WizardScheduleLabel(stringResource(R.string.ui2_wiz_days_of_week))
         WizardDayPicker(selected = days, onSelectedChange = onDaysChange)
-        WizardScheduleLabel("Months")
+        WizardScheduleLabel(stringResource(R.string.ui2_wiz_months))
         WizardMonthPicker(selected = months, onSelectedChange = onMonthsChange)
     }
 }
@@ -438,7 +438,7 @@ fun WizardEvEntryCard(
             }
             Spacer(Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(entry.name.ifBlank { "EV Schedule" },
+                Text(entry.name.ifBlank { stringResource(R.string.ui2_wiz_ev_schedule) },
                     style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                 Text(
                     text = "${fmtHour(entry.startHour)}–${fmtHour(entry.endHour)}  ·  ${entry.drawKw} kW  ·  ${fmtDays(entry.days)}",
@@ -446,7 +446,8 @@ fun WizardEvEntryCard(
                 )
             }
             Icon(imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                contentDescription = if (expanded) "Collapse" else "Expand",
+                contentDescription = stringResource(
+                    if (expanded) R.string.ui2_collapse else R.string.ui2_expand),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
@@ -455,17 +456,17 @@ fun WizardEvEntryCard(
                 verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 OutlinedTextField(value = entry.name,
                     onValueChange = { onUpdate(entry.copy(name = it)) },
-                    label = { Text("Schedule name") },
+                    label = { Text(stringResource(R.string.ui2_wiz_schedule_name)) },
                     modifier = Modifier.fillMaxWidth(), singleLine = true)
 
                 NumericDoubleField(
                     value = entry.drawKw,
                     onValueChange = { onUpdate(entry.copy(drawKw = it)) },
-                    label = "Draw rate (kW)",
+                    label = stringResource(R.string.ui2_wiz_draw_rate),
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (noviceMode) {
-                    Text("How much power the charger draws from the grid during the window.",
+                    Text(stringResource(R.string.ui2_wiz_draw_rate_hint),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -482,9 +483,11 @@ fun WizardEvEntryCard(
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = onDelete) {
-                        Icon(Icons.Default.Delete, contentDescription = "Remove", modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Delete,
+                            contentDescription = stringResource(R.string.ui2_remove),
+                            modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Remove")
+                        Text(stringResource(R.string.ui2_remove))
                     }
                 }
             }
@@ -528,7 +531,7 @@ fun WizardEvDivertCard(
             }
             Spacer(Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(entry.name.ifBlank { "EV Divert" },
+                Text(entry.name.ifBlank { stringResource(R.string.ui2_wiz_ev_divert) },
                     style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                 Text(
                     "${fmtHour(entry.beginHour)}–${fmtHour(entry.endHour)}  ·  ${entry.dailyMax} kWh/day  ·  ${fmtDays(entry.days)}",
@@ -537,12 +540,14 @@ fun WizardEvDivertCard(
                 )
             }
             if (!entry.active) {
-                Text("off", style = MaterialTheme.typography.labelSmall,
+                Text(stringResource(R.string.ui2_dash_off_suffix),
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.outline)
                 Spacer(Modifier.width(6.dp))
             }
             Icon(imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                contentDescription = if (expanded) "Collapse" else "Expand",
+                contentDescription = stringResource(
+                    if (expanded) R.string.ui2_collapse else R.string.ui2_expand),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
@@ -552,16 +557,17 @@ fun WizardEvDivertCard(
 
                 OutlinedTextField(value = entry.name,
                     onValueChange = { onUpdate(entry.copy(name = it)) },
-                    label = { Text("Divert name") },
+                    label = { Text(stringResource(R.string.ui2_wiz_divert_name)) },
                     modifier = Modifier.fillMaxWidth(), singleLine = true)
 
                 Row(modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween) {
                     Column(modifier = Modifier.weight(1f)) {
-                        Text("Active", style = MaterialTheme.typography.bodySmall,
+                        Text(stringResource(R.string.ui2_wiz_active),
+                            style = MaterialTheme.typography.bodySmall,
                             fontWeight = FontWeight.SemiBold)
-                        if (noviceMode) Text("Enable this solar divert window.",
+                        if (noviceMode) Text(stringResource(R.string.ui2_wiz_active_hint),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -573,9 +579,10 @@ fun WizardEvDivertCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.SpaceBetween) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("EV priority", style = MaterialTheme.typography.bodySmall,
+                            Text(stringResource(R.string.ui2_wiz_ev_priority),
+                                style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.SemiBold)
-                            Text("EV charges before other solar divert loads (e.g. hot water).",
+                            Text(stringResource(R.string.ui2_wiz_ev_priority_hint),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
@@ -585,13 +592,13 @@ fun WizardEvDivertCard(
                         NumericDoubleField(
                             value = entry.dailyMax,
                             onValueChange = { onUpdate(entry.copy(dailyMax = it)) },
-                            label = "Daily max (kWh)",
+                            label = stringResource(R.string.ui2_wiz_daily_max),
                             modifier = Modifier.weight(1f)
                         )
                         NumericDoubleField(
                             value = entry.minimum,
                             onValueChange = { onUpdate(entry.copy(minimum = it)) },
-                            label = "Min excess (kW)",
+                            label = stringResource(R.string.ui2_wiz_min_excess),
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -609,9 +616,11 @@ fun WizardEvDivertCard(
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = onDelete) {
-                        Icon(Icons.Default.Delete, contentDescription = "Remove", modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Delete,
+                            contentDescription = stringResource(R.string.ui2_remove),
+                            modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Remove")
+                        Text(stringResource(R.string.ui2_remove))
                     }
                 }
             }
@@ -658,7 +667,7 @@ fun WizardInverterCard(
             }
             Spacer(Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(entry.inverterName.ifBlank { "Inverter" },
+                Text(entry.inverterName.ifBlank { stringResource(R.string.ui2_component_inverter) },
                     style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                 Text(
                     "${entry.maxInverterLoad} kW  ·  ${entry.mpptCount} MPPT",
@@ -667,7 +676,8 @@ fun WizardInverterCard(
                 )
             }
             Icon(imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                contentDescription = if (expanded) "Collapse" else "Expand",
+                contentDescription = stringResource(
+                    if (expanded) R.string.ui2_collapse else R.string.ui2_expand),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
@@ -679,31 +689,33 @@ fun WizardInverterCard(
                 OutlinedTextField(
                     value = entry.inverterName,
                     onValueChange = { onUpdate(entry.copy(inverterName = it)) },
-                    label = { Text("Inverter name") },
+                    label = { Text(stringResource(R.string.ui2_wiz_inverter_name)) },
                     modifier = Modifier.fillMaxWidth(), singleLine = true
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     NumericDoubleField(
                         value = entry.maxInverterLoad,
                         onValueChange = { onUpdate(entry.copy(maxInverterLoad = it)) },
-                        label = "Max load (kW)",
+                        label = stringResource(R.string.ui2_wiz_max_load),
                         modifier = Modifier.weight(1f),
-                        supportingText = if (noviceMode) ({ Text("Rated AC output capacity.") }) else null
+                        supportingText = if (noviceMode)
+                            ({ Text(stringResource(R.string.ui2_wiz_max_load_hint)) }) else null
                     )
                     NumericIntField(
                         value = entry.mpptCount,
                         onValueChange = { onUpdate(entry.copy(mpptCount = it)) },
-                        label = "MPPT count",
+                        label = stringResource(R.string.ui2_wiz_mppt_count),
                         modifier = Modifier.weight(1f),
                         range = 1..8,
-                        supportingText = if (noviceMode) ({ Text("Independent string inputs.") }) else null
+                        supportingText = if (noviceMode)
+                            ({ Text(stringResource(R.string.ui2_wiz_mppt_count_hint)) }) else null
                     )
                 }
                 if (!noviceMode) {
                     NumericDoubleField(
                         value = entry.minExcess,
                         onValueChange = { onUpdate(entry.copy(minExcess = it)) },
-                        label = "Min excess (kW)",
+                        label = stringResource(R.string.ui2_wiz_min_excess),
                         modifier = Modifier.fillMaxWidth()
                     )
                     data class LossField(
@@ -712,13 +724,13 @@ fun WizardInverterCard(
                         val onChange: (Int) -> Unit,
                     )
                     val lossFields = listOf(
-                        LossField(entry.ac2dcLoss, "AC→DC loss %") {
+                        LossField(entry.ac2dcLoss, stringResource(R.string.ui2_wiz_ac2dc_loss)) {
                             onUpdate(entry.copy(ac2dcLoss = it))
                         },
-                        LossField(entry.dc2acLoss, "DC→AC loss %") {
+                        LossField(entry.dc2acLoss, stringResource(R.string.ui2_wiz_dc2ac_loss)) {
                             onUpdate(entry.copy(dc2acLoss = it))
                         },
-                        LossField(entry.dc2dcLoss, "DC→DC loss %") {
+                        LossField(entry.dc2dcLoss, stringResource(R.string.ui2_wiz_dc2dc_loss)) {
                             onUpdate(entry.copy(dc2dcLoss = it))
                         },
                     )
@@ -738,9 +750,11 @@ fun WizardInverterCard(
                 }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = onDelete) {
-                        Icon(Icons.Default.Delete, contentDescription = "Remove", modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Delete,
+                            contentDescription = stringResource(R.string.ui2_remove),
+                            modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Remove")
+                        Text(stringResource(R.string.ui2_remove))
                     }
                 }
             }
@@ -817,7 +831,7 @@ fun WizardPanelCard(
             Spacer(Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    entry.panelName.ifBlank { "String ${index + 1}" },
+                    entry.panelName.ifBlank { stringResource(R.string.ui2_wiz_string_n, index + 1) },
                     style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold
                 )
                 Text(
@@ -833,7 +847,8 @@ fun WizardPanelCard(
             }
             if (entry.pvDataSource != PanelDataSource.NONE) {
                 Text(
-                    if (entry.pvDataSource == PanelDataSource.PVGIS) "PVGIS" else "SRC",
+                    stringResource(if (entry.pvDataSource == PanelDataSource.PVGIS)
+                        R.string.brand_pvgis else R.string.ui2_wiz_src_badge),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -853,25 +868,27 @@ fun WizardPanelCard(
                 OutlinedTextField(
                     value = entry.panelName,
                     onValueChange = { onUpdate(entry.copy(panelName = it)) },
-                    label = { Text("String name") },
+                    label = { Text(stringResource(R.string.ui2_wiz_string_name)) },
                     modifier = Modifier.fillMaxWidth(), singleLine = true
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     NumericIntField(
                         value = entry.panelCount,
                         onValueChange = { onUpdate(entry.copy(panelCount = it)) },
-                        label = "Count",
+                        label = stringResource(R.string.ui2_wiz_count),
                         modifier = Modifier.weight(1f),
                         range = 1..100,
-                        supportingText = if (noviceMode) ({ Text("Number of panels.") }) else null
+                        supportingText = if (noviceMode)
+                            ({ Text(stringResource(R.string.ui2_wiz_count_hint)) }) else null
                     )
                     NumericIntField(
                         value = entry.panelkWp,
                         onValueChange = { onUpdate(entry.copy(panelkWp = it)) },
-                        label = "Wp / panel",
+                        label = stringResource(R.string.ui2_wiz_wp_panel),
                         modifier = Modifier.weight(1f),
                         range = 50..1000,
-                        supportingText = if (noviceMode) ({ Text("Rated power per panel.") }) else null
+                        supportingText = if (noviceMode)
+                            ({ Text(stringResource(R.string.ui2_wiz_wp_hint)) }) else null
                     )
                 }
                 // Location
@@ -883,17 +900,18 @@ fun WizardPanelCard(
                     NumericDoubleField(
                         value = entry.latitude,
                         onValueChange = { onUpdate(entry.copy(latitude = it)) },
-                        label = "Lat",
+                        label = stringResource(R.string.ui2_wiz_lat),
                         modifier = Modifier.weight(1f)
                     )
                     NumericDoubleField(
                         value = entry.longitude,
                         onValueChange = { onUpdate(entry.copy(longitude = it)) },
-                        label = "Long",
+                        label = stringResource(R.string.ui2_wiz_long),
                         modifier = Modifier.weight(1f)
                     )
                     IconButton(onClick = onRequestLocation) {
-                        Icon(Icons.Default.MyLocation, contentDescription = "Use GPS",
+                        Icon(Icons.Default.MyLocation,
+                            contentDescription = stringResource(R.string.ui2_wiz_use_gps),
                             tint = MaterialTheme.colorScheme.primary)
                     }
                 }
@@ -902,18 +920,20 @@ fun WizardPanelCard(
                     NumericIntField(
                         value = entry.azimuth,
                         onValueChange = { onUpdate(entry.copy(azimuth = it)) },
-                        label = "Azimuth °",
+                        label = stringResource(R.string.ui2_wiz_azimuth),
                         modifier = Modifier.weight(1f),
                         range = 0..360,
-                        supportingText = if (noviceMode) ({ Text("0/360=N · 90=E · 180=S · 270=W") }) else null
+                        supportingText = if (noviceMode)
+                            ({ Text(stringResource(R.string.ui2_wiz_azimuth_hint)) }) else null
                     )
                     NumericIntField(
                         value = entry.slope,
                         onValueChange = { onUpdate(entry.copy(slope = it)) },
-                        label = "Slope °",
+                        label = stringResource(R.string.ui2_wiz_slope),
                         modifier = Modifier.weight(1f),
                         range = 0..90,
-                        supportingText = if (noviceMode) ({ Text("0=flat, 90=vertical") }) else null
+                        supportingText = if (noviceMode)
+                            ({ Text(stringResource(R.string.ui2_wiz_slope_hint)) }) else null
                     )
                 }
                 // Inverter + MPPT dropdown
@@ -925,17 +945,18 @@ fun WizardPanelCard(
                                 value = inverterEntries[0].inverterName,
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text("Inverter") },
+                                label = { Text(stringResource(R.string.ui2_component_inverter)) },
                                 modifier = Modifier.weight(2f), singleLine = true
                             )
                         } else {
                             var invMenu by remember { mutableStateOf(false) }
                             Box(modifier = Modifier.weight(2f)) {
                                 OutlinedTextField(
-                                    value = entry.inverterName.ifBlank { "Select…" },
+                                    value = entry.inverterName.ifBlank {
+                                        stringResource(R.string.ui2_wiz_select_ellipsis) },
                                     onValueChange = {},
                                     readOnly = true,
-                                    label = { Text("Inverter") },
+                                    label = { Text(stringResource(R.string.ui2_component_inverter)) },
                                     modifier = Modifier.fillMaxWidth(),
                                     trailingIcon = {
                                         Icon(Icons.Default.KeyboardArrowDown, null,
@@ -959,7 +980,7 @@ fun WizardPanelCard(
                                 value = entry.mppt.toString(),
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text("MPPT") },
+                                label = { Text(stringResource(R.string.ui2_wiz_mppt)) },
                                 modifier = Modifier.fillMaxWidth(),
                                 trailingIcon = {
                                     Icon(Icons.Default.KeyboardArrowDown, null,
@@ -980,7 +1001,7 @@ fun WizardPanelCard(
                     OutlinedTextField(
                         value = entry.inverterName,
                         onValueChange = { onUpdate(entry.copy(inverterName = it)) },
-                        label = { Text("Inverter name") },
+                        label = { Text(stringResource(R.string.ui2_wiz_inverter_name)) },
                         modifier = Modifier.fillMaxWidth(), singleLine = true
                     )
                 }
@@ -993,7 +1014,8 @@ fun WizardPanelCard(
                     }
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("Panel data", style = MaterialTheme.typography.labelSmall,
+                    Text(stringResource(R.string.ui2_wiz_panel_data),
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.outline)
                     // Lift the selected chip to primaryContainer + a 1.5dp primary border so the active source
                     // is obvious — matches the Compare screen's chip styling (default secondaryContainer fill
@@ -1013,14 +1035,14 @@ fun WizardPanelCard(
                         FilterChip(
                             selected = entry.pvDataSource == PanelDataSource.NONE,
                             onClick = { onUpdate(entry.copy(pvDataSource = PanelDataSource.NONE, pvSourceSysSn = "")) },
-                            label = { Text("None") },
+                            label = { Text(stringResource(R.string.ui2_wiz_none)) },
                             colors = pvChipColors,
                             border = pvChipBorder(entry.pvDataSource == PanelDataSource.NONE)
                         )
                         FilterChip(
                             selected = entry.pvDataSource == PanelDataSource.PVGIS,
                             onClick = { onUpdate(entry.copy(pvDataSource = PanelDataSource.PVGIS, pvSourceSysSn = "")) },
-                            label = { Text("PVGIS") },
+                            label = { Text(stringResource(R.string.brand_pvgis)) },
                             leadingIcon = {
                                 Icon(painterResource(R.drawable.ic_baseline_wb_sunny_36), null,
                                     Modifier.size(16.dp), tint = Color.Unspecified)
@@ -1034,7 +1056,7 @@ fun WizardPanelCard(
                             FilterChip(
                                 selected = entry.pvDataSource == PanelDataSource.SOURCE,
                                 onClick = { onUpdate(entry.copy(pvDataSource = PanelDataSource.SOURCE)) },
-                                label = { Text("Source") },
+                                label = { Text(stringResource(R.string.ui2_habf_source)) },
                                 leadingIcon = {
                                     Icon(Icons.Default.Download, null, Modifier.size(16.dp))
                                 },
@@ -1045,9 +1067,9 @@ fun WizardPanelCard(
                     }
                     if (entry.pvDataSource == PanelDataSource.PVGIS) {
                         Text(
-                            "lat ${"%.3f".format(entry.latitude)}, " +
-                                "lon ${"%.3f".format(entry.longitude)}, " +
-                                "slope ${entry.slope}°, az ${entry.azimuth}°",
+                            stringResource(R.string.ui2_wiz_pvgis_params,
+                                "%.3f".format(entry.latitude), "%.3f".format(entry.longitude),
+                                entry.slope, entry.azimuth),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -1057,18 +1079,19 @@ fun WizardPanelCard(
                         NumericIntField(
                             value = entry.systemLoss,
                             onValueChange = { onUpdate(entry.copy(systemLoss = it)) },
-                            label = "System loss %",
+                            label = stringResource(R.string.ui2_wiz_system_loss),
                             modifier = Modifier.fillMaxWidth(),
                             range = 0..30,
                             supportingText = if (noviceMode)
-                                ({ Text("Cabling, inverter, soiling, mismatch. 14% is PVGIS's default.") }) else null
+                                ({ Text(stringResource(R.string.ui2_wiz_system_loss_hint)) }) else null
                         )
                         Spacer(Modifier.height(4.dp))
                         when {
                             hasData -> {
                                 Spacer(Modifier.height(4.dp))
                                 Text(
-                                    "Data already fetched · ${"%.0f".format(monthlyKwh.sum())} kWh/yr",
+                                    stringResource(R.string.ui2_wiz_data_fetched,
+                                        "%.0f".format(monthlyKwh.sum())),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.primary
                                 )
@@ -1080,14 +1103,14 @@ fun WizardPanelCard(
                             }
                             pvgisParamsHaveData -> {
                                 Text(
-                                    "Data for these settings is already in the system · will be visible after save",
+                                    stringResource(R.string.ui2_wiz_data_in_system),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.primary
                                 )
                             }
                             else -> {
                                 Text(
-                                    "Will be fetched from PVGIS in background after save",
+                                    stringResource(R.string.ui2_wiz_will_fetch),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -1103,7 +1126,8 @@ fun WizardPanelCard(
                                 .background(MaterialTheme.colorScheme.surfaceVariant)
                                 .padding(horizontal = 12.dp, vertical = 10.dp)
                         ) {
-                            Text("Source: ${entry.pvSourceSysSn.ifBlank { "—" }}",
+                            Text(stringResource(R.string.ui2_dash_source,
+                                    entry.pvSourceSysSn.ifBlank { "—" }),
                                 style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
                             if (entry.pvSourceFrom.isNotBlank() && entry.pvSourceTo.isNotBlank()) {
                                 Text("${entry.pvSourceFrom} → ${entry.pvSourceTo}",
@@ -1127,7 +1151,7 @@ fun WizardPanelCard(
                             horizontalArrangement = Arrangement.SpaceBetween
                         ) {
                             if (entry.pvSourceSysSn.isBlank()) {
-                                Text("Select source…",
+                                Text(stringResource(R.string.ui2_wiz_select_source),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.weight(1f))
@@ -1165,7 +1189,7 @@ fun WizardPanelCard(
                         }
                         if (entry.pvSourceSysSn.isNotBlank()) {
                             Text(
-                                "On save: processed in the background with a progress notification.",
+                                stringResource(R.string.ui2_wiz_on_save_note),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -1193,7 +1217,7 @@ fun WizardPanelCard(
                                             pvSourceTo   = rawTo.coerceIn(startD, finishD).toString()
                                         ))
                                     }
-                                    WizardScheduleLabel("Source date range")
+                                    WizardScheduleLabel(stringResource(R.string.ui2_wiz_source_date_range))
                                     PeriodSelector(
                                         selectedPeriod = pvPeriod,
                                         anchorDate     = pvAnchor,
@@ -1221,10 +1245,11 @@ fun WizardPanelCard(
                                     onValueChange = { v ->
                                         if (v > 0.0) onUpdate(entry.copy(pvSourceKwp = v))
                                     },
-                                    label = "Source kWp",
+                                    label = stringResource(R.string.ui2_wiz_source_kwp),
                                     modifier = Modifier.fillMaxWidth(),
                                     supportingText = {
-                                        Text("Rated kWp of the source. Data is scaled when it differs from the string total (${"%.2f".format(stringKwp)} kWp).")
+                                        Text(stringResource(R.string.ui2_wiz_source_kwp_hint,
+                                            "%.2f".format(stringKwp)))
                                     }
                                 )
                                 Row(
@@ -1233,10 +1258,10 @@ fun WizardPanelCard(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
-                                        Text("Apply azimuth factoring",
+                                        Text(stringResource(R.string.ui2_wiz_azimuth_factoring),
                                             style = MaterialTheme.typography.bodySmall,
                                             fontWeight = FontWeight.SemiBold)
-                                        Text("Rotate the source generation curve to match this string's azimuth.",
+                                        Text(stringResource(R.string.ui2_wiz_azimuth_factoring_hint),
                                             style = MaterialTheme.typography.labelSmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                                     }
@@ -1259,11 +1284,12 @@ fun WizardPanelCard(
                                     NumericIntField(
                                         value = displayedSrcAz,
                                         onValueChange = { onUpdate(entry.copy(pvSourceAzimuth = it)) },
-                                        label = "Source azimuth °",
+                                        label = stringResource(R.string.ui2_wiz_source_azimuth),
                                         modifier = Modifier.fillMaxWidth(),
                                         range = 0..360,
                                         supportingText = {
-                                            Text("Azimuth of the source string (0/360=N · 90=E · 180=S · 270=W). Target: ${entry.azimuth}°.")
+                                            Text(stringResource(R.string.ui2_wiz_source_azimuth_hint,
+                                                entry.azimuth))
                                         }
                                     )
                                 }
@@ -1279,10 +1305,11 @@ fun WizardPanelCard(
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
-                            Text("Optimised", style = MaterialTheme.typography.bodySmall,
+                            Text(stringResource(R.string.ui2_wiz_optimised),
+                                style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.SemiBold)
                             Text(
-                                "Individual MPPT optimiser per panel",
+                                stringResource(R.string.ui2_wiz_optimised_hint),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -1295,9 +1322,11 @@ fun WizardPanelCard(
                 }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = onDelete) {
-                        Icon(Icons.Default.Delete, contentDescription = "Remove", modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Delete,
+                            contentDescription = stringResource(R.string.ui2_remove),
+                            modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Remove")
+                        Text(stringResource(R.string.ui2_remove))
                     }
                 }
             }
@@ -1349,7 +1378,7 @@ fun WizardBatteryCard(
             }
             Spacer(Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text("Battery ${index + 1}",
+                Text(stringResource(R.string.ui2_dsm_battery_n, index + 1),
                     style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                 Text(
                     "${entry.batterySize} kWh  ·  ${entry.inverterName.ifBlank { "—" }}",
@@ -1358,7 +1387,8 @@ fun WizardBatteryCard(
                 )
             }
             Icon(imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                contentDescription = if (expanded) "Collapse" else "Expand",
+                contentDescription = stringResource(
+                    if (expanded) R.string.ui2_collapse else R.string.ui2_expand),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
@@ -1381,9 +1411,10 @@ fun WizardBatteryCard(
                             maxDischarge = if (keepDischarge) newSize / 24.0 else entry.maxDischarge
                         ))
                     },
-                    label = "Battery size (kWh)",
+                    label = stringResource(R.string.ui2_wiz_battery_size),
                     modifier = Modifier.fillMaxWidth(),
-                    supportingText = if (noviceMode) ({ Text("Total usable capacity.") }) else null
+                    supportingText = if (noviceMode)
+                        ({ Text(stringResource(R.string.ui2_wiz_battery_size_hint)) }) else null
                 )
 
                 // Inverter selector
@@ -1393,10 +1424,11 @@ fun WizardBatteryCard(
                     var invMenu by remember { mutableStateOf(false) }
                     Box(modifier = Modifier.fillMaxWidth()) {
                         OutlinedTextField(
-                            value = entry.inverterName.ifBlank { "Select…" },
+                            value = entry.inverterName.ifBlank {
+                                stringResource(R.string.ui2_wiz_select_ellipsis) },
                             onValueChange = {},
                             readOnly = true,
-                            label = { Text("Inverter") },
+                            label = { Text(stringResource(R.string.ui2_component_inverter)) },
                             isError = unknownInverter,
                             modifier = Modifier.fillMaxWidth().clickable { invMenu = true },
                             trailingIcon = {
@@ -1404,7 +1436,7 @@ fun WizardBatteryCard(
                                     Modifier.clickable { invMenu = true })
                             },
                             supportingText = if (unknownInverter) ({
-                                Text("\"${entry.inverterName}\" is not in the inverter list — pick one above.")
+                                Text(stringResource(R.string.ui2_wiz_unknown_inverter, entry.inverterName))
                             }) else null
                         )
                         DropdownMenu(expanded = invMenu, onDismissRequest = { invMenu = false }) {
@@ -1423,9 +1455,9 @@ fun WizardBatteryCard(
                     OutlinedTextField(
                         value = entry.inverterName,
                         onValueChange = { onUpdate(entry.copy(inverterName = it)) },
-                        label = { Text("Inverter name") },
+                        label = { Text(stringResource(R.string.ui2_wiz_inverter_name)) },
                         modifier = Modifier.fillMaxWidth(), singleLine = true,
-                        supportingText = { Text("Add an Inverter above to link this battery.") }
+                        supportingText = { Text(stringResource(R.string.ui2_wiz_add_inverter_hint)) }
                     )
                 }
 
@@ -1435,14 +1467,14 @@ fun WizardBatteryCard(
                         NumericDoubleField(
                             value = entry.dischargeStop,
                             onValueChange = { onUpdate(entry.copy(dischargeStop = it)) },
-                            label = "Min SOC %",
+                            label = stringResource(R.string.ui2_wiz_min_soc),
                             modifier = Modifier.weight(1f),
                             range = 0.0..100.0
                         )
                         NumericDoubleField(
                             value = entry.storageLoss,
                             onValueChange = { onUpdate(entry.copy(storageLoss = it)) },
-                            label = "Storage loss %",
+                            label = stringResource(R.string.ui2_wiz_storage_loss),
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -1451,39 +1483,39 @@ fun WizardBatteryCard(
                         NumericDoubleField(
                             value = entry.maxCharge,
                             onValueChange = { onUpdate(entry.copy(maxCharge = it)) },
-                            label = "Max charge kWh/5min",
+                            label = stringResource(R.string.ui2_wiz_max_charge),
                             modifier = Modifier.weight(1f)
                         )
                         NumericDoubleField(
                             value = entry.maxDischarge,
                             onValueChange = { onUpdate(entry.copy(maxDischarge = it)) },
-                            label = "Max discharge kWh/5min",
+                            label = stringResource(R.string.ui2_wiz_max_discharge),
                             modifier = Modifier.weight(1f)
                         )
                     }
                     // BMS: charge model curve (taper at top/bottom of SOC range)
-                    Text("Charge curve — % of max rate at each SOC band",
+                    Text(stringResource(R.string.ui2_wiz_charge_curve),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.outline)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         NumericIntField(
                             value = entry.cmPercent0,
                             onValueChange = { onUpdate(entry.copy(cmPercent0 = it)) },
-                            label = "0–12% SOC",
+                            label = stringResource(R.string.ui2_wiz_soc_0_12),
                             modifier = Modifier.weight(1f),
                             range = 0..100
                         )
                         NumericIntField(
                             value = entry.cmPercent12,
                             onValueChange = { onUpdate(entry.copy(cmPercent12 = it)) },
-                            label = "12–90% SOC",
+                            label = stringResource(R.string.ui2_wiz_soc_12_90),
                             modifier = Modifier.weight(1f),
                             range = 0..100
                         )
                         NumericIntField(
                             value = entry.cmPercent90,
                             onValueChange = { onUpdate(entry.copy(cmPercent90 = it)) },
-                            label = "90–100% SOC",
+                            label = stringResource(R.string.ui2_wiz_soc_90_100),
                             modifier = Modifier.weight(1f),
                             range = 0..100
                         )
@@ -1492,9 +1524,11 @@ fun WizardBatteryCard(
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = onDelete) {
-                        Icon(Icons.Default.Delete, contentDescription = "Remove", modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Delete,
+                            contentDescription = stringResource(R.string.ui2_remove),
+                            modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Remove")
+                        Text(stringResource(R.string.ui2_remove))
                     }
                 }
             }
@@ -1518,10 +1552,12 @@ private fun BatteryInverterDropdown(
     var menu by remember { mutableStateOf(false) }
     Box(modifier = Modifier.fillMaxWidth()) {
         OutlinedTextField(
-            value = selected.ifBlank { if (options.isEmpty()) "(no batteries)" else "Select…" },
+            value = selected.ifBlank {
+                stringResource(if (options.isEmpty()) R.string.ui2_wiz_no_batteries_option
+                               else R.string.ui2_wiz_select_ellipsis) },
             onValueChange = {},
             readOnly = true,
-            label = { Text("Applies to inverter") },
+            label = { Text(stringResource(R.string.ui2_wiz_applies_to_inverter)) },
             isError = unknown,
             modifier = Modifier.fillMaxWidth()
                 .clickable(enabled = options.isNotEmpty()) { menu = true },
@@ -1530,11 +1566,11 @@ private fun BatteryInverterDropdown(
                     Modifier.clickable(enabled = options.isNotEmpty()) { menu = true })
             },
             supportingText = when {
-                unknown -> ({ Text("\"$selected\" is not in the battery inverter list — pick one above.") })
+                unknown -> ({ Text(stringResource(R.string.ui2_wiz_unknown_batt_inverter, selected)) })
                 noviceMode && options.size > 1 ->
-                    ({ Text("Applies to every battery attached to this inverter.") })
+                    ({ Text(stringResource(R.string.ui2_wiz_applies_every)) })
                 noviceMode && options.size == 1 ->
-                    ({ Text("Applies to all batteries on ${options[0]}.") })
+                    ({ Text(stringResource(R.string.ui2_wiz_applies_all_on, options[0])) })
                 else -> null
             }
         )
@@ -1591,16 +1627,19 @@ fun WizardBatteryChargeCard(
             }
             Spacer(Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(entry.name.ifBlank { "Charge schedule" },
+                Text(entry.name.ifBlank { stringResource(R.string.ui2_wiz_charge_schedule) },
                     style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                 Text(
-                    "${fmtHour(entry.beginHour)}–${fmtHour(entry.endHour)}  ·  charge to ${entry.stopAt.toInt()}%  ·  ${entry.inverterName.ifBlank { "—" }}  ·  ${fmtDays(entry.days)}",
+                    "${fmtHour(entry.beginHour)}–${fmtHour(entry.endHour)}  ·  " +
+                        stringResource(R.string.ui2_wiz_charge_to, entry.stopAt.toInt()) +
+                        "  ·  ${entry.inverterName.ifBlank { "—" }}  ·  ${fmtDays(entry.days)}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Icon(imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                contentDescription = if (expanded) "Collapse" else "Expand",
+                contentDescription = stringResource(
+                    if (expanded) R.string.ui2_collapse else R.string.ui2_expand),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
@@ -1610,7 +1649,7 @@ fun WizardBatteryChargeCard(
 
                 OutlinedTextField(value = entry.name,
                     onValueChange = { onUpdate(entry.copy(name = it)) },
-                    label = { Text("Schedule name") },
+                    label = { Text(stringResource(R.string.ui2_wiz_schedule_name)) },
                     modifier = Modifier.fillMaxWidth(), singleLine = true)
 
                 BatteryInverterDropdown(
@@ -1623,11 +1662,11 @@ fun WizardBatteryChargeCard(
                 NumericDoubleField(
                     value = entry.stopAt,
                     onValueChange = { onUpdate(entry.copy(stopAt = it)) },
-                    label = "Target SOC %",
+                    label = stringResource(R.string.ui2_wiz_target_soc),
                     modifier = Modifier.fillMaxWidth(),
                     range = 0.0..100.0,
                     supportingText = if (noviceMode) ({
-                        Text("Charge stops once the battery reaches this state of charge.")
+                        Text(stringResource(R.string.ui2_wiz_target_soc_hint))
                     }) else null
                 )
 
@@ -1643,9 +1682,11 @@ fun WizardBatteryChargeCard(
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = onDelete) {
-                        Icon(Icons.Default.Delete, contentDescription = "Remove", modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Delete,
+                            contentDescription = stringResource(R.string.ui2_remove),
+                            modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Remove")
+                        Text(stringResource(R.string.ui2_remove))
                     }
                 }
             }
@@ -1694,16 +1735,20 @@ fun WizardBatteryDischargeCard(
             }
             Spacer(Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(entry.name.ifBlank { "Discharge schedule" },
+                Text(entry.name.ifBlank { stringResource(R.string.ui2_wiz_discharge_schedule) },
                     style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                 Text(
-                    "${fmtHour(entry.beginHour)}–${fmtHour(entry.endHour)}  ·  ${entry.rate} kW down to ${entry.stopAt.toInt()}%  ·  ${entry.inverterName.ifBlank { "—" }}  ·  ${fmtDays(entry.days)}",
+                    "${fmtHour(entry.beginHour)}–${fmtHour(entry.endHour)}  ·  " +
+                        stringResource(R.string.ui2_wiz_kw_down_to,
+                            entry.rate.toString(), entry.stopAt.toInt()) +
+                        "  ·  ${entry.inverterName.ifBlank { "—" }}  ·  ${fmtDays(entry.days)}",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Icon(imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                contentDescription = if (expanded) "Collapse" else "Expand",
+                contentDescription = stringResource(
+                    if (expanded) R.string.ui2_collapse else R.string.ui2_expand),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
@@ -1713,7 +1758,7 @@ fun WizardBatteryDischargeCard(
 
                 OutlinedTextField(value = entry.name,
                     onValueChange = { onUpdate(entry.copy(name = it)) },
-                    label = { Text("Schedule name") },
+                    label = { Text(stringResource(R.string.ui2_wiz_schedule_name)) },
                     modifier = Modifier.fillMaxWidth(), singleLine = true)
 
                 BatteryInverterDropdown(
@@ -1727,20 +1772,20 @@ fun WizardBatteryDischargeCard(
                     NumericDoubleField(
                         value = entry.stopAt,
                         onValueChange = { onUpdate(entry.copy(stopAt = it)) },
-                        label = "Min SOC %",
+                        label = stringResource(R.string.ui2_wiz_min_soc),
                         modifier = Modifier.weight(1f),
                         range = 0.0..100.0,
                         supportingText = if (noviceMode) ({
-                            Text("Discharge stops at this SOC.")
+                            Text(stringResource(R.string.ui2_wiz_discharge_stop_hint))
                         }) else null
                     )
                     NumericDoubleField(
                         value = entry.rate,
                         onValueChange = { onUpdate(entry.copy(rate = it)) },
-                        label = "Rate (kW)",
+                        label = stringResource(R.string.ui2_wiz_rate_kw),
                         modifier = Modifier.weight(1f),
                         supportingText = if (noviceMode) ({
-                            Text("Export power to grid.")
+                            Text(stringResource(R.string.ui2_wiz_rate_hint))
                         }) else null
                     )
                 }
@@ -1757,9 +1802,11 @@ fun WizardBatteryDischargeCard(
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = onDelete) {
-                        Icon(Icons.Default.Delete, contentDescription = "Remove", modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Delete,
+                            contentDescription = stringResource(R.string.ui2_remove),
+                            modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Remove")
+                        Text(stringResource(R.string.ui2_remove))
                     }
                 }
             }
@@ -1802,16 +1849,18 @@ fun WizardHwSystemCard(
             }
             Spacer(Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text("Hot water tank",
+                Text(stringResource(R.string.ui2_wiz_hw_tank),
                     style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                 Text(
-                    "${entry.capacity} L  ·  ${entry.usage} L/day  ·  ${entry.rate} kW heater",
+                    stringResource(R.string.ui2_wiz_hw_subtitle,
+                        entry.capacity.toString(), entry.usage.toString(), entry.rate.toString()),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Icon(imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                contentDescription = if (expanded) "Collapse" else "Expand",
+                contentDescription = stringResource(
+                    if (expanded) R.string.ui2_collapse else R.string.ui2_expand),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
@@ -1823,28 +1872,30 @@ fun WizardHwSystemCard(
                     NumericIntField(
                         value = entry.capacity,
                         onValueChange = { onUpdate(entry.copy(capacity = it)) },
-                        label = "Tank size (L)",
+                        label = stringResource(R.string.ui2_wiz_tank_size),
                         modifier = Modifier.weight(1f),
                         range = 20..1000,
-                        supportingText = if (noviceMode) ({ Text("Cylinder volume.") }) else null
+                        supportingText = if (noviceMode)
+                            ({ Text(stringResource(R.string.ui2_wiz_tank_size_hint)) }) else null
                     )
                     NumericIntField(
                         value = entry.usage,
                         onValueChange = { onUpdate(entry.copy(usage = it)) },
-                        label = "Daily use (L)",
+                        label = stringResource(R.string.ui2_wiz_daily_use),
                         modifier = Modifier.weight(1f),
                         range = 0..Int.MAX_VALUE,
-                        supportingText = if (noviceMode) ({ Text("Litres drawn per day.") }) else null
+                        supportingText = if (noviceMode)
+                            ({ Text(stringResource(R.string.ui2_wiz_daily_use_hint)) }) else null
                     )
                 }
                 NumericDoubleField(
                     value = entry.rate,
                     onValueChange = { onUpdate(entry.copy(rate = it)) },
-                    label = "Heater power (kW)",
+                    label = stringResource(R.string.ui2_wiz_heater_power),
                     modifier = Modifier.fillMaxWidth(),
                     range = 0.0..Double.MAX_VALUE,
                     supportingText = if (noviceMode) ({
-                        Text("How fast the immersion can put energy into the tank.")
+                        Text(stringResource(R.string.ui2_wiz_heater_power_hint))
                     }) else null
                 )
 
@@ -1860,14 +1911,14 @@ fun WizardHwSystemCard(
                         NumericIntField(
                             value = entry.intake,
                             onValueChange = { onUpdate(entry.copy(intake = it)) },
-                            label = "Cold intake °C",
+                            label = stringResource(R.string.ui2_wiz_cold_intake),
                             modifier = Modifier.weight(1f),
                             range = 0..50
                         )
                         NumericIntField(
                             value = entry.target,
                             onValueChange = { onUpdate(entry.copy(target = it)) },
-                            label = "Target °C",
+                            label = stringResource(R.string.ui2_wiz_target_temp),
                             modifier = Modifier.weight(1f),
                             range = 30..90
                         )
@@ -1875,18 +1926,20 @@ fun WizardHwSystemCard(
                     NumericIntField(
                         value = entry.loss,
                         onValueChange = { onUpdate(entry.copy(loss = it)) },
-                        label = "Daily heat loss °C",
+                        label = stringResource(R.string.ui2_wiz_heat_loss),
                         modifier = Modifier.fillMaxWidth(),
                         range = 0..50,
-                        supportingText = { Text("Temperature drop per day with no top-up — depends on tank insulation.") }
+                        supportingText = { Text(stringResource(R.string.ui2_wiz_heat_loss_hint)) }
                     )
                 }
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = onDelete) {
-                        Icon(Icons.Default.Delete, contentDescription = "Remove", modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Delete,
+                            contentDescription = stringResource(R.string.ui2_remove),
+                            modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Remove tank")
+                        Text(stringResource(R.string.ui2_wiz_remove_tank))
                     }
                 }
             }
@@ -1908,10 +1961,9 @@ private fun WizardHwUsageEditor(
 ) {
     val total = pattern.sumOf { it.percent }
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        WizardScheduleLabel("Usage pattern")
+        WizardScheduleLabel(stringResource(R.string.ui2_wiz_usage_pattern))
         if (noviceMode) {
-            Text("Mark the hours when hot water gets used and what share of the day's total each " +
-                "draw takes. Defaults model a typical morning shower / midday rinse / evening peak.",
+            Text(stringResource(R.string.ui2_wiz_usage_pattern_hint),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -1924,7 +1976,7 @@ private fun WizardHwUsageEditor(
                     onValueChange = { h ->
                         onChange(pattern.toMutableList().also { it[idx] = point.copy(hour = h) })
                     },
-                    label = "Hour",
+                    label = stringResource(R.string.ui2_wiz_hour),
                     modifier = Modifier.weight(1f),
                     range = 0..23
                 )
@@ -1933,7 +1985,7 @@ private fun WizardHwUsageEditor(
                     onValueChange = { p ->
                         onChange(pattern.toMutableList().also { it[idx] = point.copy(percent = p) })
                     },
-                    label = "% of daily",
+                    label = stringResource(R.string.ui2_wiz_pct_daily),
                     modifier = Modifier.weight(1f),
                     range = 0.0..100.0
                 )
@@ -1943,7 +1995,7 @@ private fun WizardHwUsageEditor(
                     },
                     enabled = pattern.size > 1
                 ) {
-                    Icon(Icons.Default.Delete, "Remove",
+                    Icon(Icons.Default.Delete, stringResource(R.string.ui2_remove),
                         tint = if (pattern.size > 1) MaterialTheme.colorScheme.error
                                else MaterialTheme.colorScheme.outline)
                 }
@@ -1952,7 +2004,7 @@ private fun WizardHwUsageEditor(
         Row(modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween) {
-            Text("Totals ${"%.0f".format(total)}%",
+            Text(stringResource(R.string.ui2_wiz_totals_pct, "%.0f".format(total)),
                 style = MaterialTheme.typography.labelSmall,
                 color = if (kotlin.math.abs(total - 100.0) < 1.0) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.error)
@@ -1964,7 +2016,7 @@ private fun WizardHwUsageEditor(
             ) {
                 Icon(Icons.Default.Add, null, Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Add draw")
+                Text(stringResource(R.string.ui2_wiz_add_draw))
             }
         }
     }
@@ -2039,7 +2091,7 @@ fun WizardHwScheduleCard(
             }
             Spacer(Modifier.width(10.dp))
             Column(modifier = Modifier.weight(1f)) {
-                Text(entry.name.ifBlank { "HW Schedule" },
+                Text(entry.name.ifBlank { stringResource(R.string.ui2_wiz_hw_schedule) },
                     style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                 Text(
                     "${fmtHour(entry.beginHour)}–${fmtHour(entry.endHour)}  ·  ${fmtDays(entry.days)}",
@@ -2048,7 +2100,8 @@ fun WizardHwScheduleCard(
                 )
             }
             Icon(imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                contentDescription = if (expanded) "Collapse" else "Expand",
+                contentDescription = stringResource(
+                    if (expanded) R.string.ui2_collapse else R.string.ui2_expand),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
 
@@ -2058,7 +2111,7 @@ fun WizardHwScheduleCard(
 
                 OutlinedTextField(value = entry.name,
                     onValueChange = { onUpdate(entry.copy(name = it)) },
-                    label = { Text("Schedule name") },
+                    label = { Text(stringResource(R.string.ui2_wiz_schedule_name)) },
                     modifier = Modifier.fillMaxWidth(), singleLine = true)
 
                 WizardScheduleBlock(
@@ -2073,9 +2126,11 @@ fun WizardHwScheduleCard(
 
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                     TextButton(onClick = onDelete) {
-                        Icon(Icons.Default.Delete, contentDescription = "Remove", modifier = Modifier.size(16.dp))
+                        Icon(Icons.Default.Delete,
+                            contentDescription = stringResource(R.string.ui2_remove),
+                            modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Remove")
+                        Text(stringResource(R.string.ui2_remove))
                     }
                 }
             }
@@ -2115,7 +2170,7 @@ private fun PanelMiniMonthlyBars(monthlyKwh: List<Double>, modifier: Modifier = 
 /** Full monthly kWh bar chart for expanded PVGIS confirmation */
 @Composable
 private fun PanelMonthlyBarChart(monthlyKwh: List<Double>, modifier: Modifier = Modifier) {
-    val labels = listOf("J","F","M","A","M","J","J","A","S","O","N","D")
+    val labels = stringArrayResource(R.array.ui2_months_letters).toList()
     val primaryColor = MaterialTheme.colorScheme.primary.toArgb()
     AndroidView(
         factory = { ctx ->
@@ -2163,8 +2218,11 @@ fun WizardDistributionCharts(
     modifier: Modifier = Modifier
 ) {
     val hourLabels  = (0..23).map { "%02d".format(it) }
-    val dayLabels   = listOf("Mon","Tue","Wed","Thu","Fri","Sat","Sun")
-    val monthLabels = listOf("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec")
+    val dayLabels   = stringArrayResource(R.array.ui2_days_short_mon_first).toList()
+    val monthLabels = stringArrayResource(R.array.ui2_months_short).toList()
+    val hourlyTitle  = stringResource(R.string.ui2_wiz_hourly_dist)
+    val dailyTitle   = stringResource(R.string.ui2_wiz_dow_dist)
+    val monthlyTitle = stringResource(R.string.ui2_wiz_monthly_dist)
 
     var zoomedIdx by remember { mutableIntStateOf(-1) }
 
@@ -2172,9 +2230,9 @@ fun WizardDistributionCharts(
         if (zoomedIdx >= 0) {
             WizardDistBarChart(
                 title = when (zoomedIdx) {
-                    0 -> "Hourly distribution (%)"
-                    1 -> "Day-of-week distribution (%)"
-                    else -> "Monthly distribution (%)"
+                    0 -> hourlyTitle
+                    1 -> dailyTitle
+                    else -> monthlyTitle
                 },
                 values = when (zoomedIdx) { 0 -> hourly; 1 -> daily; else -> monthly },
                 labels = when (zoomedIdx) { 0 -> hourLabels; 1 -> dayLabels; else -> monthLabels },
@@ -2182,19 +2240,19 @@ fun WizardDistributionCharts(
                 barHeight = 160.dp,
                 onClick = { zoomedIdx = -1 }
             )
-            Text("Tap chart to zoom out",
+            Text(stringResource(R.string.ui2_wiz_tap_zoom_out),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.outline,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth())
         } else {
-            WizardDistBarChart(title = "Hourly distribution (%)", values = hourly,
+            WizardDistBarChart(title = hourlyTitle, values = hourly,
                 labels = hourLabels, showEveryNthLabel = 6, barHeight = 60.dp, onClick = { zoomedIdx = 0 })
-            WizardDistBarChart(title = "Day-of-week distribution (%)", values = daily,
+            WizardDistBarChart(title = dailyTitle, values = daily,
                 labels = dayLabels, showEveryNthLabel = 1, barHeight = 60.dp, onClick = { zoomedIdx = 1 })
-            WizardDistBarChart(title = "Monthly distribution (%)", values = monthly,
+            WizardDistBarChart(title = monthlyTitle, values = monthly,
                 labels = monthLabels, showEveryNthLabel = 1, barHeight = 60.dp, onClick = { zoomedIdx = 2 })
-            Text("Tap a chart to zoom in",
+            Text(stringResource(R.string.ui2_wiz_tap_zoom_in),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.outline,
                 textAlign = TextAlign.Center,
@@ -2300,15 +2358,15 @@ private fun PvSourceDialog(
     }
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Select PV source") },
+        title = { Text(stringResource(R.string.ui2_wiz_select_pv_source)) },
         text = {
             LazyColumn(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(sources) { src ->
                     val sel = src.sysSn == selectedSource?.sysSn
                     val typeLabel = when (src.importerType) {
-                        ComparisonUIViewModel.Importer.ALPHAESS       -> "AlphaESS"
-                        ComparisonUIViewModel.Importer.HOME_ASSISTANT -> "Home Assistant"
-                        ComparisonUIViewModel.Importer.SOLIS          -> "Solis"
+                        ComparisonUIViewModel.Importer.ALPHAESS       -> stringResource(R.string.brand_alphaess)
+                        ComparisonUIViewModel.Importer.HOME_ASSISTANT -> stringResource(R.string.home_assistant)
+                        ComparisonUIViewModel.Importer.SOLIS          -> stringResource(R.string.ui2_wiz_solis)
                         else -> src.sysSn
                     }
                     Row(
@@ -2357,9 +2415,11 @@ private fun PvSourceDialog(
             Button(
                 onClick = { if (src != null) { onApply(src); onDismiss() } },
                 enabled = src != null
-            ) { Text("Apply") }
+            ) { Text(stringResource(R.string.ui2_import_apply)) }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.dialog_cancel)) }
+        }
     )
 }
 
@@ -2457,11 +2517,12 @@ private fun toggleInt(list: List<Int>, value: Int): List<Int> =
 
 fun fmtHour(h: Int): String = "%02d:00".format(h)
 
+@Composable
 fun fmtDays(days: List<Int>): String {
-    if (days.isEmpty()) return "(no days)"
-    if (days.size == 7) return "Every day"
-    if (days.sorted() == (0..4).toList()) return "Weekdays"
-    if (days.sorted() == listOf(5, 6)) return "Weekend"
-    val names = listOf("Mon","Tue","Wed","Thu","Fri","Sat","Sun")
+    if (days.isEmpty()) return stringResource(R.string.ui2_wiz_no_days)
+    if (days.size == 7) return stringResource(R.string.ui2_wiz_every_day)
+    if (days.sorted() == (0..4).toList()) return stringResource(R.string.ui2_wiz_weekdays)
+    if (days.sorted() == listOf(5, 6)) return stringResource(R.string.ui2_wiz_weekend)
+    val names = stringArrayResource(R.array.ui2_days_short_mon_first)
     return days.sorted().joinToString { names.getOrElse(it) { idx -> idx.toString() } }
 }
