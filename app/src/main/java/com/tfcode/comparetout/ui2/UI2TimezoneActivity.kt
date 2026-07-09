@@ -62,6 +62,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -71,6 +72,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
+import com.tfcode.comparetout.R
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -185,15 +187,16 @@ private fun TimezoneScreen(
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
-                title = { Text("Timezone") },
+                title = { Text(stringResource(R.string.ui2_timezone)) },
                 navigationIcon = {
                     IconButton(onClick = onClose) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.ui2_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { showDrawer = true }) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menu")
+                        Icon(Icons.Default.Menu,
+                            contentDescription = stringResource(R.string.ui2_menu))
                     }
                 },
                 scrollBehavior = scrollBehavior
@@ -229,7 +232,7 @@ private fun TimezoneScreen(
                 ) {
                     if (filtered.isEmpty()) {
                         item("empty") {
-                            Text("No zones match \"$query\".",
+                            Text(stringResource(R.string.ui2_tz_no_match, query),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(16.dp))
@@ -287,16 +290,12 @@ private fun HintCard() {
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("About timezone",
+            Text(stringResource(R.string.ui2_tz_hint_title),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary)
             Text(
-                "Internally the app stores every reading in UTC. The zone you " +
-                    "pick here decides how imports without explicit zone info " +
-                    "are interpreted, and how UTC values are rendered back to you. " +
-                    "Default is your phone's current zone — change it only if you " +
-                    "want to keep seeing home time while travelling.",
+                stringResource(R.string.ui2_tz_hint_body),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -334,17 +333,20 @@ private fun CurrentSelectionCard(
                 }
             }
             Column(Modifier.weight(1f)) {
-                Text("Currently using", style = MaterialTheme.typography.labelSmall,
+                Text(stringResource(R.string.ui2_tz_currently_using),
+                    style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(row.id,
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     maxLines = 1, overflow = TextOverflow.Ellipsis)
+                val statusLabel = stringResource(
+                    if (overridden) R.string.ui2_tz_sub_pinned
+                    else R.string.ui2_tz_sub_device_default)
                 val sub = buildString {
                     append(row.offsetLabel)
                     if (row.shortName.isNotBlank()) append(" · ").append(row.shortName)
-                    if (!overridden) append(" · device default")
-                    else append(" · pinned override")
+                    append(" · ").append(statusLabel)
                 }
                 Text(sub,
                     style = MaterialTheme.typography.labelSmall,
@@ -355,7 +357,8 @@ private fun CurrentSelectionCard(
                 OutlinedButton(onClick = onResetDeviceDefault) {
                     Icon(Icons.Default.Refresh, null, Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Device (${device.id.substringAfterLast('/')})")
+                    Text(stringResource(R.string.ui2_tz_reset_device,
+                        device.id.substringAfterLast('/')))
                 }
             }
         }
@@ -367,12 +370,12 @@ private fun SearchField(query: String, onChange: (String) -> Unit) {
     OutlinedTextField(
         value = query,
         onValueChange = onChange,
-        placeholder = { Text("Search city or region…") },
+        placeholder = { Text(stringResource(R.string.ui2_tz_search_placeholder)) },
         leadingIcon = { Icon(Icons.Default.Search, null) },
         trailingIcon = {
             if (query.isNotEmpty()) {
                 IconButton(onClick = { onChange("") }) {
-                    Icon(Icons.Default.Clear, "Clear")
+                    Icon(Icons.Default.Clear, stringResource(R.string.ui2_clear))
                 }
             }
         },
@@ -440,7 +443,7 @@ private fun ZoneItem(
                             color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.5f),
                             shape = CircleShape
                         ) {
-                            Text("Device",
+                            Text(stringResource(R.string.ui2_tz_device_badge),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onTertiaryContainer,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp))

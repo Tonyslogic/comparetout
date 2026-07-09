@@ -86,6 +86,9 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -149,6 +152,7 @@ private data class SimReadinessIssue(
     val wizardSection: String? = null   // non-null → row taps through to the wizard
 )
 
+@Composable
 private fun simReadinessIssues(
     hasLoadProfile: Boolean,
     hasPanels: Boolean,
@@ -159,35 +163,32 @@ private fun simReadinessIssues(
     val issues = mutableListOf<SimReadinessIssue>()
     if (!hasLoadProfile) {
         issues += SimReadinessIssue(
-            title = "No usage data linked",
-            hint = "Add a load profile in the Usage Data step so the simulation has consumption to model.",
+            title = stringResource(R.string.ui2_dash_issue_no_usage_title),
+            hint = stringResource(R.string.ui2_dash_issue_no_usage_hint),
             severity = IssueSeverity.WARNING,
             wizardSection = "load"
         )
     }
     if (hasPanels && !hasPanelData) {
         issues += SimReadinessIssue(
-            title = "Solar data not generated yet",
-            hint = "Solar yield is fetched per panel from its location. Open PV System to generate it, " +
-                "or wait if a simulation is already running.",
+            title = stringResource(R.string.ui2_dash_issue_solar_title),
+            hint = stringResource(R.string.ui2_dash_issue_solar_hint),
             severity = IssueSeverity.WARNING,
             wizardSection = "pv"
         )
     }
     if (hpWeatherMissing) {
         issues += SimReadinessIssue(
-            title = "Heat-pump weather not fetched yet",
-            hint = "Real weather is fetched from Copernicus CDS when the simulation runs. Open Heat Pump to " +
-                "check the weather source / CDS token, or wait if a fetch is already running.",
+            title = stringResource(R.string.ui2_dash_issue_weather_title),
+            hint = stringResource(R.string.ui2_dash_issue_weather_hint),
             severity = IssueSeverity.WARNING,
             wizardSection = "heatpump"
         )
     }
     if (!resultsReady) {
         issues += SimReadinessIssue(
-            title = "Results aren't ready yet",
-            hint = "Costs and charts appear once the simulation finishes calculating. " +
-                "It runs automatically after you edit a simulation or its tariffs.",
+            title = stringResource(R.string.ui2_dash_issue_results_title),
+            hint = stringResource(R.string.ui2_dash_issue_results_hint),
             severity = IssueSeverity.INFO
         )
     }
@@ -202,7 +203,7 @@ private fun SimulationStatusAccordion(
     if (issues.isEmpty()) return
     val anyWarning = issues.any { it.severity == IssueSeverity.WARNING }
     ExpandableCard(
-        title = "Needs attention",
+        title = stringResource(R.string.ui2_dash_needs_attention),
         initiallyExpanded = true,
         leadingIcon = {
             Icon(
@@ -251,7 +252,7 @@ private fun SimulationStatusAccordion(
                         Text(issue.hint, style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                         if (issue.wizardSection != null) {
-                            Text("Tap to open the wizard",
+                            Text(stringResource(R.string.ui2_dash_tap_wizard),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.primary)
                         }
@@ -293,13 +294,12 @@ private fun NeedsRegenBanner(refreshKey: Any?) {
             ) {
                 Icon(painterResource(R.drawable.ic_baseline_warning_24), null,
                     Modifier.size(22.dp), tint = StatusAmber)
-                Text("Solar data needs refreshing",
+                Text(stringResource(R.string.ui2_dash_regen_title),
                     style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             }
             Spacer(Modifier.height(6.dp))
             Text(
-                "After this update, solar generation for these imported source(s) couldn't be refreshed " +
-                    "automatically and needs re-importing: ${sources.joinToString(", ")}.",
+                stringResource(R.string.ui2_dash_regen_body, sources.joinToString(", ")),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -307,13 +307,13 @@ private fun NeedsRegenBanner(refreshKey: Any?) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = {
                     context.startActivity(Intent(context, UI2DataSourceManagementActivity::class.java))
-                }) { Text("Manage sources") }
+                }) { Text(stringResource(R.string.ui2_dash_manage_sources)) }
                 OutlinedButton(onClick = {
                     scope.launch(Dispatchers.IO) {
                         runCatching { app.putStringValueIntoDataStore("paneldata_needs_regen_sources", "") }
                     }
                     dismissed = true
-                }) { Text("Dismiss") }
+                }) { Text(stringResource(R.string.ui2_dismiss)) }
             }
         }
     }
@@ -346,23 +346,28 @@ private fun MigrationStatusBanner(refreshKey: Any?) {
         }
     }
 
+    // Templates resolved here — statusLine is a plain local fun, not composable.
+    val tplPct = stringResource(R.string.ui2_dash_mig_in_progress_pct)
+    val tplRunning = stringResource(R.string.ui2_dash_mig_in_progress)
+    val tplQueued = stringResource(R.string.ui2_dash_mig_queued)
+    val tplPending = stringResource(R.string.ui2_dash_mig_pending)
     fun statusLine(label: String, doneFlag: Boolean, infos: List<WorkInfo>): String? {
         if (doneFlag || infos.any { it.state == WorkInfo.State.SUCCEEDED }) return null  // complete → hide
         val running = infos.firstOrNull { it.state == WorkInfo.State.RUNNING }
         return when {
             running != null -> {
                 val pct = running.progress.getInt("pct", -1)
-                if (pct >= 0) "$label — in progress ($pct%)" else "$label — in progress…"
+                if (pct >= 0) tplPct.format(label, pct) else tplRunning.format(label)
             }
             infos.any { it.state == WorkInfo.State.ENQUEUED || it.state == WorkInfo.State.BLOCKED } ->
-                "$label — queued…"
-            else -> "$label — pending"
+                tplQueued.format(label)
+            else -> tplPending.format(label)
         }
     }
 
     val lines = listOfNotNull(
-        statusLine("Timezone alignment", flags.first, tzInfos),
-        statusLine("Solar data refresh", flags.second, pdInfos)
+        statusLine(stringResource(R.string.ui2_dash_mig_tz), flags.first, tzInfos),
+        statusLine(stringResource(R.string.ui2_dash_mig_pd), flags.second, pdInfos)
     )
     if (lines.isEmpty()) return  // both migrations complete → nothing to show
 
@@ -376,7 +381,7 @@ private fun MigrationStatusBanner(refreshKey: Any?) {
                 horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
-                Text("Finishing a one-time data update",
+                Text(stringResource(R.string.ui2_dash_mig_title),
                     style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
             }
             Spacer(Modifier.height(6.dp))
@@ -385,8 +390,7 @@ private fun MigrationStatusBanner(refreshKey: Any?) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Spacer(Modifier.height(4.dp))
-            Text("Runs once after the update — you can keep using the app; figures fill in when it finishes. " +
-                "This message disappears when the update is complete.",
+            Text(stringResource(R.string.ui2_dash_mig_note),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -415,18 +419,16 @@ private fun MICBreachFlag(info: MICBreachInfo, showHints: Boolean) {
         ) {
             Icon(painterResource(R.drawable.ic_baseline_warning_24), null, Modifier.size(18.dp), tint = StatusAmber)
             Column(Modifier.weight(1f)) {
-                Text("Grid import limit exceeded — ${info.count} interval(s)",
+                Text(pluralStringResource(R.plurals.ui2_dash_mic_flag, info.count, info.count),
                     style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-                Text("Tap for the times this happened",
+                Text(stringResource(R.string.ui2_dash_mic_tap),
                     style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
             }
         }
     }
     if (showHints) {
         Text(
-            "Grid import is limited by your supply's MIC (${kwDf.format(info.micKw)} kW). The model never clamps " +
-                "it, but flags any interval that exceeds it so you can spot breaker/fuse/penalty risk and decide " +
-                "whether to upgrade your connection or shift load.",
+            stringResource(R.string.ui2_dash_mic_hint, kwDf.format(info.micKw)),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp)
@@ -437,20 +439,18 @@ private fun MICBreachFlag(info: MICBreachInfo, showHints: Boolean) {
         Dialog(onDismissRequest = { showDialog = false }) {
             Surface(shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
                 Column(Modifier.padding(16.dp)) {
-                    Text("Grid import limit exceeded", style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(R.string.ui2_dash_mic_title),
+                        style = MaterialTheme.typography.titleMedium)
                     Spacer(Modifier.height(8.dp))
                     Text(
-                        "Your simulation drew more than your Maximum Import Capacity (MIC) of " +
-                            "${kwDf.format(info.micKw)} kW in ${info.count} five-minute interval(s). The model " +
-                            "still meets the load — the grid physically can — but in reality exceeding your MIC " +
-                            "can trip the main breaker, blow a fuse, or incur supplier penalties. Open the graphs " +
-                            "for these days to see what drove the peak; to fix it, raise your MIC or shift " +
-                            "flexible loads (EV / hot water) away from these times.",
+                        pluralStringResource(R.plurals.ui2_dash_mic_body, info.count,
+                            kwDf.format(info.micKw), info.count),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Spacer(Modifier.height(12.dp))
-                    Text("Worst intervals", style = MaterialTheme.typography.labelMedium,
+                    Text(stringResource(R.string.ui2_dash_mic_worst),
+                        style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold)
                     Spacer(Modifier.height(4.dp))
                     Column(
@@ -460,19 +460,22 @@ private fun MICBreachFlag(info: MICBreachInfo, showHints: Boolean) {
                         info.sample.forEach { b ->
                             val hh = b.minuteOfDay / 60
                             val mm = b.minuteOfDay % 60
-                            Text("%s  %02d:%02d — %s kW (limit %s)".format(
-                                b.date, hh, mm, kwDf.format(b.kw), kwDf.format(info.micKw)),
+                            Text(stringResource(R.string.ui2_dash_mic_row,
+                                    b.date, hh, mm, kwDf.format(b.kw), kwDf.format(info.micKw)),
                                 style = MaterialTheme.typography.bodySmall)
                         }
                         if (info.count > info.sample.size) {
-                            Text("+ ${info.count - info.sample.size} more…",
+                            Text(stringResource(R.string.ui2_dash_more_n,
+                                    info.count - info.sample.size),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     Spacer(Modifier.height(12.dp))
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                        TextButton(onClick = { showDialog = false }) { Text("Close") }
+                        TextButton(onClick = { showDialog = false }) {
+                            Text(stringResource(R.string.ui2_close))
+                        }
                     }
                 }
             }
@@ -610,7 +613,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
     val title = dashboardData?.dataSourceInfo?.run { "$sysSn  ·  $displayTypeName" }
         ?: dashboardData?.scenarioComponents?.scenario?.scenarioName
-        ?: "Select a Simulation"
+        ?: stringResource(R.string.ui2_dash_select_sim)
 
     Scaffold(
         modifier = Modifier
@@ -621,7 +624,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                 title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 actions = {
                     IconButton(onClick = { showDrawer = true }) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menu")
+                        Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.ui2_menu))
                     }
                 },
                 scrollBehavior = scrollBehavior
@@ -672,7 +675,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                 // Tariff Plan first — pricing is the most-asked-after answer
                 // when a real meter is selected.
                 ExpandableCard(
-                    title = "Tariff Plan",
+                    title = stringResource(R.string.ui2_dash_tariff_plan),
                     leadingIcon = {
                         Icon(painterResource(R.drawable.ic_baseline_euro_symbol_24), null,
                             Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
@@ -702,7 +705,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                 }
 
                 ExpandableCard(
-                    title = "Explore data",
+                    title = stringResource(R.string.ui2_dash_explore),
                     leadingIcon = {
                         Icon(painterResource(R.drawable.ic_baseline_download_24), null,
                             Modifier.size(24.dp), tint = MaterialTheme.colorScheme.secondary)
@@ -716,7 +719,8 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                                     .padding(horizontal = 6.dp, vertical = 4.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(painterResource(R.drawable.barchart), "View graphs",
+                                Icon(painterResource(R.drawable.barchart),
+                                    stringResource(R.string.ui2_dash_view_graphs),
                                     Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
                             }
                         }
@@ -763,7 +767,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                 }
 
                 ExpandableCard(
-                    title = "Usage Data",
+                    title = stringResource(R.string.ui2_dash_usage_data),
                     leadingIcon = {
                         Icon(painterResource(R.drawable.house), null, Modifier.size(24.dp),
                             tint = MaterialTheme.colorScheme.onSurface)
@@ -790,12 +794,18 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         totals == null -> CircularProgressIndicator(
                             modifier = Modifier.padding(4.dp).size(20.dp), strokeWidth = 2.dp)
                         else -> Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            if (!isEsbn && totals.load > 0) PeriodTotalRow("Load",   totals.load,  kwhDf)
-                            if (totals.buy  > 0) PeriodTotalRow("Import", totals.buy,   kwhDf)
-                            if (totals.feed > 0) PeriodTotalRow("Export", totals.feed,  kwhDf)
-                            if (!isEsbn && totals.pv   > 0) PeriodTotalRow("Solar",      totals.pv,          kwhDf)
-                            if (!isEsbn && totals.charging    > 0) PeriodTotalRow("Charging",    totals.charging,    kwhDf)
-                            if (!isEsbn && totals.discharging > 0) PeriodTotalRow("Discharging", totals.discharging, kwhDf)
+                            if (!isEsbn && totals.load > 0)
+                                PeriodTotalRow(stringResource(R.string.ui2_graphs_load), totals.load, kwhDf)
+                            if (totals.buy  > 0)
+                                PeriodTotalRow(stringResource(R.string.ui2_dash_import), totals.buy, kwhDf)
+                            if (totals.feed > 0)
+                                PeriodTotalRow(stringResource(R.string.ui2_graphs_export), totals.feed, kwhDf)
+                            if (!isEsbn && totals.pv   > 0)
+                                PeriodTotalRow(stringResource(R.string.ui2_graphs_solar), totals.pv, kwhDf)
+                            if (!isEsbn && totals.charging    > 0)
+                                PeriodTotalRow(stringResource(R.string.ui2_dash_charging), totals.charging, kwhDf)
+                            if (!isEsbn && totals.discharging > 0)
+                                PeriodTotalRow(stringResource(R.string.ui2_dash_discharging), totals.discharging, kwhDf)
                         }
                     }
                     val dist = usageDistribution
@@ -808,7 +818,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                 if (dsInfo.importerType != ComparisonUIViewModel.Importer.ESBNHDF &&
                     dsInfo.importerType != ComparisonUIViewModel.Importer.OCTOPUS) {
                     ExpandableCard(
-                        title = "PV System",
+                        title = stringResource(R.string.ui2_dash_pv_system),
                         leadingIcon = {
                             Icon(painterResource(R.drawable.solarpanel), null,
                                 Modifier.size(24.dp), tint = Color.Unspecified)
@@ -833,7 +843,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                             pvChartData == null ->
                                 CircularProgressIndicator(modifier = Modifier.padding(4.dp).size(20.dp), strokeWidth = 2.dp)
                             pvChartData!!.isEmpty() ->
-                                Text("No solar data for this period",
+                                Text(stringResource(R.string.ui2_dash_no_solar_period),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             else -> DataSourcePVBarChart(pvData = pvChartData!!)
@@ -847,7 +857,9 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     Card(modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)) {
                         Column(modifier = Modifier.padding(16.dp)) {
                             Text(
-                                text = "Best Cost/Year: ${RegionProfiles.current.currencySymbol}${df.format(costing.net / 100.0)}",
+                                text = stringResource(R.string.ui2_dash_best_cost,
+                                    RegionProfiles.current.currencySymbol,
+                                    df.format(costing.net / 100.0)),
                                 style = MaterialTheme.typography.titleMedium
                             )
                             Text(text = costing.fullPlanName ?: "", style = MaterialTheme.typography.bodyMedium)
@@ -886,7 +898,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     //    period picker so the user can dial in monthly / yearly
                     //    costings instead of just the simulation's annual total.
                     ExpandableCard(
-                        title = "Tariff Plan",
+                        title = stringResource(R.string.ui2_dash_tariff_plan),
                         leadingIcon = {
                             Icon(painterResource(R.drawable.ic_baseline_euro_symbol_24), null,
                                 Modifier.size(24.dp), tint = MaterialTheme.colorScheme.onSurface)
@@ -932,7 +944,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         } else if (periodRows == null) {
                             CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                         } else if (periodRows.isEmpty()) {
-                            Text("No simulation results yet")
+                            Text(stringResource(R.string.ui2_dash_no_results_yet))
                         } else {
                             DataSourceCostingsTable(
                                 costings = periodRows,
@@ -944,7 +956,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
 
                     // 2. Explore data
                     ExpandableCard(
-                        title = "Explore data",
+                        title = stringResource(R.string.ui2_dash_explore),
                         leadingIcon = {
                             Icon(painterResource(R.drawable.piechart_25), null, Modifier.size(24.dp),
                                 tint = MaterialTheme.colorScheme.onSurface)
@@ -966,7 +978,8 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                                         .padding(horizontal = 6.dp, vertical = 4.dp),
                                     contentAlignment = Alignment.Center
                                 ) {
-                                    Icon(painterResource(R.drawable.barchart), "View graphs",
+                                    Icon(painterResource(R.drawable.barchart),
+                                        stringResource(R.string.ui2_dash_view_graphs),
                                         Modifier.size(18.dp), tint = MaterialTheme.colorScheme.primary)
                                 }
                             }
@@ -977,15 +990,14 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                             dashboardData?.hasPanelData != true
                         when {
                             kpis == null -> Text(
-                                "Results aren't ready yet — the breakdown appears here once the " +
-                                    "simulation finishes calculating. See \"Needs attention\" above for what's outstanding.",
+                                stringResource(R.string.ui2_dash_results_pending),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             else -> {
                                 if (pvMissing) {
                                     Text(
-                                        "Solar data is still being generated, so these figures may be incomplete.",
+                                        stringResource(R.string.ui2_dash_solar_generating),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = StatusAmber,
                                         modifier = Modifier.padding(bottom = 8.dp)
@@ -1022,7 +1034,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
 
                     // 4. Visual overview
                     ExpandableCard(
-                        title = "Visual overview",
+                        title = stringResource(R.string.ui2_dash_visual_overview),
                         leadingIcon = {
                             Icon(Icons.Default.Visibility, null, Modifier.size(24.dp),
                                 tint = MaterialTheme.colorScheme.onSurface)
@@ -1036,7 +1048,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
 
                     // 5. Usage Data
                     ExpandableCard(
-                        title = "Usage Data",
+                        title = stringResource(R.string.ui2_dash_usage_data),
                         leadingIcon = {
                             Icon(painterResource(R.drawable.house), null, Modifier.size(24.dp),
                                 tint = MaterialTheme.colorScheme.onSurface)
@@ -1056,18 +1068,19 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     ) {
                         val lp = sc.loadProfile
                         if (lp != null) {
-                            Text("Source: ${lp.distributionSource}")
-                            Text("Annual usage: ${"%.0f".format(lp.annualUsage)} kWh")
+                            Text(stringResource(R.string.ui2_dash_source, lp.distributionSource))
+                            Text(stringResource(R.string.ui2_dash_annual_usage,
+                                "%.0f".format(lp.annualUsage)))
                             Spacer(Modifier.height(8.dp))
                             LoadDistributionCharts(lp = lp)
                         } else {
-                            Text("No usage data linked")
+                            Text(stringResource(R.string.ui2_dash_issue_no_usage_title))
                         }
                     }
 
                     // 6. Inverter
                     if (uiVis.inverter) ExpandableCard(
-                        title = "Inverter",
+                        title = stringResource(R.string.ui2_component_inverter),
                         leadingIcon = {
                             Icon(painterResource(R.drawable.inverter), null, Modifier.size(24.dp),
                                 tint = MaterialTheme.colorScheme.onSurface)
@@ -1085,15 +1098,16 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                             )
                         }) else null
                     ) {
-                        if (sc.inverters.isEmpty()) Text("No inverters configured")
+                        if (sc.inverters.isEmpty()) Text(stringResource(R.string.ui2_dash_no_inverters))
                         else sc.inverters.forEach { inv ->
-                            Text("${inv.inverterName}: max ${inv.maxInverterLoad} kW, ${inv.mpptCount} MPPT")
+                            Text(stringResource(R.string.ui2_dash_inverter_row,
+                                inv.inverterName, inv.maxInverterLoad.toString(), inv.mpptCount))
                         }
                     }
 
                     // 7. PV System
                     if (uiVis.panels) ExpandableCard(
-                        title = "PV System",
+                        title = stringResource(R.string.ui2_dash_pv_system),
                         leadingIcon = {
                             Icon(painterResource(R.drawable.solarpanel), null, Modifier.size(24.dp), tint = Color.Unspecified)
                         },
@@ -1105,13 +1119,15 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                                     if (pvDataReady) {
                                         // Sun = solar yield generated and ready.
                                         Icon(painterResource(R.drawable.ic_baseline_wb_sunny_36),
-                                            "Solar data ready", Modifier.size(18.dp), tint = StatusGreen)
+                                            stringResource(R.string.ui2_dash_solar_ready),
+                                            Modifier.size(18.dp), tint = StatusGreen)
                                     } else {
                                         // Cloud = panels exist but their solar data
                                         // hasn't been generated yet — a clearer "no sun
                                         // (yet)" signal than simply omitting the sun.
                                         Icon(painterResource(R.drawable.cloud),
-                                            "Solar data not generated yet", Modifier.size(18.dp),
+                                            stringResource(R.string.ui2_dash_issue_solar_title),
+                                            Modifier.size(18.dp),
                                             tint = StatusAmber)
                                     }
                                     Icon(painterResource(R.drawable.tick), null, Modifier.size(18.dp), tint = Color.Unspecified)
@@ -1126,17 +1142,18 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                             )
                         }) else null
                     ) {
-                        if (sc.panels.isEmpty()) Text("No panels configured")
+                        if (sc.panels.isEmpty()) Text(stringResource(R.string.ui2_dash_no_panels))
                         else {
                             if (dashboardData?.hasPanelData != true) {
-                                Text("Solar data hasn't been generated for these panels yet. " +
-                                    "It's fetched automatically when the simulation runs.",
+                                Text(stringResource(R.string.ui2_dash_solar_not_generated),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = StatusAmber,
                                     modifier = Modifier.padding(bottom = 6.dp))
                             }
                             sc.panels.forEach { p ->
-                                Text("${p.panelName}: ${p.panelCount} × ${p.panelkWp}W, ${p.azimuth}° azimuth, ${p.slope}° slope")
+                                Text(stringResource(R.string.ui2_dash_panel_row,
+                                    p.panelName, p.panelCount.toString(), p.panelkWp.toString(),
+                                    p.azimuth.toString(), p.slope.toString()))
                             }
                         }
                         if (panelSummary.isNotEmpty()) {
@@ -1147,7 +1164,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
 
                     // 8. Battery
                     if (uiVis.battery) ExpandableCard(
-                        title = "Battery",
+                        title = stringResource(R.string.ui2_component_battery),
                         leadingIcon = {
                             Icon(painterResource(R.drawable.battery1), null, Modifier.size(24.dp),
                                 tint = MaterialTheme.colorScheme.onSurface)
@@ -1176,15 +1193,17 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                             )
                         }) else null
                     ) {
-                        if (sc.batteries.isEmpty()) Text("No batteries configured")
+                        if (sc.batteries.isEmpty()) Text(stringResource(R.string.ui2_dash_no_batteries))
                         else sc.batteries.forEach { b ->
-                            Text("${b.batterySize} kWh, stop at ${b.dischargeStop}%, charge ${b.maxCharge} kW / discharge ${b.maxDischarge} kW")
+                            Text(stringResource(R.string.ui2_dash_battery_row,
+                                b.batterySize.toString(), b.dischargeStop.toString(),
+                                b.maxCharge.toString(), b.maxDischarge.toString()))
                         }
                     }
 
                     // 9. Hot Water
                     if (uiVis.hotWater) ExpandableCard(
-                        title = "Hot Water",
+                        title = stringResource(R.string.ui2_graphs_hot_water),
                         leadingIcon = {
                             val res = if (sc.hwSystem != null) R.drawable.waterwarm else R.drawable.watercold
                             Icon(painterResource(res), null, Modifier.size(24.dp),
@@ -1215,16 +1234,18 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         }) else null
                     ) {
                         val hw = sc.hwSystem
-                        if (hw == null) Text("No hot water system configured")
+                        if (hw == null) Text(stringResource(R.string.ui2_dash_no_hw))
                         else {
-                            Text("Tank: ${hw.hwCapacity} L, usage ${hw.hwUsage} L/day")
-                            Text("Target: ${hw.hwTarget}°C, heater ${hw.hwRate} kW")
+                            Text(stringResource(R.string.ui2_dash_hw_tank,
+                                hw.hwCapacity.toString(), hw.hwUsage.toString()))
+                            Text(stringResource(R.string.ui2_dash_hw_target,
+                                hw.hwTarget.toString(), hw.hwRate.toString()))
                         }
                     }
 
                     // 10. EV
                     if (uiVis.ev) ExpandableCard(
-                        title = "EV",
+                        title = stringResource(R.string.ui2_component_ev),
                         leadingIcon = {
                             val res = if (sc.evCharges.isNotEmpty() || sc.evDiverts.isNotEmpty())
                                 R.drawable.ev_on else R.drawable.ev_off
@@ -1251,24 +1272,30 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                         }) else null
                     ) {
                         if (sc.evCharges.isEmpty() && sc.evDiverts.isEmpty()) {
-                            Text("No EV configured")
+                            Text(stringResource(R.string.ui2_dash_no_ev))
                         } else {
                             if (sc.evCharges.isNotEmpty()) {
-                                Text("Schedules",
+                                Text(stringResource(R.string.ui2_dash_schedules),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.outline)
                                 sc.evCharges.forEach { ev ->
-                                    Text("${ev.name}: ${ev.begin}:00–${ev.end}:00 @ ${ev.draw} kW")
+                                    Text(stringResource(R.string.ui2_dash_ev_row,
+                                        ev.name, ev.begin.toString(), ev.end.toString(),
+                                        ev.draw.toString()))
                                 }
                             }
                             if (sc.evDiverts.isNotEmpty()) {
                                 if (sc.evCharges.isNotEmpty()) Spacer(Modifier.height(6.dp))
-                                Text("Solar Diverts",
+                                Text(stringResource(R.string.ui2_dash_solar_diverts),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.outline)
                                 sc.evDiverts.forEach { d ->
-                                    val activeTag = if (!d.isActive) "  ·  off" else ""
-                                    Text("${d.name}: ${d.begin}:00–${d.end}:00  ·  ${d.dailyMax} kWh/day$activeTag")
+                                    val row = stringResource(R.string.ui2_dash_divert_row,
+                                        d.name, d.begin.toString(), d.end.toString(),
+                                        d.dailyMax.toString())
+                                    Text(if (!d.isActive)
+                                        "$row  ·  ${stringResource(R.string.ui2_dash_off_suffix)}"
+                                    else row)
                                 }
                             }
                         }
@@ -1277,7 +1304,7 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                     // 11. Heat Pump (mirrors the wizard/dashboard order — after EV)
                     val heatPumps = sc.heatPumps.orEmpty()
                     if (uiVis.heatPump) ExpandableCard(
-                        title = "Heat Pump",
+                        title = stringResource(R.string.ui2_graphs_heat_pump),
                         leadingIcon = {
                             Text(if (heatPumps.isNotEmpty()) "♨️" else "❄️",
                                 style = MaterialTheme.typography.titleLarge)
@@ -1296,16 +1323,21 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
                             )
                         }) else null
                     ) {
-                        if (heatPumps.isEmpty()) Text("No heat pump configured")
+                        if (heatPumps.isEmpty()) Text(stringResource(R.string.ui2_dash_no_hp))
                         else heatPumps.forEach { hp ->
                             if (hp.fuelType == "None") {
-                                Text("New build · ${hp.floorAreaM2.toInt()} m² · HLI ${hp.heatLossIndex}")
+                                Text(stringResource(R.string.ui2_dash_hp_newbuild,
+                                    hp.floorAreaM2.toInt().toString(), hp.heatLossIndex.toString()))
                             } else {
                                 val unit = if (hp.fuelType == "Natural gas") "kWh" else "L"
-                                Text("${hp.fuelType} · ${hp.fuelAnnual.toInt()} $unit/yr")
+                                Text(stringResource(R.string.ui2_dash_hp_fuel,
+                                    hp.fuelType, hp.fuelAnnual.toInt().toString(), unit))
                             }
-                            Text("COP ${hp.copRated} · SCOP ${hp.scop} · ${hp.capacityKw} kW")
-                            Text("Weather: ${if (hp.weatherSource == "cds") "CDS" else "2001, Ireland"}",
+                            Text(stringResource(R.string.ui2_dash_hp_cop,
+                                hp.copRated.toString(), hp.scop.toString(), hp.capacityKw.toString()))
+                            Text(stringResource(R.string.ui2_dash_hp_weather,
+                                    if (hp.weatherSource == "cds") "CDS"
+                                    else stringResource(R.string.ui2_dash_weather_2001)),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.outline)
                         }
@@ -1405,14 +1437,17 @@ fun LoadDistributionCharts(lp: LoadProfile) {
     val monthlyDist = remember(lp) { lp.monthlyDist?.monthlyDist ?: emptyList<Double>() }
 
     val hourLabels  = remember { (0..23).map { "%02d".format(it) } }
-    val dayLabels   = remember { listOf("Sun","Mon","Tue","Wed","Thu","Fri","Sat") }
-    val monthLabels = remember { listOf("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec") }
+    val dayLabels   = stringArrayResource(R.array.ui2_days_short_sun_first).toList()
+    val monthLabels = stringArrayResource(R.array.ui2_months_short).toList()
 
-    val charts = remember(lp) {
+    val hourlyTitle  = stringResource(R.string.ui2_dash_hourly_pct)
+    val dailyTitle   = stringResource(R.string.ui2_dash_daily_pct)
+    val monthlyTitle = stringResource(R.string.ui2_dash_monthly_pct)
+    val charts = remember(lp, hourlyTitle) {
         listOf(
-            Triple("Hourly (%)",   hourlyDist,  hourLabels),
-            Triple("Daily (%)",    dailyDist,   dayLabels),
-            Triple("Monthly (%)",  monthlyDist, monthLabels)
+            Triple(hourlyTitle,  hourlyDist,  hourLabels),
+            Triple(dailyTitle,   dailyDist,   dayLabels),
+            Triple(monthlyTitle, monthlyDist, monthLabels)
         )
     }
 
@@ -1489,7 +1524,7 @@ private fun SimpleDistBarChart(
 @Composable
 fun PVSummaryBarChart(panelSummary: List<PanelPVSummary>, panels: List<Panel>) {
     var zoomedIdx by remember { mutableIntStateOf(-1) }
-    val monthLabels = remember { listOf("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec") }
+    val monthLabels = stringArrayResource(R.array.ui2_months_short).toList()
 
     val grouped  = remember(panelSummary) { panelSummary.groupBy { it.panelID } }
     // Only show strings that belong to this scenario's panel configurations
@@ -1499,12 +1534,13 @@ fun PVSummaryBarChart(panelSummary: List<PanelPVSummary>, panels: List<Panel>) {
     val containerSize = LocalWindowInfo.current.containerSize
     val density = LocalDensity.current
 
-    Text("PV Monthly Generation (kWh)", style = MaterialTheme.typography.labelSmall,
+    Text(stringResource(R.string.ui2_dash_pv_monthly), style = MaterialTheme.typography.labelSmall,
         modifier = Modifier.padding(bottom = 4.dp))
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         panelIds.forEachIndexed { idx, panelId ->
-            val name     = panels.firstOrNull { it.panelIndex == panelId }?.panelName ?: "Panel $panelId"
+            val name     = panels.firstOrNull { it.panelIndex == panelId }?.panelName
+                ?: stringResource(R.string.ui2_dash_panel_n, panelId)
             val monthMap = grouped[panelId]?.associate { (it.month.toIntOrNull() ?: 1) to it.tot } ?: emptyMap()
             val dist     = (1..12).map { m -> monthMap[m] ?: 0.0 }
             Column(modifier = Modifier.fillMaxWidth().clickable { zoomedIdx = idx }) {
@@ -1518,7 +1554,8 @@ fun PVSummaryBarChart(panelSummary: List<PanelPVSummary>, panels: List<Panel>) {
 
     if (zoomedIdx >= 0) {
         val panelId  = panelIds[zoomedIdx]
-        val name     = panels.firstOrNull { it.panelIndex == panelId }?.panelName ?: "Panel $panelId"
+        val name     = panels.firstOrNull { it.panelIndex == panelId }?.panelName
+            ?: stringResource(R.string.ui2_dash_panel_n, panelId)
         val monthMap = grouped[panelId]?.associate { (it.month.toIntOrNull() ?: 1) to it.tot } ?: emptyMap()
         val dist     = (1..12).map { m -> monthMap[m] ?: 0.0 }
         val size     = with(density) { (minOf(containerSize.width, containerSize.height) * 1.0f).toDp() }
@@ -1625,7 +1662,7 @@ private fun <R> CostingsTableWithBandPie(
         val table: @Composable () -> Unit = {
             PinnedScrollTable(
                 rows = rows,
-                pinnedHeader = "Plan",
+                pinnedHeader = stringResource(R.string.ui2_cmp_plan),
                 pinnedWeight = 2f,
                 pinnedCell = pinnedCell,
                 columns = columns,
@@ -1636,8 +1673,8 @@ private fun <R> CostingsTableWithBandPie(
                 },
                 footer = {
                     Text(
-                        if (wide) "Tap a row to update the band chart →"
-                        else "Tap a row to see tariff band breakdown  ↗",
+                        stringResource(if (wide) R.string.ui2_dash_tap_row_wide
+                                       else R.string.ui2_dash_tap_row_compact),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -1668,7 +1705,7 @@ private fun <R> CostingsTableWithBandPie(
                                 Spacer(Modifier.height(8.dp))
                                 PieLegend(slices = slices)
                             } else {
-                                Text("No band breakdown for this plan",
+                                Text(stringResource(R.string.ui2_dash_no_bands),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
@@ -1722,7 +1759,7 @@ private fun AllCostingsTable(
 
     if (visible.isEmpty() && costings.isNotEmpty()) {
         Text(
-            "No active price plans — activate one via Supplier Plans",
+            stringResource(R.string.ui2_dash_no_active_plans),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -1732,7 +1769,7 @@ private fun AllCostingsTable(
     val firstId = visible.firstOrNull()?.pricePlanID
     val columns = listOf(
         PinnedScrollColumn<Costings>(
-            header = "Net",
+            header = stringResource(R.string.ui2_dash_net),
             accent = { it.pricePlanID == firstId },
             cell = { c ->
                 Text(df.format(c.net / 100.0),
@@ -1743,17 +1780,17 @@ private fun AllCostingsTable(
                         MaterialTheme.colorScheme.primary else Color.Unspecified)
             }
         ),
-        PinnedScrollColumn<Costings>(header = "Buy", cell = { c ->
+        PinnedScrollColumn<Costings>(header = stringResource(R.string.ui2_dash_buy), cell = { c ->
             Text(df.format(c.buy / 100.0),
                 style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
                 maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
         }),
-        PinnedScrollColumn<Costings>(header = "Sell", cell = { c ->
+        PinnedScrollColumn<Costings>(header = stringResource(R.string.ui2_dash_sell), cell = { c ->
             Text(df.format(c.sell / 100.0),
                 style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
                 maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
         }),
-        PinnedScrollColumn<Costings>(header = "Fixed", cell = { c ->
+        PinnedScrollColumn<Costings>(header = stringResource(R.string.ui2_cmp_fixed), cell = { c ->
             val fixed = (planStandingCharges[c.pricePlanID] ?: 0.0) * (simDays / 365.0)
             Text(df.format(fixed),
                 style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
@@ -1768,7 +1805,8 @@ private fun AllCostingsTable(
             val isFav = favouritePlanId != null && favouritePlanId == c.pricePlanID
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (isFav) {
-                    Icon(Icons.Default.Star, contentDescription = "Your current plan",
+                    Icon(Icons.Default.Star,
+                        contentDescription = stringResource(R.string.ui2_dash_current_plan_cd),
                         modifier = Modifier.size(14.dp),
                         tint = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.width(4.dp))
@@ -1793,7 +1831,9 @@ private fun AllCostingsTable(
             if (st == null) emptyList()
             else st.prices.sortedBy { it }.mapIndexed { i, price ->
                 val kwh = st.getSubTotalForPrice(price) ?: 0.0
-                PieSlice("%.1fc".format(price), kwh, TARIFF_PIE_COLORS[i % TARIFF_PIE_COLORS.size])
+                // Region-aware minor unit ("c" / "p"), not a hardcoded cent.
+                PieSlice("%.1f".format(price) + RegionProfiles.current.minorSymbol,
+                    kwh, TARIFF_PIE_COLORS[i % TARIFF_PIE_COLORS.size])
             }.filter { it.value > 0 }
         }
     )
@@ -1815,7 +1855,8 @@ private fun DataSourcePVBarChart(pvData: List<Pair<String, Double>>) {
     val kwhDf  = remember { DecimalFormat("#,##0.0") }
 
     Column(modifier = Modifier.fillMaxWidth().clickable { zoomed = true }) {
-        Text("Solar: ${kwhDf.format(total)} kWh  ↗", style = MaterialTheme.typography.labelSmall,
+        Text(stringResource(R.string.ui2_dash_solar_total, kwhDf.format(total)) + "  ↗",
+            style = MaterialTheme.typography.labelSmall,
             modifier = Modifier.padding(bottom = 2.dp))
         AndroidView(
             factory = { ctx -> BarChart(ctx).apply { stylePVBarChart(this, labelColorArgb, gridColorArgb) } },
@@ -1839,7 +1880,8 @@ private fun DataSourcePVBarChart(pvData: List<Pair<String, Double>>) {
             Surface(modifier = Modifier.size(size), shape = MaterialTheme.shapes.medium, tonalElevation = 8.dp) {
                 Column(modifier = Modifier.padding(12.dp).fillMaxSize(),
                     horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("Solar Generation (kWh)", style = MaterialTheme.typography.titleSmall)
+                    Text(stringResource(R.string.ui2_dash_solar_gen),
+                        style = MaterialTheme.typography.titleSmall)
                     Spacer(Modifier.height(8.dp))
                     AndroidView(
                         factory = { ctx -> BarChart(ctx).apply { stylePVBarChart(this, labelColorArgb, gridColorArgb) } },
@@ -1876,12 +1918,13 @@ private fun DataSourceExplorePies(
 
     val isEsbn = importerType == ComparisonUIViewModel.Importer.ESBNHDF ||
         importerType == ComparisonUIViewModel.Importer.OCTOPUS
-    val charts = remember(periodTotals, isEsbn) {
+    val l = dashPieLabels()
+    val charts = remember(periodTotals, isEsbn, l) {
         if (isEsbn) {
             listOf(
-                "Import vs Export" to listOf(
-                    PieSlice("Import", periodTotals.buy,  SeriesColors.gridImport),
-                    PieSlice("Export", periodTotals.feed, SeriesColors.export)
+                l.importExport to listOf(
+                    PieSlice(l.importW, periodTotals.buy,  SeriesColors.gridImport),
+                    PieSlice(l.exportW, periodTotals.feed, SeriesColors.export)
                 )
             )
         } else {
@@ -1898,28 +1941,28 @@ private fun DataSourceExplorePies(
             val pvUsed = maxOf(0.0, periodTotals.pv2load + periodTotals.pv2bat)
                 .takeIf { it > 0 } ?: maxOf(0.0, periodTotals.pv - periodTotals.feed)
             val out = mutableListOf<Pair<String, List<PieSlice>>>()
-            out += "Self Consumption" to listOf(
-                PieSlice("PV Used", pvUsed, SeriesColors.solar),
-                PieSlice("Exported", periodTotals.feed, SeriesColors.export)
+            out += l.selfConsumption to listOf(
+                PieSlice(l.pvUsed, pvUsed, SeriesColors.solar),
+                PieSlice(l.exported, periodTotals.feed, SeriesColors.export)
             )
-            out += "Load Source" to buildList {
-                if (periodTotals.pv2load > 0) add(PieSlice("Solar",   periodTotals.pv2load, SeriesColors.solar))
-                if (periodTotals.bat2load > 0) add(PieSlice("Battery", periodTotals.bat2load, SeriesColors.battery))
-                if (gridToLoad > 0)            add(PieSlice("Grid",    gridToLoad,           SeriesColors.gridImport))
+            out += l.loadSource to buildList {
+                if (periodTotals.pv2load > 0) add(PieSlice(l.solar,   periodTotals.pv2load, SeriesColors.solar))
+                if (periodTotals.bat2load > 0) add(PieSlice(l.battery, periodTotals.bat2load, SeriesColors.battery))
+                if (gridToLoad > 0)            add(PieSlice(l.grid,    gridToLoad,           SeriesColors.gridImport))
                 // Pre-v2 fallback: if no flow-decomposed slices, fall back to the
                 // legacy approximation so the pie is never empty.
                 if (isEmpty()) {
                     val approxSolar = maxOf(0.0, periodTotals.load - periodTotals.buy)
-                    if (approxSolar > 0) add(PieSlice("Solar",  approxSolar,        SeriesColors.solar))
-                    if (periodTotals.buy > 0) add(PieSlice("Grid",   periodTotals.buy,   SeriesColors.gridImport))
+                    if (approxSolar > 0) add(PieSlice(l.solar,  approxSolar,        SeriesColors.solar))
+                    if (periodTotals.buy > 0) add(PieSlice(l.grid,   periodTotals.buy,   SeriesColors.gridImport))
                 }
             }
             if (periodTotals.pv > 0) {
-                out += "Solar Distribution" to buildList {
-                    if (periodTotals.pv2load > 0)  add(PieSlice("To Load",  periodTotals.pv2load, SeriesColors.house))
-                    if (periodTotals.pv2bat > 0)   add(PieSlice("Battery",  periodTotals.pv2bat,  SeriesColors.pvToBattery))
-                    if (periodTotals.evActual > 0) add(PieSlice("EV",       periodTotals.evActual, SeriesColors.ev))
-                    if (periodTotals.feed > 0)     add(PieSlice("Exported", periodTotals.feed,    SeriesColors.export))
+                out += l.solarDistribution to buildList {
+                    if (periodTotals.pv2load > 0)  add(PieSlice(l.toLoad,   periodTotals.pv2load, SeriesColors.house))
+                    if (periodTotals.pv2bat > 0)   add(PieSlice(l.battery,  periodTotals.pv2bat,  SeriesColors.pvToBattery))
+                    if (periodTotals.evActual > 0) add(PieSlice(l.ev,       periodTotals.evActual, SeriesColors.ev))
+                    if (periodTotals.feed > 0)     add(PieSlice(l.exported, periodTotals.feed,    SeriesColors.export))
                 }
             }
             val batteryActive = periodTotals.charging > 0 || periodTotals.discharging > 0 ||
@@ -1927,19 +1970,19 @@ private fun DataSourceExplorePies(
                     periodTotals.bat2load > 0 || periodTotals.bat2grid > 0
             if (batteryActive) {
                 val flows = buildList {
-                    if (periodTotals.pv2bat > 0)   add(PieSlice("Solar In", periodTotals.pv2bat,   SeriesColors.pvToBattery))
-                    if (periodTotals.grid2bat > 0) add(PieSlice("Grid In",  periodTotals.grid2bat, SeriesColors.gridToBattery))
-                    if (periodTotals.bat2load > 0) add(PieSlice("To Load",  periodTotals.bat2load, SeriesColors.battery))
-                    if (periodTotals.bat2grid > 0) add(PieSlice("To Grid",  periodTotals.bat2grid, SeriesColors.batteryToGrid))
+                    if (periodTotals.pv2bat > 0)   add(PieSlice(l.solarIn, periodTotals.pv2bat,   SeriesColors.pvToBattery))
+                    if (periodTotals.grid2bat > 0) add(PieSlice(l.gridIn,  periodTotals.grid2bat, SeriesColors.gridToBattery))
+                    if (periodTotals.bat2load > 0) add(PieSlice(l.toLoad,  periodTotals.bat2load, SeriesColors.battery))
+                    if (periodTotals.bat2grid > 0) add(PieSlice(l.toGrid,  periodTotals.bat2grid, SeriesColors.batteryToGrid))
                     // Pre-v2 fallback: no flow decomposition yet, so show net battery
                     // throughput from the legacy charge/discharge columns. Migration
                     // upgrades this to the four-source breakdown above.
                     if (isEmpty()) {
-                        if (periodTotals.charging > 0)    add(PieSlice("Charge",    periodTotals.charging,    SeriesColors.batteryCharge))
-                        if (periodTotals.discharging > 0) add(PieSlice("Discharge", periodTotals.discharging, SeriesColors.batteryDischarge))
+                        if (periodTotals.charging > 0)    add(PieSlice(l.charge,    periodTotals.charging,    SeriesColors.batteryCharge))
+                        if (periodTotals.discharging > 0) add(PieSlice(l.discharge, periodTotals.discharging, SeriesColors.batteryDischarge))
                     }
                 }
-                if (flows.isNotEmpty()) out += "Battery Flows" to flows
+                if (flows.isNotEmpty()) out += l.batteryFlows to flows
             }
             out
         }
@@ -2022,8 +2065,8 @@ private fun DataSourceCostingsTable(
     val visible = costings.filter { it.active }
     if (visible.isEmpty()) {
         Text(
-            if (costings.isEmpty()) "No price plans configured"
-            else "No active price plans — activate one via Supplier Plans",
+            stringResource(if (costings.isEmpty()) R.string.ui2_dash_no_plans
+                           else R.string.ui2_dash_no_active_plans),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
@@ -2032,7 +2075,7 @@ private fun DataSourceCostingsTable(
     val firstId = visible.firstOrNull()?.pricePlanId
     val columns = listOf(
         PinnedScrollColumn<DataSourceCostingRow>(
-            header = "Net",
+            header = stringResource(R.string.ui2_dash_net),
             accent = { it.pricePlanId == firstId },
             cell = { row ->
                 Text(df.format(row.net / 100.0),
@@ -2043,17 +2086,17 @@ private fun DataSourceCostingsTable(
                         MaterialTheme.colorScheme.primary else Color.Unspecified)
             }
         ),
-        PinnedScrollColumn<DataSourceCostingRow>(header = "Buy", cell = { row ->
+        PinnedScrollColumn<DataSourceCostingRow>(header = stringResource(R.string.ui2_dash_buy), cell = { row ->
             Text(df.format(row.buy / 100.0),
                 style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
                 maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
         }),
-        PinnedScrollColumn<DataSourceCostingRow>(header = "Sell", cell = { row ->
+        PinnedScrollColumn<DataSourceCostingRow>(header = stringResource(R.string.ui2_dash_sell), cell = { row ->
             Text(df.format(row.sell / 100.0),
                 style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
                 maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
         }),
-        PinnedScrollColumn<DataSourceCostingRow>(header = "Fixed", cell = { row ->
+        PinnedScrollColumn<DataSourceCostingRow>(header = stringResource(R.string.ui2_cmp_fixed), cell = { row ->
             Text(df.format(row.fixed),
                 style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
                 maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
@@ -2067,7 +2110,8 @@ private fun DataSourceCostingsTable(
             val isFav = favouritePlanId != null && favouritePlanId == row.pricePlanId
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (isFav) {
-                    Icon(Icons.Default.Star, contentDescription = "Your current plan",
+                    Icon(Icons.Default.Star,
+                        contentDescription = stringResource(R.string.ui2_dash_current_plan_cd),
                         modifier = Modifier.size(14.dp),
                         tint = MaterialTheme.colorScheme.primary)
                     Spacer(Modifier.width(4.dp))
@@ -2092,7 +2136,9 @@ private fun DataSourceCostingsTable(
             if (st == null) emptyList()
             else st.prices.sortedBy { it }.mapIndexed { i, price ->
                 val kwh = st.getSubTotalForPrice(price) ?: 0.0
-                PieSlice("%.1fc".format(price), kwh, TARIFF_PIE_COLORS[i % TARIFF_PIE_COLORS.size])
+                // Region-aware minor unit ("c" / "p"), not a hardcoded cent.
+                PieSlice("%.1f".format(price) + RegionProfiles.current.minorSymbol,
+                    kwh, TARIFF_PIE_COLORS[i % TARIFF_PIE_COLORS.size])
             }.filter { it.value > 0 }
         }
     )
@@ -2112,17 +2158,21 @@ private fun DataSourceDistributionCharts(distribution: UsageDistribution) {
     var zoomedIdx by remember { mutableIntStateOf(-1) }
 
     val hourLabels  = remember { (0..23).map { "%02d".format(it) } }
-    val dayLabels   = remember { listOf("Sun","Mon","Tue","Wed","Thu","Fri","Sat") }
-    val monthLabels = remember { listOf("Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec") }
+    val dayLabels   = stringArrayResource(R.array.ui2_days_short_sun_first).toList()
+    val monthLabels = stringArrayResource(R.array.ui2_months_short).toList()
 
     // ESBN has no load series, so its distributions fall back to grid import —
     // label them accordingly. Every other importer buckets actual load.
-    val metric = if (distribution.basedOnLoad) "Load" else "Import"
+    val metric = stringResource(
+        if (distribution.basedOnLoad) R.string.ui2_graphs_load else R.string.ui2_dash_import)
+    val hourlyTitle  = stringResource(R.string.ui2_dash_hourly_pct)
+    val dailyTitle   = stringResource(R.string.ui2_dash_daily_pct)
+    val monthlyTitle = stringResource(R.string.ui2_dash_monthly_pct)
     val charts = remember(distribution, metric) {
         listOf(
-            Triple("$metric Hourly (%)",   distribution.hourly,   hourLabels),
-            Triple("$metric Daily (%)",    distribution.daily,    dayLabels),
-            Triple("$metric Monthly (%)",  distribution.monthly,  monthLabels)
+            Triple("$metric $hourlyTitle",  distribution.hourly,   hourLabels),
+            Triple("$metric $dailyTitle",   distribution.daily,    dayLabels),
+            Triple("$metric $monthlyTitle", distribution.monthly,  monthLabels)
         )
     }
 
@@ -2189,6 +2239,47 @@ private fun DataSourceDistributionCharts(distribution: UsageDistribution) {
 
 data class PieSlice(val label: String, val value: Double, val color: Color)
 
+/** Pie titles/slice names resolved from resources in the composable and handed
+ *  to the (non-composable) chart builders inside `remember` blocks. Reuses the
+ *  ui2_graphs_* vocabulary so the dashboard pies match the Graphs tab. */
+private data class DashPieLabels(
+    val selfConsumption: String, val loadSource: String, val solarDistribution: String,
+    val batteryFlows: String, val loadDistribution: String, val importExport: String,
+    val pvUsed: String, val exported: String, val solar: String, val battery: String,
+    val grid: String, val toLoad: String, val toGrid: String, val solarIn: String,
+    val gridIn: String, val ev: String, val hotWater: String, val house: String,
+    val sold: String, val bought: String, val importW: String, val exportW: String,
+    val charge: String, val discharge: String
+)
+
+@Composable
+private fun dashPieLabels() = DashPieLabels(
+    selfConsumption   = stringResource(R.string.ui2_graphs_self_consumption),
+    loadSource        = stringResource(R.string.ui2_graphs_load_source),
+    solarDistribution = stringResource(R.string.ui2_graphs_solar_distribution),
+    batteryFlows      = stringResource(R.string.ui2_graphs_battery_flows),
+    loadDistribution  = stringResource(R.string.ui2_dash_load_distribution),
+    importExport      = stringResource(R.string.ui2_dash_import_export),
+    pvUsed            = stringResource(R.string.ui2_graphs_pv_used),
+    exported          = stringResource(R.string.ui2_graphs_exported),
+    solar             = stringResource(R.string.ui2_graphs_solar),
+    battery           = stringResource(R.string.ui2_graphs_battery),
+    grid              = stringResource(R.string.ui2_graphs_grid),
+    toLoad            = stringResource(R.string.ui2_graphs_to_load),
+    toGrid            = stringResource(R.string.ui2_graphs_to_grid),
+    solarIn           = stringResource(R.string.ui2_graphs_solar_in),
+    gridIn            = stringResource(R.string.ui2_graphs_grid_in),
+    ev                = stringResource(R.string.ui2_graphs_ev),
+    hotWater          = stringResource(R.string.ui2_graphs_hot_water),
+    house             = stringResource(R.string.ui2_dash_house),
+    sold              = stringResource(R.string.ui2_dash_sold),
+    bought            = stringResource(R.string.ui2_dash_bought),
+    importW           = stringResource(R.string.ui2_dash_import),
+    exportW           = stringResource(R.string.ui2_graphs_export),
+    charge            = stringResource(R.string.ui2_dash_charge),
+    discharge         = stringResource(R.string.ui2_dash_discharge)
+)
+
 @Composable
 fun PieChart(slices: List<PieSlice>, modifier: Modifier = Modifier, isDonut: Boolean = false) {
     val holeColor = MaterialTheme.colorScheme.surface
@@ -2224,27 +2315,28 @@ fun PieLegend(slices: List<PieSlice>) {
 fun SimulationPieCharts(kpis: SimKPIs) {
     var zoomedChart by remember { mutableIntStateOf(-1) }
 
-    val charts = remember(kpis) {
+    val l = dashPieLabels()
+    val charts = remember(kpis, l) {
         listOf(
-            "Self Consumption" to listOf(
-                PieSlice("PV Used", maxOf(0.0, kpis.generated - kpis.sold), SeriesColors.solar),
-                PieSlice("Sold", kpis.sold, SeriesColors.export)
+            l.selfConsumption to listOf(
+                PieSlice(l.pvUsed, maxOf(0.0, kpis.generated - kpis.sold), SeriesColors.solar),
+                PieSlice(l.sold, kpis.sold, SeriesColors.export)
             ),
-            "Load Source" to listOf(
-                PieSlice("Solar", maxOf(0.0, kpis.totalLoad - kpis.bought), SeriesColors.solar),
-                PieSlice("Bought", kpis.bought, SeriesColors.gridImport)
+            l.loadSource to listOf(
+                PieSlice(l.solar, maxOf(0.0, kpis.totalLoad - kpis.bought), SeriesColors.solar),
+                PieSlice(l.bought, kpis.bought, SeriesColors.gridImport)
             ),
-            "Solar Distribution" to listOf(
-                PieSlice("To Load", kpis.pvToLoad, SeriesColors.house),
-                PieSlice("Battery", kpis.pvToCharge, SeriesColors.pvToBattery),
-                PieSlice("EV", kpis.evDiv, SeriesColors.ev),
-                PieSlice("Hot Water", kpis.h2oDiv, SeriesColors.hotWater),
-                PieSlice("Sold", kpis.sold, SeriesColors.export)
+            l.solarDistribution to listOf(
+                PieSlice(l.toLoad, kpis.pvToLoad, SeriesColors.house),
+                PieSlice(l.battery, kpis.pvToCharge, SeriesColors.pvToBattery),
+                PieSlice(l.ev, kpis.evDiv, SeriesColors.ev),
+                PieSlice(l.hotWater, kpis.h2oDiv, SeriesColors.hotWater),
+                PieSlice(l.sold, kpis.sold, SeriesColors.export)
             ),
-            "Load Distribution" to listOf(
-                PieSlice("House", kpis.house, SeriesColors.house),
-                PieSlice("Hot Water", kpis.h20, SeriesColors.hotWater),
-                PieSlice("EV", kpis.ev, SeriesColors.ev)
+            l.loadDistribution to listOf(
+                PieSlice(l.house, kpis.house, SeriesColors.house),
+                PieSlice(l.hotWater, kpis.h20, SeriesColors.hotWater),
+                PieSlice(l.ev, kpis.ev, SeriesColors.ev)
             )
         )
     }
@@ -2345,14 +2437,15 @@ fun ExpandableCard(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Edit,
-                            contentDescription = "Edit",
+                            contentDescription = stringResource(R.string.ui2_edit),
                             modifier = Modifier.size(20.dp)
                         )
                     }
                 }
                 Icon(
                     imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                    contentDescription = if (expanded) "Collapse" else "Expand"
+                    contentDescription = stringResource(
+                        if (expanded) R.string.ui2_collapse else R.string.ui2_expand)
                 )
             }
             if (expanded) {
@@ -2506,9 +2599,12 @@ private fun TopologyDiagram(sc: ScenarioComponents) {
         // ── Card layer ────────────────────────────────────────────
         // Inverter (centre)
         TopologyNode(
-            label = inverters.firstOrNull()?.inverterName ?: "(no inverter)",
+            label = inverters.firstOrNull()?.inverterName
+                ?: stringResource(R.string.ui2_dash_no_inverter_node),
             subline = if (hasInverter)
-                "${"%.1f".format(inverters.first().maxInverterLoad)} kW · ${inverters.first().mpptCount} MPPT"
+                stringResource(R.string.ui2_dash_inv_subline,
+                    "%.1f".format(inverters.first().maxInverterLoad),
+                    inverters.first().mpptCount)
             else null,
             iconRes = R.drawable.inverter,
             highlight = true,
@@ -2517,7 +2613,7 @@ private fun TopologyDiagram(sc: ScenarioComponents) {
                 .offset(x = invLeft, y = invTop)
         )
         if (inverters.size > 1) {
-            Text("+${inverters.size - 1} more",
+            Text(stringResource(R.string.ui2_dash_n_more, inverters.size - 1),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.outline,
                 modifier = Modifier.offset(x = invLeft + 4.dp, y = invTop + invH + 2.dp))
@@ -2533,7 +2629,7 @@ private fun TopologyDiagram(sc: ScenarioComponents) {
                     label = p.panelName.takeIf { !it.isNullOrBlank() } ?: "S${i + 1}",
                     subline = "${p.panelCount}×${p.panelkWp}W",
                     iconRes = R.drawable.solarpanel,
-                    badge = "MPPT ${p.mppt}",
+                    badge = stringResource(R.string.ui2_dash_mppt_n, p.mppt),
                     modifier = Modifier
                         .width(cardW).height(cardH)
                         .offset(x = xPos, y = pvTop)
@@ -2571,13 +2667,13 @@ private fun TopologyDiagram(sc: ScenarioComponents) {
                          val emoji: String? = null)
             val consumers = mutableListOf<C>()
             if (hasLoad) consumers += C(
-                "House",
+                stringResource(R.string.ui2_dash_house),
                 sc.loadProfile?.annualUsage?.let { "${"%.0f".format(it)} kWh/y" },
                 R.drawable.house,
                 emptyList()
             )
             if (hasHw) consumers += C(
-                "Hot water",
+                stringResource(R.string.ui2_component_hot_water),
                 sc.hwSystem?.let { "${it.hwCapacity} L · ${it.hwRate} kW" },
                 R.drawable.waterwarm,
                 listOfNotNull(
@@ -2586,8 +2682,9 @@ private fun TopologyDiagram(sc: ScenarioComponents) {
                 )
             )
             if (hasEv) consumers += C(
-                "EV",
-                if (evCharges.isNotEmpty()) "${evCharges.size} sched" else null,
+                stringResource(R.string.ui2_component_ev),
+                if (evCharges.isNotEmpty())
+                    stringResource(R.string.ui2_dash_n_sched, evCharges.size) else null,
                 R.drawable.ev_on,
                 listOfNotNull(
                     if (evCharges.isNotEmpty()) R.drawable.ic_baseline_access_time_24 else null,
@@ -2595,9 +2692,10 @@ private fun TopologyDiagram(sc: ScenarioComponents) {
                 )
             )
             if (hasHeatPump) consumers += C(
-                "Heat pump",
+                stringResource(R.string.ui2_component_heat_pump),
                 heatPumps.first().let {
-                    "${"%.1f".format(it.capacityKw)} kW · ${if (it.weatherSource == "cds") "CDS" else "sample"}"
+                    "${"%.1f".format(it.capacityKw)} kW · " + (if (it.weatherSource == "cds") "CDS"
+                        else stringResource(R.string.ui2_dash_weather_sample_word))
                 },
                 0,                       // no drawable — rendered via the emoji below
                 emptyList(),
@@ -2624,8 +2722,8 @@ private fun TopologyDiagram(sc: ScenarioComponents) {
 
         // Grid (right)
         TopologyNode(
-            label = "Grid",
-            subline = "Import / Export",
+            label = stringResource(R.string.ui2_graphs_grid),
+            subline = stringResource(R.string.ui2_dash_import_export_sub),
             iconRes = R.drawable.baseline_file_upload_24,
             iconTinted = true,
             modifier = Modifier
@@ -2636,7 +2734,7 @@ private fun TopologyDiagram(sc: ScenarioComponents) {
         // Empty state
         if (!hasInverter && panels.isEmpty() && batteries.isEmpty() && !hasLoad && !hasHw && !hasEv && !hasHeatPump) {
             Text(
-                "Nothing to draw yet — configure components in the wizard.",
+                stringResource(R.string.ui2_dash_nothing_to_draw),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.offset(x = leftX, y = cy - 8.dp)
@@ -2730,9 +2828,12 @@ private fun TopologyLegend() {
     Row(horizontalArrangement = Arrangement.spacedBy(10.dp),
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
-        LegendItem(R.drawable.ic_baseline_access_time_24, "Schedule")
-        LegendItem(R.drawable.baseline_file_upload_24, "Discharge")
-        LegendItem(R.drawable.ic_baseline_call_split_24, "Divert")
+        LegendItem(R.drawable.ic_baseline_access_time_24,
+            stringResource(R.string.ui2_dash_legend_schedule))
+        LegendItem(R.drawable.baseline_file_upload_24,
+            stringResource(R.string.ui2_dash_discharge))
+        LegendItem(R.drawable.ic_baseline_call_split_24,
+            stringResource(R.string.ui2_dash_legend_divert))
     }
 }
 
@@ -2776,7 +2877,7 @@ private fun KpiAccordion(
     showHints: Boolean
 ) {
     ExpandableCard(
-        title = "KPIs",
+        title = stringResource(R.string.ui2_dash_kpis),
         leadingIcon = {
             Icon(painterResource(R.drawable.barchart), null, Modifier.size(24.dp),
                 tint = MaterialTheme.colorScheme.onSurface)
@@ -2828,9 +2929,9 @@ private fun KpiAccordion(
 
 @Composable
 private fun MonthFilterRow(selected: Int, onChange: (Int) -> Unit) {
-    val labelsShort = listOf("*", "J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D")
-    val labelsLong  = listOf("All", "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-                             "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+    val labelsShort = listOf("*") + stringArrayResource(R.array.ui2_months_letters)
+    val labelsLong  = listOf(stringResource(R.string.ui2_all)) +
+        stringArrayResource(R.array.ui2_months_short)
     // AdaptiveChipRow keeps all 13 on one weighted line at normal font, wraps
     // to multiple rows as the font enlarges, and collapses to a dropdown at
     // the largest tier. 3-letter labels appear in landscape (MEDIUM+).
@@ -2846,11 +2947,17 @@ private fun MonthFilterRow(selected: Int, onChange: (Int) -> Unit) {
 @Composable
 private fun KpiSummaryTable(summary: KpiSummary, df: DecimalFormat, kwhDf: DecimalFormat, showHints: Boolean) {
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        KpiRow("Self consumption",  "(PV − Feed) / PV", df.format(summary.selfConsumption) + "%", showHints)
-        KpiRow("Self sufficiency",  "(PV − Feed) / Load", df.format(summary.selfSufficiency) + "%", showHints)
-        KpiRow("Max self sufficiency", "PV / Load",      df.format(summary.maxSelfSufficiency) + "%", showHints)
-        KpiRow("Generation (kWh)",  "PV",   kwhDf.format(summary.pv), showHints)
-        KpiRow("Feed (kWh)",        "Feed", kwhDf.format(summary.feed), showHints)
+        // Formula subs stay literal — PV/Feed/Load notation, not prose.
+        KpiRow(stringResource(R.string.ui2_dash_kpi_self_consumption),
+            "(PV − Feed) / PV", df.format(summary.selfConsumption) + "%", showHints)
+        KpiRow(stringResource(R.string.ui2_dash_kpi_self_sufficiency),
+            "(PV − Feed) / Load", df.format(summary.selfSufficiency) + "%", showHints)
+        KpiRow(stringResource(R.string.ui2_dash_kpi_max_self_sufficiency),
+            "PV / Load", df.format(summary.maxSelfSufficiency) + "%", showHints)
+        KpiRow(stringResource(R.string.ui2_dash_kpi_generation),
+            "PV", kwhDf.format(summary.pv), showHints)
+        KpiRow(stringResource(R.string.ui2_dash_kpi_feed),
+            "Feed", kwhDf.format(summary.feed), showHints)
     }
 }
 
@@ -2873,20 +2980,20 @@ private fun KpiRow(label: String, sub: String, value: String, showHints: Boolean
 @Composable
 private fun KpiMonthsTable(rows: List<KpiMonthRow>, kwhDf: DecimalFormat) {
     if (rows.isEmpty()) {
-        Text("No data for the selected filter.",
+        Text(stringResource(R.string.ui2_dash_no_filter_data),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(vertical = 6.dp))
         return
     }
     val columns = listOf(
-        PinnedScrollColumn<KpiMonthRow>(header = "PV Tot", cell = { row ->
+        PinnedScrollColumn<KpiMonthRow>(header = stringResource(R.string.ui2_dash_pv_tot), cell = { row ->
             Text(kwhDf.format(row.pvTotal),
                 style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
                 maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
         }),
         PinnedScrollColumn<KpiMonthRow>(
-            header = "Best",
+            header = stringResource(R.string.ui2_dash_best),
             minWidth = AdaptiveLayout.SCROLL_COL_MIN_MIXED,
             weight = 1.4f,
             cell = { row ->
@@ -2900,7 +3007,7 @@ private fun KpiMonthsTable(rows: List<KpiMonthRow>, kwhDf: DecimalFormat) {
             }
         ),
         PinnedScrollColumn<KpiMonthRow>(
-            header = "Worst",
+            header = stringResource(R.string.ui2_dash_worst),
             minWidth = AdaptiveLayout.SCROLL_COL_MIN_MIXED,
             weight = 1.4f,
             cell = { row ->
@@ -2909,7 +3016,7 @@ private fun KpiMonthsTable(rows: List<KpiMonthRow>, kwhDf: DecimalFormat) {
                     maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
             }
         ),
-        PinnedScrollColumn<KpiMonthRow>(header = "Avg", cell = { row ->
+        PinnedScrollColumn<KpiMonthRow>(header = stringResource(R.string.ui2_dash_avg), cell = { row ->
             Text(kwhDf.format(row.average),
                 style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.End,
                 maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis)
@@ -2920,7 +3027,7 @@ private fun KpiMonthsTable(rows: List<KpiMonthRow>, kwhDf: DecimalFormat) {
     // it pins the YY-MM column and scrolls the values.
     PinnedScrollTable(
         rows = rows,
-        pinnedHeader = "YY-MM",
+        pinnedHeader = stringResource(R.string.ui2_dash_yymm),
         pinnedWeight = 1f,
         pinnedCell = { row ->
             Text(row.monthLabel, style = MaterialTheme.typography.bodySmall)
@@ -2966,14 +3073,12 @@ private fun NoActiveSubjectCard() {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                "Pick a dashboard subject",
+                stringResource(R.string.ui2_dash_pick_subject_title),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                "The scenario or data source this dashboard was set to is no " +
-                    "longer available. Open the navigation drawer and pick a " +
-                    "scenario or data source to view.",
+                stringResource(R.string.ui2_dash_pick_subject_body),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -2995,12 +3100,12 @@ private fun EmptyDashboardSampleCard() {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                "Welcome to Eco Power Optimiser",
+                stringResource(R.string.ui2_dash_welcome),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
             Text(
-                "Pick how you'd like to start:",
+                stringResource(R.string.ui2_dash_pick_start),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -3014,23 +3119,25 @@ private fun EmptyDashboardSampleCard() {
                     coroutineScope.launch {
                         val msg = when (val result = loader.load()) {
                             is SampleDataLoader.Result.AlreadyLoaded ->
-                                "Sample data already loaded"
+                                context.getString(R.string.ui2_sample_already_loaded)
                             is SampleDataLoader.Result.Loaded ->
-                                "Sample loaded · simulation running in background"
+                                context.getString(R.string.ui2_sample_loaded)
                             is SampleDataLoader.Result.Failed ->
-                                "Couldn't load sample data: ${result.error.message ?: "unknown error"}"
+                                context.getString(R.string.ui2_sample_failed,
+                                    result.error.message
+                                        ?: context.getString(R.string.ui2_unknown_error))
                         }
                         Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                     }
                 },
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Try with sample data") }
+            ) { Text(stringResource(R.string.ui2_drawer_try_sample)) }
 
             // (b) Quick mode — the simplified single-screen flow.
             OutlinedButton(
                 onClick = { relaunchInMode(context, simple = true) },
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Quick mode") }
+            ) { Text(stringResource(R.string.ui2_simple_title)) }
 
             // (c) Add a scenario — same entry point as "+ Create new" on the Scenarios tab.
             OutlinedButton(
@@ -3039,7 +3146,7 @@ private fun EmptyDashboardSampleCard() {
                         android.content.Intent(context, UI2WizardActivity::class.java))
                 },
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Add a scenario") }
+            ) { Text(stringResource(R.string.ui2_dash_add_scenario)) }
         }
     }
 }

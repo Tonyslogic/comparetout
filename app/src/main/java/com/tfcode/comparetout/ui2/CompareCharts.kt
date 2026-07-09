@@ -24,6 +24,8 @@ import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.res.stringResource
+import com.tfcode.comparetout.R
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
@@ -625,7 +627,8 @@ fun ComparePieGrid(
                         Text("${d.title}  ↗", style = MaterialTheme.typography.bodyMedium,
                             maxLines = 2, overflow = TextOverflow.Ellipsis)
                         Spacer(Modifier.height(2.dp))
-                        Text("${axisNumber(d.total)} $unit total",
+                        Text(stringResource(R.string.ui2_cmp_unit_total,
+                                axisNumber(d.total), unit),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -650,7 +653,8 @@ fun ComparePieGrid(
                             Text("${d.title}  ↗", style = MaterialTheme.typography.bodySmall,
                                 maxLines = 1, overflow = TextOverflow.Ellipsis,
                                 textAlign = TextAlign.Center)
-                            Text("${axisNumber(d.total)} $unit total",
+                            Text(stringResource(R.string.ui2_cmp_unit_total,
+                                    axisNumber(d.total), unit),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center)

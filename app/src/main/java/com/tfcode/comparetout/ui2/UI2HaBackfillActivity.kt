@@ -60,8 +60,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.tfcode.comparetout.R
 import dagger.hilt.android.AndroidEntryPoint
 import java.time.LocalDate
 
@@ -89,11 +91,11 @@ class UI2HaBackfillActivity : AppCompatActivity() {
 }
 
 private val SERIES_OPTIONS = listOf(
-    "buy" to "Grid import",
-    "feed" to "Grid export",
-    "pv" to "Solar",
-    "charge" to "Battery charge",
-    "discharge" to "Battery discharge"
+    "buy" to R.string.ui2_habf_series_buy,
+    "feed" to R.string.ui2_habf_series_feed,
+    "pv" to R.string.ui2_habf_series_pv,
+    "charge" to R.string.ui2_habf_series_charge,
+    "discharge" to R.string.ui2_habf_series_discharge
 )
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -165,10 +167,10 @@ private fun HaBackfillScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Backfill Home Assistant") },
+                title = { Text(stringResource(R.string.ui2_habf_title)) },
                 navigationIcon = {
                     IconButton(onClick = onClose) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.ui2_back))
                     }
                 }
             )
@@ -185,22 +187,20 @@ private fun HaBackfillScreen(
         ) {
             if (showHints) {
                 Text(
-                    "Push another source's stored history into Home Assistant's hourly " +
-                            "statistics — fix gaps or bad meter data. Preview compares what " +
-                            "HA holds against what will be written before anything changes.",
+                    stringResource(R.string.ui2_habf_hint),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             if (!haReady) {
-                Text("Connect Home Assistant first (Data Source Management → Home Assistant).",
+                Text(stringResource(R.string.ui2_habf_connect_first),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.error)
             }
 
-            SectionLabel("Source")
+            SectionLabel(stringResource(R.string.ui2_habf_source))
             if (sources.isEmpty()) {
-                Text("No other source has stored data to push.",
+                Text(stringResource(R.string.ui2_habf_no_sources),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -223,53 +223,47 @@ private fun HaBackfillScreen(
             }
 
             if (source != null && dataStart != null && dataEnd != null) {
-                SectionLabel("Series")
+                SectionLabel(stringResource(R.string.ui2_habf_series))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    SERIES_OPTIONS.forEach { (key, label) ->
+                    SERIES_OPTIONS.forEach { (key, labelRes) ->
                         FilterChip(
                             selected = key in series,
                             enabled = key in provided,
                             onClick = {
                                 series = if (key in series) series - key else series + key
                             },
-                            label = { Text(label) }
+                            label = { Text(stringResource(labelRes)) }
                         )
                     }
                 }
 
-                SectionLabel("Target")
+                SectionLabel(stringResource(R.string.ui2_habf_target))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     // The preview compares stored data, so the target choice
                     // doesn't invalidate it — no clear.
                     FilterChip(
                         selected = fixReal,
                         onClick = { fixReal = true },
-                        label = { Text("Fix my sensor statistics") }
+                        label = { Text(stringResource(R.string.ui2_habf_fix_real)) }
                     )
                     FilterChip(
                         selected = !fixReal,
                         onClick = { fixReal = false },
-                        label = { Text("Separate app-owned series") }
+                        label = { Text(stringResource(R.string.ui2_habf_separate)) }
                     )
                 }
-                val targetCaption = when {
-                    fixReal && haveSensors ->
-                        "Overwrites the selected range of your HA sensor statistics " +
-                                "(hourly); later totals are shifted so history stays consistent."
-                    fixReal ->
-                        "Overwrites the selected range of your HA sensor statistics " +
-                                "(hourly). Discover sensors first."
-                    else ->
-                        "Writes comparetout:* statistics alongside your sensors — " +
-                                "non-destructive, easy to remove in HA."
-                }
+                val targetCaption = stringResource(when {
+                    fixReal && haveSensors -> R.string.ui2_habf_caption_fix_ready
+                    fixReal -> R.string.ui2_habf_caption_fix_discover
+                    else -> R.string.ui2_habf_caption_separate
+                })
                 Text(targetCaption,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
 
                 // Timeframe sits last, right above the charts it drives — the
                 // arrows and the discrepancy walk both re-anchor what's shown.
-                SectionLabel("Timeframe")
+                SectionLabel(stringResource(R.string.ui2_timeframe))
                 PeriodSelector(
                     selectedPeriod = period,
                     anchorDate = anchor,
@@ -302,7 +296,7 @@ private fun HaBackfillScreen(
                                 viewModel.startBackfill(source.sysSn, f, t, !fixReal, series.toList())
                             }
                         }
-                    ) { Text("Backfill range") }
+                    ) { Text(stringResource(R.string.ui2_habf_backfill_range)) }
                     preview?.takeIf { !it.hourly && it.discrepancies.isNotEmpty() }?.let { p ->
                         OutlinedButton(onClick = {
                             val days = p.discrepancies.mapNotNull { i ->
@@ -314,7 +308,8 @@ private fun HaBackfillScreen(
                                 anchor = days.first()
                                 period = DataSourcePeriod.YESTERDAY
                             }
-                        }) { Text("Show discrepancies (${p.discrepancies.size})") }
+                        }) { Text(stringResource(R.string.ui2_habf_show_discrepancies,
+                            p.discrepancies.size)) }
                     }
                 }
 
@@ -326,7 +321,8 @@ private fun HaBackfillScreen(
                     if (p.hourly && discrepancyDays.isNotEmpty()) {
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically) {
-                            Text("Discrepancy day ${discrepancyIndex + 1} of ${discrepancyDays.size}",
+                            Text(stringResource(R.string.ui2_habf_discrepancy_day,
+                                    discrepancyIndex + 1, discrepancyDays.size),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                             OutlinedButton(
@@ -336,25 +332,23 @@ private fun HaBackfillScreen(
                                             discrepancyDays.size) % discrepancyDays.size
                                     anchor = discrepancyDays[discrepancyIndex]
                                 }
-                            ) { Text("Previous") }
+                            ) { Text(stringResource(R.string.ui2_previous)) }
                             OutlinedButton(
                                 enabled = discrepancyDays.size > 1,
                                 onClick = {
                                     discrepancyIndex = (discrepancyIndex + 1) % discrepancyDays.size
                                     anchor = discrepancyDays[discrepancyIndex]
                                 }
-                            ) { Text("Next") }
+                            ) { Text(stringResource(R.string.ui2_next)) }
                         }
                     }
 
                     HaBackfillPreviewCharts(p, source.sysSn)
 
                     if (p.hourly) {
-                        SectionLabel("Repair a single hour")
+                        SectionLabel(stringResource(R.string.ui2_habf_repair_hour))
                         if (showHints) {
-                            Text("Hours where Home Assistant disagrees with the source " +
-                                    "are marked ⚠. Pick one to compare the values and " +
-                                    "backfill just that hour.",
+                            Text(stringResource(R.string.ui2_habf_repair_hint),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
@@ -402,8 +396,9 @@ private fun SectionLabel(text: String) {
     )
 }
 
+@Composable
 private fun seriesLabel(key: String): String =
-    SERIES_OPTIONS.firstOrNull { it.first == key }?.second ?: key
+    SERIES_OPTIONS.firstOrNull { it.first == key }?.second?.let { stringResource(it) } ?: key
 
 /**
  * The look-before-you-overwrite preview: one chart per subject — the source
@@ -417,14 +412,16 @@ private fun HaBackfillPreviewCharts(preview: HaBackfillPreview, sourceName: Stri
     val defs = preview.seriesKeys.map { key ->
         SeriesDef(key, seriesLabel(key), compareSeriesColor(key, primary, isEnergy = true))
     }
-    val caption = if (preview.hourly) "hourly kWh" else "daily kWh"
+    val caption = stringResource(
+        if (preview.hourly) R.string.ui2_habf_hourly_kwh else R.string.ui2_habf_daily_kwh)
     // Shared y-scale — a value present in one graph but not the other must
     // stand out, not be re-normalised away.
     val yMax = (preview.source.values + preview.ha.values)
         .flatten().maxOrNull()?.takeIf { it > 0.0 } ?: 1.0
 
     BackfillSubjectChart(sourceName, defs, preview.labels, preview.source, yMax, caption)
-    BackfillSubjectChart("Home Assistant", defs, preview.labels, preview.ha, yMax, caption)
+    BackfillSubjectChart(stringResource(R.string.home_assistant),
+        defs, preview.labels, preview.ha, yMax, caption)
 
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically) {
@@ -483,18 +480,17 @@ private fun HourRepairCard(
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text("Hour ${preview.labels[hourIndex]}",
+            Text(stringResource(R.string.ui2_habf_hour, preview.labels[hourIndex]),
                 style = MaterialTheme.typography.labelMedium)
             preview.seriesKeys.forEach { key ->
                 val s = preview.source[key]?.getOrNull(hourIndex) ?: 0.0
                 val h = preview.ha[key]?.getOrNull(hourIndex) ?: 0.0
-                Text(String.format(java.util.Locale.UK,
-                        "%s — %s: %.2f kWh · Home Assistant: %.2f kWh",
+                Text(stringResource(R.string.ui2_habf_hour_values,
                         seriesLabel(key), sourceName, s, h),
                     style = MaterialTheme.typography.bodySmall)
             }
             Button(enabled = commitEnabled, onClick = onBackfillHour) {
-                Text("Backfill this hour")
+                Text(stringResource(R.string.ui2_habf_backfill_hour))
             }
         }
     }

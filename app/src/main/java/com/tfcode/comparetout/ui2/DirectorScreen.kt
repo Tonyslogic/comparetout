@@ -71,7 +71,10 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import com.tfcode.comparetout.R
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -127,10 +130,10 @@ fun DirectorScreen(
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
-                title = { Text("Directors") },
+                title = { Text(stringResource(R.string.ui2_settings_directors)) },
                 actions = {
                     IconButton(onClick = { showDrawer = true }) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menu")
+                        Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.ui2_menu))
                     }
                 },
                 scrollBehavior = scrollBehavior
@@ -184,8 +187,7 @@ fun DirectorScreen(
                         if (novice) {
                             item("hint") {
                                 Text(
-                                    "Components shared by 2 or more scenarios. Editing one updates every " +
-                                        "linked scenario; changes are cached until you Save.",
+                                    stringResource(R.string.ui2_director_hint),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
@@ -261,15 +263,17 @@ fun DirectorScreen(
         val canUnlink = target.instance.subject.supportsUnlink
         AlertDialog(
             onDismissRequest = { removeTarget = null },
-            title = { Text("Unlink · $scenarioName") },
+            title = { Text(stringResource(R.string.ui2_director_unlink_title, scenarioName)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Stop sharing \"${target.instance.name}\" with $scenarioName?",
+                    Text(stringResource(R.string.ui2_director_unlink_body,
+                            target.instance.name, scenarioName),
                         style = MaterialTheme.typography.bodyMedium)
                     if (canUnlink) {
                         DialogAction(
-                            "Remove component from scenario",
-                            "$scenarioName will no longer have this ${target.instance.subject.label.lowercase()}.",
+                            stringResource(R.string.ui2_director_remove_action),
+                            stringResource(R.string.ui2_director_remove_sub,
+                                scenarioName, target.instance.subject.label.lowercase()),
                             Color(0xFFE15A52)
                         ) {
                             viewModel.queueEdit(target.instance.subject, target.instance.componentId,
@@ -278,8 +282,8 @@ fun DirectorScreen(
                         }
                     }
                     DialogAction(
-                        "Fork (copy) for this scenario",
-                        "Give this scenario its own editable copy of the component.",
+                        stringResource(R.string.ui2_director_fork_action),
+                        stringResource(R.string.ui2_director_fork_sub),
                         Color(0xFFF3A93B)
                     ) {
                         viewModel.queueEdit(target.instance.subject, target.instance.componentId,
@@ -287,14 +291,18 @@ fun DirectorScreen(
                         removeTarget = null
                     }
                     if (!canUnlink) {
-                        Text("This component type cannot be unlinked from the Directors — fork it instead.",
+                        Text(stringResource(R.string.ui2_director_no_unlink_note),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             },
             confirmButton = {},
-            dismissButton = { TextButton(onClick = { removeTarget = null }) { Text("Cancel") } }
+            dismissButton = {
+                TextButton(onClick = { removeTarget = null }) {
+                    Text(stringResource(R.string.dialog_cancel))
+                }
+            }
         )
     }
 
@@ -303,11 +311,11 @@ fun DirectorScreen(
         val shown = displayedChips(inst, state).map { it.first.id }.toSet()
         val available = state.scenarios.filter { it.id !in shown }
         PickerDialog(
-            title = "Link ${inst.subject.label}",
-            subtitle = "Add \"${inst.name}\" to a scenario:",
+            title = stringResource(R.string.ui2_director_link_title, inst.subject.label),
+            subtitle = stringResource(R.string.ui2_director_link_sub, inst.name),
             rows = available.map { it.name to { viewModel.queueEdit(
                 inst.subject, inst.componentId, it.id, DirectorEditOp.LINK); linkTarget = null } },
-            emptyText = "Already linked to every scenario.",
+            emptyText = stringResource(R.string.ui2_director_link_empty),
             onDismiss = { linkTarget = null }
         )
     }
@@ -321,15 +329,15 @@ fun DirectorScreen(
             pickSubjectFor = null
         } else {
             PickerDialog(
-                title = "Link new ${group.label.lowercase()}",
-                subtitle = "Which ${group.label.lowercase()} item would you like to share?",
+                title = stringResource(R.string.ui2_director_link_new_title, group.label.lowercase()),
+                subtitle = stringResource(R.string.ui2_director_link_new_sub, group.label.lowercase()),
                 rows = choices.map { subj ->
                     subj.label to {
                         seedSubject = subj
                         pickSubjectFor = null
                     }
                 },
-                emptyText = "No subjects available.",
+                emptyText = stringResource(R.string.ui2_director_no_subjects),
                 onDismiss = { pickSubjectFor = null }
             )
         }
@@ -342,9 +350,8 @@ fun DirectorScreen(
                 !state.seeded.contains(DirectorSeedKey(it.subject, it.componentId))
         }
         PickerDialog(
-            title = "Seed shared ${subj.label.lowercase()}",
-            subtitle = "Pick a scenario whose ${subj.label.lowercase()} to share. " +
-                "It becomes the seed — link more scenarios to it afterwards.",
+            title = stringResource(R.string.ui2_director_seed_title, subj.label.lowercase()),
+            subtitle = stringResource(R.string.ui2_director_seed_sub, subj.label.lowercase()),
             rows = candidates.map { inst ->
                 val sName = state.scenarios.firstOrNull { it.id == inst.linked.first() }?.name ?: "?"
                 "$sName  ·  ${inst.name}" to {
@@ -353,7 +360,7 @@ fun DirectorScreen(
                     seedSubject = null
                 }
             },
-            emptyText = "No scenario has an unshared ${subj.label.lowercase()} to share.",
+            emptyText = stringResource(R.string.ui2_director_seed_empty, subj.label.lowercase()),
             onDismiss = { seedSubject = null }
         )
     }
@@ -362,10 +369,10 @@ fun DirectorScreen(
     if (confirmDiscard) {
         AlertDialog(
             onDismissRequest = { confirmDiscard = false },
-            title = { Text("Discard unsaved changes?") },
+            title = { Text(stringResource(R.string.ui2_director_discard_title)) },
             text = {
                 Text(
-                    "You have pending link / unlink / fork edits. Closing now will discard them.",
+                    stringResource(R.string.ui2_director_discard_body),
                     style = MaterialTheme.typography.bodyMedium
                 )
             },
@@ -374,10 +381,12 @@ fun DirectorScreen(
                     viewModel.discardAll()
                     confirmDiscard = false
                     onClose()
-                }) { Text("Discard & close") }
+                }) { Text(stringResource(R.string.ui2_director_discard_confirm)) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmDiscard = false }) { Text("Keep editing") }
+                TextButton(onClick = { confirmDiscard = false }) {
+                    Text(stringResource(R.string.ui2_director_keep_editing))
+                }
             }
         )
     }
@@ -420,7 +429,7 @@ private fun DirectorActionBar(
     ) {
         Column(Modifier.padding(10.dp)) {
             if (novice) {
-                Text("Commit shared-component changes",
+                Text(stringResource(R.string.ui2_director_commit_hint),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(6.dp))
@@ -442,20 +451,24 @@ private fun DirectorActionBar(
                                     Box(Modifier.size(7.dp).background(
                                         MaterialTheme.colorScheme.onPrimary, CircleShape))
                                     Spacer(Modifier.width(6.dp))
-                                    Text("Save")
+                                    Text(stringResource(R.string.ui2_save))
                                 }
                             } else {
                                 OutlinedButton(onClick = onSave, enabled = false,
-                                    modifier = Modifier.fillMaxWidth()) { Text("Save") }
+                                    modifier = Modifier.fillMaxWidth()) {
+                                    Text(stringResource(R.string.ui2_save))
+                                }
                             }
                         DirectorFooterAction.RUN ->
                             Button(onClick = onRun, enabled = !saving,
                                 modifier = Modifier.fillMaxWidth()) {
-                                Text("Run simulation")
+                                Text(stringResource(R.string.ui2_director_run_sim))
                             }
                         DirectorFooterAction.CLOSE ->
                             OutlinedButton(onClick = onClose,
-                                modifier = Modifier.fillMaxWidth()) { Text("Close") }
+                                modifier = Modifier.fillMaxWidth()) {
+                                Text(stringResource(R.string.ui2_close))
+                            }
                     }
                 }
             }
@@ -497,7 +510,8 @@ private fun GroupAccordion(
                 Column(Modifier.weight(1f)) {
                     Text(group.label, style = MaterialTheme.typography.titleMedium)
                     Text(
-                        "${instances.size} ${if (instances.size == 1) "linked group" else "linked groups"}",
+                        pluralStringResource(R.plurals.ui2_director_linked_groups,
+                            instances.size, instances.size),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -510,7 +524,7 @@ private fun GroupAccordion(
                     ) {
                         Icon(
                             imageVector = Icons.Default.Add,
-                            contentDescription = "Link new",
+                            contentDescription = stringResource(R.string.ui2_director_link_new_cd),
                             modifier = Modifier.size(22.dp),
                             tint = MaterialTheme.colorScheme.primary
                         )
@@ -518,7 +532,8 @@ private fun GroupAccordion(
                 }
                 Icon(
                     imageVector = if (open) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                    contentDescription = if (open) "Collapse" else "Expand"
+                    contentDescription = stringResource(
+                        if (open) R.string.ui2_collapse else R.string.ui2_expand)
                 )
             }
             if (open) {
@@ -526,7 +541,7 @@ private fun GroupAccordion(
                     verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     if (instances.isEmpty()) {
                         Text(
-                            "No shared ${group.label.lowercase()} components. Tap + to start sharing one.",
+                            stringResource(R.string.ui2_director_empty_group, group.label.lowercase()),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -581,7 +596,7 @@ private fun GroupPanel(
                 IconButton(onClick = onEdit, modifier = Modifier.size(36.dp)) {
                     Icon(
                         imageVector = Icons.Default.Edit,
-                        contentDescription = "Edit in wizard",
+                        contentDescription = stringResource(R.string.ui2_director_edit_in_wizard),
                         modifier = Modifier.size(20.dp),
                         tint = MaterialTheme.colorScheme.primary
                     )
@@ -623,7 +638,7 @@ private fun LinkedScenariosPanel(
     onChipClick: (Long) -> Unit,
     onLink: () -> Unit
 ) {
-    Text("LINKED SCENARIOS · ${chips.size}",
+    Text(stringResource(R.string.ui2_director_linked_scenarios, chips.size).uppercase(),
         style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.SemiBold,
         color = MaterialTheme.colorScheme.onSurfaceVariant)
     Spacer(Modifier.height(6.dp))
@@ -641,7 +656,8 @@ private fun LinkedScenariosPanel(
                 Icon(Icons.Default.Add, null, modifier = Modifier.size(14.dp),
                     tint = MaterialTheme.colorScheme.primary)
                 Spacer(Modifier.width(6.dp))
-                Text("Link scenario", style = MaterialTheme.typography.labelLarge,
+                Text(stringResource(R.string.ui2_director_link_scenario),
+                    style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.primary)
             }
         }
@@ -666,16 +682,18 @@ private fun ScenarioChip(scenario: DirectorScenarioRef, kind: ChipKind, onClose:
             Text(scenario.name, style = MaterialTheme.typography.labelLarge)
             if (kind == ChipKind.FORKED) {
                 Spacer(Modifier.width(4.dp))
-                Text("FORK", style = MaterialTheme.typography.labelSmall,
+                Text(stringResource(R.string.ui2_director_fork_badge),
+                    style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold, color = Color(0xFFF3A93B))
             }
             if (kind == ChipKind.NEW) {
                 Spacer(Modifier.width(4.dp))
-                Text("NEW", style = MaterialTheme.typography.labelSmall,
+                Text(stringResource(R.string.ui2_director_new_badge),
+                    style = MaterialTheme.typography.labelSmall,
                     fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
             }
             IconButton(onClick = onClose, modifier = Modifier.size(24.dp)) {
-                Icon(Icons.Default.Clear, contentDescription = "Remove",
+                Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.ui2_remove),
                     modifier = Modifier.size(14.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
@@ -734,6 +752,8 @@ private fun PickerDialog(
             }
         },
         confirmButton = {},
-        dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } }
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.dialog_cancel)) }
+        }
     )
 }

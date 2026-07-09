@@ -71,6 +71,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.Fragment
@@ -175,10 +177,11 @@ fun ScenariosScreen(
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
-                title = { Text("Scenarios") },
+                title = { Text(stringResource(R.string.ui2_scenarios_title)) },
                 actions = {
                     IconButton(onClick = { showDrawer = true }) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menu")
+                        Icon(Icons.Default.Menu,
+                            contentDescription = stringResource(R.string.ui2_menu))
                     }
                 },
                 scrollBehavior = scrollBehavior
@@ -299,16 +302,19 @@ fun ScenariosScreen(
     showDeleteDialog?.let { sim ->
         AlertDialog(
             onDismissRequest = { showDeleteDialog = null },
-            title = { Text("Delete simulation?") },
-            text = { Text("\"${sim.scenario.scenarioName}\" will be permanently deleted.") },
+            title = { Text(stringResource(R.string.ui2_scenarios_delete_sim_title)) },
+            text = { Text(stringResource(R.string.ui2_scenarios_delete_sim_body,
+                sim.scenario.scenarioName)) },
             confirmButton = {
                 Button(onClick = {
                     viewModel.deleteSimulation(sim.scenario.scenarioIndex.toInt())
                     showDeleteDialog = null
-                }) { Text("Delete") }
+                }) { Text(stringResource(R.string.ui2_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteDialog = null }) { Text("Cancel") }
+                TextButton(onClick = { showDeleteDialog = null }) {
+                    Text(stringResource(R.string.dialog_cancel))
+                }
             }
         )
     }
@@ -316,13 +322,10 @@ fun ScenariosScreen(
     if (showDeleteAll) {
         AlertDialog(
             onDismissRequest = { showDeleteAll = false },
-            title = { Text("Delete all scenarios?") },
+            title = { Text(stringResource(R.string.ui2_scenarios_delete_all_title)) },
             text = {
-                Text(
-                    "All ${simItems.size} scenario" + (if (simItems.size == 1) "" else "s") +
-                        " will be permanently deleted, along with their simulation and costing " +
-                        "results. Data sources are not affected. There is no undo."
-                )
+                Text(pluralStringResource(R.plurals.ui2_scenarios_delete_all_body,
+                    simItems.size, simItems.size))
             },
             confirmButton = {
                 Button(
@@ -333,10 +336,12 @@ fun ScenariosScreen(
                     colors = androidx.compose.material3.ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error
                     )
-                ) { Text("Delete all") }
+                ) { Text(stringResource(R.string.ui2_scenarios_delete_all)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteAll = false }) { Text("Cancel") }
+                TextButton(onClick = { showDeleteAll = false }) {
+                    Text(stringResource(R.string.dialog_cancel))
+                }
             }
         )
     }
@@ -369,7 +374,7 @@ private fun SectionHeader(
                 IconButton(onClick = onDeleteAll) {
                     Icon(
                         Icons.Default.Delete,
-                        contentDescription = "Delete all scenarios",
+                        contentDescription = stringResource(R.string.ui2_scenarios_delete_all_cd),
                         tint = MaterialTheme.colorScheme.error
                     )
                 }
@@ -419,7 +424,7 @@ private fun SimulationCard(
         leadingContent = {
             Icon(
                 painter = painterResource(R.drawable.barchart),
-                contentDescription = "Simulation",
+                contentDescription = stringResource(R.string.ui2_scenarios_cd_simulation),
                 modifier = Modifier.size(24.dp),
                 tint = MaterialTheme.colorScheme.primary
             )
@@ -449,26 +454,27 @@ private fun SimulationCard(
                 }
                 Box {
                     IconButton(onClick = { menuExpanded = true }) {
-                        Icon(Icons.Default.MoreVert, contentDescription = "Options")
+                        Icon(Icons.Default.MoreVert,
+                            contentDescription = stringResource(R.string.ui2_options))
                     }
                     DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
                         DropdownMenuItem(
-                            text = { Text("View") },
+                            text = { Text(stringResource(R.string.ui2_view)) },
                             leadingIcon = { Icon(Icons.Default.Visibility, null) },
                             onClick = { menuExpanded = false; onView() }
                         )
                         DropdownMenuItem(
-                            text = { Text("Edit") },
+                            text = { Text(stringResource(R.string.ui2_edit)) },
                             leadingIcon = { Icon(Icons.Default.Edit, null) },
                             onClick = { menuExpanded = false; onEdit() }
                         )
                         DropdownMenuItem(
-                            text = { Text("Share") },
+                            text = { Text(stringResource(R.string.ui2_share)) },
                             leadingIcon = { Icon(Icons.Default.Share, null) },
                             onClick = { menuExpanded = false; onShare() }
                         )
                         DropdownMenuItem(
-                            text = { Text("Delete") },
+                            text = { Text(stringResource(R.string.ui2_delete)) },
                             leadingIcon = { Icon(Icons.Default.Delete, null) },
                             onClick = { menuExpanded = false; onDelete() }
                         )
@@ -490,7 +496,7 @@ private fun DataSourceCard(
         leadingContent = {
             Icon(
                 painter = painterResource(R.drawable.ic_baseline_download_24),
-                contentDescription = "Data source",
+                contentDescription = stringResource(R.string.ui2_scenarios_cd_data_source),
                 modifier = Modifier.size(24.dp),
                 tint = MaterialTheme.colorScheme.secondary
             )
@@ -509,7 +515,7 @@ private fun DataSourceCard(
             TextButton(onClick = onView) {
                 Icon(Icons.Default.Visibility, contentDescription = null)
                 Spacer(Modifier.width(4.dp))
-                Text("View")
+                Text(stringResource(R.string.ui2_view))
             }
         },
         modifier = Modifier.clickable { onView() }

@@ -48,9 +48,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.tfcode.comparetout.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -93,12 +95,11 @@ private val IMPORT_MIME_TYPES = arrayOf(
 fun <T> UI2ImportSheet(
     title: String,
     hint: String? = null,
-    applyLabel: String = "Apply",
+    applyLabel: String = stringResource(R.string.ui2_import_apply),
     /** When non-null, offers a third "Community" source that downloads JSON from
      * this URL into the same parse/preview/apply pipeline. */
     communityUrl: String? = null,
-    communityNote: String = "Community-maintained — may be out of date. You can edit " +
-        "anything after importing.",
+    communityNote: String = stringResource(R.string.ui2_import_community_note_default),
     /** When non-null, offers a "Prompt an LLM" source: the user copies this
      * prompt, runs it through their own AI assistant, then pastes the JSON it
      * returns back via the "Paste JSON" source. */
@@ -146,7 +147,8 @@ fun <T> UI2ImportSheet(
             }
             downloading = false
             if (text.isNullOrBlank()) {
-                downloadError = "Couldn't download the list — check your connection and retry."
+                // Non-composable context — resolve via context.getString.
+                downloadError = context.getString(R.string.ui2_import_download_failed)
             } else {
                 buffer = text
             }
@@ -215,7 +217,7 @@ fun <T> UI2ImportSheet(
                         // can swap files without dismissing the sheet.
                         picker.launch(IMPORT_MIME_TYPES)
                     },
-                    label = { Text("From file") },
+                    label = { Text(stringResource(R.string.ui2_import_from_file)) },
                     leadingIcon = {
                         Icon(Icons.Default.UploadFile, contentDescription = null,
                             modifier = Modifier.size(16.dp))
@@ -229,7 +231,7 @@ fun <T> UI2ImportSheet(
                         // had typed before — buffer is kept in sync below.
                         buffer = pasteText
                     },
-                    label = { Text("Paste JSON") },
+                    label = { Text(stringResource(R.string.ui2_import_paste_json)) },
                     leadingIcon = {
                         Icon(Icons.Default.ContentPaste, contentDescription = null,
                             modifier = Modifier.size(16.dp))
@@ -239,7 +241,7 @@ fun <T> UI2ImportSheet(
                     FilterChip(
                         selected = source == ImportSource.COMMUNITY,
                         onClick = { startCommunityDownload() },
-                        label = { Text("Community") },
+                        label = { Text(stringResource(R.string.ui2_import_community)) },
                         leadingIcon = {
                             Icon(Icons.Default.CloudDownload, contentDescription = null,
                                 modifier = Modifier.size(16.dp))
@@ -250,7 +252,7 @@ fun <T> UI2ImportSheet(
                     FilterChip(
                         selected = source == ImportSource.LLM,
                         onClick = { source = ImportSource.LLM },
-                        label = { Text("Prompt an LLM") },
+                        label = { Text(stringResource(R.string.ui2_import_prompt_llm)) },
                         leadingIcon = {
                             Icon(Icons.Default.AutoAwesome, contentDescription = null,
                                 modifier = Modifier.size(16.dp))
@@ -303,7 +305,7 @@ fun <T> UI2ImportSheet(
                         Icon(Icons.Default.ContentPaste, contentDescription = null,
                             modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Paste from clipboard")
+                        Text(stringResource(R.string.ui2_import_paste_clipboard))
                     }
                 }
                 ImportSource.COMMUNITY -> {
@@ -317,7 +319,7 @@ fun <T> UI2ImportSheet(
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 CircularProgressIndicator(Modifier.size(20.dp))
                                 Spacer(Modifier.width(12.dp))
-                                Text("Downloading latest…",
+                                Text(stringResource(R.string.ui2_import_downloading),
                                     style = MaterialTheme.typography.bodySmall)
                             }
                         } else {
@@ -328,7 +330,7 @@ fun <T> UI2ImportSheet(
                                 Icon(Icons.Default.CloudDownload, contentDescription = null,
                                     modifier = Modifier.size(18.dp))
                                 Spacer(Modifier.width(8.dp))
-                                Text("Download latest")
+                                Text(stringResource(R.string.ui2_import_download_latest))
                             }
                         }
                         downloadError?.let {
@@ -340,17 +342,11 @@ fun <T> UI2ImportSheet(
                 ImportSource.LLM -> {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            "No list for your supplier? Have an AI assistant build one:",
+                            stringResource(R.string.ui2_import_llm_intro),
                             style = MaterialTheme.typography.bodySmall
                         )
                         Text(
-                            "1. Copy the prompt below.\n" +
-                                "2. Paste it into a text editor (Notes, etc.) — it's too long " +
-                                "to edit inside most LLM chat boxes.\n" +
-                                "3. Fill in the supplier and country at the top.\n" +
-                                "4. Copy the edited prompt and paste it into your favourite LLM " +
-                                "(ChatGPT, Claude, Gemini…).\n" +
-                                "5. Copy the JSON it returns, then switch to \"Paste JSON\" here.",
+                            stringResource(R.string.ui2_import_llm_steps),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -366,7 +362,9 @@ fun <T> UI2ImportSheet(
                             Icon(Icons.Default.ContentCopy, contentDescription = null,
                                 modifier = Modifier.size(18.dp))
                             Spacer(Modifier.width(8.dp))
-                            Text(if (promptCopied) "Prompt copied" else "Copy prompt")
+                            Text(stringResource(
+                                if (promptCopied) R.string.ui2_import_prompt_copied
+                                else R.string.ui2_import_copy_prompt))
                         }
                         TextButton(onClick = {
                             source = ImportSource.PASTE
@@ -375,12 +373,10 @@ fun <T> UI2ImportSheet(
                             Icon(Icons.Default.ContentPaste, contentDescription = null,
                                 modifier = Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("I have the JSON — paste it")
+                            Text(stringResource(R.string.ui2_import_have_json))
                         }
                         Text(
-                            "Heads-up: this only works some of the time — LLM results are " +
-                                "hit-and-miss and often need fixing. Always check the generated " +
-                                "rates against a recent bill, and edit any plan after importing.",
+                            stringResource(R.string.ui2_import_llm_warning),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error
                         )
@@ -399,7 +395,7 @@ fun <T> UI2ImportSheet(
                 horizontalArrangement = Arrangement.End,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TextButton(onClick = onDismiss) { Text("Cancel") }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.dialog_cancel)) }
                 Spacer(Modifier.width(8.dp))
                 Button(
                     enabled = preview is ParsedPreview.Ok,
@@ -433,7 +429,7 @@ private fun FilePickerSummary(fileName: String?, onPick: () -> Unit) {
         Icon(Icons.Default.UploadFile, contentDescription = null,
             modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(8.dp))
-        Text(fileName ?: "Pick a JSON file…")
+        Text(fileName ?: stringResource(R.string.ui2_import_pick_file))
     }
 }
 
@@ -443,7 +439,7 @@ private fun PreviewRow(preview: ParsedPreview<*>?) {
         when (preview) {
             null -> {
                 Text(
-                    "Pick a file or paste JSON to preview.",
+                    stringResource(R.string.ui2_import_preview_placeholder),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

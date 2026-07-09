@@ -5,4 +5,9 @@
     <string name="NoBestCost">Best cost = £???.??</string>
     <string name="SignUpBonus">Sign up bonus (£)</string>
     <string name="StandingCharges">Standing charges (£)</string>
+
+    <!-- Quick-mode hints with region wording (ESBN sentence dropped — the
+         ESBN usage source is IE-only; typical-consumption figure per Ofgem). -->
+    <string name="ui2_simple_usage_hint">It\'s on your bill as kWh used per year. A typical home is around 2,700 kWh. We spread it over the year using a standard smart-meter pattern.</string>
+    <string name="ui2_simple_azimuth_hint">0 = north, 90 = east, 180 = south, 270 = west. South is best in Great Britain.</string>
 </resources>

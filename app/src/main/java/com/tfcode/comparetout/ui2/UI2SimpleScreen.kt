@@ -17,6 +17,9 @@
 package com.tfcode.comparetout.ui2
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import com.tfcode.comparetout.R
 import com.tfcode.comparetout.region.RegionProfiles
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -116,10 +119,11 @@ fun UI2SimpleScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Quick mode") },
+                title = { Text(stringResource(R.string.ui2_simple_title)) },
                 actions = {
                     IconButton(onClick = { showDrawer = true }) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menu")
+                        Icon(Icons.Default.Menu,
+                            contentDescription = stringResource(R.string.ui2_menu))
                     }
                 }
             )
@@ -133,13 +137,13 @@ fun UI2SimpleScreen(
                     enabled = status == UI2SimpleViewModel.Status.READY,
                     onClick = onLaunchGraphs,
                     icon = { Icon(Icons.Default.ShowChart, contentDescription = null) },
-                    label = { Text("Graphs") }
+                    label = { Text(stringResource(R.string.ui2_simple_graphs)) }
                 )
                 NavigationBarItem(
                     selected = false,
                     onClick = onSwitchToFullUi,
                     icon = { Icon(Icons.Default.GridView, contentDescription = null) },
-                    label = { Text("Full UI") }
+                    label = { Text(stringResource(R.string.ui2_simple_full_ui)) }
                 )
             }
         },
@@ -160,8 +164,7 @@ fun UI2SimpleScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    "See whether solar and a battery would pay off for you, fast. " +
-                        "Answer a couple of questions and tap Calculate.",
+                    stringResource(R.string.ui2_simple_intro),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -175,7 +178,7 @@ fun UI2SimpleScreen(
                     enabled = status != UI2SimpleViewModel.Status.BUILDING &&
                         status != UI2SimpleViewModel.Status.SIMULATING,
                     modifier = Modifier.fillMaxWidth()
-                ) { Text("Calculate") }
+                ) { Text(stringResource(R.string.ui2_simple_calculate)) }
 
                 ResultCard(status, result, planCount, viewModel)
               }
@@ -225,27 +228,34 @@ private fun UsageCard(
     val ready = hdfState is UI2SimpleViewModel.HdfState.Ready
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("How much do you use?", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.ui2_simple_usage_title),
+                style = MaterialTheme.typography.titleMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 FilterChip(
                     selected = !hdf,
                     onClick = { vm.setUsageMode(UI2SimpleViewModel.UsageMode.STANDARD) },
-                    label = { Text("Typical home") }
+                    label = { Text(stringResource(R.string.ui2_simple_usage_typical)) }
                 )
-                FilterChip(
-                    selected = hdf,
-                    onClick = { vm.setUsageMode(UI2SimpleViewModel.UsageMode.HDF) },
-                    label = { Text("My ESBN data") }
-                )
+                // The ESBN HDF usage source is an IE meter-operator concept —
+                // other editions only get the typical-home mode.
+                if (RegionProfiles.current.hasEsbn) {
+                    FilterChip(
+                        selected = hdf,
+                        onClick = { vm.setUsageMode(UI2SimpleViewModel.UsageMode.HDF) },
+                        label = { Text(stringResource(R.string.ui2_simple_usage_hdf)) }
+                    )
+                }
             }
             OutlinedTextField(
                 value = state.annualKwh,
                 onValueChange = vm::setAnnualKwh,
                 readOnly = hdf,
                 label = {
-                    Text(if (hdf) "Yearly electricity (from your data)" else "Yearly electricity (kWh)")
+                    Text(stringResource(
+                        if (hdf) R.string.ui2_simple_usage_label_hdf
+                        else R.string.ui2_simple_usage_label))
                 },
-                suffix = { Text("kWh / year") },
+                suffix = { Text(stringResource(R.string.ui2_simple_usage_suffix)) },
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
@@ -255,33 +265,32 @@ private fun UsageCard(
                     importing -> Row(verticalAlignment = Alignment.CenterVertically) {
                         CircularProgressIndicator(Modifier.width(20.dp))
                         Spacer(Modifier.width(12.dp))
-                        Text("Importing your ESBN data…", style = MaterialTheme.typography.bodyMedium)
+                        Text(stringResource(R.string.ui2_simple_hdf_importing),
+                            style = MaterialTheme.typography.bodyMedium)
                     }
                     ready -> Text(
-                        "✓ Imported — yearly total read from your data.",
+                        stringResource(R.string.ui2_simple_hdf_imported),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
                 if (!importing) {
                     OutlinedButton(onClick = onImportHdf, modifier = Modifier.fillMaxWidth()) {
-                        Text(if (ready) "Import a different file" else "Import ESBN HDF file")
+                        Text(stringResource(
+                            if (ready) R.string.ui2_simple_hdf_import_other
+                            else R.string.ui2_simple_hdf_import))
                     }
                 }
                 if (showHints) {
                     Text(
-                        "Download an HDF file from the ESBN Networks portal (My Energy " +
-                            "Consumption → Download). We read your exact yearly total and " +
-                            "half-hourly usage pattern from it — the most accurate option.",
+                        stringResource(R.string.ui2_simple_hdf_hint),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             } else if (showHints) {
                 Text(
-                    "It's on your bill as kWh used per year. A typical Irish home is around " +
-                        "4,200 kWh. We spread it over the year using a standard smart-meter " +
-                        "pattern. For a more accurate result, switch to “My ESBN data”.",
+                    stringResource(R.string.ui2_simple_usage_hint),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -301,7 +310,7 @@ private fun SolarCard(
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "Solar panels",
+                    stringResource(R.string.ui2_simple_solar_title),
                     style = MaterialTheme.typography.titleMedium,
                     modifier = Modifier.weight(1f)
                 )
@@ -311,27 +320,26 @@ private fun SolarCard(
                 // Capacity stepper: ± 0.5 kWp.
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        "System size",
+                        stringResource(R.string.ui2_simple_solar_size),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f)
                     )
                     IconButton(onClick = vm::decSolarKwp) {
-                        Icon(Icons.Default.Remove, contentDescription = "Decrease")
+                        Icon(Icons.Default.Remove,
+                            contentDescription = stringResource(R.string.ui2_decrease))
                     }
                     Text(
                         String.format(Locale.US, "%.1f kWp", state.solarKwp),
                         style = MaterialTheme.typography.titleMedium
                     )
                     IconButton(onClick = vm::incSolarKwp) {
-                        Icon(Icons.Default.Add, contentDescription = "Increase")
+                        Icon(Icons.Default.Add,
+                            contentDescription = stringResource(R.string.ui2_increase))
                     }
                 }
                 if (showHints) {
                     Text(
-                        "Adjust in 0.5 kWp steps — a typical home install is around 7 kWp. " +
-                            "We model it at 40° tilt and fetch a year of expected output for " +
-                            "your exact spot from PVGIS (an EU solar dataset). Turn solar off " +
-                            "to see the battery-only case.",
+                        stringResource(R.string.ui2_simple_solar_hint),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -339,29 +347,28 @@ private fun SolarCard(
                 OutlinedTextField(
                     value = state.azimuth,
                     onValueChange = vm::setAzimuth,
-                    label = { Text("Roof direction (degrees)") },
-                    suffix = { Text("° · 180 = south") },
+                    label = { Text(stringResource(R.string.ui2_simple_azimuth_label)) },
+                    suffix = { Text(stringResource(R.string.ui2_simple_azimuth_suffix)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth()
                 )
                 if (showHints) {
                     Text(
-                        "0 = north, 90 = east, 180 = south, 270 = west. South is best in Ireland.",
+                        stringResource(R.string.ui2_simple_azimuth_hint),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 OutlinedButton(onClick = onRequestLocation, modifier = Modifier.fillMaxWidth()) {
-                    Text("Use my location")
+                    Text(stringResource(R.string.ui2_simple_use_location))
                 }
                 val loc = if (state.locationLat != null && state.locationLon != null) {
-                    String.format(
-                        Locale.US, "Location set: %.3f, %.3f",
-                        state.locationLat, state.locationLon
-                    )
+                    stringResource(R.string.ui2_simple_location_set,
+                        String.format(Locale.US, "%.3f, %.3f",
+                            state.locationLat, state.locationLon))
                 } else {
-                    "We need your location to estimate solar yield (PVGIS)."
+                    stringResource(R.string.ui2_simple_location_needed)
                 }
                 Text(
                     loc,
@@ -381,12 +388,11 @@ private fun BatteryCard(
 ) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Text("Battery size", style = MaterialTheme.typography.titleMedium)
+            Text(stringResource(R.string.ui2_simple_battery_title),
+                style = MaterialTheme.typography.titleMedium)
             if (showHints) {
                 Text(
-                    "A home battery stores daytime solar (or cheap night-rate electricity) " +
-                        "to use at peak times. Try a few sizes to see which pays off — bigger " +
-                        "isn't always better.",
+                    stringResource(R.string.ui2_simple_battery_hint),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -396,14 +402,15 @@ private fun BatteryCard(
                     FilterChip(
                         selected = state.batteryKwh == kwh,
                         onClick = { vm.setBatteryKwh(kwh) },
-                        label = { Text(if (kwh == 0) "None" else "$kwh kWh") }
+                        label = { Text(if (kwh == 0)
+                            stringResource(R.string.ui2_simple_battery_none) else "$kwh kWh") }
                     )
                 }
             }
             if (state.batteryKwh > 0) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Text(
-                        "Charge from the grid overnight (02:00–05:00)",
+                        stringResource(R.string.ui2_simple_night_charge),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.weight(1f)
                     )
@@ -411,8 +418,7 @@ private fun BatteryCard(
                 }
                 if (showHints) {
                     Text(
-                        "Fills the battery on a cheap night-rate window so you draw less at " +
-                            "peak times. Best paired with a night-saver tariff.",
+                        stringResource(R.string.ui2_simple_night_charge_hint),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -434,7 +440,7 @@ private fun ResultCard(
             when (status) {
                 UI2SimpleViewModel.Status.IDLE ->
                     Text(
-                        "Tap Calculate to run the simulation and see your cost.",
+                        stringResource(R.string.ui2_simple_idle),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -445,17 +451,21 @@ private fun ResultCard(
                         CircularProgressIndicator(Modifier.width(24.dp))
                         Spacer(Modifier.width(12.dp))
                         Text(
-                            if (status == UI2SimpleViewModel.Status.BUILDING)
-                                "Setting things up…" else "Simulating a year of energy…",
+                            stringResource(
+                                if (status == UI2SimpleViewModel.Status.BUILDING)
+                                    R.string.ui2_simple_building
+                                else R.string.ui2_simple_simulating),
                             style = MaterialTheme.typography.bodyMedium
                         )
                     }
-                    TextButton(onClick = vm::refreshResult) { Text("Refresh") }
+                    TextButton(onClick = vm::refreshResult) {
+                        Text(stringResource(R.string.ui2_simple_refresh))
+                    }
                 }
 
                 UI2SimpleViewModel.Status.ERROR ->
                     Text(
-                        "Something went wrong. Check your inputs and try again.",
+                        stringResource(R.string.ui2_simple_error),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.error
                     )
@@ -464,18 +474,17 @@ private fun ResultCard(
                     val r = result
                     if (r == null || planCount == 0) {
                         Text(
-                            "Add real supplier tariffs to see your cost.",
+                            stringResource(R.string.ui2_simple_no_plans_title),
                             style = MaterialTheme.typography.titleMedium
                         )
                         Text(
-                            "Costs can only be shown against real tariffs. Download the " +
-                                "community-maintained list (it may be out of date — you can " +
-                                "edit the plans afterwards).",
+                            stringResource(R.string.ui2_simple_no_plans_body),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     } else {
-                        Text("Estimated yearly cost", style = MaterialTheme.typography.titleMedium)
+                        Text(stringResource(R.string.ui2_simple_est_cost),
+                            style = MaterialTheme.typography.titleMedium)
                         Text(
                             String.format(Locale.US,
                                 "${RegionProfiles.current.currencySymbol}%,.0f", r.annualNetEuro),
@@ -484,17 +493,15 @@ private fun ResultCard(
                         )
                         if (r.planName.isNotBlank()) {
                             Text(
-                                "Cheapest plan: ${r.planName}",
+                                stringResource(R.string.ui2_simple_cheapest_plan, r.planName),
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
+                        val cur = RegionProfiles.current.currencySymbol
                         Text(
-                            String.format(
-                                Locale.US,
-                                "Buy ${RegionProfiles.current.currencySymbol}%,.0f · " +
-                                    "Sell ${RegionProfiles.current.currencySymbol}%,.0f per year",
-                                r.annualBuyEuro, r.annualSellEuro
-                            ),
+                            stringResource(R.string.ui2_simple_buy_sell,
+                                String.format(Locale.US, "$cur%,.0f", r.annualBuyEuro),
+                                String.format(Locale.US, "$cur%,.0f", r.annualSellEuro)),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -505,14 +512,16 @@ private fun ResultCard(
             HorizontalDivider()
             // Tariff status + refresh — costs require real plans.
             Text(
-                if (planCount == 0) "No supplier tariffs yet."
-                else "$planCount supplier tariff${if (planCount == 1) "" else "s"} loaded " +
-                    "· community-maintained, may be out of date.",
+                if (planCount == 0) stringResource(R.string.ui2_simple_no_tariffs)
+                else pluralStringResource(R.plurals.ui2_simple_tariffs_loaded,
+                    planCount, planCount),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Button(onClick = vm::downloadTariffs, modifier = Modifier.fillMaxWidth()) {
-                Text(if (planCount == 0) "Download supplier tariffs" else "Refresh tariffs")
+                Text(stringResource(
+                    if (planCount == 0) R.string.ui2_simple_download_tariffs
+                    else R.string.ui2_simple_refresh_tariffs))
             }
         }
     }

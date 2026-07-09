@@ -88,6 +88,9 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringArrayResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -96,6 +99,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import com.google.gson.reflect.TypeToken
+import com.tfcode.comparetout.R
 import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile
 import com.tfcode.comparetout.region.RegionProfiles
 import dagger.hilt.android.AndroidEntryPoint
@@ -127,10 +131,9 @@ class UI2PricePlanWizardActivity : AppCompatActivity() {
     }
 }
 
-private val DAY_LABELS = listOf(
-    1 to "Mon", 2 to "Tue", 3 to "Wed", 4 to "Thu",
-    5 to "Fri", 6 to "Sat", 0 to "Sun"
-)
+// Day codes in display order (Mon-first); names come from the shared
+// R.array.ui2_days_short_mon_first, resolved where they're rendered.
+private val DAY_CODES = listOf(1, 2, 3, 4, 5, 6, 0)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -158,9 +161,9 @@ private fun PricePlanWizardScreen(
 
     val title = when {
         viewModel.isEditMode && builder.planName.isNotBlank() ->
-            "Edit · ${builder.supplier} · ${builder.planName}"
-        viewModel.isEditMode -> "Edit supplier plan"
-        else -> "New supplier plan"
+            stringResource(R.string.ui2_ppw_title_edit_named, builder.supplier, builder.planName)
+        viewModel.isEditMode -> stringResource(R.string.ui2_ppw_title_edit)
+        else -> stringResource(R.string.ui2_ppw_title_new)
     }
 
     val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
@@ -175,12 +178,14 @@ private fun PricePlanWizardScreen(
                     maxLines = 1, overflow = TextOverflow.Ellipsis) },
                 navigationIcon = {
                     IconButton(onClick = { confirmDiscard = true }) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.ui2_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { showDrawer = true }) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menu")
+                        Icon(Icons.Default.Menu,
+                            contentDescription = stringResource(R.string.ui2_menu))
                     }
                 },
                 scrollBehavior = scrollBehavior
@@ -217,9 +222,9 @@ private fun PricePlanWizardScreen(
                     ) {
                         item("details") {
                             AccordionSection(
-                                title = "Plan details",
+                                title = stringResource(R.string.ui2_ppw_details_title),
                                 subtitle = if (issues.supplierBlank || issues.planNameBlank)
-                                    "Supplier & plan name (required)"
+                                    stringResource(R.string.ui2_ppw_details_required)
                                 else "${builder.supplier} · ${builder.planName}",
                                 isComplete = !issues.supplierBlank && !issues.planNameBlank,
                                 hasError = issues.supplierBlank || issues.planNameBlank,
@@ -231,11 +236,12 @@ private fun PricePlanWizardScreen(
                         }
                         item("charges") {
                             AccordionSection(
-                                title = "Charges",
-                                subtitle = "Feed ${"%.2f".format(builder.feed)} " +
-                                    "${RegionProfiles.current.minorSymbol} · " +
-                                    "Standing ${RegionProfiles.current.currencySymbol}" +
-                                    "${"%.2f".format(builder.standingCharges)}/yr",
+                                title = stringResource(R.string.ui2_ppw_charges_title),
+                                subtitle = stringResource(R.string.ui2_ppw_charges_subtitle,
+                                    "%.2f".format(builder.feed),
+                                    RegionProfiles.current.minorSymbol,
+                                    RegionProfiles.current.currencySymbol,
+                                    "%.2f".format(builder.standingCharges)),
                                 isComplete = true,
                                 hasError = false,
                                 isExpanded = expanded.contains("charges"),
@@ -247,7 +253,7 @@ private fun PricePlanWizardScreen(
                         item("rates") {
                             val rateSummary = dayRatesSubtitle(builder, issues)
                             AccordionSection(
-                                title = "Day rates",
+                                title = stringResource(R.string.ui2_ppw_rates_title),
                                 subtitle = rateSummary,
                                 isComplete = issues.perDayRate.values.all { it.isClean } &&
                                     !issues.dateRangeOverlap &&
@@ -266,12 +272,13 @@ private fun PricePlanWizardScreen(
                         item("restrictions") {
                             val count = builder.restrictionEntries.size
                             AccordionSection(
-                                title = "Restrictions",
+                                title = stringResource(R.string.ui2_ppw_restrictions_title),
                                 subtitle = when {
-                                    count == 0 -> "None — plan prices apply without usage caps"
+                                    count == 0 -> stringResource(R.string.ui2_ppw_restrictions_none)
                                     builder.restrictionsActive ->
-                                        "$count usage cap" + (if (count > 1) "s" else "") + " active"
-                                    else -> "$count usage cap" + (if (count > 1) "s" else "") + " (disabled)"
+                                        pluralStringResource(R.plurals.ui2_ppw_caps_active, count, count)
+                                    else ->
+                                        pluralStringResource(R.plurals.ui2_ppw_caps_disabled, count, count)
                                 },
                                 isComplete = true,
                                 hasError = false,
@@ -312,31 +319,31 @@ private fun PricePlanWizardScreen(
     if (confirmDiscard) {
         AlertDialog(
             onDismissRequest = { confirmDiscard = false },
-            title = { Text("Leave without saving?") },
+            title = { Text(stringResource(R.string.ui2_ppw_discard_title)) },
             text = {
                 Text(
-                    "Any unsaved changes to this supplier plan will be lost.",
+                    stringResource(R.string.ui2_ppw_discard_body),
                     style = MaterialTheme.typography.bodyMedium
                 )
             },
             confirmButton = {
                 TextButton(onClick = { confirmDiscard = false; onClose() }) {
-                    Text("Discard")
+                    Text(stringResource(R.string.ui2_ppw_discard))
                 }
             },
             dismissButton = {
-                TextButton(onClick = { confirmDiscard = false }) { Text("Keep editing") }
+                TextButton(onClick = { confirmDiscard = false }) {
+                    Text(stringResource(R.string.ui2_director_keep_editing))
+                }
             }
         )
     }
 
     if (showImportSheet) {
         UI2ImportSheet(
-            title = "Import supplier-plan JSON",
-            hint = "Accepts the JSON shape produced by the Share button on a plan, " +
-                    "or a single plan from a bulk export. The wizard will be " +
-                    "pre-filled — you can edit anything before saving.",
-            applyLabel = "Load into wizard",
+            title = stringResource(R.string.ui2_ppw_import_title),
+            hint = stringResource(R.string.ui2_ppw_import_hint),
+            applyLabel = stringResource(R.string.ui2_ppw_import_apply),
             parse = ::parsePricePlanImportJson,
             onApply = { list ->
                 showImportSheet = false
@@ -360,15 +367,14 @@ private fun PricePlanWizardScreen(
     importPicker?.let { list ->
         AlertDialog(
             onDismissRequest = { importPicker = null },
-            title = { Text("Multiple supplier plans") },
+            title = { Text(stringResource(R.string.ui2_ppw_multi_title)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Text(
-                        "This file contains ${list.size} plans. Pick the one to load " +
-                            "into the wizard. (To import them all into the library " +
-                            "instead, use the drawer's Import / Export screen.)",
+                        stringResource(R.string.ui2_ppw_multi_body, list.size),
                         style = MaterialTheme.typography.bodyMedium
                     )
+                    val unnamed = stringResource(R.string.ui2_ppw_unnamed)
                     list.forEachIndexed { idx, file ->
                         OutlinedButton(
                             onClick = {
@@ -379,7 +385,7 @@ private fun PricePlanWizardScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             val supplier = file.supplier.orEmpty().ifBlank { "?" }
-                            val plan = file.plan.orEmpty().ifBlank { "(unnamed)" }
+                            val plan = file.plan.orEmpty().ifBlank { unnamed }
                             Text(
                                 "${idx + 1}. $supplier · $plan",
                                 modifier = Modifier.fillMaxWidth()
@@ -389,7 +395,9 @@ private fun PricePlanWizardScreen(
                 }
             },
             confirmButton = {
-                TextButton(onClick = { importPicker = null }) { Text("Cancel") }
+                TextButton(onClick = { importPicker = null }) {
+                    Text(stringResource(R.string.dialog_cancel))
+                }
             }
         )
     }
@@ -397,12 +405,10 @@ private fun PricePlanWizardScreen(
     confirmImportOverwrite?.let { file ->
         AlertDialog(
             onDismissRequest = { confirmImportOverwrite = null },
-            title = { Text("Replace this plan's data?") },
+            title = { Text(stringResource(R.string.ui2_ppw_replace_title)) },
             text = {
                 Text(
-                    "The current details, charges and day-rates will be replaced " +
-                        "with the contents of the JSON. The plan will still save " +
-                        "back to the same row when you tap Save.",
+                    stringResource(R.string.ui2_ppw_replace_body),
                     style = MaterialTheme.typography.bodyMedium
                 )
             },
@@ -410,10 +416,12 @@ private fun PricePlanWizardScreen(
                 Button(onClick = {
                     viewModel.loadFromJson(file)
                     confirmImportOverwrite = null
-                }) { Text("Replace") }
+                }) { Text(stringResource(R.string.ui2_replace)) }
             },
             dismissButton = {
-                TextButton(onClick = { confirmImportOverwrite = null }) { Text("Cancel") }
+                TextButton(onClick = { confirmImportOverwrite = null }) {
+                    Text(stringResource(R.string.dialog_cancel))
+                }
             }
         )
     }
@@ -438,11 +446,11 @@ private fun ImportFromJsonRow(onClick: () -> Unit) {
                 modifier = Modifier.size(18.dp)
             )
             Column(Modifier.weight(1f)) {
-                Text("Import from JSON",
+                Text(stringResource(R.string.ui2_ppw_import_row_title),
                     style = MaterialTheme.typography.labelLarge,
                     fontWeight = FontWeight.SemiBold)
                 Text(
-                    "Pre-fill the wizard from a shared plan or bulk-export file.",
+                    stringResource(R.string.ui2_ppw_import_row_sub),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1, overflow = TextOverflow.Ellipsis
@@ -482,17 +490,21 @@ private fun parsePricePlanImportJson(text: String): ParsedPreview<List<PricePlan
     ParsedPreview.Err(e.message ?: "Parse failed")
 }
 
+@Composable
 private fun dayRatesSubtitle(b: PricePlanBuilder, i: PlanIssues): String {
     val count = b.dayRates.size
-    val countStr = "$count day-rate" + if (count == 1) "" else "s"
-    return when {
-        i.dateRangeOverlap -> "$countStr · date ranges overlap"
+    val countStr = pluralStringResource(R.plurals.ui2_ppl_day_rates, count, count)
+    val detail = when {
+        i.dateRangeOverlap -> stringResource(R.string.ui2_ppw_sub_overlap)
         i.datesMissing.isNotEmpty() ->
-            "$countStr · missing ${i.datesMissing.size} date range${if (i.datesMissing.size == 1) "" else "s"}"
-        i.weekdaysMissing.values.any { it.isNotEmpty() } -> "$countStr · missing weekdays"
-        i.perDayRate.values.any { !it.isClean } -> "$countStr · time gaps remain"
-        else -> "$countStr · all dates & minutes covered"
+            pluralStringResource(R.plurals.ui2_ppw_missing_ranges,
+                i.datesMissing.size, i.datesMissing.size)
+        i.weekdaysMissing.values.any { it.isNotEmpty() } ->
+            stringResource(R.string.ui2_ppw_sub_missing_weekdays)
+        i.perDayRate.values.any { !it.isClean } -> stringResource(R.string.ui2_ppw_sub_time_gaps)
+        else -> stringResource(R.string.ui2_ppw_sub_all_covered)
     }
+    return "$countStr · $detail"
 }
 
 // ── action bar ──────────────────────────────────────────────────────────────
@@ -528,28 +540,29 @@ private fun PricePlanActionBar(
                             when {
                                 saveResult == PricePlanSaveResult.Saved -> {
                                     Icon(Icons.Default.CheckCircle, null, modifier = Modifier.size(16.dp))
-                                    Spacer(Modifier.width(4.dp)); Text("Saved")
+                                    Spacer(Modifier.width(4.dp))
+                                    Text(stringResource(R.string.ui2_ppw_saved))
                                 }
-                                saving -> Text("Saving…")
-                                else -> Text("Save")
+                                saving -> Text(stringResource(R.string.ui2_ppw_saving))
+                                else -> Text(stringResource(R.string.ui2_save))
                             }
                         }
                         PpwFooterAction.RUN -> Button(
                             onClick = onRun,
                             enabled = canRun && !saving,
                             modifier = Modifier.fillMaxWidth()
-                        ) { Text("Run calculations") }
+                        ) { Text(stringResource(R.string.ui2_ppw_run_calc)) }
                         PpwFooterAction.CLOSE -> OutlinedButton(
                             onClick = onClose,
                             modifier = Modifier.fillMaxWidth()
-                        ) { Text("Close") }
+                        ) { Text(stringResource(R.string.ui2_close)) }
                     }
                 }
             }
             if (saveResult == PricePlanSaveResult.Failed) {
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "Couldn't save. Fix the highlighted issues and try again.",
+                    stringResource(R.string.ui2_ppw_save_failed),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.error
                 )
@@ -597,9 +610,11 @@ private fun AccordionSection(
                 }
             }
             when {
-                hasError -> Icon(Icons.Default.Warning, contentDescription = "Has issues",
+                hasError -> Icon(Icons.Default.Warning,
+                    contentDescription = stringResource(R.string.ui2_ppw_has_issues_cd),
                     tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(20.dp))
-                isComplete -> Icon(Icons.Default.CheckCircle, contentDescription = "Complete",
+                isComplete -> Icon(Icons.Default.CheckCircle,
+                    contentDescription = stringResource(R.string.ui2_ppw_complete_cd),
                     tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
             }
             Icon(
@@ -628,7 +643,7 @@ private fun DetailsSection(
         OutlinedTextField(
             value = builder.supplier,
             onValueChange = { v -> vm.updateBuilder { it.copy(supplier = v) } },
-            label = { Text("Supplier") },
+            label = { Text(stringResource(R.string.ui2_ppw_supplier)) },
             isError = issues.supplierBlank,
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
@@ -636,7 +651,7 @@ private fun DetailsSection(
         OutlinedTextField(
             value = builder.planName,
             onValueChange = { v -> vm.updateBuilder { it.copy(planName = v) } },
-            label = { Text("Plan name") },
+            label = { Text(stringResource(R.string.ui2_ppw_plan_name)) },
             isError = issues.planNameBlank,
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
@@ -644,18 +659,18 @@ private fun DetailsSection(
         OutlinedTextField(
             value = if (builder.reference == "<REFERENCE>") "" else builder.reference,
             onValueChange = { v -> vm.updateBuilder { it.copy(reference = v.ifBlank { "<REFERENCE>" }) } },
-            label = { Text("Reference (optional)") },
-            placeholder = { Text("URL or note") },
+            label = { Text(stringResource(R.string.ui2_ppw_reference)) },
+            placeholder = { Text(stringResource(R.string.ui2_ppw_reference_placeholder)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
         )
         OutlinedTextField(
             value = builder.location,
             onValueChange = { v -> vm.updateBuilder { it.copy(location = v.take(2)) } },
-            label = { Text("Location (optional)") },
-            placeholder = { Text("ISO country, e.g. IE") },
+            label = { Text(stringResource(R.string.ui2_ppw_location)) },
+            placeholder = { Text(stringResource(R.string.ui2_ppw_location_placeholder)) },
             supportingText = {
-                Text("Plans tagged with another country than the phone are hidden and deactivated.")
+                Text(stringResource(R.string.ui2_ppw_location_support))
             },
             singleLine = true,
             modifier = Modifier.fillMaxWidth()
@@ -664,8 +679,8 @@ private fun DetailsSection(
         // switch (the underlying field stays false, its JSON default).
         if (RegionProfiles.current.hasDeemedExport) {
             SwitchRow(
-                title = "Deemed export",
-                sub = "Supplier estimates your export instead of measuring it.",
+                title = stringResource(R.string.deemed_export_calculation),
+                sub = stringResource(R.string.ui2_ppw_deemed_sub),
                 checked = builder.deemedExport
             ) { v -> vm.updateBuilder { it.copy(deemedExport = v) } }
         }
@@ -675,7 +690,7 @@ private fun DetailsSection(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.width(6.dp))
                 Text(
-                    "Last updated ${builder.lastUpdate}",
+                    stringResource(R.string.ui2_ppl_last_updated, builder.lastUpdate),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -689,17 +704,19 @@ private fun DetailsSection(
 private fun ChargesSection(builder: PricePlanBuilder, vm: UI2PricePlanViewModel) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         DoubleField(
-            label = "Feed-in tariff (${RegionProfiles.current.rateUnit})",
+            label = stringResource(R.string.ui2_ppw_feed_label, RegionProfiles.current.rateUnit),
             value = builder.feed,
             onValue = { v -> vm.updateBuilder { it.copy(feed = v) } }
         )
         DoubleField(
-            label = "Standing charges (${RegionProfiles.current.currencySymbol}/year)",
+            label = stringResource(R.string.ui2_ppw_standing_label,
+                RegionProfiles.current.currencySymbol),
             value = builder.standingCharges,
             onValue = { v -> vm.updateBuilder { it.copy(standingCharges = v) } }
         )
         DoubleField(
-            label = "Sign-up bonus (${RegionProfiles.current.currencySymbol})",
+            label = stringResource(R.string.ui2_ppw_bonus_label,
+                RegionProfiles.current.currencySymbol),
             value = builder.signUpBonus,
             onValue = { v -> vm.updateBuilder { it.copy(signUpBonus = v) } }
         )
@@ -723,18 +740,15 @@ private fun RestrictionsSection(
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (showHints) {
             Text(
-                "A restriction caps how many kWh the plan sells at a rate within a " +
-                        "period; usage beyond the cap is charged the revised price. " +
-                        "Restrictions attach to a rate value — if you change that " +
-                        "band's price, re-attach the restriction.",
+                stringResource(R.string.ui2_ppw_restr_hint),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         if (builder.restrictionEntries.isNotEmpty()) {
             SwitchRow(
-                title = "Apply restrictions",
-                sub = "Costings honour the usage caps below.",
+                title = stringResource(R.string.ui2_ppw_apply_restrictions),
+                sub = stringResource(R.string.ui2_ppw_apply_restrictions_sub),
                 checked = builder.restrictionsActive
             ) { v -> vm.setRestrictionsActive(v) }
         }
@@ -744,7 +758,7 @@ private fun RestrictionsSection(
         OutlinedButton(onClick = { vm.addRestriction() }) {
             Icon(Icons.Default.Add, null, Modifier.size(16.dp))
             Spacer(Modifier.width(4.dp))
-            Text("Add restriction")
+            Text(stringResource(R.string.ui2_ppw_add_restriction))
         }
     }
 }
@@ -766,7 +780,7 @@ private fun RestrictionEntryCard(
                 var rateMenu by remember { mutableStateOf(false) }
                 Box {
                     OutlinedButton(onClick = { rateMenu = true }) {
-                        Text(if (entry.rate.isBlank()) "Rate…"
+                        Text(if (entry.rate.isBlank()) stringResource(R.string.ui2_ppw_rate_placeholder)
                              else "${entry.rate} ${RegionProfiles.current.rateUnit}")
                     }
                     DropdownMenu(expanded = rateMenu, onDismissRequest = { rateMenu = false }) {
@@ -802,7 +816,7 @@ private fun RestrictionEntryCard(
                 }
                 Spacer(Modifier.weight(1f))
                 IconButton(onClick = { vm.removeRestriction(entry.id) }) {
-                    Icon(Icons.Default.Delete, "Remove restriction",
+                    Icon(Icons.Default.Delete, stringResource(R.string.ui2_ppw_remove_restriction_cd),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -817,7 +831,7 @@ private fun RestrictionEntryCard(
                             vm.updateRestriction(entry.id) { it.copy(kwhLimit = n) }
                         }
                     },
-                    label = { Text("Cap (kWh)") },
+                    label = { Text(stringResource(R.string.ui2_ppw_cap_label)) },
                     isError = limitText.toIntOrNull()?.takeIf { it > 0 } == null,
                     singleLine = true,
                     modifier = Modifier.weight(1f)
@@ -832,7 +846,8 @@ private fun RestrictionEntryCard(
                             vm.updateRestriction(entry.id) { it.copy(revisedPrice = p) }
                         }
                     },
-                    label = { Text("Then (${RegionProfiles.current.rateUnit})") },
+                    label = { Text(stringResource(R.string.ui2_ppw_then_label,
+                        RegionProfiles.current.rateUnit)) },
                     isError = priceText.toDoubleOrNull() == null,
                     singleLine = true,
                     modifier = Modifier.weight(1f)
@@ -854,20 +869,17 @@ private fun DayRatesSection(
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         if (showHints) {
             Text(
-                "Each day rate covers a date window and a set of weekdays. Add costs " +
-                    "(${RegionProfiles.current.rateUnit}) and assign time ranges to each — together they must cover " +
-                    "the full 24-hour day. Across all day rates, the dates must tile " +
-                    "the calendar year and every weekday must be covered.",
+                stringResource(R.string.ui2_ppw_rates_hint, RegionProfiles.current.rateUnit),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         if (issues.dateRangeOverlap) {
-            InlineIssue("Date ranges overlap. Trim one of the start/end dates so each calendar day belongs to exactly one day-rate.")
+            InlineIssue(stringResource(R.string.ui2_ppw_overlap_issue))
         }
         if (issues.datesMissing.isNotEmpty()) {
             val rendered = issues.datesMissing.joinToString(", ") { renderDoyRange(it) }
-            InlineIssue("Missing date coverage: $rendered. Add or extend a day rate to cover these days.")
+            InlineIssue(stringResource(R.string.ui2_ppw_missing_dates_issue, rendered))
         }
         builder.dayRates.forEachIndexed { idx, dr ->
             DayRatePanel(
@@ -884,7 +896,7 @@ private fun DayRatesSection(
         OutlinedButton(onClick = { vm.addDayRate() }, modifier = Modifier.fillMaxWidth()) {
             Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
             Spacer(Modifier.width(6.dp))
-            Text("Add day rate")
+            Text(stringResource(R.string.ui2_ppw_add_day_rate))
         }
     }
 }
@@ -919,24 +931,27 @@ private fun DayRatePanel(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text("Day rate ${index + 1}",
+                    Text(stringResource(R.string.ui2_ppw_day_rate_n, index + 1),
                         style = MaterialTheme.typography.labelLarge,
                         fontWeight = FontWeight.SemiBold)
                     Text(
-                        "${dr.startDate} → ${dr.endDate} · ${dr.daysOfWeek.size}/7 days",
+                        stringResource(R.string.ui2_ppw_day_rate_sub,
+                            dr.startDate, dr.endDate, dr.daysOfWeek.size),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 if (!issues.isClean || missingWeekdays.isNotEmpty()) {
-                    Icon(Icons.Default.Warning, contentDescription = "Has issues",
+                    Icon(Icons.Default.Warning,
+                        contentDescription = stringResource(R.string.ui2_ppw_has_issues_cd),
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(4.dp))
                 }
                 if (onRemove != null) {
                     IconButton(onClick = onRemove, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.Delete, contentDescription = "Remove",
+                        Icon(Icons.Default.Delete,
+                            contentDescription = stringResource(R.string.ui2_remove),
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(18.dp))
                     }
@@ -955,7 +970,7 @@ private fun DayRatePanel(
                         OutlinedTextField(
                             value = dr.startDate,
                             onValueChange = { v -> edit { copy(startDate = v) } },
-                            label = { Text("Start (MM/DD)") },
+                            label = { Text(stringResource(R.string.ui2_ppw_start_mmdd)) },
                             isError = issues.dateRangeInvalid != null,
                             singleLine = true,
                             modifier = Modifier.weight(1f)
@@ -963,7 +978,7 @@ private fun DayRatePanel(
                         OutlinedTextField(
                             value = dr.endDate,
                             onValueChange = { v -> edit { copy(endDate = v) } },
-                            label = { Text("End (MM/DD)") },
+                            label = { Text(stringResource(R.string.ui2_ppw_end_mmdd)) },
                             isError = issues.dateRangeInvalid != null,
                             singleLine = true,
                             modifier = Modifier.weight(1f)
@@ -972,10 +987,12 @@ private fun DayRatePanel(
                     issues.dateRangeInvalid?.let { InlineIssue(it) }
 
                     // Day-of-week chips
-                    Text("DAYS", style = MaterialTheme.typography.labelSmall,
+                    Text(stringResource(R.string.ui2_ppw_days_header),
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    val dayNames = stringArrayResource(R.array.ui2_days_short_mon_first)
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        DAY_LABELS.forEach { (code, name) ->
+                        DAY_CODES.forEachIndexed { i, code ->
                             FilterChip(
                                 selected = code in dr.daysOfWeek,
                                 onClick = {
@@ -985,14 +1002,15 @@ private fun DayRatePanel(
                                         copy(daysOfWeek = set)
                                     }
                                 },
-                                label = { Text(name) }
+                                label = { Text(dayNames[i]) }
                             )
                         }
                     }
                     if (missingWeekdays.isNotEmpty()) {
-                        val names = DAY_LABELS.filter { it.first in missingWeekdays }
-                            .joinToString(", ") { it.second }
-                        InlineIssue("These weekdays aren't covered by any day rate sharing this date window: $names")
+                        val names = DAY_CODES.withIndex()
+                            .filter { it.value in missingWeekdays }
+                            .joinToString(", ") { dayNames[it.index] }
+                        InlineIssue(stringResource(R.string.ui2_ppw_weekdays_issue, names))
                     }
 
                     // Coverage strip (24h)
@@ -1000,7 +1018,9 @@ private fun DayRatePanel(
                     CoverageSummary(issues)
 
                     // Rates — grouped by price
-                    Text("RATES (${RegionProfiles.current.rateUnit})", style = MaterialTheme.typography.labelSmall,
+                    Text(stringResource(R.string.ui2_ppw_rates_header,
+                            RegionProfiles.current.rateUnit),
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                     val groups = remember(dr.bands) {
                         // Group by price; preserve first-seen ordering so reordering doesn't
@@ -1061,7 +1081,7 @@ private fun DayRatePanel(
                     ) {
                         Icon(Icons.Default.Add, null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(6.dp))
-                        Text("Add price")
+                        Text(stringResource(R.string.ui2_ppw_add_price))
                     }
                 }
             }
@@ -1090,7 +1110,8 @@ private fun PriceCard(
         Column(modifier = Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 DoubleField(
-                    label = "Cost (${RegionProfiles.current.rateUnit})",
+                    label = stringResource(R.string.ui2_ppw_cost_label,
+                        RegionProfiles.current.rateUnit),
                     value = price,
                     onValue = onPriceChange,
                     modifier = Modifier.weight(1f)
@@ -1098,7 +1119,8 @@ private fun PriceCard(
                 if (onPriceRemove != null) {
                     Spacer(Modifier.width(8.dp))
                     IconButton(onClick = onPriceRemove, modifier = Modifier.size(32.dp)) {
-                        Icon(Icons.Default.Delete, contentDescription = "Remove cost",
+                        Icon(Icons.Default.Delete,
+                            contentDescription = stringResource(R.string.ui2_ppw_remove_cost_cd),
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(18.dp))
                     }
@@ -1128,7 +1150,8 @@ private fun PriceCard(
                         onClick = { pickRange = RangeEditTarget.Edit(band) },
                         modifier = Modifier.size(32.dp)
                     ) {
-                        Icon(Icons.Default.Edit, contentDescription = "Edit range",
+                        Icon(Icons.Default.Edit,
+                            contentDescription = stringResource(R.string.ui2_ppw_edit_range_cd),
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.primary)
                     }
@@ -1136,7 +1159,8 @@ private fun PriceCard(
                         onClick = { onRangeRemove(band) },
                         modifier = Modifier.size(32.dp)
                     ) {
-                        Icon(Icons.Default.Delete, contentDescription = "Remove range",
+                        Icon(Icons.Default.Delete,
+                            contentDescription = stringResource(R.string.ui2_ppw_remove_range_cd),
                             modifier = Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.error)
                     }
@@ -1145,7 +1169,7 @@ private fun PriceCard(
             TextButton(onClick = { pickRange = RangeEditTarget.Add }) {
                 Icon(Icons.Default.Add, null, modifier = Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Add time range")
+                Text(stringResource(R.string.ui2_ppw_add_time_range))
             }
         }
     }
@@ -1196,7 +1220,8 @@ private fun TimeRangeDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (stage == 0) "Select start time" else "Select end time") },
+        title = { Text(stringResource(
+            if (stage == 0) R.string.ui2_ppw_select_start else R.string.ui2_ppw_select_end)) },
         text = {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 TimePicker(state = pickerState)
@@ -1214,10 +1239,11 @@ private fun TimeRangeDialog(
                     val end = endMin.coerceIn(0, 1440).coerceAtLeast(begin + 1)
                     onConfirm(begin, end)
                 }
-            }) { Text(if (stage == 0) "Next" else "Done") }
+            }) { Text(stringResource(
+                if (stage == 0) R.string.ui2_next else R.string.ui2_done)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.dialog_cancel)) }
         }
     )
 }
@@ -1268,7 +1294,8 @@ private fun CoverageSummary(issues: DayRateIssues) {
             Box(modifier = Modifier.size(10.dp)
                 .background(MaterialTheme.colorScheme.primary, CircleShape))
             Spacer(Modifier.width(6.dp))
-            Text("All 24 hours covered", style = MaterialTheme.typography.labelSmall,
+            Text(stringResource(R.string.ui2_ppw_all_covered),
+                style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.primary)
         }
         return
@@ -1276,8 +1303,8 @@ private fun CoverageSummary(issues: DayRateIssues) {
     val gapText = issues.gaps.joinToString(", ") { renderMinuteRange(it) }
     val overlapText = issues.overlaps.joinToString(", ") { renderMinuteRange(it) }
     Column {
-        if (issues.gaps.isNotEmpty()) InlineIssue("Gap: $gapText")
-        if (issues.overlaps.isNotEmpty()) InlineIssue("Overlap: $overlapText")
+        if (issues.gaps.isNotEmpty()) InlineIssue(stringResource(R.string.ui2_ppw_gap, gapText))
+        if (issues.overlaps.isNotEmpty()) InlineIssue(stringResource(R.string.ui2_ppw_overlap, overlapText))
     }
 }
 

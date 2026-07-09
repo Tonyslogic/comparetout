@@ -32,6 +32,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.tfcode.comparetout.R
 import com.tfcode.comparetout.TOUTCApplication
@@ -98,15 +99,19 @@ fun UI2DrawerContent(
             modifier = Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Text("Menu", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-            IconButton(onClick = onClose) { Icon(Icons.Default.Close, "Close") }
+            Text(stringResource(R.string.ui2_menu),
+                style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            IconButton(onClick = onClose) {
+                Icon(Icons.Default.Close, stringResource(R.string.ui2_close))
+            }
         }
         HorizontalDivider()
         ShowHintsRow(showHints, onShowHintsChange)
         HorizontalDivider()
         // Supplier Plans (the price-plan editor) stays available in simple mode —
         // the user needs it to verify/correct downloaded tariffs.
-        UI2DrawerItem(R.drawable.ic_baseline_euro_symbol_24,  "Supplier Plans") {
+        UI2DrawerItem(R.drawable.ic_baseline_euro_symbol_24,
+            stringResource(R.string.ui2_drawer_supplier_plans)) {
             onClose()
             context.startActivity(
                 android.content.Intent(context, UI2PricePlanListActivity::class.java))
@@ -114,12 +119,14 @@ fun UI2DrawerContent(
         // Data-management and import/export are full-UI only — simple mode hides them
         // to keep to a single focused flow. (Sample onboarding lives at the bottom now.)
         if (!simpleMode) {
-            UI2DrawerItem(R.drawable.ic_baseline_call_split_24,   "Data Source Management") {
+            UI2DrawerItem(R.drawable.ic_baseline_call_split_24,
+                stringResource(R.string.ui2_drawer_data_sources)) {
                 onClose()
                 context.startActivity(
                     android.content.Intent(context, UI2DataSourceManagementActivity::class.java))
             }
-            UI2DrawerItem(R.drawable.ic_baseline_download_24,     "Import / Export") {
+            UI2DrawerItem(R.drawable.ic_baseline_download_24,
+                stringResource(R.string.ui2_drawer_import_export)) {
                 onClose()
                 context.startActivity(
                     android.content.Intent(context, UI2ImportExportActivity::class.java))
@@ -130,14 +137,17 @@ fun UI2DrawerContent(
         if (!simpleMode) {
             // Visibility gating (tabs / components / sources) only makes sense in
             // the full UI — the simple screen is already a single focused flow.
-            UI2DrawerItem(R.drawable.ic_baseline_settings_24, "App settings") {
+            UI2DrawerItem(R.drawable.ic_baseline_settings_24,
+                stringResource(R.string.ui2_settings_title)) {
                 onClose()
                 context.startActivity(
                     android.content.Intent(context, UI2SettingsActivity::class.java))
             }
         }
-        UI2DrawerItem(R.drawable.ic_baseline_settings_24,     "Units",                  onClose)
-        UI2DrawerItem(R.drawable.ic_baseline_access_time_24,  "Timezone") {
+        UI2DrawerItem(R.drawable.ic_baseline_settings_24,
+            stringResource(R.string.ui2_drawer_units), onClose)
+        UI2DrawerItem(R.drawable.ic_baseline_access_time_24,
+            stringResource(R.string.ui2_timezone)) {
             onClose()
             context.startActivity(
                 android.content.Intent(context, UI2TimezoneActivity::class.java))
@@ -145,7 +155,8 @@ fun UI2DrawerContent(
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
         if (simpleMode) {
             // Leave the persistent single-screen mode for the full 4-tab UI.
-            UI2DrawerItem(R.drawable.ic_baseline_settings_24, "Switch to full UI") {
+            UI2DrawerItem(R.drawable.ic_baseline_settings_24,
+                stringResource(R.string.ui2_drawer_switch_full)) {
                 onClose()
                 relaunchInMode(context, simple = false)
             }
@@ -154,19 +165,23 @@ fun UI2DrawerContent(
             // PVGIS-fetch + simulation pipeline the wizard would. Idempotent (subsequent taps are no-ops).
             // It plays with dummy data across the whole app, so it sits at the bottom with the UI-mode
             // switches rather than next to the real data-management entries.
-            UI2DrawerItem(R.drawable.ic_baseline_download_24, "Try with sample data") {
+            UI2DrawerItem(R.drawable.ic_baseline_download_24,
+                stringResource(R.string.ui2_drawer_try_sample)) {
                 onClose()
                 val loader = EntryPointAccessors
                     .fromApplication(context.applicationContext, SampleDataLoaderEntryPoint::class.java)
                     .sampleDataLoader()
                 coroutineScope.launch {
+                    // Not a composable context — resolve via context.getString.
                     val msg = when (val result = loader.load()) {
                         is SampleDataLoader.Result.AlreadyLoaded ->
-                            "Sample data already loaded"
+                            context.getString(R.string.ui2_sample_already_loaded)
                         is SampleDataLoader.Result.Loaded ->
-                            "Sample loaded · simulation running in background"
+                            context.getString(R.string.ui2_sample_loaded)
                         is SampleDataLoader.Result.Failed ->
-                            "Couldn't load sample data: ${result.error.message ?: "unknown error"}"
+                            context.getString(R.string.ui2_sample_failed,
+                                result.error.message
+                                    ?: context.getString(R.string.ui2_unknown_error))
                     }
                     Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                 }
@@ -174,11 +189,13 @@ fun UI2DrawerContent(
             // Enter the persistent single-screen simple mode. Self-contained: flips
             // the flag and relaunches UI2MainActivity (CLEAR_TASK) so it works from
             // any host activity the drawer appears in, landing on the simple screen.
-            UI2DrawerItem(R.drawable.ic_baseline_settings_24, "Switch to quick UI") {
+            UI2DrawerItem(R.drawable.ic_baseline_settings_24,
+                stringResource(R.string.ui2_drawer_switch_quick)) {
                 onClose()
                 relaunchInMode(context, simple = true)
             }
-            UI2DrawerItem(R.drawable.ic_baseline_settings_24, "Switch to Legacy UI", onSwitchLegacy)
+            UI2DrawerItem(R.drawable.ic_baseline_settings_24,
+                stringResource(R.string.ui2_drawer_switch_legacy), onSwitchLegacy)
         }
     }
 }
@@ -208,9 +225,10 @@ private fun ShowHintsRow(checked: Boolean, onChange: (Boolean) -> Unit) {
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Column(Modifier.weight(1f)) {
-            Text("Show hints", style = MaterialTheme.typography.bodyLarge)
+            Text(stringResource(R.string.ui2_drawer_show_hints),
+                style = MaterialTheme.typography.bodyLarge)
             Text(
-                "Inline help text on each tab",
+                stringResource(R.string.ui2_drawer_show_hints_sub),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

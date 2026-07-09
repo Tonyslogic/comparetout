@@ -94,6 +94,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -103,6 +105,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.tfcode.comparetout.ComparisonUIViewModel.Importer
+import com.tfcode.comparetout.R
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformMeta
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -201,15 +204,15 @@ private fun DataSourceManagementScreen(
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
-                title = { Text("Data Source Management") },
+                title = { Text(stringResource(R.string.ui2_drawer_data_sources)) },
                 navigationIcon = {
                     IconButton(onClick = onClose) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.ui2_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { showDrawer = true }) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menu")
+                        Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.ui2_menu))
                     }
                 },
                 scrollBehavior = scrollBehavior
@@ -230,8 +233,8 @@ private fun DataSourceManagementScreen(
                 // not rendered — its data and any scheduled fetches are untouched.
                 if (uiVis.alphaess) item("alpha") {
                     SourceAccordion(
-                        title = "AlphaESS Cloud",
-                        subtitle = "Inverter sync via OpenAPI",
+                        title = stringResource(R.string.ui2_dsm_alpha_title),
+                        subtitle = stringResource(R.string.ui2_dsm_alpha_sub),
                         state = alpha,
                         showHints = showHints,
                         body = {
@@ -255,8 +258,8 @@ private fun DataSourceManagementScreen(
                 }
                 if (uiVis.homeassistant) item("ha") {
                     SourceAccordion(
-                        title = "Home Assistant",
-                        subtitle = "WebSocket + Energy dashboard",
+                        title = stringResource(R.string.home_assistant),
+                        subtitle = stringResource(R.string.ui2_dsm_ha_sub),
                         state = ha,
                         showHints = showHints,
                         body = {
@@ -278,8 +281,8 @@ private fun DataSourceManagementScreen(
                 }
                 if (uiVis.esbn) item("esbn") {
                     SourceAccordion(
-                        title = "ESBN Smart Meter",
-                        subtitle = "HDF file import (cloud sync deprecated)",
+                        title = stringResource(R.string.brand_esbn),
+                        subtitle = stringResource(R.string.ui2_dsm_esbn_sub),
                         state = esbn,
                         showHints = showHints,
                         body = {
@@ -297,8 +300,8 @@ private fun DataSourceManagementScreen(
                 }
                 if (uiVis.octopus) item("octopus") {
                     SourceAccordion(
-                        title = "Octopus Energy",
-                        subtitle = "Half-hourly meter sync + tariff import",
+                        title = stringResource(R.string.octopus_energy),
+                        subtitle = stringResource(R.string.ui2_dsm_octopus_sub),
                         state = octopus,
                         showHints = showHints,
                         body = {
@@ -319,8 +322,8 @@ private fun DataSourceManagementScreen(
                 }
                 if (uiVis.solis) item("solis") {
                     SourceAccordion(
-                        title = "Solis Cloud",
-                        subtitle = "Station sync via Platform API",
+                        title = stringResource(R.string.brand_solis),
+                        subtitle = stringResource(R.string.ui2_dsm_solis_sub),
                         state = solis,
                         showHints = showHints,
                         body = {
@@ -340,15 +343,13 @@ private fun DataSourceManagementScreen(
                 }
                 if (uiVis.pvgis) item("pvgis") {
                     WeatherSourceAccordion(
-                        title = "PVGIS (solar)",
-                        subtitle = "EU JRC solar irradiance · no account needed",
+                        title = stringResource(R.string.ui2_dsm_pvgis_title),
+                        subtitle = stringResource(R.string.ui2_dsm_pvgis_sub),
                         state = pvgis,
                         showHints = showHints,
                         showCredentials = false,
-                        emptyHint = "Each location/orientation is fetched once from PVGIS and cached here, " +
-                            "then re-scaled to every panel that shares it. Add a PV array to a scenario and " +
-                            "run it, and the cached download appears in this list.",
-                        entryNoun = "location",
+                        emptyHint = stringResource(R.string.ui2_dsm_pvgis_empty_hint),
+                        entryNoun = stringResource(R.string.ui2_dsm_noun_location),
                         onSetCredentials = null,
                         onClearAll = viewModel::deleteAllPvgisCache,
                         onDeleteEntry = viewModel::deletePvCacheEntry,
@@ -357,15 +358,13 @@ private fun DataSourceManagementScreen(
                 }
                 if (uiVis.cds) item("cds") {
                     WeatherSourceAccordion(
-                        title = "Copernicus CDS (weather)",
-                        subtitle = "ERA5 reanalysis for heat-pump weather · API key required",
+                        title = stringResource(R.string.ui2_dsm_cds_title),
+                        subtitle = stringResource(R.string.ui2_dsm_cds_sub),
                         state = cds,
                         showHints = showHints,
                         showCredentials = true,
-                        emptyHint = "Set your Copernicus CDS Personal Access Token, then the heat-pump " +
-                            "section can fetch real weather for your location. Each fetched " +
-                            "(location, period) is cached here.",
-                        entryNoun = "dataset",
+                        emptyHint = stringResource(R.string.ui2_dsm_cds_empty_hint),
+                        entryNoun = stringResource(R.string.ui2_dsm_noun_dataset),
                         onSetCredentials = viewModel::setCdsCredentials,
                         onClearAll = viewModel::deleteAllCdsCache,
                         onDeleteEntry = viewModel::deleteCdsCacheEntry,
@@ -415,15 +414,12 @@ private fun IntroHint() {
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("About data sources",
+            Text(stringResource(R.string.ui2_dsm_about_title),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary)
             Text(
-                "Real-world energy data flows from your inverter or smart meter into the " +
-                    "dashboard and Compare tab. Set credentials, pick which system to track, " +
-                    "and decide whether the app should refresh automatically each day. " +
-                    "Stats and graphs themselves live in the dashboard.",
+                stringResource(R.string.ui2_dsm_about_body),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -461,7 +457,7 @@ private fun SourceAccordion(
                 }
                 val systemCount = state?.systems?.size ?: 0
                 if (systemCount > 0 && !expanded) {
-                    Text("$systemCount system" + if (systemCount == 1) "" else "s",
+                    Text(pluralStringResource(R.plurals.ui2_dsm_n_systems, systemCount, systemCount),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -487,19 +483,20 @@ private fun SourceAccordion(
 private fun StatusChip(state: SourceState?) {
     val (icon, tint, label) = when {
         state == null -> Triple(Icons.Outlined.Warning,
-            MaterialTheme.colorScheme.outline, "Loading")
+            MaterialTheme.colorScheme.outline, stringResource(R.string.ui2_dsm_loading))
         state.importer == Importer.ESBNHDF -> Triple(Icons.Default.UploadFile,
-            MaterialTheme.colorScheme.primary, "File")
+            MaterialTheme.colorScheme.primary, stringResource(R.string.ui2_dsm_chip_file))
         // Systems present but no credentials (e.g. imported via a snapshot) —
         // flag clearly as needing attention rather than a neutral "Not set".
         !state.credentialsConfigured && state.systems.isNotEmpty() ->
-            Triple(Icons.Outlined.Warning, MaterialTheme.colorScheme.error, "Set credentials")
+            Triple(Icons.Outlined.Warning, MaterialTheme.colorScheme.error,
+                stringResource(R.string.ui2_dsm_chip_set_creds))
         !state.credentialsConfigured -> Triple(Icons.Default.CloudOff,
-            MaterialTheme.colorScheme.outline, "Not set")
+            MaterialTheme.colorScheme.outline, stringResource(R.string.ui2_dsm_chip_not_set))
         !state.credentialsKnownGood -> Triple(Icons.Outlined.Warning,
-            MaterialTheme.colorScheme.error, "Invalid")
+            MaterialTheme.colorScheme.error, stringResource(R.string.ui2_dsm_chip_invalid))
         else -> Triple(Icons.Default.CheckCircle,
-            MaterialTheme.colorScheme.primary, "Ready")
+            MaterialTheme.colorScheme.primary, stringResource(R.string.ui2_dsm_chip_ready))
     }
     Surface(
         color = tint.copy(alpha = 0.12f),
@@ -553,7 +550,7 @@ private fun AlphaSection(
         if (uri != null && sn != null) onExportFolder(sn, uri.toString())
     }
     if (showHints) {
-        HintLine("AlphaESS uses your AlphaCloud OpenAPI keys — generate them in the developer portal.")
+        HintLine(stringResource(R.string.ui2_dsm_alpha_hint))
     }
     CredentialStrip(
         configured = state?.credentialsConfigured == true,
@@ -586,9 +583,9 @@ private fun AlphaSection(
     )
     if (showCreds) {
         CredentialDialog(
-            title = "AlphaESS credentials",
-            userLabel = "App ID",
-            passLabel = "App Secret",
+            title = stringResource(R.string.ui2_dsm_alpha_creds_title),
+            userLabel = stringResource(R.string.ui2_dsm_app_id),
+            passLabel = stringResource(R.string.ui2_dsm_app_secret),
             initialUser = "",
             onDismiss = { showCreds = false },
             onSubmit = { u, p ->
@@ -599,7 +596,7 @@ private fun AlphaSection(
     }
     if (showDeleteSource) {
         DeleteSourceDialog(
-            sourceName = "AlphaESS Cloud",
+            sourceName = stringResource(R.string.ui2_dsm_alpha_title),
             mentionsCredentials = true,
             onDismiss = { showDeleteSource = false },
             onConfirm = { onRemoveSource(); showDeleteSource = false }
@@ -649,7 +646,7 @@ private fun HASection(
     var pendingDelete by remember { mutableStateOf<ManagedSystem?>(null) }
     var pendingFetch by remember { mutableStateOf<ManagedSystem?>(null) }
     if (showHints) {
-        HintLine("Set up the Energy dashboard in Home Assistant first — that's where these sensors come from.")
+        HintLine(stringResource(R.string.ui2_dsm_ha_hint))
     }
     CredentialStrip(
         configured = state?.credentialsConfigured == true,
@@ -710,12 +707,12 @@ private fun HASection(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text("Backfill Home Assistant",
+                    Text(stringResource(R.string.ui2_habf_title),
                         style = MaterialTheme.typography.titleSmall)
                     Text(
-                        if (state?.credentialsKnownGood == true)
-                            "Push another source's history into HA statistics"
-                        else "Connect Home Assistant first",
+                        stringResource(if (state?.credentialsKnownGood == true)
+                            R.string.ui2_dsm_backfill_sub
+                        else R.string.ui2_dsm_connect_ha_first),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -727,9 +724,9 @@ private fun HASection(
 
     if (showCreds) {
         CredentialDialog(
-            title = "Home Assistant",
-            userLabel = "Host URL",
-            passLabel = "Long-lived access token",
+            title = stringResource(R.string.home_assistant),
+            userLabel = stringResource(R.string.ui2_dsm_host_url),
+            passLabel = stringResource(R.string.ui2_dsm_lla_token),
             initialUser = "ws://homeassistant.local:8123/api/websocket",
             onDismiss = { showCreds = false },
             onSubmit = { h, t ->
@@ -740,7 +737,7 @@ private fun HASection(
     }
     if (showDeleteSource) {
         DeleteSourceDialog(
-            sourceName = "Home Assistant",
+            sourceName = stringResource(R.string.home_assistant),
             mentionsCredentials = true,
             onDismiss = { showDeleteSource = false },
             onConfirm = { onRemoveSource(); showDeleteSource = false }
@@ -784,15 +781,13 @@ private fun HASensorsAccordion(
 ) {
     var expanded by remember { mutableStateOf(false) }
     val summary = when {
-        sensors == null -> "Not yet discovered"
+        sensors == null -> stringResource(R.string.ui2_dsm_not_discovered)
         else -> {
-            val g = sensors.grid.size
-            val e = sensors.gridExports.size
-            val s = sensors.solar.size
-            val b = sensors.batteries.size
             val d = sensors.devices.size
-            "$g grid in · $e grid out · $s solar · $b battery" +
-                    if (d > 0) " · $d device" + (if (d > 1) "s" else "") else ""
+            stringResource(R.string.ui2_dsm_sensor_summary,
+                sensors.grid.size, sensors.gridExports.size,
+                sensors.solar.size, sensors.batteries.size) +
+                if (d > 0) " " + pluralStringResource(R.plurals.ui2_dsm_n_devices, d, d) else ""
         }
     }
     Surface(
@@ -806,7 +801,7 @@ private fun HASensorsAccordion(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text("Energy sensors",
+                    Text(stringResource(R.string.ui2_dsm_energy_sensors),
                         style = MaterialTheme.typography.titleSmall)
                     Text(summary,
                         style = MaterialTheme.typography.labelSmall,
@@ -828,7 +823,7 @@ private fun HASensorsAccordion(
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         if (showHints && sensors == null) {
-                            Text("Tap Re-discover after enabling the Energy dashboard in HA.",
+                            Text(stringResource(R.string.ui2_dsm_rediscover_hint),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.weight(1f))
@@ -836,31 +831,31 @@ private fun HASensorsAccordion(
                         OutlinedButton(onClick = onRediscover, enabled = canRediscover) {
                             Icon(Icons.Default.Refresh, null, Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text(if (sensors == null) "Discover" else "Re-discover")
+                            Text(stringResource(if (sensors == null) R.string.ui2_dsm_discover
+                                                else R.string.ui2_dsm_rediscover))
                         }
                     }
                     if (sensors != null) {
                         if (sensors.serverRange != null) {
-                            Text("Statistics on server: ${sensors.serverRange}",
+                            Text(stringResource(R.string.ui2_dsm_stats_on_server,
+                                    sensors.serverRange),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         HASensorTable(sensors)
                         if (sensors.devices.isNotEmpty()) {
-                            Text("Individual devices",
+                            Text(stringResource(R.string.ui2_dsm_individual_devices),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant)
                             if (showHints) {
-                                Text("EV / hot water / heat pump devices feed scenario " +
-                                        "derivation; \"Remove from load\" also subtracts the " +
-                                        "device's energy at import (any role).",
+                                Text(stringResource(R.string.ui2_dsm_devices_hint),
                                     style = MaterialTheme.typography.labelSmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                             HADeviceTable(sensors.devices, onDeviceChange)
                         }
                     } else if (!canRediscover) {
-                        Text("Set credentials first to discover sensors.",
+                        Text(stringResource(R.string.ui2_dsm_set_creds_first),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -895,15 +890,15 @@ private fun HADeviceTable(
             .padding(horizontal = 8.dp, vertical = 6.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Device",
+            Text(stringResource(R.string.ui2_dsm_device),
                 modifier = Modifier.weight(1f),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Role",
+            Text(stringResource(R.string.ui2_dsm_role),
                 modifier = Modifier.width(DEVICE_ROLE_COLUMN),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Remove from load",
+            Text(stringResource(R.string.ui2_dsm_remove_from_load),
                 modifier = Modifier.width(DEVICE_REMOVE_COLUMN),
                 textAlign = TextAlign.Center,
                 style = MaterialTheme.typography.labelSmall,
@@ -921,8 +916,15 @@ private fun HADeviceTableRow(
     device: HADeviceRow,
     onDeviceChange: (String, String, Boolean) -> Unit
 ) {
+    // roleNames are persisted classification values — never translated.
     val roleNames = listOf("OTHER", "EV", "HOT_WATER", "HEAT_PUMP")
-    val roleLabels = listOf("Ignore", "EV", "Hot water", "Heat pump")
+    val roleLabels = listOf(
+        stringResource(R.string.ui2_dsm_role_ignore),
+        stringResource(R.string.ui2_component_ev),
+        stringResource(R.string.ui2_component_hot_water),
+        stringResource(R.string.ui2_component_heat_pump)
+    )
+    val ignoreLabel = roleLabels[0]
     var menuOpen by remember { mutableStateOf(false) }
     Row(
         Modifier.fillMaxWidth().padding(vertical = 2.dp),
@@ -938,7 +940,7 @@ private fun HADeviceTableRow(
                 modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(horizontal = 8.dp)
             ) {
-                Text(roleLabels.getOrElse(roleNames.indexOf(device.role)) { "Ignore" },
+                Text(roleLabels.getOrElse(roleNames.indexOf(device.role)) { ignoreLabel },
                     maxLines = 1)
                 Icon(Icons.Default.KeyboardArrowDown, null, Modifier.size(16.dp))
             }
@@ -971,14 +973,19 @@ private fun HADeviceTableRow(
  */
 @Composable
 private fun HASensorTable(sensors: HASensorSnapshot) {
+    val gridImport = stringResource(R.string.ui2_habf_series_buy)
+    val gridExport = stringResource(R.string.ui2_habf_series_feed)
+    val solarWord = stringResource(R.string.ui2_graphs_solar)
+    val batteryWord = stringResource(R.string.ui2_graphs_battery)
     val rows = buildList {
-        sensors.grid.forEach { add("Grid import" to it) }
-        sensors.gridExports.forEach { add("Grid export" to it) }
-        sensors.solar.forEach { add("Solar" to it) }
+        sensors.grid.forEach { add(gridImport to it) }
+        sensors.gridExports.forEach { add(gridExport to it) }
+        sensors.solar.forEach { add(solarWord to it) }
         sensors.batteries.forEachIndexed { index, (charging, discharging) ->
-            val battery = if (sensors.batteries.size > 1) "Battery ${index + 1}" else "Battery"
-            charging?.let { add("$battery charge" to it) }
-            discharging?.let { add("$battery discharge" to it) }
+            val battery = if (sensors.batteries.size > 1)
+                stringResource(R.string.ui2_dsm_battery_n, index + 1) else batteryWord
+            charging?.let { add(stringResource(R.string.ui2_dsm_charge_suffix, battery) to it) }
+            discharging?.let { add(stringResource(R.string.ui2_dsm_discharge_suffix, battery) to it) }
         }
     }
     if (rows.isEmpty()) return
@@ -990,11 +997,11 @@ private fun HASensorTable(sensors: HASensorSnapshot) {
             .padding(horizontal = 8.dp, vertical = 6.dp)
     ) {
         Row {
-            Text("Role",
+            Text(stringResource(R.string.ui2_dsm_role),
                 modifier = Modifier.width(104.dp),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text("Sensor",
+            Text(stringResource(R.string.ui2_dsm_sensor),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -1055,8 +1062,7 @@ private fun EsbnSection(
                 tint = MaterialTheme.colorScheme.onErrorContainer,
                 modifier = Modifier.size(20.dp))
             Text(
-                "ESBN cloud sync is deprecated. Download your HDF file from the ESBN " +
-                    "customer portal and import it below.",
+                stringResource(R.string.ui2_dsm_esbn_deprecated),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onErrorContainer
             )
@@ -1073,11 +1079,12 @@ private fun EsbnSection(
         ) {
             Icon(Icons.Default.Download, null, Modifier.size(16.dp))
             Spacer(Modifier.width(6.dp))
-            Text("Import HDF file")
+            Text(stringResource(R.string.ui2_dsm_import_hdf))
         }
         if (!state?.systems.isNullOrEmpty()) {
             IconButton(onClick = { showDeleteSource = true }) {
-                Icon(Icons.Default.Delete, contentDescription = "Remove source",
+                Icon(Icons.Default.Delete,
+                    contentDescription = stringResource(R.string.ui2_dsm_remove_source_cd),
                     tint = MaterialTheme.colorScheme.error)
             }
         }
@@ -1099,7 +1106,7 @@ private fun EsbnSection(
         }
     )
     if (state?.systems.isNullOrEmpty() && showHints) {
-        Text("Imported MPRNs will appear here once a file has been ingested.",
+        Text(stringResource(R.string.ui2_dsm_esbn_empty),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
@@ -1115,7 +1122,7 @@ private fun EsbnSection(
     }
     if (showDeleteSource) {
         DeleteSourceDialog(
-            sourceName = "ESBN data",
+            sourceName = stringResource(R.string.ui2_dsm_esbn_data),
             mentionsCredentials = false,
             onDismiss = { showDeleteSource = false },
             onConfirm = { onRemoveSource(); showDeleteSource = false }
@@ -1151,9 +1158,7 @@ private fun OctopusSection(
         if (uri != null && sn != null) onImportFile(sn, uri.toString())
     }
     if (showHints) {
-        HintLine("Octopus needs your account number (A-XXXXXXXX) and an API key from the " +
-                "Octopus dashboard (Account → API access). Meter points are discovered " +
-                "automatically; fetching also builds supplier plans from your region's tariffs.")
+        HintLine(stringResource(R.string.ui2_dsm_octopus_hint))
     }
     CredentialStrip(
         configured = state?.credentialsConfigured == true,
@@ -1180,15 +1185,15 @@ private fun OctopusSection(
         }
     )
     if (state?.systems.isNullOrEmpty() && showHints) {
-        Text("Meter points (MPANs) will appear here once credentials are validated.",
+        Text(stringResource(R.string.ui2_dsm_octopus_empty),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
     if (showCreds) {
         CredentialDialog(
-            title = "Octopus credentials",
-            userLabel = "Account number",
-            passLabel = "API key",
+            title = stringResource(R.string.ui2_dsm_octopus_creds_title),
+            userLabel = stringResource(R.string.ui2_dsm_account_number),
+            passLabel = stringResource(R.string.ui2_dsm_api_key),
             initialUser = "",
             onDismiss = { showCreds = false },
             onSubmit = { u, p ->
@@ -1199,7 +1204,7 @@ private fun OctopusSection(
     }
     if (showDeleteSource) {
         DeleteSourceDialog(
-            sourceName = "Octopus Energy",
+            sourceName = stringResource(R.string.octopus_energy),
             mentionsCredentials = true,
             onDismiss = { showDeleteSource = false },
             onConfirm = { onRemoveSource(); showDeleteSource = false }
@@ -1245,9 +1250,7 @@ private fun SolisSection(
     var pendingDelete by remember { mutableStateOf<ManagedSystem?>(null) }
     var pendingFetch by remember { mutableStateOf<ManagedSystem?>(null) }
     if (showHints) {
-        HintLine("Solis needs an API Key ID and secret from soliscloud.com (Account → " +
-                "API Management — raise a service ticket if the menu is missing). Stations " +
-                "are discovered automatically; data updates every 5 minutes on the Solis side.")
+        HintLine(stringResource(R.string.ui2_dsm_solis_hint))
     }
     CredentialStrip(
         configured = state?.credentialsConfigured == true,
@@ -1270,15 +1273,15 @@ private fun SolisSection(
         // No per-row file import — Solis is cloud-sync only (UI2-only source).
     )
     if (state?.systems.isNullOrEmpty() && showHints) {
-        Text("Stations will appear here once credentials are validated.",
+        Text(stringResource(R.string.ui2_dsm_solis_empty),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
     if (showCreds) {
         CredentialDialog(
-            title = "Solis Cloud credentials",
-            userLabel = "API Key ID",
-            passLabel = "API secret",
+            title = stringResource(R.string.ui2_dsm_solis_creds_title),
+            userLabel = stringResource(R.string.ui2_dsm_api_key_id),
+            passLabel = stringResource(R.string.ui2_dsm_api_secret),
             initialUser = "",
             onDismiss = { showCreds = false },
             onSubmit = { u, p ->
@@ -1289,7 +1292,7 @@ private fun SolisSection(
     }
     if (showDeleteSource) {
         DeleteSourceDialog(
-            sourceName = "Solis Cloud",
+            sourceName = stringResource(R.string.brand_solis),
             mentionsCredentials = true,
             onDismiss = { showDeleteSource = false },
             onConfirm = { onRemoveSource(); showDeleteSource = false }
@@ -1357,7 +1360,8 @@ private fun WeatherSourceAccordion(
                 }
                 val n = state?.entries?.size ?: 0
                 if (n > 0 && !expanded) {
-                    Text("$n cached", style = MaterialTheme.typography.labelSmall,
+                    Text(stringResource(R.string.ui2_dsm_n_cached, n),
+                        style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Icon(
@@ -1402,14 +1406,16 @@ private fun WeatherSourceBody(
     }
 
     if (state == null) {
-        Text("Loading…", style = MaterialTheme.typography.bodySmall,
+        Text(stringResource(R.string.ui2_dsm_loading_ellipsis),
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
     }
 
     if (state.entries.isEmpty()) {
         if (showHints) HintLine(emptyHint)
-        Text("Nothing cached yet.", style = MaterialTheme.typography.bodySmall,
+        Text(stringResource(R.string.ui2_dsm_nothing_cached),
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     } else {
         Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -1422,15 +1428,16 @@ private fun WeatherSourceBody(
             Icon(Icons.Default.Delete, null, Modifier.size(16.dp),
                 tint = MaterialTheme.colorScheme.error)
             Spacer(Modifier.width(6.dp))
-            Text("Clear all (${state.entries.size})", color = MaterialTheme.colorScheme.error)
+            Text(stringResource(R.string.ui2_dsm_clear_all_n, state.entries.size),
+                color = MaterialTheme.colorScheme.error)
         }
     }
 
     if (showCreds && onSetCredentials != null) {
         CredentialDialog(
-            title = "Copernicus CDS",
-            userLabel = "CDS API URL",
-            passLabel = "Personal Access Token",
+            title = stringResource(R.string.brand_cds),
+            userLabel = stringResource(R.string.ui2_dsm_cds_url),
+            passLabel = stringResource(R.string.ui2_dsm_pat),
             initialUser = CDS_DEFAULT_URL,
             onDismiss = { showCreds = false },
             onSubmit = { u, p -> onSetCredentials(u, p); showCreds = false }
@@ -1439,11 +1446,9 @@ private fun WeatherSourceBody(
     if (showClearAll) {
         AlertDialog(
             onDismissRequest = { showClearAll = false },
-            title = { Text("Clear all cached data?") },
+            title = { Text(stringResource(R.string.ui2_dsm_clear_all_title)) },
             text = {
-                Text("This deletes the cached data for every $entryNoun in this source. " +
-                    "PV is re-fetched the next time you save a scenario that uses it. " +
-                    "There is no undo.",
+                Text(stringResource(R.string.ui2_dsm_clear_all_body, entryNoun),
                     style = MaterialTheme.typography.bodyMedium)
             },
             confirmButton = {
@@ -1454,10 +1459,14 @@ private fun WeatherSourceBody(
                 ) {
                     Icon(Icons.Default.Delete, null, Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Clear all")
+                    Text(stringResource(R.string.ui2_dsm_clear_all))
                 }
             },
-            dismissButton = { TextButton(onClick = { showClearAll = false }) { Text("Cancel") } }
+            dismissButton = {
+                TextButton(onClick = { showClearAll = false }) {
+                    Text(stringResource(R.string.dialog_cancel))
+                }
+            }
         )
     }
 }
@@ -1484,7 +1493,8 @@ private fun WeatherCacheRow(entry: WeatherCacheEntry, onDelete: () -> Unit) {
                 }
             }
             IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, contentDescription = "Delete cached data",
+                Icon(Icons.Default.Delete,
+                    contentDescription = stringResource(R.string.ui2_dsm_delete_cached_cd),
                     tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(18.dp))
             }
         }
@@ -1524,9 +1534,11 @@ private fun WeatherCredentialStrip(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(Modifier.weight(1f)) {
-                Text("Credentials", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.ui2_dsm_credentials),
+                    style = MaterialTheme.typography.bodyMedium)
                 Text(
-                    if (configured) "Configured · validated on first fetch" else "Not configured",
+                    stringResource(if (configured) R.string.ui2_dsm_configured_first_fetch
+                                   else R.string.ui2_dsm_not_configured),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1534,12 +1546,13 @@ private fun WeatherCredentialStrip(
             OutlinedButton(onClick = onEdit) {
                 Icon(Icons.Default.Edit, null, Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
-                Text(if (configured) "Update" else "Set")
+                Text(stringResource(if (configured) R.string.ui2_dsm_update else R.string.ui2_dsm_set))
             }
             if (onDeleteSource != null) {
                 Spacer(Modifier.width(4.dp))
                 IconButton(onClick = onDeleteSource) {
-                    Icon(Icons.Default.Delete, contentDescription = "Remove source",
+                    Icon(Icons.Default.Delete,
+                        contentDescription = stringResource(R.string.ui2_dsm_remove_source_cd),
                         tint = MaterialTheme.colorScheme.error)
                 }
             }
@@ -1569,13 +1582,14 @@ private fun CredentialStrip(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(Modifier.weight(1f)) {
-                Text("Credentials", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.ui2_dsm_credentials),
+                    style = MaterialTheme.typography.bodyMedium)
                 Text(
-                    when {
-                        !configured -> "Not configured"
-                        !good -> "Configured · last check failed"
-                        else -> "Configured · last check OK"
-                    },
+                    stringResource(when {
+                        !configured -> R.string.ui2_dsm_not_configured
+                        !good -> R.string.ui2_dsm_configured_failed
+                        else -> R.string.ui2_dsm_configured_ok
+                    }),
                     style = MaterialTheme.typography.labelSmall,
                     color = if (configured && !good)
                         MaterialTheme.colorScheme.error
@@ -1585,12 +1599,13 @@ private fun CredentialStrip(
             OutlinedButton(onClick = onEdit) {
                 Icon(Icons.Default.Edit, null, Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
-                Text(if (configured) "Update" else "Set")
+                Text(stringResource(if (configured) R.string.ui2_dsm_update else R.string.ui2_dsm_set))
             }
             if (onDeleteSource != null) {
                 Spacer(Modifier.width(4.dp))
                 IconButton(onClick = onDeleteSource) {
-                    Icon(Icons.Default.Delete, contentDescription = "Remove source",
+                    Icon(Icons.Default.Delete,
+                        contentDescription = stringResource(R.string.ui2_dsm_remove_source_cd),
                         tint = MaterialTheme.colorScheme.error)
                 }
             }
@@ -1612,16 +1627,11 @@ private fun DeleteSourceDialog(
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Remove $sourceName?") },
+        title = { Text(stringResource(R.string.ui2_dsm_remove_source_title, sourceName)) },
         text = {
             Text(
-                if (mentionsCredentials)
-                    "This permanently deletes all stored readings for this source AND its " +
-                        "saved credentials. You'll need to re-enter them to use it again. " +
-                        "There is no undo."
-                else
-                    "This permanently deletes all stored readings and configuration for this " +
-                        "source. There is no undo.",
+                stringResource(if (mentionsCredentials) R.string.ui2_dsm_remove_source_body_creds
+                               else R.string.ui2_dsm_remove_source_body),
                 style = MaterialTheme.typography.bodyMedium
             )
         },
@@ -1634,11 +1644,11 @@ private fun DeleteSourceDialog(
             ) {
                 Icon(Icons.Default.Delete, null, Modifier.size(16.dp))
                 Spacer(Modifier.width(4.dp))
-                Text("Remove")
+                Text(stringResource(R.string.ui2_remove))
             }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.dialog_cancel)) }
         }
     )
 }
@@ -1663,7 +1673,7 @@ private fun SystemList(
     isStale: ((String) -> Boolean)? = null
 ) {
     if (systems.isEmpty()) {
-        Text("No systems configured yet.",
+        Text(stringResource(R.string.ui2_dsm_no_systems),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         return
@@ -1728,7 +1738,7 @@ private fun SystemRow(
                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
                         shape = CircleShape
                     ) {
-                        Text("Auto-sync",
+                        Text(stringResource(R.string.ui2_dsm_auto_sync),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp))
@@ -1739,10 +1749,10 @@ private fun SystemRow(
             // when idle, "Fetching X" when a catch-up is mid-flight).
             val statusText = when {
                 sys.fetching && sys.progress != null ->
-                    "Fetching · ${sys.progress.take(40)}"
-                sys.fetching -> "Fetching…"
+                    stringResource(R.string.ui2_dsm_fetching_progress, sys.progress.take(40))
+                sys.fetching -> stringResource(R.string.ui2_dsm_fetching)
                 sys.dateRange != null -> sys.dateRange
-                else -> "No data yet"
+                else -> stringResource(R.string.ui2_dsm_no_data_yet)
             }
             Text(statusText,
                 style = MaterialTheme.typography.labelSmall,
@@ -1759,7 +1769,8 @@ private fun SystemRow(
                             null, Modifier.size(16.dp)
                         )
                         Spacer(Modifier.width(4.dp))
-                        Text(if (active) "Stop" else "Fetch")
+                        Text(stringResource(if (active) R.string.ui2_dsm_stop
+                                            else R.string.ui2_dsm_fetch))
                     }
                 }
                 OutlinedButton(
@@ -1771,7 +1782,7 @@ private fun SystemRow(
                         tint = if (sys.fetching) MaterialTheme.colorScheme.outline
                                else MaterialTheme.colorScheme.error)
                     Spacer(Modifier.width(4.dp))
-                    Text("Delete",
+                    Text(stringResource(R.string.ui2_delete),
                         color = if (sys.fetching) MaterialTheme.colorScheme.outline
                                 else MaterialTheme.colorScheme.error)
                 }
@@ -1802,7 +1813,7 @@ private fun SystemRow(
                         ) {
                             Icon(Icons.Default.Download, null, Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("Import")
+                            Text(stringResource(R.string.ui2_ie_import))
                         }
                         DataSourceIoAction.EXPORT -> OutlinedButton(
                             onClick = { onExport!!(sys.sysSn) },
@@ -1811,7 +1822,7 @@ private fun SystemRow(
                         ) {
                             Icon(Icons.Default.UploadFile, null, Modifier.size(16.dp))
                             Spacer(Modifier.width(4.dp))
-                            Text("Export")
+                            Text(stringResource(R.string.ui2_ie_export))
                         }
                     }
                 }
@@ -1828,7 +1839,7 @@ private fun SystemRow(
                     ) {
                         Icon(Icons.Default.Refresh, null, Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Migrate")
+                        Text(stringResource(R.string.ui2_dsm_migrate))
                     }
                 }
             }
@@ -1883,10 +1894,12 @@ private fun CredentialDialog(
             }
         },
         confirmButton = {
-            Button(onClick = { onSubmit(user.trim(), pass.trim()) }) { Text("Save") }
+            Button(onClick = { onSubmit(user.trim(), pass.trim()) }) {
+                Text(stringResource(R.string.ui2_save))
+            }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.dialog_cancel)) }
         }
     )
 }
@@ -1927,22 +1940,22 @@ private fun DeleteDialog(
     when (val m = mode) {
         DeleteMode.Choose -> AlertDialog(
             onDismissRequest = onDismiss,
-            title = { Text("Delete data for \"$sysSn\"?") },
+            title = { Text(stringResource(R.string.ui2_dsm_delete_data_title, sysSn)) },
             // Both choices live in the body as full-width OutlinedButtons so
             // neither looks secondary. The AlertDialog "confirmButton" is
             // demoted to Cancel — confirmation always happens on the next
             // step, never on this initial chooser.
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Choose how much data to remove. Credentials and " +
-                        "system configuration are preserved either way.",
+                    Text(stringResource(R.string.ui2_dsm_delete_choose_body),
                         style = MaterialTheme.typography.bodyMedium)
                     if (hasRange) {
-                        Text("Available data: $start ↔ $end",
+                        Text(stringResource(R.string.ui2_dsm_available_data,
+                                start.toString(), end.toString()),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     } else {
-                        Text("No data has been recorded for this system yet.",
+                        Text(stringResource(R.string.ui2_dsm_no_data_recorded),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -1953,7 +1966,8 @@ private fun DeleteDialog(
                         Icon(Icons.Default.Delete, null, Modifier.size(16.dp),
                             tint = MaterialTheme.colorScheme.error)
                         Spacer(Modifier.width(6.dp))
-                        Text("All readings", color = MaterialTheme.colorScheme.error)
+                        Text(stringResource(R.string.ui2_dsm_all_readings),
+                            color = MaterialTheme.colorScheme.error)
                     }
                     if (hasRange) {
                         OutlinedButton(
@@ -1962,7 +1976,7 @@ private fun DeleteDialog(
                         ) {
                             Icon(Icons.Default.Edit, null, Modifier.size(16.dp))
                             Spacer(Modifier.width(6.dp))
-                            Text("Pick a date range…")
+                            Text(stringResource(R.string.ui2_dsm_pick_range))
                         }
                     }
                 }
@@ -1971,17 +1985,16 @@ private fun DeleteDialog(
                 TextButton(onClick = onDismiss) {
                     Icon(Icons.Default.Cancel, null, Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Cancel")
+                    Text(stringResource(R.string.dialog_cancel))
                 }
             }
         )
 
         DeleteMode.ConfirmAll -> AlertDialog(
             onDismissRequest = onDismiss,
-            title = { Text("Delete ALL data?") },
+            title = { Text(stringResource(R.string.ui2_dsm_delete_all_title)) },
             text = {
-                Text("This permanently removes every reading for \"$sysSn\". " +
-                    "There is no undo.",
+                Text(stringResource(R.string.ui2_dsm_delete_all_body, sysSn),
                     style = MaterialTheme.typography.bodyMedium)
             },
             confirmButton = {
@@ -1991,12 +2004,12 @@ private fun DeleteDialog(
                     )) {
                     Icon(Icons.Default.Delete, null, Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Delete all")
+                    Text(stringResource(R.string.ui2_scenarios_delete_all))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { mode = DeleteMode.Choose }) {
-                    Text("Back")
+                    Text(stringResource(R.string.ui2_back))
                 }
             }
         )
@@ -2024,8 +2037,8 @@ private fun DeleteDialog(
                 onDismiss = onDismiss,
                 confirmEnabled = pickedStart != null && pickedEnd != null,
                 confirmLabel = if (pickedStart != null && pickedEnd != null)
-                    "OK · delete $days day" + (if (days == 1) "" else "s")
-                else "Pick start & end",
+                    pluralStringResource(R.plurals.ui2_dsm_ok_delete_days, days, days)
+                else stringResource(R.string.ui2_dsm_pick_start_end),
                 confirmIcon = Icons.Default.Delete,
                 onBack = { mode = DeleteMode.Choose },
                 onConfirm = {
@@ -2038,15 +2051,15 @@ private fun DeleteDialog(
                 DateRangePicker(
                     state = pickerState,
                     title = {
-                        Text("Range to delete from \"$sysSn\"",
+                        Text(stringResource(R.string.ui2_dsm_range_title, sysSn),
                             modifier = Modifier.padding(start = 20.dp, top = 12.dp))
                     },
                     headline = {
                         Text(
                             if (pickedStart != null && pickedEnd != null)
-                                "$pickedStart  →  $pickedEnd   ·   $days day" +
-                                        (if (days == 1) "" else "s")
-                            else "Tap a start date, then an end date",
+                                "$pickedStart  →  $pickedEnd   ·   " +
+                                    pluralStringResource(R.plurals.ui2_dsm_n_days, days, days)
+                            else stringResource(R.string.ui2_dsm_tap_start_end),
                             modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 4.dp)
                         )
                     },
@@ -2060,11 +2073,11 @@ private fun DeleteDialog(
             val to   = remember(m.endMs)   { LocalDate.ofEpochDay(m.endMs   / 86_400_000L) }
             AlertDialog(
                 onDismissRequest = onDismiss,
-                title = { Text("Delete range?") },
+                title = { Text(stringResource(R.string.ui2_dsm_delete_range_title)) },
                 text = {
                     Text(
-                        "Every reading between $from and $to for \"$sysSn\" will be " +
-                            "permanently removed. There is no undo.",
+                        stringResource(R.string.ui2_dsm_delete_range_body,
+                            from.toString(), to.toString(), sysSn),
                         style = MaterialTheme.typography.bodyMedium
                     )
                 },
@@ -2079,12 +2092,12 @@ private fun DeleteDialog(
                     ) {
                         Icon(Icons.Default.Delete, null, Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Delete range")
+                        Text(stringResource(R.string.ui2_dsm_delete_range))
                     }
                 },
                 dismissButton = {
                     TextButton(onClick = { mode = DeleteMode.Choose }) {
-                        Text("Back")
+                        Text(stringResource(R.string.ui2_back))
                     }
                 }
             )
@@ -2131,9 +2144,9 @@ private fun FetchStartDialog(
     val days = if (picked != null)
         (yesterday.toEpochDay() - picked.toEpochDay()).toInt() + 1 else 0
     val confirmLabel = when {
-        picked == null -> "Pick a start date"
-        picked.isAfter(yesterday) -> "Pick an earlier date"
-        else -> "OK · fetch $days day" + (if (days == 1) "" else "s")
+        picked == null -> stringResource(R.string.ui2_dsm_pick_start_date)
+        picked.isAfter(yesterday) -> stringResource(R.string.ui2_dsm_pick_earlier)
+        else -> pluralStringResource(R.plurals.ui2_dsm_ok_fetch_days, days, days)
     }
     StickyButtonPickerDialog(
         onDismiss = onDismiss,
@@ -2141,22 +2154,24 @@ private fun FetchStartDialog(
         confirmLabel = confirmLabel,
         confirmIcon = Icons.Default.PlayArrow,
         onBack = onDismiss,
-        backLabel = "Cancel",
+        backLabel = stringResource(R.string.dialog_cancel),
         onConfirm = { onConfirm(picked!!.atStartOfDay()) }
     ) {
         DatePicker(
             state = pickerState,
             title = {
-                Text("Fetch start date for \"$sysSn\"",
+                Text(stringResource(R.string.ui2_dsm_fetch_title, sysSn),
                     modifier = Modifier.padding(start = 20.dp, top = 12.dp))
             },
             headline = {
                 Text(
                     when {
-                        picked == null -> "Pick a date · catch-up runs up to $yesterday"
-                        picked.isAfter(yesterday) -> "Must be no later than $yesterday"
-                        else -> "$picked  →  $yesterday   ·   $days day" +
-                                (if (days == 1) "" else "s")
+                        picked == null ->
+                            stringResource(R.string.ui2_dsm_catch_up_hint, yesterday.toString())
+                        picked.isAfter(yesterday) ->
+                            stringResource(R.string.ui2_dsm_no_later_than, yesterday.toString())
+                        else -> "$picked  →  $yesterday   ·   " +
+                            pluralStringResource(R.plurals.ui2_dsm_n_days, days, days)
                     },
                     modifier = Modifier.padding(start = 20.dp, end = 20.dp, bottom = 4.dp)
                 )
@@ -2180,7 +2195,7 @@ private fun StickyButtonPickerDialog(
     confirmLabel: String,
     confirmIcon: androidx.compose.ui.graphics.vector.ImageVector,
     onBack: () -> Unit,
-    backLabel: String = "Back",
+    backLabel: String = stringResource(R.string.ui2_back),
     onConfirm: () -> Unit,
     content: @Composable () -> Unit
 ) {

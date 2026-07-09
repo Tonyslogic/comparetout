@@ -92,6 +92,8 @@ import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -230,11 +232,13 @@ fun GraphsScreen(
             TopAppBar(
                 title = { Text(state.scenarioName, maxLines = 1) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, stringResource(R.string.ui2_back))
+                    }
                 },
                 actions = {
                     IconButton(onClick = { showDrawer = true }) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menu")
+                        Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.ui2_menu))
                     }
                 },
                 scrollBehavior = scrollBehavior
@@ -438,9 +442,12 @@ private fun SettingsPanel(
     ) {
         // Header
         Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text("Chart Settings", style = MaterialTheme.typography.titleMedium,
+            Text(stringResource(R.string.ui2_graphs_chart_settings),
+                style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.weight(1f))
-            IconButton(onClick = onClose) { Icon(Icons.Default.Close, "Close") }
+            IconButton(onClick = onClose) {
+                Icon(Icons.Default.Close, stringResource(R.string.ui2_close))
+            }
         }
         HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
 
@@ -454,13 +461,13 @@ private fun SettingsPanel(
             ) {
                 Icon(Icons.AutoMirrored.Filled.ShowChart, null, Modifier.size(18.dp))
                 Spacer(Modifier.width(6.dp))
-                Text("Battery SOC & Water Temp…")
+                Text(stringResource(R.string.ui2_graphs_line_popup_button))
             }
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
         }
 
         // Display scale
-        PanelSection("Display Scale") {
+        PanelSection(stringResource(R.string.ui2_graphs_display_scale)) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 DisplayScale.entries.forEach { scale ->
                     FilterChip(
@@ -475,7 +482,7 @@ private fun SettingsPanel(
         Spacer(Modifier.height(12.dp))
 
         // Calculation
-        PanelSection("Calculation") {
+        PanelSection(stringResource(R.string.ui2_graphs_calculation)) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 UI2GraphsViewModel.Calculation.entries.forEach { calc ->
                     FilterChip(
@@ -489,7 +496,7 @@ private fun SettingsPanel(
         Spacer(Modifier.height(12.dp))
 
         // Step size
-        PanelSection("Step Size") {
+        PanelSection(stringResource(R.string.ui2_graphs_step_size)) {
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 UI2GraphsViewModel.StepSize.entries.forEach { sz ->
                     FilterChip(
@@ -504,7 +511,8 @@ private fun SettingsPanel(
 
         HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
 
-        Text("Filter Series", style = MaterialTheme.typography.titleSmall,
+        Text(stringResource(R.string.ui2_graphs_filter_series),
+            style = MaterialTheme.typography.titleSmall,
             modifier = Modifier.padding(bottom = 8.dp))
         FilterGroupContent(state, viewModel)
     }
@@ -559,7 +567,7 @@ private fun GraphsBottomBar(
         }
         BottomBarTile(
             icon = Icons.Default.Settings,
-            contentDescription = "Chart settings",
+            contentDescription = stringResource(R.string.ui2_graphs_chart_settings),
             active = false,
             shape = shape,
             modifier = Modifier.weight(1f),
@@ -733,7 +741,7 @@ private fun BarChartView(state: UI2GraphsViewModel.GraphState) {
     val activeSeries = state.activeFilters.intersect(state.availableFilters).toList()
 
     if (points.isEmpty() || activeSeries.isEmpty()) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("No data") }
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(stringResource(R.string.ui2_no_data)) }
         return
     }
 
@@ -801,7 +809,7 @@ private fun LineOrAreaChartView(state: UI2GraphsViewModel.GraphState, filled: Bo
     val activeSeries = state.activeFilters.intersect(state.availableFilters).toList()
 
     if (points.isEmpty() || activeSeries.isEmpty()) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("No data") }
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(stringResource(R.string.ui2_no_data)) }
         return
     }
 
@@ -845,7 +853,38 @@ private fun LineOrAreaChartView(state: UI2GraphsViewModel.GraphState, filled: Bo
 
 private data class GraphPieSpec(val title: String, val slices: List<PieSlice>)
 
-private fun buildGraphPieSpecs(state: UI2GraphsViewModel.GraphState): List<GraphPieSpec> {
+/** Pie titles/slice names resolved from resources in the composable and handed
+ *  to the (non-composable) spec builder. */
+private data class GraphPieLabels(
+    val selfConsumption: String, val pvUsed: String, val exported: String,
+    val loadSource: String, val solar: String, val battery: String, val grid: String,
+    val solarDistribution: String, val toLoad: String, val ev: String, val hotWater: String,
+    val batteryFlows: String, val solarIn: String, val gridIn: String, val toGrid: String
+)
+
+@Composable
+private fun graphPieLabels() = GraphPieLabels(
+    selfConsumption   = stringResource(R.string.ui2_graphs_self_consumption),
+    pvUsed            = stringResource(R.string.ui2_graphs_pv_used),
+    exported          = stringResource(R.string.ui2_graphs_exported),
+    loadSource        = stringResource(R.string.ui2_graphs_load_source),
+    solar             = stringResource(R.string.ui2_graphs_solar),
+    battery           = stringResource(R.string.ui2_graphs_battery),
+    grid              = stringResource(R.string.ui2_graphs_grid),
+    solarDistribution = stringResource(R.string.ui2_graphs_solar_distribution),
+    toLoad            = stringResource(R.string.ui2_graphs_to_load),
+    ev                = stringResource(R.string.ui2_graphs_ev),
+    hotWater          = stringResource(R.string.ui2_graphs_hot_water),
+    batteryFlows      = stringResource(R.string.ui2_graphs_battery_flows),
+    solarIn           = stringResource(R.string.ui2_graphs_solar_in),
+    gridIn            = stringResource(R.string.ui2_graphs_grid_in),
+    toGrid            = stringResource(R.string.ui2_graphs_to_grid)
+)
+
+private fun buildGraphPieSpecs(
+    state: UI2GraphsViewModel.GraphState,
+    l: GraphPieLabels
+): List<GraphPieSpec> {
     val points = buildChartPoints(state)
     if (points.isEmpty()) return emptyList()
 
@@ -864,37 +903,37 @@ private fun buildGraphPieSpecs(state: UI2GraphsViewModel.GraphState): List<Graph
 
     if (pv > 0) {
         val pvUsed = maxOf(0.0, pv2load + pv2bat + hwDiv + evDiv)
-        specs.add(GraphPieSpec("Self Consumption", listOf(
-            PieSlice("PV Used", pvUsed, Color(0xFF4CAF50)),
-            PieSlice("Exported", feed, Color(0xFFFFEB3B))
+        specs.add(GraphPieSpec(l.selfConsumption, listOf(
+            PieSlice(l.pvUsed, pvUsed, Color(0xFF4CAF50)),
+            PieSlice(l.exported, feed, Color(0xFFFFEB3B))
         ).filter { it.value > 0 }))
     }
 
     val gridToLoad = maxOf(0.0, buy - grid2bat)
     if (pv2load + bat2load + gridToLoad > 0) {
-        specs.add(GraphPieSpec("Load Source", buildList {
-            if (pv2load > 0)    add(PieSlice("Solar",   pv2load,    Color(0xFFF44336)))
-            if (bat2load > 0)   add(PieSlice("Battery", bat2load,   Color(0xFF4CAF50)))
-            if (gridToLoad > 0) add(PieSlice("Grid",    gridToLoad, Color(0xFF00BCD4)))
+        specs.add(GraphPieSpec(l.loadSource, buildList {
+            if (pv2load > 0)    add(PieSlice(l.solar,   pv2load,    Color(0xFFF44336)))
+            if (bat2load > 0)   add(PieSlice(l.battery, bat2load,   Color(0xFF4CAF50)))
+            if (gridToLoad > 0) add(PieSlice(l.grid,    gridToLoad, Color(0xFF00BCD4)))
         }))
     }
 
     if (pv > 0) {
-        specs.add(GraphPieSpec("Solar Distribution", buildList {
-            if (pv2load > 0) add(PieSlice("To Load",   pv2load, Color(0xFF4CAF50)))
-            if (pv2bat > 0)  add(PieSlice("Battery",   pv2bat,  Color(0xFF2196F3)))
-            if (evDiv > 0)   add(PieSlice("EV",        evDiv,   Color(0xFFFF9800)))
-            if (hwDiv > 0)   add(PieSlice("Hot Water", hwDiv,   Color(0xFF9C27B0)))
-            if (feed > 0)    add(PieSlice("Exported",  feed,    Color(0xFFFFEB3B)))
+        specs.add(GraphPieSpec(l.solarDistribution, buildList {
+            if (pv2load > 0) add(PieSlice(l.toLoad,   pv2load, Color(0xFF4CAF50)))
+            if (pv2bat > 0)  add(PieSlice(l.battery,  pv2bat,  Color(0xFF2196F3)))
+            if (evDiv > 0)   add(PieSlice(l.ev,       evDiv,   Color(0xFFFF9800)))
+            if (hwDiv > 0)   add(PieSlice(l.hotWater, hwDiv,   Color(0xFF9C27B0)))
+            if (feed > 0)    add(PieSlice(l.exported, feed,    Color(0xFFFFEB3B)))
         }))
     }
 
     if (state.hasBattery && pv2bat + grid2bat + bat2load + bat2grid > 0) {
-        specs.add(GraphPieSpec("Battery Flows", buildList {
-            if (pv2bat > 0)   add(PieSlice("Solar In", pv2bat,   Color(0xFF4CAF50)))
-            if (grid2bat > 0) add(PieSlice("Grid In",  grid2bat, Color(0xFF00BCD4)))
-            if (bat2load > 0) add(PieSlice("To Load",  bat2load, Color(0xFF2196F3)))
-            if (bat2grid > 0) add(PieSlice("To Grid",  bat2grid, Color(0xFFFFD700)))
+        specs.add(GraphPieSpec(l.batteryFlows, buildList {
+            if (pv2bat > 0)   add(PieSlice(l.solarIn, pv2bat,   Color(0xFF4CAF50)))
+            if (grid2bat > 0) add(PieSlice(l.gridIn,  grid2bat, Color(0xFF00BCD4)))
+            if (bat2load > 0) add(PieSlice(l.toLoad,  bat2load, Color(0xFF2196F3)))
+            if (bat2grid > 0) add(PieSlice(l.toGrid,  bat2grid, Color(0xFFFFD700)))
         }))
     }
 
@@ -903,12 +942,13 @@ private fun buildGraphPieSpecs(state: UI2GraphsViewModel.GraphState): List<Graph
 
 @Composable
 private fun PieChartView(state: UI2GraphsViewModel.GraphState) {
-    val specs = remember(state.intervalData, state.singleDayBarData, state.displayScale) {
-        buildGraphPieSpecs(state)
+    val labels = graphPieLabels()
+    val specs = remember(state.intervalData, state.singleDayBarData, state.displayScale, labels) {
+        buildGraphPieSpecs(state, labels)
     }
 
     if (specs.isEmpty()) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("No data") }
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(stringResource(R.string.ui2_no_data)) }
         return
     }
 
@@ -975,7 +1015,7 @@ private fun TableView(state: UI2GraphsViewModel.GraphState) {
     val activeSeries = state.activeFilters.intersect(state.availableFilters).toList()
 
     if (points.isEmpty() || activeSeries.isEmpty()) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("No data") }
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(stringResource(R.string.ui2_no_data)) }
         return
     }
 
@@ -1003,7 +1043,8 @@ private fun TableView(state: UI2GraphsViewModel.GraphState) {
                     .background(MaterialTheme.colorScheme.secondaryContainer)
                     .padding(horizontal = 4.dp)
             ) {
-                Text("Interval", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                Text(stringResource(R.string.ui2_graphs_interval),
+                    fontWeight = FontWeight.Bold, fontSize = 11.sp)
             }
             Row(modifier = Modifier
                 .weight(1f)
@@ -1058,7 +1099,7 @@ private data class SankeyFlow(val from: String, val to: String, val value: Doubl
 private fun SankeyView(state: UI2GraphsViewModel.GraphState) {
     val hasData = state.intervalData.isNotEmpty() || state.singleDayBarData.isNotEmpty()
     if (!hasData) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("No data") }
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(stringResource(R.string.ui2_no_data)) }
         return
     }
 
@@ -1086,6 +1127,17 @@ private fun SankeyView(state: UI2GraphsViewModel.GraphState) {
         }
     }
 
+    // Node names double as flow keys (drawSankey groups by string), so one
+    // resolved value per node is used for both identity and display.
+    val nodeSolar    = stringResource(R.string.ui2_graphs_solar)
+    val nodeGrid     = stringResource(R.string.ui2_graphs_grid)
+    val nodeBattery  = stringResource(R.string.ui2_graphs_battery)
+    val nodeLoad     = stringResource(R.string.ui2_graphs_load)
+    val nodeHotWater = stringResource(R.string.ui2_graphs_hot_water)
+    val nodeEv       = stringResource(R.string.ui2_graphs_ev)
+    val nodeHeatPump = stringResource(R.string.ui2_graphs_heat_pump)
+    val nodeExport   = stringResource(R.string.ui2_graphs_export)
+
     val flows = buildList {
         // ── Load-serving partition (fixes the scheduled-load double count) ──────────────────────────────
         // pv2load / bat2load / gridLoad each serve the FULL inputLoad: base load PLUS the scheduled extras
@@ -1105,25 +1157,27 @@ private fun SankeyView(state: UI2GraphsViewModel.GraphState) {
         val fHP = if (loadServe > 0 && extras > 0) attributable * heatPump / extras / loadServe else 0.0
         fun addLoadSource(name: String, value: Double, loadColor: Color) {
             if (value <= 0.0) return
-            if (value * fBase > 0) add(SankeyFlow(name, "Load",      value * fBase, loadColor))
-            if (value * fHW > 0)   add(SankeyFlow(name, "Hot Water", value * fHW,   seriesColor(FilterSeries.HW_SCHEDULE)))
-            if (value * fEV > 0)   add(SankeyFlow(name, "EV",        value * fEV,   seriesColor(FilterSeries.EV_SCHEDULE)))
-            if (value * fHP > 0)   add(SankeyFlow(name, "Heat Pump", value * fHP,   seriesColor(FilterSeries.HEAT_PUMP)))
+            if (value * fBase > 0) add(SankeyFlow(name, nodeLoad,     value * fBase, loadColor))
+            if (value * fHW > 0)   add(SankeyFlow(name, nodeHotWater, value * fHW,   seriesColor(FilterSeries.HW_SCHEDULE)))
+            if (value * fEV > 0)   add(SankeyFlow(name, nodeEv,       value * fEV,   seriesColor(FilterSeries.EV_SCHEDULE)))
+            if (value * fHP > 0)   add(SankeyFlow(name, nodeHeatPump, value * fHP,   seriesColor(FilterSeries.HEAT_PUMP)))
         }
 
-        addLoadSource("Solar", pv2load, seriesColor(FilterSeries.PV))
-        if (pv2bat > 0)     add(SankeyFlow("Solar",   "Battery",   pv2bat,     seriesColor(FilterSeries.PV2BAT)))
-        if (hwDivert > 0)   add(SankeyFlow("Solar",   "Hot Water", hwDivert,   seriesColor(FilterSeries.HW_DIVERT)))
-        if (evDivert > 0)   add(SankeyFlow("Solar",   "EV",        evDivert,   seriesColor(FilterSeries.EV_DIVERT)))
-        if (feed > 0)       add(SankeyFlow("Solar",   "Export",    feed,        seriesColor(FilterSeries.FEED)))
-        addLoadSource("Grid", gridLoad, seriesColor(FilterSeries.BUY))
-        if (grid2bat > 0)   add(SankeyFlow("Grid",    "Battery",   grid2bat,    seriesColor(FilterSeries.GRID2BAT)))
-        addLoadSource("Battery", bat2load, seriesColor(FilterSeries.BAT2LOAD))
-        if (bat2grid > 0)   add(SankeyFlow("Battery", "Export",    bat2grid,    seriesColor(FilterSeries.BAT2GRID)))
+        addLoadSource(nodeSolar, pv2load, seriesColor(FilterSeries.PV))
+        if (pv2bat > 0)     add(SankeyFlow(nodeSolar,   nodeBattery,  pv2bat,      seriesColor(FilterSeries.PV2BAT)))
+        if (hwDivert > 0)   add(SankeyFlow(nodeSolar,   nodeHotWater, hwDivert,    seriesColor(FilterSeries.HW_DIVERT)))
+        if (evDivert > 0)   add(SankeyFlow(nodeSolar,   nodeEv,       evDivert,    seriesColor(FilterSeries.EV_DIVERT)))
+        if (feed > 0)       add(SankeyFlow(nodeSolar,   nodeExport,   feed,        seriesColor(FilterSeries.FEED)))
+        addLoadSource(nodeGrid, gridLoad, seriesColor(FilterSeries.BUY))
+        if (grid2bat > 0)   add(SankeyFlow(nodeGrid,    nodeBattery,  grid2bat,    seriesColor(FilterSeries.GRID2BAT)))
+        addLoadSource(nodeBattery, bat2load, seriesColor(FilterSeries.BAT2LOAD))
+        if (bat2grid > 0)   add(SankeyFlow(nodeBattery, nodeExport,   bat2grid,    seriesColor(FilterSeries.BAT2GRID)))
     }
 
     if (flows.isEmpty()) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("No Sankey data") }
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text(stringResource(R.string.ui2_graphs_no_sankey))
+        }
         return
     }
 
@@ -1192,9 +1246,16 @@ private fun DrawScope.drawSankey(flows: List<SankeyFlow>) {
 private fun LinePopupContent(state: UI2GraphsViewModel.GraphState) {
     val labelColor = MaterialTheme.colorScheme.onSurface.toArgb()
     val gridColor  = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f).toArgb()
+    // Dataset labels resolved here — the AndroidView update lambda below runs
+    // outside composition, so stringResource can't be called inside it.
+    val socLabel     = stringResource(R.string.ui2_graphs_soc_pct)
+    val waterLabel   = stringResource(R.string.ui2_graphs_water_temp)
+    val copLabel     = stringResource(R.string.ui2_graphs_hp_cop)
+    val outdoorLabel = stringResource(R.string.ui2_graphs_outdoor_temp)
+    val windLabel    = stringResource(R.string.ui2_graphs_wind_ms)
 
     Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-        Text("Battery SOC & Water Temperature",
+        Text(stringResource(R.string.ui2_graphs_line_popup_title),
             style = MaterialTheme.typography.titleMedium,
             modifier = Modifier.padding(bottom = 8.dp))
         AndroidView(
@@ -1236,7 +1297,7 @@ private fun LinePopupContent(state: UI2GraphsViewModel.GraphState) {
                 val sets = mutableListOf<ILineDataSet>()
                 if (state.hasBattery) {
                     sets.add(LineDataSet(
-                        state.lineData.map { Entry(it.mod.toFloat(), it.soc.toFloat()) }, "SOC (%)"
+                        state.lineData.map { Entry(it.mod.toFloat(), it.soc.toFloat()) }, socLabel
                     ).apply {
                         color = seriesColor(FilterSeries.BAT_CHARGE).toArgb()
                         setDrawCircles(false); lineWidth = 2f; setDrawValues(false)
@@ -1245,7 +1306,7 @@ private fun LinePopupContent(state: UI2GraphsViewModel.GraphState) {
                 }
                 if (state.hasHW) {
                     sets.add(LineDataSet(
-                        state.lineData.map { Entry(it.mod.toFloat(), it.waterTemperature.toFloat()) }, "Water Temp (°C)"
+                        state.lineData.map { Entry(it.mod.toFloat(), it.waterTemperature.toFloat()) }, waterLabel
                     ).apply {
                         color = seriesColor(FilterSeries.HW_SCHEDULE).toArgb()
                         setDrawCircles(false); lineWidth = 2f; setDrawValues(false)
@@ -1256,14 +1317,14 @@ private fun LinePopupContent(state: UI2GraphsViewModel.GraphState) {
                 if (state.hasHeatPump) {
                     // COP and outdoor temp on the right axis (both small-magnitude, averaged metrics — design §8).
                     sets.add(LineDataSet(
-                        state.lineData.map { Entry(it.mod.toFloat(), it.heatPumpCop.toFloat()) }, "HP COP"
+                        state.lineData.map { Entry(it.mod.toFloat(), it.heatPumpCop.toFloat()) }, copLabel
                     ).apply {
                         color = seriesColor(FilterSeries.HEAT_PUMP).toArgb()
                         setDrawCircles(false); lineWidth = 2f; setDrawValues(false)
                         axisDependency = YAxis.AxisDependency.RIGHT; valueTextColor = labelColor
                     })
                     sets.add(LineDataSet(
-                        state.lineData.map { Entry(it.mod.toFloat(), it.heatPumpOutdoorTemp.toFloat()) }, "Outdoor °C"
+                        state.lineData.map { Entry(it.mod.toFloat(), it.heatPumpOutdoorTemp.toFloat()) }, outdoorLabel
                     ).apply {
                         color = seriesColor(FilterSeries.HEAT_PUMP_HEAT).toArgb()
                         setDrawCircles(false); lineWidth = 2f; setDrawValues(false)
@@ -1271,7 +1332,7 @@ private fun LinePopupContent(state: UI2GraphsViewModel.GraphState) {
                         enableDashedLine(10f, 5f, 0f); valueTextColor = labelColor
                     })
                     sets.add(LineDataSet(
-                        state.lineData.map { Entry(it.mod.toFloat(), it.heatPumpWindSpeed.toFloat()) }, "Wind m/s"
+                        state.lineData.map { Entry(it.mod.toFloat(), it.heatPumpWindSpeed.toFloat()) }, windLabel
                     ).apply {
                         color = seriesColor(FilterSeries.HEAT_PUMP_BACKUP).toArgb()
                         setDrawCircles(false); lineWidth = 2f; setDrawValues(false)
@@ -1303,12 +1364,13 @@ private fun FilterGroupContent(
     // actually stores (data-source mode). The old component-based checks left
     // data sources with no EV/HW/HP chips at all (components == null) and
     // offered HA every battery flow it never records.
-    FilterGroup("Core", state.availableFilters.intersect(UI2GraphsViewModel.CORE_FILTERS), state, viewModel)
+    FilterGroup(stringResource(R.string.ui2_graphs_group_core),
+        state.availableFilters.intersect(UI2GraphsViewModel.CORE_FILTERS), state, viewModel)
     listOf(
-        "Battery" to UI2GraphsViewModel.BATTERY_FILTERS,
-        "EV" to UI2GraphsViewModel.EV_FILTERS,
-        "Hot Water" to UI2GraphsViewModel.HW_FILTERS + FilterSeries.HW_ACTUAL,
-        "Heat Pump" to UI2GraphsViewModel.HEAT_PUMP_FILTERS + FilterSeries.HP_ACTUAL
+        stringResource(R.string.ui2_graphs_battery) to UI2GraphsViewModel.BATTERY_FILTERS,
+        stringResource(R.string.ui2_graphs_ev) to UI2GraphsViewModel.EV_FILTERS,
+        stringResource(R.string.ui2_graphs_hot_water) to UI2GraphsViewModel.HW_FILTERS + FilterSeries.HW_ACTUAL,
+        stringResource(R.string.ui2_graphs_heat_pump) to UI2GraphsViewModel.HEAT_PUMP_FILTERS + FilterSeries.HP_ACTUAL
     ).forEach { (title, series) ->
         val present = state.availableFilters.intersect(series)
         if (present.isNotEmpty()) {
@@ -1394,10 +1456,10 @@ private fun DateRangePickerDialog(
     val okLabel = when {
         pickedStart != null && pickedEnd != null -> {
             val days = (pickedEnd.toEpochDay() - pickedStart.toEpochDay()).toInt() + 1
-            "OK · $days day" + if (days == 1) "" else "s"
+            pluralStringResource(R.plurals.ui2_graphs_ok_days, days, days)
         }
-        pickedStart != null -> "OK · 1 day"
-        else -> "OK"
+        pickedStart != null -> pluralStringResource(R.plurals.ui2_graphs_ok_days, 1, 1)
+        else -> stringResource(R.string.dialog_ok)
     }
 
     Dialog(
@@ -1412,7 +1474,7 @@ private fun DateRangePickerDialog(
         ) {
             DateRangePicker(state = pickerState, modifier = Modifier.height(480.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onClick = onDismiss) { Text("Cancel") }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.dialog_cancel)) }
                 TextButton(
                     onClick = {
                         // Tap-one-date + OK is a single-day selection: M3's

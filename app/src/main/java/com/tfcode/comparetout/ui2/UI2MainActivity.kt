@@ -172,9 +172,9 @@ class UI2MainActivity : AppCompatActivity() {
             } == "False"
             if (seen || isFinishing) return@launch
             com.google.android.material.dialog.MaterialAlertDialogBuilder(this@UI2MainActivity)
-                .setMessage(DISCLAIMER_TEXT)
+                .setMessage(getString(R.string.ui2_disclaimer))
                 .setCancelable(false)
-                .setPositiveButton("Ok") { _, _ ->
+                .setPositiveButton(getString(R.string.dialog_ok)) { _, _ ->
                     kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
                         runCatching { app.putStringValueIntoDataStore(FIRST_USE_KEY, "False") }
                     }
@@ -201,13 +201,12 @@ class UI2MainActivity : AppCompatActivity() {
             if (deviceCountry.isBlank() ||
                 deviceCountry.equals(profile.regionCode, ignoreCase = true)) return@launch
             com.google.android.material.dialog.MaterialAlertDialogBuilder(this@UI2MainActivity)
-                .setTitle("Different region detected")
+                .setTitle(getString(R.string.ui2_region_mismatch_title))
                 .setMessage(
-                    "This is the ${profile.editionName} edition, but your device looks " +
-                        "like $deviceCountry. Tariffs and currency are region-specific — " +
-                        "if that's not right, install the edition for your country instead."
+                    getString(R.string.ui2_region_mismatch_message,
+                        profile.editionName, deviceCountry)
                 )
-                .setPositiveButton("Got it") { _, _ ->
+                .setPositiveButton(getString(R.string.ui2_got_it)) { _, _ ->
                     kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
                         runCatching { app.putStringValueIntoDataStore(REGION_MISMATCH_ACK_KEY, "True") }
                     }
@@ -249,19 +248,7 @@ class UI2MainActivity : AppCompatActivity() {
         /** Matches TOUTCApplication.FIRST_USE (package-private in the legacy package). */
         private const val FIRST_USE_KEY = "first_use"
         private const val REGION_MISMATCH_ACK_KEY = "region_mismatch_ack"
-
-        private const val DISCLAIMER_TEXT =
-            "Solar data is variable. This app uses historical solar data in estimations.\n\n" +
-            "Solar panels may be shaded. This app makes no attempt to consider shading.\n\n" +
-            "Price plan accuracy determines calculation accuracy. Check price plan details.\n\n" +
-            "Price plans do not include Public Services Obligations. Estimates will not include this.\n\n" +
-            "Price plans do not include rate usage limitations or complex contracts. Estimates will be " +
-            "wrong where limitations are exceeded or conditions triggered.\n\n" +
-            "All estimates are based on user input. If the input is bad, the output will be too.\n\n" +
-            "This app provides the ability to explore possibilities, estimations are not advice " +
-            "(financial or otherwise). The app is provided as-is, no representation or warranty of any " +
-            "kind, express or implied, regarding the accuracy, adequacy, validity, reliability, " +
-            "availability, or completeness of any information is made.\n\n" +
-            "Enjoy!"
+        // Disclaimer text lives in strings.xml (R.string.ui2_disclaimer) since
+        // the Phase-3 string extraction.
     }
 }

@@ -334,4 +334,941 @@
     <string name="dialog_cancel">Cancel</string>
     <string name="remove_comparison">Remove comparison</string>
     <string name="app_name">Eco Power Optimiser</string>
+
+    <!-- ══════════════════════════════════════════════════════════════════
+         UI2 string extraction (region survey Phase 3, plans/region/).
+         Keys are ui2_<screen>_<slug>; shared vocabulary uses ui2_<slug>.
+         Region-divergent wording gets flavor overrides in src/<flavor>/res.
+         ══════════════════════════════════════════════════════════════════ -->
+
+    <!-- Shared vocabulary -->
+    <string name="ui2_back">Back</string>
+    <string name="ui2_close">Close</string>
+    <string name="ui2_menu">Menu</string>
+    <string name="ui2_clear">Clear</string>
+    <string name="ui2_got_it">Got it</string>
+    <string name="ui2_unknown_error">unknown error</string>
+
+    <!-- Scenario component names (settings, wizard, dashboard) -->
+    <string name="ui2_component_inverter">Inverter</string>
+    <string name="ui2_component_panels">PV panels</string>
+    <string name="ui2_component_battery">Battery</string>
+    <string name="ui2_component_hot_water">Hot water</string>
+    <string name="ui2_component_ev">EV</string>
+    <string name="ui2_component_heat_pump">Heat pump</string>
+
+    <!-- Data-source brand names — not translated -->
+    <string name="brand_alphaess" translatable="false">AlphaESS</string>
+    <string name="brand_esbn" translatable="false">ESBN Smart Meter</string>
+    <string name="brand_solis" translatable="false">Solis Cloud</string>
+    <string name="brand_pvgis" translatable="false">PVGIS</string>
+    <string name="brand_cds" translatable="false">Copernicus CDS</string>
+
+    <!-- App settings (UI2SettingsActivity) -->
+    <string name="ui2_settings_title">App settings</string>
+    <string name="ui2_settings_intro">Hide the parts of the app you don\'t use. Hiding never deletes anything — a hidden component a scenario already has still simulates, and hidden sources keep their data.</string>
+    <string name="ui2_settings_group_tabs">Tabs</string>
+    <string name="ui2_settings_comparisons_sub">Cost/usage comparison tab</string>
+    <string name="ui2_settings_directors">Directors</string>
+    <string name="ui2_settings_directors_sub">Bulk component editing tab</string>
+    <string name="ui2_settings_group_components">Scenario components</string>
+    <string name="ui2_settings_components_sub">Applies to the wizard and the dashboard accordions.</string>
+    <string name="ui2_settings_group_sources">Data sources</string>
+    <string name="ui2_settings_pvgis_sub">Solar irradiance cache</string>
+    <string name="ui2_settings_cds_sub">Heat-pump weather cache</string>
+
+    <!-- UI2 shell (UI2MainActivity dialogs) -->
+    <string name="ui2_region_mismatch_title">Different region detected</string>
+    <string name="ui2_region_mismatch_message">This is the %1$s edition, but your device looks like %2$s. Tariffs and currency are region-specific — if that\'s not right, install the edition for your country instead.</string>
+    <string name="ui2_disclaimer">"Solar data is variable. This app uses historical solar data in estimations.\n\nSolar panels may be shaded. This app makes no attempt to consider shading.\n\nPrice plan accuracy determines calculation accuracy. Check price plan details.\n\nPrice plans do not include Public Services Obligations. Estimates will not include this.\n\nPrice plans do not include rate usage limitations or complex contracts. Estimates will be wrong where limitations are exceeded or conditions triggered.\n\nAll estimates are based on user input. If the input is bad, the output will be too.\n\nThis app provides the ability to explore possibilities, estimations are not advice (financial or otherwise). The app is provided as-is, no representation or warranty of any kind, express or implied, regarding the accuracy, adequacy, validity, reliability, availability, or completeness of any information is made.\n\nEnjoy!"</string>
+
+    <!-- Navigation drawer (UI2NavigationDrawer) -->
+    <string name="ui2_drawer_show_hints">Show hints</string>
+    <string name="ui2_drawer_show_hints_sub">Inline help text on each tab</string>
+    <string name="ui2_drawer_supplier_plans">Supplier Plans</string>
+    <string name="ui2_drawer_data_sources">Data Source Management</string>
+    <string name="ui2_drawer_import_export">Import / Export</string>
+    <string name="ui2_drawer_units">Units</string>
+    <string name="ui2_drawer_switch_full">Switch to full UI</string>
+    <string name="ui2_drawer_switch_quick">Switch to quick UI</string>
+    <string name="ui2_drawer_switch_legacy">Switch to Legacy UI</string>
+    <string name="ui2_drawer_try_sample">Try with sample data</string>
+    <string name="ui2_sample_already_loaded">Sample data already loaded</string>
+    <string name="ui2_sample_loaded">Sample loaded · simulation running in background</string>
+    <string name="ui2_sample_failed">Couldn\'t load sample data: %1$s</string>
+
+    <!-- Shared action vocabulary (tranche 2) -->
+    <string name="ui2_view">View</string>
+    <string name="ui2_edit">Edit</string>
+    <string name="ui2_share">Share</string>
+    <string name="ui2_delete">Delete</string>
+    <string name="ui2_options">Options</string>
+
+    <!-- Import sheet (UI2ImportSheet) -->
+    <string name="ui2_import_apply">Apply</string>
+    <string name="ui2_import_community_note_default">Community-maintained — may be out of date. You can edit anything after importing.</string>
+    <string name="ui2_import_download_failed">Couldn\'t download the list — check your connection and retry.</string>
+    <string name="ui2_import_from_file">From file</string>
+    <string name="ui2_import_paste_json">Paste JSON</string>
+    <string name="ui2_import_community">Community</string>
+    <string name="ui2_import_prompt_llm">Prompt an LLM</string>
+    <string name="ui2_import_paste_clipboard">Paste from clipboard</string>
+    <string name="ui2_import_downloading">Downloading latest…</string>
+    <string name="ui2_import_download_latest">Download latest</string>
+    <string name="ui2_import_llm_intro">No list for your supplier? Have an AI assistant build one:</string>
+    <string name="ui2_import_llm_steps">1. Copy the prompt below.\n2. Paste it into a text editor (Notes, etc.) — it\'s too long to edit inside most LLM chat boxes.\n3. Fill in the supplier and country at the top.\n4. Copy the edited prompt and paste it into your favourite LLM (ChatGPT, Claude, Gemini…).\n5. Copy the JSON it returns, then switch to \"Paste JSON\" here.</string>
+    <string name="ui2_import_copy_prompt">Copy prompt</string>
+    <string name="ui2_import_prompt_copied">Prompt copied</string>
+    <string name="ui2_import_have_json">I have the JSON — paste it</string>
+    <string name="ui2_import_llm_warning">Heads-up: this only works some of the time — LLM results are hit-and-miss and often need fixing. Always check the generated rates against a recent bill, and edit any plan after importing.</string>
+    <string name="ui2_import_pick_file">Pick a JSON file…</string>
+    <string name="ui2_import_preview_placeholder">Pick a file or paste JSON to preview.</string>
+
+    <!-- Scenarios tab (UI2SimulationsFragment) -->
+    <string name="ui2_scenarios_title">Scenarios</string>
+    <string name="ui2_scenarios_delete_sim_title">Delete simulation?</string>
+    <string name="ui2_scenarios_delete_all_title">Delete all scenarios?</string>
+    <string name="ui2_scenarios_delete_all">Delete all</string>
+    <string name="ui2_scenarios_delete_all_cd">Delete all scenarios</string>
+    <string name="ui2_scenarios_delete_sim_body">\"%1$s\" will be permanently deleted.</string>
+    <plurals name="ui2_scenarios_delete_all_body">
+        <item quantity="one">The scenario will be permanently deleted, along with its simulation and costing results. Data sources are not affected. There is no undo.</item>
+        <item quantity="other">All %1$d scenarios will be permanently deleted, along with their simulation and costing results. Data sources are not affected. There is no undo.</item>
+    </plurals>
+    <string name="ui2_scenarios_cd_simulation">Simulation</string>
+    <string name="ui2_scenarios_cd_data_source">Data source</string>
+
+    <!-- Quick mode (UI2SimpleScreen). ui2_simple_usage_hint / ui2_simple_azimuth_hint
+         have region wording → overridden in src/gb/res/values/strings.xml -->
+    <string name="ui2_decrease">Decrease</string>
+    <string name="ui2_increase">Increase</string>
+    <string name="ui2_simple_title">Quick mode</string>
+    <string name="ui2_simple_graphs">Graphs</string>
+    <string name="ui2_simple_full_ui">Full UI</string>
+    <string name="ui2_simple_intro">See whether solar and a battery would pay off for you, fast. Answer a couple of questions and tap Calculate.</string>
+    <string name="ui2_simple_calculate">Calculate</string>
+    <string name="ui2_simple_usage_title">How much do you use?</string>
+    <string name="ui2_simple_usage_typical">Typical home</string>
+    <string name="ui2_simple_usage_hdf">My ESBN data</string>
+    <string name="ui2_simple_usage_label_hdf">Yearly electricity (from your data)</string>
+    <string name="ui2_simple_usage_label">Yearly electricity (kWh)</string>
+    <string name="ui2_simple_usage_suffix">kWh / year</string>
+    <string name="ui2_simple_hdf_importing">Importing your ESBN data…</string>
+    <string name="ui2_simple_hdf_imported">✓ Imported — yearly total read from your data.</string>
+    <string name="ui2_simple_hdf_import_other">Import a different file</string>
+    <string name="ui2_simple_hdf_import">Import ESBN HDF file</string>
+    <string name="ui2_simple_hdf_hint">Download an HDF file from the ESBN Networks portal (My Energy Consumption → Download). We read your exact yearly total and half-hourly usage pattern from it — the most accurate option.</string>
+    <string name="ui2_simple_usage_hint">It\'s on your bill as kWh used per year. A typical Irish home is around 4,200 kWh. We spread it over the year using a standard smart-meter pattern. For a more accurate result, switch to “My ESBN data”.</string>
+    <string name="ui2_simple_solar_title">Solar panels</string>
+    <string name="ui2_simple_solar_size">System size</string>
+    <string name="ui2_simple_solar_hint">Adjust in 0.5 kWp steps — a typical home install is around 7 kWp. We model it at 40° tilt and fetch a year of expected output for your exact spot from PVGIS (an EU solar dataset). Turn solar off to see the battery-only case.</string>
+    <string name="ui2_simple_azimuth_label">Roof direction (degrees)</string>
+    <string name="ui2_simple_azimuth_suffix">° · 180 = south</string>
+    <string name="ui2_simple_azimuth_hint">0 = north, 90 = east, 180 = south, 270 = west. South is best in Ireland.</string>
+    <string name="ui2_simple_use_location">Use my location</string>
+    <string name="ui2_simple_location_set">Location set: %1$s</string>
+    <string name="ui2_simple_location_needed">We need your location to estimate solar yield (PVGIS).</string>
+    <string name="ui2_simple_battery_title">Battery size</string>
+    <string name="ui2_simple_battery_hint">A home battery stores daytime solar (or cheap night-rate electricity) to use at peak times. Try a few sizes to see which pays off — bigger isn\'t always better.</string>
+    <string name="ui2_simple_battery_none">None</string>
+    <string name="ui2_simple_night_charge">Charge from the grid overnight (02:00–05:00)</string>
+    <string name="ui2_simple_night_charge_hint">Fills the battery on a cheap night-rate window so you draw less at peak times. Best paired with a night-saver tariff.</string>
+    <string name="ui2_simple_idle">Tap Calculate to run the simulation and see your cost.</string>
+    <string name="ui2_simple_building">Setting things up…</string>
+    <string name="ui2_simple_simulating">Simulating a year of energy…</string>
+    <string name="ui2_simple_refresh">Refresh</string>
+    <string name="ui2_simple_error">Something went wrong. Check your inputs and try again.</string>
+    <string name="ui2_simple_no_plans_title">Add real supplier tariffs to see your cost.</string>
+    <string name="ui2_simple_no_plans_body">Costs can only be shown against real tariffs. Download the community-maintained list (it may be out of date — you can edit the plans afterwards).</string>
+    <string name="ui2_simple_est_cost">Estimated yearly cost</string>
+    <string name="ui2_simple_cheapest_plan">Cheapest plan: %1$s</string>
+    <string name="ui2_simple_buy_sell">Buy %1$s · Sell %2$s per year</string>
+    <string name="ui2_simple_no_tariffs">No supplier tariffs yet.</string>
+    <plurals name="ui2_simple_tariffs_loaded">
+        <item quantity="one">%1$d supplier tariff loaded · community-maintained, may be out of date.</item>
+        <item quantity="other">%1$d supplier tariffs loaded · community-maintained, may be out of date.</item>
+    </plurals>
+    <string name="ui2_simple_download_tariffs">Download supplier tariffs</string>
+    <string name="ui2_simple_refresh_tariffs">Refresh tariffs</string>
+
+    <!-- Timezone picker (UI2TimezoneActivity) -->
+    <string name="ui2_timezone">Timezone</string>
+    <string name="ui2_tz_hint_title">About timezone</string>
+    <string name="ui2_tz_hint_body">Internally the app stores every reading in UTC. The zone you pick here decides how imports without explicit zone info are interpreted, and how UTC values are rendered back to you. Default is your phone\'s current zone — change it only if you want to keep seeing home time while travelling.</string>
+    <string name="ui2_tz_no_match">No zones match \"%1$s\".</string>
+    <string name="ui2_tz_currently_using">Currently using</string>
+    <string name="ui2_tz_sub_device_default">device default</string>
+    <string name="ui2_tz_sub_pinned">pinned override</string>
+    <string name="ui2_tz_reset_device">Device (%1$s)</string>
+    <string name="ui2_tz_search_placeholder">Search city or region…</string>
+    <string name="ui2_tz_device_badge">Device</string>
+
+    <!-- Tranche 3: shared vocabulary -->
+    <string name="ui2_collapse">Collapse</string>
+    <string name="ui2_expand">Expand</string>
+    <string name="ui2_remove">Remove</string>
+    <string name="ui2_save">Save</string>
+    <string name="ui2_continue">Continue</string>
+    <string name="ui2_done">Done</string>
+    <string name="ui2_previous">Previous</string>
+    <string name="ui2_next">Next</string>
+    <string name="ui2_no_data">No data</string>
+    <string name="ui2_timeframe">Timeframe</string>
+    <string name="ui2_import_failed">Import failed</string>
+    <string name="ui2_data_sources">Data sources</string>
+    <string name="ui2_supplier_plans">Supplier plans</string>
+    <string name="ui2_replace_existing">Replace existing</string>
+    <string name="ui2_keep_both">Keep both</string>
+    <string name="ui2_import_count_title">Import %1$s</string>
+    <string name="ui2_clobber_body_plan">If a plan with the same name already exists, should the imported version replace it, or be kept alongside the existing one?</string>
+    <string name="ui2_clobber_body_scenario">If a scenario with the same name already exists, should the imported version replace it, or be kept alongside the existing one?</string>
+    <plurals name="ui2_noun_plan">
+        <item quantity="one">plan</item>
+        <item quantity="other">plans</item>
+    </plurals>
+    <plurals name="ui2_noun_scenario">
+        <item quantity="one">scenario</item>
+        <item quantity="other">scenarios</item>
+    </plurals>
+
+    <!-- Tranche 3: UI2GraphsFragment -->
+    <string name="ui2_graphs_chart_settings">Chart Settings</string>
+    <string name="ui2_graphs_line_popup_button">Battery SOC &amp; Water Temp…</string>
+    <string name="ui2_graphs_line_popup_title">Battery SOC &amp; Water Temperature</string>
+    <string name="ui2_graphs_display_scale">Display Scale</string>
+    <string name="ui2_graphs_calculation">Calculation</string>
+    <string name="ui2_graphs_step_size">Step Size</string>
+    <string name="ui2_graphs_filter_series">Filter Series</string>
+    <string name="ui2_graphs_interval">Interval</string>
+    <string name="ui2_graphs_no_sankey">No Sankey data</string>
+    <string name="ui2_graphs_group_core">Core</string>
+    <string name="ui2_graphs_soc_pct" formatted="false">SOC (%)</string>
+    <string name="ui2_graphs_water_temp">Water Temp (°C)</string>
+    <string name="ui2_graphs_hp_cop">HP COP</string>
+    <string name="ui2_graphs_outdoor_temp">Outdoor °C</string>
+    <string name="ui2_graphs_wind_ms">Wind m/s</string>
+    <string name="ui2_graphs_solar">Solar</string>
+    <string name="ui2_graphs_battery">Battery</string>
+    <string name="ui2_graphs_grid">Grid</string>
+    <string name="ui2_graphs_load">Load</string>
+    <string name="ui2_graphs_hot_water">Hot Water</string>
+    <string name="ui2_graphs_ev">EV</string>
+    <string name="ui2_graphs_heat_pump">Heat Pump</string>
+    <string name="ui2_graphs_export">Export</string>
+    <string name="ui2_graphs_exported">Exported</string>
+    <string name="ui2_graphs_pv_used">PV Used</string>
+    <string name="ui2_graphs_to_load">To Load</string>
+    <string name="ui2_graphs_to_grid">To Grid</string>
+    <string name="ui2_graphs_solar_in">Solar In</string>
+    <string name="ui2_graphs_grid_in">Grid In</string>
+    <string name="ui2_graphs_self_consumption">Self Consumption</string>
+    <string name="ui2_graphs_load_source">Load Source</string>
+    <string name="ui2_graphs_solar_distribution">Solar Distribution</string>
+    <string name="ui2_graphs_battery_flows">Battery Flows</string>
+    <plurals name="ui2_graphs_ok_days">
+        <item quantity="one">OK · %1$d day</item>
+        <item quantity="other">OK · %1$d days</item>
+    </plurals>
+
+    <!-- Tranche 3: UI2ImportExportActivity -->
+    <string name="ui2_ie_export">Export</string>
+    <string name="ui2_ie_import">Import</string>
+    <string name="ui2_ie_all_plans">All supplier plans</string>
+    <string name="ui2_ie_all_scenarios">All scenarios</string>
+    <string name="ui2_ie_help_all_plans">Every tariff stored in the app, including day-rate schedules.</string>
+    <string name="ui2_ie_help_all_scenarios">Every saved scenario with all of its components — load profile, PV, batteries, hot water, EV.</string>
+    <string name="ui2_ie_everything_db">Everything (database)</string>
+    <string name="ui2_ie_help_everything">A full SQLite snapshot — all plans, scenarios, data sources, and precomputed simulation results. Re-imports byte-for-byte on another device.</string>
+    <string name="ui2_ie_selection_db">Selected scenarios / sources (database)</string>
+    <string name="ui2_ie_help_selection">Pick which scenarios and data sources to include. All supplier plans are bundled so imported scenarios can find their tariffs.</string>
+    <string name="ui2_ie_import_plans">Import supplier plans</string>
+    <string name="ui2_ie_help_import_plans">Pick a JSON file (or paste) to add plans to your library. Plans whose name matches an existing one can be replaced or kept alongside.</string>
+    <string name="ui2_ie_import_scenarios">Import scenarios</string>
+    <string name="ui2_ie_help_import_scenarios">Pick a JSON file (or paste) to add scenarios to your library. Scenarios whose name matches an existing one can be replaced or kept alongside.</string>
+    <string name="ui2_ie_import_db">Import database snapshot</string>
+    <string name="ui2_ie_help_import_db">Pick a .db file exported from another device. The file is validated against the current schema before any rows are written; you\'ll see a preview and a Replace toggle before commit.</string>
+    <string name="ui2_ie_import_hint_plans">Accepts the JSON shape produced by the Share button on a plan, or the bulk export above.</string>
+    <string name="ui2_ie_import_hint_scenarios">Accepts the JSON shape produced by the Share button on a scenario, or the bulk export above.</string>
+    <string name="ui2_ie_snapshot_subject">Eco Power Optimiser snapshot</string>
+    <string name="ui2_ie_snapshot_export_failed">Snapshot export failed</string>
+    <string name="ui2_ie_snapshot_import_failed">Snapshot import failed</string>
+    <string name="ui2_ie_snapshot_rejected">Snapshot rejected</string>
+    <string name="ui2_ie_details">Details:</string>
+    <string name="ui2_ie_more_details">…and %1$d more.</string>
+    <string name="ui2_ie_import_complete">Import complete</string>
+    <string name="ui2_ie_could_not_read_file">Could not read the picked file</string>
+    <string name="ui2_ie_could_not_validate_file">Could not validate the picked file</string>
+    <string name="ui2_ie_export_selection_title">Export selection (database)</string>
+    <string name="ui2_ie_plans_always_included">Supplier plans are always included.</string>
+    <string name="ui2_ie_nothing_to_export">No scenarios or data sources available to export.</string>
+    <string name="ui2_ie_include_outputs">Include simulation results</string>
+    <string name="ui2_ie_include_outputs_sub">Costings, panel data, sim time series. Recomputable from inputs.</string>
+    <string name="ui2_ie_source_rows">Source rows: %1$d 5-min + %2$d power + %3$d energy.</string>
+    <string name="ui2_ie_preview_note">PV data (paneldata, fetched from PVGIS) and load profile time-series are imported with each scenario. Costings and simulation outputs are regenerated locally from the imported inputs.</string>
+    <string name="ui2_ie_restart_note">Restart the app after importing for data sources to appear.</string>
+    <string name="ui2_ie_replace_toggle">Replace existing data with the same name / serial</string>
+    <string name="ui2_ie_replace_toggle_sub">Off: keep what you have, skip imports that collide.</string>
+    <string name="ui2_ie_hint_title">About Import / Export</string>
+    <string name="ui2_ie_hint_body">Move plans and scenarios between devices, share them with someone, or back them up to your file storage. For exporting a single plan or scenario use the Share button on its row; for importing one into a wizard step, the Import option on each accordion is more focused than the bulk paths here.</string>
+    <string name="ui2_ie_hint_restart">Note: when a database snapshot includes data sources, restart the app after importing for those sources to appear.</string>
+    <string name="ui2_ie_compare_note_title">Comparison results</string>
+    <string name="ui2_ie_compare_note_body">Comparison results are exported from the Compare tab itself — pick your sources, scenarios and plans, then use the Share button on each result panel.</string>
+    <string name="ui2_ie_nothing_to_import">Nothing to import</string>
+    <string name="ui2_ie_imported_n">Imported %1$d %2$s</string>
+    <string name="ui2_ie_replaced_n">Replaced %1$d %2$s</string>
+    <string name="ui2_ie_imported_mixed">Imported %1$d %2$s (%3$d replaced, %4$d added)</string>
+    <string name="ui2_ie_nothing_imported">Nothing was imported</string>
+    <string name="ui2_ie_imported_list">Imported %1$s</string>
+    <string name="ui2_ie_n_replaced">(%1$d replaced)</string>
+    <string name="ui2_ie_restart_suffix">· restart the app to see data sources</string>
+    <plurals name="ui2_ie_n_plans">
+        <item quantity="one">%1$d plan</item>
+        <item quantity="other">%1$d plans</item>
+    </plurals>
+    <plurals name="ui2_ie_n_scenarios">
+        <item quantity="one">%1$d scenario</item>
+        <item quantity="other">%1$d scenarios</item>
+    </plurals>
+    <plurals name="ui2_ie_n_sources">
+        <item quantity="one">%1$d source</item>
+        <item quantity="other">%1$d sources</item>
+    </plurals>
+    <plurals name="ui2_ie_n_kept">
+        <item quantity="one">— %1$d existing item kept</item>
+        <item quantity="other">— %1$d existing items kept</item>
+    </plurals>
+    <plurals name="ui2_ie_count_plans">
+        <item quantity="one">%1$d supplier plan</item>
+        <item quantity="other">%1$d supplier plans</item>
+    </plurals>
+    <plurals name="ui2_ie_count_scenarios">
+        <item quantity="one">%1$d scenario</item>
+        <item quantity="other">%1$d scenarios</item>
+    </plurals>
+
+    <!-- Tranche 3: DirectorScreen -->
+    <string name="ui2_director_hint">Components shared by 2 or more scenarios. Editing one updates every linked scenario; changes are cached until you Save.</string>
+    <string name="ui2_director_commit_hint">Commit shared-component changes</string>
+    <string name="ui2_director_run_sim">Run simulation</string>
+    <string name="ui2_director_unlink_title">Unlink · %1$s</string>
+    <string name="ui2_director_unlink_body">Stop sharing \"%1$s\" with %2$s?</string>
+    <string name="ui2_director_remove_action">Remove component from scenario</string>
+    <string name="ui2_director_remove_sub">%1$s will no longer have this %2$s.</string>
+    <string name="ui2_director_fork_action">Fork (copy) for this scenario</string>
+    <string name="ui2_director_fork_sub">Give this scenario its own editable copy of the component.</string>
+    <string name="ui2_director_no_unlink_note">This component type cannot be unlinked from the Directors — fork it instead.</string>
+    <string name="ui2_director_link_title">Link %1$s</string>
+    <string name="ui2_director_link_sub">Add \"%1$s\" to a scenario:</string>
+    <string name="ui2_director_link_empty">Already linked to every scenario.</string>
+    <string name="ui2_director_link_new_title">Link new %1$s</string>
+    <string name="ui2_director_link_new_sub">Which %1$s item would you like to share?</string>
+    <string name="ui2_director_no_subjects">No subjects available.</string>
+    <string name="ui2_director_seed_title">Seed shared %1$s</string>
+    <string name="ui2_director_seed_sub">Pick a scenario whose %1$s to share. It becomes the seed — link more scenarios to it afterwards.</string>
+    <string name="ui2_director_seed_empty">No scenario has an unshared %1$s to share.</string>
+    <string name="ui2_director_discard_title">Discard unsaved changes?</string>
+    <string name="ui2_director_discard_body">You have pending link / unlink / fork edits. Closing now will discard them.</string>
+    <string name="ui2_director_discard_confirm">Discard &amp; close</string>
+    <string name="ui2_director_keep_editing">Keep editing</string>
+    <string name="ui2_director_link_new_cd">Link new</string>
+    <string name="ui2_director_empty_group">No shared %1$s components. Tap + to start sharing one.</string>
+    <string name="ui2_director_edit_in_wizard">Edit in wizard</string>
+    <string name="ui2_director_linked_scenarios">Linked scenarios · %1$d</string>
+    <string name="ui2_director_link_scenario">Link scenario</string>
+    <string name="ui2_director_fork_badge">FORK</string>
+    <string name="ui2_director_new_badge">NEW</string>
+    <plurals name="ui2_director_linked_groups">
+        <item quantity="one">%1$d linked group</item>
+        <item quantity="other">%1$d linked groups</item>
+    </plurals>
+
+    <!-- Tranche 3: UI2HaBackfillActivity -->
+    <string name="ui2_habf_title">Backfill Home Assistant</string>
+    <string name="ui2_habf_hint">Push another source\'s stored history into Home Assistant\'s hourly statistics — fix gaps or bad meter data. Preview compares what HA holds against what will be written before anything changes.</string>
+    <string name="ui2_habf_connect_first">Connect Home Assistant first (Data Source Management → Home Assistant).</string>
+    <string name="ui2_habf_source">Source</string>
+    <string name="ui2_habf_series">Series</string>
+    <string name="ui2_habf_target">Target</string>
+    <string name="ui2_habf_no_sources">No other source has stored data to push.</string>
+    <string name="ui2_habf_series_buy">Grid import</string>
+    <string name="ui2_habf_series_feed">Grid export</string>
+    <string name="ui2_habf_series_pv">Solar</string>
+    <string name="ui2_habf_series_charge">Battery charge</string>
+    <string name="ui2_habf_series_discharge">Battery discharge</string>
+    <string name="ui2_habf_fix_real">Fix my sensor statistics</string>
+    <string name="ui2_habf_separate">Separate app-owned series</string>
+    <string name="ui2_habf_caption_fix_ready">Overwrites the selected range of your HA sensor statistics (hourly); later totals are shifted so history stays consistent.</string>
+    <string name="ui2_habf_caption_fix_discover">Overwrites the selected range of your HA sensor statistics (hourly). Discover sensors first.</string>
+    <string name="ui2_habf_caption_separate">Writes comparetout:* statistics alongside your sensors — non-destructive, easy to remove in HA.</string>
+    <string name="ui2_habf_backfill_range">Backfill range</string>
+    <string name="ui2_habf_show_discrepancies">Show discrepancies (%1$d)</string>
+    <string name="ui2_habf_discrepancy_day">Discrepancy day %1$d of %2$d</string>
+    <string name="ui2_habf_repair_hour">Repair a single hour</string>
+    <string name="ui2_habf_repair_hint">Hours where Home Assistant disagrees with the source are marked ⚠. Pick one to compare the values and backfill just that hour.</string>
+    <string name="ui2_habf_hourly_kwh">hourly kWh</string>
+    <string name="ui2_habf_daily_kwh">daily kWh</string>
+    <string name="ui2_habf_hour">Hour %1$s</string>
+    <string name="ui2_habf_hour_values">%1$s — %2$s: %3$.2f kWh · Home Assistant: %4$.2f kWh</string>
+    <string name="ui2_habf_backfill_hour">Backfill this hour</string>
+
+    <!-- Tranche 3: UI2PricePlanListActivity -->
+    <string name="ui2_ppl_header_hint">Tap a row to see its details · Star marks your current contract</string>
+    <string name="ui2_ppl_delete_all_cd">Delete all plans</string>
+    <string name="ui2_ppl_import_action">Import…</string>
+    <string name="ui2_ppl_create_new">Create new</string>
+    <string name="ui2_ppl_about_title">About supplier plans</string>
+    <string name="ui2_ppl_about_body">Every cost in the app — Compare tab totals, dashboard Tariff Plan tables, KPIs — is calculated against one of these plans. Tap the ★ on a plan to mark it as the tariff you\'re currently contracted to; it will be highlighted everywhere it appears.\n\nThe green ✓ marks a plan as active. Active only narrows the dashboard\'s Tariff Plan table — the Compare tab still evaluates every plan regardless of its active state. Open a plan and tap the ✓ to toggle: grey → green activates it, green → grey deactivates it.</string>
+    <string name="ui2_ppl_show_other_locations">Show plans for other locations</string>
+    <string name="ui2_ppl_show_other_locations_hidden">"Show plans for other locations  ·  %1$d hidden (not %2$s)"</string>
+    <string name="ui2_ppl_delete_title">Delete supplier plan?</string>
+    <string name="ui2_ppl_delete_body">\"%1$s\" will be permanently deleted. Any cached costing results for this plan will also be removed.</string>
+    <string name="ui2_ppl_delete_all_title">Delete all supplier plans?</string>
+    <plurals name="ui2_ppl_delete_all_body">
+        <item quantity="one">All %1$d plan will be permanently deleted, along with any cached costing results. There is no undo.</item>
+        <item quantity="other">All %1$d plans will be permanently deleted, along with any cached costing results. There is no undo.</item>
+    </plurals>
+    <string name="ui2_ppl_current_plan">Current plan</string>
+    <string name="ui2_ppl_active_expanded_cd">Active — tap to deactivate for the dashboard</string>
+    <string name="ui2_ppl_active_cd">Active — included in dashboard tariff tables</string>
+    <string name="ui2_ppl_inactive_cd">Inactive — tap to activate for the dashboard</string>
+    <string name="ui2_ppl_spec_standing">Standing</string>
+    <string name="ui2_ppl_spec_feed_in">Feed-in</string>
+    <string name="ui2_ppl_spec_bonus">Bonus</string>
+    <string name="ui2_ppl_spec_rates">Rates</string>
+    <plurals name="ui2_ppl_day_rates">
+        <item quantity="one">%1$d day-rate</item>
+        <item quantity="other">%1$d day-rates</item>
+    </plurals>
+    <string name="ui2_ppl_restrictions_badge">Usage restrictions — rate changes past a cap</string>
+    <string name="ui2_ppl_location">Location: %1$s</string>
+    <string name="ui2_ppl_fav_hint_current">★ This is your current plan — highlighted in every Tariff Plan view.</string>
+    <string name="ui2_ppl_fav_hint_tap">Tap ★ to mark this as your current plan.</string>
+    <string name="ui2_ppl_mark_my_plan">Mark as my plan</string>
+    <string name="ui2_ppl_legend_current">Current</string>
+    <string name="ui2_ppl_legend_my_plan">My plan</string>
+    <string name="ui2_ppl_last_updated">Last updated %1$s</string>
+    <string name="ui2_ppl_empty_title">No supplier plans yet</string>
+    <string name="ui2_ppl_empty_body">Tap “+ Create new” to enter your supplier\'s tariff. Plans drive every cost calculation in the app — at least one is needed before the Compare tab can show prices.</string>
+    <string name="ui2_ppl_import_hint">Accepts the JSON shape produced by the Share button on a plan, or a bulk export.</string>
+    <string name="ui2_ppl_octopus_tariffs">Octopus tariffs</string>
+    <string name="ui2_ppl_octo_desc">Fetches every Octopus Energy tariff open for sign-up in your region and adds each as a supplier plan. Dynamic tariffs (Agile/Tracker) are skipped; the export rate assumes Outgoing Fixed — edit any plan after importing.</string>
+    <string name="ui2_ppl_octo_postcode">UK postcode (resolves your region)</string>
+    <string name="ui2_ppl_octo_pick_region">Or pick your region:</string>
+    <string name="ui2_ppl_octo_fetching">Fetching tariffs — this walks every open product…</string>
+    <string name="ui2_ppl_octo_fetch">Fetch tariffs</string>
+    <string name="ui2_ppl_octo_no_region_postcode">Couldn\'t resolve a region — check the postcode or pick a region below.</string>
+    <string name="ui2_ppl_octo_no_region_pick">Couldn\'t resolve a region — pick one below.</string>
+    <string name="ui2_ppl_octo_fetch_failed">Octopus fetch failed</string>
+    <string name="ui2_ppl_octo_existing">(%1$d already present)</string>
+    <string name="ui2_ppl_octo_skipped">(%1$d not representable)</string>
+    <plurals name="ui2_ppl_octo_added">
+        <item quantity="one">Added %1$d plan for region %2$s</item>
+        <item quantity="other">Added %1$d plans for region %2$s</item>
+    </plurals>
+    <plurals name="ui2_ppl_count">
+        <item quantity="one">%1$d plan</item>
+        <item quantity="other">%1$d plans</item>
+    </plurals>
+
+    <!-- Tranche 3: CompareScreen + CompareCharts -->
+    <string name="ui2_cmp_what_title">What to compare</string>
+    <string name="ui2_cmp_sources_title">Sources</string>
+    <string name="ui2_cmp_filter_title">Filter</string>
+    <string name="ui2_cmp_display_title">Display</string>
+    <string name="ui2_cmp_cost">Cost</string>
+    <string name="ui2_cmp_usage">Usage</string>
+    <string name="ui2_cmp_cost_usage">Cost + Usage</string>
+    <string name="ui2_cmp_combined">Combined</string>
+    <string name="ui2_cmp_comparison_type">Comparison type</string>
+    <string name="ui2_cmp_what_cost_sub">Compare %1$s across plans &amp; scenarios</string>
+    <string name="ui2_cmp_what_usage_sub">Compare kWh flows across scenarios</string>
+    <string name="ui2_cmp_what_both_sub">Side-by-side cost &amp; usage</string>
+    <string name="ui2_cmp_simulations">Simulations</string>
+    <string name="ui2_cmp_selected_subjects">Selected subjects</string>
+    <string name="ui2_cmp_duplicate">Duplicate</string>
+    <string name="ui2_cmp_duplicate_help">Duplicate a source or simulation to compare it against itself over different timeframes. Set the Timeframe to “Per subject” to give each copy its own range.</string>
+    <string name="ui2_cmp_pickers_help">Selection opens in full-screen pickers to keep this view tidy.</string>
+    <string name="ui2_cmp_count_selected">%1$d selected</string>
+    <string name="ui2_cmp_basic">Basic</string>
+    <string name="ui2_cmp_advanced">Advanced</string>
+    <string name="ui2_cmp_filter_help_base">Greyed series aren\'t recorded by any selected source — full inverter feeds (e.g. AlphaESS) and simulations provide them, meter-only sources (e.g. ESBN HDF) don\'t.</string>
+    <string name="ui2_cmp_filter_help_advanced">Advanced adds PV/battery flow breakdowns plus bonus &amp; fixed cost.</string>
+    <string name="ui2_cmp_filter_help_basic">Switch to Advanced for PV/battery flows and more cost columns.</string>
+    <string name="ui2_cmp_cost_columns">Cost columns</string>
+    <string name="ui2_cmp_energy_flows">Energy flows</string>
+    <string name="ui2_cmp_time_help_advanced">Advanced: a trailing window ending on the chosen day.</string>
+    <string name="ui2_cmp_time_help_basic">Basic: whole calendar day / month / year.</string>
+    <string name="ui2_cmp_sync_ranges">Sync ranges</string>
+    <string name="ui2_cmp_sync_on_sub">One range applies to every subject</string>
+    <string name="ui2_cmp_sync_off_sub">Each source / simulation has its own range</string>
+    <string name="ui2_cmp_select_first">Select sources or simulations first.</string>
+    <string name="ui2_cmp_range">Range</string>
+    <string name="ui2_cmp_day">Day</string>
+    <string name="ui2_cmp_month">Month</string>
+    <string name="ui2_cmp_year">Year</string>
+    <string name="ui2_cmp_all_time">All time</string>
+    <string name="ui2_cmp_earlier">Earlier</string>
+    <string name="ui2_cmp_later">Later</string>
+    <string name="ui2_cmp_pick_range_hint">Pick D / M / Y / * to set this range</string>
+    <string name="ui2_cmp_all_time_hint">All time — every reading on file</string>
+    <string name="ui2_cmp_chart_style">Chart style</string>
+    <string name="ui2_cmp_layout">Layout</string>
+    <string name="ui2_cmp_merged">Merged</string>
+    <string name="ui2_cmp_merged_sub">All subjects on one chart</string>
+    <string name="ui2_cmp_split">Split</string>
+    <string name="ui2_cmp_split_sub">One chart per subject</string>
+    <string name="ui2_cmp_axis_x">Axis (x)</string>
+    <string name="ui2_cmp_help_table">Tap a column header to sort. Tap again to reverse.</string>
+    <string name="ui2_cmp_help_pie">Pie is always small-multiples — one pie per subject.</string>
+    <string name="ui2_cmp_help_line_auto">Axis granularity picked from each subject\'s timeframe — short ranges get Day, long ranges get Month or Year.</string>
+    <string name="ui2_cmp_help_line">Each subject\'s chart uses the chosen %1$s buckets.</string>
+    <string name="ui2_cmp_help_bar_auto">Bar axis: bucketed when split, or merged with ≤ 2 series; otherwise one bar per subject (totals).</string>
+    <string name="ui2_cmp_help_bar">Bar in %1$s buckets when split, or merged with ≤ 2 series; otherwise totals.</string>
+    <string name="ui2_cmp_help_split">Each subject gets its own chart.</string>
+    <string name="ui2_cmp_help_merged">All subjects share one chart for direct comparison.</string>
+    <string name="ui2_cmp_scope_tap">Tap to choose sources, sims &amp; plans</string>
+    <string name="ui2_cmp_filter_tap">Tap to pick series</string>
+    <string name="ui2_cmp_series_selected">%1$d series selected</string>
+    <string name="ui2_cmp_time_tap">Tap to pick a range</string>
+    <string name="ui2_cmp_time_synced">%1$s · synced · %2$s</string>
+    <string name="ui2_cmp_time_tap_subjects">Tap to set per-subject ranges</string>
+    <string name="ui2_cmp_advanced_word">advanced</string>
+    <string name="ui2_cmp_basic_word">basic</string>
+    <string name="ui2_cmp_all_time_word">all-time</string>
+    <string name="ui2_cmp_yearly">yearly %1$s</string>
+    <string name="ui2_cmp_monthly">monthly %1$s</string>
+    <string name="ui2_cmp_daily">daily %1$s</string>
+    <string name="ui2_cmp_merged_word">merged</string>
+    <string name="ui2_cmp_split_word">split</string>
+    <string name="ui2_cmp_axis_word">axis %1$s</string>
+    <string name="ui2_cmp_sheet_sources_sub">Real meter installs to include</string>
+    <string name="ui2_cmp_sheet_sims_sub">Saved scenarios to include</string>
+    <string name="ui2_cmp_sheet_plans_sub">Tariffs to price the energy flows against</string>
+    <string name="ui2_cmp_scenario_word">Scenario</string>
+    <string name="ui2_cmp_search">Search…</string>
+    <string name="ui2_cmp_nothing_matches">Nothing matches \"%1$s\"</string>
+    <string name="ui2_cmp_select_all">Select all</string>
+    <string name="ui2_cmp_pick_cost_column">Pick at least one cost column in Filter.</string>
+    <string name="ui2_cmp_pick_energy_flow">Pick at least one energy flow in Filter.</string>
+    <string name="ui2_cmp_share_cost_title">Share cost results</string>
+    <string name="ui2_cmp_share_usage_title">Share usage results</string>
+    <string name="ui2_cmp_share_cost_subject">Compare — cost results</string>
+    <string name="ui2_cmp_share_usage_subject">Compare — usage results</string>
+    <string name="ui2_cmp_subject">Subject</string>
+    <string name="ui2_cmp_plan">Plan</string>
+    <string name="ui2_cmp_unit_sterling">sterling (%1$s)</string>
+    <string name="ui2_cmp_unit_euro">euro (%1$s)</string>
+    <string name="ui2_cmp_unit_energy">energy (kWh)</string>
+    <string name="ui2_cmp_the_selected_series">the selected series</string>
+    <string name="ui2_cmp_the_first_series">the first series</string>
+    <string name="ui2_cmp_the_selected_subjects">the selected subjects</string>
+    <string name="ui2_cmp_subjects_more">; … (%1$d total)</string>
+    <string name="ui2_cmp_expl_table">Each row is a source or simulation priced against a plan. Columns show %1$s in %2$s — tap a header to sort. Rows: %3$s.</string>
+    <string name="ui2_cmp_expl_bar">Grouped bars in %1$s. Each group along the bottom is one subject; the coloured bars within it are %2$s. Subjects: %3$s.</string>
+    <string name="ui2_cmp_expl_stack_cost">Each bar shows one plan\'s cost in %1$s: buy split into its rate bands plus any fixed charge stack up from the zero line; sell hangs below it. The marker is the net — above the line is a cost, below is a credit. Subjects: %2$s.</string>
+    <string name="ui2_cmp_expl_stack_usage">Each bar stacks %1$s in %2$s for one subject — a taller bar means more in total. Subjects: %3$s.</string>
+    <string name="ui2_cmp_expl_line">Each line follows %1$s month by month (%2$s), one line per subject — see the Sources legend for line colours. Subjects: %3$s.</string>
+    <string name="ui2_cmp_expl_area">Filled area showing %1$s month by month (%2$s), one chart per subject. Subjects: %3$s.</string>
+    <string name="ui2_cmp_expl_pie">Each pie splits one subject\'s %1$s into %2$s; the subject is named beneath its pie. Subjects: %3$s.</string>
+    <string name="ui2_cmp_no_data_result">No data for the chosen subjects and timeframe.</string>
+    <string name="ui2_cmp_not_ready_title">Nothing to compare yet</string>
+    <string name="ui2_cmp_not_ready_usage">Pick at least one source or simulation, a filter and a timeframe to see results.</string>
+    <string name="ui2_cmp_not_ready_cost">Pick at least one source/simulation and a plan, a filter and a timeframe to see results.</string>
+    <string name="ui2_cmp_total_fmt">Total · %1$s %2$s</string>
+    <string name="ui2_cmp_set_cd">Set</string>
+    <string name="ui2_cmp_fixed">Fixed</string>
+    <string name="ui2_cmp_bonus">Bonus</string>
+    <string name="ui2_cmp_band_n">Band %1$d</string>
+    <string name="ui2_cmp_unit_total">%1$s %2$s total</string>
+    <plurals name="ui2_cmp_n_sources">
+        <item quantity="one">%1$d source</item>
+        <item quantity="other">%1$d sources</item>
+    </plurals>
+    <plurals name="ui2_cmp_n_sims">
+        <item quantity="one">%1$d sim</item>
+        <item quantity="other">%1$d sims</item>
+    </plurals>
+    <plurals name="ui2_cmp_n_plans">
+        <item quantity="one">%1$d plan</item>
+        <item quantity="other">%1$d plans</item>
+    </plurals>
+    <plurals name="ui2_cmp_n_results">
+        <item quantity="one">%1$d result</item>
+        <item quantity="other">%1$d results</item>
+    </plurals>
+    <plurals name="ui2_cmp_per_subject">
+        <item quantity="one">%1$d per-subject range · %2$s</item>
+        <item quantity="other">%1$d per-subject ranges · %2$s</item>
+    </plurals>
+
+    <!-- Tranche 4: shared calendar labels -->
+    <string-array name="ui2_days_short_sun_first">
+        <item>Sun</item><item>Mon</item><item>Tue</item><item>Wed</item>
+        <item>Thu</item><item>Fri</item><item>Sat</item>
+    </string-array>
+    <string-array name="ui2_days_short_mon_first">
+        <item>Mon</item><item>Tue</item><item>Wed</item><item>Thu</item>
+        <item>Fri</item><item>Sat</item><item>Sun</item>
+    </string-array>
+    <string-array name="ui2_months_short">
+        <item>Jan</item><item>Feb</item><item>Mar</item><item>Apr</item>
+        <item>May</item><item>Jun</item><item>Jul</item><item>Aug</item>
+        <item>Sep</item><item>Oct</item><item>Nov</item><item>Dec</item>
+    </string-array>
+    <string-array name="ui2_months_letters">
+        <item>J</item><item>F</item><item>M</item><item>A</item>
+        <item>M</item><item>J</item><item>J</item><item>A</item>
+        <item>S</item><item>O</item><item>N</item><item>D</item>
+    </string-array>
+    <string name="ui2_all">All</string>
+    <string name="ui2_replace">Replace</string>
+    <string name="ui2_dismiss">Dismiss</string>
+
+    <!-- Tranche 4: UI2PricePlanWizardActivity -->
+    <string name="ui2_ppw_title_edit_named">Edit · %1$s · %2$s</string>
+    <string name="ui2_ppw_title_edit">Edit supplier plan</string>
+    <string name="ui2_ppw_title_new">New supplier plan</string>
+    <string name="ui2_ppw_details_title">Plan details</string>
+    <string name="ui2_ppw_details_required">Supplier &amp; plan name (required)</string>
+    <string name="ui2_ppw_charges_title">Charges</string>
+    <string name="ui2_ppw_charges_subtitle">Feed %1$s %2$s · Standing %3$s%4$s/yr</string>
+    <string name="ui2_ppw_rates_title">Day rates</string>
+    <string name="ui2_ppw_restrictions_title">Restrictions</string>
+    <string name="ui2_ppw_restrictions_none">None — plan prices apply without usage caps</string>
+    <plurals name="ui2_ppw_caps_active">
+        <item quantity="one">%1$d usage cap active</item>
+        <item quantity="other">%1$d usage caps active</item>
+    </plurals>
+    <plurals name="ui2_ppw_caps_disabled">
+        <item quantity="one">%1$d usage cap (disabled)</item>
+        <item quantity="other">%1$d usage caps (disabled)</item>
+    </plurals>
+    <string name="ui2_ppw_discard_title">Leave without saving?</string>
+    <string name="ui2_ppw_discard_body">Any unsaved changes to this supplier plan will be lost.</string>
+    <string name="ui2_ppw_discard">Discard</string>
+    <string name="ui2_ppw_import_title">Import supplier-plan JSON</string>
+    <string name="ui2_ppw_import_hint">Accepts the JSON shape produced by the Share button on a plan, or a single plan from a bulk export. The wizard will be pre-filled — you can edit anything before saving.</string>
+    <string name="ui2_ppw_import_apply">Load into wizard</string>
+    <string name="ui2_ppw_multi_title">Multiple supplier plans</string>
+    <string name="ui2_ppw_multi_body">This file contains %1$d plans. Pick the one to load into the wizard. (To import them all into the library instead, use the drawer\'s Import / Export screen.)</string>
+    <string name="ui2_ppw_unnamed">(unnamed)</string>
+    <string name="ui2_ppw_replace_title">Replace this plan\'s data?</string>
+    <string name="ui2_ppw_replace_body">The current details, charges and day-rates will be replaced with the contents of the JSON. The plan will still save back to the same row when you tap Save.</string>
+    <string name="ui2_ppw_import_row_title">Import from JSON</string>
+    <string name="ui2_ppw_import_row_sub">Pre-fill the wizard from a shared plan or bulk-export file.</string>
+    <string name="ui2_ppw_sub_overlap">date ranges overlap</string>
+    <plurals name="ui2_ppw_missing_ranges">
+        <item quantity="one">missing %1$d date range</item>
+        <item quantity="other">missing %1$d date ranges</item>
+    </plurals>
+    <string name="ui2_ppw_sub_missing_weekdays">missing weekdays</string>
+    <string name="ui2_ppw_sub_time_gaps">time gaps remain</string>
+    <string name="ui2_ppw_sub_all_covered">all dates &amp; minutes covered</string>
+    <string name="ui2_ppw_saved">Saved</string>
+    <string name="ui2_ppw_saving">Saving…</string>
+    <string name="ui2_ppw_run_calc">Run calculations</string>
+    <string name="ui2_ppw_save_failed">Couldn\'t save. Fix the highlighted issues and try again.</string>
+    <string name="ui2_ppw_has_issues_cd">Has issues</string>
+    <string name="ui2_ppw_complete_cd">Complete</string>
+    <string name="ui2_ppw_supplier">Supplier</string>
+    <string name="ui2_ppw_plan_name">Plan name</string>
+    <string name="ui2_ppw_reference">Reference (optional)</string>
+    <string name="ui2_ppw_reference_placeholder">URL or note</string>
+    <string name="ui2_ppw_location">Location (optional)</string>
+    <string name="ui2_ppw_location_placeholder">ISO country, e.g. IE</string>
+    <string name="ui2_ppw_location_support">Plans tagged with another country than the phone are hidden and deactivated.</string>
+    <string name="ui2_ppw_deemed_sub">Supplier estimates your export instead of measuring it.</string>
+    <string name="ui2_ppw_feed_label">Feed-in tariff (%1$s)</string>
+    <string name="ui2_ppw_standing_label">Standing charges (%1$s/year)</string>
+    <string name="ui2_ppw_bonus_label">Sign-up bonus (%1$s)</string>
+    <string name="ui2_ppw_restr_hint">A restriction caps how many kWh the plan sells at a rate within a period; usage beyond the cap is charged the revised price. Restrictions attach to a rate value — if you change that band\'s price, re-attach the restriction.</string>
+    <string name="ui2_ppw_apply_restrictions">Apply restrictions</string>
+    <string name="ui2_ppw_apply_restrictions_sub">Costings honour the usage caps below.</string>
+    <string name="ui2_ppw_add_restriction">Add restriction</string>
+    <string name="ui2_ppw_rate_placeholder">Rate…</string>
+    <string name="ui2_ppw_remove_restriction_cd">Remove restriction</string>
+    <string name="ui2_ppw_cap_label">Cap (kWh)</string>
+    <string name="ui2_ppw_then_label">Then (%1$s)</string>
+    <string name="ui2_ppw_rates_hint">Each day rate covers a date window and a set of weekdays. Add costs (%1$s) and assign time ranges to each — together they must cover the full 24-hour day. Across all day rates, the dates must tile the calendar year and every weekday must be covered.</string>
+    <string name="ui2_ppw_overlap_issue">Date ranges overlap. Trim one of the start/end dates so each calendar day belongs to exactly one day-rate.</string>
+    <string name="ui2_ppw_missing_dates_issue">Missing date coverage: %1$s. Add or extend a day rate to cover these days.</string>
+    <string name="ui2_ppw_add_day_rate">Add day rate</string>
+    <string name="ui2_ppw_day_rate_n">Day rate %1$d</string>
+    <string name="ui2_ppw_day_rate_sub">%1$s → %2$s · %3$d/7 days</string>
+    <string name="ui2_ppw_start_mmdd">Start (MM/DD)</string>
+    <string name="ui2_ppw_end_mmdd">End (MM/DD)</string>
+    <string name="ui2_ppw_days_header">DAYS</string>
+    <string name="ui2_ppw_weekdays_issue">These weekdays aren\'t covered by any day rate sharing this date window: %1$s</string>
+    <string name="ui2_ppw_rates_header">RATES (%1$s)</string>
+    <string name="ui2_ppw_add_price">Add price</string>
+    <string name="ui2_ppw_cost_label">Cost (%1$s)</string>
+    <string name="ui2_ppw_remove_cost_cd">Remove cost</string>
+    <string name="ui2_ppw_edit_range_cd">Edit range</string>
+    <string name="ui2_ppw_remove_range_cd">Remove range</string>
+    <string name="ui2_ppw_add_time_range">Add time range</string>
+    <string name="ui2_ppw_select_start">Select start time</string>
+    <string name="ui2_ppw_select_end">Select end time</string>
+    <string name="ui2_ppw_all_covered">All 24 hours covered</string>
+    <string name="ui2_ppw_gap">Gap: %1$s</string>
+    <string name="ui2_ppw_overlap">Overlap: %1$s</string>
+
+    <!-- Tranche 4: UI2DashboardFragment -->
+    <string name="ui2_dash_needs_attention">Needs attention</string>
+    <string name="ui2_dash_tap_wizard">Tap to open the wizard</string>
+    <string name="ui2_dash_issue_no_usage_title">No usage data linked</string>
+    <string name="ui2_dash_issue_no_usage_hint">Add a load profile in the Usage Data step so the simulation has consumption to model.</string>
+    <string name="ui2_dash_issue_solar_title">Solar data not generated yet</string>
+    <string name="ui2_dash_issue_solar_hint">Solar yield is fetched per panel from its location. Open PV System to generate it, or wait if a simulation is already running.</string>
+    <string name="ui2_dash_issue_weather_title">Heat-pump weather not fetched yet</string>
+    <string name="ui2_dash_issue_weather_hint">Real weather is fetched from Copernicus CDS when the simulation runs. Open Heat Pump to check the weather source / CDS token, or wait if a fetch is already running.</string>
+    <string name="ui2_dash_issue_results_title">Results aren\'t ready yet</string>
+    <string name="ui2_dash_issue_results_hint">Costs and charts appear once the simulation finishes calculating. It runs automatically after you edit a simulation or its tariffs.</string>
+    <string name="ui2_dash_regen_title">Solar data needs refreshing</string>
+    <string name="ui2_dash_regen_body">After this update, solar generation for these imported source(s) couldn\'t be refreshed automatically and needs re-importing: %1$s.</string>
+    <string name="ui2_dash_manage_sources">Manage sources</string>
+    <string name="ui2_dash_mig_title">Finishing a one-time data update</string>
+    <string name="ui2_dash_mig_tz">Timezone alignment</string>
+    <string name="ui2_dash_mig_pd">Solar data refresh</string>
+    <string name="ui2_dash_mig_in_progress_pct">%1$s — in progress (%2$d%%)</string>
+    <string name="ui2_dash_mig_in_progress">%1$s — in progress…</string>
+    <string name="ui2_dash_mig_queued">%1$s — queued…</string>
+    <string name="ui2_dash_mig_pending">%1$s — pending</string>
+    <string name="ui2_dash_mig_note">Runs once after the update — you can keep using the app; figures fill in when it finishes. This message disappears when the update is complete.</string>
+    <plurals name="ui2_dash_mic_flag">
+        <item quantity="one">Grid import limit exceeded — %1$d interval</item>
+        <item quantity="other">Grid import limit exceeded — %1$d intervals</item>
+    </plurals>
+    <string name="ui2_dash_mic_tap">Tap for the times this happened</string>
+    <string name="ui2_dash_mic_hint">Grid import is limited by your supply\'s MIC (%1$s kW). The model never clamps it, but flags any interval that exceeds it so you can spot breaker/fuse/penalty risk and decide whether to upgrade your connection or shift load.</string>
+    <string name="ui2_dash_mic_title">Grid import limit exceeded</string>
+    <plurals name="ui2_dash_mic_body">
+        <item quantity="one">Your simulation drew more than your Maximum Import Capacity (MIC) of %1$s kW in %2$d five-minute interval. The model still meets the load — the grid physically can — but in reality exceeding your MIC can trip the main breaker, blow a fuse, or incur supplier penalties. Open the graphs for these days to see what drove the peak; to fix it, raise your MIC or shift flexible loads (EV / hot water) away from these times.</item>
+        <item quantity="other">Your simulation drew more than your Maximum Import Capacity (MIC) of %1$s kW in %2$d five-minute intervals. The model still meets the load — the grid physically can — but in reality exceeding your MIC can trip the main breaker, blow a fuse, or incur supplier penalties. Open the graphs for these days to see what drove the peak; to fix it, raise your MIC or shift flexible loads (EV / hot water) away from these times.</item>
+    </plurals>
+    <string name="ui2_dash_mic_worst">Worst intervals</string>
+    <string name="ui2_dash_mic_row">"%1$s  %2$02d:%3$02d — %4$s kW (limit %5$s)"</string>
+    <string name="ui2_dash_more_n">+ %1$d more…</string>
+    <string name="ui2_dash_select_sim">Select a Simulation</string>
+    <string name="ui2_dash_tariff_plan">Tariff Plan</string>
+    <string name="ui2_dash_explore">Explore data</string>
+    <string name="ui2_dash_view_graphs">View graphs</string>
+    <string name="ui2_dash_usage_data">Usage Data</string>
+    <string name="ui2_dash_pv_system">PV System</string>
+    <string name="ui2_dash_no_solar_period">No solar data for this period</string>
+    <string name="ui2_dash_import">Import</string>
+    <string name="ui2_dash_charging">Charging</string>
+    <string name="ui2_dash_discharging">Discharging</string>
+    <string name="ui2_dash_best_cost">Best Cost/Year: %1$s%2$s</string>
+    <string name="ui2_dash_no_results_yet">No simulation results yet</string>
+    <string name="ui2_dash_results_pending">Results aren\'t ready yet — the breakdown appears here once the simulation finishes calculating. See \"Needs attention\" above for what\'s outstanding.</string>
+    <string name="ui2_dash_solar_generating">Solar data is still being generated, so these figures may be incomplete.</string>
+    <string name="ui2_dash_visual_overview">Visual overview</string>
+    <string name="ui2_dash_source">Source: %1$s</string>
+    <string name="ui2_dash_annual_usage">Annual usage: %1$s kWh</string>
+    <string name="ui2_dash_no_inverters">No inverters configured</string>
+    <string name="ui2_dash_inverter_row">%1$s: max %2$s kW, %3$d MPPT</string>
+    <string name="ui2_dash_no_panels">No panels configured</string>
+    <string name="ui2_dash_solar_not_generated">Solar data hasn\'t been generated for these panels yet. It\'s fetched automatically when the simulation runs.</string>
+    <string name="ui2_dash_panel_row">%1$s: %2$s × %3$sW, %4$s° azimuth, %5$s° slope</string>
+    <string name="ui2_dash_solar_ready">Solar data ready</string>
+    <string name="ui2_dash_no_batteries">No batteries configured</string>
+    <string name="ui2_dash_battery_row">%1$s kWh, stop at %2$s%%, charge %3$s kW / discharge %4$s kW</string>
+    <string name="ui2_dash_no_hw">No hot water system configured</string>
+    <string name="ui2_dash_hw_tank">Tank: %1$s L, usage %2$s L/day</string>
+    <string name="ui2_dash_hw_target">Target: %1$s°C, heater %2$s kW</string>
+    <string name="ui2_dash_no_ev">No EV configured</string>
+    <string name="ui2_dash_schedules">Schedules</string>
+    <string name="ui2_dash_ev_row">%1$s: %2$s:00–%3$s:00 @ %4$s kW</string>
+    <string name="ui2_dash_solar_diverts">Solar Diverts</string>
+    <string name="ui2_dash_divert_row">"%1$s: %2$s:00–%3$s:00  ·  %4$s kWh/day"</string>
+    <string name="ui2_dash_off_suffix">off</string>
+    <string name="ui2_dash_no_hp">No heat pump configured</string>
+    <string name="ui2_dash_hp_newbuild">New build · %1$s m² · HLI %2$s</string>
+    <string name="ui2_dash_hp_fuel">%1$s · %2$s %3$s/yr</string>
+    <string name="ui2_dash_hp_cop">COP %1$s · SCOP %2$s · %3$s kW</string>
+    <string name="ui2_dash_hp_weather">Weather: %1$s</string>
+    <string name="ui2_dash_weather_2001">2001, Ireland</string>
+    <string name="ui2_dash_weather_sample_word">sample</string>
+    <string name="ui2_dash_hourly_pct" formatted="false">Hourly (%)</string>
+    <string name="ui2_dash_daily_pct" formatted="false">Daily (%)</string>
+    <string name="ui2_dash_monthly_pct" formatted="false">Monthly (%)</string>
+    <string name="ui2_dash_pv_monthly">PV Monthly Generation (kWh)</string>
+    <string name="ui2_dash_panel_n">Panel %1$d</string>
+    <string name="ui2_dash_tap_row_wide">Tap a row to update the band chart →</string>
+    <string name="ui2_dash_tap_row_compact">"Tap a row to see tariff band breakdown  ↗"</string>
+    <string name="ui2_dash_no_bands">No band breakdown for this plan</string>
+    <string name="ui2_dash_no_active_plans">No active price plans — activate one via Supplier Plans</string>
+    <string name="ui2_dash_no_plans">No price plans configured</string>
+    <string name="ui2_dash_net">Net</string>
+    <string name="ui2_dash_buy">Buy</string>
+    <string name="ui2_dash_sell">Sell</string>
+    <string name="ui2_dash_current_plan_cd">Your current plan</string>
+    <string name="ui2_dash_solar_total">Solar: %1$s kWh</string>
+    <string name="ui2_dash_solar_gen">Solar Generation (kWh)</string>
+    <string name="ui2_dash_import_export">Import vs Export</string>
+    <string name="ui2_dash_charge">Charge</string>
+    <string name="ui2_dash_discharge">Discharge</string>
+    <string name="ui2_dash_sold">Sold</string>
+    <string name="ui2_dash_bought">Bought</string>
+    <string name="ui2_dash_house">House</string>
+    <string name="ui2_dash_load_distribution">Load Distribution</string>
+    <string name="ui2_dash_no_inverter_node">(no inverter)</string>
+    <string name="ui2_dash_n_more">+%1$d more</string>
+    <string name="ui2_dash_mppt_n">MPPT %1$d</string>
+    <string name="ui2_dash_n_sched">%1$d sched</string>
+    <string name="ui2_dash_inv_subline">%1$s kW · %2$d MPPT</string>
+    <string name="ui2_dash_import_export_sub">Import / Export</string>
+    <string name="ui2_dash_nothing_to_draw">Nothing to draw yet — configure components in the wizard.</string>
+    <string name="ui2_dash_legend_schedule">Schedule</string>
+    <string name="ui2_dash_legend_divert">Divert</string>
+    <string name="ui2_dash_kpis">KPIs</string>
+    <string name="ui2_dash_kpi_self_consumption">Self consumption</string>
+    <string name="ui2_dash_kpi_self_sufficiency">Self sufficiency</string>
+    <string name="ui2_dash_kpi_max_self_sufficiency">Max self sufficiency</string>
+    <string name="ui2_dash_kpi_generation">Generation (kWh)</string>
+    <string name="ui2_dash_kpi_feed">Feed (kWh)</string>
+    <string name="ui2_dash_no_filter_data">No data for the selected filter.</string>
+    <string name="ui2_dash_pv_tot">PV Tot</string>
+    <string name="ui2_dash_best">Best</string>
+    <string name="ui2_dash_worst">Worst</string>
+    <string name="ui2_dash_avg">Avg</string>
+    <string name="ui2_dash_yymm">YY-MM</string>
+    <string name="ui2_dash_pick_subject_title">Pick a dashboard subject</string>
+    <string name="ui2_dash_pick_subject_body">The scenario or data source this dashboard was set to is no longer available. Open the navigation drawer and pick a scenario or data source to view.</string>
+    <string name="ui2_dash_welcome">Welcome to Eco Power Optimiser</string>
+    <string name="ui2_dash_pick_start">Pick how you\'d like to start:</string>
+    <string name="ui2_dash_add_scenario">Add a scenario</string>
+
+    <!-- Tranche 5: UI2DataSourceManagementActivity -->
+    <string name="ui2_dsm_alpha_title" translatable="false">AlphaESS Cloud</string>
+    <string name="ui2_dsm_alpha_sub">Inverter sync via OpenAPI</string>
+    <string name="ui2_dsm_ha_sub">WebSocket + Energy dashboard</string>
+    <string name="ui2_dsm_esbn_sub">HDF file import (cloud sync deprecated)</string>
+    <string name="ui2_dsm_octopus_sub">Half-hourly meter sync + tariff import</string>
+    <string name="ui2_dsm_solis_sub">Station sync via Platform API</string>
+    <string name="ui2_dsm_pvgis_title">PVGIS (solar)</string>
+    <string name="ui2_dsm_pvgis_sub">EU JRC solar irradiance · no account needed</string>
+    <string name="ui2_dsm_cds_title">Copernicus CDS (weather)</string>
+    <string name="ui2_dsm_cds_sub">ERA5 reanalysis for heat-pump weather · API key required</string>
+    <string name="ui2_dsm_pvgis_empty_hint">Each location/orientation is fetched once from PVGIS and cached here, then re-scaled to every panel that shares it. Add a PV array to a scenario and run it, and the cached download appears in this list.</string>
+    <string name="ui2_dsm_cds_empty_hint">Set your Copernicus CDS Personal Access Token, then the heat-pump section can fetch real weather for your location. Each fetched (location, period) is cached here.</string>
+    <string name="ui2_dsm_noun_location">location</string>
+    <string name="ui2_dsm_noun_dataset">dataset</string>
+    <string name="ui2_dsm_esbn_data">ESBN data</string>
+    <string name="ui2_dsm_about_title">About data sources</string>
+    <string name="ui2_dsm_about_body">Real-world energy data flows from your inverter or smart meter into the dashboard and Compare tab. Set credentials, pick which system to track, and decide whether the app should refresh automatically each day. Stats and graphs themselves live in the dashboard.</string>
+    <plurals name="ui2_dsm_n_systems">
+        <item quantity="one">%1$d system</item>
+        <item quantity="other">%1$d systems</item>
+    </plurals>
+    <string name="ui2_dsm_loading">Loading</string>
+    <string name="ui2_dsm_chip_file">File</string>
+    <string name="ui2_dsm_chip_set_creds">Set credentials</string>
+    <string name="ui2_dsm_chip_not_set">Not set</string>
+    <string name="ui2_dsm_chip_invalid">Invalid</string>
+    <string name="ui2_dsm_chip_ready">Ready</string>
+    <string name="ui2_dsm_alpha_hint">AlphaESS uses your AlphaCloud OpenAPI keys — generate them in the developer portal.</string>
+    <string name="ui2_dsm_alpha_creds_title">AlphaESS credentials</string>
+    <string name="ui2_dsm_app_id">App ID</string>
+    <string name="ui2_dsm_app_secret">App Secret</string>
+    <string name="ui2_dsm_ha_hint">Set up the Energy dashboard in Home Assistant first — that\'s where these sensors come from.</string>
+    <string name="ui2_dsm_backfill_sub">Push another source\'s history into HA statistics</string>
+    <string name="ui2_dsm_connect_ha_first">Connect Home Assistant first</string>
+    <string name="ui2_dsm_host_url">Host URL</string>
+    <string name="ui2_dsm_lla_token">Long-lived access token</string>
+    <string name="ui2_dsm_not_discovered">Not yet discovered</string>
+    <string name="ui2_dsm_sensor_summary">%1$d grid in · %2$d grid out · %3$d solar · %4$d battery</string>
+    <plurals name="ui2_dsm_n_devices">
+        <item quantity="one">· %1$d device</item>
+        <item quantity="other">· %1$d devices</item>
+    </plurals>
+    <string name="ui2_dsm_energy_sensors">Energy sensors</string>
+    <string name="ui2_dsm_rediscover_hint">Tap Re-discover after enabling the Energy dashboard in HA.</string>
+    <string name="ui2_dsm_discover">Discover</string>
+    <string name="ui2_dsm_rediscover">Re-discover</string>
+    <string name="ui2_dsm_stats_on_server">Statistics on server: %1$s</string>
+    <string name="ui2_dsm_individual_devices">Individual devices</string>
+    <string name="ui2_dsm_devices_hint">EV / hot water / heat pump devices feed scenario derivation; \"Remove from load\" also subtracts the device\'s energy at import (any role).</string>
+    <string name="ui2_dsm_set_creds_first">Set credentials first to discover sensors.</string>
+    <string name="ui2_dsm_device">Device</string>
+    <string name="ui2_dsm_role">Role</string>
+    <string name="ui2_dsm_sensor">Sensor</string>
+    <string name="ui2_dsm_remove_from_load">Remove from load</string>
+    <string name="ui2_dsm_role_ignore">Ignore</string>
+    <string name="ui2_dsm_battery_n">Battery %1$d</string>
+    <string name="ui2_dsm_charge_suffix">%1$s charge</string>
+    <string name="ui2_dsm_discharge_suffix">%1$s discharge</string>
+    <string name="ui2_dsm_esbn_deprecated">ESBN cloud sync is deprecated. Download your HDF file from the ESBN customer portal and import it below.</string>
+    <string name="ui2_dsm_import_hdf">Import HDF file</string>
+    <string name="ui2_dsm_remove_source_cd">Remove source</string>
+    <string name="ui2_dsm_esbn_empty">Imported MPRNs will appear here once a file has been ingested.</string>
+    <string name="ui2_dsm_octopus_hint">Octopus needs your account number (A-XXXXXXXX) and an API key from the Octopus dashboard (Account → API access). Meter points are discovered automatically; fetching also builds supplier plans from your region\'s tariffs.</string>
+    <string name="ui2_dsm_octopus_empty">Meter points (MPANs) will appear here once credentials are validated.</string>
+    <string name="ui2_dsm_octopus_creds_title">Octopus credentials</string>
+    <string name="ui2_dsm_account_number">Account number</string>
+    <string name="ui2_dsm_api_key">API key</string>
+    <string name="ui2_dsm_solis_hint">Solis needs an API Key ID and secret from soliscloud.com (Account → API Management — raise a service ticket if the menu is missing). Stations are discovered automatically; data updates every 5 minutes on the Solis side.</string>
+    <string name="ui2_dsm_solis_empty">Stations will appear here once credentials are validated.</string>
+    <string name="ui2_dsm_solis_creds_title">Solis Cloud credentials</string>
+    <string name="ui2_dsm_api_key_id">API Key ID</string>
+    <string name="ui2_dsm_api_secret">API secret</string>
+    <string name="ui2_dsm_n_cached">%1$d cached</string>
+    <string name="ui2_dsm_loading_ellipsis">Loading…</string>
+    <string name="ui2_dsm_nothing_cached">Nothing cached yet.</string>
+    <string name="ui2_dsm_clear_all_n">Clear all (%1$d)</string>
+    <string name="ui2_dsm_cds_url">CDS API URL</string>
+    <string name="ui2_dsm_pat">Personal Access Token</string>
+    <string name="ui2_dsm_clear_all_title">Clear all cached data?</string>
+    <string name="ui2_dsm_clear_all_body">This deletes the cached data for every %1$s in this source. PV is re-fetched the next time you save a scenario that uses it. There is no undo.</string>
+    <string name="ui2_dsm_clear_all">Clear all</string>
+    <string name="ui2_dsm_delete_cached_cd">Delete cached data</string>
+    <string name="ui2_dsm_credentials">Credentials</string>
+    <string name="ui2_dsm_not_configured">Not configured</string>
+    <string name="ui2_dsm_configured_first_fetch">Configured · validated on first fetch</string>
+    <string name="ui2_dsm_configured_failed">Configured · last check failed</string>
+    <string name="ui2_dsm_configured_ok">Configured · last check OK</string>
+    <string name="ui2_dsm_update">Update</string>
+    <string name="ui2_dsm_set">Set</string>
+    <string name="ui2_dsm_remove_source_title">Remove %1$s?</string>
+    <string name="ui2_dsm_remove_source_body_creds">This permanently deletes all stored readings for this source AND its saved credentials. You\'ll need to re-enter them to use it again. There is no undo.</string>
+    <string name="ui2_dsm_remove_source_body">This permanently deletes all stored readings and configuration for this source. There is no undo.</string>
+    <string name="ui2_dsm_no_systems">No systems configured yet.</string>
+    <string name="ui2_dsm_auto_sync">Auto-sync</string>
+    <string name="ui2_dsm_fetching_progress">Fetching · %1$s</string>
+    <string name="ui2_dsm_fetching">Fetching…</string>
+    <string name="ui2_dsm_no_data_yet">No data yet</string>
+    <string name="ui2_dsm_stop">Stop</string>
+    <string name="ui2_dsm_fetch">Fetch</string>
+    <string name="ui2_dsm_migrate">Migrate</string>
+    <string name="ui2_dsm_delete_data_title">Delete data for \"%1$s\"?</string>
+    <string name="ui2_dsm_delete_choose_body">Choose how much data to remove. Credentials and system configuration are preserved either way.</string>
+    <string name="ui2_dsm_available_data">Available data: %1$s ↔ %2$s</string>
+    <string name="ui2_dsm_no_data_recorded">No data has been recorded for this system yet.</string>
+    <string name="ui2_dsm_all_readings">All readings</string>
+    <string name="ui2_dsm_pick_range">Pick a date range…</string>
+    <string name="ui2_dsm_delete_all_title">Delete ALL data?</string>
+    <string name="ui2_dsm_delete_all_body">This permanently removes every reading for \"%1$s\". There is no undo.</string>
+    <plurals name="ui2_dsm_ok_delete_days">
+        <item quantity="one">OK · delete %1$d day</item>
+        <item quantity="other">OK · delete %1$d days</item>
+    </plurals>
+    <string name="ui2_dsm_pick_start_end">Pick start &amp; end</string>
+    <string name="ui2_dsm_range_title">Range to delete from \"%1$s\"</string>
+    <plurals name="ui2_dsm_n_days">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <string name="ui2_dsm_tap_start_end">Tap a start date, then an end date</string>
+    <string name="ui2_dsm_delete_range_title">Delete range?</string>
+    <string name="ui2_dsm_delete_range_body">Every reading between %1$s and %2$s for \"%3$s\" will be permanently removed. There is no undo.</string>
+    <string name="ui2_dsm_delete_range">Delete range</string>
+    <string name="ui2_dsm_pick_start_date">Pick a start date</string>
+    <string name="ui2_dsm_pick_earlier">Pick an earlier date</string>
+    <plurals name="ui2_dsm_ok_fetch_days">
+        <item quantity="one">OK · fetch %1$d day</item>
+        <item quantity="other">OK · fetch %1$d days</item>
+    </plurals>
+    <string name="ui2_dsm_fetch_title">Fetch start date for \"%1$s\"</string>
+    <string name="ui2_dsm_catch_up_hint">Pick a date · catch-up runs up to %1$s</string>
+    <string name="ui2_dsm_no_later_than">Must be no later than %1$s</string>
 </resources>

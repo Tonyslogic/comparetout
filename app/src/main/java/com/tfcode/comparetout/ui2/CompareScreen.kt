@@ -5,6 +5,7 @@ package com.tfcode.comparetout.ui2
 import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
+import com.tfcode.comparetout.R
 import com.tfcode.comparetout.region.RegionProfiles
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -95,6 +96,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -166,10 +169,10 @@ fun CompareScreen(
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
-                title = { Text("Compare") },
+                title = { Text(stringResource(R.string.compare)) },
                 actions = {
                     IconButton(onClick = { showDrawer = true }) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menu")
+                        Icon(Icons.Default.Menu, contentDescription = stringResource(R.string.ui2_menu))
                     }
                 },
                 scrollBehavior = scrollBehavior
@@ -183,13 +186,15 @@ fun CompareScreen(
                 contentPadding = PaddingValues(top = 12.dp, bottom = 92.dp)
             ) {
                 item {
-                    AccordionCard("What to compare", whatLabel(state.what), true,
+                    AccordionCard(stringResource(R.string.ui2_cmp_what_title),
+                        whatLabel(state.what), true,
                         open == "what", { open = if (open == "what") null else "what" }) {
                         WhatSection(state, viewModel, noviceMode)
                     }
                 }
                 item {
-                    AccordionCard("Sources", scopeSubtitle(state), subjectsReady(state),
+                    AccordionCard(stringResource(R.string.ui2_cmp_sources_title),
+                        scopeSubtitle(state), subjectsReady(state),
                         open == "sources", { open = if (open == "sources") null else "sources" }) {
                         SourcesSection(state, viewModel,
                             state.sources.size, state.sims.size, state.plans.size,
@@ -197,20 +202,22 @@ fun CompareScreen(
                     }
                 }
                 item {
-                    AccordionCard("Filter", filterSubtitle(state), state.series.isNotEmpty(),
+                    AccordionCard(stringResource(R.string.ui2_cmp_filter_title),
+                        filterSubtitle(state), state.series.isNotEmpty(),
                         open == "filter", { open = if (open == "filter") null else "filter" }) {
                         FilterSection(state, viewModel, noviceMode)
                     }
                 }
                 item {
-                    AccordionCard("Timeframe", timeSubtitle(state),
+                    AccordionCard(stringResource(R.string.ui2_timeframe), timeSubtitle(state),
                         viewModel.timeframeReady(state),
                         open == "time", { open = if (open == "time") null else "time" }) {
                         TimeframeSection(state, viewModel, noviceMode, selectedSubjects)
                     }
                 }
                 item {
-                    AccordionCard("Display", displaySubtitle(state), true,
+                    AccordionCard(stringResource(R.string.ui2_cmp_display_title),
+                        displaySubtitle(state), true,
                         open == "display", { open = if (open == "display") null else "display" }) {
                         DisplaySection(state, viewModel, noviceMode)
                     }
@@ -252,9 +259,13 @@ fun CompareScreen(
             shareMetric?.let { metric ->
                 // CSV first — the legacy format people already pipe into Excel —
                 // JSON for round-tripping the full row including monthly arrays.
+                val shareSubject = stringResource(
+                    if (metric == CompareWhat.COST) R.string.ui2_cmp_share_cost_subject
+                    else R.string.ui2_cmp_share_usage_subject)
                 ShareFormatDialog(
-                    title = if (metric == CompareWhat.COST) "Share cost results"
-                            else "Share usage results",
+                    title = stringResource(
+                        if (metric == CompareWhat.COST) R.string.ui2_cmp_share_cost_title
+                        else R.string.ui2_cmp_share_usage_title),
                     formats = listOf(ShareFormat.CSV, ShareFormat.JSON),
                     initial = ShareFormat.CSV,
                     onPick = { format ->
@@ -269,8 +280,7 @@ fun CompareScreen(
                             context.shareText(
                                 payload = payload,
                                 format = format,
-                                subject = if (metric == CompareWhat.COST) "Compare — cost results"
-                                          else "Compare — usage results"
+                                subject = shareSubject
                             )
                         }
                     },
@@ -337,13 +347,15 @@ private fun AccordionCard(
                         maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
                 if (done && !open) {
-                    Icon(Icons.Default.Check, contentDescription = "Set",
+                    Icon(Icons.Default.Check,
+                        contentDescription = stringResource(R.string.ui2_cmp_set_cd),
                         tint = Color(0xFF4CAF50), modifier = Modifier.size(22.dp))
                     Spacer(Modifier.width(6.dp))
                 }
                 Icon(
                     if (open) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                    contentDescription = if (open) "Collapse" else "Expand"
+                    contentDescription = stringResource(
+                        if (open) R.string.ui2_collapse else R.string.ui2_expand)
                 )
             }
             if (open) {
@@ -380,12 +392,14 @@ private fun HelpText(text: String, novice: Boolean) {
 @Composable
 private fun WhatSection(state: CompareState, vm: UI2CompareViewModel, novice: Boolean) {
     val opts = listOf(
-        Triple(CompareWhat.COST, "Cost",
-            "Compare ${RegionProfiles.current.currencySymbol} across plans & scenarios"),
-        Triple(CompareWhat.USAGE, "Usage", "Compare kWh flows across scenarios"),
-        Triple(CompareWhat.BOTH, "Combined", "Side-by-side cost & usage")
+        Triple(CompareWhat.COST, stringResource(R.string.ui2_cmp_cost),
+            stringResource(R.string.ui2_cmp_what_cost_sub, RegionProfiles.current.currencySymbol)),
+        Triple(CompareWhat.USAGE, stringResource(R.string.ui2_cmp_usage),
+            stringResource(R.string.ui2_cmp_what_usage_sub)),
+        Triple(CompareWhat.BOTH, stringResource(R.string.ui2_cmp_combined),
+            stringResource(R.string.ui2_cmp_what_both_sub))
     )
-    SmallCaps("Comparison type")
+    SmallCaps(stringResource(R.string.ui2_cmp_comparison_type))
     opts.forEach { (id, label, sub) ->
         val active = state.what == id
         Surface(
@@ -423,10 +437,10 @@ private fun SourcesSection(
     novice: Boolean,
     onOpenSheet: (String) -> Unit
 ) {
-    SelectRow("Data sources", sourceCount) { onOpenSheet("sources") }
-    SelectRow("Simulations", simCount) { onOpenSheet("sims") }
+    SelectRow(stringResource(R.string.ui2_data_sources), sourceCount) { onOpenSheet("sources") }
+    SelectRow(stringResource(R.string.ui2_cmp_simulations), simCount) { onOpenSheet("sims") }
     if (state.what != CompareWhat.USAGE) {
-        SelectRow("Supplier plans", planCount) { onOpenSheet("plans") }
+        SelectRow(stringResource(R.string.ui2_supplier_plans), planCount) { onOpenSheet("plans") }
     }
     Spacer(Modifier.height(8.dp))
 
@@ -446,7 +460,7 @@ private fun SourcesSection(
             .map { Triple(it.subjectId, it.displayName, it.occurrence > 0) }
     }
     if (slots.isNotEmpty()) {
-        Text("Selected subjects",
+        Text(stringResource(R.string.ui2_cmp_selected_subjects),
             style = MaterialTheme.typography.labelMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         // One subject card per row on a phone; two side-by-side at WIDE+ so
@@ -469,10 +483,12 @@ private fun SourcesSection(
                     TextButton(onClick = { vm.duplicateSubject(id) }) {
                         Icon(Icons.Default.ContentCopy, null, Modifier.size(14.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Duplicate", style = MaterialTheme.typography.labelMedium)
+                        Text(stringResource(R.string.ui2_cmp_duplicate),
+                            style = MaterialTheme.typography.labelMedium)
                     }
                     IconButton(onClick = { vm.removeSubjectSlot(id) }) {
-                        Icon(Icons.Default.Close, contentDescription = "Remove",
+                        Icon(Icons.Default.Close,
+                            contentDescription = stringResource(R.string.ui2_remove),
                             tint = MaterialTheme.colorScheme.error,
                             modifier = Modifier.size(16.dp))
                     }
@@ -498,11 +514,7 @@ private fun SourcesSection(
             }
         }
         if (novice) {
-            HelpText(
-                "Duplicate a source or simulation to compare it against itself " +
-                    "over different timeframes. Set the Timeframe to “Per subject” " +
-                    "to give each copy its own range.", true
-            )
+            HelpText(stringResource(R.string.ui2_cmp_duplicate_help), true)
         }
         Spacer(Modifier.height(6.dp))
     }
@@ -510,6 +522,11 @@ private fun SourcesSection(
     val subjects = sourceCount + simCount
     val planFactor = if (state.what == CompareWhat.USAGE) 1 else planCount
     val total = subjects * planFactor
+    val sourcesTxt = pluralStringResource(R.plurals.ui2_cmp_n_sources, sourceCount, sourceCount)
+    val simsTxt    = pluralStringResource(R.plurals.ui2_cmp_n_sims, simCount, simCount)
+    val plansTxt   = if (state.what != CompareWhat.USAGE)
+        pluralStringResource(R.plurals.ui2_cmp_n_plans, planCount, planCount) else null
+    val resultsTxt = pluralStringResource(R.plurals.ui2_cmp_n_results, total, total)
     Surface(
         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
         shape = RoundedCornerShape(8.dp),
@@ -517,18 +534,15 @@ private fun SourcesSection(
     ) {
         Text(
             buildString {
-                append("$sourceCount source"); if (sourceCount != 1) append("s")
-                append(" + $simCount sim"); if (simCount != 1) append("s")
-                if (state.what != CompareWhat.USAGE) {
-                    append(" × $planCount plan"); if (planCount != 1) append("s")
-                }
-                append("  =  $total result"); if (total != 1) append("s")
+                append(sourcesTxt); append(" + "); append(simsTxt)
+                plansTxt?.let { append(" × "); append(it) }
+                append("  =  "); append(resultsTxt)
             },
             modifier = Modifier.padding(10.dp),
             style = MaterialTheme.typography.bodySmall
         )
     }
-    HelpText("Selection opens in full-screen pickers to keep this view tidy.", novice)
+    HelpText(stringResource(R.string.ui2_cmp_pickers_help), novice)
 }
 
 @Composable
@@ -548,7 +562,7 @@ private fun SelectRow(title: String, count: Int, onTap: () -> Unit) {
                         else Color.Transparent,
                 shape = CircleShape
             ) {
-                Text("$count selected",
+                Text(stringResource(R.string.ui2_cmp_count_selected, count),
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp),
                     style = MaterialTheme.typography.labelMedium,
                     color = if (count > 0) MaterialTheme.colorScheme.primary
@@ -614,15 +628,15 @@ private fun FilterSection(state: CompareState, vm: UI2CompareViewModel, novice: 
     }
 
     PrimaryTabRow(selectedTabIndex = if (advanced) 1 else 0) {
-        Tab(selected = !advanced, onClick = { vm.setFilterAdvanced(false) }, text = { Text("Basic") })
-        Tab(selected = advanced, onClick = { vm.setFilterAdvanced(true) }, text = { Text("Advanced") })
+        Tab(selected = !advanced, onClick = { vm.setFilterAdvanced(false) },
+            text = { Text(stringResource(R.string.ui2_cmp_basic)) })
+        Tab(selected = advanced, onClick = { vm.setFilterAdvanced(true) },
+            text = { Text(stringResource(R.string.ui2_cmp_advanced)) })
     }
     HelpText(
-        "Greyed series aren't recorded by any selected source — full inverter feeds " +
-            "(e.g. AlphaESS) and simulations provide them, meter-only sources " +
-            "(e.g. ESBN HDF) don't." +
-            if (advanced) " Advanced adds PV/battery flow breakdowns plus bonus & fixed cost."
-            else " Switch to Advanced for PV/battery flows and more cost columns.",
+        stringResource(R.string.ui2_cmp_filter_help_base) + " " +
+            stringResource(if (advanced) R.string.ui2_cmp_filter_help_advanced
+                           else R.string.ui2_cmp_filter_help_basic),
         novice
     )
     Spacer(Modifier.height(8.dp))
@@ -635,17 +649,17 @@ private fun FilterSection(state: CompareState, vm: UI2CompareViewModel, novice: 
         else UI2CompareViewModel.COST_SERIES.filter { it.first in UI2CompareViewModel.BASIC_COST_IDS }
     when (state.what) {
         CompareWhat.COST -> {
-            SmallCaps("Cost columns")
+            SmallCaps(stringResource(R.string.ui2_cmp_cost_columns))
             chips(costDefs, "", isEnergy = false)
         }
         CompareWhat.USAGE -> {
-            SmallCaps("Energy flows")
+            SmallCaps(stringResource(R.string.ui2_cmp_energy_flows))
             chips(energyDefs, "", isEnergy = true)
         }
         CompareWhat.BOTH -> {
-            SmallCaps("Energy flows")
+            SmallCaps(stringResource(R.string.ui2_cmp_energy_flows))
             chips(energyDefs, "", isEnergy = true)
-            SmallCaps("Cost columns")
+            SmallCaps(stringResource(R.string.ui2_cmp_cost_columns))
             chips(costDefs, "c_", isEnergy = false)
         }
     }
@@ -663,13 +677,13 @@ private fun TimeframeSection(
 ) {
     PrimaryTabRow(selectedTabIndex = if (state.advanced) 1 else 0) {
         Tab(selected = !state.advanced, onClick = { vm.update { it.copy(advanced = false) } },
-            text = { Text("Basic") })
+            text = { Text(stringResource(R.string.ui2_cmp_basic)) })
         Tab(selected = state.advanced, onClick = { vm.update { it.copy(advanced = true) } },
-            text = { Text("Advanced") })
+            text = { Text(stringResource(R.string.ui2_cmp_advanced)) })
     }
     HelpText(
-        if (state.advanced) "Advanced: a trailing window ending on the chosen day."
-        else "Basic: whole calendar day / month / year.",
+        stringResource(if (state.advanced) R.string.ui2_cmp_time_help_advanced
+                       else R.string.ui2_cmp_time_help_basic),
         novice
     )
     Spacer(Modifier.height(10.dp))
@@ -681,11 +695,12 @@ private fun TimeframeSection(
     ) {
         Row(Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text("Sync ranges", style = MaterialTheme.typography.bodyLarge)
+                Text(stringResource(R.string.ui2_cmp_sync_ranges),
+                    style = MaterialTheme.typography.bodyLarge)
                 if (novice) {
                     Text(
-                        if (state.sync) "One range applies to every subject"
-                        else "Each source / simulation has its own range",
+                        stringResource(if (state.sync) R.string.ui2_cmp_sync_on_sub
+                                       else R.string.ui2_cmp_sync_off_sub),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -697,11 +712,12 @@ private fun TimeframeSection(
     Spacer(Modifier.height(12.dp))
 
     if (state.sync) {
-        RangePicker("Range", state.globalGran, state.globalAnchor, state.advanced, novice,
+        RangePicker(stringResource(R.string.ui2_cmp_range),
+            state.globalGran, state.globalAnchor, state.advanced, novice,
             onGran = { g -> vm.setGlobalGran(g) },
             onAnchor = { a -> vm.update { it.copy(globalAnchor = a) } })
     } else if (selectedSubjects.isEmpty()) {
-        Text("Select sources or simulations first.",
+        Text(stringResource(R.string.ui2_cmp_select_first),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
     } else {
@@ -721,10 +737,11 @@ private fun TimeframeSection(
                     Icon(Icons.Default.Add, contentDescription = null,
                         modifier = Modifier.size(16.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text("Duplicate")
+                    Text(stringResource(R.string.ui2_cmp_duplicate))
                 }
                 IconButton(onClick = { vm.removeSubjectSlot(id) }) {
-                    Icon(Icons.Default.Close, contentDescription = "Remove",
+                    Icon(Icons.Default.Close,
+                        contentDescription = stringResource(R.string.ui2_remove),
                         tint = MaterialTheme.colorScheme.error,
                         modifier = Modifier.size(18.dp))
                 }
@@ -755,12 +772,16 @@ private fun RangePicker(
     onAnchor: (LocalDate) -> Unit
 ) {
     SmallCaps(label)
+    val dayWord = stringResource(R.string.ui2_cmp_day)
+    val monthWord = stringResource(R.string.ui2_cmp_month)
+    val yearWord = stringResource(R.string.ui2_cmp_year)
+    val allTimeWord = stringResource(R.string.ui2_cmp_all_time)
     val longLabel: (DataSourcePeriod) -> String = {
         when (it) {
-            DataSourcePeriod.YESTERDAY -> "Day"
-            DataSourcePeriod.MONTH     -> "Month"
-            DataSourcePeriod.YEAR      -> "Year"
-            DataSourcePeriod.ALL       -> "All time"
+            DataSourcePeriod.YESTERDAY -> dayWord
+            DataSourcePeriod.MONTH     -> monthWord
+            DataSourcePeriod.YEAR      -> yearWord
+            DataSourcePeriod.ALL       -> allTimeWord
         }
     }
     AdaptivePeriodControl(
@@ -773,22 +794,24 @@ private fun RangePicker(
             if (gran != null && gran != DataSourcePeriod.ALL) {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { onAnchor(stepAnchorBy(anchor, gran, -1)) }) {
-                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Earlier")
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                            contentDescription = stringResource(R.string.ui2_cmp_earlier))
                     }
                     Text(rangeLabel(gran, anchor, advanced),
                         modifier = Modifier.weight(1f), textAlign = TextAlign.Center,
                         maxLines = 1, overflow = TextOverflow.Ellipsis,
                         style = MaterialTheme.typography.bodyMedium)
                     IconButton(onClick = { onAnchor(stepAnchorBy(anchor, gran, 1)) }) {
-                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Later")
+                        Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = stringResource(R.string.ui2_cmp_later))
                     }
                 }
             }
         }
     )
     val hint = when (gran) {
-        null -> "Pick D / M / Y / * to set this range"
-        DataSourcePeriod.ALL -> "All time — every reading on file"
+        null -> stringResource(R.string.ui2_cmp_pick_range_hint)
+        DataSourcePeriod.ALL -> stringResource(R.string.ui2_cmp_all_time_hint)
         else -> {
             val (f, t) = periodDateRange(gran, anchor, advanced,
                 anchor.minusYears(60), anchor.plusYears(60))
@@ -842,7 +865,7 @@ private fun compareLayoutIcon(l: CompareLayout): ImageVector = when (l) {
 
 @Composable
 private fun DisplaySection(state: CompareState, vm: UI2CompareViewModel, novice: Boolean) {
-    SmallCaps("Chart style")
+    SmallCaps(stringResource(R.string.ui2_cmp_chart_style))
     if (novice) {
         // Novice: icons + text. AdaptiveCellRow keeps the cards 3-up at fs<1.6
         // and stacks them at fs>=1.6 so the labels stop ellipsising.
@@ -907,11 +930,13 @@ private fun DisplaySection(state: CompareState, vm: UI2CompareViewModel, novice:
     }
     val layoutable = state.mode in listOf(CompareMode.BAR, CompareMode.STACK, CompareMode.LINE, CompareMode.AREA)
     if (layoutable) {
-        SmallCaps("Layout")
+        SmallCaps(stringResource(R.string.ui2_cmp_layout))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             listOf(
-                CompareLayout.MERGED to ("Merged" to "All subjects on one chart"),
-                CompareLayout.SPLIT to ("Split" to "One chart per subject")
+                CompareLayout.MERGED to (stringResource(R.string.ui2_cmp_merged)
+                    to stringResource(R.string.ui2_cmp_merged_sub)),
+                CompareLayout.SPLIT to (stringResource(R.string.ui2_cmp_split)
+                    to stringResource(R.string.ui2_cmp_split_sub))
             ).forEach { (lo, txt) ->
                 val active = state.layout == lo
                 Surface(
@@ -954,7 +979,7 @@ private fun DisplaySection(state: CompareState, vm: UI2CompareViewModel, novice:
     // X-axis granularity matters for line/area always, and for bar when the
     // bucketed renderer kicks in (single subject, or merged with ≤2 series).
     if (state.mode == CompareMode.LINE || state.mode == CompareMode.AREA || state.mode == CompareMode.BAR) {
-        SmallCaps("Axis (x)")
+        SmallCaps(stringResource(R.string.ui2_cmp_axis_x))
         val scales = listOf(CompareAxisScale.AUTO) + CompareAxisScale.CONCRETE
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             scales.forEach { sc ->
@@ -981,19 +1006,19 @@ private fun DisplaySection(state: CompareState, vm: UI2CompareViewModel, novice:
     }
     HelpText(
         when {
-            state.mode == CompareMode.TABLE -> "Tap a column header to sort. Tap again to reverse."
-            state.mode == CompareMode.PIE -> "Pie is always small-multiples — one pie per subject."
+            state.mode == CompareMode.TABLE -> stringResource(R.string.ui2_cmp_help_table)
+            state.mode == CompareMode.PIE -> stringResource(R.string.ui2_cmp_help_pie)
             (state.mode == CompareMode.LINE || state.mode == CompareMode.AREA) &&
                 state.displayScale == CompareAxisScale.AUTO ->
-                "Axis granularity picked from each subject's timeframe — short ranges get Day, long ranges get Month or Year."
+                stringResource(R.string.ui2_cmp_help_line_auto)
             state.mode == CompareMode.LINE || state.mode == CompareMode.AREA ->
-                "Each subject's chart uses the chosen ${state.displayScale.label.lowercase()} buckets."
+                stringResource(R.string.ui2_cmp_help_line, state.displayScale.label.lowercase())
             state.mode == CompareMode.BAR && state.displayScale == CompareAxisScale.AUTO ->
-                "Bar axis: bucketed when split, or merged with ≤ 2 series; otherwise one bar per subject (totals)."
+                stringResource(R.string.ui2_cmp_help_bar_auto)
             state.mode == CompareMode.BAR ->
-                "Bar in ${state.displayScale.label.lowercase()} buckets when split, or merged with ≤ 2 series; otherwise totals."
-            state.layout == CompareLayout.SPLIT -> "Each subject gets its own chart."
-            else -> "All subjects share one chart for direct comparison."
+                stringResource(R.string.ui2_cmp_help_bar, state.displayScale.label.lowercase())
+            state.layout == CompareLayout.SPLIT -> stringResource(R.string.ui2_cmp_help_split)
+            else -> stringResource(R.string.ui2_cmp_help_merged)
         },
         novice
     )
@@ -1014,10 +1039,20 @@ private fun SelectSheet(
 ) {
     var query by remember { mutableStateOf("") }
 
+    // Resolved up front — the SheetSpec is built inside remember, which is not
+    // a composable context.
+    val sourcesTitle = stringResource(R.string.ui2_data_sources)
+    val sourcesSub = stringResource(R.string.ui2_cmp_sheet_sources_sub)
+    val simsTitle = stringResource(R.string.ui2_cmp_simulations)
+    val simsSub = stringResource(R.string.ui2_cmp_sheet_sims_sub)
+    val plansTitle = stringResource(R.string.ui2_supplier_plans)
+    val plansSub = stringResource(R.string.ui2_cmp_sheet_plans_sub)
+    val scenarioWord = stringResource(R.string.ui2_cmp_scenario_word)
+
     val spec = remember(kind, state, sources, sims, plans) {
         when (kind) {
             "sources" -> SheetSpec(
-                "Data sources", "Real meter installs to include",
+                sourcesTitle, sourcesSub,
                 sources.map { listOf(it.sysSn, it.sysSn, it.typeName, (it.sysSn in state.sources).toString()) },
                 // Toggle: first tap adds an instance, second tap removes
                 // *every* instance (including duplicates) so the sheet's
@@ -1037,8 +1072,8 @@ private fun SelectSheet(
                 { viewModel.update { it.copy(sources = emptyList()) } }
             )
             "sims" -> SheetSpec(
-                "Simulations", "Saved scenarios to include",
-                sims.map { listOf(it.scenarioId.toString(), it.name, "Scenario", (it.scenarioId in state.sims).toString()) },
+                simsTitle, simsSub,
+                sims.map { listOf(it.scenarioId.toString(), it.name, scenarioWord, (it.scenarioId in state.sims).toString()) },
                 { id -> viewModel.update {
                     val s = it.sims; val v = id.toLong()
                     it.copy(sims = if (v in s) s.filter { x -> x != v } else s + v)
@@ -1051,7 +1086,7 @@ private fun SelectSheet(
                 { viewModel.update { it.copy(sims = emptyList()) } }
             )
             else -> SheetSpec(
-                "Supplier plans", "Tariffs to price the energy flows against",
+                plansTitle, plansSub,
                 plans.map { listOf(it.planId.toString(), it.planName, it.supplier, (it.planId in state.plans).toString()) },
                 { id -> viewModel.update { val s = it.plans; val v = id.toLong(); it.copy(plans = if (v in s) s - v else s + v) } },
                 { viewModel.update { it.copy(plans = plans.map { p -> p.planId }.toSet()) } },
@@ -1067,7 +1102,9 @@ private fun SelectSheet(
     Surface(color = MaterialTheme.colorScheme.background, modifier = Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
             Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                IconButton(onClick = onClose) { Icon(Icons.Default.Clear, "Close") }
+                IconButton(onClick = onClose) {
+                    Icon(Icons.Default.Clear, stringResource(R.string.ui2_close))
+                }
                 Column(Modifier.weight(1f)) {
                     Text(spec.title, style = MaterialTheme.typography.titleMedium)
                     Text(spec.sub, style = MaterialTheme.typography.bodySmall,
@@ -1082,7 +1119,7 @@ private fun SelectSheet(
             }
             OutlinedTextField(
                 value = query, onValueChange = { query = it },
-                placeholder = { Text("Search…") },
+                placeholder = { Text(stringResource(R.string.ui2_cmp_search)) },
                 leadingIcon = { Icon(Icons.Default.Search, null) },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp)
@@ -1090,7 +1127,7 @@ private fun SelectSheet(
             LazyColumn(Modifier.weight(1f).padding(horizontal = 12.dp)) {
                 if (filtered.isEmpty()) {
                     item {
-                        Text("Nothing matches \"$query\"",
+                        Text(stringResource(R.string.ui2_cmp_nothing_matches, query),
                             Modifier.fillMaxWidth().padding(24.dp),
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1136,10 +1173,10 @@ private fun SelectSheet(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                TextButton(onClick = spec.selectAll) { Text("Select all") }
-                TextButton(onClick = spec.clear) { Text("Clear") }
+                TextButton(onClick = spec.selectAll) { Text(stringResource(R.string.ui2_cmp_select_all)) }
+                TextButton(onClick = spec.clear) { Text(stringResource(R.string.ui2_clear)) }
                 Spacer(Modifier.weight(1f))
-                TextButton(onClick = onClose) { Text("Done") }
+                TextButton(onClick = onClose) { Text(stringResource(R.string.ui2_done)) }
             }
         }
     }
@@ -1186,7 +1223,8 @@ private fun ResultPanel(
                 Box(Modifier.size(8.dp).background(
                     if (isCost) primary else Color(0xFF3B82F6), CircleShape))
                 Spacer(Modifier.width(8.dp))
-                Text(if (isCost) "Cost" else "Usage", style = MaterialTheme.typography.titleSmall)
+                Text(stringResource(if (isCost) R.string.ui2_cmp_cost else R.string.ui2_cmp_usage),
+                    style = MaterialTheme.typography.titleSmall)
                 Spacer(Modifier.width(6.dp))
                 Text("· ${state.mode.label}", style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -1196,13 +1234,15 @@ private fun ResultPanel(
                         Icon(Icons.Default.Share, contentDescription = null,
                             modifier = Modifier.size(16.dp))
                         Spacer(Modifier.width(4.dp))
-                        Text("Share", style = MaterialTheme.typography.labelLarge)
+                        Text(stringResource(R.string.ui2_share),
+                            style = MaterialTheme.typography.labelLarge)
                     }
                 }
             }
             Spacer(Modifier.height(10.dp))
             if (series.isEmpty()) {
-                Text("Pick at least one ${if (isCost) "cost column" else "energy flow"} in Filter.",
+                Text(stringResource(if (isCost) R.string.ui2_cmp_pick_cost_column
+                                    else R.string.ui2_cmp_pick_energy_flow),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else if (isCost) {
@@ -1228,7 +1268,8 @@ private fun CostContent(
     when (state.mode) {
         CompareMode.TABLE -> {
             val headers = buildList {
-                add("Subject" to false); add("Plan" to false)
+                add(stringResource(R.string.ui2_cmp_subject) to false)
+                add(stringResource(R.string.ui2_cmp_plan) to false)
                 series.forEach { add(it.label to true) }
             }
             val data = rows.map { r ->
@@ -1250,8 +1291,8 @@ private fun CostContent(
             ComparePieGrid(pies, MaterialTheme.colorScheme.surfaceVariant,
                 unit = RegionProfiles.current.currencySymbol, onZoom = { zoomedPie = it })
         }
-        else -> ChartArea(state, "Cost", chartData, series, explanation,
-            RegionProfiles.current.currencySymbol)
+        else -> ChartArea(state, stringResource(R.string.ui2_cmp_cost), chartData, series,
+            explanation, RegionProfiles.current.currencySymbol)
     }
     ResultLegends(state, series, chartData)
 
@@ -1299,7 +1340,8 @@ private fun CostStackArea(
             }
         }
     } else {
-        ZoomableChart("Cost", series.map { it.color to it.label }, explanation) { h ->
+        ZoomableChart(stringResource(R.string.ui2_cmp_cost),
+            series.map { it.color to it.label }, explanation) { h ->
             CompareCostStackChart(bars, RegionProfiles.current.currencySymbol, h)
         }
     }
@@ -1319,7 +1361,7 @@ private fun UsageContent(
     when (state.mode) {
         CompareMode.TABLE -> {
             val headers = buildList {
-                add("Subject" to false)
+                add(stringResource(R.string.ui2_cmp_subject) to false)
                 series.forEach { add(it.label to true) }
             }
             val data = rows.map { r ->
@@ -1335,7 +1377,8 @@ private fun UsageContent(
             ComparePieGrid(pies, MaterialTheme.colorScheme.surfaceVariant,
                 unit = "kWh", onZoom = { zoomedPie = it })
         }
-        else -> ChartArea(state, "Usage", chartData, series, explanation, "kWh")
+        else -> ChartArea(state, stringResource(R.string.ui2_cmp_usage),
+            chartData, series, explanation, "kWh")
     }
     ResultLegends(state, series, chartData)
 
@@ -1355,6 +1398,7 @@ private fun UsageContent(
  * so the user can tell which source / simulation / plan is which — those names
  * are otherwise truncated on the axes or absent altogether.
  */
+@Composable
 private fun graphExplanationText(
     mode: CompareMode,
     metric: CompareWhat,
@@ -1363,40 +1407,35 @@ private fun graphExplanationText(
 ): String {
     val unit = if (metric == CompareWhat.COST) {
         val p = RegionProfiles.current
-        (if (p.currencySymbol == "£") "sterling" else "euro") + " (${p.currencySymbol})"
-    } else "energy (kWh)"
-    val seriesNames = if (series.isEmpty()) "the selected series"
+        stringResource(if (p.currencySymbol == "£") R.string.ui2_cmp_unit_sterling
+                       else R.string.ui2_cmp_unit_euro, p.currencySymbol)
+    } else stringResource(R.string.ui2_cmp_unit_energy)
+    val seriesNames = if (series.isEmpty()) stringResource(R.string.ui2_cmp_the_selected_series)
         else series.joinToString(", ") { it.label }
-    val firstSeries = series.firstOrNull()?.label ?: "the first series"
+    val firstSeries = series.firstOrNull()?.label
+        ?: stringResource(R.string.ui2_cmp_the_first_series)
     val subjects = when {
-        data.isEmpty() -> "the selected subjects"
+        data.isEmpty() -> stringResource(R.string.ui2_cmp_the_selected_subjects)
         data.size <= 5 -> data.joinToString("; ") { it.title }
-        else -> data.take(4).joinToString("; ") { it.title } + "; … (${data.size} total)"
+        else -> data.take(4).joinToString("; ") { it.title } +
+            stringResource(R.string.ui2_cmp_subjects_more, data.size)
     }
     return when (mode) {
         CompareMode.TABLE ->
-            "Each row is a source or simulation priced against a plan. Columns show $seriesNames " +
-                "in $unit — tap a header to sort. Rows: $subjects."
+            stringResource(R.string.ui2_cmp_expl_table, seriesNames, unit, subjects)
         CompareMode.BAR ->
-            "Grouped bars in $unit. Each group along the bottom is one subject; the coloured bars " +
-                "within it are $seriesNames. Subjects: $subjects."
+            stringResource(R.string.ui2_cmp_expl_bar, unit, seriesNames, subjects)
         CompareMode.STACK ->
             if (metric == CompareWhat.COST)
-                "Each bar shows one plan's cost in $unit: buy split into its rate bands plus any " +
-                    "fixed charge stack up from the zero line; sell hangs below it. The marker is " +
-                    "the net — above the line is a cost, below is a credit. Subjects: $subjects."
+                stringResource(R.string.ui2_cmp_expl_stack_cost, unit, subjects)
             else
-                "Each bar stacks $seriesNames in $unit for one subject — a taller bar means more " +
-                    "in total. Subjects: $subjects."
+                stringResource(R.string.ui2_cmp_expl_stack_usage, seriesNames, unit, subjects)
         CompareMode.LINE ->
-            "Each line follows $firstSeries month by month ($unit), one line per subject — see the " +
-                "Sources legend for line colours. Subjects: $subjects."
+            stringResource(R.string.ui2_cmp_expl_line, firstSeries, unit, subjects)
         CompareMode.AREA ->
-            "Filled area showing $firstSeries month by month ($unit), one chart per subject. " +
-                "Subjects: $subjects."
+            stringResource(R.string.ui2_cmp_expl_area, firstSeries, unit, subjects)
         CompareMode.PIE ->
-            "Each pie splits one subject's $unit into $seriesNames; the subject is named beneath " +
-                "its pie. Subjects: $subjects."
+            stringResource(R.string.ui2_cmp_expl_pie, unit, seriesNames, subjects)
     }
 }
 
@@ -1580,7 +1619,7 @@ private fun ChartPopout(
                 if (pieInfo != null) {
                     val (datum, unit) = pieInfo
                     Text(
-                        "Total · ${axisNumber(datum.total)} $unit",
+                        stringResource(R.string.ui2_cmp_total_fmt, axisNumber(datum.total), unit),
                         style = MaterialTheme.typography.labelLarge,
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -1647,7 +1686,7 @@ private fun ChartPopout(
 
 @Composable
 private fun EmptyResult() {
-    Text("No data for the chosen subjects and timeframe.",
+    Text(stringResource(R.string.ui2_cmp_no_data_result),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
@@ -1750,11 +1789,12 @@ private fun NotReadyCard(state: CompareState) {
             Icon(Icons.Default.DateRange, null, modifier = Modifier.size(40.dp),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant)
             Spacer(Modifier.height(8.dp))
-            Text("Nothing to compare yet", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.ui2_cmp_not_ready_title),
+                style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.height(4.dp))
             Text(
-                "Pick at least one ${if (state.what == CompareWhat.USAGE) "source or simulation" else "source/simulation and a plan"}, " +
-                    "a filter and a timeframe to see results.",
+                stringResource(if (state.what == CompareWhat.USAGE)
+                    R.string.ui2_cmp_not_ready_usage else R.string.ui2_cmp_not_ready_cost),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center
@@ -1766,53 +1806,68 @@ private fun NotReadyCard(state: CompareState) {
 // ──────────────────────────────────────────────────────────────────────────
 // Helpers
 // ──────────────────────────────────────────────────────────────────────────
-private fun whatLabel(w: CompareWhat) = when (w) {
-    CompareWhat.COST -> "Cost"; CompareWhat.USAGE -> "Usage"; CompareWhat.BOTH -> "Cost + Usage"
-}
+@Composable
+private fun whatLabel(w: CompareWhat) = stringResource(when (w) {
+    CompareWhat.COST -> R.string.ui2_cmp_cost
+    CompareWhat.USAGE -> R.string.ui2_cmp_usage
+    CompareWhat.BOTH -> R.string.ui2_cmp_cost_usage
+})
 
 private fun subjectsReady(s: CompareState): Boolean {
     val hasSubjects = s.sources.isNotEmpty() || s.sims.isNotEmpty()
     return hasSubjects && (s.what == CompareWhat.USAGE || s.plans.isNotEmpty())
 }
 
+@Composable
 private fun scopeSubtitle(s: CompareState): String {
     if (s.sources.isEmpty() && s.sims.isEmpty() && s.plans.isEmpty())
-        return "Tap to choose sources, sims & plans"
+        return stringResource(R.string.ui2_cmp_scope_tap)
     return buildList {
-        add("${s.sources.size} source" + if (s.sources.size == 1) "" else "s")
-        add("${s.sims.size} sim" + if (s.sims.size == 1) "" else "s")
+        add(pluralStringResource(R.plurals.ui2_cmp_n_sources, s.sources.size, s.sources.size))
+        add(pluralStringResource(R.plurals.ui2_cmp_n_sims, s.sims.size, s.sims.size))
         if (s.what != CompareWhat.USAGE)
-            add("${s.plans.size} plan" + if (s.plans.size == 1) "" else "s")
+            add(pluralStringResource(R.plurals.ui2_cmp_n_plans, s.plans.size, s.plans.size))
     }.joinToString(" · ")
 }
 
+@Composable
 private fun filterSubtitle(s: CompareState): String =
-    if (s.series.isEmpty()) "Tap to pick series" else "${s.series.size} series selected"
+    if (s.series.isEmpty()) stringResource(R.string.ui2_cmp_filter_tap)
+    else stringResource(R.string.ui2_cmp_series_selected, s.series.size)
 
+@Composable
 private fun timeSubtitle(s: CompareState): String {
-    val mode = if (s.advanced) "advanced" else "basic"
+    val mode = stringResource(if (s.advanced) R.string.ui2_cmp_advanced_word
+                              else R.string.ui2_cmp_basic_word)
     if (s.sync) {
-        val g = s.globalGran ?: return "Tap to pick a range"
-        return "${granWord(g, s.globalAnchor)} · synced · $mode"
+        val g = s.globalGran ?: return stringResource(R.string.ui2_cmp_time_tap)
+        return stringResource(R.string.ui2_cmp_time_synced, granWord(g, s.globalAnchor), mode)
     }
     val n = s.perSubjectRanges.count { it.value.gran != null }
-    return if (n == 0) "Tap to set per-subject ranges"
-    else "$n per-subject range" + (if (n == 1) "" else "s") + " · $mode"
+    return if (n == 0) stringResource(R.string.ui2_cmp_time_tap_subjects)
+    else pluralStringResource(R.plurals.ui2_cmp_per_subject, n, n, mode)
 }
 
+@Composable
 private fun granWord(gran: DataSourcePeriod, anchor: LocalDate) = when (gran) {
-    DataSourcePeriod.ALL -> "all-time"
-    DataSourcePeriod.YEAR -> "yearly ${anchor.year}"
-    DataSourcePeriod.MONTH -> "monthly ${anchor.format(MONTH_FMT)}"
-    DataSourcePeriod.YESTERDAY -> "daily ${anchor.format(DAY_FMT)}"
+    DataSourcePeriod.ALL -> stringResource(R.string.ui2_cmp_all_time_word)
+    DataSourcePeriod.YEAR -> stringResource(R.string.ui2_cmp_yearly, anchor.year.toString())
+    DataSourcePeriod.MONTH -> stringResource(R.string.ui2_cmp_monthly, anchor.format(MONTH_FMT))
+    DataSourcePeriod.YESTERDAY -> stringResource(R.string.ui2_cmp_daily, anchor.format(DAY_FMT))
 }
 
+@Composable
 private fun displaySubtitle(s: CompareState): String {
     val layoutable = s.mode in listOf(CompareMode.BAR, CompareMode.STACK, CompareMode.LINE, CompareMode.AREA)
     val axisable = s.mode == CompareMode.LINE || s.mode == CompareMode.AREA || s.mode == CompareMode.BAR
-    return s.mode.label +
-        (if (layoutable) " · ${if (s.layout == CompareLayout.MERGED) "merged" else "split"}" else "") +
-        (if (axisable) " · axis ${s.displayScale.label.lowercase()}" else "")
+    return buildList {
+        add(s.mode.label)
+        if (layoutable) add(stringResource(
+            if (s.layout == CompareLayout.MERGED) R.string.ui2_cmp_merged_word
+            else R.string.ui2_cmp_split_word))
+        if (axisable) add(stringResource(R.string.ui2_cmp_axis_word,
+            s.displayScale.label.lowercase()))
+    }.joinToString(" · ")
 }
 
 private fun isConfigReady(s: CompareState, vm: UI2CompareViewModel): Boolean {
@@ -1940,10 +1995,16 @@ private fun usagePies(data: List<ChartDatum>, series: List<SeriesDef>): List<Com
  * sits alongside in solid grey. Sell is excluded from the pie (it's a credit, and
  * pies don't represent signed values cleanly) — table / stack still show it.
  */
+@Composable
 private fun costPies(rows: List<CompareCostRow>, series: List<SeriesDef>): List<ComparePieDatum> {
     val showBuy = series.any { it.id == "buy" }
     val showFixed = series.any { it.id == "fixed" }
     val showBonus = series.any { it.id == "bonus" }
+    val fixedLabel = stringResource(R.string.ui2_cmp_fixed)
+    val bonusLabel = stringResource(R.string.ui2_cmp_bonus)
+    val bandLabel: @Composable (Int) -> String = { i ->
+        stringResource(R.string.ui2_cmp_band_n, i + 1)
+    }
     return rows.map { r ->
         val slices = buildList {
             if (showBuy) r.buyBands.forEachIndexed { i, b ->
@@ -1952,12 +2013,12 @@ private fun costPies(rows: List<CompareCostRow>, series: List<SeriesDef>): List<
                     // useful in the pop-out legend where the user is comparing tariffs.
                     val rate = r.buyBandRates.getOrNull(i)
                     val label = if (rate != null)
-                        "${rateLabel(rate)} ${RegionProfiles.current.rateUnit}" else "Band ${i + 1}"
+                        "${rateLabel(rate)} ${RegionProfiles.current.rateUnit}" else bandLabel(i)
                     add(ComparePieSlice(label, BUY_BAND_COLOR, b, bandPattern(i)))
                 }
             }
-            if (showFixed && r.fixed > 0.0) add(ComparePieSlice("Fixed", FIXED_BAND_COLOR, r.fixed))
-            if (showBonus && r.bonus > 0.0) add(ComparePieSlice("Bonus", Color(0xFF4CAF50), r.bonus))
+            if (showFixed && r.fixed > 0.0) add(ComparePieSlice(fixedLabel, FIXED_BAND_COLOR, r.fixed))
+            if (showBonus && r.bonus > 0.0) add(ComparePieSlice(bonusLabel, Color(0xFF4CAF50), r.bonus))
         }
         ComparePieDatum("${r.subjectName}  ·  ${r.planName}", slices)
     }

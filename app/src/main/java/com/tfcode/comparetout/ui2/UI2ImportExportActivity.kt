@@ -74,6 +74,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
@@ -84,6 +86,7 @@ import androidx.lifecycle.viewModelScope
 import com.google.gson.Gson
 import com.google.gson.JsonSyntaxException
 import com.google.gson.reflect.TypeToken
+import com.tfcode.comparetout.R
 import com.tfcode.comparetout.SimulatorLauncher
 import com.tfcode.comparetout.region.RegionProfiles
 import com.tfcode.comparetout.model.SnapshotExporter
@@ -144,11 +147,12 @@ class UI2ImportExportActivity : AppCompatActivity() {
 /** Outcome of a bulk import — used for the success snackbar. */
 data class ImportOutcome(val replaced: Int, val added: Int) {
     val total: Int get() = replaced + added
-    fun summary(noun: String): String = when {
-        total == 0       -> "Nothing to import"
-        replaced == 0    -> "Imported $added $noun"
-        added == 0       -> "Replaced $replaced $noun"
-        else             -> "Imported $total $noun ($replaced replaced, $added added)"
+    /** [noun] is the already-pluralised item word (e.g. from R.plurals.ui2_noun_plan). */
+    fun summary(context: android.content.Context, noun: String): String = when {
+        total == 0    -> context.getString(R.string.ui2_ie_nothing_to_import)
+        replaced == 0 -> context.getString(R.string.ui2_ie_imported_n, added, noun)
+        added == 0    -> context.getString(R.string.ui2_ie_replaced_n, replaced, noun)
+        else          -> context.getString(R.string.ui2_ie_imported_mixed, total, noun, replaced, added)
     }
 }
 
@@ -236,12 +240,12 @@ class UI2ImportExportViewModel @Inject constructor(
     suspend fun stageAndValidate(uri: Uri): SnapshotImporter.Validation = withContext(Dispatchers.IO) {
         val staged = runCatching { snapshotImporter.stage(uri) }.getOrElse { e ->
             return@withContext SnapshotImporter.Validation.FileError(
-                e.message ?: "Could not read the picked file"
+                e.message ?: getApplication<Application>().getString(R.string.ui2_ie_could_not_read_file)
             )
         }
         val result = runCatching { snapshotImporter.validate(staged) }.getOrElse { e ->
             SnapshotImporter.Validation.FileError(
-                e.message ?: "Could not validate the picked file"
+                e.message ?: getApplication<Application>().getString(R.string.ui2_ie_could_not_validate_file)
             )
         }
         // Drop the staging file whenever the user is going to bail at this
@@ -318,17 +322,15 @@ class UI2ImportExportViewModel @Inject constructor(
     }
 }
 
-/** A parsed import payload waiting on the user's clobber decision. */
+/** A parsed import payload waiting on the user's clobber decision. The count
+ *  label and item noun are resolved from plurals resources at the call sites. */
 private sealed class PendingImport {
-    abstract val countLabel: String
-    abstract val noun: String       // singular noun for the snackbar
+    abstract val size: Int
     data class Plans(val list: List<PricePlanJsonFile>) : PendingImport() {
-        override val countLabel = if (list.size == 1) "1 supplier plan" else "${list.size} supplier plans"
-        override val noun = if (list.size == 1) "plan" else "plans"
+        override val size get() = list.size
     }
     data class Scenarios(val list: List<ScenarioJsonFile>) : PendingImport() {
-        override val countLabel = if (list.size == 1) "1 scenario" else "${list.size} scenarios"
-        override val noun = if (list.size == 1) "scenario" else "scenarios"
+        override val size get() = list.size
     }
 }
 
@@ -377,7 +379,8 @@ private fun ImportExportScreen(
         scope.launch {
             val result = viewModel.commitImport(staged, replaceExisting)
             workingLabel = null
-            val msg = result?.summary() ?: "Snapshot import failed"
+            val msg = result?.summary(context)
+                ?: context.getString(R.string.ui2_ie_snapshot_import_failed)
             // When the imported DB included data sources, the user must restart to see them — a snackbar is too
             // easy to miss, so require an explicit OK. Everything else stays a snackbar.
             if (result != null && result.sourcesTouched > 0) {
@@ -415,7 +418,8 @@ private fun ImportExportScreen(
             if (uri != null) {
                 context.shareSnapshot(uri, subject)
             } else {
-                snackbarHostState.showSnackbar("Snapshot export failed")
+                snackbarHostState.showSnackbar(
+                    context.getString(R.string.ui2_ie_snapshot_export_failed))
             }
         }
     }
@@ -430,7 +434,13 @@ private fun ImportExportScreen(
                     is PendingImport.Scenarios -> viewModel.importScenariosFromList(import.list, clobber)
                 }
             }.getOrNull()
-            val msg = outcome?.summary(import.noun) ?: "Import failed"
+            val noun = context.resources.getQuantityString(
+                when (import) {
+                    is PendingImport.Plans     -> R.plurals.ui2_noun_plan
+                    is PendingImport.Scenarios -> R.plurals.ui2_noun_scenario
+                }, import.size)
+            val msg = outcome?.summary(context, noun)
+                ?: context.getString(R.string.ui2_import_failed)
             snackbarHostState.showSnackbar(msg)
         }
     }
@@ -443,15 +453,17 @@ private fun ImportExportScreen(
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
-                title = { Text("Import / Export") },
+                title = { Text(stringResource(R.string.ui2_drawer_import_export)) },
                 navigationIcon = {
                     IconButton(onClick = onClose) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.ui2_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { showDrawer = true }) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menu")
+                        Icon(Icons.Default.Menu,
+                            contentDescription = stringResource(R.string.ui2_menu))
                     }
                 },
                 scrollBehavior = scrollBehavior
@@ -468,46 +480,49 @@ private fun ImportExportScreen(
                 if (showHints) {
                     item("hint") { HintCard() }
                 }
-                item("export_header") { SectionLabel("Export", Icons.Default.FileDownload) }
+                item("export_header") {
+                    SectionLabel(stringResource(R.string.ui2_ie_export), Icons.Default.FileDownload)
+                }
                 item("export_plans") {
+                    val title = stringResource(R.string.ui2_ie_all_plans)
                     DataRow(
-                        title = "All supplier plans",
+                        title = title,
                         format = "JSON",
-                        helpText = "Every tariff stored in the app, including day-rate schedules.",
+                        helpText = stringResource(R.string.ui2_ie_help_all_plans),
                         actionIcon = Icons.Default.Share,
                         actionTint = MaterialTheme.colorScheme.primary,
                         busy = workingLabel == "plans",
                         anyBusy = workingLabel != null,
                         onClick = {
-                            runExport("plans", "All supplier plans", ShareFormat.JSON) {
+                            runExport("plans", title, ShareFormat.JSON) {
                                 viewModel.allPlansJson()
                             }
                         }
                     )
                 }
                 item("export_scenarios") {
+                    val title = stringResource(R.string.ui2_ie_all_scenarios)
                     DataRow(
-                        title = "All scenarios",
+                        title = title,
                         format = "JSON",
-                        helpText = "Every saved scenario with all of its components — load profile, " +
-                                "PV, batteries, hot water, EV.",
+                        helpText = stringResource(R.string.ui2_ie_help_all_scenarios),
                         actionIcon = Icons.Default.Share,
                         actionTint = MaterialTheme.colorScheme.primary,
                         busy = workingLabel == "scenarios",
                         anyBusy = workingLabel != null,
                         onClick = {
-                            runExport("scenarios", "All scenarios", ShareFormat.JSON) {
+                            runExport("scenarios", title, ShareFormat.JSON) {
                                 viewModel.allScenariosJson()
                             }
                         }
                     )
                 }
                 item("export_db_all") {
+                    val subject = stringResource(R.string.ui2_ie_snapshot_subject)
                     DataRow(
-                        title = "Everything (database)",
+                        title = stringResource(R.string.ui2_ie_everything_db),
                         format = "SQLite",
-                        helpText = "A full SQLite snapshot — all plans, scenarios, data sources, and " +
-                                "precomputed simulation results. Re-imports byte-for-byte on another device.",
+                        helpText = stringResource(R.string.ui2_ie_help_everything),
                         actionIcon = Icons.Default.Backup,
                         actionTint = MaterialTheme.colorScheme.primary,
                         busy = workingLabel == "snapshot-all",
@@ -518,17 +533,16 @@ private fun ImportExportScreen(
                                 scopeKind = SnapshotExporter.Scope.Everything,
                                 includeOutputs = true,
                                 filenameSuffix = "all",
-                                subject = "Eco Power Optimiser snapshot"
+                                subject = subject
                             )
                         }
                     )
                 }
                 item("export_db_selection") {
                     DataRow(
-                        title = "Selected scenarios / sources (database)",
+                        title = stringResource(R.string.ui2_ie_selection_db),
                         format = "SQLite",
-                        helpText = "Pick which scenarios and data sources to include. All supplier " +
-                                "plans are bundled so imported scenarios can find their tariffs.",
+                        helpText = stringResource(R.string.ui2_ie_help_selection),
                         actionIcon = Icons.Default.Backup,
                         actionTint = MaterialTheme.colorScheme.primary,
                         busy = workingLabel == "snapshot-selection",
@@ -537,13 +551,14 @@ private fun ImportExportScreen(
                     )
                 }
 
-                item("import_header") { SectionLabel("Import", Icons.Default.FileUpload) }
+                item("import_header") {
+                    SectionLabel(stringResource(R.string.ui2_ie_import), Icons.Default.FileUpload)
+                }
                 item("import_plans") {
                     DataRow(
-                        title = "Import supplier plans",
+                        title = stringResource(R.string.ui2_ie_import_plans),
                         format = "JSON",
-                        helpText = "Pick a JSON file (or paste) to add plans to your library. " +
-                                "Plans whose name matches an existing one can be replaced or kept alongside.",
+                        helpText = stringResource(R.string.ui2_ie_help_import_plans),
                         actionIcon = Icons.Default.FileUpload,
                         actionTint = MaterialTheme.colorScheme.tertiary,
                         busy = false,
@@ -553,10 +568,9 @@ private fun ImportExportScreen(
                 }
                 item("import_scenarios") {
                     DataRow(
-                        title = "Import scenarios",
+                        title = stringResource(R.string.ui2_ie_import_scenarios),
                         format = "JSON",
-                        helpText = "Pick a JSON file (or paste) to add scenarios to your library. " +
-                                "Scenarios whose name matches an existing one can be replaced or kept alongside.",
+                        helpText = stringResource(R.string.ui2_ie_help_import_scenarios),
                         actionIcon = Icons.Default.FileUpload,
                         actionTint = MaterialTheme.colorScheme.tertiary,
                         busy = false,
@@ -566,11 +580,9 @@ private fun ImportExportScreen(
                 }
                 item("import_db") {
                     DataRow(
-                        title = "Import database snapshot",
+                        title = stringResource(R.string.ui2_ie_import_db),
                         format = "SQLite",
-                        helpText = "Pick a .db file exported from another device. The file is " +
-                                "validated against the current schema before any rows are written; " +
-                                "you'll see a preview and a Replace toggle before commit.",
+                        helpText = stringResource(R.string.ui2_ie_help_import_db),
                         actionIcon = Icons.Default.FileUpload,
                         actionTint = MaterialTheme.colorScheme.tertiary,
                         busy = workingLabel == "snapshot-import",
@@ -616,10 +628,9 @@ private fun ImportExportScreen(
     importTarget?.let { target ->
         when (target) {
             ImportTarget.PLANS -> UI2ImportSheet(
-                title = "Import supplier plans",
-                hint = "Accepts the JSON shape produced by the Share button on a plan, " +
-                        "or the bulk export above.",
-                applyLabel = "Continue",
+                title = stringResource(R.string.ui2_ie_import_plans),
+                hint = stringResource(R.string.ui2_ie_import_hint_plans),
+                applyLabel = stringResource(R.string.ui2_continue),
                 communityUrl = RegionProfiles.current.pricePlanFeedUrl,
                 // Note is paired with the URL in the profile; when the URL is
                 // null the community source never renders, so "" is never seen.
@@ -633,10 +644,9 @@ private fun ImportExportScreen(
                 onDismiss = { importTarget = null }
             )
             ImportTarget.SCENARIOS -> UI2ImportSheet(
-                title = "Import scenarios",
-                hint = "Accepts the JSON shape produced by the Share button on a scenario, " +
-                        "or the bulk export above.",
-                applyLabel = "Continue",
+                title = stringResource(R.string.ui2_ie_import_scenarios),
+                hint = stringResource(R.string.ui2_ie_import_hint_scenarios),
+                applyLabel = stringResource(R.string.ui2_continue),
                 parse = ::parseScenariosJson,
                 onApply = {
                     pendingImport = PendingImport.Scenarios(it)
@@ -649,23 +659,37 @@ private fun ImportExportScreen(
 
     // ── Clobber dialog — matches the legacy "Replace existing entries?" prompt ─
     pendingImport?.let { p ->
+        val countLabel = when (p) {
+            is PendingImport.Plans ->
+                pluralStringResource(R.plurals.ui2_ie_count_plans, p.size, p.size)
+            is PendingImport.Scenarios ->
+                pluralStringResource(R.plurals.ui2_ie_count_scenarios, p.size, p.size)
+        }
         AlertDialog(
             onDismissRequest = { pendingImport = null },
-            title = { Text("Import ${p.countLabel}") },
+            title = { Text(stringResource(R.string.ui2_import_count_title, countLabel)) },
             text = {
                 Text(
-                    "If a ${p.noun.removeSuffix("s")} with the same name already exists, " +
-                        "should the imported version replace it, or be kept alongside the existing one?",
+                    stringResource(when (p) {
+                        is PendingImport.Plans -> R.string.ui2_clobber_body_plan
+                        is PendingImport.Scenarios -> R.string.ui2_clobber_body_scenario
+                    }),
                     style = MaterialTheme.typography.bodyMedium
                 )
             },
             confirmButton = {
-                Button(onClick = { commitImport(clobber = true) }) { Text("Replace existing") }
+                Button(onClick = { commitImport(clobber = true) }) {
+                    Text(stringResource(R.string.ui2_replace_existing))
+                }
             },
             dismissButton = {
                 Row {
-                    TextButton(onClick = { commitImport(clobber = false) }) { Text("Keep both") }
-                    TextButton(onClick = { pendingImport = null }) { Text("Cancel") }
+                    TextButton(onClick = { commitImport(clobber = false) }) {
+                        Text(stringResource(R.string.ui2_keep_both))
+                    }
+                    TextButton(onClick = { pendingImport = null }) {
+                        Text(stringResource(R.string.dialog_cancel))
+                    }
                 }
             }
         )
@@ -677,14 +701,14 @@ private fun ImportExportScreen(
             is SnapshotImportState.Error -> {
                 AlertDialog(
                     onDismissRequest = { snapshotImportState = null },
-                    title = { Text("Snapshot rejected") },
+                    title = { Text(stringResource(R.string.ui2_ie_snapshot_rejected)) },
                     text = {
                         Column {
                             Text(state.message, style = MaterialTheme.typography.bodyMedium)
                             if (state.details.isNotEmpty()) {
                                 Spacer(Modifier.size(8.dp))
                                 Text(
-                                    "Details:",
+                                    stringResource(R.string.ui2_ie_details),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -697,7 +721,7 @@ private fun ImportExportScreen(
                                 }
                                 if (state.details.size > 5) {
                                     Text(
-                                        "…and ${state.details.size - 5} more.",
+                                        stringResource(R.string.ui2_ie_more_details, state.details.size - 5),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -706,7 +730,9 @@ private fun ImportExportScreen(
                         }
                     },
                     confirmButton = {
-                        TextButton(onClick = { snapshotImportState = null }) { Text("OK") }
+                        TextButton(onClick = { snapshotImportState = null }) {
+                            Text(stringResource(R.string.dialog_ok))
+                        }
                     }
                 )
             }
@@ -731,10 +757,12 @@ private fun ImportExportScreen(
     snapshotSourcesResult?.let { msg ->
         AlertDialog(
             onDismissRequest = { snapshotSourcesResult = null },
-            title = { Text("Import complete") },
+            title = { Text(stringResource(R.string.ui2_ie_import_complete)) },
             text = { Text(msg, style = MaterialTheme.typography.bodyMedium) },
             confirmButton = {
-                TextButton(onClick = { snapshotSourcesResult = null }) { Text("OK") }
+                TextButton(onClick = { snapshotSourcesResult = null }) {
+                    Text(stringResource(R.string.dialog_ok))
+                }
             }
         )
     }
@@ -743,6 +771,7 @@ private fun ImportExportScreen(
     if (showSnapshotPicker) {
         val scenarios by viewModel.scenarios.collectAsState()
         val sources by viewModel.sources.collectAsState()
+        val subject = stringResource(R.string.ui2_ie_snapshot_subject)
         SnapshotPickerDialog(
             scenarios = scenarios,
             sources = sources,
@@ -761,7 +790,7 @@ private fun ImportExportScreen(
                     scopeKind = SnapshotExporter.Scope.Selection(selectedScenarioIds, selectedSysSns),
                     includeOutputs = includeOutputs,
                     filenameSuffix = suffix,
-                    subject = "Eco Power Optimiser snapshot"
+                    subject = subject
                 )
             }
         )
@@ -793,7 +822,7 @@ private fun SnapshotPickerDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Export selection (database)") },
+        title = { Text(stringResource(R.string.ui2_ie_export_selection_title)) },
         text = {
             Column(
                 modifier = Modifier
@@ -808,7 +837,7 @@ private fun SnapshotPickerDialog(
                     )
                     Spacer(Modifier.width(6.dp))
                     Text(
-                        "Supplier plans are always included.",
+                        stringResource(R.string.ui2_ie_plans_always_included),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -817,7 +846,7 @@ private fun SnapshotPickerDialog(
 
                 LazyColumn(modifier = Modifier.weight(1f, fill = false)) {
                     if (scenarios.isNotEmpty()) {
-                        item("hdr_sc") { PickerHeader("Scenarios") }
+                        item("hdr_sc") { PickerHeader(stringResource(R.string.ui2_scenarios_title)) }
                         items(scenarios) { sc ->
                             val checked = sc.scenarioIndex in selectedScenarios.value
                             CheckboxRow(
@@ -837,7 +866,7 @@ private fun SnapshotPickerDialog(
                     if (sources.isNotEmpty()) {
                         item("hdr_src") {
                             Spacer(Modifier.size(8.dp))
-                            PickerHeader("Data sources")
+                            PickerHeader(stringResource(R.string.ui2_data_sources))
                         }
                         items(sources) { src ->
                             val checked = src.sysSn in selectedSources.value
@@ -858,7 +887,7 @@ private fun SnapshotPickerDialog(
                     if (scenarios.isEmpty() && sources.isEmpty()) {
                         item("empty") {
                             Text(
-                                "No scenarios or data sources available to export.",
+                                stringResource(R.string.ui2_ie_nothing_to_export),
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(vertical = 12.dp)
@@ -874,11 +903,11 @@ private fun SnapshotPickerDialog(
                 ) {
                     Column(Modifier.weight(1f)) {
                         Text(
-                            "Include simulation results",
+                            stringResource(R.string.ui2_ie_include_outputs),
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
-                            "Costings, panel data, sim time series. Recomputable from inputs.",
+                            stringResource(R.string.ui2_ie_include_outputs_sub),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -893,10 +922,10 @@ private fun SnapshotPickerDialog(
                 onClick = {
                     onConfirm(selectedScenarios.value, selectedSources.value, includeOutputs)
                 }
-            ) { Text("Export") }
+            ) { Text(stringResource(R.string.ui2_ie_export)) }
         },
         dismissButton = {
-            TextButton(onClick = onDismiss) { Text("Cancel") }
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.dialog_cancel)) }
         }
     )
 }
@@ -964,29 +993,35 @@ private sealed class SnapshotImportState {
     }
 }
 
-private fun SnapshotImporter.CommitResult.summary(): String {
+private fun SnapshotImporter.CommitResult.summary(context: android.content.Context): String {
+    val res = context.resources
     val parts = mutableListOf<String>()
     val plans = plansAdded + plansReplaced
     if (plans > 0) {
-        parts += if (plansReplaced == 0) "$plans plan${plural(plans)}"
-                 else "$plans plan${plural(plans)} ($plansReplaced replaced)"
+        var part = res.getQuantityString(R.plurals.ui2_ie_n_plans, plans, plans)
+        if (plansReplaced > 0) part += " " + res.getString(R.string.ui2_ie_n_replaced, plansReplaced)
+        parts += part
     }
     val scenarios = scenariosAdded + scenariosReplaced
     if (scenarios > 0) {
-        parts += if (scenariosReplaced == 0) "$scenarios scenario${plural(scenarios)}"
-                 else "$scenarios scenario${plural(scenarios)} ($scenariosReplaced replaced)"
+        var part = res.getQuantityString(R.plurals.ui2_ie_n_scenarios, scenarios, scenarios)
+        if (scenariosReplaced > 0) part += " " + res.getString(R.string.ui2_ie_n_replaced, scenariosReplaced)
+        parts += part
     }
-    if (sourcesTouched > 0) parts += "$sourcesTouched source${plural(sourcesTouched)}"
+    if (sourcesTouched > 0) {
+        parts += res.getQuantityString(R.plurals.ui2_ie_n_sources, sourcesTouched, sourcesTouched)
+    }
     val skipped = plansSkipped + scenariosSkipped
-    val skipFragment = if (skipped > 0) " — $skipped existing item${plural(skipped)} kept" else ""
+    val skipFragment = if (skipped > 0)
+        " " + res.getQuantityString(R.plurals.ui2_ie_n_kept, skipped, skipped) else ""
     // Imported source rows are written outside Room's change tracking, so the
     // data-source lists won't refresh until the app is relaunched.
-    val restartFragment = if (sourcesTouched > 0) " · restart the app to see data sources" else ""
-    return if (parts.isEmpty()) "Nothing was imported$skipFragment"
-           else "Imported ${parts.joinToString(", ")}$skipFragment$restartFragment"
+    val restartFragment = if (sourcesTouched > 0)
+        " " + res.getString(R.string.ui2_ie_restart_suffix) else ""
+    return if (parts.isEmpty()) res.getString(R.string.ui2_ie_nothing_imported) + skipFragment
+           else res.getString(R.string.ui2_ie_imported_list, parts.joinToString(", ")) +
+               skipFragment + restartFragment
 }
-
-private fun plural(n: Int) = if (n == 1) "" else "s"
 
 @Composable
 private fun SnapshotPreviewDialog(
@@ -997,41 +1032,38 @@ private fun SnapshotPreviewDialog(
     var replaceExisting by remember { mutableStateOf(false) }
     AlertDialog(
         onDismissRequest = onCancel,
-        title = { Text("Import database snapshot") },
+        title = { Text(stringResource(R.string.ui2_ie_import_db)) },
         text = {
             Column(modifier = Modifier.fillMaxWidth()) {
-                SummaryLine("Supplier plans", summary.plans)
+                SummaryLine(stringResource(R.string.ui2_supplier_plans), summary.plans)
                 SummaryLine(
-                    "Scenarios",
+                    stringResource(R.string.ui2_scenarios_title),
                     summary.scenarios,
                     sample = summary.sampleScenarioNames
                 )
                 SummaryLine(
-                    "Data sources",
+                    stringResource(R.string.ui2_data_sources),
                     summary.sources,
                     sample = summary.sampleSysSns
                 )
                 if (summary.transformedRows + summary.rawPowerRows + summary.rawEnergyRows > 0) {
                     Text(
-                        "Source rows: ${summary.transformedRows} 5-min + " +
-                            "${summary.rawPowerRows} power + " +
-                            "${summary.rawEnergyRows} energy.",
+                        stringResource(R.string.ui2_ie_source_rows,
+                            summary.transformedRows, summary.rawPowerRows, summary.rawEnergyRows),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = 4.dp)
                     )
                 }
                 Text(
-                    "PV data (paneldata, fetched from PVGIS) and load profile time-series " +
-                        "are imported with each scenario. Costings and simulation outputs are " +
-                        "regenerated locally from the imported inputs.",
+                    stringResource(R.string.ui2_ie_preview_note),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = 8.dp)
                 )
                 if (summary.sources > 0) {
                     Text(
-                        "Restart the app after importing for data sources to appear.",
+                        stringResource(R.string.ui2_ie_restart_note),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(top = 8.dp)
@@ -1054,11 +1086,11 @@ private fun SnapshotPreviewDialog(
                     Spacer(Modifier.width(4.dp))
                     Column(Modifier.weight(1f)) {
                         Text(
-                            "Replace existing data with the same name / serial",
+                            stringResource(R.string.ui2_ie_replace_toggle),
                             style = MaterialTheme.typography.bodyMedium
                         )
                         Text(
-                            "Off: keep what you have, skip imports that collide.",
+                            stringResource(R.string.ui2_ie_replace_toggle_sub),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -1067,10 +1099,12 @@ private fun SnapshotPreviewDialog(
             }
         },
         confirmButton = {
-            Button(onClick = { onConfirm(replaceExisting) }) { Text("Import") }
+            Button(onClick = { onConfirm(replaceExisting) }) {
+                Text(stringResource(R.string.ui2_ie_import))
+            }
         },
         dismissButton = {
-            TextButton(onClick = onCancel) { Text("Cancel") }
+            TextButton(onClick = onCancel) { Text(stringResource(R.string.dialog_cancel)) }
         }
     )
 }
@@ -1171,21 +1205,17 @@ private fun HintCard() {
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("About Import / Export",
+            Text(stringResource(R.string.ui2_ie_hint_title),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary)
             Text(
-                "Move plans and scenarios between devices, share them with someone, or back " +
-                    "them up to your file storage. For exporting a single plan or scenario use the " +
-                    "Share button on its row; for importing one into a wizard step, the Import option " +
-                    "on each accordion is more focused than the bulk paths here.",
+                stringResource(R.string.ui2_ie_hint_body),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
-                "Note: when a database snapshot includes data sources, restart the app after " +
-                    "importing for those sources to appear.",
+                stringResource(R.string.ui2_ie_hint_restart),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -1223,13 +1253,12 @@ private fun ComparisonResultsNote() {
                     modifier = Modifier.size(16.dp),
                     tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.width(6.dp))
-                Text("Comparison results",
+                Text(stringResource(R.string.ui2_ie_compare_note_title),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Text(
-                "Comparison results are exported from the Compare tab itself — pick your sources, " +
-                    "scenarios and plans, then use the Share button on each result panel.",
+                stringResource(R.string.ui2_ie_compare_note_body),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )

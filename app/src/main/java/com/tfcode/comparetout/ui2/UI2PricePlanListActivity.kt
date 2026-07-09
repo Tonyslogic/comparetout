@@ -77,10 +77,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.tfcode.comparetout.R
 import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile
 import com.tfcode.comparetout.region.RegionProfiles
 import dagger.hilt.android.AndroidEntryPoint
@@ -143,10 +146,11 @@ private fun PricePlanListScreen(
 
     fun runPlanImport(list: List<PricePlanJsonFile>, clobber: Boolean) {
         pendingImport = null
-        val noun = if (list.size == 1) "plan" else "plans"
+        val noun = context.resources.getQuantityString(R.plurals.ui2_noun_plan, list.size)
         shareScope.launch {
             val outcome = runCatching { viewModel.importPlansFromList(list, clobber) }.getOrNull()
-            val msg = outcome?.summary(noun) ?: "Import failed"
+            val msg = outcome?.summary(context, noun)
+                ?: context.getString(R.string.ui2_import_failed)
             Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
         }
     }
@@ -172,15 +176,17 @@ private fun PricePlanListScreen(
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
-                title = { Text("Supplier Plans") },
+                title = { Text(stringResource(R.string.ui2_drawer_supplier_plans)) },
                 navigationIcon = {
                     IconButton(onClick = onClose) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = stringResource(R.string.ui2_back))
                     }
                 },
                 actions = {
                     IconButton(onClick = { showDrawer = true }) {
-                        Icon(Icons.Default.Menu, contentDescription = "Menu")
+                        Icon(Icons.Default.Menu,
+                            contentDescription = stringResource(R.string.ui2_menu))
                     }
                 },
                 scrollBehavior = scrollBehavior
@@ -219,10 +225,10 @@ private fun PricePlanListScreen(
                                 onCheckedChange = { showOtherLocations = it }
                             )
                             Text(
-                                "Show plans for other locations" +
-                                        if (!showOtherLocations && hiddenByLocation > 0)
-                                            "  ·  $hiddenByLocation hidden (not ${viewModel.deviceCountry})"
-                                        else "",
+                                if (!showOtherLocations && hiddenByLocation > 0)
+                                    stringResource(R.string.ui2_ppl_show_other_locations_hidden,
+                                        hiddenByLocation, viewModel.deviceCountry)
+                                else stringResource(R.string.ui2_ppl_show_other_locations),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -288,11 +294,11 @@ private fun PricePlanListScreen(
     pendingDelete?.let { row ->
         AlertDialog(
             onDismissRequest = { pendingDelete = null },
-            title = { Text("Delete supplier plan?") },
+            title = { Text(stringResource(R.string.ui2_ppl_delete_title)) },
             text = {
                 Text(
-                    "\"${row.supplier} · ${row.planName}\" will be permanently deleted. " +
-                        "Any cached costing results for this plan will also be removed.",
+                    stringResource(R.string.ui2_ppl_delete_body,
+                        "${row.supplier} · ${row.planName}"),
                     style = MaterialTheme.typography.bodyMedium
                 )
             },
@@ -300,10 +306,12 @@ private fun PricePlanListScreen(
                 Button(onClick = {
                     viewModel.delete(row.planId)
                     pendingDelete = null
-                }) { Text("Delete") }
+                }) { Text(stringResource(R.string.ui2_delete)) }
             },
             dismissButton = {
-                TextButton(onClick = { pendingDelete = null }) { Text("Cancel") }
+                TextButton(onClick = { pendingDelete = null }) {
+                    Text(stringResource(R.string.dialog_cancel))
+                }
             }
         )
     }
@@ -311,12 +319,10 @@ private fun PricePlanListScreen(
     if (showDeleteAll) {
         AlertDialog(
             onDismissRequest = { showDeleteAll = false },
-            title = { Text("Delete all supplier plans?") },
+            title = { Text(stringResource(R.string.ui2_ppl_delete_all_title)) },
             text = {
                 Text(
-                    "All ${rows.size} plan" + (if (rows.size == 1) "" else "s") +
-                        " will be permanently deleted, along with any cached costing results. " +
-                        "There is no undo.",
+                    pluralStringResource(R.plurals.ui2_ppl_delete_all_body, rows.size, rows.size),
                     style = MaterialTheme.typography.bodyMedium
                 )
             },
@@ -329,10 +335,12 @@ private fun PricePlanListScreen(
                     colors = androidx.compose.material3.ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.error
                     )
-                ) { Text("Delete all") }
+                ) { Text(stringResource(R.string.ui2_scenarios_delete_all)) }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteAll = false }) { Text("Cancel") }
+                TextButton(onClick = { showDeleteAll = false }) {
+                    Text(stringResource(R.string.dialog_cancel))
+                }
             }
         )
     }
@@ -343,16 +351,16 @@ private fun PricePlanListScreen(
         // browser is only offered where Octopus operates (GB).
         val region = RegionProfiles.current
         UI2ImportSheet(
-            title = "Import supplier plans",
-            hint = "Accepts the JSON shape produced by the Share button on a plan, " +
-                "or a bulk export.",
-            applyLabel = "Continue",
+            title = stringResource(R.string.ui2_ie_import_plans),
+            hint = stringResource(R.string.ui2_ppl_import_hint),
+            applyLabel = stringResource(R.string.ui2_continue),
             communityUrl = region.pricePlanFeedUrl,
             // Note is paired with the URL in the profile; when the URL is null
             // the community source never renders, so "" is never seen.
             communityNote = region.pricePlanFeedNote ?: "",
             llmPrompt = PricePlanDownloader.LLM_PROMPT,
-            extraSourceLabel = if (region.hasOctopus) "Octopus tariffs" else null,
+            extraSourceLabel = if (region.hasOctopus)
+                stringResource(R.string.ui2_ppl_octopus_tariffs) else null,
             extraSourceContent = if (region.hasOctopus) {
                 { OctopusTariffFetchPane() }
             } else null,
@@ -366,24 +374,29 @@ private fun PricePlanListScreen(
     }
 
     pendingImport?.let { list ->
-        val countLabel = if (list.size == 1) "1 supplier plan" else "${list.size} supplier plans"
+        val countLabel = pluralStringResource(R.plurals.ui2_ie_count_plans, list.size, list.size)
         AlertDialog(
             onDismissRequest = { pendingImport = null },
-            title = { Text("Import $countLabel") },
+            title = { Text(stringResource(R.string.ui2_import_count_title, countLabel)) },
             text = {
                 Text(
-                    "If a plan with the same name already exists, should the imported " +
-                        "version replace it, or be kept alongside the existing one?",
+                    stringResource(R.string.ui2_clobber_body_plan),
                     style = MaterialTheme.typography.bodyMedium
                 )
             },
             confirmButton = {
-                Button(onClick = { runPlanImport(list, clobber = true) }) { Text("Replace existing") }
+                Button(onClick = { runPlanImport(list, clobber = true) }) {
+                    Text(stringResource(R.string.ui2_replace_existing))
+                }
             },
             dismissButton = {
                 Row {
-                    TextButton(onClick = { runPlanImport(list, clobber = false) }) { Text("Keep both") }
-                    TextButton(onClick = { pendingImport = null }) { Text("Cancel") }
+                    TextButton(onClick = { runPlanImport(list, clobber = false) }) {
+                        Text(stringResource(R.string.ui2_keep_both))
+                    }
+                    TextButton(onClick = { pendingImport = null }) {
+                        Text(stringResource(R.string.dialog_cancel))
+                    }
                 }
             }
         )
@@ -410,13 +423,13 @@ private fun ListHeader(
             ) {
                 Column(Modifier.weight(1f)) {
                     Text(
-                        "$count plan" + if (count == 1) "" else "s",
+                        pluralStringResource(R.plurals.ui2_ppl_count, count, count),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     if (showHints) {
                         Text(
-                            "Tap a row to see its details · Star marks your current contract",
+                            stringResource(R.string.ui2_ppl_header_hint),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -452,18 +465,21 @@ private fun androidx.compose.foundation.layout.RowScope.HeaderActions(
 ) {
     if (onDeleteAll != null) {
         IconButton(onClick = onDeleteAll) {
-            Icon(Icons.Default.Delete, contentDescription = "Delete all plans",
+            Icon(Icons.Default.Delete,
+                contentDescription = stringResource(R.string.ui2_ppl_delete_all_cd),
                 tint = MaterialTheme.colorScheme.error)
         }
     }
     TextButton(onClick = onImport) {
-        Text("Import…", style = MaterialTheme.typography.labelLarge)
+        Text(stringResource(R.string.ui2_ppl_import_action),
+            style = MaterialTheme.typography.labelLarge)
     }
     TextButton(onClick = onCreate) {
         Icon(Icons.Default.Add, contentDescription = null,
             modifier = Modifier.size(18.dp))
         Spacer(Modifier.width(4.dp))
-        Text("Create new", style = MaterialTheme.typography.labelLarge)
+        Text(stringResource(R.string.ui2_ppl_create_new),
+            style = MaterialTheme.typography.labelLarge)
     }
 }
 
@@ -475,19 +491,12 @@ private fun ListHintCard() {
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text("About supplier plans",
+            Text(stringResource(R.string.ui2_ppl_about_title),
                 style = MaterialTheme.typography.labelMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.primary)
             Text(
-                "Every cost in the app — Compare tab totals, dashboard Tariff Plan " +
-                    "tables, KPIs — is calculated against one of these plans. " +
-                    "Tap the ★ on a plan to mark it as the tariff you're currently " +
-                    "contracted to; it will be highlighted everywhere it appears.\n\n" +
-                    "The green ✓ marks a plan as active. Active only narrows the dashboard's " +
-                    "Tariff Plan table — the Compare tab still evaluates every plan regardless " +
-                    "of its active state. Open a plan and tap the ✓ to toggle: grey → green " +
-                    "activates it, green → grey deactivates it.",
+                stringResource(R.string.ui2_ppl_about_body),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -530,7 +539,8 @@ private fun PricePlanAccordion(
             ) {
                 Icon(
                     imageVector = if (isFavourite) Icons.Default.Star else Icons.Outlined.StarBorder,
-                    contentDescription = if (isFavourite) "Current plan" else null,
+                    contentDescription = if (isFavourite)
+                        stringResource(R.string.ui2_ppl_current_plan) else null,
                     modifier = Modifier.size(18.dp),
                     tint = if (isFavourite) MaterialTheme.colorScheme.primary
                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
@@ -559,10 +569,10 @@ private fun PricePlanAccordion(
                     Icon(
                         painter = androidx.compose.ui.res.painterResource(
                             com.tfcode.comparetout.R.drawable.tick),
-                        contentDescription = if (expanded)
-                            "Active — tap to deactivate for the dashboard"
+                        contentDescription = stringResource(if (expanded)
+                            R.string.ui2_ppl_active_expanded_cd
                         else
-                            "Active — included in dashboard tariff tables",
+                            R.string.ui2_ppl_active_cd),
                         modifier = activeModifier,
                         tint = Color.Unspecified
                     )
@@ -570,7 +580,7 @@ private fun PricePlanAccordion(
                     Icon(
                         painter = androidx.compose.ui.res.painterResource(
                             com.tfcode.comparetout.R.drawable.tick),
-                        contentDescription = "Inactive — tap to activate for the dashboard",
+                        contentDescription = stringResource(R.string.ui2_ppl_inactive_cd),
                         modifier = Modifier
                             .size(18.dp)
                             .clickable(onClick = onToggleActive),
@@ -607,11 +617,15 @@ private fun PricePlanAccordion(
                     // cells per row under font scaling instead of clipping.
                     val cur = RegionProfiles.current.currencySymbol
                     val specs = listOf(
-                        "Standing" to "$cur${moneyFmt.format(row.standingCharges)}/yr",
-                        "Feed-in" to "${moneyFmt.format(row.feed)} ${RegionProfiles.current.rateUnit}",
-                        "Bonus" to "$cur${moneyFmt.format(row.signUpBonus)}",
-                        "Rates" to "${row.rateCount} day-rate" +
-                            if (row.rateCount == 1) "" else "s"
+                        stringResource(R.string.ui2_ppl_spec_standing)
+                            to "$cur${moneyFmt.format(row.standingCharges)}/yr",
+                        stringResource(R.string.ui2_ppl_spec_feed_in)
+                            to "${moneyFmt.format(row.feed)} ${RegionProfiles.current.rateUnit}",
+                        stringResource(R.string.ui2_ppl_spec_bonus)
+                            to "$cur${moneyFmt.format(row.signUpBonus)}",
+                        stringResource(R.string.ui2_ppl_spec_rates)
+                            to pluralStringResource(R.plurals.ui2_ppl_day_rates,
+                                row.rateCount, row.rateCount)
                     )
                     AdaptiveCellRow(items = specs) { (label, value) ->
                         SpecCell(label, value)
@@ -624,7 +638,7 @@ private fun PricePlanAccordion(
                             color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f),
                             shape = CircleShape
                         ) {
-                            Text("Deemed export",
+                            Text(stringResource(R.string.deemed_export_calculation),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onTertiaryContainer,
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp))
@@ -636,7 +650,7 @@ private fun PricePlanAccordion(
                             color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f),
                             shape = CircleShape
                         ) {
-                            Text("Usage restrictions — rate changes past a cap",
+                            Text(stringResource(R.string.ui2_ppl_restrictions_badge),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onTertiaryContainer,
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp))
@@ -648,7 +662,7 @@ private fun PricePlanAccordion(
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
                             shape = CircleShape
                         ) {
-                            Text("Location: ${row.location}",
+                            Text(stringResource(R.string.ui2_ppl_location, row.location),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp))
@@ -657,10 +671,10 @@ private fun PricePlanAccordion(
 
                     if (showHints) {
                         Text(
-                            if (isFavourite)
-                                "★ This is your current plan — highlighted in every Tariff Plan view."
+                            stringResource(if (isFavourite)
+                                R.string.ui2_ppl_fav_hint_current
                             else
-                                "Tap ★ to mark this as your current plan.",
+                                R.string.ui2_ppl_fav_hint_tap),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -683,14 +697,19 @@ private fun PricePlanAccordion(
                     val starIcon = if (isFavourite) Icons.Default.Star else Icons.Outlined.StarBorder
                     val actions = listOf(
                         ActionSpec(starIcon,
-                            if (isFavourite) "Current plan" else "Mark as my plan",
-                            if (isFavourite) "Current" else "My plan",
+                            stringResource(if (isFavourite) R.string.ui2_ppl_current_plan
+                                           else R.string.ui2_ppl_mark_my_plan),
+                            stringResource(if (isFavourite) R.string.ui2_ppl_legend_current
+                                           else R.string.ui2_ppl_legend_my_plan),
                             MaterialTheme.colorScheme.primary, onToggleFavourite),
-                        ActionSpec(Icons.Default.Edit, "Edit", "Edit",
+                        ActionSpec(Icons.Default.Edit,
+                            stringResource(R.string.ui2_edit), stringResource(R.string.ui2_edit),
                             MaterialTheme.colorScheme.onSurface, onEdit),
-                        ActionSpec(Icons.Default.Share, "Share", "Share",
+                        ActionSpec(Icons.Default.Share,
+                            stringResource(R.string.ui2_share), stringResource(R.string.ui2_share),
                             MaterialTheme.colorScheme.onSurface, onShare),
-                        ActionSpec(Icons.Default.Delete, "Delete", "Delete",
+                        ActionSpec(Icons.Default.Delete,
+                            stringResource(R.string.ui2_delete), stringResource(R.string.ui2_delete),
                             MaterialTheme.colorScheme.error, onDelete),
                     )
                     // ActionRowCenter caps the action row at 480 dp on tablets
@@ -723,7 +742,7 @@ private fun PricePlanAccordion(
 
                     if (row.lastUpdate.isNotBlank()) {
                         Text(
-                            "Last updated ${row.lastUpdate}",
+                            stringResource(R.string.ui2_ppl_last_updated, row.lastUpdate),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -803,13 +822,12 @@ private fun EmptyListMessage(showHints: Boolean) {
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
-            Text("No supplier plans yet", style = MaterialTheme.typography.titleSmall)
+            Text(stringResource(R.string.ui2_ppl_empty_title),
+                style = MaterialTheme.typography.titleSmall)
             if (showHints) {
                 Spacer(Modifier.height(6.dp))
                 Text(
-                    "Tap “+ Create new” to enter your supplier's tariff. Plans drive every " +
-                        "cost calculation in the app — at least one is needed before the Compare " +
-                        "tab can show prices.",
+                    stringResource(R.string.ui2_ppl_empty_body),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -861,19 +879,23 @@ private fun OctopusTariffFetchPane() {
                         runCatching { tariffPlans.resolveRegionBlocking(pc.trim()) }.getOrNull()
                     }
                 if (resolved == null) {
-                    "Couldn't resolve a region — check the postcode or pick a region below."
+                    context.getString(R.string.ui2_ppl_octo_no_region_postcode)
                 } else {
                     region = resolved
                     when (val r = tariffPlans.generateForRegionBlocking(resolved)) {
                         is OctopusTariffPlans.Result.Loaded ->
-                            "Added ${r.added} plan" + (if (r.added == 1) "" else "s") +
-                                " for region $resolved" +
-                                (if (r.existing > 0) " (${r.existing} already present)" else "") +
-                                (if (r.skipped > 0) " (${r.skipped} not representable)" else "")
+                            context.resources.getQuantityString(
+                                R.plurals.ui2_ppl_octo_added, r.added, r.added, resolved) +
+                                (if (r.existing > 0)
+                                    " " + context.getString(R.string.ui2_ppl_octo_existing, r.existing)
+                                 else "") +
+                                (if (r.skipped > 0)
+                                    " " + context.getString(R.string.ui2_ppl_octo_skipped, r.skipped)
+                                 else "")
                         is OctopusTariffPlans.Result.NoRegion ->
-                            "Couldn't resolve a region — pick one below."
+                            context.getString(R.string.ui2_ppl_octo_no_region_pick)
                         is OctopusTariffPlans.Result.Failed ->
-                            r.error.message ?: "Octopus fetch failed"
+                            r.error.message ?: context.getString(R.string.ui2_ppl_octo_fetch_failed)
                     }
                 }
             }
@@ -884,9 +906,7 @@ private fun OctopusTariffFetchPane() {
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
-            "Fetches every Octopus Energy tariff open for sign-up in your region and adds " +
-                "each as a supplier plan. Dynamic tariffs (Agile/Tracker) are skipped; the " +
-                "export rate assumes Outgoing Fixed — edit any plan after importing.",
+            stringResource(R.string.ui2_ppl_octo_desc),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -894,11 +914,11 @@ private fun OctopusTariffFetchPane() {
             value = postcode,
             onValueChange = { postcode = it; region = null },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("UK postcode (resolves your region)") },
+            label = { Text(stringResource(R.string.ui2_ppl_octo_postcode)) },
             singleLine = true
         )
         Text(
-            "Or pick your region:",
+            stringResource(R.string.ui2_ppl_octo_pick_region),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -915,7 +935,7 @@ private fun OctopusTariffFetchPane() {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 CircularProgressIndicator(Modifier.size(20.dp))
                 Spacer(Modifier.width(12.dp))
-                Text("Fetching tariffs — this walks every open product…",
+                Text(stringResource(R.string.ui2_ppl_octo_fetching),
                     style = MaterialTheme.typography.bodySmall)
             }
         } else {
@@ -923,7 +943,7 @@ private fun OctopusTariffFetchPane() {
                 onClick = { runFetch() },
                 enabled = region != null || postcode.isNotBlank(),
                 modifier = Modifier.fillMaxWidth()
-            ) { Text("Fetch tariffs") }
+            ) { Text(stringResource(R.string.ui2_ppl_octo_fetch)) }
         }
         status?.let {
             Text(it, style = MaterialTheme.typography.bodySmall,
