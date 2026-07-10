@@ -5,6 +5,7 @@ package com.tfcode.comparetout.ui2
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -31,11 +32,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material3.AlertDialog
@@ -43,11 +47,14 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -56,6 +63,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -82,6 +90,9 @@ import androidx.navigation.fragment.findNavController
 import com.tfcode.comparetout.MainActivity
 import com.tfcode.comparetout.R
 import com.tfcode.comparetout.TOUTCApplication
+import com.tfcode.comparetout.dynamic.strategy.DispatchStrategy
+import com.tfcode.comparetout.dynamic.strategy.RankNStrategy
+import com.tfcode.comparetout.dynamic.strategy.ThresholdStrategy
 import com.tfcode.comparetout.region.RegionProfiles
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -146,6 +157,7 @@ fun ScenariosScreen(
     val items by viewModel.items.collectAsState()
     val context = LocalContext.current
     var showDeleteDialog by remember { mutableStateOf<UI2SimulationsViewModel.SimListItem.Simulation?>(null) }
+    var strategyDialogFor by remember { mutableStateOf<UI2SimulationsViewModel.SimListItem.Simulation?>(null) }
     var showDeleteAll by remember { mutableStateOf(false) }
     var showDrawer by remember { mutableStateOf(false) }
     val (showHints, toggleShowHints) = rememberShowHints()
@@ -234,7 +246,12 @@ fun ScenariosScreen(
                                         )
                                     }
                                 }
-                            }
+                            },
+                            // Strategy generation needs a battery to dispatch; the menu
+                            // item is hidden (not greyed) for battery-less scenarios.
+                            onGenerateStrategy = if (item.scenario.isHasBatteries) {
+                                { strategyDialogFor = item }
+                            } else null
                         )
                     }
                 }
@@ -297,6 +314,15 @@ fun ScenariosScreen(
                 }
             }
         }
+    }
+
+    strategyDialogFor?.let { sim ->
+        StrategyGenerateDialog(
+            viewModel = viewModel,
+            scenarioId = sim.scenario.scenarioIndex,
+            scenarioName = sim.scenario.scenarioName,
+            onDismiss = { strategyDialogFor = null }
+        )
     }
 
     showDeleteDialog?.let { sim ->
@@ -414,7 +440,8 @@ private fun SimulationCard(
     onView: () -> Unit,
     onDelete: () -> Unit,
     onEdit: () -> Unit,
-    onShare: () -> Unit
+    onShare: () -> Unit,
+    onGenerateStrategy: (() -> Unit)? = null
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     val scenario = item.scenario
@@ -473,6 +500,13 @@ private fun SimulationCard(
                             leadingIcon = { Icon(Icons.Default.Share, null) },
                             onClick = { menuExpanded = false; onShare() }
                         )
+                        if (onGenerateStrategy != null) {
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.ui2_strategy_menu)) },
+                                leadingIcon = { Icon(Icons.Default.PlayArrow, null) },
+                                onClick = { menuExpanded = false; onGenerateStrategy() }
+                            )
+                        }
                         DropdownMenuItem(
                             text = { Text(stringResource(R.string.ui2_delete)) },
                             leadingIcon = { Icon(Icons.Default.Delete, null) },
@@ -485,6 +519,169 @@ private fun SimulationCard(
         modifier = Modifier.clickable { onView() }
     )
     HorizontalDivider()
+}
+
+/**
+ * Parameter sheet for a generated strategy scenario: pick a materialised
+ * dynamic plan, a strategy (Threshold or Rank-N) and its numbers, then hand
+ * off to [UI2SimulationsViewModel.generateStrategyScenario]. The result
+ * arrives as a toast; the new scenario appears in the list on its own via
+ * the LiveData refresh.
+ */
+@Composable
+private fun StrategyGenerateDialog(
+    viewModel: UI2SimulationsViewModel,
+    scenarioId: Long,
+    scenarioName: String,
+    onDismiss: () -> Unit
+) {
+    val context = LocalContext.current
+    var plans by remember { mutableStateOf<List<UI2SimulationsViewModel.DynamicPlanOption>?>(null) }
+    var selectedPlan by remember { mutableStateOf<UI2SimulationsViewModel.DynamicPlanOption?>(null) }
+    var useRankN by remember { mutableStateOf(false) }
+    var chargeBelow by remember { mutableStateOf("12") }
+    var dischargeAbove by remember { mutableStateOf("25") }
+    var minSpread by remember { mutableStateOf("2") }
+    var chargeSlots by remember { mutableStateOf("6") }
+    var dischargeSlots by remember { mutableStateOf("4") }
+    var busy by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        val loaded = viewModel.materialisedDynamicPlans()
+        plans = loaded
+        selectedPlan = loaded.firstOrNull()
+    }
+
+    val ready = !busy && selectedPlan != null && minSpread.toDoubleOrNull() != null &&
+        if (useRankN) {
+            chargeSlots.toIntOrNull()?.let { it in 1..48 } == true &&
+                dischargeSlots.toIntOrNull()?.let { it in 0..48 } == true
+        } else {
+            chargeBelow.toDoubleOrNull() != null && dischargeAbove.toDoubleOrNull() != null
+        }
+
+    AlertDialog(
+        onDismissRequest = { if (!busy) onDismiss() },
+        title = { Text(stringResource(R.string.ui2_strategy_dialog_title)) },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.verticalScroll(rememberScrollState())
+            ) {
+                Text(
+                    stringResource(R.string.ui2_strategy_dialog_body, scenarioName),
+                    style = MaterialTheme.typography.bodySmall
+                )
+                val loadedPlans = plans
+                when {
+                    loadedPlans == null -> Text("…")
+                    loadedPlans.isEmpty() -> Text(
+                        stringResource(R.string.ui2_strategy_no_plans),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                    else -> {
+                        Text(
+                            stringResource(R.string.ui2_strategy_plan_label),
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                        loadedPlans.forEach { option ->
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { selectedPlan = option }
+                            ) {
+                                RadioButton(
+                                    selected = selectedPlan == option,
+                                    onClick = { selectedPlan = option }
+                                )
+                                Text(
+                                    option.label + (option.year?.let { " · $it" } ?: ""),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(
+                                selected = !useRankN,
+                                onClick = { useRankN = false },
+                                label = { Text(stringResource(R.string.ui2_strategy_threshold)) }
+                            )
+                            FilterChip(
+                                selected = useRankN,
+                                onClick = { useRankN = true },
+                                label = { Text(stringResource(R.string.ui2_strategy_rankn)) }
+                            )
+                        }
+                        if (useRankN) {
+                            OutlinedTextField(
+                                value = chargeSlots, onValueChange = { chargeSlots = it },
+                                label = { Text(stringResource(R.string.ui2_strategy_charge_slots)) },
+                                singleLine = true
+                            )
+                            OutlinedTextField(
+                                value = dischargeSlots, onValueChange = { dischargeSlots = it },
+                                label = { Text(stringResource(R.string.ui2_strategy_discharge_slots)) },
+                                singleLine = true
+                            )
+                        } else {
+                            OutlinedTextField(
+                                value = chargeBelow, onValueChange = { chargeBelow = it },
+                                label = { Text(stringResource(R.string.ui2_strategy_charge_below)) },
+                                singleLine = true
+                            )
+                            OutlinedTextField(
+                                value = dischargeAbove, onValueChange = { dischargeAbove = it },
+                                label = { Text(stringResource(R.string.ui2_strategy_discharge_above)) },
+                                singleLine = true
+                            )
+                        }
+                        OutlinedTextField(
+                            value = minSpread, onValueChange = { minSpread = it },
+                            label = { Text(stringResource(R.string.ui2_strategy_min_spread)) },
+                            singleLine = true
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(
+                enabled = ready,
+                onClick = {
+                    val strategy: DispatchStrategy = if (useRankN) {
+                        RankNStrategy(chargeSlots.toInt(), dischargeSlots.toInt(),
+                            minSpread.toDouble())
+                    } else {
+                        ThresholdStrategy(chargeBelow.toDouble(), dischargeAbove.toDouble(),
+                            minSpread.toDouble())
+                    }
+                    busy = true
+                    viewModel.generateStrategyScenario(
+                        scenarioId, selectedPlan!!.id, strategy
+                    ) { result ->
+                        val message = when (result) {
+                            is StrategyScenarioGenerator.Result.Generated ->
+                                context.getString(R.string.ui2_strategy_generated,
+                                    result.scenarioName, result.chargeRows, result.dischargeRows)
+                            is StrategyScenarioGenerator.Result.Failed ->
+                                context.getString(R.string.ui2_strategy_failed, result.reason)
+                        }
+                        Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                        onDismiss()
+                    }
+                }
+            ) { Text(stringResource(R.string.ui2_strategy_generate)) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !busy) {
+                Text(stringResource(R.string.dialog_cancel))
+            }
+        }
+    )
 }
 
 @Composable

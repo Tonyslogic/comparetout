@@ -5,9 +5,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asFlow
 import androidx.lifecycle.viewModelScope
 import com.tfcode.comparetout.ComparisonUIViewModel
+import com.tfcode.comparetout.dynamic.strategy.DispatchStrategy
 import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.model.importers.InverterDateRange
 import com.tfcode.comparetout.model.json.JsonTools
+import com.tfcode.comparetout.model.priceplan.DayRate
 import com.tfcode.comparetout.model.scenario.Scenario
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -23,7 +25,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class UI2SimulationsViewModel @Inject constructor(
-    private val repository: ToutcRepository
+    private val repository: ToutcRepository,
+    private val strategyGenerator: StrategyScenarioGenerator
 ) : ViewModel() {
 
     sealed class SimListItem {
@@ -164,5 +167,45 @@ class UI2SimulationsViewModel @Inject constructor(
         val pick = all.filter { it.scenario.scenarioIndex == scenarioId }
         if (pick.isEmpty()) return@withContext null
         JsonTools.createScenarioList(pick)
+    }
+
+    // ── strategy scenario generation (dynamic tariffs, Phase 5) ──
+
+    data class DynamicPlanOption(val id: Long, val label: String, val year: Int?)
+
+    /**
+     * Dynamic plans that have materialised prices — the only plans a dispatch
+     * strategy can be run against (a pending terms-only plan has nothing to
+     * rank or threshold yet).
+     */
+    suspend fun materialisedDynamicPlans(): List<DynamicPlanOption> = withContext(Dispatchers.IO) {
+        repository.allPricePlansNow.orEmpty()
+            .filter { it.isDynamic }
+            .mapNotNull { plan ->
+                val rates = repository.getAllDayRatesForPricePlanID(plan.pricePlanIndex)
+                if (DayRate.buyRates(rates).isEmpty()) null
+                else DynamicPlanOption(
+                    plan.pricePlanIndex,
+                    "${plan.supplier}: ${plan.planName}",
+                    plan.dynamicTerms?.year
+                )
+            }
+    }
+
+    /**
+     * Generate (or regenerate — the name clobbers) the strategy scenario for
+     * [scenarioId] against [planId]. Sim + costing follow automatically via
+     * the insert seam, so the result lands in Compare on its own.
+     */
+    fun generateStrategyScenario(
+        scenarioId: Long,
+        planId: Long,
+        strategy: DispatchStrategy,
+        onResult: (StrategyScenarioGenerator.Result) -> Unit
+    ) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val result = strategyGenerator.generateBlocking(scenarioId, planId, strategy)
+            withContext(Dispatchers.Main) { onResult(result) }
+        }
     }
 }
