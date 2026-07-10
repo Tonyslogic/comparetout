@@ -2,11 +2,13 @@ package com.tfcode.comparetout.ui2
 
 import android.app.Application
 import android.util.Log
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asFlow
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import com.tfcode.comparetout.ComparisonUIViewModel
+import com.tfcode.comparetout.R
 import com.tfcode.comparetout.TOUTCApplication
 import com.tfcode.comparetout.region.RegionProfiles
 import com.tfcode.comparetout.model.ToutcRepository
@@ -43,13 +45,13 @@ private const val NOVICE_MODE_KEY = "wizard_novice_mode"   // shared app-wide no
  * from the chosen timeframe span at compute time. The legacy "always 12 months"
  * behaviour corresponds to MONTH.
  */
-enum class CompareAxisScale(val short: String, val label: String) {
-    AUTO("Auto",  "Auto"),
-    HOUR("Hr",    "Hour"),
-    DAY("Day",    "Day"),
-    DOW("DoW",    "Day of week"),
-    MONTH("Mo",   "Month"),
-    YEAR("Yr",    "Year");
+enum class CompareAxisScale(@StringRes val shortRes: Int, @StringRes val labelRes: Int) {
+    AUTO(R.string.ui2_axis_auto, R.string.ui2_axis_auto),
+    HOUR(R.string.ui2_axis_hr,   R.string.ui2_wiz_hour),
+    DAY(R.string.ui2_cmp_day,    R.string.ui2_cmp_day),
+    DOW(R.string.ui2_axis_dow,   R.string.ui2_axis_day_of_week),
+    MONTH(R.string.ui2_axis_mo,  R.string.ui2_cmp_month),
+    YEAR(R.string.ui2_axis_yr,   R.string.ui2_cmp_year);
 
     companion object {
         /** Concrete scales (excludes AUTO) — for the picker chip row. */
@@ -77,9 +79,9 @@ enum class CompareAxisScale(val short: String, val label: String) {
 
 enum class CompareWhat { COST, USAGE, BOTH }
 
-enum class CompareMode(val label: String) {
-    TABLE("Table"), BAR("Bar"), STACK("Stacked"),
-    LINE("Line"), AREA("Area"), PIE("Pie")
+enum class CompareMode(@StringRes val labelRes: Int) {
+    TABLE(R.string.ui2_chart_table), BAR(R.string.ui2_chart_bar), STACK(R.string.ui2_chart_stacked),
+    LINE(R.string.ui2_chart_line), AREA(R.string.ui2_chart_area), PIE(R.string.ui2_chart_pie)
 }
 
 enum class CompareLayout { MERGED, SPLIT }
@@ -246,23 +248,28 @@ class UI2CompareViewModel @Inject constructor(
 ) : ViewModel() {
 
     companion object {
+        // Series catalogues: stable id (persisted in CompareState.series and used
+        // as JSON-export keys — never translate) → display-label resource id.
         val COST_SERIES = listOf(
-            "net" to "Net", "buy" to "Buy", "sell" to "Sell",
-            "bonus" to "Bonus", "fixed" to "Fixed"
+            "net" to R.string.ui2_cmp_ser_net, "buy" to R.string.ui2_cmp_ser_buy,
+            "sell" to R.string.ui2_cmp_ser_sell,
+            "bonus" to R.string.ui2_cmp_ser_bonus, "fixed" to R.string.ui2_cmp_ser_fixed
         )
         val USAGE_SERIES = listOf(
-            "load" to "Load", "buy" to "Buy", "feed" to "Feed", "pv" to "PV",
-            "pv2load" to "PV → Load", "bat2load" to "Battery → Load",
-            "grid2bat" to "Grid → Battery",
+            "load" to R.string.ui2_graphs_load, "buy" to R.string.ui2_cmp_ser_buy,
+            "feed" to R.string.ui2_cmp_ser_feed, "pv" to R.string.ui2_cmp_ser_pv,
+            "pv2load" to R.string.ui2_cmp_ser_pv2load, "bat2load" to R.string.ui2_cmp_ser_bat2load,
+            "grid2bat" to R.string.ui2_cmp_ser_grid2bat,
             // Simulation-only flows (legacy graph filters). All summable kWh from
             // IntervalRow; greyed for importer sources via capability declaration.
-            "charge" to "Charging", "discharge" to "Discharging",
-            "evSchedule" to "EV Schedule", "evDivert" to "EV Divert",
-            "hwSchedule" to "HW Schedule", "hwDivert" to "HW Divert",
-            "heatPump" to "HP Load", "heatPumpBackup" to "HP Backup",
-            "heatPumpHeat" to "HP Heat",
+            "charge" to R.string.ui2_cmp_ser_charging, "discharge" to R.string.ui2_cmp_ser_discharging,
+            "evSchedule" to R.string.ui2_cmp_ser_ev_schedule, "evDivert" to R.string.ui2_series_ev_divert,
+            "hwSchedule" to R.string.ui2_cmp_ser_hw_schedule, "hwDivert" to R.string.ui2_series_hw_divert,
+            "heatPump" to R.string.ui2_series_hp_load, "heatPumpBackup" to R.string.ui2_series_hp_backup,
+            "heatPumpHeat" to R.string.ui2_series_hp_heat,
             // Measured device slices (AlphaESS EV charger; HA classified devices).
-            "evActual" to "EV Actual", "hwActual" to "HW Actual", "hpActual" to "HP Actual"
+            "evActual" to R.string.ui2_series_ev_actual, "hwActual" to R.string.ui2_series_hw_actual,
+            "hpActual" to R.string.ui2_series_hp_actual
         )
         // Basic vs Advanced split for the Display filter (see UI). Cost columns
         // net/buy/sell are basic; bonus/fixed advanced. Energy load/buy/feed/pv
@@ -280,10 +287,10 @@ class UI2CompareViewModel @Inject constructor(
         // All energy-flow ids — the union used as the "everything available"
         // default before any subject is selected.
         val ALL_ENERGY_IDS = USAGE_SERIES.map { it.first }.toSet()
-        val MONTH_LABELS = listOf(
-            "Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"
-        )
     }
+
+    // Chart-axis calendar names — from the shared localized arrays.
+    private val MONTH_LABELS = application.resources.getStringArray(R.array.ui2_months_short).toList()
 
     private val dateFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd")
     private val rowFmt  = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
@@ -1055,7 +1062,7 @@ class UI2CompareViewModel @Inject constructor(
         val indexOf: (LocalDateTime) -> Int
     )
 
-    private val DOWLABELS = listOf("Sun","Mon","Tue","Wed","Thu","Fri","Sat")
+    private val DOWLABELS = application.resources.getStringArray(R.array.ui2_days_short_sun_first).toList()
 
     private fun costBucketAxis(
         scale: CompareAxisScale, from: LocalDate, to: LocalDate
@@ -1251,10 +1258,12 @@ class UI2CompareViewModel @Inject constructor(
     // never blank.
     private fun selectedUsageSeries(): List<Pair<String, String>> =
         USAGE_SERIES.filter { it.first in _state.value.series }.ifEmpty { USAGE_SERIES }
+            .map { it.first to application.getString(it.second) }
 
     private fun selectedCostSeries(): List<Pair<String, String>> {
         val sel = _state.value.series.map { it.removePrefix("c_") }.toSet()
         return COST_SERIES.filter { it.first in sel }.ifEmpty { COST_SERIES }
+            .map { it.first to application.getString(it.second) }
     }
 
     private fun usageMetric(r: CompareUsageRow, id: String): Double = when (id) {

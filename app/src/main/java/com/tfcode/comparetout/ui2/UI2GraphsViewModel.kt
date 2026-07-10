@@ -1,9 +1,11 @@
 package com.tfcode.comparetout.ui2
 
 import android.util.Log
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.tfcode.comparetout.ComparisonUIViewModel
+import com.tfcode.comparetout.R
 import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.model.importers.IntervalRow
 import com.tfcode.comparetout.model.scenario.ScenarioBarChartData
@@ -26,42 +28,48 @@ class UI2GraphsViewModel @Inject constructor(
     private val repository: ToutcRepository
 ) : ViewModel() {
 
-    enum class DisplayScale(val label: String, val fullLabel: String) {
-        HOUR("Hr", "Hour"),
-        DOY("Day", "Day"),
-        WEEK("Wk", "Week"),
-        MNTH("Mo", "Month"),
-        YEAR("Yr", "Year")
+    enum class DisplayScale(@StringRes val fullLabelRes: Int) {
+        HOUR(R.string.ui2_wiz_hour),
+        DOY(R.string.ui2_cmp_day),
+        WEEK(R.string.ui2_week),
+        MNTH(R.string.ui2_cmp_month),
+        YEAR(R.string.ui2_cmp_year)
     }
 
-    enum class StepSize(val label: String, val fullLabel: String) {
-        DAY("D", "Day"),
-        WEEK("W", "Week"),
-        MONTH("M", "Month"),
-        YEAR("Y", "Year")
+    enum class StepSize(@StringRes val fullLabelRes: Int) {
+        DAY(R.string.ui2_cmp_day),
+        WEEK(R.string.ui2_week),
+        MONTH(R.string.ui2_cmp_month),
+        YEAR(R.string.ui2_cmp_year)
     }
 
-    enum class Calculation(val label: String) {
-        SUM("Sum"), AVG("Avg")
+    enum class Calculation(@StringRes val labelRes: Int) {
+        SUM(R.string.ui2_graphs_calc_sum), AVG(R.string.ui2_dash_avg)
     }
 
-    enum class GraphType(val label: String) {
-        BAR("Bar"), LINE("Line"), AREA("Area"), PIE("Pie"), TABLE("Table"), SANKEY("Sankey")
+    enum class GraphType(@StringRes val labelRes: Int) {
+        BAR(R.string.ui2_chart_bar), LINE(R.string.ui2_chart_line), AREA(R.string.ui2_chart_area),
+        PIE(R.string.ui2_chart_pie), TABLE(R.string.ui2_chart_table), SANKEY(R.string.ui2_chart_sankey)
     }
 
-    enum class FilterSeries(val displayName: String) {
-        LOAD("Load"), FEED("Export"), BUY("Import"), PV("Solar"),
-        PV2BAT("PV→Bat"), PV2LOAD("PV→Load"), BAT2LOAD("Bat→Load"), GRID2BAT("Grid→Bat"),
-        EV_SCHEDULE("EV Sched"), EV_DIVERT("EV Divert"),
+    enum class FilterSeries(@StringRes val labelRes: Int) {
+        LOAD(R.string.ui2_graphs_load), FEED(R.string.ui2_graphs_export),
+        BUY(R.string.ui2_series_import), PV(R.string.ui2_graphs_solar),
+        PV2BAT(R.string.ui2_series_pv2bat), PV2LOAD(R.string.ui2_series_pv2load),
+        BAT2LOAD(R.string.ui2_series_bat2load), GRID2BAT(R.string.ui2_series_grid2bat),
+        EV_SCHEDULE(R.string.ui2_series_ev_sched), EV_DIVERT(R.string.ui2_series_ev_divert),
         // Measured device draws (zero on simulation rows): EV_ACTUAL from the
         // AlphaESS v2 transform or an HA-classified EV charger; HW/HP_ACTUAL from
         // HA-classified hot-water / heat-pump devices (v14 columns).
-        EV_ACTUAL("EV Actual"),
-        HW_ACTUAL("HW Actual"), HP_ACTUAL("HP Actual"),
-        HW_SCHEDULE("HW Sched"), HW_DIVERT("HW Divert"),
-        BAT2GRID("Bat→Grid"), BAT_CHARGE("Bat Chg"), BAT_DISCHARGE("Bat Dis"),
-        HEAT_PUMP("HP Load"), HEAT_PUMP_BACKUP("HP Backup"), HEAT_PUMP_HEAT("HP Heat"),
-        HEAT_PUMP_COP("HP COP"), HEAT_PUMP_TEMP("Outdoor °C"), HEAT_PUMP_WIND("Wind m/s")
+        EV_ACTUAL(R.string.ui2_series_ev_actual),
+        HW_ACTUAL(R.string.ui2_series_hw_actual), HP_ACTUAL(R.string.ui2_series_hp_actual),
+        HW_SCHEDULE(R.string.ui2_series_hw_sched), HW_DIVERT(R.string.ui2_series_hw_divert),
+        BAT2GRID(R.string.ui2_series_bat2grid), BAT_CHARGE(R.string.ui2_series_bat_chg),
+        BAT_DISCHARGE(R.string.ui2_series_bat_dis),
+        HEAT_PUMP(R.string.ui2_series_hp_load), HEAT_PUMP_BACKUP(R.string.ui2_series_hp_backup),
+        HEAT_PUMP_HEAT(R.string.ui2_series_hp_heat),
+        HEAT_PUMP_COP(R.string.ui2_graphs_hp_cop), HEAT_PUMP_TEMP(R.string.ui2_graphs_outdoor_temp),
+        HEAT_PUMP_WIND(R.string.ui2_graphs_wind_ms)
     }
 
     data class GraphState(

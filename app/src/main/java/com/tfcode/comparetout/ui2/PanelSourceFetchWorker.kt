@@ -81,7 +81,8 @@ class PanelSourceFetchWorker(
         val builder = baseNotification(panelLabel)
 
         try {
-            updateProgress(mgr, builder, notificationId, "Reading source data…", 5)
+            updateProgress(mgr, builder, notificationId,
+                applicationContext.getString(R.string.ui2_psf_reading), 5)
             var samples = repo.getAlphaESSTransformedData(sysSn, from, to)
                 .map { SolarConversionUtils.PvSample(it.date, it.minute, it.pv) }
             Log.i(TAG, "Fetched ${samples.size} rows from source")
@@ -89,11 +90,13 @@ class PanelSourceFetchWorker(
             if (samples.isEmpty()) {
                 Log.w(TAG, "No rows found — aborting")
                 completeNotification(mgr, builder, notificationId,
-                    "No data found for source ${friendlyRange(from, to)}", success = false)
+                    applicationContext.getString(R.string.ui2_psf_no_data, friendlyRange(from, to)),
+                    success = false)
                 return Result.success()
             }
 
-            updateProgress(mgr, builder, notificationId, "Scaling kWp…", 25)
+            updateProgress(mgr, builder, notificationId,
+                applicationContext.getString(R.string.ui2_psf_scaling), 25)
             if (sourceKwp > 0.0 && targetKwp > 0.0
                 && kotlin.math.abs(sourceKwp - targetKwp) > 1e-6) {
                 samples = SolarConversionUtils.scaleByKwp(samples, sourceKwp, targetKwp)
@@ -102,7 +105,8 @@ class PanelSourceFetchWorker(
             if (useAzimuthFactor && sourceAz in 0.0..360.0 && targetAz in 0.0..360.0
                 && kotlin.math.abs(sourceAz - targetAz) > 0.5) {
                 updateProgress(mgr, builder, notificationId,
-                    "Re-orienting ${sourceAz.toInt()}° → ${targetAz.toInt()}°…", 40)
+                    applicationContext.getString(R.string.ui2_psf_reorienting,
+                        sourceAz.toInt(), targetAz.toInt()), 40)
                 samples = SolarConversionUtils.convertAzimuth(
                     rows = samples,
                     lat = lat, lon = lon, tiltDeg = tilt,
@@ -110,7 +114,8 @@ class PanelSourceFetchWorker(
                 )
             }
 
-            updateProgress(mgr, builder, notificationId, "Writing panel data…", 80)
+            updateProgress(mgr, builder, notificationId,
+                applicationContext.getString(R.string.ui2_psf_writing), 80)
             val out = ArrayList<PanelData>(samples.size)
             val dateFmt = DateTimeFormatter.ofPattern("yyyy-MM-dd")
             samples.filter { it.pv > 0 }.forEach { row ->
@@ -139,7 +144,8 @@ class PanelSourceFetchWorker(
 
             val totalKwh = out.sumOf { it.pv }
             completeNotification(mgr, builder, notificationId,
-                "Done · ${"%.0f".format(totalKwh)} kWh saved", success = true)
+                applicationContext.getString(R.string.ui2_psf_done, "%.0f".format(totalKwh)),
+                success = true)
             // Source PV data has landed — kick the recompute so a scenario the sim skipped for missing panel
             // data now runs (mirrors HeatPumpWeatherFetchWorker). simulateIfNeeded is missing-only +
             // panel-data-gated, so it's a no-op when the scenario isn't ready or is already simulated.
@@ -148,7 +154,9 @@ class PanelSourceFetchWorker(
         } catch (e: Exception) {
             Log.e(TAG, "Worker failed", e)
             completeNotification(mgr, builder, notificationId,
-                "Failed: ${e.message ?: "unknown error"}", success = false)
+                applicationContext.getString(R.string.ui2_psf_failed,
+                    e.message ?: applicationContext.getString(R.string.ui2_unknown_error)),
+                success = false)
             return Result.retry()
         }
     }

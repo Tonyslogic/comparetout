@@ -636,7 +636,7 @@ private fun ImportExportScreen(
                 // null the community source never renders, so "" is never seen.
                 communityNote = RegionProfiles.current.pricePlanFeedNote ?: "",
                 llmPrompt = PricePlanDownloader.LLM_PROMPT,
-                parse = ::parsePricePlansJson,
+                parse = { parsePricePlansJson(context, it) },
                 onApply = {
                     pendingImport = PendingImport.Plans(it)
                     importTarget = null
@@ -647,7 +647,7 @@ private fun ImportExportScreen(
                 title = stringResource(R.string.ui2_ie_import_scenarios),
                 hint = stringResource(R.string.ui2_ie_import_hint_scenarios),
                 applyLabel = stringResource(R.string.ui2_continue),
-                parse = ::parseScenariosJson,
+                parse = { parseScenariosJson(context, it) },
                 onApply = {
                     pendingImport = PendingImport.Scenarios(it)
                     importTarget = null
@@ -1138,7 +1138,7 @@ private enum class ImportTarget { PLANS, SCENARIOS }
 // the legacy MainActivity importers do, but extracted out of the file-pick
 // callback so the parser can run on a pasted text buffer.
 
-internal fun parsePricePlansJson(text: String): ParsedPreview<List<PricePlanJsonFile>> = try {
+internal fun parsePricePlansJson(context: android.content.Context, text: String): ParsedPreview<List<PricePlanJsonFile>> = try {
     val gson = Gson()
     val trimmed = text.trimStart()
     // Gson returns null for an empty or "null" payload — guard before .filter.
@@ -1150,21 +1150,23 @@ internal fun parsePricePlansJson(text: String): ParsedPreview<List<PricePlanJson
     }
     val list = raw ?: emptyList()
     val valid = list.filter { !it.plan.isNullOrBlank() }
-    if (valid.isEmpty()) ParsedPreview.Err("No supplier plans found in the JSON.")
+    if (valid.isEmpty()) ParsedPreview.Err(context.getString(R.string.ui2_parse_no_plans))
     else ParsedPreview.Ok(
         valid,
         when (valid.size) {
-            1 -> "Parsed 1 supplier plan: ${valid.first().supplier ?: "?"} · ${valid.first().plan}"
-            else -> "Parsed ${valid.size} supplier plans"
+            1 -> context.getString(R.string.ui2_parse_one_plan,
+                valid.first().supplier ?: "?", valid.first().plan)
+            else -> context.resources.getQuantityString(
+                R.plurals.ui2_parse_n_plans, valid.size, valid.size)
         }
     )
 } catch (e: JsonSyntaxException) {
-    ParsedPreview.Err(e.message ?: "Malformed JSON")
+    ParsedPreview.Err(e.message ?: context.getString(R.string.ui2_parse_malformed))
 } catch (e: Throwable) {
-    ParsedPreview.Err(e.message ?: "Parse failed")
+    ParsedPreview.Err(e.message ?: context.getString(R.string.ui2_parse_failed))
 }
 
-private fun parseScenariosJson(text: String): ParsedPreview<List<ScenarioJsonFile>> = try {
+private fun parseScenariosJson(context: android.content.Context, text: String): ParsedPreview<List<ScenarioJsonFile>> = try {
     val gson = Gson()
     val trimmed = text.trimStart()
     val raw: List<ScenarioJsonFile>? = if (trimmed.startsWith("[")) {
@@ -1175,7 +1177,7 @@ private fun parseScenariosJson(text: String): ParsedPreview<List<ScenarioJsonFil
     }
     val list = raw ?: emptyList()
     val valid = list.filter { !it.name.isNullOrBlank() }
-    if (valid.isEmpty()) ParsedPreview.Err("No scenarios found in the JSON.")
+    if (valid.isEmpty()) ParsedPreview.Err(context.getString(R.string.ui2_parse_no_scenarios))
     else ParsedPreview.Ok(
         valid,
         when (valid.size) {
@@ -1184,15 +1186,17 @@ private fun parseScenariosJson(text: String): ParsedPreview<List<ScenarioJsonFil
                 val invCount = s.inverters?.size ?: 0
                 val panelCount = s.panels?.size ?: 0
                 val battCount = s.batteries?.size ?: 0
-                "Parsed scenario \"${s.name}\" · $invCount inverters · $panelCount panels · $battCount batteries"
+                context.getString(R.string.ui2_parse_one_scenario,
+                    s.name, invCount, panelCount, battCount)
             }
-            else -> "Parsed ${valid.size} scenarios"
+            else -> context.resources.getQuantityString(
+                R.plurals.ui2_parse_n_scenarios, valid.size, valid.size)
         }
     )
 } catch (e: JsonSyntaxException) {
-    ParsedPreview.Err(e.message ?: "Malformed JSON")
+    ParsedPreview.Err(e.message ?: context.getString(R.string.ui2_parse_malformed))
 } catch (e: Throwable) {
-    ParsedPreview.Err(e.message ?: "Parse failed")
+    ParsedPreview.Err(e.message ?: context.getString(R.string.ui2_parse_failed))
 }
 
 // ── Card UI ────────────────────────────────────────────────────────────────

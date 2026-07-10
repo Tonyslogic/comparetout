@@ -14,9 +14,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.tfcode.comparetout.R
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -117,12 +119,13 @@ private fun spanLabel(from: LocalDate, to: LocalDate): String {
 }
 
 /** Long label used by the Tier-C dropdown trigger / menu items. */
-private fun periodLongLabel(p: DataSourcePeriod): String = when (p) {
-    DataSourcePeriod.YESTERDAY -> "Day"
-    DataSourcePeriod.MONTH     -> "Month"
-    DataSourcePeriod.YEAR      -> "Year"
-    DataSourcePeriod.ALL       -> "All time"
-}
+@Composable
+private fun periodLongLabels(): Map<DataSourcePeriod, String> = mapOf(
+    DataSourcePeriod.YESTERDAY to stringResource(R.string.ui2_cmp_day),
+    DataSourcePeriod.MONTH     to stringResource(R.string.ui2_cmp_month),
+    DataSourcePeriod.YEAR      to stringResource(R.string.ui2_cmp_year),
+    DataSourcePeriod.ALL       to stringResource(R.string.ui2_cmp_all_time)
+)
 
 /**
  * The "D / M / Y / *  < >" period selector.
@@ -164,11 +167,14 @@ fun PeriodSelector(
     val atStart = showNav && anchorDate <= startDate
     val atEnd   = showNav && anchorDate >= endDate
 
+    // Both label callbacks run outside composition — resolve the resources here.
+    val shortLabels = DataSourcePeriod.entries.associateWith { stringResource(it.labelRes) }
+    val longLabels = periodLongLabels()
     AdaptivePeriodControl(
         segments = DataSourcePeriod.values().toList(),
         selected = selectedPeriod,
-        labelFor = { it.label },
-        longLabelFor = ::periodLongLabel,
+        labelFor = { shortLabels.getValue(it) },
+        longLabelFor = { longLabels.getValue(it) },
         onSelect = { period ->
             if (period != selectedPeriod) {
                 val newAnchor = transitionAnchor(

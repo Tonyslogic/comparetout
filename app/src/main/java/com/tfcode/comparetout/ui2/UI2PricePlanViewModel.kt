@@ -1,11 +1,13 @@
 package com.tfcode.comparetout.ui2
 
 import android.app.Application
+import androidx.annotation.StringRes
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
+import com.tfcode.comparetout.R
 import com.tfcode.comparetout.model.IntHolder
 import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.model.json.JsonTools
@@ -61,11 +63,12 @@ data class DayRateBuilder(
     }
 }
 
-/** Validation outcome for one day-rate. Gaps are uncovered (begin, end] minute ranges. */
+/** Validation outcome for one day-rate. Gaps are uncovered (begin, end] minute ranges.
+ *  [dateRangeInvalid] is a string resource id — the composable display site resolves it. */
 data class DayRateIssues(
     val gaps: List<IntRange> = emptyList(),
     val overlaps: List<IntRange> = emptyList(),
-    val dateRangeInvalid: String? = null
+    @StringRes val dateRangeInvalid: Int? = null
 ) {
     val isClean: Boolean get() = gaps.isEmpty() && overlaps.isEmpty() && dateRangeInvalid == null
 }
@@ -399,12 +402,12 @@ fun validate(b: PricePlanBuilder): PlanIssues {
 
 fun validateDayRate(dr: DayRateBuilder): DayRateIssues {
     val dateInvalid = when {
-        !dr.startDate.matches(Regex("\\d{1,2}/\\d{1,2}")) -> "Start date must be MM/DD"
-        !dr.endDate.matches(Regex("\\d{1,2}/\\d{1,2}"))   -> "End date must be MM/DD"
+        !dr.startDate.matches(Regex("\\d{1,2}/\\d{1,2}")) -> R.string.ui2_ppw_err_start_mmdd
+        !dr.endDate.matches(Regex("\\d{1,2}/\\d{1,2}"))   -> R.string.ui2_ppw_err_end_mmdd
         else -> {
             val parsed = parseDateRange(dr.startDate, dr.endDate)
-            if (parsed == null) "Invalid date" else if (parsed.second < parsed.first)
-                "End date must come after start date" else null
+            if (parsed == null) R.string.ui2_ppw_err_invalid_date else if (parsed.second < parsed.first)
+                R.string.ui2_ppw_err_end_before_start else null
         }
     }
     // Coverage check over [0, 1440) — overlaps and gaps both matter.

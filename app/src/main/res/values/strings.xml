@@ -333,7 +333,10 @@
     <string name="dialog_ok">OK</string>
     <string name="dialog_cancel">Cancel</string>
     <string name="remove_comparison">Remove comparison</string>
-    <string name="app_name">Eco Power Optimiser</string>
+    <!-- Launcher label. Product name is a brand — not translated. Debug builds
+         override this per region (src/ieDebug, src/gbDebug) so the side-by-side
+         .test install is distinguishable from the store app. -->
+    <string name="app_name" translatable="false">Eco Power Optimiser</string>
 
     <!-- ══════════════════════════════════════════════════════════════════
          UI2 string extraction (region survey Phase 3, plans/region/).
@@ -1683,4 +1686,149 @@
     <string name="ui2_wiz_imp_ev_hint">Replaces EV charge schedules and diverts. Accepts an EV slice or a whole scenario JSON.</string>
     <string name="ui2_wiz_imp_hp_title">Import heat pump</string>
     <string name="ui2_wiz_imp_hp_hint">Replaces the heat pump. Accepts a heat-pump JSON array or a whole scenario JSON.</string>
+
+    <!-- Final pass: ParsedPreview parser messages -->
+    <string name="ui2_parse_malformed">Malformed JSON</string>
+    <string name="ui2_parse_failed">Parse failed</string>
+    <string name="ui2_parse_no_plans">No supplier plans found in the JSON.</string>
+    <string name="ui2_parse_one_plan">Parsed 1 supplier plan: %1$s · %2$s</string>
+    <plurals name="ui2_parse_n_plans">
+        <item quantity="one">Parsed %1$d supplier plan</item>
+        <item quantity="other">Parsed %1$d supplier plans</item>
+    </plurals>
+    <string name="ui2_parse_no_scenarios">No scenarios found in the JSON.</string>
+    <string name="ui2_parse_one_scenario">Parsed scenario \"%1$s\" · %2$d inverters · %3$d panels · %4$d batteries</string>
+    <plurals name="ui2_parse_n_scenarios">
+        <item quantity="one">Parsed %1$d scenario</item>
+        <item quantity="other">Parsed %1$d scenarios</item>
+    </plurals>
+    <string name="ui2_ppw_parse_one_plan">Parsed 1 plan: %1$s · %2$s</string>
+    <string name="ui2_ppw_parse_n_plans">Parsed %1$d supplier plans — pick one to load</string>
+    <string name="ui2_wiz_parse_no_load">Couldn\'t find a load profile in the JSON.</string>
+    <string name="ui2_wiz_parse_load_ok">Parsed load profile · %1$s kWh/yr · base %2$s</string>
+    <string name="ui2_wiz_parse_no_inverters">No inverters found in the JSON.</string>
+    <plurals name="ui2_wiz_parse_n_inverters">
+        <item quantity="one">Parsed %1$d inverter</item>
+        <item quantity="other">Parsed %1$d inverters</item>
+    </plurals>
+    <string name="ui2_wiz_parse_no_panels">No PV panel strings found in the JSON.</string>
+    <plurals name="ui2_wiz_parse_n_panels">
+        <item quantity="one">Parsed %1$d panel string</item>
+        <item quantity="other">Parsed %1$d panel strings</item>
+    </plurals>
+    <string name="ui2_wiz_parse_no_hp">No heat pump found in the JSON.</string>
+    <string name="ui2_wiz_parse_hp_ok">Parsed heat pump · %1$s</string>
+    <string name="ui2_wiz_parse_no_battery">No battery setup found in the JSON. Expected a scenario JSON or an object with \"Batteries\"/\"LoadShift\"/\"DischargeToGrid\".</string>
+    <plurals name="ui2_wiz_parse_batt_ok">
+        <item quantity="one">Parsed %1$d battery · %2$d charge · %3$d discharge schedules</item>
+        <item quantity="other">Parsed %1$d batteries · %2$d charge · %3$d discharge schedules</item>
+    </plurals>
+    <string name="ui2_wiz_parse_no_hw">No hot-water setup found in the JSON. Expected a scenario JSON or an object with \"HWSystem\"/\"HWSchedule\"/\"HWDivert\".</string>
+    <plurals name="ui2_wiz_parse_hw_sys">
+        <item quantity="one">Parsed hot-water system · %1$d schedule</item>
+        <item quantity="other">Parsed hot-water system · %1$d schedules</item>
+    </plurals>
+    <plurals name="ui2_wiz_parse_hw_only">
+        <item quantity="one">Parsed %1$d schedule</item>
+        <item quantity="other">Parsed %1$d schedules</item>
+    </plurals>
+    <string name="ui2_wiz_parse_divert_active">" · divert active"</string>
+    <string name="ui2_wiz_parse_no_ev">No EV setup found in the JSON. Expected a scenario JSON or an object with \"EVCharge\"/\"EVDivert\"/\"EVDiverts\".</string>
+    <plurals name="ui2_wiz_parse_ev_charges">
+        <item quantity="one">Parsed %1$d EV schedule</item>
+        <item quantity="other">Parsed %1$d EV schedules</item>
+    </plurals>
+    <plurals name="ui2_wiz_parse_ev_diverts">
+        <item quantity="one">%1$d divert</item>
+        <item quantity="other">%1$d diverts</item>
+    </plurals>
+    <string name="ui2_wiz_parse_one_scenario">Parsed \"%1$s\" · %2$d inverters · %3$d panels · %4$d batteries</string>
+    <string name="ui2_wiz_parse_n_scenarios">Parsed %1$d scenarios — you\'ll pick one to load</string>
+
+    <!-- Final pass: enum display labels (Graphs) -->
+    <string name="ui2_week">Week</string>
+    <string name="ui2_graphs_calc_sum">Sum</string>
+    <string name="ui2_chart_bar">Bar</string>
+    <string name="ui2_chart_line">Line</string>
+    <string name="ui2_chart_area">Area</string>
+    <string name="ui2_chart_pie">Pie</string>
+    <string name="ui2_chart_table">Table</string>
+    <string name="ui2_chart_sankey">Sankey</string>
+    <string name="ui2_chart_stacked">Stacked</string>
+    <string name="ui2_series_import">Import</string>
+    <string name="ui2_series_pv2bat">PV→Bat</string>
+    <string name="ui2_series_pv2load">PV→Load</string>
+    <string name="ui2_series_bat2load">Bat→Load</string>
+    <string name="ui2_series_grid2bat">Grid→Bat</string>
+    <string name="ui2_series_ev_sched">EV Sched</string>
+    <string name="ui2_series_ev_divert">EV Divert</string>
+    <string name="ui2_series_ev_actual">EV Actual</string>
+    <string name="ui2_series_hw_actual">HW Actual</string>
+    <string name="ui2_series_hp_actual">HP Actual</string>
+    <string name="ui2_series_hw_sched">HW Sched</string>
+    <string name="ui2_series_hw_divert">HW Divert</string>
+    <string name="ui2_series_bat2grid">Bat→Grid</string>
+    <string name="ui2_series_bat_chg">Bat Chg</string>
+    <string name="ui2_series_bat_dis">Bat Dis</string>
+    <string name="ui2_series_hp_load">HP Load</string>
+    <string name="ui2_series_hp_backup">HP Backup</string>
+    <string name="ui2_series_hp_heat">HP Heat</string>
+
+    <!-- Final pass: enum display labels (Compare + period selector) -->
+    <string name="ui2_axis_auto">Auto</string>
+    <string name="ui2_axis_hr">Hr</string>
+    <string name="ui2_axis_dow">DoW</string>
+    <string name="ui2_axis_mo">Mo</string>
+    <string name="ui2_axis_yr">Yr</string>
+    <string name="ui2_axis_day_of_week">Day of week</string>
+    <string name="ui2_period_d">D</string>
+    <string name="ui2_period_m">M</string>
+    <string name="ui2_period_y">Y</string>
+    <string name="ui2_period_all">*</string>
+    <string name="ui2_cmp_ser_net">Net</string>
+    <string name="ui2_cmp_ser_buy">Buy</string>
+    <string name="ui2_cmp_ser_sell">Sell</string>
+    <string name="ui2_cmp_ser_bonus">Bonus</string>
+    <string name="ui2_cmp_ser_fixed">Fixed</string>
+    <string name="ui2_cmp_ser_feed">Feed</string>
+    <string name="ui2_cmp_ser_pv">PV</string>
+    <string name="ui2_cmp_ser_pv2load">PV → Load</string>
+    <string name="ui2_cmp_ser_bat2load">Battery → Load</string>
+    <string name="ui2_cmp_ser_grid2bat">Grid → Battery</string>
+    <string name="ui2_cmp_ser_charging">Charging</string>
+    <string name="ui2_cmp_ser_discharging">Discharging</string>
+    <string name="ui2_cmp_ser_ev_schedule">EV Schedule</string>
+    <string name="ui2_cmp_ser_hw_schedule">HW Schedule</string>
+
+    <!-- Final pass: PanelSourceFetchWorker notification texts -->
+    <string name="ui2_psf_reading">Reading source data…</string>
+    <string name="ui2_psf_no_data">No data found for source %1$s</string>
+    <string name="ui2_psf_scaling">Scaling kWp…</string>
+    <string name="ui2_psf_reorienting">Re-orienting %1$d° → %2$d°…</string>
+    <string name="ui2_psf_writing">Writing panel data…</string>
+    <string name="ui2_psf_done">Done · %1$s kWh saved</string>
+    <string name="ui2_psf_failed">Failed: %1$s</string>
+
+    <!-- Final pass: UI2SimpleFragment toasts (missed by tranche 2's UI2SimpleScreen pass) -->
+    <string name="ui2_simple_location_denied">Location is needed to estimate solar yield</string>
+    <string name="ui2_simple_location_fix_failed">Couldn\'t get a location fix — try again outdoors</string>
+    <string name="ui2_simple_calculate_first">Calculate first to create a scenario</string>
+
+    <!-- Final pass: Directors subject labels (group labels reuse component/dashboard keys) -->
+    <string name="ui2_director_subj_usage_profile">Usage profile</string>
+    <string name="ui2_director_subj_pv_string">PV string</string>
+    <string name="ui2_director_subj_battery_settings">Battery settings</string>
+    <string name="ui2_director_subj_battery_schedule">Battery schedule</string>
+    <string name="ui2_director_subj_hw_settings">Hot water settings</string>
+    <string name="ui2_director_subj_hw_schedule">Hot water schedule</string>
+    <string name="ui2_director_subj_ev_schedule">EV schedule</string>
+    <string name="ui2_director_subj_ev_divert">EV divert</string>
+
+    <!-- Final pass: ViewModel validation / save errors -->
+    <string name="ui2_ppw_err_start_mmdd">Start date must be MM/DD</string>
+    <string name="ui2_ppw_err_end_mmdd">End date must be MM/DD</string>
+    <string name="ui2_ppw_err_invalid_date">Invalid date</string>
+    <string name="ui2_ppw_err_end_before_start">End date must come after start date</string>
+    <string name="ui2_wiz_save_err_name_in_use">Scenario not saved — the name is already in use.</string>
+    <string name="ui2_wiz_save_err_generic">Couldn\'t save the scenario.</string>
 </resources>

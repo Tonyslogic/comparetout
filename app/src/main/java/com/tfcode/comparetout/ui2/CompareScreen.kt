@@ -586,7 +586,7 @@ private fun FilterSection(state: CompareState, vm: UI2CompareViewModel, novice: 
     val advanced by vm.filterAdvanced.collectAsState()
 
     @Composable
-    fun chips(defs: List<Pair<String, String>>, prefix: String, isEnergy: Boolean) {
+    fun chips(defs: List<Pair<String, Int>>, prefix: String, isEnergy: Boolean) {
         // Default FilterChip uses secondaryContainer for the selected fill, which
         // is too close to surface in many themes — selected vs unselected was hard
         // to tell apart. Lift selected to primaryContainer + a 1.5dp primary
@@ -597,7 +597,7 @@ private fun FilterSection(state: CompareState, vm: UI2CompareViewModel, novice: 
             selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer
         )
         FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            defs.forEach { (rawId, label) ->
+            defs.forEach { (rawId, labelRes) ->
                 val id = prefix + rawId
                 val on = state.series.contains(id)
                 // Cost columns aren't subject-gated. An energy series is available
@@ -611,7 +611,7 @@ private fun FilterSection(state: CompareState, vm: UI2CompareViewModel, novice: 
                     onClick = {
                         vm.update { it.copy(series = if (on) it.series - id else it.series + id) }
                     },
-                    label = { Text(label) },
+                    label = { Text(stringResource(labelRes)) },
                     leadingIcon = {
                         Box(Modifier.size(10.dp).background(seriesColor(rawId, primary, isEnergy), CircleShape))
                     },
@@ -784,10 +784,12 @@ private fun RangePicker(
             DataSourcePeriod.ALL       -> allTimeWord
         }
     }
+    // labelFor runs outside composition — resolve the short labels here.
+    val shortLabels = DataSourcePeriod.entries.associateWith { stringResource(it.labelRes) }
     AdaptivePeriodControl(
         segments = DataSourcePeriod.entries,
         selected = gran,
-        labelFor = { it.label },
+        labelFor = { shortLabels.getValue(it) },
         longLabelFor = longLabel,
         onSelect = { p -> onGran(if (gran == p) null else p) },
         dateSlot = {
@@ -893,7 +895,7 @@ private fun DisplaySection(state: CompareState, vm: UI2CompareViewModel, novice:
                         tint = if (active) MaterialTheme.colorScheme.primary
                                else MaterialTheme.colorScheme.onSurface)
                     Spacer(Modifier.width(6.dp))
-                    Text(mode.label, style = MaterialTheme.typography.bodySmall,
+                    Text(stringResource(mode.labelRes), style = MaterialTheme.typography.bodySmall,
                         maxLines = 1, overflow = TextOverflow.Ellipsis,
                         color = if (active) MaterialTheme.colorScheme.primary
                                 else MaterialTheme.colorScheme.onSurface)
@@ -920,7 +922,7 @@ private fun DisplaySection(state: CompareState, vm: UI2CompareViewModel, novice:
             ) {
                 Box(Modifier.fillMaxWidth().padding(vertical = 10.dp),
                     contentAlignment = Alignment.Center) {
-                    Icon(compareModeIcon(mode), contentDescription = mode.label,
+                    Icon(compareModeIcon(mode), contentDescription = stringResource(mode.labelRes),
                         modifier = Modifier.size(20.dp),
                         tint = if (active) MaterialTheme.colorScheme.primary
                                else MaterialTheme.colorScheme.onSurface)
@@ -994,7 +996,7 @@ private fun DisplaySection(state: CompareState, vm: UI2CompareViewModel, novice:
                 ) {
                     Box(Modifier.fillMaxWidth().padding(vertical = 10.dp),
                         contentAlignment = Alignment.Center) {
-                        Text(sc.short,
+                        Text(stringResource(sc.shortRes),
                             style = MaterialTheme.typography.bodySmall,
                             maxLines = 1,
                             color = if (active) MaterialTheme.colorScheme.primary
@@ -1012,11 +1014,11 @@ private fun DisplaySection(state: CompareState, vm: UI2CompareViewModel, novice:
                 state.displayScale == CompareAxisScale.AUTO ->
                 stringResource(R.string.ui2_cmp_help_line_auto)
             state.mode == CompareMode.LINE || state.mode == CompareMode.AREA ->
-                stringResource(R.string.ui2_cmp_help_line, state.displayScale.label.lowercase())
+                stringResource(R.string.ui2_cmp_help_line, stringResource(state.displayScale.labelRes).lowercase())
             state.mode == CompareMode.BAR && state.displayScale == CompareAxisScale.AUTO ->
                 stringResource(R.string.ui2_cmp_help_bar_auto)
             state.mode == CompareMode.BAR ->
-                stringResource(R.string.ui2_cmp_help_bar, state.displayScale.label.lowercase())
+                stringResource(R.string.ui2_cmp_help_bar, stringResource(state.displayScale.labelRes).lowercase())
             state.layout == CompareLayout.SPLIT -> stringResource(R.string.ui2_cmp_help_split)
             else -> stringResource(R.string.ui2_cmp_help_merged)
         },
@@ -1208,7 +1210,7 @@ private fun ResultPanel(
         val ids = if (isCost) selectedCostSeries(state) else selectedUsageSeries(state)
         val defs = if (isCost) UI2CompareViewModel.COST_SERIES else UI2CompareViewModel.USAGE_SERIES
         ids.mapNotNull { id -> defs.firstOrNull { it.first == id } }
-            .map { SeriesDef(it.first, it.second, seriesColor(it.first, primary, isEnergy = !isCost)) }
+            .map { SeriesDef(it.first, stringResource(it.second), seriesColor(it.first, primary, isEnergy = !isCost)) }
     }
     // Share is only useful once there is a table to export — empty result
     // panels suppress the button to avoid offering a no-op action.
@@ -1226,7 +1228,7 @@ private fun ResultPanel(
                 Text(stringResource(if (isCost) R.string.ui2_cmp_cost else R.string.ui2_cmp_usage),
                     style = MaterialTheme.typography.titleSmall)
                 Spacer(Modifier.width(6.dp))
-                Text("· ${state.mode.label}", style = MaterialTheme.typography.labelMedium,
+                Text("· " + stringResource(state.mode.labelRes), style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.weight(1f))
                 if (rowsCount > 0) {
@@ -1861,12 +1863,12 @@ private fun displaySubtitle(s: CompareState): String {
     val layoutable = s.mode in listOf(CompareMode.BAR, CompareMode.STACK, CompareMode.LINE, CompareMode.AREA)
     val axisable = s.mode == CompareMode.LINE || s.mode == CompareMode.AREA || s.mode == CompareMode.BAR
     return buildList {
-        add(s.mode.label)
+        add(stringResource(s.mode.labelRes))
         if (layoutable) add(stringResource(
             if (s.layout == CompareLayout.MERGED) R.string.ui2_cmp_merged_word
             else R.string.ui2_cmp_split_word))
         if (axisable) add(stringResource(R.string.ui2_cmp_axis_word,
-            s.displayScale.label.lowercase()))
+            stringResource(s.displayScale.labelRes).lowercase()))
     }.joinToString(" · ")
 }
 

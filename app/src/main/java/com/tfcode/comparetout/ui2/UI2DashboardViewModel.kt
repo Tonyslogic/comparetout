@@ -2,12 +2,14 @@ package com.tfcode.comparetout.ui2
 
 import android.content.Context
 import android.util.Log
+import androidx.annotation.StringRes
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.map
 import androidx.lifecycle.viewModelScope
 import com.tfcode.comparetout.ComparisonUIViewModel
+import com.tfcode.comparetout.R
 import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.model.costings.Costings
 import com.tfcode.comparetout.model.costings.SubTotals
@@ -33,8 +35,9 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 
-enum class DataSourcePeriod(val label: String) {
-    YESTERDAY("D"), MONTH("M"), YEAR("Y"), ALL("*")
+enum class DataSourcePeriod(@StringRes val labelRes: Int) {
+    YESTERDAY(R.string.ui2_period_d), MONTH(R.string.ui2_period_m),
+    YEAR(R.string.ui2_period_y), ALL(R.string.ui2_period_all)
 }
 
 data class PeriodTotals(

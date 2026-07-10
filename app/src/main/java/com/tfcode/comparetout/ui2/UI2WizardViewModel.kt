@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import com.tfcode.comparetout.ComparisonUIViewModel
+import com.tfcode.comparetout.R
 import com.tfcode.comparetout.TOUTCApplication
 import com.tfcode.comparetout.model.IntHolder
 import com.tfcode.comparetout.model.ToutcRepository
@@ -1880,7 +1881,8 @@ class UI2WizardViewModel @Inject constructor(
                 // returned as 0 by the DAO rather than a dead id). Fail loudly instead of adopting id 0 and
                 // running the cleanup/notify path. The name check in the UI normally prevents reaching here.
                 if (savedId <= 0L) {
-                    throw IllegalStateException("Scenario not saved — the name is already in use.")
+                    throw IllegalStateException(
+                        context.getString(R.string.ui2_wiz_save_err_name_in_use))
                 }
                 // Absolute-year load: write the source's REAL series onto the 2001 grid now. Create paths only
                 // (a fresh load profile has no loadprofiledata, so the plain @Insert can't collide and the
@@ -1903,7 +1905,8 @@ class UI2WizardViewModel @Inject constructor(
                 _saveResult.value = WizardSaveResult.Done(savedId, runSimulation, pvgisCount, needsWeatherFetch)
             } catch (e: Exception) {
                 android.util.Log.e(PanelSourceFetchWorker.TAG, "save() failed", e)
-                _saveResult.value = WizardSaveResult.Failed(e.message ?: "Couldn't save the scenario.")
+                _saveResult.value = WizardSaveResult.Failed(
+                    e.message ?: context.getString(R.string.ui2_wiz_save_err_generic))
             }
         }
     }

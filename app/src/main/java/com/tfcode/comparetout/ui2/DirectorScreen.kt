@@ -273,7 +273,7 @@ fun DirectorScreen(
                         DialogAction(
                             stringResource(R.string.ui2_director_remove_action),
                             stringResource(R.string.ui2_director_remove_sub,
-                                scenarioName, target.instance.subject.label.lowercase()),
+                                scenarioName, stringResource(target.instance.subject.labelRes).lowercase()),
                             Color(0xFFE15A52)
                         ) {
                             viewModel.queueEdit(target.instance.subject, target.instance.componentId,
@@ -311,7 +311,7 @@ fun DirectorScreen(
         val shown = displayedChips(inst, state).map { it.first.id }.toSet()
         val available = state.scenarios.filter { it.id !in shown }
         PickerDialog(
-            title = stringResource(R.string.ui2_director_link_title, inst.subject.label),
+            title = stringResource(R.string.ui2_director_link_title, stringResource(inst.subject.labelRes)),
             subtitle = stringResource(R.string.ui2_director_link_sub, inst.name),
             rows = available.map { it.name to { viewModel.queueEdit(
                 inst.subject, inst.componentId, it.id, DirectorEditOp.LINK); linkTarget = null } },
@@ -329,10 +329,10 @@ fun DirectorScreen(
             pickSubjectFor = null
         } else {
             PickerDialog(
-                title = stringResource(R.string.ui2_director_link_new_title, group.label.lowercase()),
-                subtitle = stringResource(R.string.ui2_director_link_new_sub, group.label.lowercase()),
+                title = stringResource(R.string.ui2_director_link_new_title, stringResource(group.labelRes).lowercase()),
+                subtitle = stringResource(R.string.ui2_director_link_new_sub, stringResource(group.labelRes).lowercase()),
                 rows = choices.map { subj ->
-                    subj.label to {
+                    stringResource(subj.labelRes) to {
                         seedSubject = subj
                         pickSubjectFor = null
                     }
@@ -349,9 +349,10 @@ fun DirectorScreen(
             it.subject == subj && it.linked.size == 1 &&
                 !state.seeded.contains(DirectorSeedKey(it.subject, it.componentId))
         }
+        val subjWord = stringResource(subj.labelRes).lowercase()
         PickerDialog(
-            title = stringResource(R.string.ui2_director_seed_title, subj.label.lowercase()),
-            subtitle = stringResource(R.string.ui2_director_seed_sub, subj.label.lowercase()),
+            title = stringResource(R.string.ui2_director_seed_title, subjWord),
+            subtitle = stringResource(R.string.ui2_director_seed_sub, subjWord),
             rows = candidates.map { inst ->
                 val sName = state.scenarios.firstOrNull { it.id == inst.linked.first() }?.name ?: "?"
                 "$sName  ·  ${inst.name}" to {
@@ -360,7 +361,7 @@ fun DirectorScreen(
                     seedSubject = null
                 }
             },
-            emptyText = stringResource(R.string.ui2_director_seed_empty, subj.label.lowercase()),
+            emptyText = stringResource(R.string.ui2_director_seed_empty, subjWord),
             onDismiss = { seedSubject = null }
         )
     }
@@ -508,7 +509,7 @@ private fun GroupAccordion(
                 }
                 Spacer(Modifier.width(8.dp))
                 Column(Modifier.weight(1f)) {
-                    Text(group.label, style = MaterialTheme.typography.titleMedium)
+                    Text(stringResource(group.labelRes), style = MaterialTheme.typography.titleMedium)
                     Text(
                         pluralStringResource(R.plurals.ui2_director_linked_groups,
                             instances.size, instances.size),
@@ -541,7 +542,7 @@ private fun GroupAccordion(
                     verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     if (instances.isEmpty()) {
                         Text(
-                            stringResource(R.string.ui2_director_empty_group, group.label.lowercase()),
+                            stringResource(R.string.ui2_director_empty_group, stringResource(group.labelRes).lowercase()),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -581,7 +582,7 @@ private fun GroupPanel(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(
-                        instance.subject.label.uppercase(),
+                        stringResource(instance.subject.labelRes).uppercase(),
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = FontWeight.SemiBold,
                         color = MaterialTheme.colorScheme.onSurfaceVariant

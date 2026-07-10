@@ -378,7 +378,7 @@ private fun PeriodTotalsRow(state: UI2GraphsViewModel.GraphState) {
             ) {
                 Box(modifier = Modifier.size(8.dp).background(seriesColor(series)))
                 Text(
-                    "${series.displayName}: ${df.format(total)} kWh",
+                    "${stringResource(series.labelRes)}: ${df.format(total)} kWh",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -473,7 +473,7 @@ private fun SettingsPanel(
                     FilterChip(
                         selected = state.displayScale == scale,
                         onClick  = { viewModel.setDisplayScale(scale) },
-                        label    = { Text(scale.fullLabel) },
+                        label    = { Text(stringResource(scale.fullLabelRes)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -488,7 +488,7 @@ private fun SettingsPanel(
                     FilterChip(
                         selected = state.calculation == calc,
                         onClick  = { viewModel.setCalculation(calc) },
-                        label    = { Text(calc.label) }
+                        label    = { Text(stringResource(calc.labelRes)) }
                     )
                 }
             }
@@ -502,7 +502,7 @@ private fun SettingsPanel(
                     FilterChip(
                         selected = state.stepSize == sz,
                         onClick  = { viewModel.setStepSize(sz) },
-                        label    = { Text(sz.fullLabel) },
+                        label    = { Text(stringResource(sz.fullLabelRes)) },
                         modifier = Modifier.fillMaxWidth()
                     )
                 }
@@ -558,7 +558,7 @@ private fun GraphsBottomBar(
             val active = currentType == type
             BottomBarTile(
                 icon = icon,
-                contentDescription = type.label,
+                contentDescription = stringResource(type.labelRes),
                 active = active,
                 shape = shape,
                 modifier = Modifier.weight(1f),
@@ -739,6 +739,9 @@ private fun BarChartView(state: UI2GraphsViewModel.GraphState) {
         buildChartPoints(state)
     }
     val activeSeries = state.activeFilters.intersect(state.availableFilters).toList()
+    // Dataset labels must be resolved in composition — the AndroidView update
+    // lambda below runs outside it.
+    val seriesLabels = activeSeries.associateWith { stringResource(it.labelRes) }
 
     if (points.isEmpty() || activeSeries.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(stringResource(R.string.ui2_no_data)) }
@@ -759,7 +762,7 @@ private fun BarChartView(state: UI2GraphsViewModel.GraphState) {
             val dataSets: List<IBarDataSet> = activeSeries.map { series ->
                 BarDataSet(
                     points.mapIndexed { i, pt -> BarEntry(i.toFloat(), pt.values[series]?.toFloat() ?: 0f) },
-                    series.displayName
+                    seriesLabels[series] ?: series.name
                 ).apply {
                     color = (seriesColor(series)).toArgb()
                     setDrawValues(false)
@@ -807,6 +810,9 @@ private fun LineOrAreaChartView(state: UI2GraphsViewModel.GraphState, filled: Bo
         buildChartPoints(state)
     }
     val activeSeries = state.activeFilters.intersect(state.availableFilters).toList()
+    // Dataset labels must be resolved in composition — the AndroidView update
+    // lambda below runs outside it.
+    val seriesLabels = activeSeries.associateWith { stringResource(it.labelRes) }
 
     if (points.isEmpty() || activeSeries.isEmpty()) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(stringResource(R.string.ui2_no_data)) }
@@ -828,7 +834,7 @@ private fun LineOrAreaChartView(state: UI2GraphsViewModel.GraphState, filled: Bo
                 val seriesArgb = (seriesColor(series)).toArgb()
                 LineDataSet(
                     points.mapIndexed { i, pt -> Entry(i.toFloat(), pt.values[series]?.toFloat() ?: 0f) },
-                    series.displayName
+                    seriesLabels[series] ?: series.name
                 ).apply {
                     color = seriesArgb
                     setDrawCircles(false)
@@ -1051,7 +1057,7 @@ private fun TableView(state: UI2GraphsViewModel.GraphState) {
                 .horizontalScroll(hScroll)
             ) {
                 activeSeries.forEach { s ->
-                    Text(s.displayName, modifier = Modifier.width(colW).padding(horizontal = 4.dp),
+                    Text(stringResource(s.labelRes), modifier = Modifier.width(colW).padding(horizontal = 4.dp),
                         fontWeight = FontWeight.Bold, fontSize = 10.sp, textAlign = TextAlign.End,
                         maxLines = 2)
                 }
@@ -1399,7 +1405,7 @@ private fun FilterGroup(
                 .background(seriesColor(s))
                 .border(0.5.dp, MaterialTheme.colorScheme.outline))
             Spacer(Modifier.width(8.dp))
-            Text(s.displayName, style = MaterialTheme.typography.bodySmall)
+            Text(stringResource(s.labelRes), style = MaterialTheme.typography.bodySmall)
         }
     }
 }

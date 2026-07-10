@@ -89,7 +89,7 @@ class UI2SimpleFragment : Fragment() {
             if (granted) fetchLocation()
             else Toast.makeText(
                 requireContext(),
-                "Location is needed to estimate solar yield",
+                getString(R.string.ui2_simple_location_denied),
                 Toast.LENGTH_LONG
             ).show()
         }
@@ -163,7 +163,7 @@ class UI2SimpleFragment : Fragment() {
             } else {
                 Toast.makeText(
                     requireContext(),
-                    "Couldn't get a location fix — try again outdoors",
+                    getString(R.string.ui2_simple_location_fix_failed),
                     Toast.LENGTH_LONG
                 ).show()
             }
@@ -183,7 +183,7 @@ class UI2SimpleFragment : Fragment() {
                 } else {
                     Toast.makeText(
                         requireContext(),
-                        "Calculate first to create a scenario",
+                        getString(R.string.ui2_simple_calculate_first),
                         Toast.LENGTH_SHORT
                     ).show()
                 }

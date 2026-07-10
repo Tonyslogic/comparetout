@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ieDebug variant override — test-build launcher label so the side-by-side
+     .test install is distinguishable from the store app. -->
+<resources>
+    <string name="app_name" translatable="false">EPO_TIE</string>
+</resources>

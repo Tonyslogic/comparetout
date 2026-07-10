@@ -87,6 +87,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringArrayResource
@@ -340,11 +341,12 @@ private fun PricePlanWizardScreen(
     }
 
     if (showImportSheet) {
+        val context = LocalContext.current
         UI2ImportSheet(
             title = stringResource(R.string.ui2_ppw_import_title),
             hint = stringResource(R.string.ui2_ppw_import_hint),
             applyLabel = stringResource(R.string.ui2_ppw_import_apply),
-            parse = ::parsePricePlanImportJson,
+            parse = { parsePricePlanImportJson(context, it) },
             onApply = { list ->
                 showImportSheet = false
                 when {
@@ -465,7 +467,7 @@ private fun ImportFromJsonRow(onClick: () -> Unit) {
  * either a JSON array (bulk-export shape) or a single object (per-plan share
  * shape from the Share button). Mirrors the parser in UI2ImportExportActivity.
  */
-private fun parsePricePlanImportJson(text: String): ParsedPreview<List<PricePlanJsonFile>> = try {
+private fun parsePricePlanImportJson(context: android.content.Context, text: String): ParsedPreview<List<PricePlanJsonFile>> = try {
     val gson = Gson()
     val trimmed = text.trimStart()
     val raw: List<PricePlanJsonFile>? = if (trimmed.startsWith("[")) {
@@ -476,18 +478,19 @@ private fun parsePricePlanImportJson(text: String): ParsedPreview<List<PricePlan
     }
     val list = raw ?: emptyList()
     val valid = list.filter { !it.plan.isNullOrBlank() }
-    if (valid.isEmpty()) ParsedPreview.Err("No supplier plans found in the JSON.")
+    if (valid.isEmpty()) ParsedPreview.Err(context.getString(R.string.ui2_parse_no_plans))
     else ParsedPreview.Ok(
         valid,
         when (valid.size) {
-            1 -> "Parsed 1 plan: ${valid.first().supplier ?: "?"} · ${valid.first().plan}"
-            else -> "Parsed ${valid.size} supplier plans — pick one to load"
+            1 -> context.getString(R.string.ui2_ppw_parse_one_plan,
+                valid.first().supplier ?: "?", valid.first().plan)
+            else -> context.getString(R.string.ui2_ppw_parse_n_plans, valid.size)
         }
     )
 } catch (e: JsonSyntaxException) {
-    ParsedPreview.Err(e.message ?: "Malformed JSON")
+    ParsedPreview.Err(e.message ?: context.getString(R.string.ui2_parse_malformed))
 } catch (e: Throwable) {
-    ParsedPreview.Err(e.message ?: "Parse failed")
+    ParsedPreview.Err(e.message ?: context.getString(R.string.ui2_parse_failed))
 }
 
 @Composable
@@ -984,7 +987,7 @@ private fun DayRatePanel(
                             modifier = Modifier.weight(1f)
                         )
                     }
-                    issues.dateRangeInvalid?.let { InlineIssue(it) }
+                    issues.dateRangeInvalid?.let { InlineIssue(stringResource(it)) }
 
                     // Day-of-week chips
                     Text(stringResource(R.string.ui2_ppw_days_header),

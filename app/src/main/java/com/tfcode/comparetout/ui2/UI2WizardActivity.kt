@@ -1026,11 +1026,12 @@ private fun StartSectionContent(
     }
 
     if (showImportSheet) {
+        val context = LocalContext.current
         UI2ImportSheet(
             title = stringResource(R.string.ui2_wiz_import_scenario_title),
             hint = stringResource(R.string.ui2_wiz_import_scenario_hint),
             applyLabel = stringResource(R.string.ui2_ppw_import_apply),
-            parse = ::parseScenarioImportJson,
+            parse = { parseScenarioImportJson(context, it) },
             onApply = { list ->
                 showImportSheet = false
                 if (list.size == 1) onLoadFromJson(list.first())
@@ -3151,32 +3152,33 @@ private fun WizardImportSheet(
     onApplied: () -> Unit,
     viewModel: UI2WizardViewModel
 ) {
+    val context = LocalContext.current
     when (scope) {
         WizardImportScope.USAGE -> UI2ImportSheet(
             title = stringResource(R.string.ui2_wiz_imp_load_title),
             hint = stringResource(R.string.ui2_wiz_imp_load_hint),
-            parse = ::parseLoadProfileImport,
+            parse = { parseLoadProfileImport(context, it) },
             onApply = { viewModel.replaceLoadProfileFromJson(it); onApplied() },
             onDismiss = onDismiss
         )
         WizardImportScope.INVERTERS -> UI2ImportSheet(
             title = stringResource(R.string.ui2_wiz_imp_inv_title),
             hint = stringResource(R.string.ui2_wiz_imp_inv_hint),
-            parse = ::parseInvertersImport,
+            parse = { parseInvertersImport(context, it) },
             onApply = { viewModel.replaceInvertersFromJson(it); onApplied() },
             onDismiss = onDismiss
         )
         WizardImportScope.PV -> UI2ImportSheet(
             title = stringResource(R.string.ui2_wiz_imp_pv_title),
             hint = stringResource(R.string.ui2_wiz_imp_pv_hint),
-            parse = ::parsePanelsImport,
+            parse = { parsePanelsImport(context, it) },
             onApply = { viewModel.replacePanelsFromJson(it); onApplied() },
             onDismiss = onDismiss
         )
         WizardImportScope.BATTERY -> UI2ImportSheet(
             title = stringResource(R.string.ui2_wiz_imp_batt_title),
             hint = stringResource(R.string.ui2_wiz_imp_batt_hint),
-            parse = ::parseBatteryImport,
+            parse = { parseBatteryImport(context, it) },
             onApply = {
                 viewModel.replaceBatteryGroupFromJson(it.batteries, it.loadShifts, it.discharges)
                 onApplied()
@@ -3186,7 +3188,7 @@ private fun WizardImportSheet(
         WizardImportScope.HW -> UI2ImportSheet(
             title = stringResource(R.string.ui2_wiz_imp_hw_title),
             hint = stringResource(R.string.ui2_wiz_imp_hw_hint),
-            parse = ::parseHwImport,
+            parse = { parseHwImport(context, it) },
             onApply = {
                 viewModel.replaceHwGroupFromJson(it.system, it.schedules, it.divert)
                 onApplied()
@@ -3196,7 +3198,7 @@ private fun WizardImportSheet(
         WizardImportScope.EV -> UI2ImportSheet(
             title = stringResource(R.string.ui2_wiz_imp_ev_title),
             hint = stringResource(R.string.ui2_wiz_imp_ev_hint),
-            parse = ::parseEvImport,
+            parse = { parseEvImport(context, it) },
             onApply = {
                 viewModel.replaceEvGroupFromJson(it.charges, it.diverts, it.legacyDivert)
                 onApplied()
@@ -3206,7 +3208,7 @@ private fun WizardImportSheet(
         WizardImportScope.HEATPUMP -> UI2ImportSheet(
             title = stringResource(R.string.ui2_wiz_imp_hp_title),
             hint = stringResource(R.string.ui2_wiz_imp_hp_hint),
-            parse = ::parseHeatPumpImport,
+            parse = { parseHeatPumpImport(context, it) },
             onApply = { viewModel.replaceHeatPumpsFromJson(it); onApplied() },
             onDismiss = onDismiss
         )
@@ -3235,7 +3237,7 @@ private inline fun <reified Target, R> tryParseSliceOrScenario(
     return null
 }
 
-private fun parseLoadProfileImport(text: String): ParsedPreview<com.tfcode.comparetout.model.json.scenario.LoadProfileJson> = try {
+private fun parseLoadProfileImport(context: android.content.Context, text: String): ParsedPreview<com.tfcode.comparetout.model.json.scenario.LoadProfileJson> = try {
     val gson = Gson()
     val lp = tryParseSliceOrScenario(
         text,
@@ -3243,14 +3245,15 @@ private fun parseLoadProfileImport(text: String): ParsedPreview<com.tfcode.compa
         decodeTarget = { gson.fromJson(it, com.tfcode.comparetout.model.json.scenario.LoadProfileJson::class.java) },
         convertTarget = { it.takeIf { lp -> lp.annualUsage != null || lp.hourlyDistribution != null } }
     )
-    if (lp == null) ParsedPreview.Err("Couldn't find a load profile in the JSON.")
+    if (lp == null) ParsedPreview.Err(context.getString(R.string.ui2_wiz_parse_no_load))
     else ParsedPreview.Ok(lp,
-        "Parsed load profile · ${lp.annualUsage ?: 0.0} kWh/yr · base ${lp.hourlyBaseLoad ?: 0.0}")
+        context.getString(R.string.ui2_wiz_parse_load_ok,
+            "${lp.annualUsage ?: 0.0}", "${lp.hourlyBaseLoad ?: 0.0}"))
 } catch (e: Throwable) {
-    ParsedPreview.Err(e.message ?: "Parse failed")
+    ParsedPreview.Err(e.message ?: context.getString(R.string.ui2_parse_failed))
 }
 
-private fun parseInvertersImport(text: String): ParsedPreview<List<com.tfcode.comparetout.model.json.scenario.InverterJson>> = try {
+private fun parseInvertersImport(context: android.content.Context, text: String): ParsedPreview<List<com.tfcode.comparetout.model.json.scenario.InverterJson>> = try {
     val gson = Gson()
     val listType = object : TypeToken<List<com.tfcode.comparetout.model.json.scenario.InverterJson>>() {}.type
     val raw = tryParseSliceOrScenario(
@@ -3259,13 +3262,14 @@ private fun parseInvertersImport(text: String): ParsedPreview<List<com.tfcode.co
         decodeTarget = { gson.fromJson<List<com.tfcode.comparetout.model.json.scenario.InverterJson>?>(it, listType) },
         convertTarget = { it.takeIf { l -> l.isNotEmpty() } }
     )
-    if (raw.isNullOrEmpty()) ParsedPreview.Err("No inverters found in the JSON.")
-    else ParsedPreview.Ok(raw, "Parsed ${raw.size} inverter${if (raw.size == 1) "" else "s"}")
+    if (raw.isNullOrEmpty()) ParsedPreview.Err(context.getString(R.string.ui2_wiz_parse_no_inverters))
+    else ParsedPreview.Ok(raw, context.resources.getQuantityString(
+        R.plurals.ui2_wiz_parse_n_inverters, raw.size, raw.size))
 } catch (e: Throwable) {
-    ParsedPreview.Err(e.message ?: "Parse failed")
+    ParsedPreview.Err(e.message ?: context.getString(R.string.ui2_parse_failed))
 }
 
-private fun parsePanelsImport(text: String): ParsedPreview<List<com.tfcode.comparetout.model.json.scenario.PanelJson>> = try {
+private fun parsePanelsImport(context: android.content.Context, text: String): ParsedPreview<List<com.tfcode.comparetout.model.json.scenario.PanelJson>> = try {
     val gson = Gson()
     val listType = object : TypeToken<List<com.tfcode.comparetout.model.json.scenario.PanelJson>>() {}.type
     val raw = tryParseSliceOrScenario(
@@ -3274,13 +3278,14 @@ private fun parsePanelsImport(text: String): ParsedPreview<List<com.tfcode.compa
         decodeTarget = { gson.fromJson<List<com.tfcode.comparetout.model.json.scenario.PanelJson>?>(it, listType) },
         convertTarget = { it.takeIf { l -> l.isNotEmpty() } }
     )
-    if (raw.isNullOrEmpty()) ParsedPreview.Err("No PV panel strings found in the JSON.")
-    else ParsedPreview.Ok(raw, "Parsed ${raw.size} panel string${if (raw.size == 1) "" else "s"}")
+    if (raw.isNullOrEmpty()) ParsedPreview.Err(context.getString(R.string.ui2_wiz_parse_no_panels))
+    else ParsedPreview.Ok(raw, context.resources.getQuantityString(
+        R.plurals.ui2_wiz_parse_n_panels, raw.size, raw.size))
 } catch (e: Throwable) {
-    ParsedPreview.Err(e.message ?: "Parse failed")
+    ParsedPreview.Err(e.message ?: context.getString(R.string.ui2_parse_failed))
 }
 
-private fun parseHeatPumpImport(text: String): ParsedPreview<List<com.tfcode.comparetout.model.json.scenario.HeatPumpJson>> = try {
+private fun parseHeatPumpImport(context: android.content.Context, text: String): ParsedPreview<List<com.tfcode.comparetout.model.json.scenario.HeatPumpJson>> = try {
     val gson = Gson()
     val listType = object : TypeToken<List<com.tfcode.comparetout.model.json.scenario.HeatPumpJson>>() {}.type
     val raw = tryParseSliceOrScenario(
@@ -3289,10 +3294,10 @@ private fun parseHeatPumpImport(text: String): ParsedPreview<List<com.tfcode.com
         decodeTarget = { gson.fromJson<List<com.tfcode.comparetout.model.json.scenario.HeatPumpJson>?>(it, listType) },
         convertTarget = { it.takeIf { l -> l.isNotEmpty() && l.any { hp -> hp.fuelAnnual != null } } }
     )
-    if (raw.isNullOrEmpty()) ParsedPreview.Err("No heat pump found in the JSON.")
-    else ParsedPreview.Ok(raw, "Parsed heat pump · ${raw.first().fuelType ?: "?"}")
+    if (raw.isNullOrEmpty()) ParsedPreview.Err(context.getString(R.string.ui2_wiz_parse_no_hp))
+    else ParsedPreview.Ok(raw, context.getString(R.string.ui2_wiz_parse_hp_ok, raw.first().fuelType ?: "?"))
 } catch (e: Throwable) {
-    ParsedPreview.Err(e.message ?: "Parse failed")
+    ParsedPreview.Err(e.message ?: context.getString(R.string.ui2_parse_failed))
 }
 
 /** Carries the three battery-related lists together since they cross-reference. */
@@ -3302,7 +3307,7 @@ private data class BatteryImportSlice(
     val discharges: List<com.tfcode.comparetout.model.json.scenario.DischargeToGridJson>?
 )
 
-private fun parseBatteryImport(text: String): ParsedPreview<BatteryImportSlice> = try {
+private fun parseBatteryImport(context: android.content.Context, text: String): ParsedPreview<BatteryImportSlice> = try {
     val scenario = runCatching { Gson().fromJson(text, ScenarioJsonFile::class.java) }.getOrNull()
     val slice = scenario?.let {
         BatteryImportSlice(it.batteries?.toList(), it.loadShifts?.toList(), it.dischargeToGrids?.toList())
@@ -3310,18 +3315,16 @@ private fun parseBatteryImport(text: String): ParsedPreview<BatteryImportSlice> 
     if (slice == null || (slice.batteries.isNullOrEmpty()
             && slice.loadShifts.isNullOrEmpty()
             && slice.discharges.isNullOrEmpty())) {
-        ParsedPreview.Err("No battery setup found in the JSON. " +
-                "Expected a scenario JSON or an object with \"Batteries\"/\"LoadShift\"/\"DischargeToGrid\".")
+        ParsedPreview.Err(context.getString(R.string.ui2_wiz_parse_no_battery))
     } else {
         val battCount = slice.batteries?.size ?: 0
         val shiftCount = slice.loadShifts?.size ?: 0
         val dischCount = slice.discharges?.size ?: 0
-        ParsedPreview.Ok(slice,
-            "Parsed $battCount batter${if (battCount == 1) "y" else "ies"} · " +
-                "$shiftCount charge · $dischCount discharge schedules")
+        ParsedPreview.Ok(slice, context.resources.getQuantityString(
+            R.plurals.ui2_wiz_parse_batt_ok, battCount, battCount, shiftCount, dischCount))
     }
 } catch (e: Throwable) {
-    ParsedPreview.Err(e.message ?: "Parse failed")
+    ParsedPreview.Err(e.message ?: context.getString(R.string.ui2_parse_failed))
 }
 
 private data class HwImportSlice(
@@ -3330,23 +3333,26 @@ private data class HwImportSlice(
     val divert: com.tfcode.comparetout.model.json.scenario.HWDivertJson?
 )
 
-private fun parseHwImport(text: String): ParsedPreview<HwImportSlice> = try {
+private fun parseHwImport(context: android.content.Context, text: String): ParsedPreview<HwImportSlice> = try {
     val scenario = runCatching { Gson().fromJson(text, ScenarioJsonFile::class.java) }.getOrNull()
     val slice = scenario?.let {
         HwImportSlice(it.hwSystem, it.hwSchedules?.toList(), it.hwDivert)
     }
     if (slice == null || (slice.system == null && slice.schedules.isNullOrEmpty() && slice.divert == null)) {
-        ParsedPreview.Err("No hot-water setup found in the JSON. " +
-                "Expected a scenario JSON or an object with \"HWSystem\"/\"HWSchedule\"/\"HWDivert\".")
+        ParsedPreview.Err(context.getString(R.string.ui2_wiz_parse_no_hw))
     } else {
         val schedCount = slice.schedules?.size ?: 0
+        // Pick the with/without-system variant, then append the self-contained
+        // divert fragment — same restructuring pattern as the timezone status suffix.
+        val base = context.resources.getQuantityString(
+            if (slice.system != null) R.plurals.ui2_wiz_parse_hw_sys else R.plurals.ui2_wiz_parse_hw_only,
+            schedCount, schedCount)
         ParsedPreview.Ok(slice,
-            "Parsed " + (if (slice.system != null) "hot-water system · " else "") +
-                "$schedCount schedule${if (schedCount == 1) "" else "s"}" +
-                (if (slice.divert?.active == true) " · divert active" else ""))
+            base + (if (slice.divert?.active == true)
+                context.getString(R.string.ui2_wiz_parse_divert_active) else ""))
     }
 } catch (e: Throwable) {
-    ParsedPreview.Err(e.message ?: "Parse failed")
+    ParsedPreview.Err(e.message ?: context.getString(R.string.ui2_parse_failed))
 }
 
 private data class EvImportSlice(
@@ -3355,23 +3361,24 @@ private data class EvImportSlice(
     val legacyDivert: com.tfcode.comparetout.model.json.scenario.EVDivertJson?
 )
 
-private fun parseEvImport(text: String): ParsedPreview<EvImportSlice> = try {
+private fun parseEvImport(context: android.content.Context, text: String): ParsedPreview<EvImportSlice> = try {
     val scenario = runCatching { Gson().fromJson(text, ScenarioJsonFile::class.java) }.getOrNull()
     val slice = scenario?.let {
         EvImportSlice(it.evCharges?.toList(), it.evDiverts?.toList(), it.evDivert)
     }
     if (slice == null || (slice.charges.isNullOrEmpty() && slice.diverts.isNullOrEmpty() && slice.legacyDivert == null)) {
-        ParsedPreview.Err("No EV setup found in the JSON. " +
-                "Expected a scenario JSON or an object with \"EVCharge\"/\"EVDivert\"/\"EVDiverts\".")
+        ParsedPreview.Err(context.getString(R.string.ui2_wiz_parse_no_ev))
     } else {
         val chargeCount = slice.charges?.size ?: 0
         val divertCount = (slice.diverts?.size ?: 0) + (if (slice.legacyDivert != null) 1 else 0)
         ParsedPreview.Ok(slice,
-            "Parsed $chargeCount EV schedule${if (chargeCount == 1) "" else "s"} · " +
-                "$divertCount divert${if (divertCount == 1) "" else "s"}")
+            context.resources.getQuantityString(
+                R.plurals.ui2_wiz_parse_ev_charges, chargeCount, chargeCount) + " · " +
+                context.resources.getQuantityString(
+                    R.plurals.ui2_wiz_parse_ev_diverts, divertCount, divertCount))
     }
 } catch (e: Throwable) {
-    ParsedPreview.Err(e.message ?: "Parse failed")
+    ParsedPreview.Err(e.message ?: context.getString(R.string.ui2_parse_failed))
 }
 
 /**
@@ -3380,7 +3387,7 @@ private fun parseEvImport(text: String): ParsedPreview<EvImportSlice> = try {
  * shape produced by Phase A's per-scenario Share button (`{…}`). Returns a
  * [ParsedPreview.Err] for malformed input — the sheet renders it in red.
  */
-private fun parseScenarioImportJson(text: String): ParsedPreview<List<ScenarioJsonFile>> = try {
+private fun parseScenarioImportJson(context: android.content.Context, text: String): ParsedPreview<List<ScenarioJsonFile>> = try {
     val gson = Gson()
     val trimmed = text.trimStart()
     val raw: List<ScenarioJsonFile>? = if (trimmed.startsWith("[")) {
@@ -3390,7 +3397,7 @@ private fun parseScenarioImportJson(text: String): ParsedPreview<List<ScenarioJs
         gson.fromJson(text, ScenarioJsonFile::class.java)?.let { listOf(it) }
     }
     val valid = (raw ?: emptyList()).filter { !it.name.isNullOrBlank() }
-    if (valid.isEmpty()) ParsedPreview.Err("No scenarios found in the JSON.")
+    if (valid.isEmpty()) ParsedPreview.Err(context.getString(R.string.ui2_parse_no_scenarios))
     else ParsedPreview.Ok(
         valid,
         when (valid.size) {
@@ -3399,13 +3406,13 @@ private fun parseScenarioImportJson(text: String): ParsedPreview<List<ScenarioJs
                 val inv = s.inverters?.size ?: 0
                 val panel = s.panels?.size ?: 0
                 val batt = s.batteries?.size ?: 0
-                "Parsed \"${s.name}\" · $inv inverters · $panel panels · $batt batteries"
+                context.getString(R.string.ui2_wiz_parse_one_scenario, s.name, inv, panel, batt)
             }
-            else -> "Parsed ${valid.size} scenarios — you'll pick one to load"
+            else -> context.getString(R.string.ui2_wiz_parse_n_scenarios, valid.size)
         }
     )
 } catch (e: JsonSyntaxException) {
-    ParsedPreview.Err(e.message ?: "Malformed JSON")
+    ParsedPreview.Err(e.message ?: context.getString(R.string.ui2_parse_malformed))
 } catch (e: Throwable) {
-    ParsedPreview.Err(e.message ?: "Parse failed")
+    ParsedPreview.Err(e.message ?: context.getString(R.string.ui2_parse_failed))
 }

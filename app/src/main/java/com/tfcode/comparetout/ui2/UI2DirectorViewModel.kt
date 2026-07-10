@@ -2,6 +2,7 @@ package com.tfcode.comparetout.ui2
 
 import android.app.Application
 import android.util.Log
+import androidx.annotation.StringRes
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.asFlow
 import androidx.lifecycle.asLiveData
@@ -46,39 +47,39 @@ import javax.inject.Inject
 
 /** Top-level Directors accordion. Mirrors the dashboard and wizard section order. */
 enum class DirectorGroup(
-    val label: String,
+    @StringRes val labelRes: Int,
     val iconRes: Int,
     val wizardSection: String,
     val tintIcon: Boolean,
     /** When set, rendered as an emoji glyph instead of [iconRes] (the heat pump has no vector asset). */
     val emojiIcon: String? = null
 ) {
-    USAGE(   "Usage Data", R.drawable.house,      "load",      true),
-    INVERTER("Inverter",   R.drawable.inverter,   "inverters", true),
-    PV(      "PV System",  R.drawable.solarpanel, "pv",        false),
-    BATTERY( "Battery",    R.drawable.battery1,   "battery",   true),
-    HW(      "Hot Water",  R.drawable.waterwarm,  "hotwater",  true),
-    EV(      "EV",         R.drawable.ev_on,      "ev",        false),
-    HEAT_PUMP("Heat Pump", R.drawable.waterwarm,  "heatpump",  true, emojiIcon = "♨️")
+    USAGE(   R.string.ui2_dash_usage_data,  R.drawable.house,      "load",      true),
+    INVERTER(R.string.ui2_component_inverter, R.drawable.inverter, "inverters", true),
+    PV(      R.string.ui2_dash_pv_system,   R.drawable.solarpanel, "pv",        false),
+    BATTERY( R.string.ui2_component_battery, R.drawable.battery1,  "battery",   true),
+    HW(      R.string.ui2_graphs_hot_water, R.drawable.waterwarm,  "hotwater",  true),
+    EV(      R.string.ui2_component_ev,     R.drawable.ev_on,      "ev",        false),
+    HEAT_PUMP(R.string.ui2_graphs_heat_pump, R.drawable.waterwarm, "heatpump",  true, emojiIcon = "♨️")
 }
 
 /** Component kind the user can share. */
 enum class DirectorSubject(
-    val label: String,
+    @StringRes val labelRes: Int,
     val group: DirectorGroup,
     val supportsUnlink: Boolean
 ) {
-    USAGE_PROFILE    ("Usage profile",      DirectorGroup.USAGE,    false),
-    INVERTER_SETTINGS("Inverter",           DirectorGroup.INVERTER, true),
-    PV_PANEL         ("PV string",          DirectorGroup.PV,       true),
-    BATTERY_SETTINGS ("Battery settings",   DirectorGroup.BATTERY,  true),
-    BATTERY_SCHEDULE ("Battery schedule",   DirectorGroup.BATTERY,  true),
-    BATTERY_DISCHARGE("Discharge schedule", DirectorGroup.BATTERY,  true),
-    HW_SETTINGS      ("Hot water settings", DirectorGroup.HW,       false),
-    HW_SCHEDULE      ("Hot water schedule", DirectorGroup.HW,       true),
-    EV_SCHEDULE      ("EV schedule",        DirectorGroup.EV,       true),
-    EV_DIVERT        ("EV divert",          DirectorGroup.EV,       true),
-    HEAT_PUMP_SETTINGS("Heat pump",         DirectorGroup.HEAT_PUMP, true);
+    USAGE_PROFILE    (R.string.ui2_director_subj_usage_profile,    DirectorGroup.USAGE,    false),
+    INVERTER_SETTINGS(R.string.ui2_component_inverter,             DirectorGroup.INVERTER, true),
+    PV_PANEL         (R.string.ui2_director_subj_pv_string,        DirectorGroup.PV,       true),
+    BATTERY_SETTINGS (R.string.ui2_director_subj_battery_settings, DirectorGroup.BATTERY,  true),
+    BATTERY_SCHEDULE (R.string.ui2_director_subj_battery_schedule, DirectorGroup.BATTERY,  true),
+    BATTERY_DISCHARGE(R.string.ui2_wiz_discharge_schedule,         DirectorGroup.BATTERY,  true),
+    HW_SETTINGS      (R.string.ui2_director_subj_hw_settings,      DirectorGroup.HW,       false),
+    HW_SCHEDULE      (R.string.ui2_director_subj_hw_schedule,      DirectorGroup.HW,       true),
+    EV_SCHEDULE      (R.string.ui2_director_subj_ev_schedule,      DirectorGroup.EV,       true),
+    EV_DIVERT        (R.string.ui2_director_subj_ev_divert,        DirectorGroup.EV,       true),
+    HEAT_PUMP_SETTINGS(R.string.ui2_component_heat_pump,           DirectorGroup.HEAT_PUMP, true);
 
     companion object {
         fun subjectsFor(g: DirectorGroup): List<DirectorSubject> =

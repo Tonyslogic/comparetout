@@ -364,7 +364,7 @@ private fun PricePlanListScreen(
             extraSourceContent = if (region.hasOctopus) {
                 { OctopusTariffFetchPane() }
             } else null,
-            parse = ::parsePricePlansJson,
+            parse = { parsePricePlansJson(context, it) },
             onApply = {
                 pendingImport = it
                 showImport = false
