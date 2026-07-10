@@ -297,7 +297,9 @@ public class MainActivity extends InsetRespectingActivity {
                             System.out.println(pp.plan);
                             PricePlan p = JsonTools.createPricePlan(pp);
                             ArrayList<DayRate> drs = new ArrayList<>();
-                            for (DayRateJson drj : pp.rates) {
+                            // "Rates" is optional for a dynamic plan: a terms-only file
+                            // imports as a pending plan awaiting materialisation.
+                            if (!(null == pp.rates)) for (DayRateJson drj : pp.rates) {
                                 DayRate dr = JsonTools.createDayRate(drj);
                                 drs.add(dr);
                             }
@@ -305,6 +307,9 @@ public class MainActivity extends InsetRespectingActivity {
                             mViewModel.insertPricePlan(p, drs, clobberPlansAndScenarios);
                             // Clear associated cost calculations as they're now invalid
                             mViewModel.removeCostingsForPricePlan(p.getPricePlanIndex());
+                            // Terms-only dynamic plans land pending — auto-materialise.
+                            com.tfcode.comparetout.ui2.DynamicTariffWorker
+                                    .maybeEnqueuePendingImport(getApplicationContext(), pp);
                         }
                     } catch (FileNotFoundException e) {
                         e.printStackTrace();
@@ -653,11 +658,15 @@ public class MainActivity extends InsetRespectingActivity {
                                 System.out.println(pp.plan);
                                 PricePlan p = JsonTools.createPricePlan(pp);
                                 ArrayList<DayRate> drs = new ArrayList<>();
-                                for (DayRateJson drj : pp.rates) {
+                                // "Rates" is optional for a dynamic plan (terms-only feed entry).
+                                if (!(null == pp.rates)) for (DayRateJson drj : pp.rates) {
                                     DayRate dr = JsonTools.createDayRate(drj);
                                     drs.add(dr);
                                 }
                                 mViewModel.insertPricePlan(p, drs, clobber);
+                                // Terms-only dynamic plans land pending — auto-materialise.
+                                com.tfcode.comparetout.ui2.DynamicTariffWorker
+                                        .maybeEnqueuePendingImport(getApplicationContext(), pp);
                             }
                             reader.close();
                         } catch (IOException e) {

@@ -4,6 +4,21 @@ Eco Power Optimiser is licensed under the Apache License, Version 2.0 (see
 [LICENSE](LICENSE)). This file collects notices for third-party projects that
 informed parts of this codebase but whose code is **not** included in it.
 
+## SEMOpx market data (data source, not redistributed)
+
+The dynamic-tariff feature fetches historical I-SEM day-ahead auction results
+**on the user's own device** from SEMOpx's public publications
+(`reports.semopx.com` static reports and the general-publications historical
+files on `www.semopx.com`). That information is published by SEMOpx (EirGrid
+plc and SONI Limited) on an "AS IS" basis for general information purposes.
+
+No SEMOpx data is included in this application or its distributions, and no
+SEMOpx-derived prices are exported or shared by the app (dynamic plans export
+their supplier *terms* only; each installation materialises prices locally).
+Reproduction of SEMOpx publications requires the prior written permission of
+EirGrid plc and SONI Limited. Generated plans carry an attribution and the
+AS-IS caveat in their reference notes.
+
 ## soliscloud_api (MIT)
 
 The SolisCloud request-signing procedure and endpoint contract implemented in

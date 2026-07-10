@@ -157,4 +157,72 @@ public class SimulationEngineScheduleTest {
         assertEquals(30.0, fd.mStopAt.get(120), 0d);
         assertFalse(fd.mD2G.get(180));
     }
+
+    // ---- v16 date-aware, minute-granular windows (dormant on defaults — the
+    //      tests above are the defaults' behaviour guard). ----
+
+    /** Row index of (2001-MM-DD, HH:MM) on the 5-minute grid. */
+    private static int row(int month, int day, int hour, int minute) {
+        int doy = java.time.LocalDate.of(2001, month, day).getDayOfYear();
+        return (doy - 1) * 288 + hour * 12 + minute / 5;
+    }
+
+    @Test
+    public void chargeFromGrid_singleDayMinuteWindowPopulatesExactSlots() {
+        // The plan's Phase-4 checkpoint: a 02:30–04:00 window on one date
+        // populates exactly slots [30..48) of that day.
+        LoadShift ls = loadShift(2, 4, 80.0);
+        ls.setStartDate("06/15");
+        ls.setEndDate("06/15");
+        ls.setBeginMinute(150);
+        ls.setEndMinute(240);
+        SimulationEngine.ChargeFromGrid cfg =
+                new SimulationEngine.ChargeFromGrid(Collections.singletonList(ls), YEAR_ROWS);
+
+        assertFalse("02:25 is before the window", cfg.mCFG.get(row(6, 15, 2, 25)));
+        assertTrue("02:30 starts the window", cfg.mCFG.get(row(6, 15, 2, 30)));
+        assertTrue("03:55 is the last active slot", cfg.mCFG.get(row(6, 15, 3, 55)));
+        assertFalse("04:00 is past the (exclusive) end", cfg.mCFG.get(row(6, 15, 4, 0)));
+        assertFalse("other days are outside the date window", cfg.mCFG.get(row(6, 16, 2, 30)));
+        assertFalse("other days are outside the date window", cfg.mCFG.get(row(6, 14, 2, 30)));
+        int active = 0;
+        for (Boolean b : cfg.mCFG) if (b) active++;
+        assertEquals("exactly 18 five-minute slots (90 minutes) all year", 18, active);
+    }
+
+    @Test
+    public void chargeFromGrid_dateRangeLimitsTheLegacyHourWindow() {
+        LoadShift ls = loadShift(2, 4, 80.0); // legacy hours, minutes stay -1
+        ls.setStartDate("06/01");
+        ls.setEndDate("06/30");
+        SimulationEngine.ChargeFromGrid cfg =
+                new SimulationEngine.ChargeFromGrid(Collections.singletonList(ls), YEAR_ROWS);
+
+        assertTrue("inside the date range at 03:00", cfg.mCFG.get(row(6, 15, 3, 0)));
+        assertTrue("end hour stays inclusive (04:55)", cfg.mCFG.get(row(6, 15, 4, 55)));
+        assertFalse("05:00 is past the end hour", cfg.mCFG.get(row(6, 15, 5, 0)));
+        assertFalse("May 31 is before the range", cfg.mCFG.get(row(5, 31, 3, 0)));
+        assertFalse("July 1 is past the range", cfg.mCFG.get(row(7, 1, 3, 0)));
+    }
+
+    @Test
+    public void forceDischargeToGrid_dateAndMinuteWindowsApply() {
+        DischargeToGrid d2g = new DischargeToGrid();
+        d2g.setBegin(17);
+        d2g.setEnd(19);
+        d2g.setRate(5.0);
+        d2g.setStopAt(30.0);
+        d2g.setStartDate("11/01");
+        d2g.setEndDate("12/31");
+        d2g.setBeginMinute(17 * 60 + 30);
+        d2g.setEndMinute(19 * 60);
+        SimulationEngine.ForceDischargeToGrid fd =
+                new SimulationEngine.ForceDischargeToGrid(Collections.singletonList(d2g), YEAR_ROWS);
+
+        assertFalse("17:00 is before the minute window", fd.mD2G.get(row(11, 15, 17, 0)));
+        assertTrue("17:30 starts the window", fd.mD2G.get(row(11, 15, 17, 30)));
+        assertEquals(5.0, fd.mRate.get(row(11, 15, 17, 30)), 0d);
+        assertFalse("19:00 is past the (exclusive) end", fd.mD2G.get(row(11, 15, 19, 0)));
+        assertFalse("October is outside the date range", fd.mD2G.get(row(10, 15, 17, 30)));
+    }
 }

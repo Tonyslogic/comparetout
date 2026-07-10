@@ -16,6 +16,7 @@
 
 package com.tfcode.comparetout.model.scenario;
 
+import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
@@ -38,6 +39,19 @@ public class EVDivert {
     private double minimum = 0.0;
     private MonthHolder months = new MonthHolder();
     private IntHolder days = new IntHolder();
+    // v16 date-aware, minute-granular scheduling (MM/DD, DayRate semantics).
+    // Defaults reproduce pre-v16 behaviour exactly: full year, window derived
+    // from the legacy whole-hour begin/end. Dormant until the engine wires them.
+    @NonNull
+    @ColumnInfo(defaultValue = "01/01")
+    private String startDate = "01/01";
+    @NonNull
+    @ColumnInfo(defaultValue = "12/31")
+    private String endDate = "12/31";
+    @ColumnInfo(defaultValue = "-1")
+    private int beginMinute = -1;
+    @ColumnInfo(defaultValue = "-1")
+    private int endMinute = -1;
 
     public double getMinimum() {
         return minimum;
@@ -119,9 +133,59 @@ public class EVDivert {
         this.days = days;
     }
 
+    @NonNull
+    public String getStartDate() {
+        return startDate;
+    }
+
+    public void setStartDate(@NonNull String startDate) {
+        this.startDate = startDate;
+    }
+
+    @NonNull
+    public String getEndDate() {
+        return endDate;
+    }
+
+    public void setEndDate(@NonNull String endDate) {
+        this.endDate = endDate;
+    }
+
+    public int getBeginMinute() {
+        return beginMinute;
+    }
+
+    public void setBeginMinute(int beginMinute) {
+        this.beginMinute = beginMinute;
+    }
+
+    public int getEndMinute() {
+        return endMinute;
+    }
+
+    public void setEndMinute(int endMinute) {
+        this.endMinute = endMinute;
+    }
+
+    /** Minute-of-day window start; -1 falls back to the legacy whole-hour begin. */
+    public int getEffectiveBeginMinute() {
+        return beginMinute >= 0 ? beginMinute : begin * 60;
+    }
+
+    /**
+     * Minute-of-day window end (exclusive); -1 falls back to the legacy hours.
+     * EvDivertComponent's legacy check is {@code end*60 > minuteOfDay} — the end
+     * hour is EXCLUDED (unlike the battery schedules) — so the fallback is end*60.
+     */
+    public int getEffectiveEndMinute() {
+        return endMinute >= 0 ? endMinute : end * 60;
+    }
+
     public boolean equalDate(EVDivert other) {
         if (this == other) return true;
         return this.months.equals(other.getMonths()) &&
-                this.days.equals(other.getDays());
+                this.days.equals(other.getDays()) &&
+                this.startDate.equals(other.getStartDate()) &&
+                this.endDate.equals(other.getEndDate());
     }
 }

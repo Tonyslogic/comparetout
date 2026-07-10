@@ -95,6 +95,11 @@ public class PricePlan {
     @NonNull
     @ColumnInfo(name = "location", defaultValue = "")
     private String location = "";
+    // Supplier terms of a dynamic (wholesale-tracking) tariff; null for every
+    // non-dynamic plan. v16 — stored as JSON TEXT via TypeConverter, the
+    // Restrictions pattern. See DynamicTerms.
+    @Nullable
+    private DynamicTerms dynamicTerms = null;
 
 
     @Override
@@ -220,6 +225,29 @@ public class PricePlan {
         this.restrictions = restrictions;
     }
 
+    @Nullable
+    public DynamicTerms getDynamicTerms() {
+        return dynamicTerms;
+    }
+
+    public void setDynamicTerms(@Nullable DynamicTerms dynamicTerms) {
+        this.dynamicTerms = dynamicTerms;
+    }
+
+    /** A dynamic plan's rates are generated from its terms, never hand-edited. */
+    public boolean isDynamic() {
+        return !(null == dynamicTerms);
+    }
+
+    /**
+     * A dynamic plan whose prices have not been materialised yet (terms present,
+     * no BUY rates). Pending plans must be skipped by costing — an empty lookup
+     * would price every row at 0 and rank the plan "best".
+     */
+    public boolean isPendingDynamic(List<DayRate> drs) {
+        return isDynamic() && DayRate.buyRates(drs).isEmpty();
+    }
+
     public PricePlan copy() {
         PricePlan copy = new PricePlan();
         copy.supplier = supplier;
@@ -233,6 +261,9 @@ public class PricePlan {
         copy.location = location;
         copy.pricePlanIndex = 0;
         copy.restrictions = restrictions;
+        // Callers copy DayRates separately, so a copied dynamic plan is a
+        // terms-only (pending) copy — tweak terms, rematerialise.
+        copy.dynamicTerms = dynamicTerms;
         return copy;
     }
 
@@ -246,7 +277,37 @@ public class PricePlan {
     public static final int INVALID_PLAN_NO_DAY_RATES = 7;
     public static final int INVALID_PLAN_END_BEFORE_START = 8;
     public static final int INVALID_PLAN_MISSING_MINUTES = 9;
+    public static final int INVALID_PLAN_INCOMPLETE_DYNAMIC_TERMS = 10;
+    // SELL (export) rate failures reuse the buy-side codes offset by this; see
+    // getInvalidReason, which strips the offset and appends "(export)".
+    public static final int EXPORT_REASON_OFFSET = 100;
+
     public int validatePlan(List<DayRate> drs) {
+        List<DayRate> buys = DayRate.buyRates(drs);
+        List<DayRate> sells = DayRate.sellRates(drs);
+        // Terms-only branch: a dynamic plan with no BUY rates is a valid "pending"
+        // plan awaiting materialisation, provided its terms are materialisable.
+        // Once materialised (BUY rates present) the normal full checks apply.
+        if (isDynamic() && buys.isEmpty()) {
+            if (!dynamicTerms.isComplete()) return INVALID_PLAN_INCOMPLETE_DYNAMIC_TERMS;
+            if (!sells.isEmpty()) {
+                int sellResult = validateRateSet(sells);
+                if (sellResult != VALID_PLAN) return sellResult + EXPORT_REASON_OFFSET;
+            }
+            return VALID_PLAN;
+        }
+        int buyResult = validateRateSet(buys);
+        if (buyResult != VALID_PLAN) return buyResult;
+        // SELL rates are optional; when present they must independently tile the
+        // year and the day exactly as BUY rates do.
+        if (!sells.isEmpty()) {
+            int sellResult = validateRateSet(sells);
+            if (sellResult != VALID_PLAN) return sellResult + EXPORT_REASON_OFFSET;
+        }
+        return VALID_PLAN;
+    }
+
+    private static int validateRateSet(List<DayRate> drs) {
         if (drs.isEmpty()) return INVALID_PLAN_NO_DAY_RATES;
         Map<String, LocalDate[]> dtRanges = new HashMap<>();
         Map<String, List<Integer>> dtDays = new HashMap<>();
@@ -315,6 +376,8 @@ public class PricePlan {
     }
 
     public static String getInvalidReason(int reasonCode) {
+        if (reasonCode > EXPORT_REASON_OFFSET)
+            return getInvalidReason(reasonCode - EXPORT_REASON_OFFSET) + " (export)";
         return switch (reasonCode) {
             case INVALID_PLAN_DUPLICATE_DAYS -> "Conflicting days in date ranges";
             case INVALID_PLAN_MISSING_DAYS -> "At least one date range is missing a day";
@@ -326,6 +389,8 @@ public class PricePlan {
             case INVALID_PLAN_END_BEFORE_START -> "Day rates must end after start";
             case INVALID_PLAN_MISSING_MINUTES ->
                     "Each day must have a price for every minute (0-1439)";
+            case INVALID_PLAN_INCOMPLETE_DYNAMIC_TERMS ->
+                    "Dynamic terms need a market, multiplier and adder";
             default -> "Unknown reason for invalidity";
         };
     }

@@ -16,6 +16,7 @@
 
 package com.tfcode.comparetout.ui2
 
+import android.content.Context
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.tfcode.comparetout.model.ToutcRepository
@@ -25,6 +26,7 @@ import com.tfcode.comparetout.model.priceplan.DayRate
 import com.tfcode.comparetout.region.RegionProfiles
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -53,7 +55,8 @@ import javax.inject.Singleton
  */
 @Singleton
 class PricePlanDownloader @Inject constructor(
-    private val repository: ToutcRepository
+    private val repository: ToutcRepository,
+    @param:ApplicationContext private val context: Context
 ) {
 
     sealed class Result {
@@ -96,6 +99,9 @@ class PricePlanDownloader @Inject constructor(
                 pp.rates?.forEach { drs.add(JsonTools.createDayRate(it)) }
                 repository.insert(plan, drs, clobber)
                 if (plan.planName in existingNames) replaced += 1 else added += 1
+                // The community feed distributes dynamic offers terms-only
+                // (licensing) — each installation materialises prices locally.
+                DynamicTariffWorker.maybeEnqueuePendingImport(context, pp)
             }
             Result.Loaded(added, replaced)
         } catch (e: UnknownHostException) {

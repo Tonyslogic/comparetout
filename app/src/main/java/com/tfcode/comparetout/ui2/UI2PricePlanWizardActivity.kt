@@ -251,6 +251,29 @@ private fun PricePlanWizardScreen(
                                 ChargesSection(builder, viewModel)
                             }
                         }
+                        if (builder.isDynamic) {
+                            // Dynamic plans: the 365 generated day-rates are not
+                            // hand-editable (and would be unusable as cards) — the
+                            // terms card is the only rate-mutation path. Usage
+                            // restrictions key on rate values, which a dynamic plan
+                            // has hundreds of, so that section is gated too.
+                            item("dynamic") {
+                                val terms = builder.dynamicTerms
+                                AccordionSection(
+                                    title = stringResource(R.string.ui2_ppw_dynamic_title),
+                                    subtitle = if (terms?.year != null)
+                                        stringResource(R.string.ui2_ppw_dynamic_materialised,
+                                            terms.market ?: "", terms.year ?: 0)
+                                    else stringResource(R.string.ui2_ppw_dynamic_pending),
+                                    isComplete = terms?.year != null,
+                                    hasError = false,
+                                    isExpanded = expanded.contains("dynamic"),
+                                    onToggle = { viewModel.toggleSection("dynamic") }
+                                ) {
+                                    DynamicTermsSection(builder, viewModel)
+                                }
+                            }
+                        } else {
                         item("rates") {
                             val rateSummary = dayRatesSubtitle(builder, issues)
                             AccordionSection(
@@ -288,6 +311,7 @@ private fun PricePlanWizardScreen(
                             ) {
                                 RestrictionsSection(builder, viewModel, showHints)
                             }
+                        }
                         }
                     }
                 }
@@ -1411,3 +1435,82 @@ private fun firstFreeSlot(bands: List<RateBand>): Pair<Int, Int>? {
     return null
 }
 
+
+// ── Dynamic terms (wholesale-tracking plans) ────────────────────────────────
+//
+// The terms card is the dynamic plan's only rate-mutation path: edit the
+// supplier terms / backtest year and regenerate — DynamicTariffWorker fetches
+// the wholesale year and replaces the generated rates. The scalar plan fields
+// (name, standing charges, feed) stay editable through the normal sections.
+
+@Composable
+private fun DynamicTermsSection(
+    builder: PricePlanBuilder,
+    viewModel: UI2PricePlanViewModel
+) {
+    val terms = builder.dynamicTerms ?: return
+    val lastCompleteYear = remember { java.time.LocalDate.now().year - 1 }
+    var year by remember(builder.pricePlanId) {
+        mutableStateOf((terms.year ?: lastCompleteYear).toString())
+    }
+    var multiplier by remember(builder.pricePlanId) {
+        mutableStateOf((terms.multiplier ?: 1.0).toString())
+    }
+    var adder by remember(builder.pricePlanId) {
+        mutableStateOf((terms.adder ?: 0.0).toString())
+    }
+    var cap by remember(builder.pricePlanId) {
+        mutableStateOf(terms.cap?.toString() ?: "")
+    }
+
+    fun parsed(s: String): Double? = s.trim().replace(',', '.').toDoubleOrNull()
+    val yearValue = year.trim().toIntOrNull()
+    val ready = yearValue != null && yearValue in 2018..lastCompleteYear &&
+            parsed(multiplier) != null && parsed(adder) != null &&
+            builder.supplier.isNotBlank() && builder.planName.isNotBlank()
+
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            stringResource(R.string.ui2_ppw_dynamic_note),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        OutlinedTextField(
+            value = year, onValueChange = { year = it },
+            modifier = Modifier.fillMaxWidth(), singleLine = true,
+            label = { Text(stringResource(R.string.ui2_ppl_dyn_year)) }
+        )
+        OutlinedTextField(
+            value = multiplier, onValueChange = { multiplier = it },
+            modifier = Modifier.fillMaxWidth(), singleLine = true,
+            label = { Text(stringResource(R.string.ui2_ppl_dyn_multiplier)) }
+        )
+        OutlinedTextField(
+            value = adder, onValueChange = { adder = it },
+            modifier = Modifier.fillMaxWidth(), singleLine = true,
+            label = { Text(stringResource(R.string.ui2_ppl_dyn_adder,
+                RegionProfiles.current.rateUnit)) }
+        )
+        OutlinedTextField(
+            value = cap, onValueChange = { cap = it },
+            modifier = Modifier.fillMaxWidth(), singleLine = true,
+            label = { Text(stringResource(R.string.ui2_ppl_dyn_cap,
+                RegionProfiles.current.rateUnit)) }
+        )
+        Button(
+            onClick = {
+                val newTerms = com.tfcode.comparetout.model.priceplan.DynamicTerms()
+                newTerms.market = terms.market
+                newTerms.multiplier = parsed(multiplier)
+                newTerms.adder = parsed(adder)
+                newTerms.cap = parsed(cap)
+                newTerms.floor = terms.floor
+                newTerms.feedMultiplier = terms.feedMultiplier
+                newTerms.feedAdder = terms.feedAdder
+                viewModel.regenerate(newTerms, yearValue ?: lastCompleteYear)
+            },
+            enabled = ready,
+            modifier = Modifier.fillMaxWidth()
+        ) { Text(stringResource(R.string.ui2_ppw_dynamic_regenerate)) }
+    }
+}

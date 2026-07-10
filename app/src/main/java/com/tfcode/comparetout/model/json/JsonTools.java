@@ -25,6 +25,7 @@ import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.model.IntHolder;
 import com.tfcode.comparetout.model.json.priceplan.DayRateJson;
+import com.tfcode.comparetout.model.json.priceplan.DynamicTermsJson;
 import com.tfcode.comparetout.model.json.priceplan.MinuteRangeCostJson;
 import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile;
 import com.tfcode.comparetout.model.json.priceplan.RestrictionEntryJson;
@@ -47,6 +48,7 @@ import com.tfcode.comparetout.model.json.scenario.PanelJson;
 import com.tfcode.comparetout.model.json.scenario.ScenarioJsonFile;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.DoubleHolder;
+import com.tfcode.comparetout.model.priceplan.DynamicTerms;
 import com.tfcode.comparetout.model.priceplan.MinuteRateRange;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.priceplan.RangeRate;
@@ -126,14 +128,29 @@ public class JsonTools {
         PricePlan p = new PricePlan();
         p.setPlanName(pp.plan);
         p.setSupplier(pp.supplier);
-        p.setFeed(pp.feed);
-        p.setStandingCharges(pp.standingCharges);
-        p.setSignUpBonus(pp.bonus);
-        p.setActive(pp.active);
-        p.setLastUpdate(pp.lastUpdate);
-        p.setReference(pp.reference);
-        p.setDeemedExport(pp.deemedExport);
+        // Scalars are null-guarded so a terms-only dynamic file (which may carry
+        // little beyond Supplier/Plan/Dynamic) imports without unboxing NPEs.
+        p.setFeed(null == pp.feed ? 0d : pp.feed);
+        p.setStandingCharges(null == pp.standingCharges ? 0d : pp.standingCharges);
+        p.setSignUpBonus(null == pp.bonus ? 0d : pp.bonus);
+        if (!(null == pp.active)) p.setActive(pp.active);
+        if (!(null == pp.lastUpdate)) p.setLastUpdate(pp.lastUpdate);
+        if (!(null == pp.reference)) p.setReference(pp.reference);
+        p.setDeemedExport(null == pp.deemedExport ? false : pp.deemedExport);
         if (!(null == pp.location)) p.setLocation(pp.location);
+        if (!(null == pp.dynamic)) {
+            DynamicTerms dt = new DynamicTerms();
+            dt.setMarket(pp.dynamic.market);
+            dt.setYear(pp.dynamic.year);
+            dt.setMultiplier(pp.dynamic.multiplier);
+            dt.setAdder(pp.dynamic.adder);
+            dt.setCap(pp.dynamic.cap);
+            dt.setFloor(pp.dynamic.floor);
+            dt.setFeedMultiplier(pp.dynamic.feedMultiplier);
+            dt.setFeedAdder(pp.dynamic.feedAdder);
+            dt.setSourceRef(pp.dynamic.sourceRef);
+            p.setDynamicTerms(dt);
+        }
         Restrictions restrictions = new Restrictions();
         RestrictionJson rj = pp.restrictions;
         if (!(null == rj)) {
@@ -183,9 +200,26 @@ public class JsonTools {
            mrr = MinuteRateRange.fromHours(dh);
         }
         dr.setMinuteRateRange(mrr);
+        dr.setRateType("sell".equalsIgnoreCase(drj.rateType)
+                ? DayRate.RATE_SELL : DayRate.RATE_BUY);
         if (drj.dbID == null) dr.setDayRateIndex(0L);
         else dr.setDayRateIndex(drj.dbID);
         return dr;
+    }
+
+    private static DynamicTermsJson createDynamicTermsJson(DynamicTerms dt) {
+        if (null == dt) return null;
+        DynamicTermsJson dj = new DynamicTermsJson();
+        dj.market = dt.getMarket();
+        dj.year = dt.getYear();
+        dj.multiplier = dt.getMultiplier();
+        dj.adder = dt.getAdder();
+        dj.cap = dt.getCap();
+        dj.floor = dt.getFloor();
+        dj.feedMultiplier = dt.getFeedMultiplier();
+        dj.feedAdder = dt.getFeedAdder();
+        dj.sourceRef = dt.getSourceRef();
+        return dj;
     }
 
     /**
@@ -203,7 +237,9 @@ public class JsonTools {
         ArrayList<PricePlanJsonFile> ppList = new ArrayList<>();
             for (Map.Entry<PricePlan, List<DayRate>> entry : pricePlans.entrySet()) {
                 ArrayList<DayRateJson> dayRateJsons = new ArrayList<>();
-                for (DayRate dr : entry.getValue()){
+                // Dynamic plans export terms-only: their rates are a derived artefact,
+                // regenerated locally, and market-derived prices must not be redistributed.
+                if (!entry.getKey().isDynamic()) for (DayRate dr : entry.getValue()){
                     DayRateJson drj = new DayRateJson();
                     drj.startDate = dr.getStartDate();
                     drj.endDate = dr.getEndDate();
@@ -224,11 +260,14 @@ public class JsonTools {
                             drj.minuteRange.add(new MinuteRangeCostJson(rr.getBegin(), rr.getEnd(), rr.getPrice()));
                         }
                     }
+                    // Absent for BUY rates, so pre-v16 exports are byte-identical.
+                    drj.rateType = (dr.getRateType() == DayRate.RATE_SELL) ? "sell" : null;
                     drj.dbID = dr.getDayRateIndex();
                     dayRateJsons.add(drj);
                 }
                 PricePlanJsonFile ppj = new PricePlanJsonFile();
-                ppj.rates = dayRateJsons;
+                ppj.rates = entry.getKey().isDynamic() ? null : dayRateJsons;
+                ppj.dynamic = createDynamicTermsJson(entry.getKey().getDynamicTerms());
                 ppj.active = entry.getKey().isActive();
                 ppj.plan = entry.getKey().getPlanName();
                 ppj.bonus = entry.getKey().getSignUpBonus();
@@ -263,7 +302,9 @@ public class JsonTools {
 
     public static String createSinglePricePlanJsonObject(PricePlan pp, List<DayRate> rates) {
         ArrayList<DayRateJson> dayRateJsons = new ArrayList<>();
-        for (DayRate dr : rates) {
+        // Dynamic plans export terms-only: their rates are a derived artefact,
+        // regenerated locally, and market-derived prices must not be redistributed.
+        if (!pp.isDynamic()) for (DayRate dr : rates) {
             DayRateJson drj = new DayRateJson();
             drj.startDate = dr.getStartDate();
             drj.endDate = dr.getEndDate();
@@ -286,11 +327,14 @@ public class JsonTools {
                     drj.minuteRange.add(new MinuteRangeCostJson(rr.getBegin(), rr.getEnd(), rr.getPrice()));
                 }
             }
+            // Absent for BUY rates, so pre-v16 exports are byte-identical.
+            drj.rateType = (dr.getRateType() == DayRate.RATE_SELL) ? "sell" : null;
             drj.dbID = dr.getDayRateIndex();
             dayRateJsons.add(drj);
         }
         PricePlanJsonFile ppj = new PricePlanJsonFile();
-        ppj.rates = dayRateJsons;
+        ppj.rates = pp.isDynamic() ? null : dayRateJsons;
+        ppj.dynamic = createDynamicTermsJson(pp.getDynamicTerms());
         ppj.active = pp.isActive();
         ppj.plan = pp.getPlanName();
         ppj.bonus = pp.getSignUpBonus();
@@ -555,6 +599,11 @@ public class JsonTools {
         intHolder.ints = loadShiftJson.days;
         loadShift.setDays(intHolder);
         loadShift.setInverter(loadShiftJson.inverter);
+        // v16 optional window fields; absent = defaults (full year, legacy hours).
+        if (!(null == loadShiftJson.startDate)) loadShift.setStartDate(loadShiftJson.startDate);
+        if (!(null == loadShiftJson.endDate)) loadShift.setEndDate(loadShiftJson.endDate);
+        if (!(null == loadShiftJson.beginMinute)) loadShift.setBeginMinute(loadShiftJson.beginMinute);
+        if (!(null == loadShiftJson.endMinute)) loadShift.setEndMinute(loadShiftJson.endMinute);
         return loadShift;
     }
 
@@ -583,6 +632,10 @@ public class JsonTools {
         intHolder.ints = dischargeJson.days;
         dischargeToGrid.setDays(intHolder);
         dischargeToGrid.setInverter(dischargeJson.inverter);
+        if (!(null == dischargeJson.startDate)) dischargeToGrid.setStartDate(dischargeJson.startDate);
+        if (!(null == dischargeJson.endDate)) dischargeToGrid.setEndDate(dischargeJson.endDate);
+        if (!(null == dischargeJson.beginMinute)) dischargeToGrid.setBeginMinute(dischargeJson.beginMinute);
+        if (!(null == dischargeJson.endMinute)) dischargeToGrid.setEndMinute(dischargeJson.endMinute);
         return dischargeToGrid;
     }
 
@@ -609,6 +662,10 @@ public class JsonTools {
         IntHolder intHolder = new IntHolder();
         intHolder.ints = evChargeJson.days;
         evCharge.setDays(intHolder);
+        if (!(null == evChargeJson.startDate)) evCharge.setStartDate(evChargeJson.startDate);
+        if (!(null == evChargeJson.endDate)) evCharge.setEndDate(evChargeJson.endDate);
+        if (!(null == evChargeJson.beginMinute)) evCharge.setBeginMinute(evChargeJson.beginMinute);
+        if (!(null == evChargeJson.endMinute)) evCharge.setEndMinute(evChargeJson.endMinute);
         return evCharge;
     }
 
@@ -634,6 +691,10 @@ public class JsonTools {
         IntHolder intHolder = new IntHolder();
         intHolder.ints = hwScheduleJson.days;
         hwSchedule.setDays(intHolder);
+        if (!(null == hwScheduleJson.startDate)) hwSchedule.setStartDate(hwScheduleJson.startDate);
+        if (!(null == hwScheduleJson.endDate)) hwSchedule.setEndDate(hwScheduleJson.endDate);
+        if (!(null == hwScheduleJson.beginMinute)) hwSchedule.setBeginMinute(hwScheduleJson.beginMinute);
+        if (!(null == hwScheduleJson.endMinute)) hwSchedule.setEndMinute(hwScheduleJson.endMinute);
         return hwSchedule;
     }
 
@@ -675,6 +736,10 @@ public class JsonTools {
             IntHolder intHolder = new IntHolder();
             intHolder.ints = evDivertJson.days;
             evDivert.setDays(intHolder);
+            if (!(null == evDivertJson.startDate)) evDivert.setStartDate(evDivertJson.startDate);
+            if (!(null == evDivertJson.endDate)) evDivert.setEndDate(evDivertJson.endDate);
+            if (!(null == evDivertJson.beginMinute)) evDivert.setBeginMinute(evDivertJson.beginMinute);
+            if (!(null == evDivertJson.endMinute)) evDivert.setEndMinute(evDivertJson.endMinute);
         }
         catch (NullPointerException npe) {
             System.out.println("No EVDivert in json");
@@ -745,6 +810,10 @@ public class JsonTools {
             evDivertJson.months = (ArrayList<Integer>) evDivert.getMonths().months;
             evDivertJson.days = (ArrayList<Integer>) evDivert.getDays().ints;
             evDivertJson.minimum = evDivert.getMinimum();
+            evDivertJson.startDate = "01/01".equals(evDivert.getStartDate()) ? null : evDivert.getStartDate();
+            evDivertJson.endDate = "12/31".equals(evDivert.getEndDate()) ? null : evDivert.getEndDate();
+            evDivertJson.beginMinute = evDivert.getBeginMinute() < 0 ? null : evDivert.getBeginMinute();
+            evDivertJson.endMinute = evDivert.getEndMinute() < 0 ? null : evDivert.getEndMinute();
         }
         return evDivertJson;
     }
@@ -766,6 +835,10 @@ public class JsonTools {
                 hwScheduleJson.end = hws.getEnd();
                 hwScheduleJson.months = (ArrayList<Integer>) hws.getMonths().months;
                 hwScheduleJson.days = (ArrayList<Integer>) hws.getDays().ints;
+                hwScheduleJson.startDate = "01/01".equals(hws.getStartDate()) ? null : hws.getStartDate();
+                hwScheduleJson.endDate = "12/31".equals(hws.getEndDate()) ? null : hws.getEndDate();
+                hwScheduleJson.beginMinute = hws.getBeginMinute() < 0 ? null : hws.getBeginMinute();
+                hwScheduleJson.endMinute = hws.getEndMinute() < 0 ? null : hws.getEndMinute();
                 hwScheduleJsons.add(hwScheduleJson);
             }
         }
@@ -783,6 +856,10 @@ public class JsonTools {
                 evChargeJson.draw = evc.getDraw();
                 evChargeJson.months = (ArrayList<Integer>) evc.getMonths().months;
                 evChargeJson.days = (ArrayList<Integer>) evc.getDays().ints;
+                evChargeJson.startDate = "01/01".equals(evc.getStartDate()) ? null : evc.getStartDate();
+                evChargeJson.endDate = "12/31".equals(evc.getEndDate()) ? null : evc.getEndDate();
+                evChargeJson.beginMinute = evc.getBeginMinute() < 0 ? null : evc.getBeginMinute();
+                evChargeJson.endMinute = evc.getEndMinute() < 0 ? null : evc.getEndMinute();
                 evChargeJsons.add(evChargeJson);
             }
         }
@@ -801,6 +878,12 @@ public class JsonTools {
                 loadShiftJson.months = (ArrayList<Integer>) loadShift.getMonths().months;
                 loadShiftJson.days = (ArrayList<Integer>) loadShift.getDays().ints;
                 loadShiftJson.inverter = loadShift.getInverter();
+                // Emit the v16 window fields only when non-default, so pre-v16
+                // scenarios serialise byte-identically.
+                loadShiftJson.startDate = "01/01".equals(loadShift.getStartDate()) ? null : loadShift.getStartDate();
+                loadShiftJson.endDate = "12/31".equals(loadShift.getEndDate()) ? null : loadShift.getEndDate();
+                loadShiftJson.beginMinute = loadShift.getBeginMinute() < 0 ? null : loadShift.getBeginMinute();
+                loadShiftJson.endMinute = loadShift.getEndMinute() < 0 ? null : loadShift.getEndMinute();
                 loadShiftJsons.add(loadShiftJson);
             }
         }
@@ -820,6 +903,10 @@ public class JsonTools {
                 dischargeJson.months = (ArrayList<Integer>) discharge.getMonths().months;
                 dischargeJson.days = (ArrayList<Integer>) discharge.getDays().ints;
                 dischargeJson.inverter = discharge.getInverter();
+                dischargeJson.startDate = "01/01".equals(discharge.getStartDate()) ? null : discharge.getStartDate();
+                dischargeJson.endDate = "12/31".equals(discharge.getEndDate()) ? null : discharge.getEndDate();
+                dischargeJson.beginMinute = discharge.getBeginMinute() < 0 ? null : discharge.getBeginMinute();
+                dischargeJson.endMinute = discharge.getEndMinute() < 0 ? null : discharge.getEndMinute();
                 dischargeJsons.add(dischargeJson);
             }
         }

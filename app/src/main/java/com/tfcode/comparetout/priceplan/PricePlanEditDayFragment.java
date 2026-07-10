@@ -160,7 +160,8 @@ public class PricePlanEditDayFragment extends Fragment {
         mPricePlan = JsonTools.createPricePlan(ppj);
         mDayRates = new HashMap<>();
         int idx = 0;
-        for (DayRateJson drj : ppj.rates){
+        // A terms-only dynamic plan carries no Rates.
+        if (!(null == ppj.rates)) for (DayRateJson drj : ppj.rates){
             DayRate dr = JsonTools.createDayRate(drj);
             mDayRates.put(idx, dr);
             idx++;

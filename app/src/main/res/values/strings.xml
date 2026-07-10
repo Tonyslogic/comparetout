@@ -768,6 +768,24 @@
         <item quantity="one">Added %1$d plan for region %2$s</item>
         <item quantity="other">Added %1$d plans for region %2$s</item>
     </plurals>
+    <string name="ui2_ppl_dynamic_tariff">Dynamic tariff</string>
+    <string name="ui2_ppl_dyn_desc">Builds a supplier plan from a dynamic (wholesale-tracking) offer: pick a historical year, enter the supplier\'s terms, and the app fetches that year\'s %1$s prices on this device and generates day-by-day rates. A first fetch for a year takes a few minutes; later generates reuse the cache.</string>
+    <string name="ui2_ppl_dyn_year">Historical year</string>
+    <string name="ui2_ppl_dyn_multiplier">Multiplier (× wholesale)</string>
+    <string name="ui2_ppl_dyn_adder">Adder (%1$s)</string>
+    <string name="ui2_ppl_dyn_cap">Cap (%1$s, optional)</string>
+    <string name="ui2_ppl_dyn_standing">Standing charges (%1$s/year)</string>
+    <string name="ui2_ppl_dyn_feed">Export rate (%1$s)</string>
+    <string name="ui2_ppl_dyn_generate">Generate plan</string>
+    <string name="ui2_ppl_dyn_queued">Generating “%1$s” in the background — progress shows as a notification.</string>
+    <string name="ui2_ppl_dyn_badge">Dynamic tariff</string>
+    <string name="ui2_ppw_dynamic_title">Dynamic terms</string>
+    <string name="ui2_ppw_dynamic_pending">Prices pending download</string>
+    <string name="ui2_ppw_dynamic_materialised">%1$s · %2$d</string>
+    <string name="ui2_ppw_dynamic_note">This plan\'s day-by-day rates are generated from these terms and the fetched wholesale prices — they can\'t be edited directly. Change the terms or the year, then regenerate.</string>
+    <string name="ui2_ppw_dynamic_regenerate">Regenerate prices</string>
+    <string name="ui2_ppl_dyn_pending_badge">Prices pending download — tap to retry</string>
+    <string name="ui2_ppl_dyn_pending_queued">Fetching prices for “%1$s”…</string>
     <plurals name="ui2_ppl_count">
         <item quantity="one">%1$d plan</item>
         <item quantity="other">%1$d plans</item>

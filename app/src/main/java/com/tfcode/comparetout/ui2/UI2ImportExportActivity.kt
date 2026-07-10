@@ -296,6 +296,8 @@ class UI2ImportExportViewModel @Inject constructor(
             // it's the same path legacy MainActivity uses for bulk import.
             repository.insert(plan, drs, clobber)
             if (plan.planName in existingNames) replaced += 1 else added += 1
+            // Terms-only dynamic plans land pending — auto-materialise.
+            DynamicTariffWorker.maybeEnqueuePendingImport(getApplication(), pp)
         }
         // Imported plans flipped the costing-readiness flags; kick the recompute (UI2 has no nav observer).
         SimulatorLauncher.simulateIfNeeded(getApplication())

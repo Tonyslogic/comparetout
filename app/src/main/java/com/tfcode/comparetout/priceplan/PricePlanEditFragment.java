@@ -159,7 +159,8 @@ public class PricePlanEditFragment extends Fragment {
         PricePlanJsonFile ppj = new Gson().fromJson(mFocus, type);
         mPricePlan = JsonTools.createPricePlan(ppj);
         mDayRates = new ArrayList<>();
-        for (DayRateJson drj : ppj.rates){
+        // A terms-only dynamic plan carries no Rates.
+        if (!(null == ppj.rates)) for (DayRateJson drj : ppj.rates){
             DayRate dr = JsonTools.createDayRate(drj);
             mDayRates.add(dr);
         }

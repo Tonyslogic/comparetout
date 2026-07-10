@@ -21,6 +21,7 @@ import androidx.room.TypeConverter;
 import com.google.gson.Gson;
 import com.tfcode.comparetout.model.costings.SubTotals;
 import com.tfcode.comparetout.model.priceplan.DoubleHolder;
+import com.tfcode.comparetout.model.priceplan.DynamicTerms;
 import com.tfcode.comparetout.model.priceplan.MinuteRateRange;
 import com.tfcode.comparetout.model.priceplan.Restrictions;
 import com.tfcode.comparetout.model.scenario.ChargeModel;
@@ -95,6 +96,17 @@ public class Converters {
     @TypeConverter
     public static Restrictions toRestrictions(String s) {
         return new Gson().fromJson(s, Restrictions.class);
+    }
+
+    @TypeConverter
+    public static String fromDynamicTerms(DynamicTerms dt) {
+        Gson gson = new Gson();
+        return gson.toJson(dt);
+    }
+
+    @TypeConverter
+    public static DynamicTerms toDynamicTerms(String s) {
+        return new Gson().fromJson(s, DynamicTerms.class);
     }
 
     @TypeConverter

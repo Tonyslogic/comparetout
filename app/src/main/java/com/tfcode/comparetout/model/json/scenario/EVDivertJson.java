@@ -57,4 +57,18 @@ public class EVDivertJson {
     @SerializedName("minimum")
     public
     Double minimum = 0d;
+
+    // v16 optional date-aware, minute-granular window; absent = defaults
+    // (full year, window from the legacy whole-hour begin/end).
+    @SerializedName("StartDate")
+    public String startDate;
+
+    @SerializedName("EndDate")
+    public String endDate;
+
+    @SerializedName("BeginMinute")
+    public Integer beginMinute;
+
+    @SerializedName("EndMinute")
+    public Integer endMinute;
 }

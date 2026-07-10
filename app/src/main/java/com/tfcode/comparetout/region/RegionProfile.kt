@@ -33,6 +33,20 @@ import com.tfcode.comparetout.BuildConfig
 // see UI2MainActivity.maybeShowRegionMismatch).
 // ──────────────────────────────────────────────────────────────────────────
 
+/**
+ * A wholesale market whose historical prices this edition can fetch on-device
+ * for dynamic-tariff materialisation. Resolved to a [com.tfcode.comparetout.dynamic.HistoricalRateSource]
+ * by id; UI entry points hide when the region lists none.
+ */
+data class DynamicMarket(
+    /** Stable descriptor id carried by DynamicTerms.market, e.g. "ISEM-DAM". */
+    @JvmField val id: String,
+    /** User-visible name, e.g. "I-SEM Day-Ahead (SEMOpx)". */
+    @JvmField val displayName: String,
+    /** Attribution / licensing note shown on the generate sheet and in plan references. */
+    @JvmField val attribution: String
+)
+
 data class RegionProfile(
     /** ISO 3166-1 alpha-2, uppercase — compared against [PricePlan.location] and the device SIM. */
     @JvmField val regionCode: String,
@@ -56,7 +70,9 @@ data class RegionProfile(
      */
     @JvmField val pricePlanFeedUrl: String?,
     /** Caveat shown beside the community feed entry (null when no feed). */
-    @JvmField val pricePlanFeedNote: String?
+    @JvmField val pricePlanFeedNote: String?,
+    /** Wholesale markets available for dynamic tariffs; empty = feature hidden. */
+    @JvmField val dynamicMarkets: List<DynamicMarket> = emptyList()
 ) {
     /** Rate unit for per-kWh prices: "c/kWh" / "p/kWh". */
     val rateUnit: String get() = "$minorSymbol/kWh"
@@ -77,7 +93,15 @@ object RegionProfiles {
         pricePlanFeedUrl =
             "https://raw.githubusercontent.com/Tonyslogic/comparetout-doc/main/price-plans/rates.json",
         pricePlanFeedNote = "Community-maintained Irish supplier tariffs — may be out of " +
-            "date. You can edit any plan after importing."
+            "date. You can edit any plan after importing.",
+        dynamicMarkets = listOf(
+            DynamicMarket(
+                id = "ISEM-DAM",
+                displayName = "I-SEM Day-Ahead (SEMOpx)",
+                attribution = "Prices fetched on this device from SEMOpx public reports " +
+                    "(reports.semopx.com), provided AS IS by SEMOpx. Not redistributed."
+            )
+        )
     )
 
     @JvmField

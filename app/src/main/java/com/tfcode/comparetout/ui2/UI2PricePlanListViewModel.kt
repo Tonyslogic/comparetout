@@ -40,7 +40,13 @@ data class PricePlanListRow(
     val lastUpdate: String,
     val active: Boolean,
     val location: String = "",
-    val hasRestrictions: Boolean = false
+    val hasRestrictions: Boolean = false,
+    /** Generated wholesale-tracking plan (carries DynamicTerms). */
+    val isDynamic: Boolean = false,
+    /** Dynamic plan whose prices have not been materialised yet. */
+    val isPending: Boolean = false,
+    /** The backtest year recorded in the terms, when set. */
+    val dynamicYear: Int? = null
 ) {
     /** True when [location] is set and differs from the device's country. */
     fun locationMismatch(deviceCountry: String): Boolean =
@@ -100,7 +106,10 @@ class UI2PricePlanListViewModel @Inject constructor(
                         active = plan.isActive,
                         location = plan.location,
                         hasRestrictions = plan.restrictions?.isActive == true &&
-                                plan.restrictions?.restrictions.orEmpty().isNotEmpty()
+                                plan.restrictions?.restrictions.orEmpty().isNotEmpty(),
+                        isDynamic = plan.isDynamic,
+                        isPending = plan.isPendingDynamic(drs),
+                        dynamicYear = plan.dynamicTerms?.year
                     )
                 }.sortedWith(compareBy({ it.supplier.lowercase() }, { it.planName.lowercase() }))
                 // Drop the favourite if the plan it points to has been deleted.
@@ -172,6 +181,9 @@ class UI2PricePlanListViewModel @Inject constructor(
             pp.rates?.forEach { drj -> drs.add(JsonTools.createDayRate(drj)) }
             repository.insert(plan, drs, clobber)
             if (plan.planName in existingNames) replaced += 1 else added += 1
+            // A terms-only dynamic plan lands pending; auto-materialise it
+            // (self-heal poke — the badge offers tap-to-retry if this fails).
+            DynamicTariffWorker.maybeEnqueuePendingImport(getApplication(), pp)
         }
         ImportOutcome(replaced, added)
     }

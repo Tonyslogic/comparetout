@@ -32,14 +32,17 @@ import androidx.work.WorkerParameters;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.costings.Costings;
 import com.tfcode.comparetout.model.costings.SubTotals;
+import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
 import com.tfcode.comparetout.util.RateLookup;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Background worker for calculating energy costs across scenarios and price plans.
@@ -68,6 +71,11 @@ public class CostingWorker extends Worker {
 
     private final ToutcRepository mToutcRepository;
     private final Map<Long, RateLookup> mLookups;
+    // Plans with SELL DayRates cost export per-slot; absent from this map = scalar feed.
+    private final Map<Long, RateLookup> mSellLookups;
+    // Pending dynamic plans (terms present, prices not yet materialised) — skipped
+    // without writing a costing row, so the pair self-heals after materialisation.
+    private final Set<Long> mPendingPlans;
     private final Context mContext;
 
     /**
@@ -80,6 +88,8 @@ public class CostingWorker extends Worker {
         super(context, workerParams);
         mToutcRepository = new ToutcRepository((Application) context);
         mLookups = new HashMap<>();
+        mSellLookups = new HashMap<>();
+        mPendingPlans = new HashSet<>();
         mContext = context;
     }
 
@@ -171,6 +181,9 @@ public class CostingWorker extends Worker {
                             // Skip if costing already exists to avoid duplicate work
                             if (mToutcRepository.costingExists(scenarioID, pp.getPricePlanIndex()))
                                 continue;
+                            // Pending dynamic plan (already detected below on an earlier scenario)
+                            if (mPendingPlans.contains(pp.getPricePlanIndex()))
+                                continue;
                             String planLabel = pp.getSupplier() + ": " + pp.getPlanName();
                             builder.setContentText("Costing " + planLabel);
                             // Periodically update notification to avoid UI lag
@@ -184,10 +197,27 @@ public class CostingWorker extends Worker {
                              */
                             RateLookup lookup = mLookups.get(pp.getPricePlanIndex());
                             if (null == lookup) {
-                                lookup = new RateLookup(pp,
-                                        mToutcRepository.getAllDayRatesForPricePlanID(pp.getPricePlanIndex()));
+                                List<DayRate> planRates = mToutcRepository
+                                        .getAllDayRatesForPricePlanID(pp.getPricePlanIndex());
+                                // A pending dynamic plan (terms, no BUY rates) must NOT be
+                                // costed: an empty lookup prices every row at 0 and the plan
+                                // ranks "best". Leave the (scenario × plan) pair missing —
+                                // materialisation fires markAllScenariosNeedCosting and the
+                                // pair self-heals on the next pass.
+                                if (pp.isPendingDynamic(planRates)) {
+                                    mPendingPlans.add(pp.getPricePlanIndex());
+                                    continue;
+                                }
+                                lookup = new RateLookup(pp, DayRate.buyRates(planRates));
                                 mLookups.put(pp.getPricePlanIndex(), lookup);
+                                List<DayRate> sellRates = DayRate.sellRates(planRates);
+                                if (!sellRates.isEmpty()) {
+                                    mSellLookups.put(pp.getPricePlanIndex(),
+                                            new RateLookup(pp, sellRates));
+                                }
                             }
+                            // Null when the plan has no SELL rates → scalar feed applies.
+                            RateLookup sellLookup = mSellLookups.get(pp.getPricePlanIndex());
                             /*
                              * COST CALCULATION LOOP
                              * For each simulation row, apply the price plan's rates to calculate buy and sell totals.
@@ -205,11 +235,15 @@ public class CostingWorker extends Worker {
 
                             // Calculate costs for each simulation data point
                             for (ScenarioSimulationData row : scenarioData) {
+                                int dayOfWeek = (row.getDayOfWeek() == 7) ? 0 : row.getDayOfWeek();
                                 double price = lookup.getRate(row.getDayOf2001(), row.getMinuteOfDay(),
-                                        (row.getDayOfWeek() == 7) ? 0 : row.getDayOfWeek(), row.getBuy());
+                                        dayOfWeek, row.getBuy());
                                 double rowBuy = price * row.getBuy();
                                 buy += rowBuy;
-                                sell += pp.getFeed() * row.getFeed();
+                                double feedRate = (null == sellLookup) ? pp.getFeed()
+                                        : sellLookup.getRate(row.getDayOf2001(), row.getMinuteOfDay(),
+                                                dayOfWeek, row.getFeed());
+                                sell += feedRate * row.getFeed();
                                 subTotals.addToPrice(price, row.getBuy()); // This is the number of units
                             }
                             costing.setBuy(buy);

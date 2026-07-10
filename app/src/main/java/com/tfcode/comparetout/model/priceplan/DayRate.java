@@ -17,15 +17,24 @@
 package com.tfcode.comparetout.model.priceplan;
 
 import androidx.annotation.NonNull;
+import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
 import com.tfcode.comparetout.model.IntHolder;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity(tableName = "DayRates")
 public class DayRate {
+
+    // Every pre-v16 row is an import price; export prices reuse the whole DayRate
+    // machinery (date ranges, days, minute ranges) tagged SELL. A plan with no SELL
+    // rates falls back to the scalar PricePlan.feed.
+    public static final int RATE_BUY = 0;
+    public static final int RATE_SELL = 1;
 
     @PrimaryKey(autoGenerate = true)
     private long dayRateIndex;
@@ -37,6 +46,8 @@ public class DayRate {
     private MinuteRateRange minuteRateRange = new MinuteRateRange();
     @NonNull private String startDate = "01/01";
     @NonNull private String endDate = "12/31";
+    @ColumnInfo(defaultValue = "0")
+    private int rateType = RATE_BUY;
 
     public long getDayRateIndex() {
         return dayRateIndex;
@@ -95,6 +106,26 @@ public class DayRate {
 
     public void setEndDate(@NonNull String endDate) {
         this.endDate = endDate;
+    }
+
+    public int getRateType() {
+        return rateType;
+    }
+
+    public void setRateType(int rateType) {
+        this.rateType = rateType;
+    }
+
+    public static List<DayRate> buyRates(List<DayRate> drs) {
+        List<DayRate> filtered = new ArrayList<>();
+        for (DayRate dr : drs) if (dr.getRateType() == RATE_BUY) filtered.add(dr);
+        return filtered;
+    }
+
+    public static List<DayRate> sellRates(List<DayRate> drs) {
+        List<DayRate> filtered = new ArrayList<>();
+        for (DayRate dr : drs) if (dr.getRateType() == RATE_SELL) filtered.add(dr);
+        return filtered;
     }
 
     public static final int DR_OK = 0;

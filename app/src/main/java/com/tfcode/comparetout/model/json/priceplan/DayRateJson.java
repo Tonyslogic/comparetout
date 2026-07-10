@@ -41,6 +41,12 @@ public class DayRateJson {
     public
     String endDate;
 
+    // "buy" or "sell"; absent = buy, so pre-v16 exports load unchanged and
+    // buy-only plans serialise byte-identically to before.
+    @SerializedName("RateType")
+    public
+    String rateType;
+
     @SerializedName("dbID")
     public
     Long dbID;

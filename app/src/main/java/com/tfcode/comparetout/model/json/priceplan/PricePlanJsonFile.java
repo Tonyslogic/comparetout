@@ -42,6 +42,8 @@ public class PricePlanJsonFile {
     public
     Double bonus;
 
+    // Optional when a "Dynamic" block is present: a terms-only file is a valid
+    // dynamic plan pending materialisation of its prices.
     @SerializedName("Rates")
     public
     ArrayList<DayRateJson> rates;
@@ -68,5 +70,10 @@ public class PricePlanJsonFile {
 
     @SerializedName("Restrictions")
     public RestrictionJson restrictions = new RestrictionJson();
+
+    // Supplier terms of a dynamic (wholesale-tracking) tariff; absent for
+    // every conventional plan.
+    @SerializedName("Dynamic")
+    public DynamicTermsJson dynamic;
 }
 

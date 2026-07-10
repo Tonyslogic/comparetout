@@ -78,6 +78,7 @@ import com.tfcode.comparetout.model.costings.SubTotals;
 import com.tfcode.comparetout.region.RegionProfiles;
 import com.tfcode.comparetout.model.importers.CostInputRow;
 import com.tfcode.comparetout.model.importers.InverterDateRange;
+import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.util.GraphableActivity;
 import com.tfcode.comparetout.util.LocalContentWebViewClient;
@@ -559,9 +560,16 @@ public abstract class ImportOverviewFragment extends Fragment {
         List<PricePlan> plans = mToutcRepository.getAllPricePlansNow();
         mCostViewModel.setPlans(plans);
         for (PricePlan pp : plans) {
-            RateLookup lookup = new RateLookup(pp,
-                    mToutcRepository.getAllDayRatesForPricePlanID(pp.getPricePlanIndex()));
+            List<DayRate> planRates =
+                    mToutcRepository.getAllDayRatesForPricePlanID(pp.getPricePlanIndex());
+            // A pending dynamic plan (terms, prices not yet materialised) would cost
+            // every unit at 0 and rank "best" — skip it entirely.
+            if (pp.isPendingDynamic(planRates)) continue;
+            RateLookup lookup = new RateLookup(pp, DayRate.buyRates(planRates));
             lookup.setStartDOY(mCostViewModel.getSelectedStart().getDayOfYear());
+            // Per-slot export prices when the plan carries SELL rates; scalar feed otherwise.
+            List<DayRate> sellRates = DayRate.sellRates(planRates);
+            RateLookup sellLookup = sellRates.isEmpty() ? null : new RateLookup(pp, sellRates);
             Costings costing = new Costings();
             costing.setScenarioID(0L);
             costing.setPricePlanID(pp.getPricePlanIndex());
@@ -585,7 +593,14 @@ public abstract class ImportOverviewFragment extends Fragment {
             costing.setBuy(buy);
             for (Map.Entry<LocalDateTime, Double> usage : mCostViewModel.getExports().entrySet()) {
                 if (usage.getKey().isAfter(mCostViewModel.getSelectedStart()) && usage.getKey().isBefore(mCostViewModel.getSelectedEnd())) {
-                    double price = pp.getFeed();
+                    double price;
+                    if (null == sellLookup) price = pp.getFeed();
+                    else {
+                        LocalDateTime ldt = usage.getKey();
+                        price = sellLookup.getRate(ldt.getDayOfYear(),
+                                ldt.getHour() * 60 + ldt.getMinute(),
+                                ldt.getDayOfWeek().getValue(), usage.getValue());
+                    }
                     double rowSell = price * usage.getValue();
                     sell += rowSell;
                 }

@@ -36,6 +36,7 @@ import com.tfcode.comparetout.scenario.sim.SimTime;
 import com.tfcode.comparetout.scenario.sim.SurplusSink;
 import com.tfcode.comparetout.scenario.sim.TimeAxis;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -587,6 +588,32 @@ public class SimulationEngine {
     }
 
     /**
+     * A schedule's MM/DD window as inclusive 2001 day-of-year bounds (DayRate
+     * semantics: 02/29 collapses onto 02/28; no wrap-around ranges — an end
+     * before the start simply never matches, like the legacy hour window).
+     * Malformed dates behave like the pre-v16 default: the full year.
+     */
+    private static int[] dayOfYearWindow(String startDate, String endDate) {
+        try {
+            int[] s = monthDayOf(startDate);
+            int[] e = monthDayOf(endDate);
+            return new int[]{toDayOfYear2001(s[0], s[1]), toDayOfYear2001(e[0], e[1])};
+        } catch (Exception ex) {
+            return new int[]{1, 365};
+        }
+    }
+
+    private static int[] monthDayOf(String mmdd) {
+        String[] bits = mmdd.split("/");
+        return new int[]{Integer.parseInt(bits[0].trim()), Integer.parseInt(bits[1].trim())};
+    }
+
+    private static int toDayOfYear2001(int month, int day) {
+        if (month == 2 && day == 29) day = 28; // the sim year 2001 is not a leap year
+        return LocalDate.of(2001, month, day).getDayOfYear();
+    }
+
+    /**
      * ChargeFromGrid manages the schedule for charging batteries from the grid,
      * based on user-configured load shift schedules. It determines, for each time step,
      * whether grid charging is active and the stop threshold.
@@ -619,20 +646,36 @@ public class SimulationEngine {
          * @param groupedLoadShifts Map of grouped load shifts.
          */
         private void populateCFG(Map<Integer, List<LoadShift>> groupedLoadShifts) {
+            // v16 date windows are shared per group (equalDateAndInverter includes
+            // them) — parse each group's MM/DD range once, not per 5-minute slot.
+            Map<Integer, int[]> dateWindows = new HashMap<>();
+            for (Map.Entry<Integer, List<LoadShift>> aGroup : groupedLoadShifts.entrySet()) {
+                if (!(null == aGroup.getValue()) && !aGroup.getValue().isEmpty()) {
+                    LoadShift first = aGroup.getValue().get(0);
+                    dateWindows.put(aGroup.getKey(),
+                            dayOfYearWindow(first.getStartDate(), first.getEndDate()));
+                }
+            }
             LocalDateTime active = LocalDateTime.of(2001, 1, 1, 0, 0);
             LocalDateTime end = LocalDateTime.of(2002, 1, 1, 0, 0);
             int row = 0;
             while (active.isBefore(end)) {
                 int month = active.getMonthValue();
+                int dayOfYear = active.getDayOfYear();
                 int day = active.getDayOfWeek().getValue();
                 if (day == 7) day = 0;
                 for (Map.Entry<Integer, List<LoadShift>> aGroup: groupedLoadShifts.entrySet()) {
                     if (!(null == aGroup.getValue()) && !aGroup.getValue().isEmpty() ) {
+                        int[] window = dateWindows.get(aGroup.getKey());
                         if (aGroup.getValue().get(0).getDays().ints.contains(day) &&
-                                aGroup.getValue().get(0).getMonths().months.contains(month)) {
-                            int hour = active.getHour();
+                                aGroup.getValue().get(0).getMonths().months.contains(month) &&
+                                !(null == window) && window[0] <= dayOfYear && dayOfYear <= window[1]) {
+                            int minuteOfDay = active.getHour() * 60 + active.getMinute();
                             for (LoadShift loadShift : aGroup.getValue()) {
-                                if ((loadShift.getBegin() <= hour) && (hour <= loadShift.getEnd()) ) {
+                                // Effective minutes reproduce the legacy inclusive-end
+                                // hour window exactly when beginMinute/endMinute are -1.
+                                if ((loadShift.getEffectiveBeginMinute() <= minuteOfDay)
+                                        && (minuteOfDay < loadShift.getEffectiveEndMinute())) {
                                     mCFG.set(row, true);
                                     mStopAt.set(row, loadShift.getStopAt());
                                     break; // One true is enough
@@ -709,20 +752,36 @@ public class SimulationEngine {
          * @param groupedDischarges Map of grouped discharges.
          */
         private void populateFD2G(Map<Integer, List<DischargeToGrid>> groupedDischarges) {
+            // v16 date windows are shared per group (equalDateAndInverter includes
+            // them) — parse each group's MM/DD range once, not per 5-minute slot.
+            Map<Integer, int[]> dateWindows = new HashMap<>();
+            for (Map.Entry<Integer, List<DischargeToGrid>> aGroup : groupedDischarges.entrySet()) {
+                if (!(null == aGroup.getValue()) && !aGroup.getValue().isEmpty()) {
+                    DischargeToGrid first = aGroup.getValue().get(0);
+                    dateWindows.put(aGroup.getKey(),
+                            dayOfYearWindow(first.getStartDate(), first.getEndDate()));
+                }
+            }
             LocalDateTime active = LocalDateTime.of(2001, 1, 1, 0, 0);
             LocalDateTime end = LocalDateTime.of(2002, 1, 1, 0, 0);
             int row = 0;
             while (active.isBefore(end)) {
                 int month = active.getMonthValue();
+                int dayOfYear = active.getDayOfYear();
                 int day = active.getDayOfWeek().getValue();
                 if (day == 7) day = 0;
                 for (Map.Entry<Integer, List<DischargeToGrid>> aGroup: groupedDischarges.entrySet()) {
                     if (!(null == aGroup.getValue()) && !aGroup.getValue().isEmpty() ) {
+                        int[] window = dateWindows.get(aGroup.getKey());
                         if (aGroup.getValue().get(0).getDays().ints.contains(day) &&
-                                aGroup.getValue().get(0).getMonths().months.contains(month)) {
-                            int hour = active.getHour();
+                                aGroup.getValue().get(0).getMonths().months.contains(month) &&
+                                !(null == window) && window[0] <= dayOfYear && dayOfYear <= window[1]) {
+                            int minuteOfDay = active.getHour() * 60 + active.getMinute();
                             for (DischargeToGrid discharge : aGroup.getValue()) {
-                                if ((discharge.getBegin() <= hour) && (hour <= discharge.getEnd()) ) {
+                                // Effective minutes reproduce the legacy inclusive-end
+                                // hour window exactly when beginMinute/endMinute are -1.
+                                if ((discharge.getEffectiveBeginMinute() <= minuteOfDay)
+                                        && (minuteOfDay < discharge.getEffectiveEndMinute())) {
                                     mD2G.set(row, true);
                                     // There could be multiple entries (connected batteries) for this inverter
                                     // They may have different rates and stopAts, but we just pick the biggest

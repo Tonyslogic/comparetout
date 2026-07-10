@@ -174,7 +174,8 @@ public class PricePlanActivity extends InsetRespectingActivity {
     private void setupViewPager() {
         Type type = new TypeToken<PricePlanJsonFile>(){}.getType();
         PricePlanJsonFile ppj = new Gson().fromJson(focusedPlan, type);
-        int count = ppj.rates.size() + 1;
+        // A terms-only dynamic plan carries no Rates; show the details tab alone.
+        int count = (null == ppj.rates ? 0 : ppj.rates.size()) + 1;
 
         viewPager.setAdapter(createPlanAdapter(count));
         viewPager.setOffscreenPageLimit(4);
@@ -300,7 +301,7 @@ public class PricePlanActivity extends InsetRespectingActivity {
         PricePlanJsonFile ppj = new Gson().fromJson(focusedPlan, type);
         PricePlan pp = JsonTools.createPricePlan(ppj);
         List<DayRate> drs = new ArrayList<>();
-        for (DayRateJson drj : ppj.rates){
+        if (!(null == ppj.rates)) for (DayRateJson drj : ppj.rates){
             DayRate dr = JsonTools.createDayRate(drj);
             drs.add(dr);
         }
@@ -311,6 +312,17 @@ public class PricePlanActivity extends InsetRespectingActivity {
     public boolean onOptionsItemSelected(MenuItem item) {
 
         if (item.getItemId() == R.id.edit_a_plan) {//add the function to perform here
+            // A dynamic plan's 365 rates are generated from its terms — the legacy
+            // per-day-rate tabs must not edit them (and would be unusable anyway).
+            // UI2's plan wizard carries the terms card that regenerates them.
+            Type dynType = new TypeToken<PricePlanJsonFile>() {}.getType();
+            PricePlanJsonFile dynCheck = new Gson().fromJson(focusedPlan, dynType);
+            if (!(null == dynCheck) && !(null == dynCheck.dynamic)) {
+                Snackbar.make(getWindow().getDecorView().getRootView(),
+                        "Generated dynamic plan — edit its terms in the plan wizard",
+                        Snackbar.LENGTH_LONG).setAction("Action", null).show();
+                return false;
+            }
             edit = true;
             setPlanValidity(mPlanValidity);
             MenuItem saveMenuItem = mMenu.findItem(R.id.save_a_plan);
@@ -340,7 +352,7 @@ public class PricePlanActivity extends InsetRespectingActivity {
             PricePlan p = JsonTools.createPricePlan(pp);
             p.setPricePlanIndex(planID);
             ArrayList<DayRate> drs = new ArrayList<>();
-            for (DayRateJson drj : pp.rates) {
+            if (!(null == pp.rates)) for (DayRateJson drj : pp.rates) {
                 DayRate dr = JsonTools.createDayRate(drj);
                 dr.setPricePlanId(planID);
                 drs.add(dr);
@@ -369,7 +381,7 @@ public class PricePlanActivity extends InsetRespectingActivity {
                 PricePlanJsonFile ppj = new Gson().fromJson(focusedPlan, type);
                 PricePlan pricePlan = JsonTools.createPricePlan(ppj);
                 ArrayList<DayRate> dayRates = new ArrayList<>();
-                for (DayRateJson drj : ppj.rates) {
+                if (!(null == ppj.rates)) for (DayRateJson drj : ppj.rates) {
                     dayRates.add(JsonTools.createDayRate(drj));
                 }
                 dayRates.remove(pos - 1);
@@ -396,7 +408,7 @@ public class PricePlanActivity extends InsetRespectingActivity {
             PricePlanJsonFile ppj = new Gson().fromJson(focusedPlan, type);
             PricePlan pricePlan = JsonTools.createPricePlan(ppj);
             ArrayList<DayRate> dayRates = new ArrayList<>();
-            for (DayRateJson drj : ppj.rates) {
+            if (!(null == ppj.rates)) for (DayRateJson drj : ppj.rates) {
                 dayRates.add(JsonTools.createDayRate(drj));
             }
             DayRate newDayRate = new DayRate();

@@ -247,6 +247,14 @@ private fun PricePlanListScreen(
                             onDelete = { pendingDelete = row },
                             onToggleFavourite = { viewModel.toggleFavourite(row.planId) },
                             onToggleActive = { viewModel.setActive(row.planId, !row.active) },
+                            onRetryPending = {
+                                DynamicTariffWorker.enqueueForPlan(
+                                    context, row.planId, row.planName,
+                                    row.dynamicYear ?: (java.time.LocalDate.now().year - 1))
+                                Toast.makeText(context,
+                                    context.getString(R.string.ui2_ppl_dyn_pending_queued, row.planName),
+                                    Toast.LENGTH_SHORT).show()
+                            },
                             onShare = {
                                 // Serialise on IO, fire the share intent on Main. The
                                 // chooser is launched from the Activity context so any
@@ -359,11 +367,22 @@ private fun PricePlanListScreen(
             // the community source never renders, so "" is never seen.
             communityNote = region.pricePlanFeedNote ?: "",
             llmPrompt = PricePlanDownloader.LLM_PROMPT,
-            extraSourceLabel = if (region.hasOctopus)
-                stringResource(R.string.ui2_ppl_octopus_tariffs) else null,
-            extraSourceContent = if (region.hasOctopus) {
-                { OctopusTariffFetchPane() }
-            } else null,
+            // One extra self-contained source per edition: the Octopus tariff
+            // browser (GB) or the dynamic-tariff generator (regions with a
+            // wholesale market registered, IE first).
+            extraSourceLabel = when {
+                region.hasOctopus -> stringResource(R.string.ui2_ppl_octopus_tariffs)
+                region.dynamicMarkets.isNotEmpty() ->
+                    stringResource(R.string.ui2_ppl_dynamic_tariff)
+                else -> null
+            },
+            extraSourceContent = when {
+                region.hasOctopus -> ({ OctopusTariffFetchPane() })
+                region.dynamicMarkets.isNotEmpty() -> ({
+                    DynamicTariffPane(onQueued = { showImport = false })
+                })
+                else -> null
+            },
             parse = { parsePricePlansJson(context, it) },
             onApply = {
                 pendingImport = it
@@ -513,6 +532,7 @@ private fun PricePlanAccordion(
     onDelete: () -> Unit,
     onToggleFavourite: () -> Unit,
     onToggleActive: () -> Unit,
+    onRetryPending: () -> Unit,
     onShare: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -651,6 +671,33 @@ private fun PricePlanAccordion(
                             shape = CircleShape
                         ) {
                             Text(stringResource(R.string.ui2_ppl_restrictions_badge),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp))
+                        }
+                    }
+
+                    // Dynamic plans are generated artefacts — badge them so a
+                    // 365-rate plan is recognisably not hand-entered. Pending =
+                    // terms imported but prices not yet downloaded; tap retries.
+                    if (row.isPending) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f),
+                            shape = CircleShape,
+                            modifier = Modifier.clickable(onClick = onRetryPending)
+                        ) {
+                            Text(stringResource(R.string.ui2_ppl_dyn_pending_badge),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp))
+                        }
+                    } else if (row.isDynamic) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.4f),
+                            shape = CircleShape
+                        ) {
+                            Text(stringResource(R.string.ui2_ppl_dyn_badge) +
+                                    (row.dynamicYear?.let { " · $it" } ?: ""),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onTertiaryContainer,
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp))
@@ -949,5 +996,105 @@ private fun OctopusTariffFetchPane() {
             Text(it, style = MaterialTheme.typography.bodySmall,
                 fontWeight = FontWeight.Medium)
         }
+    }
+}
+
+// ── Dynamic tariff generator (wholesale-tracking offers, IE/I-SEM first) ──
+//
+// Collects the supplier's published terms (multiplier/adder/cap over the
+// day-ahead price, standing charge, export rate) plus a historical backtest
+// year, then hands off to DynamicTariffWorker: the fetch is minutes on a
+// first run, so it happens in the background with a notification, not here.
+
+@Composable
+private fun DynamicTariffPane(onQueued: () -> Unit) {
+    val context = LocalContext.current
+    val region = RegionProfiles.current
+    val market = region.dynamicMarkets.first()
+    val lastCompleteYear = remember { java.time.LocalDate.now().year - 1 }
+    var year by remember { mutableStateOf(lastCompleteYear.toString()) }
+    var multiplier by remember { mutableStateOf("1.0") }
+    var adder by remember { mutableStateOf("") }
+    var cap by remember { mutableStateOf("") }
+    var standing by remember { mutableStateOf("0") }
+    var feed by remember { mutableStateOf("0") }
+
+    fun parsed(s: String): Double? = s.trim().replace(',', '.').toDoubleOrNull()
+    val yearValue = year.trim().toIntOrNull()
+    // The SEM went live 2018-10; a future/current year can't be complete.
+    val ready = yearValue != null && yearValue in 2018..lastCompleteYear &&
+            parsed(multiplier) != null && parsed(adder) != null
+
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            stringResource(R.string.ui2_ppl_dyn_desc, market.displayName),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        OutlinedTextField(
+            value = year, onValueChange = { year = it },
+            modifier = Modifier.fillMaxWidth(), singleLine = true,
+            label = { Text(stringResource(R.string.ui2_ppl_dyn_year)) }
+        )
+        OutlinedTextField(
+            value = multiplier, onValueChange = { multiplier = it },
+            modifier = Modifier.fillMaxWidth(), singleLine = true,
+            label = { Text(stringResource(R.string.ui2_ppl_dyn_multiplier)) }
+        )
+        OutlinedTextField(
+            value = adder, onValueChange = { adder = it },
+            modifier = Modifier.fillMaxWidth(), singleLine = true,
+            label = { Text(stringResource(R.string.ui2_ppl_dyn_adder, region.rateUnit)) }
+        )
+        OutlinedTextField(
+            value = cap, onValueChange = { cap = it },
+            modifier = Modifier.fillMaxWidth(), singleLine = true,
+            label = { Text(stringResource(R.string.ui2_ppl_dyn_cap, region.rateUnit)) }
+        )
+        OutlinedTextField(
+            value = standing, onValueChange = { standing = it },
+            modifier = Modifier.fillMaxWidth(), singleLine = true,
+            label = { Text(stringResource(R.string.ui2_ppl_dyn_standing, region.currencySymbol)) }
+        )
+        OutlinedTextField(
+            value = feed, onValueChange = { feed = it },
+            modifier = Modifier.fillMaxWidth(), singleLine = true,
+            label = { Text(stringResource(R.string.ui2_ppl_dyn_feed, region.rateUnit)) }
+        )
+        Button(
+            onClick = {
+                val supplier = market.displayName.substringBefore(" (")
+                val digest = "×$multiplier +${adder}c" +
+                        (parsed(cap)?.let { ", cap ${cap.trim()}c" } ?: "")
+                val ppj = PricePlanJsonFile()
+                ppj.supplier = supplier
+                ppj.plan = "DA $year $digest"
+                ppj.standingCharges = parsed(standing) ?: 0.0
+                ppj.feed = parsed(feed) ?: 0.0
+                ppj.bonus = 0.0
+                ppj.active = true
+                ppj.location = region.regionCode
+                val terms = com.tfcode.comparetout.model.json.priceplan.DynamicTermsJson()
+                terms.market = market.id
+                terms.year = yearValue
+                terms.multiplier = parsed(multiplier)
+                terms.adder = parsed(adder)
+                terms.cap = parsed(cap)
+                ppj.dynamic = terms
+                DynamicTariffWorker.enqueue(
+                    context, com.google.gson.Gson().toJson(ppj), ppj.plan, yearValue ?: lastCompleteYear)
+                Toast.makeText(context,
+                    context.getString(R.string.ui2_ppl_dyn_queued, ppj.plan),
+                    Toast.LENGTH_LONG).show()
+                onQueued()
+            },
+            enabled = ready,
+            modifier = Modifier.fillMaxWidth()
+        ) { Text(stringResource(R.string.ui2_ppl_dyn_generate)) }
+        Text(
+            market.attribution,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }

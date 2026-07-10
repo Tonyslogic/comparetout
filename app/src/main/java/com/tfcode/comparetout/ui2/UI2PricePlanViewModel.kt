@@ -14,6 +14,7 @@ import com.tfcode.comparetout.model.json.JsonTools
 import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile
 import com.tfcode.comparetout.model.priceplan.DayRate
 import com.tfcode.comparetout.model.priceplan.DoubleHolder
+import com.tfcode.comparetout.model.priceplan.DynamicTerms
 import com.tfcode.comparetout.model.priceplan.MinuteRateRange
 import com.tfcode.comparetout.model.priceplan.PricePlan
 import com.tfcode.comparetout.model.priceplan.Restrictions
@@ -120,8 +121,13 @@ data class PricePlanBuilder(
     // Tiered-usage restrictions (e.g. Octopus Zero: 4000 kWh/year at the base
     // rate, then a different unit price). Costing applies them via RateLookup.
     val restrictionsActive: Boolean = false,
-    val restrictionEntries: List<RestrictionEntryBuilder> = emptyList()
+    val restrictionEntries: List<RestrictionEntryBuilder> = emptyList(),
+    // Supplier terms of a dynamic (wholesale-tracking) plan. Non-null gates the
+    // whole rate editor: the 365 generated day-rates are never loaded into
+    // builders or hand-edited — the terms card regenerates them instead.
+    val dynamicTerms: DynamicTerms? = null
 ) {
+    val isDynamic: Boolean get() = dynamicTerms != null
     /** Distinct rate values (c/kWh) across all day-rate bands — the values a restriction can attach to. */
     val uniqueRates: List<Double>
         get() = dayRates.flatMap { dr -> dr.bands.map { it.price } }.distinct().sorted()
@@ -243,7 +249,14 @@ class UI2PricePlanViewModel @Inject constructor(
             try {
                 val (plan, rates) = _builder.value.toEntities()
                 if (isEditMode) {
-                    repository.updatePricePlan(plan, ArrayList(rates))
+                    // Dynamic plans carry no rate builders — pass the stored rows
+                    // through unchanged (preserving their BUY/SELL tags) so a
+                    // scalar edit (name/standing/feed) can't strip the generated
+                    // rates. Terms changes go through regenerate() instead.
+                    val effectiveRates = if (_builder.value.isDynamic)
+                        repository.getAllDayRatesForPricePlanID(pricePlanId)
+                    else rates
+                    repository.updatePricePlan(plan, ArrayList(effectiveRates))
                     // Editing a plan invalidates every costing computed against it
                     // (across all scenarios) — otherwise the dashboard / Compare
                     // tab would show stale figures until something else forced a
@@ -322,9 +335,10 @@ class UI2PricePlanViewModel @Inject constructor(
                 deemedExport = parsedPlan.isDeemedExport,
                 lastUpdate = parsedPlan.lastUpdate ?: "",
                 location = parsedPlan.location,
-                dayRates = dayRateBuilders,
+                dayRates = if (parsedPlan.isDynamic) emptyList() else dayRateBuilders,
                 restrictionsActive = parsedPlan.restrictions?.isActive == true,
-                restrictionEntries = parsedPlan.restrictions.toEntryBuilders()
+                restrictionEntries = parsedPlan.restrictions.toEntryBuilders(),
+                dynamicTerms = parsedPlan.dynamicTerms
             )
         }
         // Expand the day-rates accordion so the user immediately sees what
@@ -333,6 +347,37 @@ class UI2PricePlanViewModel @Inject constructor(
         _expandedSections.value += "rates"
         _expandedDayRates.value =
             setOfNotNull(_builder.value.dayRates.firstOrNull()?.id)
+    }
+
+    /**
+     * The dynamic plan's only rate-mutation path: apply edited terms + year by
+     * regenerating. A terms-only plan JSON goes to [DynamicTariffWorker], whose
+     * clobbering insert replaces this plan's row and its generated rates; the
+     * screen closes like a save and the notification tracks the fetch.
+     */
+    fun regenerate(newTerms: DynamicTerms, year: Int) {
+        val b = _builder.value
+        val ppj = PricePlanJsonFile()
+        ppj.supplier = b.supplier
+        ppj.plan = b.planName
+        ppj.standingCharges = b.standingCharges
+        ppj.feed = b.feed
+        ppj.bonus = b.signUpBonus
+        ppj.active = true
+        ppj.location = b.location
+        val terms = com.tfcode.comparetout.model.json.priceplan.DynamicTermsJson()
+        terms.market = newTerms.market
+        terms.year = year
+        terms.multiplier = newTerms.multiplier
+        terms.adder = newTerms.adder
+        terms.cap = newTerms.cap
+        terms.floor = newTerms.floor
+        terms.feedMultiplier = newTerms.feedMultiplier
+        terms.feedAdder = newTerms.feedAdder
+        ppj.dynamic = terms
+        DynamicTariffWorker.enqueue(
+            getApplication(), com.google.gson.Gson().toJson(ppj), b.planName, year)
+        _saveResult.value = PricePlanSaveResult.Saved
     }
 }
 
@@ -346,6 +391,12 @@ class UI2PricePlanViewModel @Inject constructor(
 fun validate(b: PricePlanBuilder): PlanIssues {
     val supplierBlank = b.supplier.isBlank()
     val planNameBlank = b.planName.isBlank()
+
+    // Dynamic plans carry no editable day-rates — the generated set already
+    // passed the model's checks at materialisation (or is pending download).
+    if (b.isDynamic) {
+        return PlanIssues(supplierBlank = supplierBlank, planNameBlank = planNameBlank)
+    }
 
     val drIssues = mutableMapOf<Long, DayRateIssues>()
     for (dr in b.dayRates) {
@@ -461,9 +512,16 @@ private fun PricePlan.toBuilder(rates: List<DayRate>): PricePlanBuilder = PriceP
     deemedExport = isDeemedExport,
     lastUpdate = lastUpdate,
     location = location,
-    dayRates = if (rates.isEmpty()) listOf(DayRateBuilder()) else rates.map { it.toBuilder() },
+    // A dynamic plan's 365 generated rates never become editor cards — the
+    // terms card is the only mutation path; save passes the rates through.
+    dayRates = when {
+        isDynamic -> emptyList()
+        rates.isEmpty() -> listOf(DayRateBuilder())
+        else -> rates.map { it.toBuilder() }
+    },
     restrictionsActive = restrictions?.isActive == true,
-    restrictionEntries = restrictions.toEntryBuilders()
+    restrictionEntries = restrictions.toEntryBuilders(),
+    dynamicTerms = dynamicTerms
 )
 
 /**
@@ -539,6 +597,7 @@ private fun PricePlanBuilder.toEntities(): Pair<PricePlan, List<DayRate>> {
         isActive = true   // UI2 does not surface the "inactive" flag; always active.
         restrictions = buildRestrictions(
             this@toEntities.restrictionsActive, this@toEntities.restrictionEntries)
+        dynamicTerms = this@toEntities.dynamicTerms
     }
     val rates = dayRates.map { dr ->
         DayRate().apply {
