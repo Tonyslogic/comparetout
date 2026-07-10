@@ -251,7 +251,8 @@ public class OctopusCsvImportWorker extends Worker {
     private void createChannel() {
         CharSequence name = getApplicationContext().getString(R.string.octopus_channel_name);
         String description = getApplicationContext().getString(R.string.channel_description);
-        int importance = NotificationManager.IMPORTANCE_LOW;
+        // DEFAULT (not LOW): builders silence via setSilent(true); a below-DEFAULT "silent" channel hides the status-bar icon
+        int importance = NotificationManager.IMPORTANCE_DEFAULT;
         NotificationChannel channel = new NotificationChannel(
                 getApplicationContext().getString(R.string.octopus_channel_id), name, importance);
         channel.setDescription(description);

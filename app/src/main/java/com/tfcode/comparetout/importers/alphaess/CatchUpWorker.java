@@ -241,7 +241,8 @@ public class CatchUpWorker extends Worker {
         // Create a Notification channel
         CharSequence name = getApplicationContext().getString(R.string.alphaess_channel_name);
         String description = getApplicationContext().getString(R.string.channel_description);
-        int importance = NotificationManager.IMPORTANCE_LOW;
+        // DEFAULT (not LOW): builders silence via setSilent(true); a below-DEFAULT "silent" channel hides the status-bar icon
+        int importance = NotificationManager.IMPORTANCE_DEFAULT;
         NotificationChannel channel = new NotificationChannel(
                 getApplicationContext().getString(R.string.alphaess_channel_id), name, importance);
         channel.setDescription(description);

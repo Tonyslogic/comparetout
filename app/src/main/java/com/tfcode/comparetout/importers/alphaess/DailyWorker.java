@@ -196,6 +196,7 @@ public class DailyWorker extends Worker {
                 .setContentTitle("AlphaESS data not yet available")
                 .setContentText(forDate + " for " + systemSN + " isn't available yet; will retry on the next daily run")
                 .setSmallIcon(R.drawable.ic_baseline_download_24)
+                .setSilent(true)
                 .setAutoCancel(true)
                 .setContentIntent(activityPendingIntent)
                 .build();
@@ -296,7 +297,8 @@ public class DailyWorker extends Worker {
         // Create a Notification channel
         CharSequence name = getApplicationContext().getString(R.string.alphaess_channel_name);
         String description = getApplicationContext().getString(R.string.channel_description);
-        int importance = NotificationManager.IMPORTANCE_LOW;
+        // DEFAULT (not LOW): builders silence via setSilent(true); a below-DEFAULT "silent" channel hides the status-bar icon
+        int importance = NotificationManager.IMPORTANCE_DEFAULT;
         NotificationChannel channel = new NotificationChannel(
                 getApplicationContext().getString(R.string.alphaess_channel_id), name, importance);
         channel.setDescription(description);

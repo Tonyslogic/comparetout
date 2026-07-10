@@ -247,8 +247,9 @@ public class TimezoneRestampWorker extends Worker {
     private void ensureChannel(Context context) {
         NotificationManager nm = context.getSystemService(NotificationManager.class);
         if (nm == null) return;
+        // DEFAULT (not LOW): builders silence via setSilent(true); a below-DEFAULT "silent" channel hides the status-bar icon
         NotificationChannel channel = new NotificationChannel(CHANNEL_ID,
-                context.getString(R.string.channel_name), NotificationManager.IMPORTANCE_LOW);
+                context.getString(R.string.channel_name), NotificationManager.IMPORTANCE_DEFAULT);
         channel.setDescription(context.getString(R.string.channel_description));
         nm.createNotificationChannel(channel);
     }

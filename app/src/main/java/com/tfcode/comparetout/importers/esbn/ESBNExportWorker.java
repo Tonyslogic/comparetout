@@ -265,7 +265,8 @@ public class ESBNExportWorker extends Worker {
         String description = getApplicationContext().getString(R.string.channel_description);
         NotificationChannel channel = new NotificationChannel(
                 getApplicationContext().getString(R.string.esbn_channel_id),
-                name, NotificationManager.IMPORTANCE_LOW);
+                // DEFAULT (not LOW): builders silence via setSilent(true); a below-DEFAULT "silent" channel hides the status-bar icon
+                name, NotificationManager.IMPORTANCE_DEFAULT);
         channel.setDescription(description);
         NotificationManager nm = getApplicationContext().getSystemService(NotificationManager.class);
         nm.createNotificationChannel(channel);
