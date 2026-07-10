@@ -114,6 +114,10 @@ public class SolisCloudClient {
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
                 .writeTimeout(30, TimeUnit.SECONDS)
+                // This class owns retrying (rebuilt, re-signed request + explicit backoff).
+                // OkHttp's transparent retry would re-send the stale-timestamp signature and
+                // swallow the first HTTP 408, deferring the immediate clock-skew mapping.
+                .retryOnConnectionFailure(false)
                 .build();
     }
 

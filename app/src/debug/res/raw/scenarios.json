@@ -43,7 +43,8 @@
 				"Optimized": false,
 				"PV data source": "PVGIS",
 				"PV data start": "2001-01-01",
-				"PV data end": "2001-12-31"
+				"PV data end": "2001-12-31",
+				"PV system loss": 14
 			},
 			{
 				"PanelCount": 7,
@@ -58,7 +59,8 @@
 				"Optimized": false,
 				"PV data source": "PVGIS",
 				"PV data start": "2001-01-01",
-				"PV data end": "2001-12-31"
+				"PV data end": "2001-12-31",
+				"PV system loss": 14
 			}
 		],
 		"HWSystem": {

@@ -29,7 +29,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NavigableMap;
-import java.util.Objects;
 import java.util.TreeMap;
 
 /**
@@ -113,14 +112,14 @@ public class RateLookup {
             LocalDate start = LocalDate.of(2001, Integer.parseInt(startBits[0]), Integer.parseInt(startBits[1]));
             int startDOY = start.getDayOfYear();
 
-            // Find or create the day-of-week mapping for this date range
+            // Find or create the day-of-week mapping for this date range. The floor
+            // entry's map must be COPIED, never reused: mutating the shared reference
+            // would rewrite the earlier date range's rates too, leaving every range
+            // priced at whichever DayRate happened to be processed last.
             NavigableMap<Integer, MinuteRateRange> dowRange;
             Map.Entry<Integer, NavigableMap<Integer, MinuteRateRange>> entry = mLookup.floorEntry(startDOY);
-            if (null == entry) dowRange = new TreeMap<>();
-            else {
-                dowRange = Objects.requireNonNull(mLookup.floorEntry(startDOY)).getValue();
-                if (null == dowRange) dowRange = new TreeMap<>();
-            }
+            if (null == entry || null == entry.getValue()) dowRange = new TreeMap<>();
+            else dowRange = new TreeMap<>(entry.getValue());
 
             MinuteRateRange rateRange = dr.getMinuteRateRange();
             if (null == rateRange) rateRange = new MinuteRateRange();
