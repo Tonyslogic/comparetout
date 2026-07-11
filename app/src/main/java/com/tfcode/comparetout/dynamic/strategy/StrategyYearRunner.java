@@ -17,7 +17,9 @@
 package com.tfcode.comparetout.dynamic.strategy;
 
 import java.time.LocalDate;
+import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -34,7 +36,19 @@ public final class StrategyYearRunner {
         double[] halfHourly(LocalDate date);
     }
 
+    /** Layer-B foresight for a 2001 date; empty when uncalibrated. */
+    public interface OutlookProvider {
+        List<DayOutlook> outlookFor(LocalDate date);
+    }
+
     private StrategyYearRunner() {
+    }
+
+    /** Layer-A-only run: no outlook. */
+    public static Map<LocalDate, DayDecisions> run(DispatchStrategy strategy, BatterySpec spec,
+                                                   HalfHourlyProvider buy, HalfHourlyProvider sell,
+                                                   HalfHourlyProvider load) {
+        return run(strategy, spec, buy, sell, load, date -> Collections.emptyList());
     }
 
     /**
@@ -45,7 +59,8 @@ public final class StrategyYearRunner {
      */
     public static Map<LocalDate, DayDecisions> run(DispatchStrategy strategy, BatterySpec spec,
                                                    HalfHourlyProvider buy, HalfHourlyProvider sell,
-                                                   HalfHourlyProvider load) {
+                                                   HalfHourlyProvider load,
+                                                   OutlookProvider outlook) {
         Map<LocalDate, DayDecisions> out = new LinkedHashMap<>();
         double soc = spec.floorKwh();
         LocalDate date = LocalDate.of(2001, 1, 1);
@@ -53,7 +68,7 @@ public final class StrategyYearRunner {
             LocalDate next = date.plusDays(1);
             double[] nextDayBuy = next.getYear() == 2001 ? buy.halfHourly(next) : null;
             DayContext ctx = new DayContext(date, buy.halfHourly(date), sell.halfHourly(date),
-                    nextDayBuy, load.halfHourly(date), soc, spec);
+                    nextDayBuy, load.halfHourly(date), soc, spec, outlook.outlookFor(date));
             DayDecisions decisions = strategy.decideDay(ctx);
             out.put(date, decisions);
             soc = Math.max(spec.floorKwh(), Math.min(spec.capacityKwh, decisions.socEndKwh));

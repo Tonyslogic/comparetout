@@ -201,10 +201,13 @@ class UI2SimulationsViewModel @Inject constructor(
         scenarioId: Long,
         planId: Long,
         strategy: DispatchStrategy,
+        useWeather: Boolean,
+        optimiseEv: Boolean,
         onResult: (StrategyScenarioGenerator.Result) -> Unit
     ) {
         viewModelScope.launch(Dispatchers.IO) {
-            val result = strategyGenerator.generateBlocking(scenarioId, planId, strategy)
+            val result = strategyGenerator.generateBlocking(
+                scenarioId, planId, strategy, useWeather, optimiseEv)
             withContext(Dispatchers.Main) { onResult(result) }
         }
     }

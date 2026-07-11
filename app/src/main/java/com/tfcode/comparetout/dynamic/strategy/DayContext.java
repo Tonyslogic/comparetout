@@ -17,6 +17,8 @@
 package com.tfcode.comparetout.dynamic.strategy;
 
 import java.time.LocalDate;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Everything a {@link DispatchStrategy} may look at when deciding one day.
@@ -24,8 +26,9 @@ import java.time.LocalDate;
  * <p>Layer A foresight: firm prices for the day being decided plus (when
  * available) the following day — matching what day-ahead publication actually
  * gives a household. {@link #nextDayBuy} is null on the last day of the year.
- * Layer B (expected prices D+2..D+10 with confidence) is a later phase; the
- * context will grow a field for it so strategies need no signature change.
+ * Layer B: {@link #outlook} carries expected prices for ~D+2..D+10 from the
+ * wind→price model with per-day confidence — empty when no calibration
+ * weather is available (strategies degrade to Layer A).
  *
  * <p>Dates run on the simulator's 2001 calendar; prices are the tariff's
  * retail c/kWh (buy already capped/floored by the plan terms, sell the raw
@@ -47,9 +50,18 @@ public final class DayContext {
     public final double socStartKwh;
     /** The battery being planned for. */
     public final BatterySpec battery;
+    /** Layer-B foresight for the coming days; empty when uncalibrated. */
+    public final List<DayOutlook> outlook;
 
     public DayContext(LocalDate date, double[] buy, double[] sell, double[] nextDayBuy,
                       double[] loadKwh, double socStartKwh, BatterySpec battery) {
+        this(date, buy, sell, nextDayBuy, loadKwh, socStartKwh, battery,
+                Collections.emptyList());
+    }
+
+    public DayContext(LocalDate date, double[] buy, double[] sell, double[] nextDayBuy,
+                      double[] loadKwh, double socStartKwh, BatterySpec battery,
+                      List<DayOutlook> outlook) {
         this.date = date;
         this.buy = buy;
         this.sell = sell;
@@ -57,5 +69,6 @@ public final class DayContext {
         this.loadKwh = loadKwh;
         this.socStartKwh = socStartKwh;
         this.battery = battery;
+        this.outlook = outlook;
     }
 }

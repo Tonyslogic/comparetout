@@ -32,6 +32,13 @@ public final class DynamicRateSources {
         if (SemopxRateSource.MARKET_ID.equals(marketId)) {
             return new SemopxRateSource(DynamicPriceCache.cacheDir(context));
         }
+        // GB Agile market ids carry the GSP region: "GB-AGILE-C".
+        if (!(null == marketId) && marketId.startsWith(OctopusAgileRateSource.MARKET_PREFIX)) {
+            String region = marketId.substring(OctopusAgileRateSource.MARKET_PREFIX.length());
+            if (region.length() == 1 && region.charAt(0) >= 'A' && region.charAt(0) <= 'P') {
+                return new OctopusAgileRateSource(context, region);
+            }
+        }
         return null;
     }
 }

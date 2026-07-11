@@ -38,10 +38,18 @@ public final class EvDivertComponent implements SurplusSink {
 
     private final List<EVDivert> evDiverts;
     private final Map<Integer, Double> dailyTotals;
+    // Derive the UTC day-of-month only when some schedule actually carries a
+    // v16 date window — the defaults path stays allocation-free per interval.
+    private final boolean anyDateWindowed;
 
     public EvDivertComponent(List<EVDivert> evDiverts, Map<Integer, Double> dailyTotals) {
         this.evDiverts = evDiverts;
         this.dailyTotals = dailyTotals;
+        boolean windowed = false;
+        if (!(null == evDiverts)) for (EVDivert d : evDiverts) {
+            if (!ScheduleDateWindow.isDefault(d.getStartDate(), d.getEndDate())) windowed = true;
+        }
+        this.anyDateWindowed = windowed;
     }
 
     /**
@@ -50,7 +58,9 @@ public final class EvDivertComponent implements SurplusSink {
      * the engine can branch on {@code isEv1st()} only when a divert actually applies.
      */
     public EVDivert activeDivertOrNull(IntervalContext ctx) {
-        EVDivert ev = scheduledDivertOrNull(evDiverts, ctx.dayOfWeek, ctx.month, ctx.minuteOfDay);
+        int dayOfMonth = anyDateWindowed ? ScheduleDateWindow.dayOfMonthUtc(ctx.millis) : 0;
+        EVDivert ev = scheduledDivertOrNull(evDiverts, ctx.dayOfWeek, ctx.month,
+                dayOfMonth, ctx.minuteOfDay);
         return (null != ev && ev.isActive()) ? ev : null;
     }
 
@@ -76,19 +86,28 @@ public final class EvDivertComponent implements SurplusSink {
     /**
      * The EV divert scheduled for the given time, or null (ignores active/inactive). Single source of
      * truth — {@code ScenarioInputs.getEVDivertOrNull} delegates here. Day-of-week 7 (Sun) normalises
-     * to 0.
+     * to 0. {@code dayOfMonth <= 0} disables the v16 date-window check; the minute window uses the
+     * effective minutes, which reproduce the legacy whole-hour exclusive-end check exactly when unset.
      */
-    public static EVDivert scheduledDivertOrNull(List<EVDivert> evDiverts,
-                                                 int dayOfWeek, int monthOfYear, int minuteOfDay) {
+    public static EVDivert scheduledDivertOrNull(List<EVDivert> evDiverts, int dayOfWeek,
+                                                 int monthOfYear, int dayOfMonth, int minuteOfDay) {
         if (dayOfWeek == 7) dayOfWeek = 0;
         if (!(null == evDiverts)) for (EVDivert evDivert : evDiverts) {
             if (evDivert.getMonths().months.contains(monthOfYear) &&
                     evDivert.getDays().ints.contains(dayOfWeek) &&
-                    evDivert.getBegin() * 60 <= minuteOfDay &&
-                    evDivert.getEnd() * 60 > minuteOfDay) {
+                    ScheduleDateWindow.contains(evDivert.getStartDate(), evDivert.getEndDate(),
+                            monthOfYear, dayOfMonth) &&
+                    evDivert.getEffectiveBeginMinute() <= minuteOfDay &&
+                    evDivert.getEffectiveEndMinute() > minuteOfDay) {
                 return evDivert;
             }
         }
         return null;
+    }
+
+    /** Date-blind legacy lookup — kept for callers that have no interval date. */
+    public static EVDivert scheduledDivertOrNull(List<EVDivert> evDiverts,
+                                                 int dayOfWeek, int monthOfYear, int minuteOfDay) {
+        return scheduledDivertOrNull(evDiverts, dayOfWeek, monthOfYear, 0, minuteOfDay);
     }
 }

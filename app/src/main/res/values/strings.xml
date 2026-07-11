@@ -764,6 +764,7 @@
     <string name="ui2_ppl_octo_fetch_failed">Octopus fetch failed</string>
     <string name="ui2_ppl_octo_existing">(%1$d already present)</string>
     <string name="ui2_ppl_octo_skipped">(%1$d not representable)</string>
+    <string name="ui2_ppl_octo_queued">(%1$d Agile fetching prices in the background)</string>
     <plurals name="ui2_ppl_octo_added">
         <item quantity="one">Added %1$d plan for region %2$s</item>
         <item quantity="other">Added %1$d plans for region %2$s</item>
@@ -799,6 +800,8 @@
     <string name="ui2_strategy_charge_slots">Cheapest half-hours to charge / day</string>
     <string name="ui2_strategy_discharge_slots">Dearest half-hours to export / day</string>
     <string name="ui2_strategy_generate">Generate</string>
+    <string name="ui2_strategy_weather">Weather-aware: hold charge before forecast price spikes (needs previously fetched CDS weather)</string>
+    <string name="ui2_strategy_ev">Reschedule EV charging into the cheapest half-hours (home 18:00 → departure 08:00, same energy per session)</string>
     <string name="ui2_strategy_generated">Created “%1$s” (%2$d charge, %3$d export rows) — simulating now.</string>
     <string name="ui2_strategy_failed">Couldn\'t generate: %1$s</string>
     <plurals name="ui2_ppl_count">

@@ -20,16 +20,25 @@ import android.content.Context
 import com.tfcode.comparetout.SimulatorLauncher
 import com.tfcode.comparetout.dynamic.strategy.BatterySpec
 import com.tfcode.comparetout.dynamic.strategy.DispatchStrategy
+import com.tfcode.comparetout.dynamic.strategy.EvSmartChargePlanner
+import com.tfcode.comparetout.dynamic.strategy.LayerBOutlook
 import com.tfcode.comparetout.dynamic.strategy.ScheduleEmitter
 import com.tfcode.comparetout.dynamic.strategy.StrategyYearRunner
+import com.tfcode.comparetout.dynamic.strategy.WeatherAwareStrategy
+import com.tfcode.comparetout.dynamic.strategy.WindPriceCalibration
 import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.model.priceplan.DayRate
 import com.tfcode.comparetout.model.scenario.LoadProfile
+import com.tfcode.comparetout.scenario.HeatPumpWeatherCache
+import com.tfcode.comparetout.scenario.sim.CsvWeatherProvider
 import com.tfcode.comparetout.util.RateLookup
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.io.File
+import java.io.FileReader
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.ZoneOffset
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -65,7 +74,16 @@ class StrategyScenarioGenerator @Inject constructor(
         data class Failed(val reason: String) : Result()
     }
 
-    fun generateBlocking(baseScenarioId: Long, planId: Long, strategy: DispatchStrategy): Result {
+    /**
+     * @param useWeather wrap the strategy in [WeatherAwareStrategy] and feed
+     *        it a Layer-B outlook calibrated from cached CDS/ERA5 wind (never
+     *        fetches — fails honestly when no weather has ever been cached).
+     * @param optimiseEv replace the base scenario's EVCharge rows with
+     *        deadline-scheduled ones: the same energy per session, moved to
+     *        the cheapest half-hours of the 18:00→08:00 availability window.
+     */
+    fun generateBlocking(baseScenarioId: Long, planId: Long, strategy: DispatchStrategy,
+                         useWeather: Boolean = false, optimiseEv: Boolean = false): Result {
         val components = repository.getScenarioComponentsForScenarioID(baseScenarioId)
             ?: return Result.Failed("Scenario not found")
         val base = components.scenario ?: return Result.Failed("Scenario not found")
@@ -115,15 +133,35 @@ class StrategyScenarioGenerator @Inject constructor(
             DoubleArray(48) { slot -> halfHourLoadKwh(loadProfile, date, slot / 2) }
         }
 
-        val decisions = StrategyYearRunner.run(strategy, spec, buyProvider, sellProvider, loadProvider)
+        var effectiveStrategy = strategy
+        var outlookProvider = StrategyYearRunner.OutlookProvider { emptyList() }
+        if (useWeather) {
+            outlookProvider = buildLayerB(plan.dynamicTerms?.year, buyProvider)
+                ?: return Result.Failed("No CDS weather cached yet — fetch heat-pump " +
+                        "weather once (any scenario), then retry")
+            effectiveStrategy = WeatherAwareStrategy(strategy)
+        }
+
+        val decisions = StrategyYearRunner.run(
+            effectiveStrategy, spec, buyProvider, sellProvider, loadProvider, outlookProvider)
         val dischargeRates = batteryInverters.associate { inv ->
             inv.inverterName to connected.first { it.inverter == inv.inverterName }.maxDischarge * 12.0
         }
         val emitted = ScheduleEmitter.emit(
-            decisions, strategy.name(), referenceInverter.inverterName, dischargeRates)
+            decisions, effectiveStrategy.name(), referenceInverter.inverterName, dischargeRates)
+
+        var evCharges = components.evCharges
+        if (optimiseEv) {
+            val baseEv = components.evCharges.orEmpty()
+            if (baseEv.isEmpty())
+                return Result.Failed("The base scenario has no EV charge schedules to optimise")
+            evCharges = EvSmartChargePlanner.plan(baseEv, buyProvider,
+                EvSmartChargePlanner.DEFAULT_ARRIVAL_MINUTE,
+                EvSmartChargePlanner.DEFAULT_DEADLINE_MINUTE)
+        }
 
         val yearSuffix = plan.dynamicTerms?.year?.let { " ($it)" } ?: ""
-        val generatedName = "${base.scenarioName} ⚡ ${strategy.name()}$yearSuffix"
+        val generatedName = "${base.scenarioName} ⚡ ${effectiveStrategy.name()}$yearSuffix"
 
         // Rebuild the components as a new scenario: zeroed indices insert
         // copies; panels/loadProfile keep theirs and are shared via junction
@@ -136,7 +174,8 @@ class StrategyScenarioGenerator @Inject constructor(
         components.inverters?.forEach { it.inverterIndex = 0 }
         components.batteries?.forEach { it.batteryIndex = 0 }
         components.heatPumps?.forEach { it.heatPumpIndex = 0 }
-        components.evCharges?.forEach { it.evChargeIndex = 0 }
+        evCharges?.forEach { it.evChargeIndex = 0 }
+        components.evCharges = evCharges
         components.evDiverts?.forEach { it.evDivertIndex = 0 }
         components.hwSchedules?.forEach { it.hwScheduleIndex = 0 }
         components.hwSystem?.hwSystemIndex = 0
@@ -148,6 +187,70 @@ class StrategyScenarioGenerator @Inject constructor(
         if (newId == 0L) return Result.Failed("Could not create scenario \"$generatedName\"")
         SimulatorLauncher.simulateIfNeeded(context)
         return Result.Generated(generatedName, emitted.loadShifts.size, emitted.discharges.size)
+    }
+
+    /**
+     * Calibrate the Layer-B wind→price model from a cached CDS weather CSV
+     * and the plan's materialised prices, and return the per-day outlook
+     * provider. Null when no usable weather is cached.
+     *
+     * A file covering the plan year is preferred (confidence 1.0); otherwise
+     * the longest cached file stands in with the §2f haircut (0.5) — a
+     * different year's wind still teaches the wind→price *shape*, it just
+     * isn't that year's weather.
+     */
+    private fun buildLayerB(
+        planYear: Int?,
+        buy: StrategyYearRunner.HalfHourlyProvider
+    ): StrategyYearRunner.OutlookProvider? {
+        data class Cached(val file: File, val start: LocalDate, val end: LocalDate)
+
+        fun covers(c: Cached, year: Int) = !c.start.isAfter(LocalDate.of(year, 1, 1)) &&
+                !c.end.isBefore(LocalDate.of(year, 12, 31))
+
+        val files = HeatPumpWeatherCache.cacheDir(context)
+            .listFiles { _, name -> name.startsWith("cds_") && name.endsWith(".csv") }
+            ?: return null
+        val cached = files.mapNotNull { f ->
+            val bits = f.name.removeSuffix(".csv").split("_")
+            if (bits.size != 5) null
+            else runCatching { Cached(f, LocalDate.parse(bits[3]), LocalDate.parse(bits[4])) }
+                .getOrNull()
+        }
+        if (cached.isEmpty()) return null
+
+        val exact = planYear?.let { year -> cached.firstOrNull { covers(it, year) } }
+        val pick = exact ?: cached.maxByOrNull { it.end.toEpochDay() - it.start.toEpochDay() }!!
+        // The MM/DD mapping needs a fully covered calendar year — otherwise the
+        // provider's endpoint clamping would silently flatten months of wind.
+        val mappingYear = if (exact != null) planYear!!
+        else (pick.start.year..pick.end.year).firstOrNull { covers(pick, it) } ?: return null
+        val weather = runCatching { FileReader(pick.file).use { CsvWeatherProvider(it) } }
+            .getOrNull() ?: return null
+        val baseConfidence = if (mappingYear == planYear) 1.0 else 0.5
+
+        val windByDate = HashMap<LocalDate, Double>()
+        val dailyWind = LayerBOutlook.DailyWind { date ->
+            windByDate.getOrPut(date) {
+                val real = LocalDate.of(mappingYear, date.monthValue, date.dayOfMonth)
+                val midnight = real.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
+                var sum = 0.0
+                for (hour in 0 until 24) sum += weather.windSpeedAt(midnight + hour * 3_600_000L)
+                sum / 24.0
+            }
+        }
+
+        val samples = ArrayList<WindPriceCalibration.DaySample>(365)
+        var date = LocalDate.of(2001, 1, 1)
+        while (date.year == 2001) {
+            samples.add(WindPriceCalibration.DaySample(
+                date, dailyWind.meanWind(date)!!, buy.halfHourly(date)))
+            date = date.plusDays(1)
+        }
+        val calibration = WindPriceCalibration.calibrate(samples)
+        return StrategyYearRunner.OutlookProvider { day ->
+            LayerBOutlook.outlookFor(day, calibration, dailyWind, baseConfidence)
+        }
     }
 
     companion object {

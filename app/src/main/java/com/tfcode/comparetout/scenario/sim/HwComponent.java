@@ -55,6 +55,9 @@ public final class HwComponent implements DemandContributor, SurplusSink {
     private final HWSystem hwSystem;
     private final Boolean hwDivert;
     private final List<HWSchedule> hwSchedules;
+    // Derive the UTC day-of-month only when some schedule actually carries a
+    // v16 date window — the defaults path stays allocation-free per interval.
+    private final boolean anyDateWindowed;
 
     /** Water temperature carried into the next interval (the previous interval's final value). */
     private double waterTemp = 0d;
@@ -69,6 +72,11 @@ public final class HwComponent implements DemandContributor, SurplusSink {
         this.hwSystem = hwSystem;
         this.hwDivert = hwDivert;
         this.hwSchedules = hwSchedules;
+        boolean windowed = false;
+        if (!(null == hwSchedules)) for (HWSchedule s : hwSchedules) {
+            if (!ScheduleDateWindow.isDefault(s.getStartDate(), s.getEndDate())) windowed = true;
+        }
+        this.anyDateWindowed = windowed;
     }
 
     /**
@@ -84,7 +92,9 @@ public final class HwComponent implements DemandContributor, SurplusSink {
     public DemandResult demand(IntervalContext ctx) {
         prevTemp = waterTemp;
         nowTemp = prevTemp;
-        immersionIsOn = isHotWaterHeatingScheduled(hwSchedules, ctx.dayOfWeek, ctx.month, ctx.minuteOfDay);
+        int dayOfMonth = anyDateWindowed ? ScheduleDateWindow.dayOfMonthUtc(ctx.millis) : 0;
+        immersionIsOn = isHotWaterHeatingScheduled(hwSchedules, ctx.dayOfWeek, ctx.month,
+                dayOfMonth, ctx.minuteOfDay);
         hwDiversionIsOn = !(null == hwSystem) && !(null == hwDivert) && hwDivert;
 
         double draw = 0d;
@@ -130,18 +140,28 @@ public final class HwComponent implements DemandContributor, SurplusSink {
     /**
      * Whether hot water heating is scheduled for the given time. Single source of truth — {@code
      * ScenarioInputs.isHotWaterHeatingScheduled} delegates here. Day-of-week 7 (Sun) normalises to 0.
+     * {@code dayOfMonth <= 0} disables the v16 date-window check; the minute window uses the
+     * effective minutes, which reproduce the legacy whole-hour exclusive-end check exactly when unset.
      */
-    public static boolean isHotWaterHeatingScheduled(List<HWSchedule> hwSchedules,
-                                                     int dayOfWeek, int monthOfYear, int minuteOfDay) {
+    public static boolean isHotWaterHeatingScheduled(List<HWSchedule> hwSchedules, int dayOfWeek,
+                                                     int monthOfYear, int dayOfMonth, int minuteOfDay) {
         if (dayOfWeek == 7) dayOfWeek = 0;
         if (!(null == hwSchedules)) for (HWSchedule hwSchedule : hwSchedules) {
             if (hwSchedule.getMonths().months.contains(monthOfYear) &&
                     hwSchedule.getDays().ints.contains(dayOfWeek) &&
-                    hwSchedule.getBegin() * 60 <= minuteOfDay &&
-                    hwSchedule.getEnd() * 60 > minuteOfDay) {
+                    ScheduleDateWindow.contains(hwSchedule.getStartDate(), hwSchedule.getEndDate(),
+                            monthOfYear, dayOfMonth) &&
+                    hwSchedule.getEffectiveBeginMinute() <= minuteOfDay &&
+                    hwSchedule.getEffectiveEndMinute() > minuteOfDay) {
                 return true;
             }
         }
         return false;
+    }
+
+    /** Date-blind legacy lookup — kept for callers that have no interval date. */
+    public static boolean isHotWaterHeatingScheduled(List<HWSchedule> hwSchedules,
+                                                     int dayOfWeek, int monthOfYear, int minuteOfDay) {
+        return isHotWaterHeatingScheduled(hwSchedules, dayOfWeek, monthOfYear, 0, minuteOfDay);
     }
 }

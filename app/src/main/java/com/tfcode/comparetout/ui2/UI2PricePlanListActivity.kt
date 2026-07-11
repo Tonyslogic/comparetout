@@ -888,10 +888,10 @@ private fun EmptyListMessage(showHints: Boolean) {
 // The Octopus /products/ and tariff-rate endpoints need no credentials, so
 // any user can pull the currently-open Octopus tariffs for their GSP region
 // into the plan list. Region comes from a postcode lookup (public endpoint),
-// with a manual A–P region picker as the fallback. Dynamic tariffs
-// (Agile/Tracker) are skipped — the repeating DayRate model cannot hold
-// per-day prices — and the export rate on every generated plan assumes
-// Outgoing Fixed (noted on the plan's reference).
+// with a manual A–P region picker as the fallback. Tracker is skipped (no
+// published half-hourly series); Agile products queue as pending dynamic
+// plans that materialise in the background. The export rate on every
+// generated plan assumes Outgoing Fixed (noted on the plan's reference).
 
 private val GSP_REGIONS = listOf(
     "A" to "Eastern England", "B" to "East Midlands", "C" to "London",
@@ -933,6 +933,9 @@ private fun OctopusTariffFetchPane() {
                         is OctopusTariffPlans.Result.Loaded ->
                             context.resources.getQuantityString(
                                 R.plurals.ui2_ppl_octo_added, r.added, r.added, resolved) +
+                                (if (r.queued > 0)
+                                    " " + context.getString(R.string.ui2_ppl_octo_queued, r.queued)
+                                 else "") +
                                 (if (r.existing > 0)
                                     " " + context.getString(R.string.ui2_ppl_octo_existing, r.existing)
                                  else "") +

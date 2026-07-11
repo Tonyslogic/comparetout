@@ -321,6 +321,7 @@ fun ScenariosScreen(
             viewModel = viewModel,
             scenarioId = sim.scenario.scenarioIndex,
             scenarioName = sim.scenario.scenarioName,
+            hasEvCharges = sim.scenario.isHasEVCharges,
             onDismiss = { strategyDialogFor = null }
         )
     }
@@ -533,6 +534,7 @@ private fun StrategyGenerateDialog(
     viewModel: UI2SimulationsViewModel,
     scenarioId: Long,
     scenarioName: String,
+    hasEvCharges: Boolean,
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current
@@ -544,6 +546,8 @@ private fun StrategyGenerateDialog(
     var minSpread by remember { mutableStateOf("2") }
     var chargeSlots by remember { mutableStateOf("6") }
     var dischargeSlots by remember { mutableStateOf("4") }
+    var useWeather by remember { mutableStateOf(false) }
+    var optimiseEv by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
@@ -644,6 +648,38 @@ private fun StrategyGenerateDialog(
                             label = { Text(stringResource(R.string.ui2_strategy_min_spread)) },
                             singleLine = true
                         )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { useWeather = !useWeather }
+                        ) {
+                            androidx.compose.material3.Checkbox(
+                                checked = useWeather,
+                                onCheckedChange = { useWeather = it }
+                            )
+                            Text(
+                                stringResource(R.string.ui2_strategy_weather),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        if (hasEvCharges) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { optimiseEv = !optimiseEv }
+                            ) {
+                                androidx.compose.material3.Checkbox(
+                                    checked = optimiseEv,
+                                    onCheckedChange = { optimiseEv = it }
+                                )
+                                Text(
+                                    stringResource(R.string.ui2_strategy_ev),
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -661,7 +697,7 @@ private fun StrategyGenerateDialog(
                     }
                     busy = true
                     viewModel.generateStrategyScenario(
-                        scenarioId, selectedPlan!!.id, strategy
+                        scenarioId, selectedPlan!!.id, strategy, useWeather, optimiseEv
                     ) { result ->
                         val message = when (result) {
                             is StrategyScenarioGenerator.Result.Generated ->

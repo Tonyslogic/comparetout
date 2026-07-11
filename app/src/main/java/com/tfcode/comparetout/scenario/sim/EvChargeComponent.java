@@ -37,14 +37,24 @@ import java.util.Map;
 public final class EvChargeComponent implements DemandContributor {
 
     private final List<EVCharge> evCharges;
+    // Derive the UTC day-of-month only when some schedule actually carries a
+    // v16 date window — the defaults path stays allocation-free per interval.
+    private final boolean anyDateWindowed;
 
     public EvChargeComponent(List<EVCharge> evCharges) {
         this.evCharges = evCharges;
+        boolean windowed = false;
+        if (!(null == evCharges)) for (EVCharge c : evCharges) {
+            if (!ScheduleDateWindow.isDefault(c.getStartDate(), c.getEndDate())) windowed = true;
+        }
+        this.anyDateWindowed = windowed;
     }
 
     @Override
     public DemandResult demand(IntervalContext ctx) {
-        EVCharge evCharge = scheduledChargeOrNull(evCharges, ctx.dayOfWeek, ctx.month, ctx.minuteOfDay);
+        int dayOfMonth = anyDateWindowed ? ScheduleDateWindow.dayOfMonthUtc(ctx.millis) : 0;
+        EVCharge evCharge = scheduledChargeOrNull(evCharges, ctx.dayOfWeek, ctx.month,
+                dayOfMonth, ctx.minuteOfDay);
         double kWh = (null == evCharge) ? 0d : evCharge.getDraw() / 12d;
         Map<OutputChannel, Double> outputs = new EnumMap<>(OutputChannel.class);
         outputs.put(OutputChannel.DIRECT_EV_CHARGE, kWh);
@@ -53,19 +63,29 @@ public final class EvChargeComponent implements DemandContributor {
 
     /**
      * The EV charge scheduled for the given time, or null. Day-of-week 7 (Sun) is normalised to 0 to
-     * match the stored schedule convention.
+     * match the stored schedule convention. {@code dayOfMonth <= 0} disables the v16 date-window
+     * check (the legacy overload's behaviour); the minute window uses the effective minutes, which
+     * reproduce the legacy whole-hour exclusive-end check exactly when unset.
      */
-    public static EVCharge scheduledChargeOrNull(List<EVCharge> evCharges,
-                                                 int dayOfWeek, int monthOfYear, int minuteOfDay) {
+    public static EVCharge scheduledChargeOrNull(List<EVCharge> evCharges, int dayOfWeek,
+                                                 int monthOfYear, int dayOfMonth, int minuteOfDay) {
         if (dayOfWeek == 7) dayOfWeek = 0;
         if (!(null == evCharges)) for (EVCharge evCharge : evCharges) {
             if (evCharge.getMonths().months.contains(monthOfYear) &&
                     evCharge.getDays().ints.contains(dayOfWeek) &&
-                    evCharge.getBegin() * 60 <= minuteOfDay &&
-                    evCharge.getEnd() * 60 > minuteOfDay) {
+                    ScheduleDateWindow.contains(evCharge.getStartDate(), evCharge.getEndDate(),
+                            monthOfYear, dayOfMonth) &&
+                    evCharge.getEffectiveBeginMinute() <= minuteOfDay &&
+                    evCharge.getEffectiveEndMinute() > minuteOfDay) {
                 return evCharge;
             }
         }
         return null;
+    }
+
+    /** Date-blind legacy lookup — kept for callers that have no interval date. */
+    public static EVCharge scheduledChargeOrNull(List<EVCharge> evCharges,
+                                                 int dayOfWeek, int monthOfYear, int minuteOfDay) {
+        return scheduledChargeOrNull(evCharges, dayOfWeek, monthOfYear, 0, minuteOfDay);
     }
 }
