@@ -42,6 +42,7 @@ import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformMeta
 import com.tfcode.comparetout.model.scenario.PanelPVSummary
 import com.tfcode.comparetout.scenario.HeatPumpWeatherCache
+import com.tfcode.comparetout.dynamic.DynamicPriceCache
 import com.tfcode.comparetout.scenario.PvgisCache
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -228,6 +229,8 @@ class UI2DataSourceManagementViewModel @Inject constructor(
     val pvgis: LiveData<WeatherSourceState> = _pvgis
     private val _cds = MutableLiveData<WeatherSourceState>()
     val cds: LiveData<WeatherSourceState> = _cds
+    private val _prices = MutableLiveData<WeatherSourceState>()
+    val prices: LiveData<WeatherSourceState> = _prices
     private val _busy = MutableLiveData(false)
     val busy: LiveData<Boolean> = _busy
     private val _toast = MutableLiveData<Toast?>()
@@ -289,6 +292,7 @@ class UI2DataSourceManagementViewModel @Inject constructor(
             _haSensors.postValue(readHASensors())
             // PVGIS state is driven by the panelDataSummary observer, not here.
             _cds.postValue(buildCdsState())
+            _prices.postValue(buildPriceCacheState())
             // (Re-)attach WorkManager observers for the union of all SNs
             // so the live "fetching" indicator stays accurate as systems
             // appear and disappear from the lists.
@@ -1324,6 +1328,76 @@ class UI2DataSourceManagementViewModel @Inject constructor(
     }
 
     private fun cdsCacheDir(): File = File(app.filesDir, HeatPumpWeatherCache.CACHE_DIR)
+
+    /**
+     * The cached wholesale price months behind dynamic tariff plans — files named
+     * `<marketId>_<year>_<month>.json` in [DynamicPriceCache.CACHE_DIR], grouped into
+     * one entry per (market, year) since that is the unit a plan is generated from.
+     * [WeatherCacheEntry.id] is `<marketId>_<year>`; the detail names the dynamic
+     * plans built on that market year (mirrors PVGIS naming its scenarios).
+     * Deleting cache never touches a materialised plan's generated rates — the
+     * months are simply re-downloaded on the next generate/regenerate.
+     */
+    private fun buildPriceCacheState(): WeatherSourceState {
+        val files = DynamicPriceCache.cacheDir(app)
+            .listFiles { f -> f.isFile && f.name.endsWith(".json") } ?: emptyArray()
+        val groups = files.mapNotNull { f ->
+            // Market ids ("ISEM-DAM", "GB-AGILE-C") carry no underscore, but split
+            // from the right anyway so one would survive: ..._<year>_<month>.json
+            val parts = f.name.removeSuffix(".json").split("_")
+            if (parts.size < 3) return@mapNotNull null
+            val market = parts.subList(0, parts.size - 2).joinToString("_")
+            val year = parts[parts.size - 2]
+            "${market}_$year" to f
+        }.groupBy({ it.first }, { it.second })
+        val plans = runCatching { repository.allPricePlansNow.orEmpty() }
+            .getOrDefault(emptyList())
+        val entries = groups.map { (id, fs) ->
+            val year = id.substringAfterLast('_')
+            val market = id.substringBeforeLast('_')
+            val planNames = plans.filter {
+                it.dynamicTerms?.market == market && it.dynamicTerms?.year?.toString() == year
+            }.map { it.planName }
+            val detail = buildString {
+                append("${fs.size} month(s)")
+                append(" · ")
+                append(
+                    if (planNames.isEmpty()) "no plans"
+                    else "${planNames.size} plan(s): ${planNames.joinToString(", ")}"
+                )
+                append(" · ${"%.0f".format(fs.sumOf { it.length() } / 1024.0)} kB")
+            }
+            WeatherCacheEntry(id, "$market · $year", detail)
+        }.sortedBy { it.name }
+        return WeatherSourceState(
+            entries = entries,
+            credentialsConfigured = true,   // public price feeds, no account
+            credentialsKnownGood = true
+        )
+    }
+
+    /** Delete one cached market year (all its month files). Plans built on it keep
+     *  their generated rates; the year re-downloads on the next generate. */
+    fun deletePriceCacheEntry(id: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            DynamicPriceCache.cacheDir(app)
+                .listFiles { f -> f.isFile && f.name.startsWith("${id}_") && f.name.endsWith(".json") }
+                ?.forEach { it.delete() }
+            _prices.postValue(buildPriceCacheState())
+            _toast.postValue(Toast("Cached prices deleted · re-downloaded on next generate"))
+        }
+    }
+
+    /** Delete every cached wholesale price month. */
+    fun deleteAllPriceCache() {
+        viewModelScope.launch(Dispatchers.IO) {
+            DynamicPriceCache.cacheDir(app)
+                .listFiles { f -> f.isFile && f.name.endsWith(".json") }
+                ?.forEach { it.delete() }
+            _prices.postValue(buildPriceCacheState())
+            _toast.postValue(Toast("Price cache cleared"))
+        }
+    }
 
     /** Delete one cached PVGIS download (by file name). Re-fetched on the next save that needs it; the
      *  derived paneldata is left in place (delete-file-only). */

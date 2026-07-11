@@ -107,6 +107,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.tfcode.comparetout.ComparisonUIViewModel.Importer
 import com.tfcode.comparetout.R
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformMeta
+import com.tfcode.comparetout.region.RegionProfiles
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -161,6 +162,7 @@ private fun DataSourceManagementScreen(
     val haSensors by viewModel.haSensors.observeAsState()
     val pvgis by viewModel.pvgis.observeAsState()
     val cds by viewModel.cds.observeAsState()
+    val prices by viewModel.prices.observeAsState()
     val busy by viewModel.busy.observeAsState(false)
     val toast by viewModel.toast.observeAsState()
     // v2 enrichment status — used to decide which AlphaESS rows surface the
@@ -369,6 +371,26 @@ private fun DataSourceManagementScreen(
                         onClearAll = viewModel::deleteAllCdsCache,
                         onDeleteEntry = viewModel::deleteCdsCacheEntry,
                         onRemoveSource = viewModel::removeCdsSource
+                    )
+                }
+                // Wholesale price cache behind dynamic tariff plans. Gated by the
+                // edition's capability (IE wholesale market / GB Octopus Agile),
+                // not by a ui_visibility flag — it's a cache view, and hiding it
+                // while cached files exist would leave them unmanageable.
+                if (RegionProfiles.current.dynamicMarkets.isNotEmpty() ||
+                    RegionProfiles.current.hasOctopus) item("prices") {
+                    WeatherSourceAccordion(
+                        title = stringResource(R.string.ui2_dsm_prices_title),
+                        subtitle = stringResource(R.string.ui2_dsm_prices_sub),
+                        state = prices,
+                        showHints = showHints,
+                        showCredentials = false,
+                        emptyHint = stringResource(R.string.ui2_dsm_prices_empty_hint),
+                        entryNoun = stringResource(R.string.ui2_dsm_noun_market_year),
+                        onSetCredentials = null,
+                        onClearAll = viewModel::deleteAllPriceCache,
+                        onDeleteEntry = viewModel::deletePriceCacheEntry,
+                        onRemoveSource = null
                     )
                 }
             }

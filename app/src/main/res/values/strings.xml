@@ -1215,6 +1215,10 @@
     <string name="ui2_dsm_cds_empty_hint">Set your Copernicus CDS Personal Access Token, then the heat-pump section can fetch real weather for your location. Each fetched (location, period) is cached here.</string>
     <string name="ui2_dsm_noun_location">location</string>
     <string name="ui2_dsm_noun_dataset">dataset</string>
+    <string name="ui2_dsm_prices_title">Wholesale market prices</string>
+    <string name="ui2_dsm_prices_sub">Half-hourly prices behind dynamic tariff plans</string>
+    <string name="ui2_dsm_prices_empty_hint">Generating a dynamic tariff plan downloads that year\'s half-hourly market prices and caches them here (one file per month), so regenerating — or building another plan on the same year — is instant. Nothing is fetched until you generate a plan. Deleting cached prices never changes an existing plan; they are simply re-downloaded on the next generate.</string>
+    <string name="ui2_dsm_noun_market_year">market year</string>
     <string name="ui2_dsm_esbn_data">ESBN data</string>
     <string name="ui2_dsm_about_title">About data sources</string>
     <string name="ui2_dsm_about_body">Real-world energy data flows from your inverter or smart meter into the dashboard and Compare tab. Set credentials, pick which system to track, and decide whether the app should refresh automatically each day. Stats and graphs themselves live in the dashboard.</string>

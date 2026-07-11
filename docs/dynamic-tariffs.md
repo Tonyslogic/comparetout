@@ -59,7 +59,12 @@ on-device month cache (`DynamicPriceCache`).
 | `GB-AGILE-<A..P>` | `OctopusAgileRateSource` — Octopus public API | The GSP region letter is embedded in the market id. Deep history via the closed AGILE-18-02-21 product. No auth needed. |
 
 Both normalise through `SeriesNormaliser` into half-hourly month chunks with gap-filling (the plan's
-`Reference` records provenance and gap counts). Registration for the generator pane is per-region:
+`Reference` records provenance and gap counts). Fetched months are cached on-device
+(`DynamicPriceCache`, `filesDir/dynamic-price-cache/<market>_<year>_<month>.json`) so regenerating or
+building another plan on the same year is instant. The cache is managed from **Data sources →
+"Wholesale market prices"** — one row per market-year with per-row delete and clear-all. Deleting
+cache never alters a materialised plan (plans own their generated rates); the months simply
+re-download on the next generate. Registration for the generator pane is per-region:
 `region/RegionProfile.kt → dynamicMarkets` (GB's list is deliberately empty — Agile enters via the
 Octopus pane, which knows the user's region).
 
@@ -135,5 +140,5 @@ components *exclude* it (`getEffectiveEndMinute()`), and the strategy/emitter co
 | Terms model / JSON | `model/priceplan/DynamicTerms`, `model/json/priceplan/DynamicTermsJson`, schema `model/priceplan/PricePlanJsonSchema.json` |
 | Fetch & materialise | `dynamic/` — `DynamicTariffWorker`, `DynamicRateSources`, `SemopxRateSource`, `OctopusAgileRateSource`, `SeriesNormaliser`, `DynamicPriceCache` |
 | Strategy engine (pure JVM) | `dynamic/strategy/` — `DispatchStrategy`, `ThresholdStrategy`, `RankNStrategy`, `SocForwardModel`, `StrategyYearRunner`, `ScheduleEmitter`, `WeatherAwareStrategy`, `WindPriceCalibration`, `LayerBOutlook`, `EvSmartChargePlanner` |
-| UI | `ui2/DynamicTariffPlans.kt`, `ui2/StrategyScenarioGenerator.kt`, dialog in `ui2/UI2SimulationsFragment.kt`, generator pane in `ui2/UI2PricePlanListActivity.kt`, terms card in `ui2/UI2PricePlanWizardActivity.kt` |
+| UI | `ui2/DynamicTariffPlans.kt`, `ui2/StrategyScenarioGenerator.kt`, dialog in `ui2/UI2SimulationsFragment.kt`, generator pane in `ui2/UI2PricePlanListActivity.kt`, terms card in `ui2/UI2PricePlanWizardActivity.kt`, price-cache accordion in `ui2/UI2DataSourceManagementActivity.kt` |
 | Tests | `ThresholdStrategyTest`, `RankNStrategyTest`, `StrategyYearRunnerTest`, `ScheduleEmitterTest`, `WindPriceCalibrationTest`, `LayerBOutlookTest`, `WeatherAwareStrategyTest`, `EvSmartChargePlannerTest`, `OctopusAgileRateSourceTest`, `ComponentDateWindowTest` |
