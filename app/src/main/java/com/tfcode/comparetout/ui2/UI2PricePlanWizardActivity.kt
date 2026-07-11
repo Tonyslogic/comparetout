@@ -261,11 +261,11 @@ private fun PricePlanWizardScreen(
                                 val terms = builder.dynamicTerms
                                 AccordionSection(
                                     title = stringResource(R.string.ui2_ppw_dynamic_title),
-                                    subtitle = if (terms?.year != null)
+                                    subtitle = if (builder.materialised)
                                         stringResource(R.string.ui2_ppw_dynamic_materialised,
-                                            terms.market ?: "", terms.year ?: 0)
+                                            terms?.market ?: "", terms?.year ?: 0)
                                     else stringResource(R.string.ui2_ppw_dynamic_pending),
-                                    isComplete = terms?.year != null,
+                                    isComplete = builder.materialised,
                                     hasError = false,
                                     isExpanded = expanded.contains("dynamic"),
                                     onToggle = { viewModel.toggleSection("dynamic") }
@@ -1488,6 +1488,19 @@ private fun DynamicTermsSection(
             parsed(multiplier) != null && parsed(adder) != null &&
             builder.supplier.isNotBlank() && builder.planName.isNotBlank()
 
+    // Reflect the initially-shown field values into the builder so a plain Save
+    // (not just Regenerate) persists the displayed year/multiplier/adder/cap even
+    // if the user changes nothing else. For an already-loaded plan this seeds the
+    // identical values, so it is not treated as a terms change.
+    LaunchedEffect(builder.pricePlanId) {
+        viewModel.updateTerms { t ->
+            year.trim().toIntOrNull()?.let { t.year = it }
+            parsed(multiplier)?.let { t.multiplier = it }
+            parsed(adder)?.let { t.adder = it }
+            t.cap = parsed(cap)
+        }
+    }
+
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
             stringResource(R.string.ui2_ppw_dynamic_note),
@@ -1502,17 +1515,23 @@ private fun DynamicTermsSection(
             )
         }
         OutlinedTextField(
-            value = year, onValueChange = { year = it },
+            value = year,
+            onValueChange = { year = it
+                it.trim().toIntOrNull()?.let { y -> viewModel.updateTerms { t -> t.year = y } } },
             modifier = Modifier.fillMaxWidth(), singleLine = true,
             label = { Text(stringResource(R.string.ui2_ppl_dyn_year)) }
         )
         OutlinedTextField(
-            value = multiplier, onValueChange = { multiplier = it },
+            value = multiplier,
+            onValueChange = { multiplier = it
+                parsed(it)?.let { v -> viewModel.updateTerms { t -> t.multiplier = v } } },
             modifier = Modifier.fillMaxWidth(), singleLine = true,
             label = { Text(stringResource(R.string.ui2_ppl_dyn_multiplier)) }
         )
         OutlinedTextField(
-            value = adder, onValueChange = { adder = it },
+            value = adder,
+            onValueChange = { adder = it
+                parsed(it)?.let { v -> viewModel.updateTerms { t -> t.adder = v } } },
             modifier = Modifier.fillMaxWidth(), singleLine = true,
             label = { Text(stringResource(R.string.ui2_ppl_dyn_adder,
                 RegionProfiles.current.rateUnit)) }
@@ -1525,7 +1544,10 @@ private fun DynamicTermsSection(
             )
         }
         OutlinedTextField(
-            value = cap, onValueChange = { cap = it },
+            value = cap,
+            onValueChange = { cap = it
+                // Blank / unparseable → uncapped (null); persist immediately.
+                viewModel.updateTerms { t -> t.cap = parsed(it) } },
             modifier = Modifier.fillMaxWidth(), singleLine = true,
             label = { Text(stringResource(R.string.ui2_ppl_dyn_cap,
                 RegionProfiles.current.rateUnit)) }
@@ -1537,21 +1559,18 @@ private fun DynamicTermsSection(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        // Pending (terms but no prices yet, incl. a fresh conversion): the
-        // button CREATES; materialised: it REPLACES the generated rates.
-        val isPending = terms.year == null
+        // Pending (terms but no generated prices yet, incl. a fresh conversion):
+        // the button CREATES; materialised: it REPLACES the generated rates.
+        // Driven by the builder's materialised flag (NOT terms.year — the year is
+        // now an editable field that lives in the builder).
+        val isPending = !builder.materialised
         Button(
-            onClick = {
-                val newTerms = com.tfcode.comparetout.model.priceplan.DynamicTerms()
-                newTerms.market = terms.market
-                newTerms.multiplier = parsed(multiplier)
-                newTerms.adder = parsed(adder)
-                newTerms.cap = parsed(cap)
-                newTerms.floor = terms.floor
-                newTerms.feedMultiplier = terms.feedMultiplier
-                newTerms.feedAdder = terms.feedAdder
-                viewModel.regenerate(newTerms, yearValue ?: lastCompleteYear)
-            },
+            // The fields already write the terms into the builder, so a plain Save
+            // and this button do the same thing for a dynamic plan: persist the
+            // terms, then (re)generate prices. Route through save() so terms are
+            // persisted first (kept even if the fetch fails) instead of relying on
+            // the worker's success-only clobber.
+            onClick = { viewModel.save(runCosting = true) },
             enabled = ready,
             modifier = Modifier.fillMaxWidth()
         ) {

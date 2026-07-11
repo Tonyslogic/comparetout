@@ -125,7 +125,12 @@ data class PricePlanBuilder(
     // Supplier terms of a dynamic (wholesale-tracking) plan. Non-null gates the
     // whole rate editor: the 365 generated day-rates are never loaded into
     // builders or hand-edited — the terms card regenerates them instead.
-    val dynamicTerms: DynamicTerms? = null
+    val dynamicTerms: DynamicTerms? = null,
+    // True only when this dynamic plan already has generated BUY rates in the DB.
+    // Kept separate from dynamicTerms.year (the chosen backtest year, which the
+    // user edits freely) so that typing a year does not falsely flip the plan
+    // from "pending" to "materialised" in the wizard/save logic.
+    val materialised: Boolean = false
 ) {
     val isDynamic: Boolean get() = dynamicTerms != null
     /** Distinct rate values (c/kWh) across all day-rate bands — the values a restriction can attach to. */
@@ -161,6 +166,11 @@ class UI2PricePlanViewModel @Inject constructor(
     private val _saveResult = MutableStateFlow(PricePlanSaveResult.Idle)
     val saveResult: LiveData<PricePlanSaveResult> = _saveResult.asLiveData()
 
+    /** Snapshot of the dynamic terms as loaded from the DB, so save() can tell
+     *  whether the user actually changed them (and must regenerate prices) or
+     *  only edited a scalar field (a fast rate-preserving save). */
+    private var loadedTerms: DynamicTerms? = null
+
     init {
         if (isEditMode) loadExisting()
     }
@@ -172,6 +182,7 @@ class UI2PricePlanViewModel @Inject constructor(
             val rates = if (plan != null) repository.getAllDayRatesForPricePlanID(pricePlanId) else emptyList()
             if (plan != null) {
                 _builder.value = plan.toBuilder(rates)
+                loadedTerms = _builder.value.dynamicTerms?.copyTerms()
                 // Expand the first day-rate on load so the user sees the redesigned editor immediately.
                 _expandedDayRates.value = setOfNotNull(_builder.value.dayRates.firstOrNull()?.id)
             }
@@ -181,6 +192,19 @@ class UI2PricePlanViewModel @Inject constructor(
 
     fun updateBuilder(transform: (PricePlanBuilder) -> PricePlanBuilder) {
         _builder.update(transform)
+    }
+
+    /**
+     * Mutate the dynamic terms from the wizard's terms card. Each edit produces a
+     * fresh DynamicTerms (so the [loadedTerms] baseline is never aliased) and the
+     * new value lands in the builder immediately — so a plain Save persists the
+     * edited year/multiplier/adder/cap, not just a Regenerate.
+     */
+    fun updateTerms(transform: (DynamicTerms) -> Unit) {
+        _builder.update { b ->
+            val t = (b.dynamicTerms ?: DynamicTerms()).copyTerms().also(transform)
+            b.copy(dynamicTerms = t)
+        }
     }
 
     fun toggleSection(id: String) {
@@ -247,50 +271,73 @@ class UI2PricePlanViewModel @Inject constructor(
         _saveResult.value = PricePlanSaveResult.Saving
         viewModelScope.launch(Dispatchers.IO) {
             try {
-                val (plan, rates) = _builder.value.toEntities()
-                if (isEditMode) {
-                    // Dynamic plans carry no rate builders. A materialised plan
-                    // (terms.year set) passes its stored rows through unchanged
-                    // (preserving their BUY/SELL tags) so a scalar edit
-                    // (name/standing/feed) can't strip the generated rates —
-                    // terms changes go through regenerate() instead. A plan
-                    // whose prices are still pending — including one just
-                    // converted from fixed rates — saves terms-only, dropping
-                    // any leftover fixed-rate builders.
-                    val effectiveRates = when {
-                        !_builder.value.isDynamic -> rates
-                        _builder.value.dynamicTerms?.year != null ->
-                            repository.getAllDayRatesForPricePlanID(pricePlanId)
-                        else -> emptyList()
-                    }
-                    repository.updatePricePlan(plan, ArrayList(effectiveRates))
-                    // Editing a plan invalidates every costing computed against it
-                    // (across all scenarios) — otherwise the dashboard / Compare
-                    // tab would show stale figures until something else forced a
-                    // recompute. CostingWorker skips combinations where a costing
-                    // already exists, so the stale rows must be deleted here.
-                    // (insert(clobber=false) needs no cleanup — a new plan has none.)
-                    repository.removeCostingsForPricePlan(plan.pricePlanIndex)
+                val b = _builder.value
+                val (plan, rates) = b.toEntities()
+                if (b.isDynamic) {
+                    saveDynamic(plan, b)
                 } else {
-                    // A new dynamic plan has no fetched prices yet — insert
-                    // terms-only (a pending plan); rate builders left over from
-                    // before a dynamic conversion are ignored.
-                    val insertRates = if (_builder.value.isDynamic) emptyList() else rates
-                    repository.insert(plan, insertRates, /* clobber = */ false)
-                }
-                // Recompute immediately on every save, not just on "Run": editing
-                // a plan just invalidated its costings (and a new plan has none
-                // yet), so kick the worker chain now rather than deferring to the
-                // next navigation. Less aggressive than the legacy per-component
-                // delete-and-recompute, but explicit.
-                withContext(Dispatchers.Main) {
-                    com.tfcode.comparetout.SimulatorLauncher
-                        .simulateIfNeeded(getApplication())
+                    if (isEditMode) {
+                        repository.updatePricePlan(plan, ArrayList(rates))
+                        // Editing a plan invalidates every costing computed against
+                        // it (across all scenarios) — otherwise the dashboard /
+                        // Compare tab would show stale figures until something else
+                        // forced a recompute. CostingWorker skips combinations where
+                        // a costing already exists, so the stale rows must be deleted
+                        // here. (insert(clobber=false) needs no cleanup — a new plan
+                        // has none.)
+                        repository.removeCostingsForPricePlan(plan.pricePlanIndex)
+                    } else {
+                        repository.insert(plan, rates, /* clobber = */ false)
+                    }
+                    // Recompute immediately on every save, not just on "Run": editing
+                    // a plan just invalidated its costings (and a new plan has none
+                    // yet), so kick the worker chain now rather than deferring to the
+                    // next navigation.
+                    withContext(Dispatchers.Main) {
+                        com.tfcode.comparetout.SimulatorLauncher
+                            .simulateIfNeeded(getApplication())
+                    }
                 }
                 _saveResult.value = PricePlanSaveResult.Saved
             } catch (t: Throwable) {
                 _saveResult.value = PricePlanSaveResult.Failed
             }
+        }
+    }
+
+    /**
+     * Persist a dynamic plan. The terms (market/year/multiplier/adder/cap/…) are
+     * written to the plan row FIRST, so a plain Save never loses an edit even if a
+     * later fetch fails. Then, when the terms are new or changed (or the plan is
+     * not yet materialised), the worker regenerates the 365 rates from the saved
+     * terms so prices stay consistent; a scalar-only edit of an already-materialised
+     * plan keeps its generated rates and skips the fetch.
+     */
+    private fun saveDynamic(plan: PricePlan, b: PricePlanBuilder) {
+        val termsChanged = !b.dynamicTerms.sameTermsAs(loadedTerms)
+        val needsRegen = !b.materialised || termsChanged
+        if (isEditMode) {
+            // Keep the generated rates only for a scalar-only edit of a materialised
+            // plan; otherwise store terms-only so a changed/pending plan isn't costed
+            // against stale prices while it regenerates.
+            val keepRates = if (b.materialised && !needsRegen)
+                repository.getAllDayRatesForPricePlanID(pricePlanId) else emptyList()
+            repository.updatePricePlan(plan, ArrayList(keepRates))
+            repository.removeCostingsForPricePlan(plan.pricePlanIndex)
+        } else {
+            repository.insert(plan, emptyList(), /* clobber = */ false)
+        }
+        if (needsRegen && plan.dynamicTerms?.isComplete == true) {
+            // Rebuild prices from the saved terms. The worker clobbers this plan by
+            // name on success and, on failure, leaves the just-saved terms row in
+            // place (visible + retryable) — the terms are never lost.
+            val year = plan.dynamicTerms?.year ?: (java.time.LocalDate.now().year - 1)
+            DynamicTariffWorker.enqueue(
+                getApplication(), com.google.gson.Gson().toJson(dynamicPlanJson(plan)),
+                plan.planName, year)
+        } else {
+            // Scalar-only edit of a materialised plan: no fetch, just recost.
+            com.tfcode.comparetout.SimulatorLauncher.simulateIfNeeded(getApplication())
         }
     }
 
@@ -349,9 +396,14 @@ class UI2PricePlanViewModel @Inject constructor(
                 dayRates = if (parsedPlan.isDynamic) emptyList() else dayRateBuilders,
                 restrictionsActive = parsedPlan.restrictions?.isActive == true,
                 restrictionEntries = parsedPlan.restrictions.toEntryBuilders(),
-                dynamicTerms = parsedPlan.dynamicTerms
+                dynamicTerms = parsedPlan.dynamicTerms,
+                // Imported dynamic plans are terms-only (rates are re-fetched, not
+                // shared), so an imported plan always arrives pending.
+                materialised = false
             )
         }
+        // Imported terms have no on-device baseline: save() should (re)generate.
+        loadedTerms = null
         // Expand the day-rates accordion so the user immediately sees what
         // was loaded; default-collapse it otherwise feels like the import
         // silently did nothing.
@@ -360,36 +412,6 @@ class UI2PricePlanViewModel @Inject constructor(
             setOfNotNull(_builder.value.dayRates.firstOrNull()?.id)
     }
 
-    /**
-     * The dynamic plan's only rate-mutation path: apply edited terms + year by
-     * regenerating. A terms-only plan JSON goes to [DynamicTariffWorker], whose
-     * clobbering insert replaces this plan's row and its generated rates; the
-     * screen closes like a save and the notification tracks the fetch.
-     */
-    fun regenerate(newTerms: DynamicTerms, year: Int) {
-        val b = _builder.value
-        val ppj = PricePlanJsonFile()
-        ppj.supplier = b.supplier
-        ppj.plan = b.planName
-        ppj.standingCharges = b.standingCharges
-        ppj.feed = b.feed
-        ppj.bonus = b.signUpBonus
-        ppj.active = true
-        ppj.location = b.location
-        val terms = com.tfcode.comparetout.model.json.priceplan.DynamicTermsJson()
-        terms.market = newTerms.market
-        terms.year = year
-        terms.multiplier = newTerms.multiplier
-        terms.adder = newTerms.adder
-        terms.cap = newTerms.cap
-        terms.floor = newTerms.floor
-        terms.feedMultiplier = newTerms.feedMultiplier
-        terms.feedAdder = newTerms.feedAdder
-        ppj.dynamic = terms
-        DynamicTariffWorker.enqueue(
-            getApplication(), com.google.gson.Gson().toJson(ppj), b.planName, year)
-        _saveResult.value = PricePlanSaveResult.Saved
-    }
 
     /**
      * Convert the plan being edited into a dynamic (wholesale-tracking) one:
@@ -405,13 +427,15 @@ class UI2PricePlanViewModel @Inject constructor(
                 market = marketId
                 multiplier = 1.0
                 adder = 0.0
-            })
+            }, materialised = false)
         }
+        // Brand-new terms: no baseline, so save() treats them as changed and generates.
+        loadedTerms = null
         _expandedSections.update { it - "make-dynamic" + "dynamic" }
     }
 
     /**
-     * Undo [makeDynamic] while the prices are still pending (terms.year unset):
+     * Undo [makeDynamic] while the prices are still pending (not materialised):
      * drop the terms and return to the fixed-rate editor. Not offered once a
      * plan has materialised — its generated rates are not convertible back.
      */
@@ -419,9 +443,11 @@ class UI2PricePlanViewModel @Inject constructor(
         _builder.update { b ->
             b.copy(
                 dynamicTerms = null,
+                materialised = false,
                 dayRates = b.dayRates.ifEmpty { listOf(DayRateBuilder()) }
             )
         }
+        loadedTerms = null
         _expandedSections.update { it - "dynamic" + "rates" }
     }
 }
@@ -566,7 +592,10 @@ private fun PricePlan.toBuilder(rates: List<DayRate>): PricePlanBuilder = PriceP
     },
     restrictionsActive = restrictions?.isActive == true,
     restrictionEntries = restrictions.toEntryBuilders(),
-    dynamicTerms = dynamicTerms
+    dynamicTerms = dynamicTerms,
+    // "Materialised" = this dynamic plan already has generated BUY rates in the DB.
+    // A terms-only pending plan (no BUY rates) is not materialised.
+    materialised = isDynamic && DayRate.buyRates(rates).isNotEmpty()
 )
 
 /**
@@ -626,6 +655,54 @@ private fun DayRate.toBuilder(): DayRateBuilder {
         daysOfWeek = days.ints.toSet(),
         bands = bands
     )
+}
+
+/** Deep copy of dynamic terms (the Java bean has no copy()) so a baseline
+ *  snapshot isn't aliased by later edits. */
+private fun DynamicTerms.copyTerms(): DynamicTerms = DynamicTerms().also {
+    it.market = market
+    it.year = year
+    it.multiplier = multiplier
+    it.adder = adder
+    it.cap = cap
+    it.floor = floor
+    it.feedMultiplier = feedMultiplier
+    it.feedAdder = feedAdder
+    it.sourceRef = sourceRef
+}
+
+/** Do two terms define the same prices? Provenance (sourceRef) is ignored. */
+private fun DynamicTerms?.sameTermsAs(other: DynamicTerms?): Boolean {
+    if (this == null || other == null) return this === other
+    return market == other.market && year == other.year &&
+        multiplier == other.multiplier && adder == other.adder &&
+        cap == other.cap && floor == other.floor &&
+        feedMultiplier == other.feedMultiplier && feedAdder == other.feedAdder
+}
+
+/** Terms-only plan JSON for DynamicTariffWorker (carries scalars + terms). */
+private fun dynamicPlanJson(plan: PricePlan): PricePlanJsonFile {
+    val ppj = PricePlanJsonFile()
+    ppj.supplier = plan.supplier
+    ppj.plan = plan.planName
+    ppj.standingCharges = plan.standingCharges
+    ppj.feed = plan.feed
+    ppj.bonus = plan.signUpBonus
+    ppj.active = true
+    ppj.location = plan.location
+    plan.dynamicTerms?.let { t ->
+        val tj = com.tfcode.comparetout.model.json.priceplan.DynamicTermsJson()
+        tj.market = t.market
+        tj.year = t.year
+        tj.multiplier = t.multiplier
+        tj.adder = t.adder
+        tj.cap = t.cap
+        tj.floor = t.floor
+        tj.feedMultiplier = t.feedMultiplier
+        tj.feedAdder = t.feedAdder
+        ppj.dynamic = tj
+    }
+    return ppj
 }
 
 private fun PricePlanBuilder.toEntities(): Pair<PricePlan, List<DayRate>> {
