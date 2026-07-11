@@ -89,6 +89,20 @@ class DynamicTariffWorker(
             return Result.failure()
         }
 
+        // Persist a terms-only PENDING row up-front — BEFORE the (minutes-long,
+        // possibly failing) fetch — so a plan created from the wizard/generator
+        // pane still appears in the list with a pending badge and can be retried,
+        // instead of vanishing when generation fails. Only for create paths
+        // (a plan JSON, no planId) whose supplier+plan isn't already stored: an
+        // imported pending row, or a materialised plan being regenerated, must be
+        // left intact so a failed re-fetch keeps the existing plan. On success
+        // materialiseBlocking clobbers by supplier+plan, so there's never a dupe.
+        if (planId <= 0L && repository.allPricePlansNow
+                ?.any { it.supplier == plan.supplier && it.planName == plan.planName } != true) {
+            plan.pricePlanIndex = 0
+            repository.insert(plan, emptyList(), false)
+        }
+
         progress("Fetching ${terms.market} $targetYear prices… a first fetch for a year " +
                 "takes a few minutes; later generates reuse the cache.")
         val plans = EntryPointAccessors.fromApplication(

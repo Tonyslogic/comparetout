@@ -225,4 +225,26 @@ public class PricePlanDAOTest {
         PricePlan pp = mpp.keySet().iterator().next();
         assertEquals("Free time Sat", pp.getPlanName());
     }
+
+    /**
+     * A plan with NO day rates (e.g. a pending dynamic plan: terms present, prices
+     * not yet downloaded) must still appear in loadPricePlans(), mapped to an empty
+     * list. Guards the LEFT (outer) JOIN in loadPricePlans() — an inner join would
+     * silently drop rate-less plans, so a pending plan would never show in the list
+     * and a failed generation would vanish with no pending badge / retry.
+     */
+    @Test
+    public void rateLessPlanStillLoadsWithEmptyRates() throws InterruptedException {
+        pricePlanDAO.deleteAll();
+        PricePlan pending = new PricePlan();
+        pending.setSupplier("SEMOpx");
+        pending.setPlanName("DA 2024 pending");
+        pricePlanDAO.addNewPricePlanWithDayRates(pending, new ArrayList<>(), false);
+
+        Map<PricePlan, List<DayRate>> mpp = LiveDataTestUtil.getValue(pricePlanDAO.loadPricePlans());
+        assertEquals(1, mpp.size());
+        PricePlan loaded = mpp.keySet().iterator().next();
+        assertEquals("DA 2024 pending", loaded.getPlanName());
+        assertTrue(mpp.get(loaded).isEmpty());
+    }
 }

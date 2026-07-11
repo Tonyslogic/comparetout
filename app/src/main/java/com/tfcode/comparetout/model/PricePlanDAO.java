@@ -154,19 +154,22 @@ public abstract class PricePlanDAO {
     /**
      * Load all price plans with their associated day rates for reactive UI binding.
      * <p>
-     * Query: SELECT * FROM PricePlans JOIN DayRates ON PricePlans.pricePlanIndex = DayRates.pricePlanId 
+     * Query: SELECT * FROM PricePlans LEFT JOIN DayRates ON PricePlans.pricePlanIndex = DayRates.pricePlanId
      *        ORDER BY PricePlans.supplier ASC, PricePlans.planName ASC
      * <p>
-     * This complex query performs an INNER JOIN to associate each price plan with its
-     * day rates, creating a Map<PricePlan, List<DayRate>> result. The Room framework
-     * automatically groups the joined results by the parent entity (PricePlan).
+     * A LEFT (outer) JOIN — NOT an inner join — so a plan with NO day rates still
+     * appears, mapped to an empty list (Room drops the all-null right side rather
+     * than adding a null DayRate). This is load-bearing for pending dynamic plans:
+     * they are terms-only with zero BUY rates until their wholesale year downloads,
+     * and an inner join would hide them from the list entirely (no pending badge,
+     * no tap-to-retry, and a failed generation would vanish without trace).
      * <p>
      * Ordering is alphabetical by supplier first, then plan name for consistent
      * presentation in the UI.
-     * 
+     *
      * @return LiveData containing a map of price plans to their day rates lists
      */
-    @Query("SELECT * FROM PricePlans JOIN DayRates ON PricePlans.pricePlanIndex = DayRates.pricePlanId ORDER BY PricePlans.supplier ASC, PricePlans.planName ASC ")
+    @Query("SELECT * FROM PricePlans LEFT JOIN DayRates ON PricePlans.pricePlanIndex = DayRates.pricePlanId ORDER BY PricePlans.supplier ASC, PricePlans.planName ASC ")
     public abstract LiveData<Map<PricePlan, List<DayRate>>> loadPricePlans();
 
     /**
