@@ -662,6 +662,7 @@ private fun DayRate.toBuilder(): DayRateBuilder {
 private fun DynamicTerms.copyTerms(): DynamicTerms = DynamicTerms().also {
     it.market = market
     it.year = year
+    it.periodStartMonth = periodStartMonth
     it.multiplier = multiplier
     it.adder = adder
     it.cap = cap
@@ -674,7 +675,10 @@ private fun DynamicTerms.copyTerms(): DynamicTerms = DynamicTerms().also {
 /** Do two terms define the same prices? Provenance (sourceRef) is ignored. */
 private fun DynamicTerms?.sameTermsAs(other: DynamicTerms?): Boolean {
     if (this == null || other == null) return this === other
+    // Legacy null start-month means January — normalise so a re-save of an old
+    // calendar-year plan isn't seen as a terms change.
     return market == other.market && year == other.year &&
+        (periodStartMonth ?: 1) == (other.periodStartMonth ?: 1) &&
         multiplier == other.multiplier && adder == other.adder &&
         cap == other.cap && floor == other.floor &&
         feedMultiplier == other.feedMultiplier && feedAdder == other.feedAdder
@@ -694,6 +698,7 @@ private fun dynamicPlanJson(plan: PricePlan): PricePlanJsonFile {
         val tj = com.tfcode.comparetout.model.json.priceplan.DynamicTermsJson()
         tj.market = t.market
         tj.year = t.year
+        tj.periodStartMonth = t.periodStartMonth
         tj.multiplier = t.multiplier
         tj.adder = t.adder
         tj.cap = t.cap

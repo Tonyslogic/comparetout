@@ -36,6 +36,11 @@ public class DynamicTermsJson {
     @SerializedName("Year")
     public Integer year;
 
+    /** First month (1-12) of the 12-month backtest window; null/absent == January
+     *  (a legacy calendar-year plan). */
+    @SerializedName("PeriodStartMonth")
+    public Integer periodStartMonth;
+
     @SerializedName("Multiplier")
     public Double multiplier;
 

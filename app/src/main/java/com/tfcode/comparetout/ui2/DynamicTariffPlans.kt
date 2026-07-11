@@ -69,16 +69,20 @@ class DynamicTariffPlans @Inject constructor(
      * regeneration (new year, edited terms) replaces cleanly, and the existing
      * plan-changed invalidation seam re-costs every scenario.
      */
-    fun materialiseBlocking(source: HistoricalRateSource, plan: PricePlan, year: Int): Result {
+    fun materialiseBlocking(source: HistoricalRateSource, plan: PricePlan, year: Int,
+                            startMonth: Int = 1): Result {
         val terms = plan.dynamicTerms
             ?: return Result.Failed(IllegalArgumentException("plan has no dynamic terms"))
         if (!terms.isComplete)
             return Result.Failed(IllegalArgumentException("dynamic terms are incomplete"))
         return try {
-            val series = source.fetch(year)
+            // A 12-month window starting (year, startMonth) — each month appears
+            // once, so it tiles the sim's 2001 calendar exactly like a full year.
+            val series = source.fetchWindow(year, startMonth, 12)
             if (!series.isComplete) return Result.Incomplete(series.missingMonths)
 
             terms.year = year
+            terms.periodStartMonth = startMonth
             terms.sourceRef = series.sourceRef
             val rates = ArrayList(buildBuyDayRates(series, terms))
             if (terms.feedMultiplier != null || terms.feedAdder != null) {
@@ -108,13 +112,17 @@ class DynamicTariffPlans @Inject constructor(
         val feedNote = if (terms.feedMultiplier != null || terms.feedAdder != null)
             "export = wholesale × ${terms.feedMultiplier ?: 1.0} + ${terms.feedAdder ?: 0.0}c"
         else "export = scalar feed ${plan.feed}c"
+        val startMonth = terms.periodStartMonth ?: 1
+        val window = if (startMonth == 1) "${series.year}"
+            else "${series.year}-%02d..%d-%02d".format(
+                startMonth, series.year + 1, startMonth - 1)
         return "Generated dynamic tariff: unit price = wholesale × ${terms.multiplier} + " +
                 "${terms.adder}c" +
                 (terms.cap?.let { ", capped at ${it}c" } ?: "") +
                 (terms.floor?.let { ", floored at ${it}c" } ?: "") +
-                "; $feedNote. Wholesale: ${series.marketId} ${series.year} " +
+                "; $feedNote. Wholesale: ${series.marketId} $window " +
                 "(${series.sourceRef}). ${series.gapFilledCount} half-hours gap-filled. " +
-                "Weekdays follow the ${series.year} calendar dates, not the sim year's — " +
+                "Weekdays follow the calendar dates of the window, not the sim year's — " +
                 "same convention as the weather profile."
     }
 

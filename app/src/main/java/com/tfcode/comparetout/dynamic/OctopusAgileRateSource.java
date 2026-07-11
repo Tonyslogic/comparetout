@@ -109,7 +109,7 @@ public final class OctopusAgileRateSource implements HistoricalRateSource {
     }
 
     @Override
-    public RateSeries fetch(int year) throws IOException {
+    public RateSeries fetchWindow(int startYear, int startMonth, int months) throws IOException {
         List<RateSeries.Entry> entries = new ArrayList<>(366 * 48);
         List<Integer> missing = new ArrayList<>();
         Set<String> sources = new LinkedHashSet<>();
@@ -117,7 +117,11 @@ public final class OctopusAgileRateSource implements HistoricalRateSource {
         long now = clock.millis();
         IOException lastFailure = null;
 
-        for (int month = 1; month <= 12; month++) {
+        for (int i = 0; i < months; i++) {
+            // Real (year, month) of this window slot — a 12-month window may cross
+            // a calendar-year boundary, so the actual year advances after December.
+            int year = startYear + (startMonth - 1 + i) / 12;
+            int month = (startMonth - 1 + i) % 12 + 1;
             if (SeriesNormaliser.monthEndMillis(year, month) > now) {
                 missing.add(month); // month not finished yet — never partial-fill
                 continue;
@@ -139,19 +143,20 @@ public final class OctopusAgileRateSource implements HistoricalRateSource {
             }
             sources.add(chunk.source);
             gapFilled += chunk.gapFilled;
-            for (int i = 0; i < chunk.utcMillis.length; i++) {
-                entries.add(new RateSeries.Entry(chunk.utcMillis[i], chunk.centsPerKwh[i]));
+            for (int j = 0; j < chunk.utcMillis.length; j++) {
+                entries.add(new RateSeries.Entry(chunk.utcMillis[j], chunk.centsPerKwh[j]));
             }
         }
         if (entries.isEmpty()) {
             if (!(null == lastFailure)) throw lastFailure;
-            throw new IOException("No Octopus Agile data available for " + year
+            throw new IOException("No Octopus Agile data available for the window starting "
+                    + startYear + "-" + String.format(java.util.Locale.ROOT, "%02d", startMonth)
                     + " in region " + region);
         }
         String sourceRef = "Octopus Energy public tariff API (" + String.join(" + ", sources)
                 + "), GSP region " + region + "; fetched " + LocalDate.now(clock)
                 + "; prices are retail inc-VAT pence/kWh";
-        return new RateSeries(marketId, year, entries, missing, gapFilled, sourceRef);
+        return new RateSeries(marketId, startYear, entries, missing, gapFilled, sourceRef);
     }
 
     /** Fetch one UTC month from the newest product that has data for it; null = uncovered. */

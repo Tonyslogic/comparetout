@@ -22,9 +22,13 @@ export price (optional)     = wholesale × FeedMultiplier + FeedAdder     (uncla
 ```
 
 - **Market** — which price feed the plan tracks (see §3).
-- **Year** — a *backtest*: yearly costs are computed as if that year's prices repeated. Defaults to the
-  last complete calendar year. Weekday patterns follow that year's real calendar.
-- **Materialisation** — `DynamicTariffWorker` downloads the year's half-hourly prices and writes **365
+- **Window** — a *backtest* over **12 consecutive months** (`DynamicTerms.year` = first year,
+  `periodStartMonth` = first month; a null month means a legacy January–December plan). Costs are computed
+  as if that window's prices repeated. It defaults to the **most recent 12 complete months** and is chosen
+  with a month stepper — a rolling window avoids the perpetual gap a fixed calendar year hits in the Irish
+  (SEMOpx) market, while 12 consecutive months still cover each calendar month exactly once, so the result
+  tiles the sim's 2001 calendar identically. Weekday patterns follow those months' real calendar.
+- **Materialisation** — `DynamicTariffWorker` downloads the window's half-hourly prices and writes **365
   single-day BUY `DayRate` rows** (`startDate == endDate`); if the terms include a feed transform it also
   writes 365 SELL rows (`DayRate.rateType = 1`). Costing then works exactly as for any other plan via
   `RateLookup` — the engine has no idea the plan is dynamic.
@@ -35,13 +39,15 @@ export price (optional)     = wholesale × FeedMultiplier + FeedAdder     (uncla
   `model/priceplan/PricePlanJsonSchema.json`.
 
 The generated day rates are never hand-editable — the terms card in the plan wizard is the only rate
-mutation path (edit terms/year → regenerate → worker clobbers the plan by name and replaces its rates).
+mutation path (edit terms/window → save/regenerate → worker clobbers the plan by name and replaces its
+rates). The window is picked with a `HistoricalWindowStepper` (‹ › steps one month; bounded by SEM
+go-live 2018-10 and the last complete month).
 
 ## 2. Ways to create one
 
 | Path | Where | Notes |
 |---|---|---|
-| Generator pane | Plan list → Import sheet → "Dynamic tariff" | Regions with a market registered (IE). Enter year + terms; queues the worker; plan appears as pending, then materialises. |
+| Generator pane | Plan list → Import sheet → "Dynamic tariff" | Regions with a market registered (IE). Pick the 12-month window + terms; queues the worker; plan appears as pending, then materialises. |
 | Plan wizard | New/edit plan → "Dynamic tariff" section → "Use dynamic terms" | Converts the plan: Rates/Restrictions sections swap for the Dynamic terms card. Reversible until prices are fetched. "Fetch prices & generate" queues the worker. |
 | Octopus browser (GB) | Plan list → Import sheet → Octopus tariffs | Agile tariffs queue automatically as terms-only plans (×1 +0 — Agile publishes final retail prices). |
 | JSON import | Paste/import a plan file with a `Dynamic` block and no `Rates` | Arrives pending, materialises in the background. |
@@ -128,10 +134,11 @@ components *exclude* it (`getEffectiveEndMinute()`), and the strategy/emitter co
 
 ## 5. Known limits (recorded in `plans/dynamic/status.md`)
 
-- SEMOpx coverage depends on how fresh their bulk publications are: the look-back workbook's current
-  build ends Sep-2024 and the daily catalog reaches back ~12 months, so months in between are
-  reported missing (the affected year won't materialise) until SEMOpx refreshes the workbook —
-  at which point they fill in with no app change.
+- SEMOpx coverage depends on how fresh their bulk publications are, so an arbitrary calendar year can
+  have a gap (the look-back workbook's build vs the daily catalog's ~12-month window). The window
+  stepper's **default — the most recent 12 complete months — sits inside the catalog and is normally
+  gap-free**; older windows can still hit missing months (the plan stays pending, and the notification
+  says which months to step past). Coverage widens on its own whenever SEMOpx refreshes the workbook.
 - Weather awareness needs previously fetched CDS weather; it never fetches on its own.
 - EV window is fixed 18:00→08:00; hot-water diversion is not optimised; degradation cost is 0.
 - IE generator pane defaults are placeholders — enter the real supplier terms.
@@ -142,7 +149,7 @@ components *exclude* it (`getEffectiveEndMinute()`), and the strategy/emitter co
 | Area | Where |
 |---|---|
 | Terms model / JSON | `model/priceplan/DynamicTerms`, `model/json/priceplan/DynamicTermsJson`, schema `model/priceplan/PricePlanJsonSchema.json` |
-| Fetch & materialise | `dynamic/` — `DynamicTariffWorker`, `DynamicRateSources`, `SemopxRateSource`, `SemopxLookbackXlsx`, `OctopusAgileRateSource`, `SeriesNormaliser`, `DynamicPriceCache` |
+| Fetch & materialise | `dynamic/` — `DynamicTariffWorker`, `DynamicRateSources`, `SemopxRateSource`, `SemopxLookbackXlsx`, `OctopusAgileRateSource`, `SeriesNormaliser`, `DynamicPriceCache`; `HistoricalRateSource.fetchWindow(startYear, startMonth, months)` (`fetch(year)` = 12-month Jan window) |
 | Strategy engine (pure JVM) | `dynamic/strategy/` — `DispatchStrategy`, `ThresholdStrategy`, `RankNStrategy`, `SocForwardModel`, `StrategyYearRunner`, `ScheduleEmitter`, `WeatherAwareStrategy`, `WindPriceCalibration`, `LayerBOutlook`, `EvSmartChargePlanner` |
-| UI | `ui2/DynamicTariffPlans.kt`, `ui2/StrategyScenarioGenerator.kt`, dialog in `ui2/UI2SimulationsFragment.kt`, generator pane in `ui2/UI2PricePlanListActivity.kt`, terms card in `ui2/UI2PricePlanWizardActivity.kt`, price-cache accordion in `ui2/UI2DataSourceManagementActivity.kt` |
+| UI | `ui2/DynamicTariffPlans.kt`, `ui2/StrategyScenarioGenerator.kt`, dialog in `ui2/UI2SimulationsFragment.kt`, generator pane in `ui2/UI2PricePlanListActivity.kt`, terms card in `ui2/UI2PricePlanWizardActivity.kt`, 12-month window picker `ui2/HistoricalWindowStepper.kt`, price-cache accordion in `ui2/UI2DataSourceManagementActivity.kt` |
 | Tests | `ThresholdStrategyTest`, `RankNStrategyTest`, `StrategyYearRunnerTest`, `ScheduleEmitterTest`, `WindPriceCalibrationTest`, `LayerBOutlookTest`, `WeatherAwareStrategyTest`, `EvSmartChargePlannerTest`, `OctopusAgileRateSourceTest`, `SemopxLookbackXlsxTest`, `ComponentDateWindowTest` |

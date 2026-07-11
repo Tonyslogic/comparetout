@@ -697,7 +697,8 @@ private fun PricePlanAccordion(
                             shape = CircleShape
                         ) {
                             Text(stringResource(R.string.ui2_ppl_dyn_badge) +
-                                    (row.dynamicYear?.let { " · $it" } ?: ""),
+                                    windowLabel(row.dynamicYear, row.dynamicPeriodStartMonth)
+                                        .let { if (it.isNotEmpty()) " · $it" else "" },
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onTertiaryContainer,
                                 modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp))
@@ -1034,8 +1035,7 @@ private fun DynamicTariffPane(onQueued: () -> Unit) {
     val region = RegionProfiles.current
     val market = region.dynamicMarkets.first()
     val (showHints, _) = rememberShowHints()
-    val lastCompleteYear = remember { java.time.LocalDate.now().year - 1 }
-    var year by remember { mutableStateOf(lastCompleteYear.toString()) }
+    var windowStart by remember { mutableStateOf(defaultWindowStart()) }
     var multiplier by remember { mutableStateOf("1.0") }
     var adder by remember { mutableStateOf("") }
     var cap by remember { mutableStateOf("") }
@@ -1043,10 +1043,7 @@ private fun DynamicTariffPane(onQueued: () -> Unit) {
     var feed by remember { mutableStateOf("0") }
 
     fun parsed(s: String): Double? = s.trim().replace(',', '.').toDoubleOrNull()
-    val yearValue = year.trim().toIntOrNull()
-    // The SEM went live 2018-10; a future/current year can't be complete.
-    val ready = yearValue != null && yearValue in 2018..lastCompleteYear &&
-            parsed(multiplier) != null && parsed(adder) != null
+    val ready = parsed(multiplier) != null && parsed(adder) != null
 
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(
@@ -1061,11 +1058,17 @@ private fun DynamicTariffPane(onQueued: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        OutlinedTextField(
-            value = year, onValueChange = { year = it },
-            modifier = Modifier.fillMaxWidth(), singleLine = true,
-            label = { Text(stringResource(R.string.ui2_ppl_dyn_year)) }
+        HistoricalWindowStepper(
+            start = windowStart,
+            onStartChange = { windowStart = it }
         )
+        if (showHints) {
+            Text(
+                stringResource(R.string.ui2_dyn_window_hint),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
         OutlinedTextField(
             value = multiplier, onValueChange = { multiplier = it },
             modifier = Modifier.fillMaxWidth(), singleLine = true,
@@ -1108,11 +1111,15 @@ private fun DynamicTariffPane(onQueued: () -> Unit) {
         Button(
             onClick = {
                 val supplier = market.displayName.substringBefore(" (")
+                val startY = windowStart.year
+                val startM = windowStart.monthValue
+                // Compact window tag for the auto plan name: "2024" (Jan window) or "2025-07".
+                val winTag = if (startM == 1) "$startY" else "%d-%02d".format(startY, startM)
                 val digest = "×$multiplier +${adder}c" +
                         (parsed(cap)?.let { ", cap ${cap.trim()}c" } ?: "")
                 val ppj = PricePlanJsonFile()
                 ppj.supplier = supplier
-                ppj.plan = "DA $year $digest"
+                ppj.plan = "DA $winTag $digest"
                 ppj.standingCharges = parsed(standing) ?: 0.0
                 ppj.feed = parsed(feed) ?: 0.0
                 ppj.bonus = 0.0
@@ -1120,13 +1127,14 @@ private fun DynamicTariffPane(onQueued: () -> Unit) {
                 ppj.location = region.regionCode
                 val terms = com.tfcode.comparetout.model.json.priceplan.DynamicTermsJson()
                 terms.market = market.id
-                terms.year = yearValue
+                terms.year = startY
+                terms.periodStartMonth = startM
                 terms.multiplier = parsed(multiplier)
                 terms.adder = parsed(adder)
                 terms.cap = parsed(cap)
                 ppj.dynamic = terms
                 DynamicTariffWorker.enqueue(
-                    context, com.google.gson.Gson().toJson(ppj), ppj.plan, yearValue ?: lastCompleteYear)
+                    context, com.google.gson.Gson().toJson(ppj), ppj.plan, startY)
                 Toast.makeText(context,
                     context.getString(R.string.ui2_ppl_dyn_queued, ppj.plan),
                     Toast.LENGTH_LONG).show()

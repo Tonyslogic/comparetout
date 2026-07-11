@@ -23,7 +23,7 @@
       },
       "Dynamic": {
         "type": "object",
-        "description": "Supplier terms of a dynamic (wholesale-tracking) tariff. Present ⇒ the plan's import prices are derived per half-hour as clamp(wholesale × Multiplier + Adder, Floor, Cap) from the chosen market year, and 'Rates' becomes optional: terms + no rates = a pending plan whose prices the app fetches and materialises in the background. Editing materialised day rates directly is not supported — change the terms or year and regenerate.",
+        "description": "Supplier terms of a dynamic (wholesale-tracking) tariff. Present ⇒ the plan's import prices are derived per half-hour as clamp(wholesale × Multiplier + Adder, Floor, Cap) from a 12-month backtest window, and 'Rates' becomes optional: terms + no rates = a pending plan whose prices the app fetches and materialises in the background. Editing materialised day rates directly is not supported — change the terms or window and regenerate.",
         "properties": {
           "Market": {
             "type": "string",
@@ -32,8 +32,15 @@
           },
           "Year": {
             "type": "integer",
-            "description": "The historical calendar year whose market prices back the plan (a backtest: yearly costs are computed as if that year repeated). Optional in a shared/imported file — when absent the app defaults to the last complete year. Set on the plan once materialised.",
+            "description": "First calendar year of the 12-month backtest window (a backtest: yearly costs are computed as if that window repeated). With PeriodStartMonth = 7 the window is July of this year through June of the next. Optional in a shared/imported file — when absent the app defaults to the most recent complete 12 months. Set on the plan once materialised.",
             "examples": [2025]
+          },
+          "PeriodStartMonth": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 12,
+            "description": "First month (1-12) of the 12-month backtest window. Absent or 1 = a legacy calendar-year plan (January–December of Year). A rolling window (e.g. 7) sits inside the market's freshest ~12-month publication window, avoiding the perpetual calendar-year data gap (SEMOpx/Ireland).",
+            "examples": [7]
           },
           "Multiplier": {
             "type": "number",

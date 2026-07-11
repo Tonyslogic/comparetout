@@ -770,8 +770,12 @@
         <item quantity="other">Added %1$d plans for region %2$s</item>
     </plurals>
     <string name="ui2_ppl_dynamic_tariff">Dynamic tariff</string>
-    <string name="ui2_ppl_dyn_desc">Builds a supplier plan from a dynamic (wholesale-tracking) offer: pick a historical year, enter the supplier\'s terms, and the app fetches that year\'s %1$s prices on this device and generates day-by-day rates. A first fetch for a year takes a few minutes; later generates reuse the cache.</string>
+    <string name="ui2_ppl_dyn_desc">Builds a supplier plan from a dynamic (wholesale-tracking) offer: pick a 12-month window of past prices, enter the supplier\'s terms, and the app fetches those months\' %1$s prices on this device and generates day-by-day rates. A first fetch takes a few minutes; later generates reuse the cache.</string>
     <string name="ui2_ppl_dyn_year">Historical year</string>
+    <string name="ui2_dyn_window_label">Historical window (12 months)</string>
+    <string name="ui2_dyn_window_prev">Earlier window</string>
+    <string name="ui2_dyn_window_next">Later window</string>
+    <string name="ui2_dyn_window_hint">The 12-month stretch of past market prices your costs are tested against. It defaults to the most recent complete 12 months — the safest choice, since a fixed Jan–Dec year often has gaps in the Irish market. Use ‹ › to move the window a month at a time; weekday patterns follow those months\' real calendar, like the weather profile.</string>
     <string name="ui2_ppl_dyn_multiplier">Multiplier (× wholesale)</string>
     <string name="ui2_ppl_dyn_adder">Adder (%1$s)</string>
     <string name="ui2_ppl_dyn_cap">Cap (%1$s, optional)</string>
@@ -782,8 +786,8 @@
     <string name="ui2_ppl_dyn_badge">Dynamic tariff</string>
     <string name="ui2_ppw_dynamic_title">Dynamic terms</string>
     <string name="ui2_ppw_dynamic_pending">Prices pending download</string>
-    <string name="ui2_ppw_dynamic_materialised">%1$s · %2$d</string>
-    <string name="ui2_ppw_dynamic_note">This plan\'s day-by-day rates are generated from these terms and the fetched wholesale prices — they can\'t be edited directly. Change the terms or the year, then regenerate.</string>
+    <string name="ui2_ppw_dynamic_materialised">%1$s · %2$s</string>
+    <string name="ui2_ppw_dynamic_note">This plan\'s day-by-day rates are generated from these terms and the fetched wholesale prices — they can\'t be edited directly. Change the terms or the window, then regenerate.</string>
     <string name="ui2_ppw_dynamic_regenerate">Regenerate prices</string>
     <string name="ui2_ppl_dyn_pending_badge">Prices pending download — tap to retry</string>
     <string name="ui2_ppl_dyn_pending_queued">Fetching prices for “%1$s”…</string>
@@ -795,7 +799,7 @@
     <string name="ui2_dyn_adder_hint">The supplier\'s fixed margin added to every half-hour (their network charges, levies and profit, per kWh). Both numbers come from the offer\'s terms page — e.g. “day-ahead price × 1.10 + 4.5”.</string>
     <string name="ui2_dyn_cap_hint">Optional price ceiling: no half-hour is charged above this, however high the market goes. Leave blank if the offer has no cap.</string>
     <string name="ui2_ppw_dynamic_generate">Fetch prices &amp; generate</string>
-    <string name="ui2_ppw_dynamic_generate_hint">Creates the plan and downloads the chosen year\'s market prices in the background — it shows as “pending” in the plan list until the download finishes, then costs appear automatically.</string>
+    <string name="ui2_ppw_dynamic_generate_hint">Creates the plan and downloads the chosen 12-month window of market prices in the background — it shows as “pending” in the plan list until the download finishes, then costs appear automatically.</string>
     <string name="ui2_ppw_dynamic_regenerate_hint">Replaces this plan\'s generated day-by-day rates with prices built from the terms above (re-downloading the year if needed). Costs recompute automatically; scenarios are untouched.</string>
     <string name="ui2_ppw_dynamic_revert">Use fixed rates instead</string>
     <string name="ui2_ppw_make_dynamic_title">Dynamic tariff</string>

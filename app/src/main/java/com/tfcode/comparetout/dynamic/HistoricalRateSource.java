@@ -35,9 +35,21 @@ public interface HistoricalRateSource {
     boolean needsCredentials();
 
     /**
-     * Fetch (cache-first) the normalised half-hourly series for one calendar year.
-     * Never throws for partial coverage — missing months are reported on the
-     * returned series; throws only when nothing can be fetched at all.
+     * Fetch (cache-first) the normalised half-hourly series for a window of
+     * {@code months} consecutive calendar months starting at
+     * {@code (startYear, startMonth)} — a 12-month window may span two calendar
+     * years. Never throws for partial coverage — missing months are reported on
+     * the returned series (as month numbers 1-12, unambiguous because a ≤12-month
+     * window holds each month at most once); throws only when nothing can be
+     * fetched at all.
      */
-    RateSeries fetch(int year) throws IOException;
+    RateSeries fetchWindow(int startYear, int startMonth, int months) throws IOException;
+
+    /**
+     * Fetch one whole calendar year (Jan–Dec) — the back-compat shape used by
+     * legacy year-bound plans and GB Agile. Delegates to {@link #fetchWindow}.
+     */
+    default RateSeries fetch(int year) throws IOException {
+        return fetchWindow(year, 1, 12);
+    }
 }

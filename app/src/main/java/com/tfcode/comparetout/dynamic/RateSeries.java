@@ -21,15 +21,17 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * A normalised historical wholesale price series for one calendar year:
- * ordered half-hourly UTC entries in c/kWh (EUR/MWh ÷ 10 — the millis/UTC
- * ingestion convention, no timezone maths downstream). Hourly market eras are
- * expanded to half-hourly on ingestion (price repeated), so consumers see one
- * resolution regardless of source vintage.
+ * A normalised historical wholesale price series for a 12-month backtest window
+ * (which may span two calendar years): ordered half-hourly UTC entries in c/kWh
+ * (EUR/MWh ÷ 10 — the millis/UTC ingestion convention, no timezone maths
+ * downstream). Hourly market eras are expanded to half-hourly on ingestion
+ * (price repeated), so consumers see one resolution regardless of source vintage.
  * <p>
- * A series may be incomplete: {@link #getMissingMonths()} lists months (1-12)
- * no public source could supply. The materialiser refuses years with missing
- * months; the UI reports them instead of silently zero-filling.
+ * A series may be incomplete: {@link #getMissingMonths()} lists months (1-12) no
+ * public source could supply (unambiguous — a ≤12-month window holds each month
+ * at most once). The materialiser refuses windows with missing months; the UI
+ * reports them instead of silently zero-filling. {@link #getYear()} is the
+ * window's first calendar year.
  */
 public class RateSeries {
 

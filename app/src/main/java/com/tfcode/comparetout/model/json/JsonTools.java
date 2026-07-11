@@ -142,6 +142,7 @@ public class JsonTools {
             DynamicTerms dt = new DynamicTerms();
             dt.setMarket(pp.dynamic.market);
             dt.setYear(pp.dynamic.year);
+            dt.setPeriodStartMonth(pp.dynamic.periodStartMonth);
             dt.setMultiplier(pp.dynamic.multiplier);
             dt.setAdder(pp.dynamic.adder);
             dt.setCap(pp.dynamic.cap);
@@ -212,6 +213,7 @@ public class JsonTools {
         DynamicTermsJson dj = new DynamicTermsJson();
         dj.market = dt.getMarket();
         dj.year = dt.getYear();
+        dj.periodStartMonth = dt.getPeriodStartMonth();
         dj.multiplier = dt.getMultiplier();
         dj.adder = dt.getAdder();
         dj.cap = dt.getCap();

@@ -263,7 +263,8 @@ private fun PricePlanWizardScreen(
                                     title = stringResource(R.string.ui2_ppw_dynamic_title),
                                     subtitle = if (builder.materialised)
                                         stringResource(R.string.ui2_ppw_dynamic_materialised,
-                                            terms?.market ?: "", terms?.year ?: 0)
+                                            terms?.market ?: "",
+                                            windowLabel(terms?.year, terms?.periodStartMonth))
                                     else stringResource(R.string.ui2_ppw_dynamic_pending),
                                     isComplete = builder.materialised,
                                     hasError = false,
@@ -1468,9 +1469,8 @@ private fun DynamicTermsSection(
     showHints: Boolean
 ) {
     val terms = builder.dynamicTerms ?: return
-    val lastCompleteYear = remember { java.time.LocalDate.now().year - 1 }
-    var year by remember(builder.pricePlanId) {
-        mutableStateOf((terms.year ?: lastCompleteYear).toString())
+    var windowStart by remember(builder.pricePlanId) {
+        mutableStateOf(windowStartOf(terms.year, terms.periodStartMonth))
     }
     var multiplier by remember(builder.pricePlanId) {
         mutableStateOf((terms.multiplier ?: 1.0).toString())
@@ -1483,18 +1483,17 @@ private fun DynamicTermsSection(
     }
 
     fun parsed(s: String): Double? = s.trim().replace(',', '.').toDoubleOrNull()
-    val yearValue = year.trim().toIntOrNull()
-    val ready = yearValue != null && yearValue in 2018..lastCompleteYear &&
-            parsed(multiplier) != null && parsed(adder) != null &&
+    val ready = parsed(multiplier) != null && parsed(adder) != null &&
             builder.supplier.isNotBlank() && builder.planName.isNotBlank()
 
     // Reflect the initially-shown field values into the builder so a plain Save
-    // (not just Regenerate) persists the displayed year/multiplier/adder/cap even
+    // (not just Regenerate) persists the displayed window/multiplier/adder/cap even
     // if the user changes nothing else. For an already-loaded plan this seeds the
     // identical values, so it is not treated as a terms change.
     LaunchedEffect(builder.pricePlanId) {
         viewModel.updateTerms { t ->
-            year.trim().toIntOrNull()?.let { t.year = it }
+            t.year = windowStart.year
+            t.periodStartMonth = windowStart.monthValue
             parsed(multiplier)?.let { t.multiplier = it }
             parsed(adder)?.let { t.adder = it }
             t.cap = parsed(cap)
@@ -1507,20 +1506,20 @@ private fun DynamicTermsSection(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        HistoricalWindowStepper(
+            start = windowStart,
+            onStartChange = { ym ->
+                windowStart = ym
+                viewModel.updateTerms { t -> t.year = ym.year; t.periodStartMonth = ym.monthValue }
+            }
+        )
         if (showHints) {
             Text(
-                stringResource(R.string.ui2_ppw_dynamic_hint),
+                stringResource(R.string.ui2_dyn_window_hint),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        OutlinedTextField(
-            value = year,
-            onValueChange = { year = it
-                it.trim().toIntOrNull()?.let { y -> viewModel.updateTerms { t -> t.year = y } } },
-            modifier = Modifier.fillMaxWidth(), singleLine = true,
-            label = { Text(stringResource(R.string.ui2_ppl_dyn_year)) }
-        )
         OutlinedTextField(
             value = multiplier,
             onValueChange = { multiplier = it

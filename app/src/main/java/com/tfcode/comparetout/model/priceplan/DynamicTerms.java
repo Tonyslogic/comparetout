@@ -33,9 +33,14 @@ package com.tfcode.comparetout.model.priceplan;
 public class DynamicTerms {
     /** Market descriptor id, e.g. "ISEM-DAM"; resolved via the region's market registry. */
     private String market;
-    /** Historical calendar year the materialised series covers; null until materialised
-     *  (a supplier offer is not year-bound — the backtest year is the importer's choice). */
+    /** First calendar year of the materialised backtest window; null until materialised
+     *  (a supplier offer is not year-bound — the window is the importer's choice). */
     private Integer year;
+    /** First month (1-12) of the 12-month backtest window; null == 1 (a legacy
+     *  calendar-year plan: Jan..Dec of {@link #year}). A rolling window such as
+     *  Jul {@code year} .. Jun {@code year+1} sits inside the market's freshest
+     *  ~12-month publication window, avoiding the perpetual calendar-year gap. */
+    private Integer periodStartMonth;
     /** Retail multiplier on the wholesale price (margin / losses / VAT-inclusive factor). */
     private Double multiplier;
     /** c/kWh added after the multiplier (network charges, supplier margin). */
@@ -64,6 +69,19 @@ public class DynamicTerms {
 
     public void setYear(Integer year) {
         this.year = year;
+    }
+
+    public Integer getPeriodStartMonth() {
+        return periodStartMonth;
+    }
+
+    public void setPeriodStartMonth(Integer periodStartMonth) {
+        this.periodStartMonth = periodStartMonth;
+    }
+
+    /** First month of the backtest window, defaulting a legacy null to January. */
+    public int effectiveStartMonth() {
+        return (null == periodStartMonth) ? 1 : periodStartMonth;
     }
 
     public Double getMultiplier() {

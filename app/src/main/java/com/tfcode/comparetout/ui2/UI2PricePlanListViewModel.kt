@@ -45,8 +45,10 @@ data class PricePlanListRow(
     val isDynamic: Boolean = false,
     /** Dynamic plan whose prices have not been materialised yet. */
     val isPending: Boolean = false,
-    /** The backtest year recorded in the terms, when set. */
-    val dynamicYear: Int? = null
+    /** First calendar year of the backtest window, when set. */
+    val dynamicYear: Int? = null,
+    /** First month (1-12) of the 12-month window; null == a legacy Jan–Dec year. */
+    val dynamicPeriodStartMonth: Int? = null
 ) {
     /** True when [location] is set and differs from the device's country. */
     fun locationMismatch(deviceCountry: String): Boolean =
@@ -109,7 +111,8 @@ class UI2PricePlanListViewModel @Inject constructor(
                                 plan.restrictions?.restrictions.orEmpty().isNotEmpty(),
                         isDynamic = plan.isDynamic,
                         isPending = plan.isPendingDynamic(drs),
-                        dynamicYear = plan.dynamicTerms?.year
+                        dynamicYear = plan.dynamicTerms?.year,
+                        dynamicPeriodStartMonth = plan.dynamicTerms?.periodStartMonth
                     )
                 }.sortedWith(compareBy({ it.supplier.lowercase() }, { it.planName.lowercase() }))
                 // Drop the favourite if the plan it points to has been deleted.

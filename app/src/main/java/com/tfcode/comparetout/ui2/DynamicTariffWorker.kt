@@ -78,10 +78,12 @@ class DynamicTariffWorker(
             return Result.failure()
         }
         val targetYear = if (year > 0) year else terms.year ?: run {
-            failTerminal("Dynamic tariff '${plan.planName}': no year chosen — " +
-                    "pick a historical year and regenerate.")
+            failTerminal("Dynamic tariff '${plan.planName}': no window chosen — " +
+                    "pick a 12-month window and regenerate.")
             return Result.failure()
         }
+        // First month of the 12-month backtest window (legacy null == January).
+        val startMonth = terms.periodStartMonth ?: 1
         val source = DynamicRateSources.forMarket(terms.market, applicationContext)
         if (source == null) {
             failTerminal("Dynamic tariff '${plan.planName}': market '${terms.market}' is not " +
@@ -103,13 +105,15 @@ class DynamicTariffWorker(
             repository.insert(plan, emptyList(), false)
         }
 
-        progress("Fetching ${terms.market} $targetYear prices… a first fetch for a year " +
-                "takes a few minutes; later generates reuse the cache.")
+        progress("Fetching ${terms.market} prices for the 12 months from " +
+                "$targetYear-${"%02d".format(startMonth)}… a first fetch takes a few minutes; " +
+                "later generates reuse the cache.")
         val plans = EntryPointAccessors.fromApplication(
             applicationContext, DynamicTariffPlansEntryPoint::class.java
         ).dynamicTariffPlans()
 
-        return when (val result = plans.materialiseBlocking(source, plan, targetYear)) {
+        return when (val result =
+                plans.materialiseBlocking(source, plan, targetYear, startMonth)) {
             is DynamicTariffPlans.Result.Generated -> {
                 finish("Plan '${result.planName}' is ready" +
                         (if (result.gapFilled > 0) " (${result.gapFilled} half-hours gap-filled)"
@@ -120,9 +124,10 @@ class DynamicTariffWorker(
                 Result.success()
             }
             is DynamicTariffPlans.Result.Incomplete -> {
-                failTerminal("Couldn't materialise '${plan.planName}': SEMOpx has no public data " +
-                        "for $targetYear month(s) ${result.missingMonths.joinToString()}. " +
-                        "Pick a different year — the plan stays pending.")
+                failTerminal("Couldn't materialise '${plan.planName}': no public data for " +
+                        "month(s) ${result.missingMonths.joinToString()} of the 12 months from " +
+                        "$targetYear-${"%02d".format(startMonth)}. Step the window to more recent " +
+                        "months — the plan stays pending.")
                 Result.failure()
             }
             is DynamicTariffPlans.Result.Failed -> {
