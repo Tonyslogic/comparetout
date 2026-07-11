@@ -379,6 +379,7 @@
     <string name="ui2_settings_group_sources">Data sources</string>
     <string name="ui2_settings_pvgis_sub">Solar irradiance cache</string>
     <string name="ui2_settings_cds_sub">Heat-pump weather cache</string>
+    <string name="ui2_settings_wholesale_sub">Dynamic tariff price cache</string>
 
     <!-- UI2 shell (UI2MainActivity dialogs) -->
     <string name="ui2_region_mismatch_title">Different region detected</string>

@@ -373,12 +373,12 @@ private fun DataSourceManagementScreen(
                         onRemoveSource = viewModel::removeCdsSource
                     )
                 }
-                // Wholesale price cache behind dynamic tariff plans. Gated by the
-                // edition's capability (IE wholesale market / GB Octopus Agile),
-                // not by a ui_visibility flag — it's a cache view, and hiding it
-                // while cached files exist would leave them unmanageable.
-                if (RegionProfiles.current.dynamicMarkets.isNotEmpty() ||
-                    RegionProfiles.current.hasOctopus) item("prices") {
+                // Wholesale price cache behind dynamic tariff plans. Shown where the
+                // edition supports dynamic tariffs (IE wholesale market / GB Octopus
+                // Agile) AND the user hasn't hidden it in App settings — consistent
+                // with the other cache sources (PVGIS/CDS).
+                if ((RegionProfiles.current.dynamicMarkets.isNotEmpty() ||
+                        RegionProfiles.current.hasOctopus) && uiVis.wholesale) item("prices") {
                     WeatherSourceAccordion(
                         title = stringResource(R.string.ui2_dsm_prices_title),
                         subtitle = stringResource(R.string.ui2_dsm_prices_sub),

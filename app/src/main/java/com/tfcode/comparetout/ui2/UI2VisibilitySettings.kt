@@ -70,7 +70,9 @@ data class UiVisibility(
     val solis: Boolean = true,
     // Weather/PV caches (PVGIS solar, Copernicus CDS weather)
     val pvgis: Boolean = true,
-    val cds: Boolean = true
+    val cds: Boolean = true,
+    // Wholesale market price cache (behind dynamic tariff plans)
+    val wholesale: Boolean = true
 )
 
 object UiVisibilityStore {
@@ -119,7 +121,8 @@ object UiVisibilityStore {
                 octopus = flag("octopus"),
                 solis = flag("solis"),
                 pvgis = flag("pvgis"),
-                cds = flag("cds")
+                cds = flag("cds"),
+                wholesale = flag("wholesale")
             )
         }.getOrNull() ?: UiVisibility())
     }

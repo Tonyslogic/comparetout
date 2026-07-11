@@ -164,6 +164,15 @@ private fun SettingsScreen(onClose: () -> Unit) {
                 stringResource(R.string.ui2_settings_pvgis_sub), vis.pvgis) { update(vis.copy(pvgis = it)) }
             ToggleRow(stringResource(R.string.brand_cds),
                 stringResource(R.string.ui2_settings_cds_sub), vis.cds) { update(vis.copy(cds = it)) }
+            // Dynamic-tariff wholesale price cache — offered wherever the edition
+            // supports dynamic tariffs (IE wholesale market / GB Octopus Agile).
+            if (RegionProfiles.current.dynamicMarkets.isNotEmpty() ||
+                RegionProfiles.current.hasOctopus) {
+                ToggleRow(stringResource(R.string.ui2_dsm_prices_title),
+                    stringResource(R.string.ui2_settings_wholesale_sub), vis.wholesale) {
+                    update(vis.copy(wholesale = it))
+                }
+            }
         }
     }
 }
