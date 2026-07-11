@@ -55,14 +55,15 @@ on-device month cache (`DynamicPriceCache`).
 
 | Market id | Source | Coverage / notes |
 |---|---|---|
-| `ISEM-DAM` | `SemopxRateSource` — SEMOpx public reports (I-SEM day-ahead, IE) | 2018-10 onward; prices fetched on-device, AS-IS, never redistributed. Known hole Oct-2024→Jul-2025 in one report series (follow-on: Lookback2 xlsx consumer). |
+| `ISEM-DAM` | `SemopxRateSource` — SEMOpx public reports (I-SEM day-ahead, IE) | 2018-10 onward; prices fetched on-device, AS-IS, never redistributed. Three publications, tried in order per month: the EA-001 daily catalog (rolling ~12-month retention), the bulk daily-CSV archive (byte-range reads, go-live→its snapshot date), and the `Lookback2_mkt.xlsx` look-back workbook (`SemopxLookbackXlsx`, streamed SAX — downloaded once, ~23 MB, only when a month is absent from both daily feeds). Months absent from all three are reported missing, never invented; SEMOpx refreshes the bulk files sporadically, so gaps close on their own as the workbook is rebuilt. |
 | `GB-AGILE-<A..P>` | `OctopusAgileRateSource` — Octopus public API | The GSP region letter is embedded in the market id. Deep history via the closed AGILE-18-02-21 product. No auth needed. |
 
 Both normalise through `SeriesNormaliser` into half-hourly month chunks with gap-filling (the plan's
 `Reference` records provenance and gap counts). Fetched months are cached on-device
 (`DynamicPriceCache`, `filesDir/dynamic-price-cache/<market>_<year>_<month>.json`) so regenerating or
 building another plan on the same year is instant. The cache is managed from **Data sources →
-"Wholesale market prices"** — one row per market-year with per-row delete and clear-all. Deleting
+"Wholesale market prices"** — one row per market-year with per-row delete and clear-all, plus a row
+for the SEMOpx look-back workbook when it has been downloaded. Deleting
 cache never alters a materialised plan (plans own their generated rates); the months simply
 re-download on the next generate. Registration for the generator pane is per-region:
 `region/RegionProfile.kt → dynamicMarkets` (GB's list is deliberately empty — Agile enters via the
@@ -127,7 +128,10 @@ components *exclude* it (`getEffectiveEndMinute()`), and the strategy/emitter co
 
 ## 5. Known limits (recorded in `plans/dynamic/status.md`)
 
-- SEMOpx has a data hole (Oct-2024→Jul-2025) pending the Lookback2 xlsx consumer.
+- SEMOpx coverage depends on how fresh their bulk publications are: the look-back workbook's current
+  build ends Sep-2024 and the daily catalog reaches back ~12 months, so months in between are
+  reported missing (the affected year won't materialise) until SEMOpx refreshes the workbook —
+  at which point they fill in with no app change.
 - Weather awareness needs previously fetched CDS weather; it never fetches on its own.
 - EV window is fixed 18:00→08:00; hot-water diversion is not optimised; degradation cost is 0.
 - IE generator pane defaults are placeholders — enter the real supplier terms.
@@ -138,7 +142,7 @@ components *exclude* it (`getEffectiveEndMinute()`), and the strategy/emitter co
 | Area | Where |
 |---|---|
 | Terms model / JSON | `model/priceplan/DynamicTerms`, `model/json/priceplan/DynamicTermsJson`, schema `model/priceplan/PricePlanJsonSchema.json` |
-| Fetch & materialise | `dynamic/` — `DynamicTariffWorker`, `DynamicRateSources`, `SemopxRateSource`, `OctopusAgileRateSource`, `SeriesNormaliser`, `DynamicPriceCache` |
+| Fetch & materialise | `dynamic/` — `DynamicTariffWorker`, `DynamicRateSources`, `SemopxRateSource`, `SemopxLookbackXlsx`, `OctopusAgileRateSource`, `SeriesNormaliser`, `DynamicPriceCache` |
 | Strategy engine (pure JVM) | `dynamic/strategy/` — `DispatchStrategy`, `ThresholdStrategy`, `RankNStrategy`, `SocForwardModel`, `StrategyYearRunner`, `ScheduleEmitter`, `WeatherAwareStrategy`, `WindPriceCalibration`, `LayerBOutlook`, `EvSmartChargePlanner` |
 | UI | `ui2/DynamicTariffPlans.kt`, `ui2/StrategyScenarioGenerator.kt`, dialog in `ui2/UI2SimulationsFragment.kt`, generator pane in `ui2/UI2PricePlanListActivity.kt`, terms card in `ui2/UI2PricePlanWizardActivity.kt`, price-cache accordion in `ui2/UI2DataSourceManagementActivity.kt` |
-| Tests | `ThresholdStrategyTest`, `RankNStrategyTest`, `StrategyYearRunnerTest`, `ScheduleEmitterTest`, `WindPriceCalibrationTest`, `LayerBOutlookTest`, `WeatherAwareStrategyTest`, `EvSmartChargePlannerTest`, `OctopusAgileRateSourceTest`, `ComponentDateWindowTest` |
+| Tests | `ThresholdStrategyTest`, `RankNStrategyTest`, `StrategyYearRunnerTest`, `ScheduleEmitterTest`, `WindPriceCalibrationTest`, `LayerBOutlookTest`, `WeatherAwareStrategyTest`, `EvSmartChargePlannerTest`, `OctopusAgileRateSourceTest`, `SemopxLookbackXlsxTest`, `ComponentDateWindowTest` |

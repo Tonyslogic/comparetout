@@ -56,11 +56,17 @@ import okhttp3.ResponseBody;
  *   <li><b>DAM-IDM-Market-Results.zip</b> (semopx.com general publications) —
  *       the same daily CSVs from market go-live (2018-10). Individual CSVs are
  *       pulled out of the ~115&nbsp;MB archive with byte-range requests
- *       ({@link RangedZipReader}), never a full download.</li>
+ *       ({@link RangedZipReader}), never a full download;</li>
+ *   <li><b>Lookback2_mkt.xlsx</b> (semopx.com general publications) — the
+ *       aggregated look-back workbook covering months the other two drop
+ *       (verified 2026-07: DAM hourly, 2021-01 → the workbook's build month).
+ *       Downloaded once (~23&nbsp;MB) only when a month is absent from both
+ *       daily feeds, kept in the price-cache directory (surfaced and deletable
+ *       in the Data sources cache view), parsed by {@link SemopxLookbackXlsx}.</li>
  * </ul>
- * Neither source currently covers every month (the archive snapshot trails the
- * retention window); months absent from both are reported as missing on the
- * {@link RateSeries} rather than invented.
+ * The publications still may not cover every month (SEMOpx refreshes the bulk
+ * files sporadically); months absent from all three are reported as missing on
+ * the {@link RateSeries} rather than invented.
  */
 public class SemopxRateSource implements HistoricalRateSource {
 
@@ -69,6 +75,14 @@ public class SemopxRateSource implements HistoricalRateSource {
     static final String DEFAULT_CATALOG_BASE = "https://reports.semopx.com";
     static final String DEFAULT_BULK_ZIP_URL =
             "https://www.semopx.com/documents/general-publications/DAM-IDM-Market-Results.zip";
+    static final String DEFAULT_LOOKBACK_XLSX_URL =
+            "https://www.semopx.com/documents/general-publications/Lookback2_mkt.xlsx";
+    /**
+     * Local name of the cached look-back workbook. It lives beside the month
+     * chunks in the dynamic-price-cache directory so the Data sources cache
+     * view can list and delete it like any other cached price data.
+     */
+    public static final String LOOKBACK_FILE_NAME = "Lookback2_mkt.xlsx";
     /** Pause between successive report downloads (OctopusTariffPlans precedent). */
     static final long POLITE_DELAY_MS = 300;
     private static final String SEM_DA_PREFIX = "MarketResult_SEM-DA_";
@@ -77,12 +91,17 @@ public class SemopxRateSource implements HistoricalRateSource {
     private final OkHttpClient http;
     private final String catalogBase;
     private final String bulkZipUrl;
+    private final String lookbackXlsxUrl;
     private final Clock clock;
     private final long politeDelayMs;
 
     /** SEM-DA bulk-archive entries by auction date (yyyyMMdd), loaded on first use. */
     private Map<String, RangedZipReader.Entry> bulkEntries;
     private HttpByteRangeFetcher bulkFetcher;
+    /** DAM series of the look-back workbook, loaded (downloading if needed) on first use. */
+    private java.util.NavigableMap<Long, Double> lookbackPrices;
+    /** First look-back load failure — cached so one bad download isn't retried 12× per year. */
+    private IOException lookbackFailure;
 
     public SemopxRateSource(File cacheDir) {
         this(cacheDir,
@@ -90,15 +109,17 @@ public class SemopxRateSource implements HistoricalRateSource {
                         .connectTimeout(30, TimeUnit.SECONDS)
                         .readTimeout(60, TimeUnit.SECONDS)
                         .build(),
-                DEFAULT_CATALOG_BASE, DEFAULT_BULK_ZIP_URL, Clock.systemUTC(), POLITE_DELAY_MS);
+                DEFAULT_CATALOG_BASE, DEFAULT_BULK_ZIP_URL, DEFAULT_LOOKBACK_XLSX_URL,
+                Clock.systemUTC(), POLITE_DELAY_MS);
     }
 
     SemopxRateSource(File cacheDir, OkHttpClient http, String catalogBase, String bulkZipUrl,
-                     Clock clock, long politeDelayMs) {
+                     String lookbackXlsxUrl, Clock clock, long politeDelayMs) {
         this.cacheDir = cacheDir;
         this.http = http;
         this.catalogBase = catalogBase;
         this.bulkZipUrl = bulkZipUrl;
+        this.lookbackXlsxUrl = lookbackXlsxUrl;
         this.clock = clock;
         this.politeDelayMs = politeDelayMs;
     }
@@ -188,6 +209,12 @@ public class SemopxRateSource implements HistoricalRateSource {
                 source = "EA-001 Market Results";
             }
         }
+        // Both daily feeds say "not covered" (catalog retention passed, archive
+        // snapshot ends): the aggregated look-back workbook is the last resort.
+        if (days.isEmpty()) {
+            days = fetchDaysFromLookback(firstAuction, lastAuction);
+            source = "Lookback2 workbook";
+        }
         if (days.isEmpty()) return null;
 
         SeriesNormaliser.MonthSeries series = SeriesNormaliser.assembleMonth(year, month, days);
@@ -265,6 +292,76 @@ public class SemopxRateSource implements HistoricalRateSource {
                     new String(csv, java.nio.charset.StandardCharsets.UTF_8)));
         }
         return days;
+    }
+
+    /**
+     * Slice the look-back workbook's DAM series for delivery days [from, to].
+     * The workbook is delivery-stamped (not auction-stamped), so the window is
+     * simply the days themselves; {@link SeriesNormaliser#assembleMonth} clips
+     * out-of-month periods either way.
+     */
+    List<SemopxDayResultCsv.DayResult> fetchDaysFromLookback(LocalDate from, LocalDate to)
+            throws IOException {
+        ensureLookbackLoaded();
+        long fromMillis = from.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
+        long toMillis = to.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
+        return SemopxLookbackXlsx.toDayResults(
+                lookbackPrices.subMap(fromMillis, true, toMillis, false));
+    }
+
+    /**
+     * Load the workbook's DAM series, downloading the ~23 MB file first when it
+     * is not already in the cache directory. A cached file that fails to parse
+     * is treated as corrupt (truncated download, SEMOpx re-published): deleted
+     * and fetched once more. Failures are remembered for this source instance
+     * so a year fetch doesn't retry the download for all twelve months.
+     */
+    private void ensureLookbackLoaded() throws IOException {
+        if (!(null == lookbackPrices)) return;
+        if (!(null == lookbackFailure)) throw lookbackFailure;
+        File file = new File(cacheDir, LOOKBACK_FILE_NAME);
+        try {
+            if (!file.isFile()) downloadLookback(file);
+            try {
+                lookbackPrices = SemopxLookbackXlsx.readDamPrices(file);
+            } catch (IOException corrupt) {
+                if (!file.delete()) throw corrupt;
+                downloadLookback(file);
+                lookbackPrices = SemopxLookbackXlsx.readDamPrices(file);
+            }
+        } catch (IOException e) {
+            lookbackFailure = e;
+            throw e;
+        }
+    }
+
+    /** Stream the workbook to disk (tmp + rename, mirroring DynamicPriceCache writes). */
+    private void downloadLookback(File target) throws IOException {
+        File parent = target.getParentFile();
+        if (!(null == parent) && !parent.exists() && !parent.mkdirs())
+            throw new IOException("Cannot create " + parent);
+        File tmp = new File(parent, target.getName() + ".tmp");
+        Request request = new Request.Builder().url(lookbackXlsxUrl).build();
+        try (Response response = http.newCall(request).execute()) {
+            ResponseBody body = response.body();
+            if (!response.isSuccessful() || null == body)
+                throw new IOException("HTTP " + response.code() + " for " + lookbackXlsxUrl);
+            try (java.io.InputStream in = body.byteStream();
+                 java.io.OutputStream out = new java.io.FileOutputStream(tmp)) {
+                byte[] buffer = new byte[65536];
+                int n;
+                while ((n = in.read(buffer)) != -1) out.write(buffer, 0, n);
+            }
+        } catch (IOException e) {
+            //noinspection ResultOfMethodCallIgnored
+            tmp.delete();
+            throw e;
+        }
+        if (!tmp.renameTo(target)) {
+            //noinspection ResultOfMethodCallIgnored
+            tmp.delete();
+            throw new IOException("Cannot move " + tmp + " into place");
+        }
     }
 
     private void loadBulkDirectory() throws IOException {

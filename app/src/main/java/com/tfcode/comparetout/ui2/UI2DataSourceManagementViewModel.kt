@@ -43,6 +43,7 @@ import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformMeta
 import com.tfcode.comparetout.model.scenario.PanelPVSummary
 import com.tfcode.comparetout.scenario.HeatPumpWeatherCache
 import com.tfcode.comparetout.dynamic.DynamicPriceCache
+import com.tfcode.comparetout.dynamic.SemopxRateSource
 import com.tfcode.comparetout.scenario.PvgisCache
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -1369,30 +1370,48 @@ class UI2DataSourceManagementViewModel @Inject constructor(
             }
             WeatherCacheEntry(id, "$market · $year", detail)
         }.sortedBy { it.name }
+        // The SEMOpx look-back workbook (downloaded only when a month is absent
+        // from the daily feeds) lives beside the month chunks — list it as its
+        // own deletable row. [WeatherCacheEntry.id] is the exact file name.
+        val workbook = File(DynamicPriceCache.cacheDir(app), SemopxRateSource.LOOKBACK_FILE_NAME)
+        val withWorkbook = if (workbook.isFile) {
+            entries + WeatherCacheEntry(
+                workbook.name,
+                "SEMOpx look-back workbook",
+                "fills months the daily feeds no longer publish · " +
+                        "%.1f".format(workbook.length() / (1024.0 * 1024.0)) + " MB"
+            )
+        } else entries
         return WeatherSourceState(
-            entries = entries,
+            entries = withWorkbook,
             credentialsConfigured = true,   // public price feeds, no account
             credentialsKnownGood = true
         )
     }
 
-    /** Delete one cached market year (all its month files). Plans built on it keep
-     *  their generated rates; the year re-downloads on the next generate. */
+    /** Delete one cached market year (all its month files) or the look-back
+     *  workbook (exact file). Plans built on the data keep their generated
+     *  rates; whatever is deleted re-downloads on the next generate. */
     fun deletePriceCacheEntry(id: String) {
         viewModelScope.launch(Dispatchers.IO) {
-            DynamicPriceCache.cacheDir(app)
-                .listFiles { f -> f.isFile && f.name.startsWith("${id}_") && f.name.endsWith(".json") }
-                ?.forEach { it.delete() }
+            val dir = DynamicPriceCache.cacheDir(app)
+            if (id.endsWith(".xlsx")) {
+                File(dir, id).takeIf { it.isFile }?.delete()
+                _toast.postValue(Toast("Workbook deleted · re-downloaded when a month needs it"))
+            } else {
+                dir.listFiles { f -> f.isFile && f.name.startsWith("${id}_") && f.name.endsWith(".json") }
+                    ?.forEach { it.delete() }
+                _toast.postValue(Toast("Cached prices deleted · re-downloaded on next generate"))
+            }
             _prices.postValue(buildPriceCacheState())
-            _toast.postValue(Toast("Cached prices deleted · re-downloaded on next generate"))
         }
     }
 
-    /** Delete every cached wholesale price month. */
+    /** Delete every cached wholesale price file (month chunks + workbook). */
     fun deleteAllPriceCache() {
         viewModelScope.launch(Dispatchers.IO) {
             DynamicPriceCache.cacheDir(app)
-                .listFiles { f -> f.isFile && f.name.endsWith(".json") }
+                .listFiles { f -> f.isFile }
                 ?.forEach { it.delete() }
             _prices.postValue(buildPriceCacheState())
             _toast.postValue(Toast("Price cache cleared"))
