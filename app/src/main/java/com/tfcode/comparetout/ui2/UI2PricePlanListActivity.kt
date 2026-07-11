@@ -704,6 +704,17 @@ private fun PricePlanAccordion(
                         }
                     }
 
+                    if (showHints && (row.isPending || row.isDynamic)) {
+                        Text(
+                            stringResource(if (row.isPending)
+                                R.string.ui2_ppl_dyn_pending_hint
+                            else
+                                R.string.ui2_ppl_dyn_badge_hint),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
                     if (row.location.isNotBlank()) {
                         Surface(
                             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f),
@@ -915,6 +926,7 @@ private fun OctopusTariffFetchPane() {
     var region by remember { mutableStateOf<String?>(null) }
     var busy by remember { mutableStateOf(false) }
     var status by remember { mutableStateOf<String?>(null) }
+    val (showHints, _) = rememberShowHints()
 
     fun runFetch() {
         scope.launch {
@@ -960,6 +972,13 @@ private fun OctopusTariffFetchPane() {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        if (showHints) {
+            Text(
+                stringResource(R.string.ui2_ppl_octo_agile_hint),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
         OutlinedTextField(
             value = postcode,
             onValueChange = { postcode = it; region = null },
@@ -1014,6 +1033,7 @@ private fun DynamicTariffPane(onQueued: () -> Unit) {
     val context = LocalContext.current
     val region = RegionProfiles.current
     val market = region.dynamicMarkets.first()
+    val (showHints, _) = rememberShowHints()
     val lastCompleteYear = remember { java.time.LocalDate.now().year - 1 }
     var year by remember { mutableStateOf(lastCompleteYear.toString()) }
     var multiplier by remember { mutableStateOf("1.0") }
@@ -1034,6 +1054,13 @@ private fun DynamicTariffPane(onQueued: () -> Unit) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        if (showHints) {
+            Text(
+                stringResource(R.string.ui2_ppl_dyn_pane_hint),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
         OutlinedTextField(
             value = year, onValueChange = { year = it },
             modifier = Modifier.fillMaxWidth(), singleLine = true,
@@ -1049,11 +1076,25 @@ private fun DynamicTariffPane(onQueued: () -> Unit) {
             modifier = Modifier.fillMaxWidth(), singleLine = true,
             label = { Text(stringResource(R.string.ui2_ppl_dyn_adder, region.rateUnit)) }
         )
+        if (showHints) {
+            Text(
+                stringResource(R.string.ui2_dyn_adder_hint),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
         OutlinedTextField(
             value = cap, onValueChange = { cap = it },
             modifier = Modifier.fillMaxWidth(), singleLine = true,
             label = { Text(stringResource(R.string.ui2_ppl_dyn_cap, region.rateUnit)) }
         )
+        if (showHints) {
+            Text(
+                stringResource(R.string.ui2_dyn_cap_hint),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
         OutlinedTextField(
             value = standing, onValueChange = { standing = it },
             modifier = Modifier.fillMaxWidth(), singleLine = true,

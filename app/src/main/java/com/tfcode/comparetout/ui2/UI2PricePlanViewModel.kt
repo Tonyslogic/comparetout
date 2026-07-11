@@ -249,13 +249,20 @@ class UI2PricePlanViewModel @Inject constructor(
             try {
                 val (plan, rates) = _builder.value.toEntities()
                 if (isEditMode) {
-                    // Dynamic plans carry no rate builders — pass the stored rows
-                    // through unchanged (preserving their BUY/SELL tags) so a
-                    // scalar edit (name/standing/feed) can't strip the generated
-                    // rates. Terms changes go through regenerate() instead.
-                    val effectiveRates = if (_builder.value.isDynamic)
-                        repository.getAllDayRatesForPricePlanID(pricePlanId)
-                    else rates
+                    // Dynamic plans carry no rate builders. A materialised plan
+                    // (terms.year set) passes its stored rows through unchanged
+                    // (preserving their BUY/SELL tags) so a scalar edit
+                    // (name/standing/feed) can't strip the generated rates —
+                    // terms changes go through regenerate() instead. A plan
+                    // whose prices are still pending — including one just
+                    // converted from fixed rates — saves terms-only, dropping
+                    // any leftover fixed-rate builders.
+                    val effectiveRates = when {
+                        !_builder.value.isDynamic -> rates
+                        _builder.value.dynamicTerms?.year != null ->
+                            repository.getAllDayRatesForPricePlanID(pricePlanId)
+                        else -> emptyList()
+                    }
                     repository.updatePricePlan(plan, ArrayList(effectiveRates))
                     // Editing a plan invalidates every costing computed against it
                     // (across all scenarios) — otherwise the dashboard / Compare
@@ -265,7 +272,11 @@ class UI2PricePlanViewModel @Inject constructor(
                     // (insert(clobber=false) needs no cleanup — a new plan has none.)
                     repository.removeCostingsForPricePlan(plan.pricePlanIndex)
                 } else {
-                    repository.insert(plan, rates, /* clobber = */ false)
+                    // A new dynamic plan has no fetched prices yet — insert
+                    // terms-only (a pending plan); rate builders left over from
+                    // before a dynamic conversion are ignored.
+                    val insertRates = if (_builder.value.isDynamic) emptyList() else rates
+                    repository.insert(plan, insertRates, /* clobber = */ false)
                 }
                 // Recompute immediately on every save, not just on "Run": editing
                 // a plan just invalidated its costings (and a new plan has none
@@ -378,6 +389,40 @@ class UI2PricePlanViewModel @Inject constructor(
         DynamicTariffWorker.enqueue(
             getApplication(), com.google.gson.Gson().toJson(ppj), b.planName, year)
         _saveResult.value = PricePlanSaveResult.Saved
+    }
+
+    /**
+     * Convert the plan being edited into a dynamic (wholesale-tracking) one:
+     * attach terms for [marketId] so the wizard swaps the Rates/Restrictions
+     * sections for the Dynamic terms card. The fixed-rate builders are kept on
+     * the builder (they are ignored while dynamic and restored by
+     * [clearDynamic]) but are never persisted — save() strips them until the
+     * prices materialise.
+     */
+    fun makeDynamic(marketId: String) {
+        _builder.update { b ->
+            b.copy(dynamicTerms = DynamicTerms().apply {
+                market = marketId
+                multiplier = 1.0
+                adder = 0.0
+            })
+        }
+        _expandedSections.update { it - "make-dynamic" + "dynamic" }
+    }
+
+    /**
+     * Undo [makeDynamic] while the prices are still pending (terms.year unset):
+     * drop the terms and return to the fixed-rate editor. Not offered once a
+     * plan has materialised — its generated rates are not convertible back.
+     */
+    fun clearDynamic() {
+        _builder.update { b ->
+            b.copy(
+                dynamicTerms = null,
+                dayRates = b.dayRates.ifEmpty { listOf(DayRateBuilder()) }
+            )
+        }
+        _expandedSections.update { it - "dynamic" + "rates" }
     }
 }
 

@@ -1,25 +1,70 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "array",
-  "description": "List of electricity-only smart meter plans available in the local electricity market.",
+  "description": "List of electricity-only smart meter plans available in the local electricity market. A plan is either conventional (repeating 'Rates' describe every day) or dynamic (a 'Dynamic' block carries the supplier's wholesale-tracking terms; the app downloads the market year's half-hourly prices and generates 365 single-day rates locally). A dynamic plan with no 'Rates' is valid — it imports as 'pending' and materialises in the background. Dynamic plans always EXPORT terms-only: the generated prices are derived from market data that must not be redistributed, and they regenerate locally on import.",
   "items": {
     "type": "object",
     "properties": {
       "Active": {
         "type": "boolean",
-        "description": "Indicates whether the plan is currently available for sign-up."
+        "description": "Indicates whether the plan is currently available for sign-up. Defaults to true when absent."
       },
       "Bonus cash": {
         "type": "number",
-        "description": "Cash reward provided by the supplier for signing up (typically €0 if not offered)."
+        "description": "Cash reward provided by the supplier for signing up (typically €0 if not offered). Defaults to 0 when absent."
       },
       "DeemedExport": {
         "type": "boolean",
-        "description": "Whether the plan includes deemed export payments for surplus electricity (typically false for electricity-only plans)."
+        "description": "Whether the plan includes deemed export payments for surplus electricity (typically false for electricity-only plans). Always false on generated dynamic plans — their export is priced per half-hour or by 'Feed'."
       },
       "Feed": {
         "type": "number",
-        "description": "Supplier feed-in tariff rate in cents per kWh for exporting excess electricity to the grid."
+        "description": "Supplier feed-in tariff rate in cents per kWh for exporting excess electricity to the grid. Used as the flat fallback when the plan carries no SELL rates (see 'RateType'); a dynamic plan whose terms include 'FeedMultiplier'/'FeedAdder' generates time-varying SELL rates that take precedence. Defaults to 0 when absent."
+      },
+      "Dynamic": {
+        "type": "object",
+        "description": "Supplier terms of a dynamic (wholesale-tracking) tariff. Present ⇒ the plan's import prices are derived per half-hour as clamp(wholesale × Multiplier + Adder, Floor, Cap) from the chosen market year, and 'Rates' becomes optional: terms + no rates = a pending plan whose prices the app fetches and materialises in the background. Editing materialised day rates directly is not supported — change the terms or year and regenerate.",
+        "properties": {
+          "Market": {
+            "type": "string",
+            "description": "Identifier of the wholesale market / price feed the tariff tracks. 'ISEM-DAM' = I-SEM Day-Ahead via SEMOpx (Ireland). 'GB-AGILE-<letter>' = Octopus Agile for one GB grid-supply-point region A–P; Agile publishes final retail prices, so its terms are Multiplier 1 / Adder 0.",
+            "examples": ["ISEM-DAM", "GB-AGILE-C"]
+          },
+          "Year": {
+            "type": "integer",
+            "description": "The historical calendar year whose market prices back the plan (a backtest: yearly costs are computed as if that year repeated). Optional in a shared/imported file — when absent the app defaults to the last complete year. Set on the plan once materialised.",
+            "examples": [2025]
+          },
+          "Multiplier": {
+            "type": "number",
+            "description": "Factor applied to the wholesale price (c/kWh) before the adder. Required for the terms to be complete."
+          },
+          "Adder": {
+            "type": "number",
+            "description": "Fixed amount in cents per kWh added after the multiplier (the supplier's margin/levies). Required for the terms to be complete."
+          },
+          "Cap": {
+            "type": "number",
+            "description": "Optional ceiling in cents per kWh on the derived import price."
+          },
+          "Floor": {
+            "type": "number",
+            "description": "Optional floor in cents per kWh on the derived import price (e.g. 0 to shield the customer from negative wholesale prices)."
+          },
+          "FeedMultiplier": {
+            "type": "number",
+            "description": "Optional export transform: factor on the wholesale price. When this or 'FeedAdder' is present the plan gains time-varying SELL rates (unclamped — Cap/Floor bound imports only) and the scalar 'Feed' becomes unused."
+          },
+          "FeedAdder": {
+            "type": "number",
+            "description": "Optional export transform: cents per kWh added to wholesale × FeedMultiplier."
+          },
+          "SourceRef": {
+            "type": "string",
+            "description": "Provenance of the fetched price series (dataset names, fetch date, licence note). Written by the app on materialisation; informational on import."
+          }
+        },
+        "required": ["Market", "Multiplier", "Adder"]
       },
       "LastUpdate": {
         "type": "string",
@@ -37,7 +82,7 @@
       },
       "Rates": {
         "type": "array",
-        "description": "A collection of rate structures defining different electricity costs based on days and times.",
+        "description": "A collection of rate structures defining different electricity costs based on days and times. Required for conventional plans; optional (and omitted on export) when a 'Dynamic' block is present — the app regenerates a dynamic plan's 365 single-day rates from the terms and the fetched market year.",
         "items": {
           "type": "object",
           "properties": {
@@ -53,8 +98,13 @@
             },
             "endDate": {
               "type": "string",
-              "description": "The end date after which this rate is no longer valid.",
+              "description": "The end date after which this rate is no longer valid. Generated dynamic plans use 365 single-day rates (startDate == endDate).",
               "examples": ["12/31", "MM/DD"]
+            },
+            "RateType": {
+              "type": "string",
+              "enum": ["sell"],
+              "description": "Marks an EXPORT (feed-in) rate set: 'sell' rates price exported energy per time slot, overriding the scalar 'Feed'. Absent = an import (buy) rate — pre-existing files are unchanged. Buy and sell rate sets are validated independently; each must tile the full year/day."
             },
             "MinuteRange": {
               "type": "array",
@@ -89,11 +139,11 @@
       "Reference": {
         "type": "string",
         "format": "uri",
-        "description": "A direct URL to the supplier’s official plan details or tariff page."
+        "description": "A direct URL to the supplier’s official plan details or tariff page. On generated dynamic plans the app overwrites this with the pricing formula and the price series' provenance."
       },
       "Restrictions": {
         "type": "object",
-        "description": "Limitations or conditions associated with the plan.",
+        "description": "Limitations or conditions associated with the plan. Not applicable to dynamic plans (restrictions key on repeating rate values, which a dynamic plan does not have).",
         "properties": {
           "active": {
             "type": "boolean",
@@ -132,25 +182,31 @@
       },
       "Standing charges": {
         "type": "number",
-        "description": "Fixed daily or monthly charge applied regardless of usage, typically covering grid maintenance."
+        "description": "Fixed daily or monthly charge applied regardless of usage, typically covering grid maintenance. Defaults to 0 when absent."
       },
       "Supplier": {
         "type": "string",
         "description": "The electricity provider offering this plan (e.g., Bord Gáis Energy, SSE Airtricity)."
       }
     },
-    "required": [
-      "Active",
-      "Bonus cash",
-      "DeemedExport",
-      "Feed",
-      "LastUpdate",
-      "Plan",
-      "Rates",
-      "Reference",
-      "Restrictions",
-      "Standing charges",
-      "Supplier"
-    ]
+    "required": ["Plan", "Supplier"],
+    "anyOf": [
+      { "required": ["Rates"] },
+      { "required": ["Dynamic"] }
+    ],
+    "if": { "not": { "required": ["Dynamic"] } },
+    "then": {
+      "required": [
+        "Active",
+        "Bonus cash",
+        "DeemedExport",
+        "Feed",
+        "LastUpdate",
+        "Rates",
+        "Reference",
+        "Restrictions",
+        "Standing charges"
+      ]
+    }
   }
 }

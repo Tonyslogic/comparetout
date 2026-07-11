@@ -217,7 +217,10 @@ fun ScenariosScreen(
                     item(key = "hint_simulations") {
                         SectionHint(
                             "Each scenario is a what-if home setup (solar, battery, EV, hot water). " +
-                                "Tap “+ Create new” to build one; the dashboard shows its costs."
+                                "Tap “+ Create new” to build one; the dashboard shows its costs. " +
+                                "Scenarios with a battery offer “Optimise for dynamic tariff” in " +
+                                "their menu — it plans the battery around half-hourly prices and " +
+                                "saves the result as a “⚡” scenario."
                         )
                     }
                 }
@@ -549,6 +552,7 @@ private fun StrategyGenerateDialog(
     var useWeather by remember { mutableStateOf(false) }
     var optimiseEv by remember { mutableStateOf(false) }
     var busy by remember { mutableStateOf(false) }
+    val (showHints, _) = rememberShowHints()
 
     LaunchedEffect(Unit) {
         val loaded = viewModel.materialisedDynamicPlans()
@@ -576,6 +580,13 @@ private fun StrategyGenerateDialog(
                     stringResource(R.string.ui2_strategy_dialog_body, scenarioName),
                     style = MaterialTheme.typography.bodySmall
                 )
+                if (showHints) {
+                    Text(
+                        stringResource(R.string.ui2_strategy_hint),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 val loadedPlans = plans
                 when {
                     loadedPlans == null -> Text("…")
@@ -620,6 +631,14 @@ private fun StrategyGenerateDialog(
                                 label = { Text(stringResource(R.string.ui2_strategy_rankn)) }
                             )
                         }
+                        if (showHints) {
+                            Text(
+                                stringResource(if (useRankN) R.string.ui2_strategy_rankn_hint
+                                    else R.string.ui2_strategy_threshold_hint),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         if (useRankN) {
                             OutlinedTextField(
                                 value = chargeSlots, onValueChange = { chargeSlots = it },
@@ -648,6 +667,13 @@ private fun StrategyGenerateDialog(
                             label = { Text(stringResource(R.string.ui2_strategy_min_spread)) },
                             singleLine = true
                         )
+                        if (showHints) {
+                            Text(
+                                stringResource(R.string.ui2_strategy_spread_hint),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             modifier = Modifier
@@ -661,6 +687,13 @@ private fun StrategyGenerateDialog(
                             Text(
                                 stringResource(R.string.ui2_strategy_weather),
                                 style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        if (showHints) {
+                            Text(
+                                stringResource(R.string.ui2_strategy_weather_hint),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         if (hasEvCharges) {
@@ -677,6 +710,13 @@ private fun StrategyGenerateDialog(
                                 Text(
                                     stringResource(R.string.ui2_strategy_ev),
                                     style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                            if (showHints) {
+                                Text(
+                                    stringResource(R.string.ui2_strategy_ev_hint),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                         }

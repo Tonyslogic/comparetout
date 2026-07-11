@@ -270,10 +270,28 @@ private fun PricePlanWizardScreen(
                                     isExpanded = expanded.contains("dynamic"),
                                     onToggle = { viewModel.toggleSection("dynamic") }
                                 ) {
-                                    DynamicTermsSection(builder, viewModel)
+                                    DynamicTermsSection(builder, viewModel, showHints)
                                 }
                             }
                         } else {
+                        // Regions with a wholesale market registered can turn a
+                        // plan dynamic from here (mirrors the generator pane on
+                        // the plan list) — the terms card then replaces the
+                        // Rates/Restrictions sections below.
+                        if (RegionProfiles.current.dynamicMarkets.isNotEmpty()) {
+                            item("make-dynamic") {
+                                AccordionSection(
+                                    title = stringResource(R.string.ui2_ppw_make_dynamic_title),
+                                    subtitle = stringResource(R.string.ui2_ppw_make_dynamic_off),
+                                    isComplete = true,
+                                    hasError = false,
+                                    isExpanded = expanded.contains("make-dynamic"),
+                                    onToggle = { viewModel.toggleSection("make-dynamic") }
+                                ) {
+                                    MakeDynamicSection(viewModel, showHints)
+                                }
+                            }
+                        }
                         item("rates") {
                             val rateSummary = dayRatesSubtitle(builder, issues)
                             AccordionSection(
@@ -1446,7 +1464,8 @@ private fun firstFreeSlot(bands: List<RateBand>): Pair<Int, Int>? {
 @Composable
 private fun DynamicTermsSection(
     builder: PricePlanBuilder,
-    viewModel: UI2PricePlanViewModel
+    viewModel: UI2PricePlanViewModel,
+    showHints: Boolean
 ) {
     val terms = builder.dynamicTerms ?: return
     val lastCompleteYear = remember { java.time.LocalDate.now().year - 1 }
@@ -1475,6 +1494,13 @@ private fun DynamicTermsSection(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        if (showHints) {
+            Text(
+                stringResource(R.string.ui2_ppw_dynamic_hint),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
         OutlinedTextField(
             value = year, onValueChange = { year = it },
             modifier = Modifier.fillMaxWidth(), singleLine = true,
@@ -1491,12 +1517,29 @@ private fun DynamicTermsSection(
             label = { Text(stringResource(R.string.ui2_ppl_dyn_adder,
                 RegionProfiles.current.rateUnit)) }
         )
+        if (showHints) {
+            Text(
+                stringResource(R.string.ui2_dyn_adder_hint),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
         OutlinedTextField(
             value = cap, onValueChange = { cap = it },
             modifier = Modifier.fillMaxWidth(), singleLine = true,
             label = { Text(stringResource(R.string.ui2_ppl_dyn_cap,
                 RegionProfiles.current.rateUnit)) }
         )
+        if (showHints) {
+            Text(
+                stringResource(R.string.ui2_dyn_cap_hint),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        // Pending (terms but no prices yet, incl. a fresh conversion): the
+        // button CREATES; materialised: it REPLACES the generated rates.
+        val isPending = terms.year == null
         Button(
             onClick = {
                 val newTerms = com.tfcode.comparetout.model.priceplan.DynamicTerms()
@@ -1511,6 +1554,54 @@ private fun DynamicTermsSection(
             },
             enabled = ready,
             modifier = Modifier.fillMaxWidth()
-        ) { Text(stringResource(R.string.ui2_ppw_dynamic_regenerate)) }
+        ) {
+            Text(stringResource(
+                if (isPending) R.string.ui2_ppw_dynamic_generate
+                else R.string.ui2_ppw_dynamic_regenerate))
+        }
+        if (showHints) {
+            Text(
+                stringResource(
+                    if (isPending) R.string.ui2_ppw_dynamic_generate_hint
+                    else R.string.ui2_ppw_dynamic_regenerate_hint),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        if (isPending) {
+            TextButton(
+                onClick = { viewModel.clearDynamic() },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text(stringResource(R.string.ui2_ppw_dynamic_revert)) }
+        }
+    }
+}
+
+// Offered on non-dynamic plans (when the region has a wholesale market):
+// converting swaps the Rates/Restrictions sections for the Dynamic terms card,
+// where the actual fetch is triggered. Reversible until prices materialise.
+@Composable
+private fun MakeDynamicSection(
+    viewModel: UI2PricePlanViewModel,
+    showHints: Boolean
+) {
+    val market = RegionProfiles.current.dynamicMarkets.first()
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            stringResource(R.string.ui2_ppw_make_dynamic_desc, market.displayName),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        if (showHints) {
+            Text(
+                stringResource(R.string.ui2_ppw_make_dynamic_hint),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Button(
+            onClick = { viewModel.makeDynamic(market.id) },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text(stringResource(R.string.ui2_ppw_make_dynamic_button)) }
     }
 }
