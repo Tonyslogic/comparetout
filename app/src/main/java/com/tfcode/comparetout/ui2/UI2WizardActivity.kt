@@ -405,7 +405,7 @@ private fun WizardScreen(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    WizardProgressStrip(builder = builder)
+                    WizardProgressStrip(builder = builder, uiVis = uiVis)
                     WizardFooter(
                         canRun = builder.isRunnable && nameError == null,
                         canSave = nameError == null,
@@ -794,26 +794,34 @@ private enum class WizardImportScope { USAGE, INVERTERS, PV, BATTERY, HW, EV, HE
 ────────────────────────────────────────────────────────────────── */
 
 @Composable
-private fun WizardProgressStrip(builder: WizardBuilder) {
+private fun WizardProgressStrip(builder: WizardBuilder, uiVis: UiVisibility) {
+    // One entry per wizard section. `visible` mirrors the accordion gating in the
+    // form (Start + Usage are always shown; the rest follow App-settings component
+    // visibility). The denominator counts only VISIBLE sections, while the
+    // numerator counts every DEFINED section — so a component that is defined but
+    // hidden still contributes, giving e.g. "7 of 5".
+    data class SectionState(val complete: Boolean, val visible: Boolean)
     val sections = listOf(
-        builder.isStartComplete,
-        builder.isLoadComplete,
-        builder.inverterEntries.isNotEmpty(),
-        builder.panelEntries.isNotEmpty(),
-        builder.batteryEntries.isNotEmpty(),
-        builder.hwSystem != null || builder.hwSchedules.isNotEmpty() || builder.hwDivert.active,
-        builder.evEntries.isNotEmpty() || builder.evDivertEntries.isNotEmpty()
+        SectionState(builder.isStartComplete, true),
+        SectionState(builder.isLoadComplete, true),
+        SectionState(builder.inverterEntries.isNotEmpty(), uiVis.inverter),
+        SectionState(builder.panelEntries.isNotEmpty(), uiVis.panels),
+        SectionState(builder.batteryEntries.isNotEmpty(), uiVis.battery),
+        SectionState(builder.hwSystem != null || builder.hwSchedules.isNotEmpty() || builder.hwDivert.active, uiVis.hotWater),
+        SectionState(builder.evEntries.isNotEmpty() || builder.evDivertEntries.isNotEmpty(), uiVis.ev),
+        SectionState(builder.heatPumpEntries.isNotEmpty(), uiVis.heatPump)
     )
-    val done = sections.count { it }
+    val done = sections.count { it.complete }
+    val total = sections.count { it.visible }
     Column {
         Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth()) {
-            sections.forEach { complete ->
+            sections.filter { it.visible }.forEach { section ->
                 Box(modifier = Modifier.weight(1f).height(4.dp).clip(RoundedCornerShape(2.dp))
-                    .background(if (complete) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant))
+                    .background(if (section.complete) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant))
             }
         }
         Spacer(Modifier.height(4.dp))
-        Text(stringResource(R.string.ui2_wiz_n_of_m, done, sections.size),
+        Text(stringResource(R.string.ui2_wiz_n_of_m, done, total),
             style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
