@@ -1035,6 +1035,7 @@ private fun DynamicTariffPane(onQueued: () -> Unit) {
     val region = RegionProfiles.current
     val market = region.dynamicMarkets.first()
     val (showHints, _) = rememberShowHints()
+    var auto by remember { mutableStateOf(true) }
     var windowStart by remember { mutableStateOf(defaultWindowStart()) }
     var multiplier by remember { mutableStateOf("1.0") }
     var adder by remember { mutableStateOf("") }
@@ -1058,16 +1059,31 @@ private fun DynamicTariffPane(onQueued: () -> Unit) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        HistoricalWindowStepper(
-            start = windowStart,
-            onStartChange = { windowStart = it }
-        )
-        if (showHints) {
+        Row(
+            modifier = Modifier.fillMaxWidth().clickable { auto = !auto },
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Checkbox(checked = auto, onCheckedChange = { auto = it })
+            Text(stringResource(R.string.ui2_dyn_auto_title))
+        }
+        if (auto) {
             Text(
-                stringResource(R.string.ui2_dyn_window_hint),
+                stringResource(R.string.ui2_dyn_auto_note),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        } else {
+            HistoricalWindowStepper(
+                start = windowStart,
+                onStartChange = { windowStart = it }
+            )
+            if (showHints) {
+                Text(
+                    stringResource(R.string.ui2_dyn_window_hint),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
         OutlinedTextField(
             value = multiplier, onValueChange = { multiplier = it },
@@ -1113,8 +1129,12 @@ private fun DynamicTariffPane(onQueued: () -> Unit) {
                 val supplier = market.displayName.substringBefore(" (")
                 val startY = windowStart.year
                 val startM = windowStart.monthValue
-                // Compact window tag for the auto plan name: "2024" (Jan window) or "2025-07".
-                val winTag = if (startM == 1) "$startY" else "%d-%02d".format(startY, startM)
+                // Plan-name tag: "latest" for auto, else "2024"/"2025-07" for a fixed window.
+                val winTag = when {
+                    auto -> "latest"
+                    startM == 1 -> "$startY"
+                    else -> "%d-%02d".format(startY, startM)
+                }
                 val digest = "×$multiplier +${adder}c" +
                         (parsed(cap)?.let { ", cap ${cap.trim()}c" } ?: "")
                 val ppj = PricePlanJsonFile()
@@ -1127,8 +1147,12 @@ private fun DynamicTariffPane(onQueued: () -> Unit) {
                 ppj.location = region.regionCode
                 val terms = com.tfcode.comparetout.model.json.priceplan.DynamicTermsJson()
                 terms.market = market.id
-                terms.year = startY
-                terms.periodStartMonth = startM
+                terms.autoWindow = auto
+                // Auto discovers the window at generation; a fixed window carries it.
+                if (!auto) {
+                    terms.year = startY
+                    terms.periodStartMonth = startM
+                }
                 terms.multiplier = parsed(multiplier)
                 terms.adder = parsed(adder)
                 terms.cap = parsed(cap)

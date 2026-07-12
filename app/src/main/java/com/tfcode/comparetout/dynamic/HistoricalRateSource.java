@@ -52,4 +52,28 @@ public interface HistoricalRateSource {
     default RateSeries fetch(int year) throws IOException {
         return fetchWindow(year, 1, 12);
     }
+
+    /**
+     * The most recent delivery date this source currently publishes, or
+     * {@code null} when it can't be determined (or the source publishes
+     * continuously, like GB Agile). A non-null value opts the market into
+     * auto-windowing: the app anchors a full year of coverage ending at this
+     * date, using the source's actual content instead of the device clock.
+     */
+    default java.time.LocalDate latestAvailableDate() throws IOException {
+        return null;
+    }
+
+    /**
+     * Fetch (cache-first where possible) the normalised half-hourly series for
+     * an arbitrary day-precision span {@code [start, end]} inclusive — a full
+     * year of coverage that need not start/end on a month boundary. Used by the
+     * auto-window path. The default approximates via {@link #fetchWindow} for
+     * sources that don't implement day precision (never reached when
+     * {@link #latestAvailableDate()} returns null, which gates the auto path).
+     */
+    default RateSeries fetchRange(java.time.LocalDate start, java.time.LocalDate end)
+            throws IOException {
+        return fetchWindow(start.getYear(), start.getMonthValue(), 12);
+    }
 }

@@ -1469,6 +1469,7 @@ private fun DynamicTermsSection(
     showHints: Boolean
 ) {
     val terms = builder.dynamicTerms ?: return
+    var auto by remember(builder.pricePlanId) { mutableStateOf(terms.isAutoWindow) }
     var windowStart by remember(builder.pricePlanId) {
         mutableStateOf(windowStartOf(terms.year, terms.periodStartMonth))
     }
@@ -1492,6 +1493,7 @@ private fun DynamicTermsSection(
     // identical values, so it is not treated as a terms change.
     LaunchedEffect(builder.pricePlanId) {
         viewModel.updateTerms { t ->
+            t.autoWindow = auto
             t.year = windowStart.year
             t.periodStartMonth = windowStart.monthValue
             parsed(multiplier)?.let { t.multiplier = it }
@@ -1506,19 +1508,34 @@ private fun DynamicTermsSection(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        HistoricalWindowStepper(
-            start = windowStart,
-            onStartChange = { ym ->
-                windowStart = ym
-                viewModel.updateTerms { t -> t.year = ym.year; t.periodStartMonth = ym.monthValue }
-            }
-        )
-        if (showHints) {
+        SwitchRow(
+            title = stringResource(R.string.ui2_dyn_auto_title),
+            sub = stringResource(R.string.ui2_dyn_auto_sub),
+            checked = auto
+        ) { v -> auto = v; viewModel.updateTerms { t -> t.autoWindow = v } }
+        if (auto) {
             Text(
-                stringResource(R.string.ui2_dyn_window_hint),
+                stringResource(R.string.ui2_dyn_auto_note),
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+        } else {
+            HistoricalWindowStepper(
+                start = windowStart,
+                onStartChange = { ym ->
+                    windowStart = ym
+                    viewModel.updateTerms { t ->
+                        t.year = ym.year; t.periodStartMonth = ym.monthValue; t.periodStartDay = null
+                    }
+                }
+            )
+            if (showHints) {
+                Text(
+                    stringResource(R.string.ui2_dyn_window_hint),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
         OutlinedTextField(
             value = multiplier,

@@ -42,6 +42,18 @@
             "description": "First month (1-12) of the 12-month backtest window. Absent or 1 = a legacy calendar-year plan (January–December of Year). A rolling window (e.g. 7) sits inside the market's freshest ~12-month publication window, avoiding the perpetual calendar-year data gap (SEMOpx/Ireland).",
             "examples": [7]
           },
+          "PeriodStartDay": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 31,
+            "description": "First day-of-month (1-31) of the window. Absent or 1 = starts on the 1st. Lets an auto-tracked window start mid-month so a full year of coverage anchors to the market's actual latest published day rather than a month boundary.",
+            "examples": [11]
+          },
+          "AutoWindow": {
+            "type": "boolean",
+            "description": "When true, the window is re-derived from the market's latest available data each time the plan materialises (a full year ending at whatever the source currently publishes); Year/PeriodStartMonth/PeriodStartDay then record the last resolved window. Absent/false = a fixed window the user chose.",
+            "examples": [true]
+          },
           "Multiplier": {
             "type": "number",
             "description": "Factor applied to the wholesale price (c/kWh) before the adder. Required for the terms to be complete."

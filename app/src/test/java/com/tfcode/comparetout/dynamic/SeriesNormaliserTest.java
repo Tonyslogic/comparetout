@@ -121,4 +121,28 @@ public class SeriesNormaliserTest {
                 / SeriesNormaliser.HALF_HOUR_MILLIS);
         assertEquals(9.9, month.centsPerKwh[idx], DELTA);
     }
+
+    @Test
+    public void assembleRangeGridsAndClipsAPartialMonthBoundary() throws IOException {
+        // A rolling window's boundary month: only days 15..30 (June) are in range.
+        // Auctions of the 14th..30th are supplied (the 14th covers the 15th 00:00Z).
+        List<SemopxDayResultCsv.DayResult> days = new ArrayList<>();
+        for (LocalDate d = LocalDate.of(2023, 6, 14); !d.isAfter(LocalDate.of(2023, 6, 30));
+             d = d.plusDays(1)) {
+            days.add(hourlyDay(d, 70.0));
+        }
+        long start = LocalDate.of(2023, 6, 15).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
+        long end = LocalDate.of(2023, 7, 1).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
+
+        SeriesNormaliser.GridSeries grid = SeriesNormaliser.assembleRange(start, end, days);
+
+        assertNotNull(grid);
+        // 16 days (15th..30th inclusive) × 48 half-hours; clipped to the span exactly.
+        assertEquals(16 * 48, grid.utcMillis.length);
+        assertEquals(start, grid.utcMillis[0]);
+        assertEquals(end - SeriesNormaliser.HALF_HOUR_MILLIS,
+                grid.utcMillis[grid.utcMillis.length - 1]);
+        assertEquals(7.0, grid.centsPerKwh[0], DELTA);
+        assertEquals(0, grid.gapFilled);
+    }
 }

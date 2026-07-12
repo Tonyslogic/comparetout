@@ -61,6 +61,19 @@ public final class SeriesNormaliser {
         }
     }
 
+    /** The normalised half-hourly grid of an arbitrary UTC half-open span. */
+    public static final class GridSeries {
+        public final long[] utcMillis;
+        public final double[] centsPerKwh;
+        public final int gapFilled;
+
+        GridSeries(long[] utcMillis, double[] centsPerKwh, int gapFilled) {
+            this.utcMillis = utcMillis;
+            this.centsPerKwh = centsPerKwh;
+            this.gapFilled = gapFilled;
+        }
+    }
+
     /** UTC epoch millis of the first instant of a month. */
     public static long monthStartMillis(int year, int month) {
         return LocalDate.of(year, month, 1).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
@@ -82,8 +95,26 @@ public final class SeriesNormaliser {
      */
     public static MonthSeries assembleMonth(int year, int month,
                                             List<SemopxDayResultCsv.DayResult> days) {
-        long start = monthStartMillis(year, month);
-        long end = monthEndMillis(year, month);
+        GridSeries grid = assembleRange(monthStartMillis(year, month),
+                monthEndMillis(year, month), days);
+        if (null == grid) return null;
+        return new MonthSeries(year, month, grid.utcMillis, grid.centsPerKwh, grid.gapFilled);
+    }
+
+    /**
+     * Assemble an arbitrary UTC half-open span {@code [startMillis, endMillis)}
+     * (a whole number of half-hours) onto the half-hourly grid — the same rules
+     * as {@link #assembleMonth} (hourly→half-hourly expansion, EUR/MWh ÷ 10,
+     * republication-overwrite, previous-value gap-fill, {@link #MAX_GAP_FRACTION}
+     * coverage floor). Out-of-span periods in the day results are dropped, so a
+     * partial-month boundary of a rolling window carries only the days it needs.
+     *
+     * @return the grid, or {@code null} when coverage is below the threshold.
+     */
+    public static GridSeries assembleRange(long startMillis, long endMillis,
+                                           List<SemopxDayResultCsv.DayResult> days) {
+        long start = startMillis;
+        long end = endMillis;
         NavigableMap<Long, Double> byPeriod = new TreeMap<>();
         for (SemopxDayResultCsv.DayResult day : days) {
             for (int i = 0; i < day.utcMillis.length; i++) {
@@ -130,7 +161,7 @@ public final class SeriesNormaliser {
             previous = p;
         }
         if (null == previous) return null; // nothing at all (defensive; threshold catches this)
-        return new MonthSeries(year, month, millis, cents, gapFilled);
+        return new GridSeries(millis, cents, gapFilled);
     }
 
     private static void put(NavigableMap<Long, Double> map, long t, double v, long start, long end) {

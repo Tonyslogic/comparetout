@@ -22,16 +22,20 @@ export price (optional)     = wholesale × FeedMultiplier + FeedAdder     (uncla
 ```
 
 - **Market** — which price feed the plan tracks (see §3).
-- **Window** — a *backtest* over **12 consecutive months** (`DynamicTerms.year` = first year,
-  `periodStartMonth` = first month; a null month means a legacy January–December plan). Costs are computed
-  as if that window's prices repeated. It defaults to the **most recent 12 complete months** and is chosen
-  with a month stepper — a rolling window avoids the perpetual gap a fixed calendar year hits in the Irish
-  (SEMOpx) market, while 12 consecutive months still cover each calendar month exactly once, so the result
-  tiles the sim's 2001 calendar identically. Weekday patterns follow those months' real calendar.
+- **Window** — a *backtest* over **a full year of coverage**. By default (`autoWindow`) the app anchors
+  the year to the market's **actual latest published day** (`SemopxRateSource.latestAvailableDate()` probes
+  the catalog for the newest SEM-DA result), fetching a day-precise `[latest−1yr+1day … latest]` range —
+  so it uses whatever ~year the source actually holds, no month snapping and no perpetual calendar-year gap.
+  Untick "Use latest available" to pick a **fixed** 12-month window instead (`year` + `periodStartMonth`,
+  chosen with a month stepper; a null month = a legacy January–December plan). Either way the result covers
+  each calendar date once (Feb 29 dropped), so it tiles the sim's 2001 calendar. `year`/`periodStartMonth`/
+  `periodStartDay` record the resolved window; weekday patterns follow those dates' real calendar.
 - **Materialisation** — `DynamicTariffWorker` downloads the window's half-hourly prices and writes **365
   single-day BUY `DayRate` rows** (`startDate == endDate`); if the terms include a feed transform it also
   writes 365 SELL rows (`DayRate.rateType = 1`). Costing then works exactly as for any other plan via
-  `RateLookup` — the engine has no idea the plan is dynamic.
+  `RateLookup` — the engine has no idea the plan is dynamic. An `autoWindow` plan **re-derives its window
+  from the latest data every time it generates**, so regenerating refreshes it to the newest prices (mostly
+  cached months — only the two partial boundary months are re-fetched).
 - **Pending** — a plan with terms but no BUY rates yet. It shows a "pending" badge in the plan list
   (tap to retry the fetch) and is skipped by costing until it fills in.
 - **Export is terms-only.** Market prices must not be redistributed, so JSON export emits the `Dynamic`
@@ -149,7 +153,7 @@ components *exclude* it (`getEffectiveEndMinute()`), and the strategy/emitter co
 | Area | Where |
 |---|---|
 | Terms model / JSON | `model/priceplan/DynamicTerms`, `model/json/priceplan/DynamicTermsJson`, schema `model/priceplan/PricePlanJsonSchema.json` |
-| Fetch & materialise | `dynamic/` — `DynamicTariffWorker`, `DynamicRateSources`, `SemopxRateSource`, `SemopxLookbackXlsx`, `OctopusAgileRateSource`, `SeriesNormaliser`, `DynamicPriceCache`; `HistoricalRateSource.fetchWindow(startYear, startMonth, months)` (`fetch(year)` = 12-month Jan window) |
+| Fetch & materialise | `dynamic/` — `DynamicTariffWorker`, `DynamicRateSources`, `SemopxRateSource`, `SemopxLookbackXlsx`, `OctopusAgileRateSource`, `SeriesNormaliser` (`assembleMonth`/`assembleRange`), `DynamicPriceCache`; `HistoricalRateSource.fetchWindow(startYear, startMonth, months)` (fixed window; `fetch(year)` = 12-month Jan), `latestAvailableDate()` + `fetchRange(start, end)` (auto: day-precise full-year range anchored to the source's newest data) |
 | Strategy engine (pure JVM) | `dynamic/strategy/` — `DispatchStrategy`, `ThresholdStrategy`, `RankNStrategy`, `SocForwardModel`, `StrategyYearRunner`, `ScheduleEmitter`, `WeatherAwareStrategy`, `WindPriceCalibration`, `LayerBOutlook`, `EvSmartChargePlanner` |
 | UI | `ui2/DynamicTariffPlans.kt`, `ui2/StrategyScenarioGenerator.kt`, dialog in `ui2/UI2SimulationsFragment.kt`, generator pane in `ui2/UI2PricePlanListActivity.kt`, terms card in `ui2/UI2PricePlanWizardActivity.kt`, 12-month window picker `ui2/HistoricalWindowStepper.kt`, price-cache accordion in `ui2/UI2DataSourceManagementActivity.kt` |
 | Tests | `ThresholdStrategyTest`, `RankNStrategyTest`, `StrategyYearRunnerTest`, `ScheduleEmitterTest`, `WindPriceCalibrationTest`, `LayerBOutlookTest`, `WeatherAwareStrategyTest`, `EvSmartChargePlannerTest`, `OctopusAgileRateSourceTest`, `SemopxLookbackXlsxTest`, `ComponentDateWindowTest` |

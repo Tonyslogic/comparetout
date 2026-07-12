@@ -143,6 +143,8 @@ public class JsonTools {
             dt.setMarket(pp.dynamic.market);
             dt.setYear(pp.dynamic.year);
             dt.setPeriodStartMonth(pp.dynamic.periodStartMonth);
+            dt.setPeriodStartDay(pp.dynamic.periodStartDay);
+            dt.setAutoWindow(pp.dynamic.autoWindow);
             dt.setMultiplier(pp.dynamic.multiplier);
             dt.setAdder(pp.dynamic.adder);
             dt.setCap(pp.dynamic.cap);
@@ -214,6 +216,8 @@ public class JsonTools {
         dj.market = dt.getMarket();
         dj.year = dt.getYear();
         dj.periodStartMonth = dt.getPeriodStartMonth();
+        dj.periodStartDay = dt.getPeriodStartDay();
+        dj.autoWindow = dt.getAutoWindow();
         dj.multiplier = dt.getMultiplier();
         dj.adder = dt.getAdder();
         dj.cap = dt.getCap();

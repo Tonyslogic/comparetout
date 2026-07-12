@@ -777,6 +777,9 @@
     <string name="ui2_dyn_window_prev">Earlier window</string>
     <string name="ui2_dyn_window_next">Later window</string>
     <string name="ui2_dyn_window_hint">The 12-month stretch of past market prices your costs are tested against. It defaults to the most recent complete 12 months — the safest choice, since a fixed Jan–Dec year often has gaps in the Irish market. Use ‹ › to move the window a month at a time; weekday patterns follow those months\' real calendar, like the weather profile.</string>
+    <string name="ui2_dyn_auto_title">Use latest available prices</string>
+    <string name="ui2_dyn_auto_sub">Recommended — a full year ending at the newest data the market publishes</string>
+    <string name="ui2_dyn_auto_note">Whenever this plan generates, it uses a full year of the most recent prices the market has actually published — so there\'s no period to pick and no gap to avoid. Untick to backtest a specific past window instead.</string>
     <string name="ui2_ppl_dyn_multiplier">Multiplier (× wholesale)</string>
     <string name="ui2_ppl_dyn_adder">Adder (%1$s)</string>
     <string name="ui2_ppl_dyn_cap">Cap (%1$s, optional)</string>

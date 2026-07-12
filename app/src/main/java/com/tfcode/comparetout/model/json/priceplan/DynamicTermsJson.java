@@ -41,6 +41,15 @@ public class DynamicTermsJson {
     @SerializedName("PeriodStartMonth")
     public Integer periodStartMonth;
 
+    /** First day-of-month (1-31) of the window; null/absent == the 1st. */
+    @SerializedName("PeriodStartDay")
+    public Integer periodStartDay;
+
+    /** When true, the window auto-tracks the market's latest available data; the
+     *  Year/PeriodStartMonth/PeriodStartDay then record the last resolved window. */
+    @SerializedName("AutoWindow")
+    public Boolean autoWindow;
+
     @SerializedName("Multiplier")
     public Double multiplier;
 

@@ -77,13 +77,20 @@ class DynamicTariffWorker(
                     "edit the plan and try again.")
             return Result.failure()
         }
-        val targetYear = if (year > 0) year else terms.year ?: run {
-            failTerminal("Dynamic tariff '${plan.planName}': no window chosen — " +
-                    "pick a 12-month window and regenerate.")
-            return Result.failure()
-        }
-        // First month of the 12-month backtest window (legacy null == January).
+        // Auto plans re-derive their window from the market's latest data, so a
+        // year need not be stored; a fixed-window plan must have one.
+        val auto = terms.isAutoWindow
         val startMonth = terms.periodStartMonth ?: 1
+        val targetYear = when {
+            year > 0 -> year
+            terms.year != null -> terms.year!!
+            auto -> java.time.LocalDate.now().year - 1 // placeholder; discovery sets the real window
+            else -> {
+                failTerminal("Dynamic tariff '${plan.planName}': no window chosen — " +
+                        "pick a 12-month window and regenerate.")
+                return Result.failure()
+            }
+        }
         val source = DynamicRateSources.forMarket(terms.market, applicationContext)
         if (source == null) {
             failTerminal("Dynamic tariff '${plan.planName}': market '${terms.market}' is not " +
@@ -105,15 +112,16 @@ class DynamicTariffWorker(
             repository.insert(plan, emptyList(), false)
         }
 
-        progress("Fetching ${terms.market} prices for the 12 months from " +
-                "$targetYear-${"%02d".format(startMonth)}… a first fetch takes a few minutes; " +
-                "later generates reuse the cache.")
+        progress((if (auto) "Fetching the latest year of ${terms.market} prices"
+                  else "Fetching ${terms.market} prices for the 12 months from " +
+                          "$targetYear-${"%02d".format(startMonth)}") +
+                "… a first fetch takes a few minutes; later generates reuse the cache.")
         val plans = EntryPointAccessors.fromApplication(
             applicationContext, DynamicTariffPlansEntryPoint::class.java
         ).dynamicTariffPlans()
 
         return when (val result =
-                plans.materialiseBlocking(source, plan, targetYear, startMonth)) {
+                plans.materialiseBlocking(source, plan, targetYear, startMonth, auto)) {
             is DynamicTariffPlans.Result.Generated -> {
                 finish("Plan '${result.planName}' is ready" +
                         (if (result.gapFilled > 0) " (${result.gapFilled} half-hours gap-filled)"
@@ -126,12 +134,15 @@ class DynamicTariffWorker(
             is DynamicTariffPlans.Result.Incomplete -> {
                 // Name the months (with year — the window can cross a year boundary),
                 // in window order, so the user knows exactly what to step past.
-                val months = result.missingMonths
+                val months = result.missingMonths.distinct()
                     .sortedBy { (it - startMonth + 12) % 12 }
                     .joinToString(", ") { m ->
-                        val y = if (m >= startMonth) targetYear else targetYear + 1
-                        "${java.time.Month.of(m).getDisplayName(
-                            java.time.format.TextStyle.FULL, java.util.Locale.getDefault())} $y"
+                        val name = java.time.Month.of(m).getDisplayName(
+                            java.time.format.TextStyle.FULL, java.util.Locale.getDefault())
+                        // A fixed window has a known year per month; an auto window
+                        // spans the boundary month across two years, so name only.
+                        if (auto) name
+                        else "$name ${if (m >= startMonth) targetYear else targetYear + 1}"
                     }
                 failTerminal("Couldn't materialise '${plan.planName}': no published market data " +
                         "for $months. Recent months may not be published yet, and windows older " +

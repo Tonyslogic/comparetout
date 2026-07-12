@@ -70,19 +70,37 @@ class DynamicTariffPlans @Inject constructor(
      * plan-changed invalidation seam re-costs every scenario.
      */
     fun materialiseBlocking(source: HistoricalRateSource, plan: PricePlan, year: Int,
-                            startMonth: Int = 1): Result {
+                            startMonth: Int = 1, auto: Boolean = false): Result {
         val terms = plan.dynamicTerms
             ?: return Result.Failed(IllegalArgumentException("plan has no dynamic terms"))
         if (!terms.isComplete)
             return Result.Failed(IllegalArgumentException("dynamic terms are incomplete"))
         return try {
-            // A 12-month window starting (year, startMonth) — each month appears
-            // once, so it tiles the sim's 2001 calendar exactly like a full year.
-            val series = source.fetchWindow(year, startMonth, 12)
+            // Auto: anchor a full year of coverage to the market's actual latest
+            // published day (day-precise, not month-snapped) — the source knows
+            // its own content. Otherwise fetch the user's fixed 12-month window.
+            // Either way the result covers each calendar date once, so it tiles
+            // the sim's 2001 calendar.
+            val latest = if (auto) source.latestAvailableDate() else null
+            val series = if (latest != null) {
+                source.fetchRange(latest.minusYears(1).plusDays(1), latest)
+            } else {
+                source.fetchWindow(year, startMonth, 12)
+            }
             if (!series.isComplete) return Result.Incomplete(series.missingMonths)
 
-            terms.year = year
-            terms.periodStartMonth = startMonth
+            if (latest != null) {
+                val start = latest.minusYears(1).plusDays(1)
+                terms.year = start.year
+                terms.periodStartMonth = start.monthValue
+                terms.periodStartDay = start.dayOfMonth
+                terms.autoWindow = true
+            } else {
+                terms.year = year
+                terms.periodStartMonth = startMonth
+                terms.periodStartDay = null
+                terms.autoWindow = false
+            }
             terms.sourceRef = series.sourceRef
             val rates = ArrayList(buildBuyDayRates(series, terms))
             if (terms.feedMultiplier != null || terms.feedAdder != null) {
@@ -112,10 +130,9 @@ class DynamicTariffPlans @Inject constructor(
         val feedNote = if (terms.feedMultiplier != null || terms.feedAdder != null)
             "export = wholesale × ${terms.feedMultiplier ?: 1.0} + ${terms.feedAdder ?: 0.0}c"
         else "export = scalar feed ${plan.feed}c"
-        val startMonth = terms.periodStartMonth ?: 1
-        val window = if (startMonth == 1) "${series.year}"
-            else "${series.year}-%02d..%d-%02d".format(
-                startMonth, series.year + 1, startMonth - 1)
+        val start = LocalDate.of(series.year, terms.effectiveStartMonth(), terms.effectiveStartDay())
+        val window = "$start .. ${start.plusYears(1).minusDays(1)}" +
+                (if (terms.isAutoWindow) " (auto — latest available)" else "")
         return "Generated dynamic tariff: unit price = wholesale × ${terms.multiplier} + " +
                 "${terms.adder}c" +
                 (terms.cap?.let { ", capped at ${it}c" } ?: "") +

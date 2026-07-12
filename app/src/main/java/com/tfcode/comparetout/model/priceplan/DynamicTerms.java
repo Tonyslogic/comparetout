@@ -41,6 +41,16 @@ public class DynamicTerms {
      *  Jul {@code year} .. Jun {@code year+1} sits inside the market's freshest
      *  ~12-month publication window, avoiding the perpetual calendar-year gap. */
     private Integer periodStartMonth;
+    /** First day-of-month (1-31) of the window; null == 1. Lets an auto window
+     *  start mid-month so a full year of coverage anchors to the market's actual
+     *  latest published day rather than snapping to a month boundary. */
+    private Integer periodStartDay;
+    /** When true, the window is (re)derived from the market's latest available
+     *  data at each materialisation — a full year ending at whatever the source
+     *  currently publishes — and {@link #year}/{@link #periodStartMonth}/
+     *  {@link #periodStartDay} record the resolved window. Null/false = a fixed
+     *  window the user chose. */
+    private Boolean autoWindow;
     /** Retail multiplier on the wholesale price (margin / losses / VAT-inclusive factor). */
     private Double multiplier;
     /** c/kWh added after the multiplier (network charges, supplier margin). */
@@ -82,6 +92,32 @@ public class DynamicTerms {
     /** First month of the backtest window, defaulting a legacy null to January. */
     public int effectiveStartMonth() {
         return (null == periodStartMonth) ? 1 : periodStartMonth;
+    }
+
+    public Integer getPeriodStartDay() {
+        return periodStartDay;
+    }
+
+    public void setPeriodStartDay(Integer periodStartDay) {
+        this.periodStartDay = periodStartDay;
+    }
+
+    /** First day-of-month of the window, defaulting a legacy null to the 1st. */
+    public int effectiveStartDay() {
+        return (null == periodStartDay) ? 1 : periodStartDay;
+    }
+
+    public Boolean getAutoWindow() {
+        return autoWindow;
+    }
+
+    public void setAutoWindow(Boolean autoWindow) {
+        this.autoWindow = autoWindow;
+    }
+
+    /** Whether the window auto-tracks the market's latest available data. */
+    public boolean isAutoWindow() {
+        return Boolean.TRUE.equals(autoWindow);
     }
 
     public Double getMultiplier() {

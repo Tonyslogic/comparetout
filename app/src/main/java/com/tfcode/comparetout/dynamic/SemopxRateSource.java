@@ -202,13 +202,47 @@ public class SemopxRateSource implements HistoricalRateSource {
         // needs the auctions of (first day − 1) .. (last day of month).
         LocalDate firstAuction = LocalDate.of(year, month, 1).minusDays(1);
         LocalDate lastAuction = LocalDate.of(year, month, 1).plusMonths(1).minusDays(1);
+        SourcedDays sd = fetchDaysForRange(firstAuction, lastAuction,
+                SeriesNormaliser.monthStartMillis(year, month));
+        if (sd.days.isEmpty()) return null;
 
-        // The catalog only retains ~12 months; prefer it when the month could
-        // still be inside the window, otherwise go straight to the archive.
-        boolean maybeInCatalog = SeriesNormaliser.monthStartMillis(year, month)
+        SeriesNormaliser.MonthSeries series = SeriesNormaliser.assembleMonth(year, month, sd.days);
+        if (null == series) return null;
+        DynamicPriceCache.MonthChunk chunk = new DynamicPriceCache.MonthChunk();
+        chunk.marketId = MARKET_ID;
+        chunk.year = year;
+        chunk.month = month;
+        chunk.source = sd.source;
+        chunk.utcMillis = series.utcMillis;
+        chunk.centsPerKwh = series.centsPerKwh;
+        chunk.gapFilled = series.gapFilled;
+        return chunk;
+    }
+
+    /** Day results + the publication they came from. */
+    private static final class SourcedDays {
+        final List<SemopxDayResultCsv.DayResult> days;
+        final String source;
+
+        SourcedDays(List<SemopxDayResultCsv.DayResult> days, String source) {
+            this.days = days;
+            this.source = source;
+        }
+    }
+
+    /**
+     * Fetch the auction-day results for delivery span {@code [firstAuction, lastAuction]}
+     * from whichever publication covers it, trying catalog → bulk archive →
+     * look-back workbook (order preferring the catalog only when the span may
+     * still be inside its rolling window). Empty = no source covers the span.
+     * The {@code anchorMillis} is the span's UTC start, used only for the
+     * catalog-window heuristic.
+     */
+    private SourcedDays fetchDaysForRange(LocalDate firstAuction, LocalDate lastAuction,
+                                          long anchorMillis) throws IOException {
+        boolean maybeInCatalog = anchorMillis
                 >= Instant.ofEpochMilli(clock.millis()).atZone(ZoneOffset.UTC)
                         .minusMonths(13).toInstant().toEpochMilli();
-
         List<SemopxDayResultCsv.DayResult> days;
         String source;
         if (maybeInCatalog) {
@@ -232,19 +266,124 @@ public class SemopxRateSource implements HistoricalRateSource {
             days = fetchDaysFromLookback(firstAuction, lastAuction);
             source = "Lookback2 workbook";
         }
-        if (days.isEmpty()) return null;
+        return new SourcedDays(days, source);
+    }
 
-        SeriesNormaliser.MonthSeries series = SeriesNormaliser.assembleMonth(year, month, days);
-        if (null == series) return null;
-        DynamicPriceCache.MonthChunk chunk = new DynamicPriceCache.MonthChunk();
-        chunk.marketId = MARKET_ID;
-        chunk.year = year;
-        chunk.month = month;
-        chunk.source = source;
-        chunk.utcMillis = series.utcMillis;
-        chunk.centsPerKwh = series.centsPerKwh;
-        chunk.gapFilled = series.gapFilled;
-        return chunk;
+    @Override
+    public LocalDate latestAvailableDate() throws IOException {
+        // Probe a recent slice of the catalog for the newest SEM-DA result; widen
+        // once if SEMOpx is lagging further behind. Metadata only — no CSV reads.
+        LocalDate latestAuction = latestCatalogAuctionDate(40);
+        if (null == latestAuction) latestAuction = latestCatalogAuctionDate(400);
+        if (null == latestAuction) return null;
+        // Auction on day D clears delivery for D+1 — that's the newest priced day.
+        return latestAuction.plusDays(1);
+    }
+
+    /** The max SEM-DA auction date the catalog lists within the last {@code days} days, or null. */
+    private LocalDate latestCatalogAuctionDate(int days) throws IOException {
+        LocalDate from = Instant.ofEpochMilli(clock.millis()).atZone(ZoneOffset.UTC)
+                .toLocalDate().minusDays(days);
+        String maxDate = null;
+        int page = 1;
+        int totalPages = 1;
+        while (page <= totalPages) {
+            String url = catalogBase + "/api/v1/documents/static-reports?DPuG_ID=EA-001"
+                    + "&Date=%3E%3D" + from + "&sort_by=Date&order_by=ASC"
+                    + "&page_size=200&page=" + page;
+            JsonObject body = JsonParser.parseString(httpGetString(url)).getAsJsonObject();
+            JsonObject pagination = body.getAsJsonObject("pagination");
+            if (!(null == pagination) && pagination.has("totalPages"))
+                totalPages = pagination.get("totalPages").getAsInt();
+            JsonArray items = body.getAsJsonArray("items");
+            if (null == items || items.isEmpty()) break;
+            for (JsonElement el : items) {
+                JsonObject item = el.getAsJsonObject();
+                String resource = item.has("ResourceName")
+                        ? item.get("ResourceName").getAsString() : "";
+                if (!resource.startsWith(SEM_DA_PREFIX)) continue;
+                String d = auctionDateOf(resource);
+                if (!(null == d) && (null == maxDate || d.compareTo(maxDate) > 0)) maxDate = d;
+            }
+            page++;
+        }
+        return (null == maxDate) ? null : parseYyyyMmDd(maxDate);
+    }
+
+    @Override
+    public RateSeries fetchRange(LocalDate start, LocalDate end) throws IOException {
+        List<RateSeries.Entry> entries = new ArrayList<>(400 * 48);
+        List<Integer> missing = new ArrayList<>();
+        Set<String> sources = new LinkedHashSet<>();
+        int gapFilled = 0;
+        long now = clock.millis();
+        IOException lastFailure = null;
+
+        long rangeStart = start.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
+        long rangeEnd = end.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli();
+
+        // Walk the month buckets the range touches. A whole month inside the range
+        // uses the per-month cache; the (up to two) partial boundary months fetch
+        // just their in-range days and grid the sub-span.
+        for (LocalDate cursor = start.withDayOfMonth(1);
+             !cursor.isAfter(end.withDayOfMonth(1)); cursor = cursor.plusMonths(1)) {
+            int y = cursor.getYear();
+            int m = cursor.getMonthValue();
+            long monthStart = SeriesNormaliser.monthStartMillis(y, m);
+            long monthEnd = SeriesNormaliser.monthEndMillis(y, m);
+            long spanStart = Math.max(monthStart, rangeStart);
+            long spanEnd = Math.min(monthEnd, rangeEnd);
+            if (spanEnd <= spanStart) continue;
+            if (spanStart >= now) { // wholly in the future — never partial-fill
+                missing.add(m);
+                continue;
+            }
+            boolean wholeMonth = spanStart == monthStart && spanEnd == monthEnd;
+            try {
+                SeriesNormaliser.GridSeries grid;
+                String source;
+                if (wholeMonth) {
+                    DynamicPriceCache.MonthChunk chunk =
+                            DynamicPriceCache.load(cacheDir, MARKET_ID, y, m);
+                    if (null == chunk) {
+                        chunk = fetchMonth(y, m);
+                        if (!(null == chunk)) DynamicPriceCache.store(cacheDir, chunk);
+                    }
+                    if (null == chunk) { missing.add(m); continue; }
+                    grid = new SeriesNormaliser.GridSeries(
+                            chunk.utcMillis, chunk.centsPerKwh, chunk.gapFilled);
+                    source = chunk.source;
+                } else {
+                    LocalDate firstAuction = Instant.ofEpochMilli(spanStart)
+                            .atZone(ZoneOffset.UTC).toLocalDate().minusDays(1);
+                    LocalDate lastAuction = Instant.ofEpochMilli(spanEnd - 1)
+                            .atZone(ZoneOffset.UTC).toLocalDate();
+                    SourcedDays sd = fetchDaysForRange(firstAuction, lastAuction, spanStart);
+                    if (sd.days.isEmpty()) { missing.add(m); continue; }
+                    grid = SeriesNormaliser.assembleRange(spanStart, spanEnd, sd.days);
+                    if (null == grid) { missing.add(m); continue; }
+                    source = sd.source;
+                }
+                sources.add(source);
+                gapFilled += grid.gapFilled;
+                for (int i = 0; i < grid.utcMillis.length; i++) {
+                    entries.add(new RateSeries.Entry(grid.utcMillis[i], grid.centsPerKwh[i]));
+                }
+            } catch (IOException e) {
+                // Transient error (not "not covered"): don't flag a spurious gap —
+                // surface it below so the worker retries the whole range.
+                lastFailure = e;
+            }
+        }
+        if (entries.isEmpty()) {
+            if (!(null == lastFailure)) throw lastFailure;
+            throw new IOException("No SEMOpx data available for " + start + " .. " + end);
+        }
+        if (!(null == lastFailure)) throw lastFailure;
+        String sourceRef = "SEMOpx " + String.join(" + ", sources)
+                + "; fetched " + LocalDate.now(clock)
+                + "; provided AS IS by SEMOpx, not redistributed";
+        return new RateSeries(MARKET_ID, start.getYear(), entries, missing, gapFilled, sourceRef);
     }
 
     /** Walk the EA-001 catalog for SEM-DA results with auction dates in [from, to]. */

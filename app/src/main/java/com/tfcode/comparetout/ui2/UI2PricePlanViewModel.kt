@@ -315,7 +315,10 @@ class UI2PricePlanViewModel @Inject constructor(
      */
     private fun saveDynamic(plan: PricePlan, b: PricePlanBuilder) {
         val termsChanged = !b.dynamicTerms.sameTermsAs(loadedTerms)
-        val needsRegen = !b.materialised || termsChanged
+        // An auto-window plan tracks the market's latest data, so an explicit
+        // save/regenerate always re-fetches to refresh it (mostly cached months).
+        val auto = b.dynamicTerms?.autoWindow == true
+        val needsRegen = !b.materialised || termsChanged || auto
         if (isEditMode) {
             // Keep the generated rates only for a scalar-only edit of a materialised
             // plan; otherwise store terms-only so a changed/pending plan isn't costed
@@ -427,6 +430,7 @@ class UI2PricePlanViewModel @Inject constructor(
                 market = marketId
                 multiplier = 1.0
                 adder = 0.0
+                autoWindow = true   // default: track the market's latest available year
             }, materialised = false)
         }
         // Brand-new terms: no baseline, so save() treats them as changed and generates.
@@ -663,6 +667,8 @@ private fun DynamicTerms.copyTerms(): DynamicTerms = DynamicTerms().also {
     it.market = market
     it.year = year
     it.periodStartMonth = periodStartMonth
+    it.periodStartDay = periodStartDay
+    it.autoWindow = autoWindow
     it.multiplier = multiplier
     it.adder = adder
     it.cap = cap
@@ -675,10 +681,12 @@ private fun DynamicTerms.copyTerms(): DynamicTerms = DynamicTerms().also {
 /** Do two terms define the same prices? Provenance (sourceRef) is ignored. */
 private fun DynamicTerms?.sameTermsAs(other: DynamicTerms?): Boolean {
     if (this == null || other == null) return this === other
-    // Legacy null start-month means January — normalise so a re-save of an old
-    // calendar-year plan isn't seen as a terms change.
+    // Legacy null start-month/day means January/1st — normalise so a re-save of an
+    // old calendar-year plan isn't seen as a terms change.
     return market == other.market && year == other.year &&
         (periodStartMonth ?: 1) == (other.periodStartMonth ?: 1) &&
+        (periodStartDay ?: 1) == (other.periodStartDay ?: 1) &&
+        (autoWindow == true) == (other.autoWindow == true) &&
         multiplier == other.multiplier && adder == other.adder &&
         cap == other.cap && floor == other.floor &&
         feedMultiplier == other.feedMultiplier && feedAdder == other.feedAdder
@@ -699,6 +707,8 @@ private fun dynamicPlanJson(plan: PricePlan): PricePlanJsonFile {
         tj.market = t.market
         tj.year = t.year
         tj.periodStartMonth = t.periodStartMonth
+        tj.periodStartDay = t.periodStartDay
+        tj.autoWindow = t.autoWindow
         tj.multiplier = t.multiplier
         tj.adder = t.adder
         tj.cap = t.cap
