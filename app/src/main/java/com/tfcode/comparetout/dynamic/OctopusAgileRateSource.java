@@ -128,17 +128,21 @@ public final class OctopusAgileRateSource implements HistoricalRateSource {
             }
             DynamicPriceCache.MonthChunk chunk =
                     DynamicPriceCache.load(cacheDir, marketId, year, month);
+            boolean fetchErrored = false;
             if (null == chunk) {
                 try {
                     chunk = fetchMonth(year, month);
                 } catch (IOException e) {
                     lastFailure = e;
                     chunk = null;
+                    fetchErrored = true;
                 }
                 if (!(null == chunk)) DynamicPriceCache.store(cacheDir, chunk);
             }
             if (null == chunk) {
-                missing.add(month);
+                // Genuinely-not-covered month (report) vs a transient fetch error
+                // (must not masquerade as a permanent gap — see SemopxRateSource).
+                if (!fetchErrored) missing.add(month);
                 continue;
             }
             sources.add(chunk.source);
@@ -153,6 +157,9 @@ public final class OctopusAgileRateSource implements HistoricalRateSource {
                     + startYear + "-" + String.format(java.util.Locale.ROOT, "%02d", startMonth)
                     + " in region " + region);
         }
+        // A month errored rather than being genuinely absent — surface it so the
+        // worker retries the whole window instead of reporting a spurious gap.
+        if (!(null == lastFailure)) throw lastFailure;
         String sourceRef = "Octopus Energy public tariff API (" + String.join(" + ", sources)
                 + "), GSP region " + region + "; fetched " + LocalDate.now(clock)
                 + "; prices are retail inc-VAT pence/kWh";

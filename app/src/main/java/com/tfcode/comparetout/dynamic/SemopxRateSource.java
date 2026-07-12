@@ -154,17 +154,25 @@ public class SemopxRateSource implements HistoricalRateSource {
             }
             DynamicPriceCache.MonthChunk chunk =
                     DynamicPriceCache.load(cacheDir, MARKET_ID, year, month);
+            boolean fetchErrored = false;
             if (null == chunk) {
                 try {
                     chunk = fetchMonth(year, month);
                 } catch (IOException e) {
                     lastFailure = e;
                     chunk = null;
+                    fetchErrored = true;
                 }
                 if (!(null == chunk)) DynamicPriceCache.store(cacheDir, chunk);
             }
             if (null == chunk) {
-                missing.add(month);
+                // Distinguish "genuinely not covered by any source" (fetchMonth
+                // returned null after trying catalog + archive + workbook) — a real
+                // missing month — from a transient fetch error (HTTP blip, workbook
+                // download failure). A missing month is reported; a transient error
+                // must NOT masquerade as a permanent gap, or the worker treats the
+                // window as terminally incomplete and never retries.
+                if (!fetchErrored) missing.add(month);
                 continue;
             }
             sources.add(chunk.source);
@@ -178,6 +186,10 @@ public class SemopxRateSource implements HistoricalRateSource {
             throw new IOException("No SEMOpx data available for the window starting "
                     + startYear + "-" + String.format(java.util.Locale.ROOT, "%02d", startMonth));
         }
+        // A month errored (rather than being genuinely absent): surface it so the
+        // worker retries the whole window instead of reporting a spurious gap that
+        // a later attempt would fill.
+        if (!(null == lastFailure)) throw lastFailure;
         String sourceRef = "SEMOpx " + String.join(" + ", sources)
                 + "; fetched " + LocalDate.now(clock)
                 + "; provided AS IS by SEMOpx, not redistributed";

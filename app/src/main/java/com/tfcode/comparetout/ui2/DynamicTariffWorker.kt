@@ -124,10 +124,19 @@ class DynamicTariffWorker(
                 Result.success()
             }
             is DynamicTariffPlans.Result.Incomplete -> {
-                failTerminal("Couldn't materialise '${plan.planName}': no public data for " +
-                        "month(s) ${result.missingMonths.joinToString()} of the 12 months from " +
-                        "$targetYear-${"%02d".format(startMonth)}. Step the window to more recent " +
-                        "months — the plan stays pending.")
+                // Name the months (with year — the window can cross a year boundary),
+                // in window order, so the user knows exactly what to step past.
+                val months = result.missingMonths
+                    .sortedBy { (it - startMonth + 12) % 12 }
+                    .joinToString(", ") { m ->
+                        val y = if (m >= startMonth) targetYear else targetYear + 1
+                        "${java.time.Month.of(m).getDisplayName(
+                            java.time.format.TextStyle.FULL, java.util.Locale.getDefault())} $y"
+                    }
+                failTerminal("Couldn't materialise '${plan.planName}': no published market data " +
+                        "for $months. Recent months may not be published yet, and windows older " +
+                        "than about a year roll off the market's online history — step the window " +
+                        "to a fully-covered period. The plan stays pending.")
                 Result.failure()
             }
             is DynamicTariffPlans.Result.Failed -> {
