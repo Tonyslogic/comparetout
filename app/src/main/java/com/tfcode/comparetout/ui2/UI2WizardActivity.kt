@@ -1804,6 +1804,70 @@ private fun DistributionSliderList(
 }
 
 /* ──────────────────────────────────────────────────────────────────
+   Schedule overflow gate
+────────────────────────────────────────────────────────────────── */
+
+/** Lists longer than this collapse behind a count + "Show all" prompt. */
+private const val SCHEDULE_OVERFLOW_THRESHOLD = 5
+
+/**
+ * A dynamic-tariff optimised scenario can carry dozens of schedule rows. When a
+ * list has more than [SCHEDULE_OVERFLOW_THRESHOLD] entries, collapse it behind a
+ * "N <noun> — Show all" prompt so the accordion stays scannable; [content] (the
+ * cards) is only composed once the user opts in.
+ *
+ * Adding an entry (the count grows) auto-expands the list so the new row is
+ * visible and editable rather than hidden — only a fresh load of an
+ * already-large list starts collapsed. The wrapper is always present (even at or
+ * below the threshold) so this state survives crossing the threshold via an add.
+ */
+@Composable
+private fun ScheduleOverflowGate(
+    count: Int,
+    noun: String,
+    content: @Composable () -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    var previousCount by remember { mutableIntStateOf(count) }
+    LaunchedEffect(count) {
+        if (count > previousCount) expanded = true
+        previousCount = count
+    }
+    val collapsible = count > SCHEDULE_OVERFLOW_THRESHOLD
+    if (collapsible) {
+        Surface(
+            color = MaterialTheme.colorScheme.surfaceVariant,
+            shape = RoundedCornerShape(10.dp),
+            modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded }
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    stringResource(R.string.ui2_wiz_sched_overflow_count, count, noun),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.weight(1f)
+                )
+                Text(
+                    stringResource(if (expanded) R.string.ui2_wiz_sched_hide
+                                   else R.string.ui2_wiz_sched_show_all),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Icon(
+                    if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
+    if (!collapsible || expanded) content()
+}
+
+/* ──────────────────────────────────────────────────────────────────
    Battery section content
 ────────────────────────────────────────────────────────────────── */
 
@@ -1931,17 +1995,22 @@ private fun BatterySectionContent(
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(vertical = 4.dp))
             }
-            chargeEntries.forEachIndexed { index, entry ->
-                WizardBatteryChargeCard(
-                    entry = entry,
-                    index = index,
-                    expanded = expandedChargeId == entry.id,
-                    noviceMode = noviceMode,
-                    batteryInverters = batteryInverters,
-                    onToggle = { expandedChargeId = if (expandedChargeId == entry.id) null else entry.id },
-                    onUpdate = { updated -> onUpdateCharge(entry.id) { updated } },
-                    onDelete = { onRemoveCharge(entry.id); if (expandedChargeId == entry.id) expandedChargeId = null }
-                )
+            ScheduleOverflowGate(
+                count = chargeEntries.size,
+                noun = stringResource(R.string.ui2_wiz_sched_noun_charge)
+            ) {
+                chargeEntries.forEachIndexed { index, entry ->
+                    WizardBatteryChargeCard(
+                        entry = entry,
+                        index = index,
+                        expanded = expandedChargeId == entry.id,
+                        noviceMode = noviceMode,
+                        batteryInverters = batteryInverters,
+                        onToggle = { expandedChargeId = if (expandedChargeId == entry.id) null else entry.id },
+                        onUpdate = { updated -> onUpdateCharge(entry.id) { updated } },
+                        onDelete = { onRemoveCharge(entry.id); if (expandedChargeId == entry.id) expandedChargeId = null }
+                    )
+                }
             }
         }
 
@@ -1993,17 +2062,22 @@ private fun BatterySectionContent(
                     color = MaterialTheme.colorScheme.error,
                     modifier = Modifier.padding(vertical = 4.dp))
             }
-            dischargeEntries.forEachIndexed { index, entry ->
-                WizardBatteryDischargeCard(
-                    entry = entry,
-                    index = index,
-                    expanded = expandedDischargeId == entry.id,
-                    noviceMode = noviceMode,
-                    batteryInverters = batteryInverters,
-                    onToggle = { expandedDischargeId = if (expandedDischargeId == entry.id) null else entry.id },
-                    onUpdate = { updated -> onUpdateDischarge(entry.id) { updated } },
-                    onDelete = { onRemoveDischarge(entry.id); if (expandedDischargeId == entry.id) expandedDischargeId = null }
-                )
+            ScheduleOverflowGate(
+                count = dischargeEntries.size,
+                noun = stringResource(R.string.ui2_wiz_sched_noun_discharge)
+            ) {
+                dischargeEntries.forEachIndexed { index, entry ->
+                    WizardBatteryDischargeCard(
+                        entry = entry,
+                        index = index,
+                        expanded = expandedDischargeId == entry.id,
+                        noviceMode = noviceMode,
+                        batteryInverters = batteryInverters,
+                        onToggle = { expandedDischargeId = if (expandedDischargeId == entry.id) null else entry.id },
+                        onUpdate = { updated -> onUpdateDischarge(entry.id) { updated } },
+                        onDelete = { onRemoveDischarge(entry.id); if (expandedDischargeId == entry.id) expandedDischargeId = null }
+                    )
+                }
             }
         }
 
@@ -2132,19 +2206,24 @@ private fun HwSectionContent(
                 }
             }
         } else {
-            schedules.forEachIndexed { index, entry ->
-                WizardHwScheduleCard(
-                    entry = entry,
-                    index = index,
-                    expanded = expandedScheduleIndex == index,
-                    noviceMode = noviceMode,
-                    onToggle = { expandedScheduleIndex = if (expandedScheduleIndex == index) -1 else index },
-                    onUpdate = { updated -> onUpdateSchedule(entry.id) { updated } },
-                    onDelete = {
-                        onRemoveSchedule(entry.id)
-                        if (expandedScheduleIndex == index) expandedScheduleIndex = -1
-                    }
-                )
+            ScheduleOverflowGate(
+                count = schedules.size,
+                noun = stringResource(R.string.ui2_wiz_sched_noun_hw)
+            ) {
+                schedules.forEachIndexed { index, entry ->
+                    WizardHwScheduleCard(
+                        entry = entry,
+                        index = index,
+                        expanded = expandedScheduleIndex == index,
+                        noviceMode = noviceMode,
+                        onToggle = { expandedScheduleIndex = if (expandedScheduleIndex == index) -1 else index },
+                        onUpdate = { updated -> onUpdateSchedule(entry.id) { updated } },
+                        onDelete = {
+                            onRemoveSchedule(entry.id)
+                            if (expandedScheduleIndex == index) expandedScheduleIndex = -1
+                        }
+                    )
+                }
             }
         }
 
@@ -2253,16 +2332,21 @@ private fun EvSectionContent(
                 }
             }
         } else {
-            entries.forEachIndexed { index, entry ->
-                WizardEvEntryCard(
-                    entry = entry,
-                    index = index,
-                    expanded = expandedEntryId == entry.id,
-                    noviceMode = noviceMode,
-                    onToggle = { expandedEntryId = if (expandedEntryId == entry.id) null else entry.id },
-                    onUpdate = { updated -> onUpdate(entry.id) { updated } },
-                    onDelete = { onRemove(entry.id); if (expandedEntryId == entry.id) expandedEntryId = null }
-                )
+            ScheduleOverflowGate(
+                count = entries.size,
+                noun = stringResource(R.string.ui2_wiz_sched_noun_ev)
+            ) {
+                entries.forEachIndexed { index, entry ->
+                    WizardEvEntryCard(
+                        entry = entry,
+                        index = index,
+                        expanded = expandedEntryId == entry.id,
+                        noviceMode = noviceMode,
+                        onToggle = { expandedEntryId = if (expandedEntryId == entry.id) null else entry.id },
+                        onUpdate = { updated -> onUpdate(entry.id) { updated } },
+                        onDelete = { onRemove(entry.id); if (expandedEntryId == entry.id) expandedEntryId = null }
+                    )
+                }
             }
         }
 

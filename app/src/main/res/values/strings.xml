@@ -1617,6 +1617,13 @@
     <string name="ui2_wiz_charge_windows_hint">Add one if your tariff has cheap off-peak hours worth pre-charging from.</string>
     <string name="ui2_wiz_orphan_schedules">"⚠  Schedules below target an inverter with no batteries — add a battery to make them effective."</string>
     <string name="ui2_wiz_add_charge_window">Add charge window</string>
+    <string name="ui2_wiz_sched_overflow_count">%1$d %2$s</string>
+    <string name="ui2_wiz_sched_show_all">Show all</string>
+    <string name="ui2_wiz_sched_hide">Hide</string>
+    <string name="ui2_wiz_sched_noun_charge">charge windows</string>
+    <string name="ui2_wiz_sched_noun_discharge">discharge windows</string>
+    <string name="ui2_wiz_sched_noun_hw">hot-water schedules</string>
+    <string name="ui2_wiz_sched_noun_ev">EV schedules</string>
     <string name="ui2_wiz_discharge_hint">Force the battery to export to the grid during a chosen window — useful when feed-in rates are higher than the avoided import cost (peak-export tariffs). Leave empty for standard self-consumption only.</string>
     <string name="ui2_wiz_add_battery_first_discharge">Add a battery above to enable discharge scheduling.</string>
     <string name="ui2_wiz_no_discharge_windows">No discharge windows</string>
