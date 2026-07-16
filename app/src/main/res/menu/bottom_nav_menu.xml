@@ -19,17 +19,17 @@
     <item
         android:id="@+id/ui2DashboardFragment"
         android:icon="@drawable/ic_baseline_dashboard_24"
-        android:title="Dashboard" />
+        android:title="@string/ui2_tab_dashboard" />
     <item
         android:id="@+id/ui2SimulationsFragment"
         android:icon="@drawable/ic_baseline_list_24"
-        android:title="Scenarios" />
+        android:title="@string/ui2_tab_scenarios" />
     <item
         android:id="@+id/ui2ComparisonsFragment"
         android:icon="@drawable/ic_baseline_compare_arrows_24"
-        android:title="Comparisons" />
+        android:title="@string/ui2_tab_comparisons" />
     <item
         android:id="@+id/ui2DirectorsFragment"
         android:icon="@drawable/ic_director_24"
-        android:title="Directors" />
+        android:title="@string/ui2_tab_directors" />
 </menu>

@@ -345,6 +345,12 @@
          ══════════════════════════════════════════════════════════════════ -->
 
     <!-- Shared vocabulary -->
+    <!-- Bottom-nav tab titles. The source edition overrides the Scenarios tab
+         to "Sources" (src/source) — its list shows only data sources. -->
+    <string name="ui2_tab_dashboard">Dashboard</string>
+    <string name="ui2_tab_scenarios">Scenarios</string>
+    <string name="ui2_tab_comparisons">Comparisons</string>
+    <string name="ui2_tab_directors">Directors</string>
     <string name="ui2_back">Back</string>
     <string name="ui2_close">Close</string>
     <string name="ui2_menu">Menu</string>
@@ -410,8 +416,8 @@
 
     <!-- Import sheet (UI2ImportSheet) -->
     <string name="ui2_import_apply">Apply</string>
-    <string name="ui2_import_community_note_default">Community-maintained — may be out of date. You can edit anything after importing.</string>
     <string name="ui2_import_download_failed">Couldn\'t download the list — check your connection and retry.</string>
+    <string name="ui2_import_pick_region">Tariffs are region-specific — choose the region whose community list to download:</string>
     <string name="ui2_import_from_file">From file</string>
     <string name="ui2_import_paste_json">Paste JSON</string>
     <string name="ui2_import_community">Community</string>
@@ -1207,6 +1213,13 @@
     <string name="ui2_dash_welcome">Welcome to Eco Power Optimiser</string>
     <string name="ui2_dash_pick_start">Pick how you\'d like to start:</string>
     <string name="ui2_dash_add_scenario">Add a scenario</string>
+    <!-- Source edition welcome card (profiles without scenarios). -->
+    <string name="ui2_dash_connect_source_body">Connect your inverter or meter data, then pick it from the Sources tab to see charts, usage and tariff costs.</string>
+    <!-- Snapshot preview: the scenario count line uses its own label (not
+         ui2_scenarios_title, which the source edition overrides to "Sources"),
+         and editions without scenarios refuse that section of the file. -->
+    <string name="ui2_ie_noun_scenarios">Scenarios</string>
+    <string name="ui2_ie_scenarios_refused">%1$d scenario(s) in this file will NOT be imported — scenarios are not available in this edition.</string>
 
     <!-- Tranche 5: UI2DataSourceManagementActivity -->
     <string name="ui2_dsm_alpha_title" translatable="false">AlphaESS Cloud</string>

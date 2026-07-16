@@ -354,31 +354,33 @@ private fun PricePlanListScreen(
     }
 
     if (showImport) {
-        // Region-gated sources: the community feed URL/wording comes from the
-        // edition's profile (null hides the entry), and the Octopus tariff
-        // browser is only offered where Octopus operates (GB).
+        // Region-gated sources: the community feeds come from the edition's
+        // profile (an empty list hides the entry; the global edition offers
+        // every region's feed and asks which), and the Octopus tariff browser
+        // is only offered where Octopus operates (GB + global).
         val region = RegionProfiles.current
         UI2ImportSheet(
             title = stringResource(R.string.ui2_ie_import_plans),
             hint = stringResource(R.string.ui2_ppl_import_hint),
             applyLabel = stringResource(R.string.ui2_continue),
-            communityUrl = region.pricePlanFeedUrl,
-            // Note is paired with the URL in the profile; when the URL is null
-            // the community source never renders, so "" is never seen.
-            communityNote = region.pricePlanFeedNote ?: "",
+            communityFeeds = RegionProfiles.communityFeedChoices(),
+            communitySelectRegion = region.isGlobal,
             llmPrompt = PricePlanDownloader.LLM_PROMPT,
             // One extra self-contained source per edition: the Octopus tariff
             // browser (GB) or the dynamic-tariff generator (regions with a
-            // wholesale market registered, IE first).
+            // wholesale market registered, IE first). The generator is a
+            // dynamic-tariff surface — profiles without them don't offer it.
             extraSourceLabel = when {
                 region.hasOctopus -> stringResource(R.string.ui2_ppl_octopus_tariffs)
-                region.dynamicMarkets.isNotEmpty() ->
+                com.tfcode.comparetout.profile.AppProfiles.current.hasDynamicTariffs &&
+                    region.dynamicMarkets.isNotEmpty() ->
                     stringResource(R.string.ui2_ppl_dynamic_tariff)
                 else -> null
             },
             extraSourceContent = when {
                 region.hasOctopus -> ({ OctopusTariffFetchPane() })
-                region.dynamicMarkets.isNotEmpty() -> ({
+                com.tfcode.comparetout.profile.AppProfiles.current.hasDynamicTariffs &&
+                    region.dynamicMarkets.isNotEmpty() -> ({
                     DynamicTariffPane(onQueued = { showImport = false })
                 })
                 else -> null

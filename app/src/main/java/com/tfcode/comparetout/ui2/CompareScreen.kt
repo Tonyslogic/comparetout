@@ -6,6 +6,7 @@ import android.content.res.Configuration
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.tween
 import com.tfcode.comparetout.R
+import com.tfcode.comparetout.profile.AppProfiles
 import com.tfcode.comparetout.region.RegionProfiles
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -438,7 +439,10 @@ private fun SourcesSection(
     onOpenSheet: (String) -> Unit
 ) {
     SelectRow(stringResource(R.string.ui2_data_sources), sourceCount) { onOpenSheet("sources") }
-    SelectRow(stringResource(R.string.ui2_cmp_simulations), simCount) { onOpenSheet("sims") }
+    // Profiles without scenarios compare real sources only — no sims picker.
+    if (AppProfiles.current.hasScenarios) {
+        SelectRow(stringResource(R.string.ui2_cmp_simulations), simCount) { onOpenSheet("sims") }
+    }
     if (state.what != CompareWhat.USAGE) {
         SelectRow(stringResource(R.string.ui2_supplier_plans), planCount) { onOpenSheet("plans") }
     }

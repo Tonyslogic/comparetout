@@ -93,6 +93,7 @@ import com.tfcode.comparetout.TOUTCApplication
 import com.tfcode.comparetout.dynamic.strategy.DispatchStrategy
 import com.tfcode.comparetout.dynamic.strategy.RankNStrategy
 import com.tfcode.comparetout.dynamic.strategy.ThresholdStrategy
+import com.tfcode.comparetout.profile.AppProfiles
 import com.tfcode.comparetout.region.RegionProfiles
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -202,60 +203,64 @@ fun ScenariosScreen(
     ) { padding ->
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             LazyColumn(contentPadding = PaddingValues(bottom = 80.dp)) {
-                // Scenarios section is always shown — the title's "+ Create new" action
-                // is the only entry point for building a scenario (no FAB any more).
-                stickyHeader(key = "header_simulations") {
-                    SectionHeader(
-                        "Scenarios",
-                        action = SectionAction("+ Create new") {
-                            context.startActivity(Intent(context, UI2WizardActivity::class.java))
-                        },
-                        onDeleteAll = if (simItems.isNotEmpty()) ({ showDeleteAll = true }) else null
-                    )
-                }
-                if (showHints) {
-                    item(key = "hint_simulations") {
-                        SectionHint(
-                            "Each scenario is a what-if home setup (solar, battery, EV, hot water). " +
-                                "Tap “+ Create new” to build one; the dashboard shows its costs. " +
-                                "Scenarios with a battery offer “Optimise for dynamic tariff” in " +
-                                "their menu — it plans the battery around half-hourly prices and " +
-                                "saves the result as a “⚡” scenario."
+                // The whole Scenarios section — header (whose "+ Create new" is the
+                // only entry point for building a scenario), hint, cards — exists
+                // only in profiles with scenarios. The source edition's list is
+                // just the Sources section below.
+                if (AppProfiles.current.hasScenarios) {
+                    stickyHeader(key = "header_simulations") {
+                        SectionHeader(
+                            "Scenarios",
+                            action = SectionAction("+ Create new") {
+                                context.startActivity(Intent(context, UI2WizardActivity::class.java))
+                            },
+                            onDeleteAll = if (simItems.isNotEmpty()) ({ showDeleteAll = true }) else null
                         )
                     }
-                }
-                if (simItems.isEmpty()) {
-                    item(key = "empty_simulations") { EmptySectionRow("No scenarios yet — tap “+ Create new”.") }
-                } else {
-                    items(simItems, key = { it.scenario.scenarioIndex }) { item ->
-                        SimulationCard(
-                            item = item,
-                            onView = { onSimulationView(item.scenario.scenarioIndex) },
-                            onDelete = { showDeleteDialog = item },
-                            onEdit = {
-                                context.startActivity(
-                                    Intent(context, UI2WizardActivity::class.java)
-                                        .putExtra("ScenarioID", item.scenario.scenarioIndex)
-                                )
-                            },
-                            onShare = {
-                                shareScope.launch {
-                                    val json = viewModel.buildScenarioJson(item.scenario.scenarioIndex)
-                                    if (!json.isNullOrEmpty()) {
-                                        context.shareText(
-                                            payload = json,
-                                            format = ShareFormat.JSON,
-                                            subject = "Scenario: ${item.scenario.scenarioName}"
-                                        )
+                    if (showHints) {
+                        item(key = "hint_simulations") {
+                            SectionHint(
+                                "Each scenario is a what-if home setup (solar, battery, EV, hot water). " +
+                                    "Tap “+ Create new” to build one; the dashboard shows its costs. " +
+                                    "Scenarios with a battery offer “Optimise for dynamic tariff” in " +
+                                    "their menu — it plans the battery around half-hourly prices and " +
+                                    "saves the result as a “⚡” scenario."
+                            )
+                        }
+                    }
+                    if (simItems.isEmpty()) {
+                        item(key = "empty_simulations") { EmptySectionRow("No scenarios yet — tap “+ Create new”.") }
+                    } else {
+                        items(simItems, key = { it.scenario.scenarioIndex }) { item ->
+                            SimulationCard(
+                                item = item,
+                                onView = { onSimulationView(item.scenario.scenarioIndex) },
+                                onDelete = { showDeleteDialog = item },
+                                onEdit = {
+                                    context.startActivity(
+                                        Intent(context, UI2WizardActivity::class.java)
+                                            .putExtra("ScenarioID", item.scenario.scenarioIndex)
+                                    )
+                                },
+                                onShare = {
+                                    shareScope.launch {
+                                        val json = viewModel.buildScenarioJson(item.scenario.scenarioIndex)
+                                        if (!json.isNullOrEmpty()) {
+                                            context.shareText(
+                                                payload = json,
+                                                format = ShareFormat.JSON,
+                                                subject = "Scenario: ${item.scenario.scenarioName}"
+                                            )
+                                        }
                                     }
-                                }
-                            },
-                            // Strategy generation needs a battery to dispatch; the menu
-                            // item is hidden (not greyed) for battery-less scenarios.
-                            onGenerateStrategy = if (item.scenario.isHasBatteries) {
-                                { strategyDialogFor = item }
-                            } else null
-                        )
+                                },
+                                // Strategy generation needs a battery to dispatch; the menu
+                                // item is hidden (not greyed) for battery-less scenarios.
+                                onGenerateStrategy = if (item.scenario.isHasBatteries) {
+                                    { strategyDialogFor = item }
+                                } else null
+                            )
+                        }
                     }
                 }
 

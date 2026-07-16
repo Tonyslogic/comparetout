@@ -256,6 +256,9 @@ class PanelSourceFetchWorker(
             tiltDeg: Double,
             panelLabel: String
         ) {
+            // Panels exist only in scenario-bearing profiles — cheap insurance;
+            // the UI entry points are already gone in SOURCE.
+            if (!com.tfcode.comparetout.profile.AppProfiles.current.hasScenarios) return
             val data = Data.Builder()
                 .putLong(KEY_PANEL_ID, panelId)
                 .putString(KEY_SYS_SN, sysSn)

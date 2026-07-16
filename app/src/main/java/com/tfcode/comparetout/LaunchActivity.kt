@@ -38,6 +38,9 @@ import kotlin.concurrent.thread
  * next activity the visual transition is smooth.
  *
  * Routing rules:
+ * - profiles without the legacy UI (source edition) → UI2MainActivity,
+ *   always — no legacy onboarding detour; UI2's own first-use disclaimer
+ *   covers fresh installs.
  * - `use_ui2 == "true"`  → UI2MainActivity (fast path; the common case).
  * - `use_ui2 == "false"` → MainActivity (explicit legacy opt-out).
  * - anything else (`""`, null, unset) → MainActivity so the existing
@@ -58,7 +61,8 @@ class LaunchActivity : ComponentActivity() {
         thread(start = true, isDaemon = true, name = "ui2-route-decision") {
             // getStringValueFromDataStore blocks on the DataStore read — off-main-thread only.
             val ui2 = app.getStringValueFromDataStore("use_ui2") ?: ""
-            val target: Class<*> = if (ui2 == "true") {
+            val target: Class<*> = if (!com.tfcode.comparetout.profile.AppProfiles.current.hasLegacyUi ||
+                ui2 == "true") {
                 UI2MainActivity::class.java
             } else {
                 // "false" stays on legacy permanently; "" lets MainActivity

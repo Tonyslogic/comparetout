@@ -27,6 +27,7 @@ import androidx.work.WorkManager;
 
 import java.util.concurrent.TimeUnit;
 
+import com.tfcode.comparetout.profile.AppProfiles;
 import com.tfcode.comparetout.scenario.SimulationWorker;
 import com.tfcode.comparetout.scenario.loadprofile.GenerateMissingLoadDataWorker;
 import com.tfcode.comparetout.scenario.panel.PVGISLoader;
@@ -36,6 +37,11 @@ public class SimulatorLauncher {
 
 
     public static void simulateIfNeeded(Context context) {
+        // Profiles without scenarios have nothing to simulate or cost — this
+        // single gate neutralises every poke site (importer success, snapshot
+        // import, legacy screens) and, transitively, the CDS weather fetch the
+        // SimulationWorker would otherwise enqueue.
+        if (!AppProfiles.current.hasScenarios) return;
         OneTimeWorkRequest generateLoadData =
                 new OneTimeWorkRequest.Builder(GenerateMissingLoadDataWorker.class)
                         .build();
@@ -67,6 +73,7 @@ public class SimulatorLauncher {
      * completes, and blocked scenarios never appear in the gates.
      */
     public static void enqueueFollowupPass(Context context) {
+        if (!AppProfiles.current.hasScenarios) return;
         OneTimeWorkRequest generateLoadData =
                 new OneTimeWorkRequest.Builder(GenerateMissingLoadDataWorker.class).build();
         OneTimeWorkRequest simulate =
@@ -92,6 +99,7 @@ public class SimulatorLauncher {
      * returns {@code failure()} (it falls back to the sample asset on give-up), so the chained sim always runs.
      */
     public static void simulateWithWeatherFetch(Context context, long scenarioId) {
+        if (!AppProfiles.current.hasScenarios) return;
         OneTimeWorkRequest generateLoadData =
                 new OneTimeWorkRequest.Builder(GenerateMissingLoadDataWorker.class).build();
         OneTimeWorkRequest weather =
@@ -119,6 +127,8 @@ public class SimulatorLauncher {
     }
 
     public static void storePVGISData(Context context, Long panelID, Uri folderUri) {
+        // Panels (and their PVGIS data) only exist in scenario-bearing profiles.
+        if (!AppProfiles.current.hasScenarios) return;
 
         Data.Builder data = new Data.Builder();
         data.putLong("panelID", panelID);

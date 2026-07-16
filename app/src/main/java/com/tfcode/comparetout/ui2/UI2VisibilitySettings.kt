@@ -30,6 +30,9 @@ import androidx.lifecycle.LifecycleEventObserver
 import com.google.gson.Gson
 import com.google.gson.JsonParser
 import com.tfcode.comparetout.TOUTCApplication
+import com.tfcode.comparetout.profile.AppProfile
+import com.tfcode.comparetout.profile.AppProfiles
+import com.tfcode.comparetout.region.RegionProfile
 import com.tfcode.comparetout.region.RegionProfiles
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -85,11 +88,38 @@ object UiVisibilityStore {
      * consumes visibility through [read], so this one mask gates them all; the
      * settings screen additionally hides the unsupported rows (see
      * UI2SettingsActivity) so the toggle can't even be seen.
+     *
+     * Parameterised (defaults to the installed edition) so the composition is
+     * unit-testable without the BuildConfig-derived statics.
      */
-    private fun maskForRegion(v: UiVisibility): UiVisibility = v.copy(
-        octopus = v.octopus && RegionProfiles.current.hasOctopus,
-        esbn = v.esbn && RegionProfiles.current.hasEsbn
+    internal fun maskForRegion(
+        v: UiVisibility,
+        region: RegionProfile = RegionProfiles.current
+    ): UiVisibility = v.copy(
+        octopus = v.octopus && region.hasOctopus,
+        esbn = v.esbn && region.hasEsbn
     )
+
+    /**
+     * Profile hard-gate, stacked on the region mask: surfaces the installed
+     * build profile doesn't ship (Directors, PVGIS/CDS weather caches, the
+     * dynamic-tariff wholesale cache) read as hidden regardless of the
+     * persisted JSON. Comparisons is the one flag a profile can force ON —
+     * the source edition pins the tab so a stale user toggle can't hide a
+     * third of its UI.
+     */
+    internal fun maskForProfile(
+        v: UiVisibility,
+        profile: AppProfile = AppProfiles.current
+    ): UiVisibility = v.copy(
+        comparisons = v.comparisons || profile.pinsComparisons,
+        directors = v.directors && profile.hasDirectors,
+        pvgis = v.pvgis && profile.hasWeatherCaches,
+        cds = v.cds && profile.hasWeatherCaches,
+        wholesale = v.wholesale && profile.hasDynamicTariffs
+    )
+
+    private fun mask(v: UiVisibility): UiVisibility = maskForProfile(maskForRegion(v))
 
     /**
      * Synchronous read (call off the main thread where possible); missing/bad JSON → all visible.
@@ -100,10 +130,10 @@ object UiVisibilityStore {
      */
     fun read(context: Context): UiVisibility {
         val app = context.applicationContext as? TOUTCApplication
-            ?: return maskForRegion(UiVisibility())
+            ?: return mask(UiVisibility())
         val raw = runCatching { app.getStringValueFromDataStore(UI_VISIBILITY_KEY) }.getOrNull()
-        if (raw.isNullOrBlank()) return maskForRegion(UiVisibility())
-        return maskForRegion(runCatching {
+        if (raw.isNullOrBlank()) return mask(UiVisibility())
+        return mask(runCatching {
             val obj = JsonParser.parseString(raw).asJsonObject
             fun flag(name: String): Boolean = obj.get(name)?.takeIf { it.isJsonPrimitive }?.asBoolean ?: true
             UiVisibility(

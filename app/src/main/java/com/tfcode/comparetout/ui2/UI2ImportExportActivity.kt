@@ -88,6 +88,7 @@ import com.google.gson.JsonSyntaxException
 import com.google.gson.reflect.TypeToken
 import com.tfcode.comparetout.R
 import com.tfcode.comparetout.SimulatorLauncher
+import com.tfcode.comparetout.profile.AppProfiles
 import com.tfcode.comparetout.region.RegionProfiles
 import com.tfcode.comparetout.model.SnapshotExporter
 import com.tfcode.comparetout.model.SnapshotImporter
@@ -502,7 +503,7 @@ private fun ImportExportScreen(
                         }
                     )
                 }
-                item("export_scenarios") {
+                if (AppProfiles.current.hasScenarios) item("export_scenarios") {
                     val title = stringResource(R.string.ui2_ie_all_scenarios)
                     DataRow(
                         title = title,
@@ -568,7 +569,7 @@ private fun ImportExportScreen(
                         onClick = { importTarget = ImportTarget.PLANS }
                     )
                 }
-                item("import_scenarios") {
+                if (AppProfiles.current.hasScenarios) item("import_scenarios") {
                     DataRow(
                         title = stringResource(R.string.ui2_ie_import_scenarios),
                         format = "JSON",
@@ -633,10 +634,9 @@ private fun ImportExportScreen(
                 title = stringResource(R.string.ui2_ie_import_plans),
                 hint = stringResource(R.string.ui2_ie_import_hint_plans),
                 applyLabel = stringResource(R.string.ui2_continue),
-                communityUrl = RegionProfiles.current.pricePlanFeedUrl,
-                // Note is paired with the URL in the profile; when the URL is
-                // null the community source never renders, so "" is never seen.
-                communityNote = RegionProfiles.current.pricePlanFeedNote ?: "",
+                communityFeeds = RegionProfiles.communityFeedChoices(),
+                // The global edition has no baked region — ask whose tariffs.
+                communitySelectRegion = RegionProfiles.current.isGlobal,
                 llmPrompt = PricePlanDownloader.LLM_PROMPT,
                 parse = { parsePricePlansJson(context, it) },
                 onApply = {
@@ -1039,10 +1039,20 @@ private fun SnapshotPreviewDialog(
             Column(modifier = Modifier.fillMaxWidth()) {
                 SummaryLine(stringResource(R.string.ui2_supplier_plans), summary.plans)
                 SummaryLine(
-                    stringResource(R.string.ui2_scenarios_title),
+                    stringResource(R.string.ui2_ie_noun_scenarios),
                     summary.scenarios,
                     sample = summary.sampleScenarioNames
                 )
+                // Editions without scenarios refuse that section (plan Q3) —
+                // say so up front, before the user commits the import.
+                if (!AppProfiles.current.hasScenarios && summary.scenarios > 0) {
+                    Text(
+                        stringResource(R.string.ui2_ie_scenarios_refused, summary.scenarios),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
                 SummaryLine(
                     stringResource(R.string.ui2_data_sources),
                     summary.sources,

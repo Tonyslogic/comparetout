@@ -91,7 +91,10 @@ class UI2MainActivity : AppCompatActivity() {
         // main thread, then set the graph (which navigates to the start dest).
         lifecycleScope.launch {
             val app = application as TOUTCApplication
-            val simple = withContext(Dispatchers.IO) { resolveSimpleMode(app) }
+            // Profiles without simple mode always start on the dashboard, even if
+            // a persisted flag says otherwise (e.g. restored from a FULL backup).
+            val simple = com.tfcode.comparetout.profile.AppProfiles.current.hasSimpleMode &&
+                withContext(Dispatchers.IO) { resolveSimpleMode(app) }
             Log.d("UI2", "UI2MainActivity simpleMode=$simple")
             val graph = navController.navInflater.inflate(R.navigation.nav_ui2)
             graph.setStartDestination(
@@ -190,6 +193,8 @@ class UI2MainActivity : AppCompatActivity() {
      * nag, and never block.
      */
     private fun maybeShowRegionMismatch() {
+        // The global (source) edition has no region to mismatch.
+        if (com.tfcode.comparetout.region.RegionProfiles.current.isGlobal) return
         val app = application as TOUTCApplication
         lifecycleScope.launch {
             val acked = withContext(Dispatchers.IO) {

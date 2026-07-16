@@ -278,8 +278,10 @@ private fun PricePlanWizardScreen(
                         // Regions with a wholesale market registered can turn a
                         // plan dynamic from here (mirrors the generator pane on
                         // the plan list) — the terms card then replaces the
-                        // Rates/Restrictions sections below.
-                        if (RegionProfiles.current.dynamicMarkets.isNotEmpty()) {
+                        // Rates/Restrictions sections below. Profiles without
+                        // dynamic tariffs (source edition) don't offer it.
+                        if (com.tfcode.comparetout.profile.AppProfiles.current.hasDynamicTariffs &&
+                            RegionProfiles.current.dynamicMarkets.isNotEmpty()) {
                             item("make-dynamic") {
                                 AccordionSection(
                                     title = stringResource(R.string.ui2_ppw_make_dynamic_title),

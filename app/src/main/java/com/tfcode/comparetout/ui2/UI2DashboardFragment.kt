@@ -116,6 +116,7 @@ import com.tfcode.comparetout.ComparisonUIViewModel
 import com.tfcode.comparetout.MainActivity
 import com.tfcode.comparetout.R
 import com.tfcode.comparetout.TOUTCApplication
+import com.tfcode.comparetout.profile.AppProfiles
 import com.tfcode.comparetout.region.RegionProfiles
 import com.tfcode.comparetout.model.costings.Costings
 import com.tfcode.comparetout.model.scenario.LoadProfile
@@ -656,9 +657,17 @@ fun DashboardScreen(viewModel: UI2DashboardViewModel, onSwitchLegacy: () -> Unit
             //
             // If nothing is pinned: show the original sample-data welcome card
             // when no scenarios exist at all, otherwise direct the user to
-            // pick a subject from the navigation drawer.
+            // pick a subject from the navigation drawer. Profiles without
+            // scenarios have no sample/wizard to offer — their welcome card
+            // points at data-source management instead.
             if (!hasActiveItem) {
-                if (!hasScenarios) EmptyDashboardSampleCard() else NoActiveSubjectCard()
+                when {
+                    // Whether first-run or deleted-subject, the remedy in the
+                    // source edition is the same: connect/pick a data source.
+                    !AppProfiles.current.hasScenarios -> EmptyDashboardConnectSourceCard()
+                    !hasScenarios -> EmptyDashboardSampleCard()
+                    else -> NoActiveSubjectCard()
+                }
             } else {
                 // Gate the entire dashboard content on hasActiveItem rather than
                 // on dashboardData's shape. clearActive() nulls _activeItem
@@ -3147,6 +3156,44 @@ private fun EmptyDashboardSampleCard() {
                 },
                 modifier = Modifier.fillMaxWidth()
             ) { Text(stringResource(R.string.ui2_dash_add_scenario)) }
+        }
+    }
+}
+
+/**
+ * The source edition's welcome / no-subject card: no sample scenario, no quick
+ * mode, no wizard to offer — the single path is connecting real data, so the
+ * one button opens Data Source Management.
+ */
+@Composable
+private fun EmptyDashboardConnectSourceCard() {
+    val context = LocalContext.current
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                stringResource(R.string.ui2_dash_welcome),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                stringResource(R.string.ui2_dash_connect_source_body),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            Button(
+                onClick = {
+                    context.startActivity(android.content.Intent(
+                        context, UI2DataSourceManagementActivity::class.java))
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text(stringResource(R.string.ui2_drawer_data_sources)) }
         }
     }
 }

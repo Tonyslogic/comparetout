@@ -36,6 +36,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.tfcode.comparetout.R
 import com.tfcode.comparetout.TOUTCApplication
+import com.tfcode.comparetout.profile.AppProfiles
 import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -165,37 +166,43 @@ fun UI2DrawerContent(
             // PVGIS-fetch + simulation pipeline the wizard would. Idempotent (subsequent taps are no-ops).
             // It plays with dummy data across the whole app, so it sits at the bottom with the UI-mode
             // switches rather than next to the real data-management entries.
-            UI2DrawerItem(R.drawable.ic_baseline_download_24,
-                stringResource(R.string.ui2_drawer_try_sample)) {
-                onClose()
-                val loader = EntryPointAccessors
-                    .fromApplication(context.applicationContext, SampleDataLoaderEntryPoint::class.java)
-                    .sampleDataLoader()
-                coroutineScope.launch {
-                    // Not a composable context — resolve via context.getString.
-                    val msg = when (val result = loader.load()) {
-                        is SampleDataLoader.Result.AlreadyLoaded ->
-                            context.getString(R.string.ui2_sample_already_loaded)
-                        is SampleDataLoader.Result.Loaded ->
-                            context.getString(R.string.ui2_sample_loaded)
-                        is SampleDataLoader.Result.Failed ->
-                            context.getString(R.string.ui2_sample_failed,
-                                result.error.message
-                                    ?: context.getString(R.string.ui2_unknown_error))
+            if (AppProfiles.current.hasScenarios) {
+                UI2DrawerItem(R.drawable.ic_baseline_download_24,
+                    stringResource(R.string.ui2_drawer_try_sample)) {
+                    onClose()
+                    val loader = EntryPointAccessors
+                        .fromApplication(context.applicationContext, SampleDataLoaderEntryPoint::class.java)
+                        .sampleDataLoader()
+                    coroutineScope.launch {
+                        // Not a composable context — resolve via context.getString.
+                        val msg = when (val result = loader.load()) {
+                            is SampleDataLoader.Result.AlreadyLoaded ->
+                                context.getString(R.string.ui2_sample_already_loaded)
+                            is SampleDataLoader.Result.Loaded ->
+                                context.getString(R.string.ui2_sample_loaded)
+                            is SampleDataLoader.Result.Failed ->
+                                context.getString(R.string.ui2_sample_failed,
+                                    result.error.message
+                                        ?: context.getString(R.string.ui2_unknown_error))
+                        }
+                        Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                     }
-                    Toast.makeText(context, msg, Toast.LENGTH_LONG).show()
                 }
             }
             // Enter the persistent single-screen simple mode. Self-contained: flips
             // the flag and relaunches UI2MainActivity (CLEAR_TASK) so it works from
             // any host activity the drawer appears in, landing on the simple screen.
-            UI2DrawerItem(R.drawable.ic_baseline_settings_24,
-                stringResource(R.string.ui2_drawer_switch_quick)) {
-                onClose()
-                relaunchInMode(context, simple = true)
+            if (AppProfiles.current.hasSimpleMode) {
+                UI2DrawerItem(R.drawable.ic_baseline_settings_24,
+                    stringResource(R.string.ui2_drawer_switch_quick)) {
+                    onClose()
+                    relaunchInMode(context, simple = true)
+                }
             }
-            UI2DrawerItem(R.drawable.ic_baseline_settings_24,
-                stringResource(R.string.ui2_drawer_switch_legacy), onSwitchLegacy)
+            if (AppProfiles.current.hasLegacyUi) {
+                UI2DrawerItem(R.drawable.ic_baseline_settings_24,
+                    stringResource(R.string.ui2_drawer_switch_legacy), onSwitchLegacy)
+            }
         }
     }
 }

@@ -1429,7 +1429,11 @@ private fun decodeState(json: String): CompareState? {
             // JSON array of the same primitives so reads still work, and a
             // pre-duplicate-feature state file simply has no repeats.
             sources = strList("sources"),
-            sims = longList("sims"),
+            // Profiles without scenarios drop persisted sims on load — the
+            // picker is gone, so a stale selection (e.g. carried over from a
+            // FULL-profile session) would be stuck in every comparison.
+            sims = if (com.tfcode.comparetout.profile.AppProfiles.current.hasScenarios)
+                longList("sims") else emptyList(),
             plans = longSet("plans"),
             series = strSet("series"),
             advanced = o.optBoolean("advanced", false),

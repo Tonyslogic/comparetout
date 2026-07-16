@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Source edition (data-source-only profile, global) — its own product name;
+     the "Sources" tab title replaces "Scenarios" (the list shows only sources).
+     The first-use disclaimer is overridden: the FULL text is about solar
+     estimation and simulation, none of which this edition ships — this one
+     covers measured data + tariff costing only. -->
+<resources>
+    <string name="app_name" translatable="false">Eco Power Monitor</string>
+    <string name="ui2_tab_scenarios">Sources</string>
+    <string name="ui2_scenarios_title">Sources</string>
+    <string name="ui2_dash_welcome">Welcome to Eco Power Monitor</string>
+    <string name="ui2_dash_select_sim">Select a Source</string>
+    <string name="ui2_dash_pick_subject_body">The data source this dashboard was set to is no longer available. Pick a data source from the Sources tab to view.</string>
+    <string name="ui2_disclaimer">"This app displays and compares historical energy data imported from your devices and suppliers. Data quality depends on the source. Meters and inverters can have gaps or misreport.\n\nPrice plan accuracy determines cost accuracy. Check price plan details.\n\nCommunity-maintained tariff lists may be out of date. Verify rates against your supplier before acting on a comparison.\n\nPrice plans do not include Public Services Obligations or similar levies. Costs will not include these.\n\nPrice plans with usage limitations or complex contract conditions may be modelled incompletely. Costs will be wrong where limitations are exceeded or conditions triggered.\n\nCosts are calculated from imported data and the plan details provided. They are not bills and may differ from your supplier\'s billing.\n\nThis app shows what your energy use actually did and what it would cost on real tariffs. Results are not advice (financial or otherwise). The app is provided as-is, no representation or warranty of any kind, express or implied, regarding the accuracy, adequacy, validity, reliability, availability, or completeness of any information is made.\n\nEnjoy!"</string>
+</resources>

@@ -84,6 +84,10 @@ class StrategyScenarioGenerator @Inject constructor(
      */
     fun generateBlocking(baseScenarioId: Long, planId: Long, strategy: DispatchStrategy,
                          useWeather: Boolean = false, optimiseEv: Boolean = false): Result {
+        // Emits a generated "⚡" scenario — meaningless in profiles without
+        // scenarios (the offering UI is already hidden there).
+        if (!com.tfcode.comparetout.profile.AppProfiles.current.hasScenarios)
+            return Result.Failed("Not available in this edition")
         val components = repository.getScenarioComponentsForScenarioID(baseScenarioId)
             ?: return Result.Failed("Scenario not found")
         val base = components.scenario ?: return Result.Failed("Scenario not found")

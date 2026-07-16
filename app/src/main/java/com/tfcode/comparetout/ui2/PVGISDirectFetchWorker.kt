@@ -137,6 +137,9 @@ class PVGISDirectFetchWorker(
         private const val U8 = "&loss="
 
         fun enqueue(context: Context, panelId: Long) {
+            // Panels/PVGIS exist only in scenario-bearing profiles — cheap
+            // insurance; the UI entry points are already gone in SOURCE.
+            if (!com.tfcode.comparetout.profile.AppProfiles.current.hasScenarios) return
             val data = Data.Builder().putLong("panelID", panelId).build()
             val request = OneTimeWorkRequestBuilder<PVGISDirectFetchWorker>()
                 .addTag("pvgis_direct_$panelId")

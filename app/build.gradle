@@ -48,24 +48,39 @@ android {
         }
     }
 
-    // Region editions (plans/region/survey.md §3a). The flavor *is* the region:
-    // BuildConfig.REGION selects the RegionProfile that gates region-specific
-    // content (importers, deemed export, MIC, currency symbol) at runtime.
+    // Editions (plans/region/survey.md §3a + plans/source/plan.md §2a). One
+    // dimension carries both axes: BuildConfig.REGION selects the RegionProfile
+    // (importers, deemed export, MIC, currency symbol) and BuildConfig.PROFILE
+    // selects the AppProfile (scenarios/simulation vs data-source-only). A
+    // second Gradle dimension would rename every variant task (testIeDebugUnitTest
+    // → testIeFullDebugUnitTest) and break CI/FTL/JaCoCo, so profile flavors sit
+    // alongside region flavors instead.
     //  - ie keeps the base applicationId so existing store users update in place
     //  - gb gets a distinct id and its own Play listing
-    flavorDimensions "region"
+    //  - source is the data-source-only edition ("Eco Power Monitor") — global,
+    //    not region-bound: REGION "GLOBAL" selects RegionProfiles.GLOBAL (all
+    //    sources offered, device-locale currency, no region-mismatch warning)
+    flavorDimensions "edition"
     productFlavors {
         ie {
-            dimension "region"
+            dimension "edition"
             // Without this the IDE/tooling default is the alphabetically first
             // flavor (gb) — IE is the incumbent edition, so it stays default.
             isDefault true
             buildConfigField "String", "REGION", '"IE"'
+            buildConfigField "String", "PROFILE", '"FULL"'
         }
         gb {
-            dimension "region"
+            dimension "edition"
             applicationIdSuffix ".gb"
             buildConfigField "String", "REGION", '"GB"'
+            buildConfigField "String", "PROFILE", '"FULL"'
+        }
+        source {
+            dimension "edition"
+            applicationIdSuffix ".source"
+            buildConfigField "String", "REGION", '"GLOBAL"'
+            buildConfigField "String", "PROFILE", '"SOURCE"'
         }
     }
     compileOptions {

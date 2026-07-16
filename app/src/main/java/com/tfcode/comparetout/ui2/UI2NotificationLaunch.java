@@ -51,9 +51,12 @@ public final class UI2NotificationLaunch {
     /**
      * Whether the user has switched to the UI2 experience. Blocks on the
      * DataStore — call from a background thread (e.g. the worker's doWork),
-     * not the main looper.
+     * not the main looper. Profiles without the legacy UI are always UI2 —
+     * a notification tap must never route to a legacy Import* activity there,
+     * and the source build never writes {@code use_ui2}.
      */
     public static boolean isUI2Enabled(Context context) {
+        if (!com.tfcode.comparetout.profile.AppProfiles.current.hasLegacyUi) return true;
         TOUTCApplication app = (TOUTCApplication) context.getApplicationContext();
         return "true".equals(app.getStringValueFromDataStore(USE_UI2_KEY));
     }

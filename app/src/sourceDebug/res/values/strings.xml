@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- sourceDebug variant override — test-build launcher label so the
+     side-by-side .source.test install is distinguishable. -->
+<resources>
+    <string name="app_name" translatable="false">EPM_T</string>
+</resources>

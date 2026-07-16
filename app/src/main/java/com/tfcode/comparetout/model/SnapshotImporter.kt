@@ -321,8 +321,20 @@ class SnapshotImporter(private val application: Application) {
 
         // Phase 2 — plans and scenarios via the existing DAO entry points
         // (they re-key autoincrement PKs and respect the clobber flag).
+        // Profiles without scenarios refuse the snapshot's scenario section
+        // outright (plans/source/plan.md Q3): plans and source data import
+        // normally; the refusal is reported as skipped + a warning here and
+        // flagged up-front in the preview dialog.
         val plansResult = applyPlans(stagingPlans, replaceExisting)
-        val scenariosResult = applyScenarios(stagingScenarios, replaceExisting)
+        val scenariosResult =
+            if (!com.tfcode.comparetout.profile.AppProfiles.current.hasScenarios &&
+                !stagingScenarios.isNullOrEmpty()) {
+                warnings += "${stagingScenarios.size} scenario(s) were not imported — " +
+                    "scenarios are not available in this edition."
+                ScenariosApply(0, 0, stagingScenarios.size, emptyMap(), emptyMap())
+            } else {
+                applyScenarios(stagingScenarios, replaceExisting)
+            }
 
         // Phase 3 — paneldata, loadprofiledata, and source tables all in a
         // single ATTACH session. paneldata / loadprofiledata FK columns are

@@ -130,6 +130,13 @@ class OctopusTariffPlans @Inject constructor(
                 // Polite spacing between public-API bursts.
                 Thread.sleep(POLITE_DELAY_MS)
                 if (code.startsWith("AGILE")) {
+                    // Agile plans materialise via DynamicTariffWorker — in a
+                    // profile without dynamic tariffs (the source edition)
+                    // they would sit "pending" forever, so skip them.
+                    if (!com.tfcode.comparetout.profile.AppProfiles.current.hasDynamicTariffs) {
+                        skipped++
+                        continue
+                    }
                     val outcome = try {
                         queueAgilePlan(client, code, gsp, region.uppercase(), feedRate,
                             existingNames) { name ->

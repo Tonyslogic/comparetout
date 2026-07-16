@@ -53,6 +53,7 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.tfcode.comparetout.R
+import com.tfcode.comparetout.region.CommunityFeed
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -96,10 +97,14 @@ fun <T> UI2ImportSheet(
     title: String,
     hint: String? = null,
     applyLabel: String = stringResource(R.string.ui2_import_apply),
-    /** When non-null, offers a third "Community" source that downloads JSON from
-     * this URL into the same parse/preview/apply pipeline. */
-    communityUrl: String? = null,
-    communityNote: String = stringResource(R.string.ui2_import_community_note_default),
+    /** When non-empty, offers a third "Community" source that downloads JSON
+     * into the same parse/preview/apply pipeline. A single entry downloads
+     * directly (its note shown in the pane); several entries — or
+     * [communitySelectRegion] — make the pane ask for a region first. */
+    communityFeeds: List<CommunityFeed> = emptyList(),
+    /** Force the region question even for a single feed — the global (source)
+     * edition has no baked region, so the user says whose tariffs they want. */
+    communitySelectRegion: Boolean = false,
     /** When non-null, offers a "Prompt an LLM" source: the user copies this
      * prompt, runs it through their own AI assistant, then pastes the JSON it
      * returns back via the "Paste JSON" source. */
@@ -127,11 +132,16 @@ fun <T> UI2ImportSheet(
     var downloading by remember { mutableStateOf(false) }
     var downloadError by remember { mutableStateOf<String?>(null) }
     var promptCopied by remember { mutableStateOf(false) }
+    var communityFeed by remember { mutableStateOf<CommunityFeed?>(null) }
+    // Whether tapping the Community chip must route through the region
+    // question rather than downloading straight away.
+    val communityAsksRegion = communitySelectRegion || communityFeeds.size > 1
 
     // Fetch the community JSON over the network into `buffer`, so it flows
     // through the same parse → preview → Apply path as file/paste.
-    fun startCommunityDownload() {
-        val url = communityUrl ?: return
+    fun startCommunityDownload(feed: CommunityFeed) {
+        val url = feed.url
+        communityFeed = feed
         source = ImportSource.COMMUNITY
         scope.launch {
             downloading = true
@@ -237,10 +247,13 @@ fun <T> UI2ImportSheet(
                             modifier = Modifier.size(16.dp))
                     }
                 )
-                if (communityUrl != null) {
+                if (communityFeeds.isNotEmpty()) {
                     FilterChip(
                         selected = source == ImportSource.COMMUNITY,
-                        onClick = { startCommunityDownload() },
+                        onClick = {
+                            if (communityAsksRegion) source = ImportSource.COMMUNITY
+                            else startCommunityDownload(communityFeeds.first())
+                        },
                         label = { Text(stringResource(R.string.ui2_import_community)) },
                         leadingIcon = {
                             Icon(Icons.Default.CloudDownload, contentDescription = null,
@@ -310,11 +323,30 @@ fun <T> UI2ImportSheet(
                 }
                 ImportSource.COMMUNITY -> {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text(
-                            communityNote,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        // Region question first when there is one to ask —
+                        // picking a region starts (or re-starts) the download.
+                        if (communityAsksRegion) {
+                            Text(
+                                stringResource(R.string.ui2_import_pick_region),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                communityFeeds.forEach { feed ->
+                                    FilterChip(
+                                        selected = communityFeed == feed,
+                                        onClick = { startCommunityDownload(feed) },
+                                        label = { Text(feed.regionName) }
+                                    )
+                                }
+                            }
+                        }
+                        communityFeed?.note?.takeIf { it.isNotBlank() }?.let {
+                            Text(
+                                it,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         if (downloading) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 CircularProgressIndicator(Modifier.size(20.dp))
@@ -322,9 +354,9 @@ fun <T> UI2ImportSheet(
                                 Text(stringResource(R.string.ui2_import_downloading),
                                     style = MaterialTheme.typography.bodySmall)
                             }
-                        } else {
+                        } else if (communityFeed != null) {
                             OutlinedButton(
-                                onClick = { startCommunityDownload() },
+                                onClick = { communityFeed?.let { startCommunityDownload(it) } },
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Icon(Icons.Default.CloudDownload, contentDescription = null,

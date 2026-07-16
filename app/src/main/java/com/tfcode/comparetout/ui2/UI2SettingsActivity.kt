@@ -51,6 +51,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.tfcode.comparetout.R
+import com.tfcode.comparetout.profile.AppProfiles
 import com.tfcode.comparetout.region.RegionProfiles
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
@@ -125,28 +126,40 @@ private fun SettingsScreen(onClose: () -> Unit) {
                 modifier = Modifier.padding(vertical = 8.dp)
             )
 
-            GroupHeader(stringResource(R.string.ui2_settings_group_tabs))
-            ToggleRow(stringResource(R.string.comparisons),
-                stringResource(R.string.ui2_settings_comparisons_sub), vis.comparisons) {
-                update(vis.copy(comparisons = it))
+            // Profile hard-gated rows disappear entirely — the mask in
+            // UiVisibilityStore would override the toggle anyway, so showing
+            // it would only mislead (same treatment as region-gated sources).
+            val profile = AppProfiles.current
+            if (!profile.pinsComparisons || profile.hasDirectors) {
+                GroupHeader(stringResource(R.string.ui2_settings_group_tabs))
+                if (!profile.pinsComparisons) {
+                    ToggleRow(stringResource(R.string.comparisons),
+                        stringResource(R.string.ui2_settings_comparisons_sub), vis.comparisons) {
+                        update(vis.copy(comparisons = it))
+                    }
+                }
+                if (profile.hasDirectors) {
+                    ToggleRow(stringResource(R.string.ui2_settings_directors),
+                        stringResource(R.string.ui2_settings_directors_sub), vis.directors) {
+                        update(vis.copy(directors = it))
+                    }
+                }
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
             }
-            ToggleRow(stringResource(R.string.ui2_settings_directors),
-                stringResource(R.string.ui2_settings_directors_sub), vis.directors) {
-                update(vis.copy(directors = it))
-            }
-            HorizontalDivider(Modifier.padding(vertical = 8.dp))
 
-            GroupHeader(stringResource(R.string.ui2_settings_group_components))
-            Text(stringResource(R.string.ui2_settings_components_sub),
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant)
-            ToggleRow(stringResource(R.string.ui2_component_inverter), null, vis.inverter) { update(vis.copy(inverter = it)) }
-            ToggleRow(stringResource(R.string.ui2_component_panels), null, vis.panels) { update(vis.copy(panels = it)) }
-            ToggleRow(stringResource(R.string.ui2_component_battery), null, vis.battery) { update(vis.copy(battery = it)) }
-            ToggleRow(stringResource(R.string.ui2_component_hot_water), null, vis.hotWater) { update(vis.copy(hotWater = it)) }
-            ToggleRow(stringResource(R.string.ui2_component_ev), null, vis.ev) { update(vis.copy(ev = it)) }
-            ToggleRow(stringResource(R.string.ui2_component_heat_pump), null, vis.heatPump) { update(vis.copy(heatPump = it)) }
-            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            if (profile.hasScenarios) {
+                GroupHeader(stringResource(R.string.ui2_settings_group_components))
+                Text(stringResource(R.string.ui2_settings_components_sub),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+                ToggleRow(stringResource(R.string.ui2_component_inverter), null, vis.inverter) { update(vis.copy(inverter = it)) }
+                ToggleRow(stringResource(R.string.ui2_component_panels), null, vis.panels) { update(vis.copy(panels = it)) }
+                ToggleRow(stringResource(R.string.ui2_component_battery), null, vis.battery) { update(vis.copy(battery = it)) }
+                ToggleRow(stringResource(R.string.ui2_component_hot_water), null, vis.hotWater) { update(vis.copy(hotWater = it)) }
+                ToggleRow(stringResource(R.string.ui2_component_ev), null, vis.ev) { update(vis.copy(ev = it)) }
+                ToggleRow(stringResource(R.string.ui2_component_heat_pump), null, vis.heatPump) { update(vis.copy(heatPump = it)) }
+                HorizontalDivider(Modifier.padding(vertical = 8.dp))
+            }
 
             GroupHeader(stringResource(R.string.ui2_settings_group_sources))
             ToggleRow(stringResource(R.string.brand_alphaess), null, vis.alphaess) { update(vis.copy(alphaess = it)) }
@@ -160,14 +173,17 @@ private fun SettingsScreen(onClose: () -> Unit) {
                 ToggleRow(stringResource(R.string.octopus_energy), null, vis.octopus) { update(vis.copy(octopus = it)) }
             }
             ToggleRow(stringResource(R.string.brand_solis), null, vis.solis) { update(vis.copy(solis = it)) }
-            ToggleRow(stringResource(R.string.brand_pvgis),
-                stringResource(R.string.ui2_settings_pvgis_sub), vis.pvgis) { update(vis.copy(pvgis = it)) }
-            ToggleRow(stringResource(R.string.brand_cds),
-                stringResource(R.string.ui2_settings_cds_sub), vis.cds) { update(vis.copy(cds = it)) }
+            if (profile.hasWeatherCaches) {
+                ToggleRow(stringResource(R.string.brand_pvgis),
+                    stringResource(R.string.ui2_settings_pvgis_sub), vis.pvgis) { update(vis.copy(pvgis = it)) }
+                ToggleRow(stringResource(R.string.brand_cds),
+                    stringResource(R.string.ui2_settings_cds_sub), vis.cds) { update(vis.copy(cds = it)) }
+            }
             // Dynamic-tariff wholesale price cache — offered wherever the edition
             // supports dynamic tariffs (IE wholesale market / GB Octopus Agile).
-            if (RegionProfiles.current.dynamicMarkets.isNotEmpty() ||
-                RegionProfiles.current.hasOctopus) {
+            if (profile.hasDynamicTariffs &&
+                (RegionProfiles.current.dynamicMarkets.isNotEmpty() ||
+                    RegionProfiles.current.hasOctopus)) {
                 ToggleRow(stringResource(R.string.ui2_dsm_prices_title),
                     stringResource(R.string.ui2_settings_wholesale_sub), vis.wholesale) {
                     update(vis.copy(wholesale = it))

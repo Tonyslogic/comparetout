@@ -260,6 +260,9 @@ class DynamicTariffWorker(
         }
 
         private fun enqueueInternal(context: Context, data: Data, planName: String) {
+            // Profiles without dynamic tariffs never materialise rates — one gate
+            // covers every enqueue path (downloader, import, list retry, wizard).
+            if (!com.tfcode.comparetout.profile.AppProfiles.current.hasDynamicTariffs) return
             val request = OneTimeWorkRequest.Builder(DynamicTariffWorker::class.java)
                 .setInputData(data)
                 .build()
