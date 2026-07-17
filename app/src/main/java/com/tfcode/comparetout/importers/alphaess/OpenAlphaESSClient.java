@@ -21,6 +21,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import com.google.gson.Gson;
+import com.tfcode.comparetout.importers.alphaess.responses.BindSnResponse;
 import com.tfcode.comparetout.importers.alphaess.responses.ErrorResponse;
 import com.tfcode.comparetout.importers.alphaess.responses.GetEssListResponse;
 import com.tfcode.comparetout.importers.alphaess.responses.GetOneDayEnergyResponse;
@@ -31,6 +32,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -52,6 +54,11 @@ public class OpenAlphaESSClient {
     private final OpenAlphaESSService mApiService;
 
     public OpenAlphaESSClient(String applicationID, String applicationSecret) {
+        this(applicationID, applicationSecret, BASE_URL);
+    }
+
+    /** Package-private: unit tests point the client at a MockWebServer. */
+    OpenAlphaESSClient(String applicationID, String applicationSecret, String baseUrl) {
         mApplicationID = applicationID;
         mApplicationSecret = applicationSecret;
         // Bound hangs: the OkHttp defaults are 10s, but under load the
@@ -63,7 +70,7 @@ public class OpenAlphaESSClient {
                 .writeTimeout(30, TimeUnit.SECONDS)
                 .build();
         Retrofit mRetrofit = new Retrofit.Builder()
-                .baseUrl(BASE_URL)
+                .baseUrl(baseUrl)
                 .client(okHttpClient)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
@@ -185,6 +192,72 @@ public class OpenAlphaESSClient {
             throwAppropriateException(errorResponse);
         }
 
+        return ret;
+    }
+
+    /**
+     * Step 1 of the bind-SN flow (plans/source/alpha.md §1): validates
+     * SN + CheckCode and issues a verification code — returned in-band in
+     * the envelope's data ({@link BindSnResponse#inBandCode()}) and/or
+     * emailed to the developer-account address.
+     *
+     * <p>Unlike the data GETs, the full envelope is returned INCLUDING
+     * non-200 codes: the add-inverter UI branches on 6003 (already bound →
+     * success), 6004 (check-code error) and 6053 (too fast), so mapping
+     * them to exceptions here would just be unwrapped again.
+     * {@link AlphaESSException} is reserved for transport/HTTP failures.
+     */
+    public BindSnResponse getVerificationCode(String sysSn, String checkCode)
+            throws AlphaESSException {
+        return executeBindFlowCall(
+                mApiService.getVerificationCode(getHeaders(), sysSn, checkCode),
+                "getVerificationCode");
+    }
+
+    /**
+     * Step 2 of the bind-SN flow: binds the SN to this appId with the
+     * verification code from {@link #getVerificationCode}. Same envelope
+     * contract as that method — codes come back, not exceptions. POST with
+     * a JSON body (the Python client's form) — the live server 405s the
+     * Postman collection's GET here, the mirror image of getVerificationCode.
+     */
+    public BindSnResponse bindSn(String sysSn, String code) throws AlphaESSException {
+        Map<String, String> body = new LinkedHashMap<>();
+        body.put("sysSn", sysSn);
+        body.put("code", code);
+        return executeBindFlowCall(mApiService.bindSn(getHeaders(), body), "bindSn");
+    }
+
+    private BindSnResponse executeBindFlowCall(Call<ResponseBody> call, String what)
+            throws AlphaESSException {
+        Response<ResponseBody> response = null;
+        String responseBody = "";
+        try {
+            response = call.execute();
+            try (ResponseBody body = response.body()) {
+                if (body != null) responseBody = body.string();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        if (null == response) {
+            throw new AlphaESSException(what + ": no response from AlphaESS");
+        }
+        if (!response.isSuccessful()) {
+            ErrorResponse errorResponse = new ErrorResponse();
+            errorResponse.code = response.code();
+            errorResponse.msg = response.message();
+            throwAppropriateException(errorResponse);
+        }
+        BindSnResponse ret = null;
+        try {
+            ret = new Gson().fromJson(responseBody, BindSnResponse.class);
+        } catch (RuntimeException rte) {
+            Log.w(TAG, "Expecting BindSnResponse, but not one :-(");
+        }
+        if (null == ret) {
+            throw new AlphaESSException(what + ": unparseable response from AlphaESS");
+        }
         return ret;
     }
 

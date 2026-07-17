@@ -127,6 +127,11 @@ dependencies {
 
     implementation 'com.google.code.gson:gson:2.14.0'
     implementation 'com.opencsv:opencsv:5.12.0'
+    // 1-D barcode decode for the AlphaESS add-inverter label scan
+    // (plans/source/alpha.md §2) — pure Java, Apache-2.0, no scanner UI,
+    // no CAMERA permission, no Play Services. Also encodes, which the
+    // BarcodeLabelReader unit tests use to generate their own fixtures.
+    implementation 'com.google.zxing:core:3.5.3'
 
     // Work components
     implementation "androidx.work:work-runtime:2.11.2"

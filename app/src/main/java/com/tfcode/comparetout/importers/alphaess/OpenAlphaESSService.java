@@ -20,8 +20,10 @@ import java.util.Map;
 
 import okhttp3.ResponseBody;
 import retrofit2.Call;
+import retrofit2.http.Body;
 import retrofit2.http.GET;
 import retrofit2.http.HeaderMap;
+import retrofit2.http.POST;
 import retrofit2.http.Query;
 
 public interface OpenAlphaESSService {
@@ -43,5 +45,26 @@ public interface OpenAlphaESSService {
     @GET("api/getEssList")
     Call<ResponseBody> getESSList(
             @HeaderMap Map<String, String> headers
+    );
+
+    // Bind-SN flow (plans/source/alpha.md): the portal's own add-inverter is
+    // broken by its email-confirmation step, so the app drives the
+    // registration API directly. The verbs are MIXED, and both are
+    // field-verified against the live server (2026-07-17): it answers
+    // HTTP 405 to POST getVerificationCode (the Python client's form) AND
+    // to GET bindSn (the Postman collection's form) — each community source
+    // is right about exactly one endpoint.
+
+    @GET("api/getVerificationCode")
+    Call<ResponseBody> getVerificationCode(
+            @HeaderMap Map<String, String> headers,
+            @Query("sysSn") String sysSn,
+            @Query("checkCode") String checkCode
+    );
+
+    @POST("api/bindSn")
+    Call<ResponseBody> bindSn(
+            @HeaderMap Map<String, String> headers,
+            @Body Map<String, String> body
     );
 }

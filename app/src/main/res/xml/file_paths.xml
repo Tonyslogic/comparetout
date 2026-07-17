@@ -5,4 +5,8 @@
          cacheDir/exports/ and surface as content:// URIs from the
          authority "com.tfcode.comparetout.fileprovider". -->
     <cache-path name="exports" path="exports/" />
+    <!-- Camera-capture target for the AlphaESS add-inverter label scan
+         (plans/source/alpha.md §2): TakePicture writes the still photo here,
+         the app decodes it and discards it — no CAMERA permission needed. -->
+    <cache-path name="captures" path="captures/" />
 </paths>

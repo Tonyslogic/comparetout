@@ -199,6 +199,25 @@ data class HASensorSnapshot(
     val serverRange: String? = null // "start ↔ end" the HA recorder holds; null until probed
 )
 
+/**
+ * UI state for the AlphaESS add-inverter (bind SN) flow
+ * (plans/source/alpha.md §3). One value describes what the sheet shows:
+ * [busy] while a POST is in flight; [codeRequested] once getVerificationCode
+ * succeeded WITHOUT an in-band code (email path — show the code field);
+ * [boundSn] when the bind landed, with [alreadyBound] for the 6003
+ * "you have bound this SN" outcome (treated as success). [checkCodeError]
+ * (6004) and [rateLimited] (6053) are the actionable failures.
+ */
+data class AlphaBindUiState(
+    val busy: Boolean = false,
+    val codeRequested: Boolean = false,
+    val boundSn: String? = null,
+    val alreadyBound: Boolean = false,
+    val checkCodeError: Boolean = false,
+    val rateLimited: Boolean = false,
+    val error: String? = null
+)
+
 /** One-shot user feedback (snackbar-style). */
 data class Toast(val message: String, val tag: Long = System.nanoTime())
 
@@ -576,6 +595,124 @@ class UI2DataSourceManagementViewModel @Inject constructor(
             wm.beginUniqueWork(sysSn + "Migrate", ExistingWorkPolicy.KEEP, req).enqueue()
             _toast.postValue(Toast("Migrating $sysSn…"))
         }
+    }
+
+    // ── AlphaESS add-inverter (bind SN) — plans/source/alpha.md ─────────
+    //
+    // The portal's own "Add SN" flow is broken by its email-confirmation
+    // step, so the sheet drives the registration API directly:
+    // getVerificationCode (which returns the code in-band and/or emails it)
+    // then bindSn. Non-200 envelope codes come back from the client rather
+    // than as exceptions because the sheet branches on them.
+
+    private val _alphaBind = MutableLiveData(AlphaBindUiState())
+    val alphaBind: LiveData<AlphaBindUiState> = _alphaBind
+
+    /** Clear the bind-flow state (sheet dismissed or reopened). */
+    fun alphaBindReset() {
+        _alphaBind.postValue(AlphaBindUiState())
+    }
+
+    /**
+     * Sheet step 2: validate SN + CheckCode and request a verification code.
+     * When the code comes back in-band the email leg (the broken part of
+     * the portal flow) is skipped entirely and the bind fires immediately.
+     */
+    fun alphaRequestVerification(sysSn: String, checkCode: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val creds = CredentialStore.get(app, CredentialStore.Source.ALPHAESS)
+            if (creds == null) {
+                _toast.postValue(Toast("Set AlphaESS credentials first"))
+                return@launch
+            }
+            _alphaBind.postValue(AlphaBindUiState(busy = true))
+            try {
+                val client = OpenAlphaESSClient(creds.first, creds.second)
+                val resp = client.getVerificationCode(sysSn.trim(), checkCode.trim())
+                when (resp.code) {
+                    200 -> {
+                        val inBand = resp.inBandCode()
+                        if (inBand != null) {
+                            bindAndFinish(client, sysSn.trim(), inBand, codeRequested = false)
+                        } else {
+                            _alphaBind.postValue(AlphaBindUiState(codeRequested = true))
+                        }
+                    }
+                    // 6002 (field-observed): the Open API only issues codes for
+                    // SNs AlphaESS already links to the user's consumer account —
+                    // bind attaches an owned SN to the appId, it can't claim an
+                    // orphaned one. Registering via myAlpha/AlphaCloud comes first.
+                    6002 -> _alphaBind.postValue(AlphaBindUiState(error = SN_NOT_LINKED))
+                    6003 -> finishBound(sysSn.trim(), alreadyBound = true)
+                    6004 -> _alphaBind.postValue(AlphaBindUiState(checkCodeError = true))
+                    6053 -> _alphaBind.postValue(AlphaBindUiState(rateLimited = true))
+                    else -> _alphaBind.postValue(AlphaBindUiState(
+                        error = "AlphaESS error ${resp.code}: ${resp.msg}"))
+                }
+            } catch (t: Throwable) {
+                _alphaBind.postValue(AlphaBindUiState(error = t.message ?: "AlphaESS error"))
+            }
+        }
+    }
+
+    /** Sheet step 2b→3: bind with the code the user typed from the email. */
+    fun alphaBindWithCode(sysSn: String, code: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            val creds = CredentialStore.get(app, CredentialStore.Source.ALPHAESS)
+            if (creds == null) {
+                _toast.postValue(Toast("Set AlphaESS credentials first"))
+                return@launch
+            }
+            _alphaBind.postValue(AlphaBindUiState(busy = true, codeRequested = true))
+            try {
+                bindAndFinish(OpenAlphaESSClient(creds.first, creds.second),
+                    sysSn.trim(), code.trim(), codeRequested = true)
+            } catch (t: Throwable) {
+                _alphaBind.postValue(AlphaBindUiState(codeRequested = true,
+                    error = t.message ?: "AlphaESS error"))
+            }
+        }
+    }
+
+    /**
+     * bindSn + outcome mapping. [codeRequested] is carried through failure
+     * states so the email-path code field stays visible for another try.
+     */
+    private fun bindAndFinish(client: OpenAlphaESSClient, sysSn: String, code: String,
+                              codeRequested: Boolean) {
+        val resp = client.bindSn(sysSn, code)
+        when (resp.code) {
+            200 -> finishBound(sysSn, alreadyBound = false)
+            6002 -> _alphaBind.postValue(AlphaBindUiState(
+                codeRequested = codeRequested, error = SN_NOT_LINKED))
+            6003 -> finishBound(sysSn, alreadyBound = true)
+            6053 -> _alphaBind.postValue(AlphaBindUiState(
+                codeRequested = codeRequested, rateLimited = true))
+            else -> _alphaBind.postValue(AlphaBindUiState(codeRequested = codeRequested,
+                error = "AlphaESS error ${resp.code}: ${resp.msg}"))
+        }
+    }
+
+    /**
+     * Post-bind: re-probe getEssList (the existing credential-probe path)
+     * so the new SN appears in the SystemList — everything downstream
+     * (fetch, daily worker, wizard, Compare) behaves exactly as today.
+     * The bind itself already succeeded, so a failed probe only means the
+     * list refreshes on the next credential save/open instead.
+     */
+    private fun finishBound(sysSn: String, alreadyBound: Boolean) {
+        runCatching {
+            val creds = CredentialStore.get(app, CredentialStore.Source.ALPHAESS)
+                ?: return@runCatching
+            val response = OpenAlphaESSClient(creds.first, creds.second).essList
+            if (response?.data != null) {
+                app.putStringValueIntoDataStore(ALPHA_GOOD_KEY, "True")
+                app.putStringValueIntoDataStore(ALPHA_SYSTEM_LIST_KEY, gson.toJson(response))
+                _toast.postValue(Toast("${response.data.size} system(s) on the account"))
+            }
+        }
+        _alphaBind.postValue(AlphaBindUiState(boundSn = sysSn, alreadyBound = alreadyBound))
+        _alpha.postValue(buildAlphaState())
     }
 
     // ── Home Assistant ──────────────────────────────────────────────────
@@ -1470,5 +1607,12 @@ class UI2DataSourceManagementViewModel @Inject constructor(
         // all publish progress under this key in the WorkInfo.progress Data
         // bag (legacy convention).
         const val PROGRESS_KEY = "PROGRESS"
+
+        // Envelope 6002 from the bind flow (plans/source/alpha.md as-built):
+        // AlphaESS has no consumer-account link for the SN, which the app
+        // cannot create — only the myAlpha/AlphaCloud registration can.
+        const val SN_NOT_LINKED = "AlphaESS doesn't link this serial number to " +
+                "your account. Register the inverter to your AlphaESS " +
+                "(myAlpha/AlphaCloud) account first, then add it here."
     }
 }
