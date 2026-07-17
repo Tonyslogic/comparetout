@@ -18,6 +18,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.tfcode.comparetout.ComparisonUIViewModel
 import com.tfcode.comparetout.TOUTCApplication
+import com.tfcode.comparetout.importers.CredentialStore
 import com.tfcode.comparetout.importers.alphaess.AlphaESSMigrationWorker
 import com.tfcode.comparetout.importers.alphaess.CatchUpWorker
 import com.tfcode.comparetout.importers.alphaess.DailyWorker
@@ -438,16 +439,15 @@ class UI2DataSourceManagementViewModel @Inject constructor(
      */
     fun fetchAlpha(sysSn: String, startDate: LocalDateTime) {
         viewModelScope.launch(Dispatchers.IO) {
-            val appId = decryptOrNull(app.getStringValueFromDataStore(ALPHA_APP_ID_KEY))
-            val appSecret = decryptOrNull(app.getStringValueFromDataStore(ALPHA_APP_SECRET_KEY))
-            if (appId == null || appSecret == null) {
+            // Presence check only — secrets never enter worker Data
+            // (plans/source/security.md §1); the workers resolve them from the
+            // encrypted DataStore via CredentialStore themselves.
+            if (CredentialStore.get(app, CredentialStore.Source.ALPHAESS) == null) {
                 _toast.postValue(Toast("Set AlphaESS credentials first"))
                 return@launch
             }
             val date = dateFmt.format(toDate(startDate))
             val catchInput = Data.Builder()
-                .putString(CatchUpWorker.KEY_APP_ID, appId)
-                .putString(CatchUpWorker.KEY_APP_SECRET, appSecret)
                 .putString(CatchUpWorker.KEY_SYSTEM_SN, sysSn)
                 .putString(CatchUpWorker.KEY_START_DATE, date)
                 .build()
@@ -462,8 +462,6 @@ class UI2DataSourceManagementViewModel @Inject constructor(
             wm.beginUniqueWork(sysSn, ExistingWorkPolicy.APPEND_OR_REPLACE, catchReq).enqueue()
 
             val dailyInput = Data.Builder()
-                .putString(DailyWorker.KEY_APP_ID, appId)
-                .putString(DailyWorker.KEY_APP_SECRET, appSecret)
                 .putString(DailyWorker.KEY_SYSTEM_SN, sysSn)
                 .build()
             val initialDelayHours = (25 - LocalDateTime.now().hour).toLong()
@@ -729,10 +727,11 @@ class UI2DataSourceManagementViewModel @Inject constructor(
      */
     fun fetchHA(startDate: LocalDateTime) {
         viewModelScope.launch(Dispatchers.IO) {
-            val host = decryptOrNull(app.getStringValueFromDataStore(HA_HOST_KEY))
-            val token = decryptOrNull(app.getStringValueFromDataStore(HA_TOKEN_KEY))
             val sensorsRaw = app.getStringValueFromDataStore(HA_SENSORS_KEY)
-            if (host == null || token == null) {
+            // Presence check only — secrets never enter worker Data
+            // (plans/source/security.md §1); the workers resolve them from the
+            // encrypted DataStore via CredentialStore themselves.
+            if (CredentialStore.get(app, CredentialStore.Source.HOME_ASSISTANT) == null) {
                 _toast.postValue(Toast("Set Home Assistant credentials first"))
                 return@launch
             }
@@ -743,8 +742,6 @@ class UI2DataSourceManagementViewModel @Inject constructor(
             val date = dateFmt.format(toDate(startDate))
             val sysSn = "HomeAssistant"
             val catchInput = Data.Builder()
-                .putString(HACatchupWorker.KEY_HOST, host)
-                .putString(HACatchupWorker.KEY_TOKEN, token)
                 .putString(HACatchupWorker.KEY_START_DATE, date)
                 .putString(HACatchupWorker.KEY_SENSORS, sensorsRaw)
                 .build()
@@ -759,8 +756,6 @@ class UI2DataSourceManagementViewModel @Inject constructor(
             wm.beginUniqueWork(sysSn, ExistingWorkPolicy.APPEND_OR_REPLACE, catchReq).enqueue()
 
             val dailyInput = Data.Builder()
-                .putString(HACatchupWorker.KEY_HOST, host)
-                .putString(HACatchupWorker.KEY_TOKEN, token)
                 .putString(HACatchupWorker.KEY_SENSORS, sensorsRaw)
                 .build()
             val initialDelayHours = (25 - LocalDateTime.now().hour).toLong()
@@ -898,16 +893,15 @@ class UI2DataSourceManagementViewModel @Inject constructor(
      */
     fun fetchOctopus(sysSn: String, startDate: LocalDateTime) {
         viewModelScope.launch(Dispatchers.IO) {
-            val account = decryptOrNull(app.getStringValueFromDataStore(OCTOPUS_ACCOUNT_KEY))
-            val apiKey = decryptOrNull(app.getStringValueFromDataStore(OCTOPUS_API_KEY_KEY))
-            if (account == null || apiKey == null) {
+            // Presence check only — secrets never enter worker Data
+            // (plans/source/security.md §1); the workers resolve them from the
+            // encrypted DataStore via CredentialStore themselves.
+            if (CredentialStore.get(app, CredentialStore.Source.OCTOPUS) == null) {
                 _toast.postValue(Toast("Set Octopus credentials first"))
                 return@launch
             }
             val date = dateFmt.format(toDate(startDate))
             val catchInput = Data.Builder()
-                .putString(OctopusCatchUpWorker.KEY_APP_ID, account)
-                .putString(OctopusCatchUpWorker.KEY_APP_SECRET, apiKey)
                 .putString(OctopusCatchUpWorker.KEY_SYSTEM_SN, sysSn)
                 .putString(OctopusCatchUpWorker.KEY_START_DATE, date)
                 .build()
@@ -924,8 +918,6 @@ class UI2DataSourceManagementViewModel @Inject constructor(
             // Daily incremental sync: the same worker resumes from the latest
             // stored date when no start date is supplied.
             val dailyInput = Data.Builder()
-                .putString(OctopusCatchUpWorker.KEY_APP_ID, account)
-                .putString(OctopusCatchUpWorker.KEY_APP_SECRET, apiKey)
                 .putString(OctopusCatchUpWorker.KEY_SYSTEM_SN, sysSn)
                 .build()
             val initialDelayHours = (25 - LocalDateTime.now().hour).toLong()
@@ -1050,9 +1042,10 @@ class UI2DataSourceManagementViewModel @Inject constructor(
      */
     fun fetchSolis(sysSn: String, startDate: LocalDateTime) {
         viewModelScope.launch(Dispatchers.IO) {
-            val keyId = decryptOrNull(app.getStringValueFromDataStore(SOLIS_KEY_ID_KEY))
-            val secret = decryptOrNull(app.getStringValueFromDataStore(SOLIS_SECRET_KEY))
-            if (keyId == null || secret == null) {
+            // Presence check only — secrets never enter worker Data
+            // (plans/source/security.md §1); the workers resolve them from the
+            // encrypted DataStore via CredentialStore themselves.
+            if (CredentialStore.get(app, CredentialStore.Source.SOLIS) == null) {
                 _toast.postValue(Toast("Set SolisCloud credentials first"))
                 return@launch
             }
@@ -1064,8 +1057,6 @@ class UI2DataSourceManagementViewModel @Inject constructor(
             }
             val date = dateFmt.format(toDate(startDate))
             val catchInput = Data.Builder()
-                .putString(SolisCatchUpWorker.KEY_KEY_ID, keyId)
-                .putString(SolisCatchUpWorker.KEY_SECRET, secret)
                 .putString(SolisCatchUpWorker.KEY_STATION_ID, station.id)
                 .putString(SolisCatchUpWorker.KEY_STATION_NAME, station.name)
                 .putString(SolisCatchUpWorker.KEY_CURRENCY, station.money)
@@ -1084,8 +1075,6 @@ class UI2DataSourceManagementViewModel @Inject constructor(
 
             // Daily incremental sync: no start date ⇒ the worker fetches yesterday.
             val dailyInput = Data.Builder()
-                .putString(SolisCatchUpWorker.KEY_KEY_ID, keyId)
-                .putString(SolisCatchUpWorker.KEY_SECRET, secret)
                 .putString(SolisCatchUpWorker.KEY_STATION_ID, station.id)
                 .putString(SolisCatchUpWorker.KEY_STATION_NAME, station.name)
                 .putString(SolisCatchUpWorker.KEY_CURRENCY, station.money)

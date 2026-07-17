@@ -37,6 +37,7 @@ import androidx.work.WorkerParameters;
 
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
+import com.tfcode.comparetout.importers.CredentialStore;
 import com.tfcode.comparetout.importers.alphaess.responses.GetOneDayEnergyResponse;
 import com.tfcode.comparetout.importers.alphaess.responses.GetOneDayPowerResponse;
 import com.tfcode.comparetout.model.ToutcRepository;
@@ -104,9 +105,22 @@ public class DailyWorker extends Worker {
     public Result doWork() {
         Log.i(TAG, "DailyWorker:doWork invoked");
         Data inputData = getInputData();
-        OpenAlphaESSClient mOpenAlphaESSClient = new OpenAlphaESSClient(
-                inputData.getString(KEY_APP_ID),
-                inputData.getString(KEY_APP_SECRET));
+        String appId = inputData.getString(KEY_APP_ID);
+        String appSecret = inputData.getString(KEY_APP_SECRET);
+        if (null == appId || null == appSecret) {
+            // Secrets no longer travel in worker Data (plans/source/security.md §1);
+            // the Data keys above are honoured only for specs enqueued by older
+            // app versions. Normal path: resolve from the encrypted DataStore.
+            CredentialStore.Credentials credentials = CredentialStore.get(
+                    getApplicationContext(), CredentialStore.Source.ALPHAESS);
+            if (null == credentials) {
+                Log.w(TAG, "DailyWorker: AlphaESS credentials unavailable — re-enter them");
+                return Result.failure();
+            }
+            appId = credentials.first;
+            appSecret = credentials.second;
+        }
+        OpenAlphaESSClient mOpenAlphaESSClient = new OpenAlphaESSClient(appId, appSecret);
         String systemSN = inputData.getString(KEY_SYSTEM_SN);
         mOpenAlphaESSClient.setSerial(systemSN);
         mSelectedSysSn = systemSN;
@@ -170,10 +184,10 @@ public class DailyWorker extends Worker {
     // REPLACE the unique work so a fresh periodic run supersedes any
     // pending retry from the previous day.
     private void enqueueOneHourRetry(@NonNull String systemSN, @NonNull Data baseInput) {
+        // No credentials in the retry spec (plans/source/security.md §1) — the
+        // retry run resolves them from the encrypted DataStore like any other.
         Data retryInput = new Data.Builder()
                 .putString(KEY_SYSTEM_SN, baseInput.getString(KEY_SYSTEM_SN))
-                .putString(KEY_APP_ID, baseInput.getString(KEY_APP_ID))
-                .putString(KEY_APP_SECRET, baseInput.getString(KEY_APP_SECRET))
                 .putBoolean(KEY_IS_RETRY, true)
                 .build();
         OneTimeWorkRequest retry = new OneTimeWorkRequest.Builder(DailyWorker.class)

@@ -17,9 +17,6 @@
 package com.tfcode.comparetout;
 
 import android.app.Application;
-import android.security.keystore.KeyGenParameterSpec;
-import android.security.keystore.KeyProperties;
-import android.util.Base64;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -29,15 +26,8 @@ import androidx.datastore.preferences.core.PreferencesKeys;
 import androidx.datastore.preferences.rxjava3.RxPreferenceDataStoreBuilder;
 import androidx.datastore.rxjava3.RxDataStore;
 
-import java.nio.charset.StandardCharsets;
-import java.security.KeyStore;
 import java.util.HashMap;
 import java.util.Map;
-
-import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
-import javax.crypto.spec.IvParameterSpec;
 
 import dagger.hilt.android.HiltAndroidApp;
 import io.reactivex.rxjava3.core.Single;
@@ -56,7 +46,7 @@ import io.reactivex.rxjava3.core.Single;
  * - Manage application-level constants and shared resources
  * - Coordinate between the Android Keystore system and application data storage
  * <p>
- * The encryption functionality uses AES-256 with CBC mode and PKCS7 padding, with keys
+ * The encryption functionality uses AES-256/GCM (see {@link CredentialCrypto}), with keys
  * stored in the Android hardware security module when available, providing protection
  * against key extraction even on rooted devices.
  */
@@ -65,9 +55,6 @@ public class TOUTCApplication extends Application {
 
     private RxDataStore<Preferences> dataStore;
     static final String FIRST_USE = "first_use";
-
-    private static final String ANDROID_KEYSTORE = "AndroidKeyStore";
-    private static final String KEY_ALIAS = "toutcKey";
 
     /**
      * Initialize the application and set up core services.
@@ -95,6 +82,10 @@ public class TOUTCApplication extends Application {
                         com.tfcode.comparetout.model.TimezoneRestampWorker.DONE_KEY, "true");
                 putStringValueIntoDataStore(
                         com.tfcode.comparetout.model.PanelDataRefreshWorker.DONE_KEY, "true");
+                // Nothing is scheduled on a fresh install — mark the credential
+                // scrub (plans/source/security.md §1) done too.
+                putStringValueIntoDataStore(
+                        com.tfcode.comparetout.importers.WorkSpecCredentialScrub.DONE_KEY, "true");
             }).start();
         } else {
             // One-time: re-anchor already-imported data to the saved timezone (Phase 2,
@@ -103,109 +94,45 @@ public class TOUTCApplication extends Application {
             // One-time: discard pre-millis PV data (wrong grid) and refresh + re-simulate (Phase 3).
             // Idempotent — unique work + an internal DataStore guard.
             com.tfcode.comparetout.model.PanelDataRefreshWorker.enqueue(this);
+            // One-time: re-enqueue daily fetch specs without embedded plaintext
+            // credentials (plans/source/security.md §1). Idempotent — DataStore guard.
+            new Thread(() ->
+                    com.tfcode.comparetout.importers.WorkSpecCredentialScrub.runOnce(this)).start();
         }
     }
 
     /**
-     * Generate a new AES encryption key in the Android Keystore.
+     * Encrypt a plaintext string with the app's Keystore-backed credential key.
      * <p>
-     * Creates a hardware-backed AES key with 256-bit strength using CBC mode
-     * and PKCS7 padding. The key is stored in the Android Keystore system,
-     * which provides hardware-level security on supported devices by storing
-     * keys in a Trusted Execution Environment (TEE) or secure element.
-     * 
-     * @throws Exception if key generation fails due to hardware limitations
-     *                   or security policy restrictions
-     */
-    public static void generateKey() throws Exception {
-        KeyStore keyStore = KeyStore.getInstance(ANDROID_KEYSTORE);
-        keyStore.load(null);
-
-        if (!keyStore.containsAlias(KEY_ALIAS)) {
-            KeyGenerator keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, ANDROID_KEYSTORE);
-            KeyGenParameterSpec.Builder builder = new KeyGenParameterSpec.Builder(KEY_ALIAS, KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
-                    .setBlockModes(KeyProperties.BLOCK_MODE_CBC)
-                    .setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_PKCS7);
-
-            keyGenerator.init(builder.build());
-            keyGenerator.generateKey();
-        }
-    }
-
-    /**
-     * Encrypt a plaintext string using the application's keystore-backed key.
-     * <p>
-     * Uses AES encryption in CBC mode with PKCS7 padding to encrypt sensitive
-     * data such as API keys or tokens. The initialization vector (IV) is
-     * automatically generated and prepended to the encrypted data to ensure
-     * that identical plaintexts produce different ciphertexts.
-     * <p>
-     * The method automatically generates a new key if one doesn't exist,
-     * ensuring transparent key management for the application.
-     * 
+     * Delegates to {@link CredentialCrypto}: new ciphertext is always the
+     * authenticated v2 format (AES-256/GCM under the {@code toutcKey2} alias,
+     * created on first use). See plans/source/security.md §3.
+     *
      * @param clearText the plaintext string to encrypt
-     * @return Base64-encoded string containing IV + encrypted data
+     * @return the {@code "v2:"}-prefixed Base64 blob
      * @throws Exception if encryption fails or key access is denied
      */
     public static String encryptString(String clearText) throws Exception {
-        Cipher cipher = Cipher.getInstance(KeyProperties.KEY_ALGORITHM_AES + "/" + KeyProperties.BLOCK_MODE_CBC + "/"
-                + KeyProperties.ENCRYPTION_PADDING_PKCS7);
-
-        KeyStore keyStore = KeyStore.getInstance(ANDROID_KEYSTORE);
-        keyStore.load(null);
-        SecretKey secretKey = (SecretKey) keyStore.getKey(KEY_ALIAS, null);
-        if (null == secretKey){
-            // Auto-generate key if it doesn't exist for seamless user experience
-            generateKey();
-            secretKey = (SecretKey) keyStore.getKey(KEY_ALIAS, null);
-        }
-
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey);
-
-        byte[] iv = cipher.getIV();
-        byte[] encryptedBytes = cipher.doFinal(clearText.getBytes(StandardCharsets.UTF_8));
-
-        // Combine IV and encrypted data for storage - IV is needed for decryption
-        byte[] combined = new byte[iv.length + encryptedBytes.length];
-        System.arraycopy(iv, 0, combined, 0, iv.length);
-        System.arraycopy(encryptedBytes, 0, combined, iv.length, encryptedBytes.length);
-
-        return Base64.encodeToString(combined, Base64.DEFAULT);
+        return CredentialCrypto.system().encrypt(clearText);
     }
 
     /**
-     * Decrypt a previously encrypted string using the application's keystore key.
+     * Decrypt a blob produced by {@link #encryptString} — either the current v2
+     * format or the legacy CBC format from older app versions (dispatch on the
+     * {@code "v2:"} prefix; the legacy key is never deleted while legacy blobs
+     * can exist).
      * <p>
-     * Decrypts Base64-encoded data that was encrypted with encryptString().
-     * The method extracts the initialization vector from the beginning of
-     * the encrypted data and uses it to properly decrypt the remainder.
-     * 
-     * @param encryptedText Base64-encoded string containing IV + encrypted data
-     * @return the decrypted plaintext string, or "NoKey" if the key is unavailable
-     * @throws Exception if decryption fails due to corrupted data or wrong key
+     * Always throws on failure — including the restored-from-backup case where
+     * the ciphertext survived but the device-bound key did not. Callers treat
+     * any failure as "credentials absent, re-enter" (there is deliberately no
+     * sentinel return value).
+     *
+     * @param encryptedText the stored blob
+     * @return the decrypted plaintext string
+     * @throws Exception on tamper, missing key, or corrupted data
      */
     public static String decryptString(String encryptedText) throws Exception {
-        Cipher cipher = Cipher.getInstance(KeyProperties.KEY_ALGORITHM_AES + "/" + KeyProperties.BLOCK_MODE_CBC + "/"
-                + KeyProperties.ENCRYPTION_PADDING_PKCS7);
-
-        KeyStore keyStore = KeyStore.getInstance(ANDROID_KEYSTORE);
-        keyStore.load(null);
-        SecretKey secretKey = (SecretKey) keyStore.getKey(KEY_ALIAS, null);
-        if (null == secretKey) return "NoKey";
-
-        byte[] combined = Base64.decode(encryptedText, Base64.DEFAULT);
-
-        // Extract IV from the beginning of the combined data
-        byte[] iv = new byte[cipher.getBlockSize()];
-        System.arraycopy(combined, 0, iv, 0, iv.length);
-        IvParameterSpec ivParameterSpec = new IvParameterSpec(iv);
-
-        cipher.init(Cipher.DECRYPT_MODE, secretKey, ivParameterSpec);
-
-        // Decrypt the remaining data after the IV
-        byte[] decryptedBytes = cipher.doFinal(combined, iv.length, combined.length - iv.length);
-
-        return new String(decryptedBytes, StandardCharsets.UTF_8);
+        return CredentialCrypto.system().decrypt(encryptedText);
     }
 
     /**

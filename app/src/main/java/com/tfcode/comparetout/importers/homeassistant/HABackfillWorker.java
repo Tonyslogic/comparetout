@@ -38,6 +38,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
+import com.tfcode.comparetout.importers.CredentialStore;
 import com.tfcode.comparetout.importers.homeassistant.messages.GetStatisticsMetadataRequest;
 import com.tfcode.comparetout.importers.homeassistant.messages.GetStatisticsMetadataResult;
 import com.tfcode.comparetout.importers.homeassistant.messages.HAMessage;
@@ -165,6 +166,19 @@ public class HABackfillWorker extends Worker {
         Data inputData = getInputData();
         String host = inputData.getString(KEY_HOST);
         String token = inputData.getString(KEY_TOKEN);
+        if (null == host || null == token) {
+            // Secrets no longer travel in worker Data (plans/source/security.md §1);
+            // the Data keys above are honoured only for specs enqueued by older
+            // app versions. Normal path: resolve from the encrypted DataStore.
+            CredentialStore.Credentials credentials = CredentialStore.get(
+                    getApplicationContext(), CredentialStore.Source.HOME_ASSISTANT);
+            if (null == credentials) {
+                LOGGER.warning("HABackfillWorker: Home Assistant credentials unavailable — re-enter them");
+                return Result.failure();
+            }
+            host = credentials.first;
+            token = credentials.second;
+        }
         String sourceSysSn = inputData.getString(KEY_SOURCE_SYS_SN);
         String from = inputData.getString(KEY_FROM);
         String to = inputData.getString(KEY_TO);
@@ -174,7 +188,7 @@ public class HABackfillWorker extends Worker {
         long hourStart = inputData.getLong(KEY_HOUR, -1L);
         mUseUI2 = UI2NotificationLaunch.isUI2Enabled(getApplicationContext());
 
-        if (null == host || null == token || null == sourceSysSn || null == from || null == to
+        if (null == sourceSysSn || null == from || null == to
                 || null == seriesCsv || seriesCsv.isEmpty()) {
             return Result.failure();
         }
@@ -242,9 +256,9 @@ public class HABackfillWorker extends Worker {
                 // local "HomeAssistant" rows — resync the backfilled range so the
                 // graphs and Compare reflect the corrected values without a manual
                 // re-fetch (ingestion REPLACEs by (sysSn, date, minute)).
+                // No credentials in the resync spec (plans/source/security.md §1) —
+                // HACatchupWorker resolves them from the encrypted DataStore.
                 Data resyncInput = new Data.Builder()
-                        .putString(HACatchupWorker.KEY_HOST, host)
-                        .putString(HACatchupWorker.KEY_TOKEN, token)
                         .putString(HACatchupWorker.KEY_SENSORS, sensorsJson)
                         .putString(HACatchupWorker.KEY_START_DATE, from)
                         .build();

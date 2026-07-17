@@ -115,10 +115,10 @@ public class ImportOctopusOverview extends ImportOverviewFragment {
         @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
         Context context = getContext();
         if (!(null == context) && !("".equals(serialNumber))) {
-            // start the catchup worker for the selected system
+            // start the catchup worker for the selected system. No credentials in
+            // the Data (plans/source/security.md §1) — the worker resolves them
+            // from the encrypted DataStore via CredentialStore.
             Data inputData = new Data.Builder()
-                    .putString(OctopusCatchUpWorker.KEY_APP_ID, mAppID)
-                    .putString(OctopusCatchUpWorker.KEY_APP_SECRET, mAppSecret)
                     .putString(OctopusCatchUpWorker.KEY_SYSTEM_SN, serialNumber)
                     .putString(OctopusCatchUpWorker.KEY_START_DATE, format.format(startDate))
                     .build();
@@ -137,8 +137,6 @@ public class ImportOctopusOverview extends ImportOverviewFragment {
             // Daily incremental sync: the catch-up worker resumes from the
             // latest stored date when no start date is supplied.
             Data dailyData = new Data.Builder()
-                    .putString(OctopusCatchUpWorker.KEY_APP_ID, mAppID)
-                    .putString(OctopusCatchUpWorker.KEY_APP_SECRET, mAppSecret)
                     .putString(OctopusCatchUpWorker.KEY_SYSTEM_SN, serialNumber)
                     .build();
             int delay = 25 - LocalDateTime.now().getHour(); // Going for 01:00 <-> 02:00

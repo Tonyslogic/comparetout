@@ -82,10 +82,10 @@ public class ImportAlphaOverview extends ImportOverviewFragment {
         @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
         Context context = getContext();
         if (!(null == context) && !("".equals(serialNumber))) {
-            // start the catchup worker for the selected serial
+            // start the catchup worker for the selected serial. No credentials in
+            // the Data (plans/source/security.md §1) — the worker resolves them
+            // from the encrypted DataStore via CredentialStore.
             Data inputData = new Data.Builder()
-                    .putString(CatchUpWorker.KEY_APP_ID, mAppID)
-                    .putString(CatchUpWorker.KEY_APP_SECRET, mAppSecret)
                     .putString(CatchUpWorker.KEY_SYSTEM_SN, serialNumber)
                     .putString(CatchUpWorker.KEY_START_DATE, format.format(startDate))
                     .build();
@@ -103,8 +103,6 @@ public class ImportAlphaOverview extends ImportOverviewFragment {
 
             // start the daily worker for the selected serial
             Data dailyData = new Data.Builder()
-                    .putString(DailyWorker.KEY_APP_ID, mAppID)
-                    .putString(DailyWorker.KEY_APP_SECRET, mAppSecret)
                     .putString(DailyWorker.KEY_SYSTEM_SN, serialNumber)
                     .build();
             int delay = 25 - LocalDateTime.now().getHour(); // Going for 01:00 <-> 02:00

@@ -1,13 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?><!--
-   Sample backup rules file; uncomment and customize as necessary.
-   See https://developer.android.com/guide/topics/data/autobackup
-   for details.
-   Note: This file is ignored for devices older that API 31
-   See https://developer.android.com/about/versions/12/backup-restore
+   Auto Backup rules for API <= 30 (plans/source/security.md §2). Everything is
+   included by default; the exclusions below are the deliberate exceptions:
+
+   - WorkManager's database is transient scheduling state. Restoring it to a
+     device whose Keystore lacks our keys would only resurrect stale workers,
+     and pre-security-plan records could carry embedded credentials.
+
+   The settings DataStore IS backed up: credential blobs in it are ciphertext
+   under a device-bound Keystore key, so on a restored device they are
+   undecryptable by design — the app treats that as "credentials absent,
+   re-enter" (security.md §4).
 -->
 <full-backup-content>
-    <!--
-   <include domain="sharedpref" path="."/>
-   <exclude domain="sharedpref" path="device.xml"/>
--->
+    <exclude domain="database" path="androidx.work.workdb" />
+    <exclude domain="database" path="androidx.work.workdb-shm" />
+    <exclude domain="database" path="androidx.work.workdb-wal" />
 </full-backup-content>

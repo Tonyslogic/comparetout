@@ -28,6 +28,7 @@ import androidx.work.OneTimeWorkRequest
 import androidx.work.WorkManager
 import com.tfcode.comparetout.ComparisonUIViewModel
 import com.tfcode.comparetout.TOUTCApplication
+import com.tfcode.comparetout.importers.CredentialStore
 import com.tfcode.comparetout.importers.homeassistant.HABackfillWorker
 import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData
@@ -254,10 +255,11 @@ class UI2HaBackfillViewModel @Inject constructor(
     fun startBackfill(sourceSysSn: String, from: LocalDate, to: LocalDate,
                       external: Boolean, series: List<String>, hourStart: Long? = null) {
         viewModelScope.launch(Dispatchers.IO) {
-            val host = decryptOrNull(app.getStringValueFromDataStore(HA_HOST_KEY))
-            val token = decryptOrNull(app.getStringValueFromDataStore(HA_TOKEN_KEY))
             val sensorsRaw = app.getStringValueFromDataStore(HA_SENSORS_KEY)
-            if (host == null || token == null) {
+            // Presence check only — secrets never enter worker Data
+            // (plans/source/security.md §1); HABackfillWorker resolves them from
+            // the encrypted DataStore via CredentialStore itself.
+            if (CredentialStore.get(app, CredentialStore.Source.HOME_ASSISTANT) == null) {
                 _toast.postValue(Toast("Set Home Assistant credentials first"))
                 return@launch
             }
@@ -270,8 +272,6 @@ class UI2HaBackfillViewModel @Inject constructor(
                 return@launch
             }
             val input = Data.Builder()
-                .putString(HABackfillWorker.KEY_HOST, host)
-                .putString(HABackfillWorker.KEY_TOKEN, token)
                 .putString(HABackfillWorker.KEY_SOURCE_SYS_SN, sourceSysSn)
                 .putString(HABackfillWorker.KEY_FROM, from.toString())
                 .putString(HABackfillWorker.KEY_TO, to.toString())

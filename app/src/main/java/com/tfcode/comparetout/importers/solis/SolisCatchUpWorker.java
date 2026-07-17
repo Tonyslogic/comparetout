@@ -34,6 +34,7 @@ import androidx.work.WorkerParameters;
 
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
+import com.tfcode.comparetout.importers.CredentialStore;
 import com.tfcode.comparetout.importers.solis.responses.StationDayEnergyResponse;
 import com.tfcode.comparetout.importers.solis.responses.StationDayResponse;
 import com.tfcode.comparetout.model.ToutcRepository;
@@ -111,12 +112,25 @@ public class SolisCatchUpWorker extends Worker {
         Data inputData = getInputData();
         String keyId = inputData.getString(KEY_KEY_ID);
         String secret = inputData.getString(KEY_SECRET);
+        if (null == keyId || null == secret) {
+            // Secrets no longer travel in worker Data (plans/source/security.md §1);
+            // the Data keys above are honoured only for specs enqueued by older
+            // app versions. Normal path: resolve from the encrypted DataStore.
+            CredentialStore.Credentials credentials = CredentialStore.get(
+                    getApplicationContext(), CredentialStore.Source.SOLIS);
+            if (null == credentials) {
+                publishProgress("SolisCloud credentials unavailable — re-enter them", true, false);
+                return Result.failure();
+            }
+            keyId = credentials.first;
+            secret = credentials.second;
+        }
         String stationId = inputData.getString(KEY_STATION_ID);
         String stationName = inputData.getString(KEY_STATION_NAME);
         String startDate = inputData.getString(KEY_START_DATE);
         String currency = inputData.getString(KEY_CURRENCY);
         if (null == currency || currency.isEmpty()) currency = "EUR";
-        if (null == keyId || null == secret || null == stationId) {
+        if (null == stationId) {
             publishProgress("Solis station not configured", true, false);
             return Result.success();
         }

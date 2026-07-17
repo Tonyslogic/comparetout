@@ -40,6 +40,7 @@ import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.TOUTCApplication;
+import com.tfcode.comparetout.importers.CredentialStore;
 import com.tfcode.comparetout.importers.homeassistant.messages.HAMessage;
 import com.tfcode.comparetout.importers.homeassistant.messages.StatsForPeriodRequest;
 import com.tfcode.comparetout.importers.homeassistant.messages.authorization.AuthInvalid;
@@ -129,6 +130,19 @@ public class HACatchupWorker extends Worker {
         Data inputData = getInputData();
         String host = inputData.getString(KEY_HOST);
         String token = inputData.getString(KEY_TOKEN);
+        if (null == host || null == token) {
+            // Secrets no longer travel in worker Data (plans/source/security.md §1);
+            // the Data keys above are honoured only for specs enqueued by older
+            // app versions. Normal path: resolve from the encrypted DataStore.
+            CredentialStore.Credentials credentials = CredentialStore.get(
+                    getApplicationContext(), CredentialStore.Source.HOME_ASSISTANT);
+            if (null == credentials) {
+                LOGGER.warning("HACatchupWorker: Home Assistant credentials unavailable — re-enter them");
+                return Result.failure();
+            }
+            host = credentials.first;
+            token = credentials.second;
+        }
         String startDate = inputData.getString(KEY_START_DATE);
         // No start date is provided for daily runs, default to yesterday
         if (null == startDate) {

@@ -369,10 +369,10 @@ public class ImportHAOverview extends ImportOverviewFragment {
         @SuppressLint("SimpleDateFormat") SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
         Context context = getContext();
         if (!(null == context) && !("".equals(serialNumber))) {
-            // Start the catchup worker for historical data import from the selected start date
+            // Start the catchup worker for historical data import from the selected
+            // start date. No credentials in the Data (plans/source/security.md §1) —
+            // the worker resolves them from the encrypted DataStore via CredentialStore.
             Data inputData = new Data.Builder()
-                    .putString(HACatchupWorker.KEY_HOST, mAppID)
-                    .putString(HACatchupWorker.KEY_TOKEN, mAppSecret)
                     .putString(HACatchupWorker.KEY_START_DATE, format.format(startDate))
                     .putString(HACatchupWorker.KEY_SENSORS, new Gson().toJson(mEnergySensors))
                     .build();
@@ -393,8 +393,6 @@ public class ImportHAOverview extends ImportOverviewFragment {
 
             // Start the daily recurring worker for ongoing data synchronization
             Data dailyData = new Data.Builder()
-                    .putString(HACatchupWorker.KEY_HOST, mAppID)
-                    .putString(HACatchupWorker.KEY_TOKEN, mAppSecret)
                     .putString(HACatchupWorker.KEY_SENSORS, new Gson().toJson(mEnergySensors))
                     .build();
             

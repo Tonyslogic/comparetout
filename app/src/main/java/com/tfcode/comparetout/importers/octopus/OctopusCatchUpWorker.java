@@ -37,6 +37,7 @@ import com.google.gson.reflect.TypeToken;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.TOUTCApplication;
+import com.tfcode.comparetout.importers.CredentialStore;
 import com.tfcode.comparetout.importers.octopus.responses.ConsumptionResponse;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
@@ -114,6 +115,18 @@ public class OctopusCatchUpWorker extends Worker {
     public Result doWork() {
         Data inputData = getInputData();
         String apiKey = inputData.getString(KEY_APP_SECRET);
+        if (null == apiKey) {
+            // Secrets no longer travel in worker Data (plans/source/security.md §1);
+            // the Data key above is honoured only for specs enqueued by older
+            // app versions. Normal path: resolve from the encrypted DataStore.
+            CredentialStore.Credentials credentials = CredentialStore.get(
+                    getApplicationContext(), CredentialStore.Source.OCTOPUS);
+            if (null == credentials) {
+                publishProgress("Octopus credentials unavailable — re-enter them", true, false);
+                return Result.failure();
+            }
+            apiKey = credentials.second;
+        }
         String systemSN = inputData.getString(KEY_SYSTEM_SN);
         String startDate = inputData.getString(KEY_START_DATE);
         mSelectedSysSn = systemSN;

@@ -213,21 +213,31 @@ public abstract class ImportOverviewFragment extends Fragment {
                     mHasCredentials = false;
                     mCredentialsAreGood = false;
                 } else {
-                    // Decrypt the stored keys
+                    // Decrypt the stored keys. Failure (e.g. ciphertext restored
+                    // to a device without the Keystore key) means the credentials
+                    // are absent and must be re-entered — never pass the raw
+                    // blobs onward (plans/source/security.md §4).
                     try {
                         appId = TOUTCApplication.decryptString(appId);
                         appSecret = TOUTCApplication.decryptString(appSecret);
                     } catch (Exception e) {
                         Log.e(TAG, Log.getStackTraceString(e));
+                        appId = null;
+                        appSecret = null;
                     }
-                    try {
-                        reloadClient(appId, appSecret);
-                        mMainHandler.post(this::updateView);
-                    } catch (ImportException e) {
-                        e.printStackTrace();
+                    if (null == appId || null == appSecret) {
+                        mHasCredentials = false;
+                        mCredentialsAreGood = false;
+                    } else {
+                        try {
+                            reloadClient(appId, appSecret);
+                            mMainHandler.post(this::updateView);
+                        } catch (ImportException e) {
+                            e.printStackTrace();
+                        }
+                        mAppID = appId;
+                        mAppSecret = appSecret;
                     }
-                    mAppID = appId;
-                    mAppSecret = appSecret;
                 }
             }
         }).start();
