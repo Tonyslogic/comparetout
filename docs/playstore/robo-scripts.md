@@ -17,6 +17,7 @@ The script is built around two principles:
 
 1. **Expand before you screenshot.** The dashboard and Compare screens are accordion-based and default to collapsed, so a naive tab tour captures headers, not data. Every data surface is explicitly expanded before the crawl moves on.
 2. **Every action must be reliably findable, because a missing selector is fatal.** Robo does **not** treat an unmatched scripted action as a no-op — it aborts the run ("Robo script failed on action N of M"), and every later step is lost. So the script only ever targets single-tap elements that are reliably present and on-screen. It deliberately avoids full-screen pickers, multi-step configuration, scroll-dependent targets, and "defensive" taps on elements that might not appear — each of those is a hard-failure risk. (An earlier revision that configured a full Compare result via the Sources/Filter pickers died on the second picker; that block is now a light-touch accordion expansion.)
+3. **Reveal the bottom nav before you tap it.** The bottom navigation bar uses Material's `HideBottomViewOnScrollBehavior` (see [`activity_ui2_main.xml`](../../app/src/main/res/layout/activity_ui2_main.xml)): it slides off-screen on a downward scroll and returns on an upward one. When Robo scrolls a deep accordion into view to expand it (e.g. `Visual overview` on the Dashboard, `Filter` on Compare), the bar is left hidden, so the *next* bottom-nav tab tap has no on-screen target and the run aborts. Any tab tap that follows an in-screen scroll on the **same** screen is therefore preceded by a `VIEW_SWIPED` `Down` on the just-expanded header — a finger-down swipe scrolls the content back toward the top, which brings both the top app bar and the bottom nav back before the tap. (Tab taps that land a *fresh* fragment don't need this — a new destination resets the bar to visible.)
 
 | Step | Event | Selector | Notes |
 |---:|---|---|---|
@@ -48,6 +49,8 @@ The script is built around two principles:
 | 26 | `PRESSED_BACK` | — | Exit the wizard. Returns to Scenarios. No unsaved-changes dialog appears (we never edited), so there is deliberately **no** trailing "Leave" tap — that would be an always-missing action and abort the run on its last step. |
 
 Robo records continuous screenshots while crawling, so the screenshot for each step is captured automatically — no explicit `SCREENSHOT` events needed in the script. The short `WAIT`s after each expansion give animations and async loads time to settle so the ambient screenshots capture rendered data, not spinners.
+
+> **Action numbers:** the table above is a *step-level* narrative. The JSON counts each `WAIT`, `VIEW_SWIPED`, and reveal step as its own action, so a "Robo script failed on action N of M" message must be cross-referenced against [`walkthrough.json`](../../playstore/robo-scripts/walkthrough.json) itself (the authoritative action list), not the row numbers here. The bar-reveal swipes (principle 3) sit immediately before the `Comparisons` and `Directors` tab taps.
 
 ---
 

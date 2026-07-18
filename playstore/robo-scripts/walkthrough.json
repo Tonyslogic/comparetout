@@ -102,6 +102,17 @@
     "delayTime": 3000
   },
   {
+    "eventType": "VIEW_SWIPED",
+    "swipeDirection": "Down",
+    "elementDescriptors": [
+      { "text": "Visual overview" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 1000
+  },
+  {
     "eventType": "VIEW_CLICKED",
     "elementDescriptors": [
       { "text": "Comparisons" }
@@ -130,6 +141,17 @@
   {
     "eventType": "WAIT",
     "delayTime": 2000
+  },
+  {
+    "eventType": "VIEW_SWIPED",
+    "swipeDirection": "Down",
+    "elementDescriptors": [
+      { "text": "Filter" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 1000
   },
   {
     "eventType": "VIEW_CLICKED",
