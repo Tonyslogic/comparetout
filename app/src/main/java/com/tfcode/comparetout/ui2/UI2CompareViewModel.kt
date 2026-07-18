@@ -99,6 +99,7 @@ data class CompareSourceItem(
         ComparisonUIViewModel.Importer.HOME_ASSISTANT -> "Home Assistant"
         ComparisonUIViewModel.Importer.OCTOPUS        -> "Octopus"
         ComparisonUIViewModel.Importer.SOLIS          -> "Solis"
+        ComparisonUIViewModel.Importer.FUSION_SOLAR   -> "FusionSolar"
         else -> importerType.name
     }
 }

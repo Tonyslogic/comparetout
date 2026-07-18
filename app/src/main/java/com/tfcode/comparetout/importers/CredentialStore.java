@@ -65,6 +65,7 @@ public final class CredentialStore {
         // The keys the legacy ESBN CredentialDialog wrote (ImportESBNOverview),
         // reused by the UI2 experimental cloud-sync strip.
         ESBN("esbn_user_id", "esbn_password"),
+        FUSION_SOLAR("fusionsolar_username", "fusionsolar_password"),
         HOME_ASSISTANT("ha_host", "ha_token"),
         OCTOPUS("octopus_account", "octopus_api_key"),
         SOLIS("solis_key_id", "solis_secret");

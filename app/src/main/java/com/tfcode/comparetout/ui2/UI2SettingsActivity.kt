@@ -173,6 +173,7 @@ private fun SettingsScreen(onClose: () -> Unit) {
                 ToggleRow(stringResource(R.string.octopus_energy), null, vis.octopus) { update(vis.copy(octopus = it)) }
             }
             ToggleRow(stringResource(R.string.brand_solis), null, vis.solis) { update(vis.copy(solis = it)) }
+            ToggleRow(stringResource(R.string.brand_fusionsolar), null, vis.fusionsolar) { update(vis.copy(fusionsolar = it)) }
             if (profile.hasWeatherCaches) {
                 ToggleRow(stringResource(R.string.brand_pvgis),
                     stringResource(R.string.ui2_settings_pvgis_sub), vis.pvgis) { update(vis.copy(pvgis = it)) }

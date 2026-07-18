@@ -177,6 +177,7 @@ fun ScenariosScreen(
                     com.tfcode.comparetout.ComparisonUIViewModel.Importer.ESBNHDF -> uiVis.esbn
                     com.tfcode.comparetout.ComparisonUIViewModel.Importer.OCTOPUS -> uiVis.octopus
                     com.tfcode.comparetout.ComparisonUIViewModel.Importer.SOLIS -> uiVis.solis
+                    com.tfcode.comparetout.ComparisonUIViewModel.Importer.FUSION_SOLAR -> uiVis.fusionsolar
                     else -> true
                 }
             }

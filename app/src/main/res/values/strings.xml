@@ -295,6 +295,10 @@
     <string name="solis_channel_id">Solis Importer</string>
     <string name="solis_channel_name">Solis Progress</string>
     <string name="fetch_solis_notification_title">Solis Catchup</string>
+    <string name="fusionsolar_channel_id">FusionSolar Importer</string>
+    <string name="fusionsolar_channel_name">FusionSolar Progress</string>
+    <string name="fetch_fusionsolar_notification_title">FusionSolar Catchup</string>
+    <string name="fusionsolar_sign_in_again">FusionSolar needs you to sign in again — open Data Source Management</string>
     <string name="restrictions_apply">Restrictions Apply</string>
     <string name="cost">Rate</string>
     <string name="annually">Year</string>
@@ -370,6 +374,7 @@
     <string name="brand_alphaess" translatable="false">AlphaESS</string>
     <string name="brand_esbn" translatable="false">ESBN Smart Meter</string>
     <string name="brand_solis" translatable="false">Solis Cloud</string>
+    <string name="brand_fusionsolar" translatable="false">FusionSolar</string>
     <string name="brand_pvgis" translatable="false">PVGIS</string>
     <string name="brand_cds" translatable="false">Copernicus CDS</string>
 
@@ -1228,6 +1233,7 @@
     <string name="ui2_dsm_esbn_sub">HDF file import + experimental cloud sync</string>
     <string name="ui2_dsm_octopus_sub">Half-hourly meter sync + tariff import</string>
     <string name="ui2_dsm_solis_sub">Station sync via Platform API</string>
+    <string name="ui2_dsm_fusionsolar_sub">Plant sync via the FusionSolar portal</string>
     <string name="ui2_dsm_pvgis_title">PVGIS (solar)</string>
     <string name="ui2_dsm_pvgis_sub">EU JRC solar irradiance · no account needed</string>
     <string name="ui2_dsm_cds_title">Copernicus CDS (weather)</string>
@@ -1324,6 +1330,15 @@
     <string name="ui2_dsm_solis_hint">Solis needs an API Key ID and secret from soliscloud.com (Account → API Management — raise a service ticket if the menu is missing). Stations are discovered automatically; data updates every 5 minutes on the Solis side.</string>
     <string name="ui2_dsm_solis_empty">Stations will appear here once credentials are validated.</string>
     <string name="ui2_dsm_solis_creds_title">Solis Cloud credentials</string>
+    <string name="ui2_dsm_fusionsolar_hint">FusionSolar uses your normal portal sign-in (the same username and password as the FusionSolar app). The password is stored encrypted on this device and sent only to Huawei\'s servers. Plants are discovered automatically; data is 5-minute and backfills day by day. If Huawei asks for a captcha, the code entry appears right in the sign-in dialog.</string>
+    <string name="ui2_dsm_fusionsolar_empty">Plants will appear here once credentials are validated.</string>
+    <string name="ui2_dsm_fusionsolar_creds_title">FusionSolar sign-in</string>
+    <string name="ui2_dsm_fusionsolar_username">Username</string>
+    <string name="ui2_dsm_fusionsolar_password">Password</string>
+    <string name="ui2_dsm_fusionsolar_server">Server (region)</string>
+    <string name="ui2_dsm_fusionsolar_password_notice">Your portal password is stored encrypted on this device and used only to sign in to Huawei\'s servers.</string>
+    <string name="ui2_dsm_fusionsolar_captcha_prompt">Huawei asks for a captcha — type the characters shown:</string>
+    <string name="ui2_dsm_fusionsolar_captcha_label">Captcha code</string>
     <string name="ui2_dsm_api_key_id">API Key ID</string>
     <string name="ui2_dsm_api_secret">API secret</string>
     <string name="ui2_dsm_n_cached">%1$d cached</string>
@@ -1523,6 +1538,7 @@
     <string name="ui2_wiz_tap_zoom_in">Tap a chart to zoom in</string>
     <string name="ui2_wiz_select_pv_source">Select PV source</string>
     <string name="ui2_wiz_solis" translatable="false">Solis</string>
+    <string name="ui2_wiz_fusionsolar" translatable="false">FusionSolar</string>
 
     <!-- Tranche 7: UI2WizardActivity -->
     <string name="ui2_wiz_name_in_use">Name already in use</string>

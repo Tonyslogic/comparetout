@@ -96,6 +96,15 @@ android {
     testOptions {
         execution 'ANDROIDX_TEST_ORCHESTRATOR'
     }
+    sourceSets {
+        // The *Phase0Probe.java files are standalone JDK-only diagnostics
+        // (manual `main`, single-file source launch: `java <path>.java`).
+        // They depend on java.net.http, which is absent from Android's unit
+        // test compile classpath (android.jar), so they must be kept out of
+        // the JUnit source set — they declare no @Test and are never run by
+        // Gradle anyway. Excluding them does not affect `java <path>.java`.
+        test.java.exclude '**/*Phase0Probe.java'
+    }
 }
 
 dependencies {

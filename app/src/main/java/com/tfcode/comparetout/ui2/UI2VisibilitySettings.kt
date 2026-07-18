@@ -71,6 +71,8 @@ data class UiVisibility(
     val esbn: Boolean = true,
     val octopus: Boolean = true,
     val solis: Boolean = true,
+    // FusionSolar sells worldwide — never region-gated (like AlphaESS/HA/Solis).
+    val fusionsolar: Boolean = true,
     // Weather/PV caches (PVGIS solar, Copernicus CDS weather)
     val pvgis: Boolean = true,
     val cds: Boolean = true,
@@ -150,6 +152,7 @@ object UiVisibilityStore {
                 esbn = flag("esbn"),
                 octopus = flag("octopus"),
                 solis = flag("solis"),
+                fusionsolar = flag("fusionsolar"),
                 pvgis = flag("pvgis"),
                 cds = flag("cds"),
                 wholesale = flag("wholesale")

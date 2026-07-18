@@ -2367,6 +2367,7 @@ private fun PvSourceDialog(
                         ComparisonUIViewModel.Importer.ALPHAESS       -> stringResource(R.string.brand_alphaess)
                         ComparisonUIViewModel.Importer.HOME_ASSISTANT -> stringResource(R.string.home_assistant)
                         ComparisonUIViewModel.Importer.SOLIS          -> stringResource(R.string.ui2_wiz_solis)
+                        ComparisonUIViewModel.Importer.FUSION_SOLAR   -> stringResource(R.string.ui2_wiz_fusionsolar)
                         else -> src.sysSn
                     }
                     Row(

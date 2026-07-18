@@ -129,9 +129,10 @@ class UI2GraphsViewModel @Inject constructor(
                             val set = CORE_FILTERS.toMutableSet()
                             if (hasBatteryData) {
                                 if (importerType == ComparisonUIViewModel.Importer.HOME_ASSISTANT
-                                    || importerType == ComparisonUIViewModel.Importer.SOLIS) {
-                                    // HA and Solis store only the signed battery charge — no
-                                    // pv2bat/bat2load/... flow decomposition to offer.
+                                    || importerType == ComparisonUIViewModel.Importer.SOLIS
+                                    || importerType == ComparisonUIViewModel.Importer.FUSION_SOLAR) {
+                                    // HA, Solis and FusionSolar store only the signed battery
+                                    // charge — no pv2bat/bat2load/... flow decomposition to offer.
                                     set.add(FilterSeries.BAT_CHARGE)
                                     set.add(FilterSeries.BAT_DISCHARGE)
                                 } else {

@@ -100,6 +100,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
@@ -173,6 +174,8 @@ private fun DataSourceManagementScreen(
     val esbnRaw by viewModel.esbn.observeAsState()
     val octopusRaw by viewModel.octopus.observeAsState()
     val solisRaw by viewModel.solis.observeAsState()
+    val fusionsolarRaw by viewModel.fusionsolar.observeAsState()
+    val fusionSolarCaptcha by viewModel.fusionSolarCaptcha.observeAsState()
     val fetchMap by viewModel.fetchStatus.observeAsState(emptyMap())
     val haSensors by viewModel.haSensors.observeAsState()
     val pvgis by viewModel.pvgis.observeAsState()
@@ -201,6 +204,7 @@ private fun DataSourceManagementScreen(
     val esbn = esbnRaw?.withLiveFetch(fetchMap)
     val octopus = octopusRaw?.withLiveFetch(fetchMap)
     val solis = solisRaw?.withLiveFetch(fetchMap)
+    val fusionsolar = fusionsolarRaw?.withLiveFetch(fetchMap)
     val (showHints, toggleShowHints) = rememberShowHints()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -363,6 +367,29 @@ private fun DataSourceManagementScreen(
                                 onDeleteAll = viewModel::deleteAllData,
                                 onDeleteRange = viewModel::deleteRange,
                                 onRemoveSource = { viewModel.deleteEntireSource(Importer.SOLIS) }
+                            )
+                        }
+                    )
+                }
+                if (uiVis.fusionsolar) item("fusionsolar") {
+                    SourceAccordion(
+                        title = stringResource(R.string.brand_fusionsolar),
+                        subtitle = stringResource(R.string.ui2_dsm_fusionsolar_sub),
+                        state = fusionsolar,
+                        showHints = showHints,
+                        body = {
+                            FusionSolarSection(
+                                state = fusionsolar,
+                                showHints = showHints,
+                                captchaImage = fusionSolarCaptcha,
+                                onSetCredentials = viewModel::setFusionSolarCredentials,
+                                onClearCaptcha = viewModel::clearFusionSolarCaptcha,
+                                onSelect = viewModel::selectFusionSolarStation,
+                                onFetch = viewModel::fetchFusionSolar,
+                                onCancel = viewModel::cancelFetch,
+                                onDeleteAll = viewModel::deleteAllData,
+                                onDeleteRange = viewModel::deleteRange,
+                                onRemoveSource = { viewModel.deleteEntireSource(Importer.FUSION_SOLAR) }
                             )
                         }
                     )
@@ -1715,6 +1742,195 @@ private fun SolisSection(
             }
         )
     }
+}
+
+/**
+ * FusionSolar (Huawei) — clone of [SolisSection] plus the captcha
+ * round-trip: when the portal demands one, [captchaImage] is non-null, the
+ * credential dialog (re)opens showing the image and a code field, and the
+ * submit re-runs the probe with the typed code.
+ */
+@Composable
+private fun FusionSolarSection(
+    state: SourceState?,
+    showHints: Boolean,
+    captchaImage: ByteArray?,
+    onSetCredentials: (String, String, String, String?) -> Unit,
+    onClearCaptcha: () -> Unit,
+    onSelect: (String) -> Unit,
+    onFetch: (String, LocalDateTime) -> Unit,
+    onCancel: (String) -> Unit,
+    onDeleteAll: (String) -> Unit,
+    onDeleteRange: (String, LocalDateTime, LocalDateTime) -> Unit,
+    onRemoveSource: () -> Unit
+) {
+    var showCreds by remember { mutableStateOf(false) }
+    var showDeleteSource by remember { mutableStateOf(false) }
+    var pendingDelete by remember { mutableStateOf<ManagedSystem?>(null) }
+    var pendingFetch by remember { mutableStateOf<ManagedSystem?>(null) }
+    // A captcha demand re-opens the sheet so the user can answer it.
+    LaunchedEffect(captchaImage) {
+        if (captchaImage != null) showCreds = true
+    }
+    if (showHints) {
+        HintLine(stringResource(R.string.ui2_dsm_fusionsolar_hint))
+    }
+    CredentialStrip(
+        configured = state?.credentialsConfigured == true,
+        good = state?.credentialsKnownGood == true,
+        onEdit = { showCreds = true },
+        onDeleteSource = if (state?.credentialsConfigured == true || !state?.systems.isNullOrEmpty())
+            ({ showDeleteSource = true }) else null
+    )
+    SystemList(
+        systems = state?.systems.orEmpty(),
+        selected = state?.selectedSn,
+        canFetch = state?.credentialsKnownGood == true,
+        onSelect = onSelect,
+        onFetch = { sn ->
+            val sys = state?.systems?.firstOrNull { it.sysSn == sn } ?: return@SystemList
+            pendingFetch = sys
+        },
+        onCancel = onCancel,
+        onDelete = { sys -> pendingDelete = sys }
+        // No per-row file import — FusionSolar is cloud-sync only (UI2-only source).
+    )
+    if (state?.systems.isNullOrEmpty() && showHints) {
+        Text(stringResource(R.string.ui2_dsm_fusionsolar_empty),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    if (showCreds) {
+        FusionSolarCredentialDialog(
+            captchaImage = captchaImage,
+            onDismiss = {
+                showCreds = false
+                onClearCaptcha()
+            },
+            onSubmit = { u, p, h, code ->
+                onSetCredentials(u, p, h, code)
+                showCreds = false
+            }
+        )
+    }
+    if (showDeleteSource) {
+        DeleteSourceDialog(
+            sourceName = stringResource(R.string.brand_fusionsolar),
+            mentionsCredentials = true,
+            onDismiss = { showDeleteSource = false },
+            onConfirm = { onRemoveSource(); showDeleteSource = false }
+        )
+    }
+    pendingDelete?.let { sys ->
+        DeleteDialog(
+            sysSn = sys.sysSn,
+            availableStart = sys.startDate,
+            availableEnd = sys.endDate,
+            onDismiss = { pendingDelete = null },
+            onDeleteAll = { onDeleteAll(sys.sysSn); pendingDelete = null },
+            onDeleteRange = { f, t -> onDeleteRange(sys.sysSn, f, t); pendingDelete = null }
+        )
+    }
+    pendingFetch?.let { sys ->
+        FetchStartDialog(
+            sysSn = sys.sysSn,
+            lastDataDate = sys.endDate?.let { runCatching { LocalDate.parse(it) }.getOrNull() },
+            onDismiss = { pendingFetch = null },
+            onConfirm = { start ->
+                onFetch(sys.sysSn, start)
+                pendingFetch = null
+            }
+        )
+    }
+}
+
+/**
+ * Username / Password / Server, plus a captcha row that appears only when
+ * the portal demanded one. The password is the user's full portal password —
+ * the in-dialog notice says it is stored encrypted on this device and sent
+ * only to Huawei's servers.
+ */
+@Composable
+private fun FusionSolarCredentialDialog(
+    captchaImage: ByteArray?,
+    onDismiss: () -> Unit,
+    onSubmit: (String, String, String, String?) -> Unit
+) {
+    var user by remember { mutableStateOf("") }
+    var pass by remember { mutableStateOf("") }
+    var host by remember { mutableStateOf("") }
+    var code by remember { mutableStateOf("") }
+    val captchaBitmap = remember(captchaImage) {
+        captchaImage?.let {
+            runCatching { BitmapFactory.decodeByteArray(it, 0, it.size) }.getOrNull()
+        }
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.ui2_dsm_fusionsolar_creds_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceVariant,
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text(
+                        stringResource(R.string.ui2_dsm_fusionsolar_password_notice),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
+                    )
+                }
+                OutlinedTextField(
+                    value = user, onValueChange = { user = it },
+                    label = { Text(stringResource(R.string.ui2_dsm_fusionsolar_username)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = pass, onValueChange = { pass = it },
+                    label = { Text(stringResource(R.string.ui2_dsm_fusionsolar_password)) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                OutlinedTextField(
+                    value = host, onValueChange = { host = it },
+                    label = { Text(stringResource(R.string.ui2_dsm_fusionsolar_server)) },
+                    placeholder = { Text("region01eu5") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                if (captchaBitmap != null) {
+                    Text(stringResource(R.string.ui2_dsm_fusionsolar_captcha_prompt),
+                        style = MaterialTheme.typography.bodySmall)
+                    androidx.compose.foundation.Image(
+                        bitmap = captchaBitmap.asImageBitmap(),
+                        contentDescription = stringResource(
+                            R.string.ui2_dsm_fusionsolar_captcha_label),
+                        modifier = Modifier.fillMaxWidth().heightIn(max = 96.dp)
+                    )
+                    OutlinedTextField(
+                        value = code, onValueChange = { code = it },
+                        label = { Text(stringResource(
+                            R.string.ui2_dsm_fusionsolar_captcha_label)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                onSubmit(user.trim(), pass, host.trim(), code.trim().ifEmpty { null })
+            }) {
+                Text(stringResource(R.string.ui2_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.dialog_cancel)) }
+        }
+    )
 }
 
 // ── Weather/PV sources (PVGIS, CDS) — Phase 5.5 ────────────────────────

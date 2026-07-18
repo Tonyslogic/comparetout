@@ -829,9 +829,11 @@ class UI2DashboardViewModel @Inject constructor(
                     ComparisonUIViewModel.Importer.ALPHAESS        ->
                         repository.getKeyStats(item.startDate, item.endDate, item.sysSn)
                     // The HA key-stats query is generic over the transformed
-                    // table; Solis rows carry pv/load/charge so it applies too.
+                    // table; Solis/FusionSolar rows carry pv/load/charge so
+                    // it applies too.
                     ComparisonUIViewModel.Importer.HOME_ASSISTANT,
-                    ComparisonUIViewModel.Importer.SOLIS           ->
+                    ComparisonUIViewModel.Importer.SOLIS,
+                    ComparisonUIViewModel.Importer.FUSION_SOLAR    ->
                         repository.getHAKeyStats(item.startDate, item.endDate, item.sysSn)
                     else -> emptyList()
                 }
@@ -988,6 +990,7 @@ data class DashboardDataSourceInfo(
         ComparisonUIViewModel.Importer.HOME_ASSISTANT  -> "Home Assistant"
         ComparisonUIViewModel.Importer.OCTOPUS         -> "Octopus"
         ComparisonUIViewModel.Importer.SOLIS           -> "Solis"
+        ComparisonUIViewModel.Importer.FUSION_SOLAR    -> "FusionSolar"
         else -> importerType.name
     }
 }

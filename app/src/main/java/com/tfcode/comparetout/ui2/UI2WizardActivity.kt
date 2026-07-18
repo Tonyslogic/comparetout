@@ -1527,6 +1527,7 @@ private fun DeriveFromSourceDialog(
                             ComparisonUIViewModel.Importer.HOME_ASSISTANT  -> R.string.home_assistant
                             ComparisonUIViewModel.Importer.OCTOPUS         -> R.string.ui2_wiz_octopus_word
                             ComparisonUIViewModel.Importer.SOLIS           -> R.string.ui2_wiz_solis
+                            ComparisonUIViewModel.Importer.FUSION_SOLAR    -> R.string.ui2_wiz_fusionsolar
                             else -> R.string.ui2_wiz_unknown
                         })
                         Row(

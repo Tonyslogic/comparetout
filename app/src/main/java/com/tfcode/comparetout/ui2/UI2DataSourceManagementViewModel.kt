@@ -39,6 +39,11 @@ import com.tfcode.comparetout.importers.octopus.OctopusCatchUpWorker
 import com.tfcode.comparetout.importers.octopus.OctopusCsvImportWorker
 import com.tfcode.comparetout.importers.octopus.OctopusRestClient
 import com.tfcode.comparetout.importers.octopus.OctopusSystem
+import com.tfcode.comparetout.importers.fusionsolar.FusionSolarAuthException
+import com.tfcode.comparetout.importers.fusionsolar.FusionSolarCaptchaRequiredException
+import com.tfcode.comparetout.importers.fusionsolar.FusionSolarCatchUpWorker
+import com.tfcode.comparetout.importers.fusionsolar.FusionSolarClient
+import com.tfcode.comparetout.importers.fusionsolar.FusionSolarDataMassager
 import com.tfcode.comparetout.importers.solis.SolisCatchUpWorker
 import com.tfcode.comparetout.importers.solis.SolisCloudAuthException
 import com.tfcode.comparetout.importers.solis.SolisCloudClient
@@ -111,6 +116,16 @@ private const val SOLIS_GOOD_KEY = "solis_cred_good"
 private const val SOLIS_SYSTEM_LIST_KEY = "solis_station_list"
 private const val SOLIS_SELECTED_KEY = "solis_selected"
 
+// FusionSolar stores a full portal username + password (more sensitive than
+// the API key pairs) — encrypted like the others; the help text says so
+// plainly. The host key persists the region the login landed on.
+private const val FUSIONSOLAR_USERNAME_KEY = "fusionsolar_username"
+private const val FUSIONSOLAR_PASSWORD_KEY = "fusionsolar_password"
+private const val FUSIONSOLAR_HOST_KEY = "fusionsolar_host"
+private const val FUSIONSOLAR_GOOD_KEY = "fusionsolar_cred_good"
+private const val FUSIONSOLAR_SYSTEM_LIST_KEY = "fusionsolar_station_list"
+private const val FUSIONSOLAR_SELECTED_KEY = "fusionsolar_selected"
+
 // Weather/PV "data sources" (Phase 5.5). PVGIS is anonymous (no credentials);
 // CDS stores an encrypted Personal Access Token mirroring AlphaESS/HA. The
 // PVGIS "cache" is the per-panel `PanelData` already in the DB (the UI2 fetch
@@ -132,6 +147,18 @@ data class SolisStation(
     val id: String,
     val name: String,
     val money: String?
+)
+
+/**
+ * One FusionSolar plant from the credential probe, persisted as JSON under
+ * [FUSIONSOLAR_SYSTEM_LIST_KEY]. [dn] is the raw portal identifier
+ * ("NE=…") every data call takes; [sysSn] is the storage namespace
+ * ("FusionSolar-…", dn with the NE= prefix stripped).
+ */
+data class FusionSolarStation(
+    val dn: String,
+    val name: String,
+    val sysSn: String
 )
 
 /** One configured system within a source — SN/MPRN + the date range we have. */
@@ -254,6 +281,13 @@ class UI2DataSourceManagementViewModel @Inject constructor(
     val octopus: LiveData<SourceState> = _octopus
     private val _solis = MutableLiveData<SourceState>()
     val solis: LiveData<SourceState> = _solis
+    private val _fusionsolar = MutableLiveData<SourceState>()
+    val fusionsolar: LiveData<SourceState> = _fusionsolar
+    // Captcha image demanded by the last FusionSolar login attempt; non-null
+    // makes the credential sheet show the image + code field. Cleared on
+    // success and on cancel.
+    private val _fusionSolarCaptcha = MutableLiveData<ByteArray?>(null)
+    val fusionSolarCaptcha: LiveData<ByteArray?> = _fusionSolarCaptcha
     private val _haSensors = MutableLiveData<HASensorSnapshot?>()
     val haSensors: LiveData<HASensorSnapshot?> = _haSensors
     private val _pvgis = MutableLiveData<WeatherSourceState>()
@@ -315,11 +349,13 @@ class UI2DataSourceManagementViewModel @Inject constructor(
             val e = buildEsbnState()
             val o = buildOctopusState()
             val s = buildSolisState()
+            val f = buildFusionSolarState()
             _alpha.postValue(a)
             _ha.postValue(h)
             _esbn.postValue(e)
             _octopus.postValue(o)
             _solis.postValue(s)
+            _fusionsolar.postValue(f)
             _haSensors.postValue(readHASensors())
             // PVGIS state is driven by the panelDataSummary observer, not here.
             _cds.postValue(buildCdsState())
@@ -327,7 +363,7 @@ class UI2DataSourceManagementViewModel @Inject constructor(
             // (Re-)attach WorkManager observers for the union of all SNs
             // so the live "fetching" indicator stays accurate as systems
             // appear and disappear from the lists.
-            val sns = (a.systems + h.systems + e.systems + o.systems + s.systems)
+            val sns = (a.systems + h.systems + e.systems + o.systems + s.systems + f.systems)
                 .map { it.sysSn }.toSet()
             withContext(Dispatchers.Main) { syncWorkObservers(sns) }
         }
@@ -582,6 +618,7 @@ class UI2DataSourceManagementViewModel @Inject constructor(
             _ha.postValue(buildHAState())
             _esbn.postValue(buildEsbnState())
             _solis.postValue(buildSolisState())
+            _fusionsolar.postValue(buildFusionSolarState())
         }
     }
 
@@ -1354,6 +1391,169 @@ class UI2DataSourceManagementViewModel @Inject constructor(
         }
     }
 
+    // ── FusionSolar (Huawei) ────────────────────────────────────────────
+
+    private fun parseFusionSolarStations(raw: String?): List<FusionSolarStation> {
+        if (raw.isNullOrBlank()) return emptyList()
+        return runCatching {
+            gson.fromJson<List<FusionSolarStation>>(raw,
+                object : TypeToken<List<FusionSolarStation>>() {}.type) ?: emptyList()
+        }.getOrDefault(emptyList())
+    }
+
+    private fun buildFusionSolarState(): SourceState {
+        val stations = parseFusionSolarStations(
+            app.getStringValueFromDataStore(FUSIONSOLAR_SYSTEM_LIST_KEY))
+        val good = app.getStringValueFromDataStore(FUSIONSOLAR_GOOD_KEY) != "False"
+        val configured =
+            app.getStringValueFromDataStore(FUSIONSOLAR_USERNAME_KEY).orEmpty().isNotEmpty()
+        val selected =
+            app.getStringValueFromDataStore(FUSIONSOLAR_SELECTED_KEY)?.ifEmpty { null }
+        return SourceState(
+            importer = ComparisonUIViewModel.Importer.FUSION_SOLAR,
+            credentialsConfigured = configured,
+            credentialsKnownGood = configured && good,
+            systems = stations.map { systemRow(it.sysSn) },
+            selectedSn = selected
+        )
+    }
+
+    /**
+     * Update FusionSolar credentials (the full portal username + password —
+     * stored encrypted, the help text says so plainly). Probes login +
+     * station list to discover the plants and persists the region host the
+     * login landed on. A captcha demand posts the image to
+     * [fusionSolarCaptcha]; the sheet shows it and calls this again with
+     * [verifycode]. Auth, captcha and network failures get distinct toasts
+     * because their fixes differ.
+     */
+    fun setFusionSolarCredentials(
+        username: String, password: String, host: String, verifycode: String? = null
+    ) {
+        if (username.isBlank() || password.isBlank()) {
+            _toast.postValue(Toast("FusionSolar username and password are required"))
+            return
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            _busy.postValue(true)
+            try {
+                app.putStringValueIntoDataStore(FUSIONSOLAR_USERNAME_KEY,
+                    TOUTCApplication.encryptString(username.trim()))
+                app.putStringValueIntoDataStore(FUSIONSOLAR_PASSWORD_KEY,
+                    TOUTCApplication.encryptString(password))
+                val client = FusionSolarClient(username.trim(), password, host.trim())
+                client.login(verifycode?.trim()?.ifEmpty { null })
+                val stations = client.stationList.mapNotNull { s ->
+                    s.dn?.let {
+                        FusionSolarStation(it, s.name ?: it, FusionSolarDataMassager.sysSnFor(it))
+                    }
+                }
+                if (stations.isEmpty()) {
+                    app.putStringValueIntoDataStore(FUSIONSOLAR_GOOD_KEY, "False")
+                    _toast.postValue(Toast("No plants found on this FusionSolar account"))
+                } else {
+                    app.putStringValueIntoDataStore(FUSIONSOLAR_GOOD_KEY, "True")
+                    app.putStringValueIntoDataStore(FUSIONSOLAR_SYSTEM_LIST_KEY,
+                        gson.toJson(stations))
+                    // The landed region host — later runs start there directly.
+                    app.putStringValueIntoDataStore(FUSIONSOLAR_HOST_KEY, client.resolvedHost)
+                    if (stations.size == 1) {
+                        app.putStringValueIntoDataStore(FUSIONSOLAR_SELECTED_KEY,
+                            stations[0].sysSn)
+                    }
+                    _toast.postValue(Toast("Credentials saved (${stations.size} plant(s))"))
+                }
+                _fusionSolarCaptcha.postValue(null)
+            } catch (e: FusionSolarCaptchaRequiredException) {
+                app.putStringValueIntoDataStore(FUSIONSOLAR_GOOD_KEY, "False")
+                _fusionSolarCaptcha.postValue(e.captchaImage)
+                _toast.postValue(Toast("FusionSolar asks for a captcha — type the code shown"))
+            } catch (e: FusionSolarAuthException) {
+                app.putStringValueIntoDataStore(FUSIONSOLAR_GOOD_KEY, "False")
+                _toast.postValue(Toast("FusionSolar rejected the sign-in — check username and password"))
+            } catch (t: Throwable) {
+                app.putStringValueIntoDataStore(FUSIONSOLAR_GOOD_KEY, "False")
+                _toast.postValue(Toast(t.message ?: "FusionSolar error"))
+            } finally {
+                _fusionsolar.postValue(buildFusionSolarState())
+                _busy.postValue(false)
+            }
+        }
+    }
+
+    /** Drop the pending captcha image (the user dismissed the sheet). */
+    fun clearFusionSolarCaptcha() {
+        _fusionSolarCaptcha.postValue(null)
+    }
+
+    fun selectFusionSolarStation(sysSn: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            app.putStringValueIntoDataStore(FUSIONSOLAR_SELECTED_KEY, sysSn)
+            _fusionsolar.postValue(buildFusionSolarState())
+        }
+    }
+
+    /**
+     * Start FusionSolar fetch (catch-up + periodic daily). Same tag
+     * conventions as the other importers so the shared fetch indicator /
+     * cancel paths apply. The workers carry EXPONENTIAL backoff criteria
+     * because FusionSolarClient surfaces transient exhaustion as
+     * Result.retry().
+     */
+    fun fetchFusionSolar(sysSn: String, startDate: LocalDateTime) {
+        viewModelScope.launch(Dispatchers.IO) {
+            // Presence check only — secrets never enter worker Data
+            // (plans/source/security.md §1); the workers resolve them from the
+            // encrypted DataStore via CredentialStore themselves.
+            if (CredentialStore.get(app, CredentialStore.Source.FUSION_SOLAR) == null) {
+                _toast.postValue(Toast("Set FusionSolar credentials first"))
+                return@launch
+            }
+            val station = parseFusionSolarStations(
+                app.getStringValueFromDataStore(FUSIONSOLAR_SYSTEM_LIST_KEY))
+                .firstOrNull { it.sysSn == sysSn }
+            if (station == null) {
+                _toast.postValue(Toast("Unknown FusionSolar plant $sysSn"))
+                return@launch
+            }
+            val host = app.getStringValueFromDataStore(FUSIONSOLAR_HOST_KEY).orEmpty()
+            val date = dateFmt.format(toDate(startDate))
+            val catchInput = Data.Builder()
+                .putString(FusionSolarCatchUpWorker.KEY_HOST, host)
+                .putString(FusionSolarCatchUpWorker.KEY_STATION_DN, station.dn)
+                .putString(FusionSolarCatchUpWorker.KEY_STATION_NAME, station.name)
+                .putString(FusionSolarCatchUpWorker.KEY_START_DATE, date)
+                .build()
+            val catchReq = OneTimeWorkRequest.Builder(FusionSolarCatchUpWorker::class.java)
+                .setInputData(catchInput)
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
+                .addTag(sysSn)
+                .build()
+            wm.pruneWork()
+            // APPEND_OR_REPLACE, not APPEND: APPEND chains onto the existing unique
+            // work even when it FAILED/CANCELLED, so one bad run silently strands
+            // every later fetch (no worker, no notification, no data).
+            wm.beginUniqueWork(sysSn, ExistingWorkPolicy.APPEND_OR_REPLACE, catchReq).enqueue()
+
+            // Daily incremental sync: no start date ⇒ the worker fetches yesterday.
+            val dailyInput = Data.Builder()
+                .putString(FusionSolarCatchUpWorker.KEY_HOST, host)
+                .putString(FusionSolarCatchUpWorker.KEY_STATION_DN, station.dn)
+                .putString(FusionSolarCatchUpWorker.KEY_STATION_NAME, station.name)
+                .build()
+            val initialDelayHours = (25 - LocalDateTime.now().hour).toLong()
+            val dailyReq = PeriodicWorkRequest.Builder(FusionSolarCatchUpWorker::class.java, 1, TimeUnit.DAYS)
+                .setInputData(dailyInput)
+                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 30, TimeUnit.SECONDS)
+                .setInitialDelay(initialDelayHours, TimeUnit.HOURS)
+                .addTag(sysSn + "daily")
+                .build()
+            wm.enqueueUniquePeriodicWork(sysSn + "daily", ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE, dailyReq)
+            _toast.postValue(Toast("Fetch started for ${station.name}"))
+            _fusionsolar.postValue(buildFusionSolarState())
+        }
+    }
+
     // ── Common — deletion ──────────────────────────────────────────────
 
     /**
@@ -1370,6 +1570,7 @@ class UI2DataSourceManagementViewModel @Inject constructor(
             _esbn.postValue(buildEsbnState())
             _octopus.postValue(buildOctopusState())
             _solis.postValue(buildSolisState())
+            _fusionsolar.postValue(buildFusionSolarState())
         }
     }
 
@@ -1382,6 +1583,7 @@ class UI2DataSourceManagementViewModel @Inject constructor(
             _esbn.postValue(buildEsbnState())
             _octopus.postValue(buildOctopusState())
             _solis.postValue(buildSolisState())
+            _fusionsolar.postValue(buildFusionSolarState())
         }
     }
 
@@ -1403,6 +1605,7 @@ class UI2DataSourceManagementViewModel @Inject constructor(
                     ComparisonUIViewModel.Importer.ESBNHDF -> buildEsbnState().systems
                     ComparisonUIViewModel.Importer.OCTOPUS -> buildOctopusState().systems
                     ComparisonUIViewModel.Importer.SOLIS -> buildSolisState().systems
+                    ComparisonUIViewModel.Importer.FUSION_SOLAR -> buildFusionSolarState().systems
                     else -> emptyList()
                 }.map { it.sysSn }
                 sns.forEach { sn ->
@@ -1448,6 +1651,14 @@ class UI2DataSourceManagementViewModel @Inject constructor(
                         app.putStringValueIntoDataStore(SOLIS_SYSTEM_LIST_KEY, "")
                         app.putStringValueIntoDataStore(SOLIS_SELECTED_KEY, "")
                     }
+                    ComparisonUIViewModel.Importer.FUSION_SOLAR -> {
+                        app.putStringValueIntoDataStore(FUSIONSOLAR_USERNAME_KEY, "")
+                        app.putStringValueIntoDataStore(FUSIONSOLAR_PASSWORD_KEY, "")
+                        app.putStringValueIntoDataStore(FUSIONSOLAR_HOST_KEY, "")
+                        app.putStringValueIntoDataStore(FUSIONSOLAR_GOOD_KEY, "")
+                        app.putStringValueIntoDataStore(FUSIONSOLAR_SYSTEM_LIST_KEY, "")
+                        app.putStringValueIntoDataStore(FUSIONSOLAR_SELECTED_KEY, "")
+                    }
                     else -> {}
                 }
                 _toast.postValue(Toast("Source removed"))
@@ -1459,6 +1670,7 @@ class UI2DataSourceManagementViewModel @Inject constructor(
                 _esbn.postValue(buildEsbnState())
                 _octopus.postValue(buildOctopusState())
                 _solis.postValue(buildSolisState())
+                _fusionsolar.postValue(buildFusionSolarState())
                 _haSensors.postValue(readHASensors())
                 _busy.postValue(false)
             }
