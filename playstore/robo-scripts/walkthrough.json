@@ -4,6 +4,29 @@
     "delayTime": 5000
   },
   {
+    "eventType": "PERMISSIONS_REQUEST",
+    "requestedPermissions": [
+      "android.permission.POST_NOTIFICATIONS"
+    ],
+    "elementDescriptors": []
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "Got it" }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "OK" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 2000
+  },
+  {
     "eventType": "VIEW_CLICKED",
     "elementDescriptors": [
       { "text": "Try with sample data" }
@@ -28,11 +51,55 @@
   {
     "eventType": "VIEW_CLICKED",
     "elementDescriptors": [
+      { "text": "Tariff Plan" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 3000
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "Explore data" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 3000
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
       { "contentDescription": "View graphs" }
     ]
   },
   {
+    "eventType": "WAIT",
+    "delayTime": 5000
+  },
+  {
     "eventType": "PRESSED_BACK"
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "KPIs" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 3000
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "Visual overview" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 3000
   },
   {
     "eventType": "VIEW_CLICKED",
@@ -41,16 +108,54 @@
     ]
   },
   {
+    "eventType": "WAIT",
+    "delayTime": 2000
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "Sources" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 2000
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "Filter" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 2000
+  },
+  {
     "eventType": "VIEW_CLICKED",
     "elementDescriptors": [
       { "text": "Directors" }
     ]
   },
   {
+    "eventType": "WAIT",
+    "delayTime": 3000
+  },
+  {
     "eventType": "VIEW_CLICKED",
     "elementDescriptors": [
       { "contentDescription": "Menu" }
     ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "Supplier Plans" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 3000
   },
   {
     "eventType": "PRESSED_BACK"
@@ -64,8 +169,18 @@
   {
     "eventType": "VIEW_CLICKED",
     "elementDescriptors": [
-      { "text": "+ Create new" }
+      { "contentDescription": "Options" }
     ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "Edit" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 2000
   },
   {
     "eventType": "VIEW_CLICKED",
@@ -74,10 +189,18 @@
     ]
   },
   {
+    "eventType": "WAIT",
+    "delayTime": 1500
+  },
+  {
     "eventType": "VIEW_CLICKED",
     "elementDescriptors": [
       { "contentDescription": "Wizard section: Inverters" }
     ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 1500
   },
   {
     "eventType": "VIEW_CLICKED",
@@ -86,10 +209,18 @@
     ]
   },
   {
+    "eventType": "WAIT",
+    "delayTime": 1500
+  },
+  {
     "eventType": "VIEW_CLICKED",
     "elementDescriptors": [
       { "contentDescription": "Wizard section: Battery" }
     ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 1500
   },
   {
     "eventType": "VIEW_CLICKED",
@@ -98,18 +229,20 @@
     ]
   },
   {
+    "eventType": "WAIT",
+    "delayTime": 1500
+  },
+  {
     "eventType": "VIEW_CLICKED",
     "elementDescriptors": [
       { "contentDescription": "Wizard section: EV" }
     ]
   },
   {
-    "eventType": "PRESSED_BACK"
+    "eventType": "WAIT",
+    "delayTime": 1500
   },
   {
-    "eventType": "VIEW_CLICKED",
-    "elementDescriptors": [
-      { "text": "Leave" }
-    ]
+    "eventType": "PRESSED_BACK"
   }
 ]

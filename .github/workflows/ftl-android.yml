@@ -66,14 +66,90 @@ jobs:
         with:
           project_id: ${{ vars.GCP_PROJECT_ID }}
 
-      - name: Run smoke test on Firebase Test Lab
+      - name: Run smoke suite on Firebase Test Lab
+        # Runs every Smoke* test class across a 4-device matrix in parallel.
+        # ~6 min wall-clock; quota-free virtual devices.
         run: |
           gcloud firebase test android run \
             --type instrumentation \
             --app app/build/outputs/apk/ie/debug/app-ie-debug.apk \
             --test app/build/outputs/apk/androidTest/ie/debug/app-ie-debug-androidTest.apk \
             --device "model=${{ inputs.device }},version=${{ inputs.version }},locale=en,orientation=portrait" \
-            --test-targets "class com.tfcode.comparetout.SmokeLaunchTest" \
+            --device "model=${{ inputs.device }},version=${{ inputs.version }},locale=en,orientation=landscape" \
+            --device "model=MediumTablet.arm,version=34,locale=en,orientation=landscape" \
+            --device "model=${{ inputs.device }},version=30,locale=en,orientation=portrait" \
+            --test-targets "class com.tfcode.comparetout.SmokeLaunchTest,class com.tfcode.comparetout.SmokeActivityCoverageTest,class com.tfcode.comparetout.SmokeRotationTest,class com.tfcode.comparetout.model.SmokeImportTest,class com.tfcode.comparetout.SmokePVGISTest" \
+            --use-orchestrator \
             --results-bucket=comparetout-ftl-results \
-            --timeout 5m \
+            --timeout 10m \
             --num-flaky-test-attempts 1
+
+  robo:
+    # Parallel Robo crawl driven by the hand-written walkthrough script. Same
+    # WIF + bucket setup as the instrumentation job. The script's purpose is
+    # the happy-path screenshots that Play Console pre-launch reports surface,
+    # so it runs on a phone AND a 10" tablet (both portrait) — Play Store needs
+    # tablet screenshots as listing assets, and the tablet's larger canvas
+    # produces the richer captures. The instrumentation job (above) continues
+    # to validate code across the 4-device fleet. See
+    # docs/playstore/robo-scripts.md for the script's narrative and Play
+    # Console upload procedure.
+    name: Robo walkthrough on FTL
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build app APK
+        # Robo only needs the app APK — no androidTest APK required.
+        run: ./gradlew :app:assembleIeDebug --stacktrace
+
+      - name: Authenticate to GCP via Workload Identity Federation
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/${{ vars.GCP_PROJECT_NUMBER }}/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: github-actions-ftl@${{ vars.GCP_PROJECT_ID }}.iam.gserviceaccount.com
+
+      - name: Set up gcloud
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ vars.GCP_PROJECT_ID }}
+
+      - name: Run Robo walkthrough on Firebase Test Lab
+        # 15-min timeout gives the scripted steps + post-script random crawl
+        # room to run. The script alone is ~4 min (most of which is the 120 s
+        # wait for the PVGIS+simulation chain after 'Try with sample data').
+        # Runs the same script on a phone and a 10" tablet, both portrait, so
+        # the results bucket carries Play-Store-ready captures at both form
+        # factors. All models are quota-free.
+        run: |
+          gcloud firebase test android run \
+            --type robo \
+            --app app/build/outputs/apk/ie/debug/app-ie-debug.apk \
+            --robo-script playstore/robo-scripts/walkthrough.json \
+            --device "model=MediumPhone.arm,version=34,locale=en,orientation=portrait" \
+            --device "model=MediumTablet.arm,version=34,locale=en,orientation=portrait" \
+            --results-bucket=comparetout-ftl-results \
+            --timeout 15m
