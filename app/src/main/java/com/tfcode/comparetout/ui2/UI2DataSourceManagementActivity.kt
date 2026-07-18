@@ -311,6 +311,10 @@ private fun DataSourceManagementScreen(
                             EsbnSection(
                                 state = esbn,
                                 showHints = showHints,
+                                onSetCredentials = viewModel::setEsbnCredentials,
+                                onSelect = viewModel::selectEsbnSystem,
+                                onFetch = viewModel::fetchEsbn,
+                                onCancel = viewModel::cancelFetch,
                                 onImportFile = viewModel::importEsbnFile,
                                 onDeleteAll = viewModel::deleteAllData,
                                 onDeleteRange = viewModel::deleteRange,
@@ -526,8 +530,12 @@ private fun StatusChip(state: SourceState?) {
     val (icon, tint, label) = when {
         state == null -> Triple(Icons.Outlined.Warning,
             MaterialTheme.colorScheme.outline, stringResource(R.string.ui2_dsm_loading))
-        state.importer == Importer.ESBNHDF -> Triple(Icons.Default.UploadFile,
-            MaterialTheme.colorScheme.primary, stringResource(R.string.ui2_dsm_chip_file))
+        // Without credentials ESBN is a healthy file-import source, not an
+        // unconfigured one; with credentials it reports like any cloud source
+        // (experimental sync can go invalid when ESB changes the flow).
+        state.importer == Importer.ESBNHDF && !state.credentialsConfigured ->
+            Triple(Icons.Default.UploadFile,
+                MaterialTheme.colorScheme.primary, stringResource(R.string.ui2_dsm_chip_file))
         // Systems present but no credentials (e.g. imported via a snapshot) —
         // flag clearly as needing attention rather than a neutral "Not set".
         !state.credentialsConfigured && state.systems.isNotEmpty() ->
@@ -1372,12 +1380,17 @@ private fun HASensorTable(sensors: HASensorSnapshot) {
 private fun EsbnSection(
     state: SourceState?,
     showHints: Boolean,
+    onSetCredentials: (String, String) -> Unit,
+    onSelect: (String) -> Unit,
+    onFetch: (String) -> Unit,
+    onCancel: (String) -> Unit,
     onImportFile: (String) -> Unit,
     onDeleteAll: (String) -> Unit,
     onDeleteRange: (String, LocalDateTime, LocalDateTime) -> Unit,
     onExportFolder: (String, String) -> Unit,
     onRemoveSource: () -> Unit
 ) {
+    var showCreds by remember { mutableStateOf(false) }
     var pendingDelete by remember { mutableStateOf<ManagedSystem?>(null) }
     var showDeleteSource by remember { mutableStateOf(false) }
     var exportTargetMprn by remember { mutableStateOf<String?>(null) }
@@ -1393,8 +1406,11 @@ private fun EsbnSection(
         exportTargetMprn = null
         if (uri != null && mprn != null) onExportFolder(mprn, uri.toString())
     }
-    // Always visible — even if hints off — because it explains why credentials
-    // are absent. Calling it a "hint" understates the user-blocking nature.
+    // Experimental notice — always visible when the section is expanded (NOT
+    // gated by "show hints"): cloud sync is a scraped browser flow ESB has
+    // broken before, and the user must see that before typing a password.
+    // The same text repeats inside the credential dialog, above the fields.
+    val experimentalNotice = stringResource(R.string.ui2_dsm_esbn_experimental)
     Surface(
         color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f),
         shape = RoundedCornerShape(10.dp),
@@ -1409,12 +1425,14 @@ private fun EsbnSection(
                 tint = MaterialTheme.colorScheme.onErrorContainer,
                 modifier = Modifier.size(20.dp))
             Text(
-                stringResource(R.string.ui2_dsm_esbn_deprecated),
+                experimentalNotice,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onErrorContainer
             )
         }
     }
+    // File import stays first-class, listed before the cloud controls — it is
+    // the always-works path when the experimental flow breaks.
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
@@ -1436,13 +1454,22 @@ private fun EsbnSection(
             }
         }
     }
+    CredentialStrip(
+        configured = state?.credentialsConfigured == true,
+        good = state?.credentialsKnownGood == true,
+        onEdit = { showCreds = true },
+        onDeleteSource = if (state?.credentialsConfigured == true || !state?.systems.isNullOrEmpty())
+            ({ showDeleteSource = true }) else null
+    )
     SystemList(
         systems = state?.systems.orEmpty(),
         selected = state?.selectedSn,
-        canFetch = false,
-        onSelect = { /* read-only */ },
-        onFetch = { /* no cloud fetch */ },
-        onCancel = { /* no cloud fetch */ },
+        canFetch = state?.credentialsKnownGood == true,
+        onSelect = onSelect,
+        // No start-date dialog: the HDF download is always the full history
+        // (one login + one POST per run), so there is nothing to pick.
+        onFetch = onFetch,
+        onCancel = onCancel,
         onDelete = { sys -> pendingDelete = sys },
         // ESBN import stays section-level (the "Import HDF file" button
         // above) — the file's MPRN is read from its contents, so there's
@@ -1452,10 +1479,32 @@ private fun EsbnSection(
             pickExportFolder.launch(null)
         }
     )
+    if (state?.credentialsConfigured == true) {
+        // Rate-limit hint under the fetch controls (plans/source/esbn.md §3).
+        Text(stringResource(R.string.ui2_dsm_esbn_rate_hint),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
     if (state?.systems.isNullOrEmpty() && showHints) {
         Text(stringResource(R.string.ui2_dsm_esbn_empty),
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    if (showCreds) {
+        CredentialDialog(
+            title = stringResource(R.string.ui2_dsm_esbn_creds_title),
+            userLabel = stringResource(R.string.ui2_dsm_esbn_user_label),
+            passLabel = stringResource(R.string.ui2_dsm_esbn_pass_label),
+            initialUser = "",
+            // Unmissable at the moment of credential entry — directly above
+            // the Username/Password fields.
+            warning = experimentalNotice,
+            onDismiss = { showCreds = false },
+            onSubmit = { u, p ->
+                onSetCredentials(u, p)
+                showCreds = false
+            }
+        )
     }
     pendingDelete?.let { sys ->
         DeleteDialog(
@@ -1470,7 +1519,7 @@ private fun EsbnSection(
     if (showDeleteSource) {
         DeleteSourceDialog(
             sourceName = stringResource(R.string.ui2_dsm_esbn_data),
-            mentionsCredentials = false,
+            mentionsCredentials = state?.credentialsConfigured == true,
             onDismiss = { showDeleteSource = false },
             onConfirm = { onRemoveSource(); showDeleteSource = false }
         )
@@ -2216,6 +2265,9 @@ private fun CredentialDialog(
     userLabel: String,
     passLabel: String,
     initialUser: String,
+    // Non-null → a warning banner above the fields; the ESBN experimental
+    // notice must be visible at the exact moment of credential entry.
+    warning: String? = null,
     onDismiss: () -> Unit,
     onSubmit: (String, String) -> Unit
 ) {
@@ -2226,6 +2278,20 @@ private fun CredentialDialog(
         title = { Text(title) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (warning != null) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            warning,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
+                        )
+                    }
+                }
                 OutlinedTextField(
                     value = user, onValueChange = { user = it },
                     label = { Text(userLabel) },

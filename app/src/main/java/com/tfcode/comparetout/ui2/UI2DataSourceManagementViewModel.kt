@@ -26,8 +26,12 @@ import com.tfcode.comparetout.importers.alphaess.ExportWorker
 import com.tfcode.comparetout.importers.alphaess.ImportWorker
 import com.tfcode.comparetout.importers.alphaess.OpenAlphaESSClient
 import com.tfcode.comparetout.importers.alphaess.responses.GetEssListResponse
+import com.tfcode.comparetout.importers.esbn.ESBNCatchUpWorker
 import com.tfcode.comparetout.importers.esbn.ESBNExportWorker
+import com.tfcode.comparetout.importers.esbn.ESBNHDFClient
 import com.tfcode.comparetout.importers.esbn.ESBNImportWorker
+import com.tfcode.comparetout.importers.esbn.responses.ESBNAuthException
+import com.tfcode.comparetout.importers.esbn.responses.ESBNVerificationException
 import com.tfcode.comparetout.importers.homeassistant.DeviceSensor
 import com.tfcode.comparetout.importers.homeassistant.EnergySensors
 import com.tfcode.comparetout.importers.homeassistant.HACatchupWorker
@@ -86,6 +90,12 @@ private const val HA_SENSORS_KEY = "ha_sensors"
 // (re)discovery; UI2-only (no legacy key to mirror).
 private const val HA_SERVER_RANGE_KEY = "ha_server_range"
 
+// The credential keys the legacy ESBN dialog wrote (ImportESBNOverview) — the
+// UI2 experimental cloud-sync strip reuses them so CredentialStore.Source.ESBN
+// resolves state saved by any app version.
+private const val ESBN_USER_KEY = "esbn_user_id"
+private const val ESBN_PASSWORD_KEY = "esbn_password"
+private const val ESBN_GOOD_KEY = "esbn_cred_good"
 private const val ESBN_SYSTEM_LIST_KEY = "esbn_system_list"
 private const val ESBN_SELECTED_KEY = "esbn_system_previously_selected"
 
@@ -570,6 +580,7 @@ class UI2DataSourceManagementViewModel @Inject constructor(
             _toast.postValue(Toast("Fetch cancelled for $sysSn"))
             _alpha.postValue(buildAlphaState())
             _ha.postValue(buildHAState())
+            _esbn.postValue(buildEsbnState())
             _solis.postValue(buildSolisState())
         }
     }
@@ -918,14 +929,128 @@ class UI2DataSourceManagementViewModel @Inject constructor(
         else runCatching {
             gson.fromJson<List<String>>(raw, object : TypeToken<List<String>>() {}.type) ?: emptyList()
         }.getOrDefault(emptyList())
+        val good = app.getStringValueFromDataStore(ESBN_GOOD_KEY) != "False"
+        val configured = app.getStringValueFromDataStore(ESBN_USER_KEY).orEmpty().isNotEmpty()
         val selected = app.getStringValueFromDataStore(ESBN_SELECTED_KEY)?.ifEmpty { null }
         return SourceState(
             importer = ComparisonUIViewModel.Importer.ESBNHDF,
-            credentialsConfigured = true, // ESBN no longer uses credentials
-            credentialsKnownGood = true,
-            systems = sns.map { sn -> systemRow(sn).copy(scheduled = false) },
+            credentialsConfigured = configured,
+            credentialsKnownGood = configured && good,
+            systems = sns.map { sn -> systemRow(sn) },
             selectedSn = selected
         )
+    }
+
+    /**
+     * Update ESB Networks credentials for the EXPERIMENTAL cloud sync
+     * (plans/source/esbn.md). Encrypts before storing, then probes with one
+     * real login + MPRN discovery. The probe IS a login — it spends 1 of the
+     * ~2-logins-per-IP-per-day budget (§3), so it runs once on save and is
+     * never repeated on screen entry. Auth, verification/rate-limit, and
+     * network failures get distinct toasts because their fixes differ.
+     */
+    fun setEsbnCredentials(username: String, password: String) {
+        if (username.isBlank() || password.isBlank()) {
+            _toast.postValue(Toast("Email and password are required"))
+            return
+        }
+        viewModelScope.launch(Dispatchers.IO) {
+            _busy.postValue(true)
+            try {
+                app.putStringValueIntoDataStore(ESBN_USER_KEY,
+                    TOUTCApplication.encryptString(username.trim()))
+                app.putStringValueIntoDataStore(ESBN_PASSWORD_KEY,
+                    TOUTCApplication.encryptString(password.trim()))
+                val client = ESBNHDFClient(username.trim(), password.trim())
+                val mprns = client.fetchMPRNs()
+                if (mprns.isEmpty()) {
+                    // Logged in, but the Outages scrape found nothing — keep the
+                    // credentials marked good; the file fallback still works.
+                    app.putStringValueIntoDataStore(ESBN_GOOD_KEY, "True")
+                    _toast.postValue(Toast("Signed in, but no MPRN found — use 'Import HDF file'"))
+                } else {
+                    app.putStringValueIntoDataStore(ESBN_GOOD_KEY, "True")
+                    // Merge with MPRNs already known from file imports.
+                    val existing = buildEsbnState().systems.map { it.sysSn }
+                    val merged = (existing + mprns).distinct()
+                    app.putStringValueIntoDataStore(ESBN_SYSTEM_LIST_KEY, gson.toJson(merged))
+                    if (merged.size == 1) {
+                        app.putStringValueIntoDataStore(ESBN_SELECTED_KEY, merged[0])
+                    }
+                    _toast.postValue(Toast("Credentials saved (${mprns.size} MPRN(s))"))
+                }
+            } catch (e: ESBNVerificationException) {
+                app.putStringValueIntoDataStore(ESBN_GOOD_KEY, "False")
+                _toast.postValue(Toast(e.message ?: ESBNVerificationException.DEFAULT_MESSAGE))
+            } catch (e: ESBNAuthException) {
+                app.putStringValueIntoDataStore(ESBN_GOOD_KEY, "False")
+                _toast.postValue(Toast("ESB Networks rejected the sign-in — check email and password"))
+            } catch (t: Throwable) {
+                app.putStringValueIntoDataStore(ESBN_GOOD_KEY, "False")
+                _toast.postValue(Toast(t.message ?: "ESB Networks error"))
+            } finally {
+                _esbn.postValue(buildEsbnState())
+                _busy.postValue(false)
+            }
+        }
+    }
+
+    fun selectEsbnSystem(mprn: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            app.putStringValueIntoDataStore(ESBN_SELECTED_KEY, mprn)
+            _esbn.postValue(buildEsbnState())
+        }
+    }
+
+    /**
+     * Start the experimental ESBN cloud fetch: one-shot catch-up now, plus a
+     * WEEKLY periodic refresh (not daily — each run spends one login from
+     * ESB's ~2-logins-per-IP-per-day budget, and HDF data is day-granular
+     * history, so weekly staleness is fine; plans/source/esbn.md §3). No
+     * start date: the HDF download is always the full history and stores are
+     * idempotent.
+     */
+    fun fetchEsbn(mprn: String) {
+        viewModelScope.launch(Dispatchers.IO) {
+            // Presence check only — secrets never enter worker Data
+            // (plans/source/security.md §1); the worker resolves them from the
+            // encrypted DataStore via CredentialStore itself.
+            if (CredentialStore.get(app, CredentialStore.Source.ESBN) == null) {
+                _toast.postValue(Toast("Set ESB Networks credentials first"))
+                return@launch
+            }
+            val catchInput = Data.Builder()
+                .putString(ESBNCatchUpWorker.KEY_SYSTEM_SN, mprn)
+                .build()
+            val catchReq = OneTimeWorkRequest.Builder(ESBNCatchUpWorker::class.java)
+                .setInputData(catchInput)
+                .addTag(mprn)
+                .build()
+            wm.pruneWork()
+            // APPEND_OR_REPLACE, not APPEND: APPEND chains onto the existing unique
+            // work even when it FAILED/CANCELLED, so one bad run silently strands
+            // every later fetch (no worker, no notification, no data).
+            wm.beginUniqueWork(mprn, ExistingWorkPolicy.APPEND_OR_REPLACE, catchReq).enqueue()
+
+            // Weekly refresh under the unique name mprn + "weekly". The WORK TAG
+            // stays mprn + "daily" — the shared scheduled-indicator observers,
+            // isScheduled() and cancelFetch() all key off that tag; "daily" here
+            // means "the periodic auto-sync", whatever its period.
+            val weeklyInput = Data.Builder()
+                .putString(ESBNCatchUpWorker.KEY_SYSTEM_SN, mprn)
+                .build()
+            val weeklyReq = PeriodicWorkRequest.Builder(ESBNCatchUpWorker::class.java, 7, TimeUnit.DAYS)
+                .setInputData(weeklyInput)
+                // ~25h so the first automatic run lands the day after setup —
+                // never the same day as the catch-up login (budget headroom).
+                .setInitialDelay((25 - LocalDateTime.now().hour).toLong(), TimeUnit.HOURS)
+                .addTag(mprn + "daily")
+                .build()
+            wm.enqueueUniquePeriodicWork(mprn + "weekly",
+                ExistingPeriodicWorkPolicy.CANCEL_AND_REENQUEUE, weeklyReq)
+            _toast.postValue(Toast("Fetch started for $mprn · auto-sync weekly"))
+            _esbn.postValue(buildEsbnState())
+        }
     }
 
     /**
@@ -1303,6 +1428,9 @@ class UI2DataSourceManagementViewModel @Inject constructor(
                         app.putStringValueIntoDataStore(HA_SERVER_RANGE_KEY, "")
                     }
                     ComparisonUIViewModel.Importer.ESBNHDF -> {
+                        app.putStringValueIntoDataStore(ESBN_USER_KEY, "")
+                        app.putStringValueIntoDataStore(ESBN_PASSWORD_KEY, "")
+                        app.putStringValueIntoDataStore(ESBN_GOOD_KEY, "")
                         app.putStringValueIntoDataStore(ESBN_SYSTEM_LIST_KEY, "")
                         app.putStringValueIntoDataStore(ESBN_SELECTED_KEY, "")
                     }

@@ -1225,7 +1225,7 @@
     <string name="ui2_dsm_alpha_title" translatable="false">AlphaESS Cloud</string>
     <string name="ui2_dsm_alpha_sub">Inverter sync via OpenAPI</string>
     <string name="ui2_dsm_ha_sub">WebSocket + Energy dashboard</string>
-    <string name="ui2_dsm_esbn_sub">HDF file import (cloud sync deprecated)</string>
+    <string name="ui2_dsm_esbn_sub">HDF file import + experimental cloud sync</string>
     <string name="ui2_dsm_octopus_sub">Half-hourly meter sync + tariff import</string>
     <string name="ui2_dsm_solis_sub">Station sync via Platform API</string>
     <string name="ui2_dsm_pvgis_title">PVGIS (solar)</string>
@@ -1308,7 +1308,11 @@
     <string name="ui2_dsm_battery_n">Battery %1$d</string>
     <string name="ui2_dsm_charge_suffix">%1$s charge</string>
     <string name="ui2_dsm_discharge_suffix">%1$s discharge</string>
-    <string name="ui2_dsm_esbn_deprecated">ESBN cloud sync is deprecated. Download your HDF file from the ESBN customer portal and import it below.</string>
+    <string name="ui2_dsm_esbn_experimental">Experimental: cloud sync signs in to the ESB Networks portal the way a browser does. ESB has changed this flow before and may break it again without notice — if it stops working, use \'Import HDF file\'. Your password is stored encrypted on this device and sent only to esbnetworks.ie.</string>
+    <string name="ui2_dsm_esbn_rate_hint">ESB Networks allows roughly 2 sign-ins per day per internet connection; each fetch uses one, and auto-sync runs weekly. On mobile data the limit is shared with other users — if a fetch is refused, try Wi-Fi or import the HDF file.</string>
+    <string name="ui2_dsm_esbn_creds_title">ESB Networks account</string>
+    <string name="ui2_dsm_esbn_user_label">Email address</string>
+    <string name="ui2_dsm_esbn_pass_label">Password</string>
     <string name="ui2_dsm_import_hdf">Import HDF file</string>
     <string name="ui2_dsm_remove_source_cd">Remove source</string>
     <string name="ui2_dsm_esbn_empty">Imported MPRNs will appear here once a file has been ingested.</string>

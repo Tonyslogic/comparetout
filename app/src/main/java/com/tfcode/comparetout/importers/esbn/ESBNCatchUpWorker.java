@@ -35,7 +35,11 @@ import androidx.work.WorkerParameters;
 
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
+import com.tfcode.comparetout.SimulatorLauncher;
+import com.tfcode.comparetout.importers.CredentialStore;
+import com.tfcode.comparetout.importers.esbn.responses.ESBNAuthException;
 import com.tfcode.comparetout.importers.esbn.responses.ESBNException;
+import com.tfcode.comparetout.importers.esbn.responses.ESBNVerificationException;
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.ui2.UserTimezoneStore;
 
@@ -43,15 +47,22 @@ import java.time.ZoneId;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
 import com.tfcode.comparetout.ui2.UI2NotificationLaunch;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicReference;
 
+/**
+ * Cloud-fetch of the full ESBN HDF for one MPRN — EXPERIMENTAL (scraped
+ * portal flow, plans/source/esbn.md). One class serves both the one-shot
+ * catch-up and the WEEKLY periodic run (the schedule is weekly, not daily,
+ * because every run spends one login from ESB's ~2-logins-per-IP-per-day
+ * budget and HDF data is day-granular history, not live telemetry).
+ * Exactly one login + one download POST per run; failures never retry
+ * automatically — retrying burns the login budget and looks like a bot.
+ */
 public class ESBNCatchUpWorker extends Worker {
 
     private final ToutcRepository mToutcRepository;
@@ -71,10 +82,9 @@ public class ESBNCatchUpWorker extends Worker {
     private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private final DateTimeFormatter MIN_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
 
+    // Input carries the MPRN ONLY — credentials never enter worker Data
+    // (plans/source/security.md §1); they are resolved via CredentialStore.
     public static final String KEY_SYSTEM_SN = "KEY_SYSTEM_SN";
-    public static final String KEY_APP_ID = "KEY_APP_ID";
-    public static final String KEY_APP_SECRET = "KEY_APP_SECRET";
-    public static final String KEY_START_DATE = "KEY_START_DATE";
 
     public static final String PROGRESS = "PROGRESS";
 
@@ -95,96 +105,64 @@ public class ESBNCatchUpWorker extends Worker {
     @NonNull
     @Override
     public Result doWork() {
-        System.out.println("ESBNCatchUpWorker:doWork invoked ");
         Data inputData = getInputData();
-        ESBNHDFClient esbnHDFClient = new ESBNHDFClient(
-                inputData.getString(KEY_APP_ID),
-                inputData.getString(KEY_APP_SECRET));
         String systemSN = inputData.getString(KEY_SYSTEM_SN);
-        String startDate = inputData.getString(KEY_START_DATE);
-        if (null == startDate) startDate = mToutcRepository.getLatestDateForSn(systemSN);
-        esbnHDFClient.setSelectedMPRN(systemSN);
         mSelectedSysSn = systemSN;
         mUseUI2 = UI2NotificationLaunch.isUI2Enabled(getApplicationContext());
 
-        LocalDate current = LocalDate.parse(startDate, DATE_FORMAT);
+        CredentialStore.Credentials credentials = CredentialStore.get(
+                getApplicationContext(), CredentialStore.Source.ESBN);
+        if (null == credentials) {
+            publishProgress("ESB Networks credentials unavailable — re-enter them", true, false);
+            return Result.failure();
+        }
+        ESBNHDFClient esbnHDFClient = new ESBNHDFClient(credentials.first, credentials.second);
+        esbnHDFClient.setSelectedMPRN(systemSN);
 
         publishProgress("Starting Fetch", true, true);
 
-        // Do some work
+        // One login + one full-HDF download per run (the run is the unit the
+        // §3 login budget is spent in). The full HDF re-covers everything, so
+        // no start date / per-day skip logic is needed — stores are idempotent.
         Map<LocalDateTime, Pair<Double, Double>> timeAlignedEntries = new HashMap<>();
-        AtomicReference<LocalDateTime> last = new AtomicReference<>(LocalDateTime.of(1970,1, 1, 0, 0));
-//        String latest = mToutcRepository.getLatestDateForSn(systemSN);
-//        if (null == latest) latest = "1970-01-01";
-//        LocalDate latestDate = LocalDate.parse(latest, DATE_FORMAT);
+        try {
+            esbnHDFClient.fetchSmartMeterDataHDF((calc, type, ldt, value) -> {
+                Pair<Double, Double> importExport = timeAlignedEntries.get(ldt);
+                switch (type) {
+                    case IMPORT:
+                        if ((null == importExport))
+                            timeAlignedEntries.put(ldt, new Pair<>(value/(calc ? 1D : 2D), 0D));
+                        else
+                            timeAlignedEntries.put(ldt, new Pair<>(value/(calc ? 1D : 2D), importExport.second));
+                        break;
+                    case EXPORT:
+                        if ((null == importExport))
+                            timeAlignedEntries.put(ldt, new Pair<>(0D, value/(calc ? 1D : 2D)));
+                        else
+                            timeAlignedEntries.put(ldt, new Pair<>(importExport.first, value/(calc ? 1D : 2D)));
+                        break;
+                }
+            });
+        } catch (ESBNVerificationException e) {
+            // FATAL, never auto-retried: another attempt burns the daily
+            // login budget and looks like a bot (plans/source/esbn.md §3).
+            publishProgress(e.getMessage(), true, false);
+            return Result.failure();
+        } catch (ESBNAuthException e) {
+            publishProgress("ESB Networks rejected the sign-in — re-enter the credentials. ("
+                    + e.getMessage() + ")", true, false);
+            return Result.failure();
+        } catch (ESBNException e) {
+            String finalProgress = e.getMessage() == null ? "Failed for unknown reason. Consider files" : e.getMessage();
+            publishProgress(finalProgress, true, false);
+            return Result.failure();
+        }
 
-//        if (current.isBefore(latestDate)) current = latestDate;
-//        if (end.minusDays(30).isBefore(current)) {
-//            // we can use the from date method
-//            String currentString = current.format(DATE_FORMAT);
-//            try {
-//                esbnHDFClient.fetchSmartMeterDataFromDate(currentString, (type, ldt, value) -> {
-//                    Pair<Double, Double> importExport = timeAlignedEntries.get(ldt);
-//                    if (ldt.isAfter(last.get())) last.set(ldt);
-//                    switch (type) {
-//                        case IMPORT:
-//                            if ((null == importExport))
-//                                timeAlignedEntries.put(ldt, new Pair<>(value/2D, 0D));
-//                            else
-//                                timeAlignedEntries.put(ldt, new Pair<>(value/2D, importExport.second));
-//                            break;
-//                        case EXPORT:
-//                            if ((null == importExport))
-//                                timeAlignedEntries.put(ldt, new Pair<>(0D, value/2D));
-//                            else
-//                                timeAlignedEntries.put(ldt, new Pair<>(importExport.first, value/2D));
-//                            break;
-//                    }
-//                });
-//            } catch (ESBNException e) {
-//                e.printStackTrace();
-//            }
-//        }
-//        else
-        {
-            // we need to download the HDF
-            try {
-                esbnHDFClient.fetchSmartMeterDataHDF((calc, type, ldt, value) -> {
-                    Pair<Double, Double> importExport = timeAlignedEntries.get(ldt);
-                    if (ldt.isAfter(last.get())) last.set(ldt);
-                    switch (type) {
-                        case IMPORT:
-                            if ((null == importExport))
-                                timeAlignedEntries.put(ldt, new Pair<>(value/(calc ? 1D : 2D), 0D));
-                            else
-                                timeAlignedEntries.put(ldt, new Pair<>(value/(calc ? 1D : 2D), importExport.second));
-                            break;
-                        case EXPORT:
-                            if ((null == importExport))
-                                timeAlignedEntries.put(ldt, new Pair<>(0D, value/(calc ? 1D : 2D)));
-                            else
-                                timeAlignedEntries.put(ldt, new Pair<>(importExport.first, value/(calc ? 1D : 2D)));
-                            break;
-                    }
-                });
-            } catch (ESBNException e) {
-                e.printStackTrace();
-                String finalProgress = e.getMessage() == null ? "Failed for unknown reason. Consider files" : e.getMessage();
-                publishProgress(finalProgress, true, false);
-                return Result.success();
-            }
-        }
-        // Check and Remove the last day if missing more than 18 entries
-        LocalDate lastDay = last.get().toLocalDate();
-        int count = 0;
-        for (LocalDateTime key : timeAlignedEntries.keySet()) {
-            if (key.toLocalDate().equals(lastDay)) {
-                count++;
-            }
-        }
-        if (count < 31) {
-            timeAlignedEntries.entrySet().removeIf(entry -> entry.getKey().toLocalDate().equals(lastDay));
-        }
+        // The HDF's most recent day has historically arrived incomplete and,
+        // once stored, interfered with later merges — drop it unconditionally;
+        // the next weekly run re-fetches it complete (plans/source/esbn.md §4).
+        // Cloud fetch only: the user-driven FILE import keeps every row.
+        ESBNHDFClient.pruneLatestDay(timeAlignedEntries);
 
         // Store transformed data. ESBN HDF read-times are local wall-clock; interpret them in the saved zone
         // to stamp the canonical UTC millis (Phase 1, timezone-and-rollout.md). The date/minute strings stay
@@ -208,6 +186,10 @@ public class ESBNCatchUpWorker extends Worker {
         publishProgress("All done importing " + systemSN, true, true);
 
         if (mStopped) mNotificationManager.cancel(mNotificationId);
+
+        // New readings may unblock flagged sim/costing work (no-op when
+        // nothing is flagged, and in the SOURCE profile).
+        SimulatorLauncher.simulateIfNeeded(getApplicationContext());
 
         return Result.success();
     }
