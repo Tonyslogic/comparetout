@@ -26,9 +26,11 @@ import com.tfcode.comparetout.model.scenario.Inverter;
 import com.tfcode.comparetout.model.scenario.LoadShift;
 import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
 import com.tfcode.comparetout.model.scenario.SimulationInputData;
+import com.tfcode.comparetout.testdata.EnergyDataGenerator;
 
 import org.junit.Test;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -119,6 +121,42 @@ public class SimulationGoldenMasterTest {
         map.put(inv2, input(inv2, series2, bat2, null, null));
 
         GoldenMaster.verify("two_inverters_two_batteries", GoldenMaster.serialize(run(noExtras(), map)));
+    }
+
+    /**
+     * A realistic <b>summer</b> day driven by {@link EnergyDataGenerator}'s deterministic PV/load
+     * profiles (single inverter + battery). Pins the engine's numbers over plausible input rather
+     * than the hand-picked constants above, so a numeric drift in engine/costing fails loudly.
+     */
+    @Test
+    public void realistic_summer_day() {
+        GoldenMaster.verify("realistic_summer_day",
+                GoldenMaster.serialize(run(noExtras(), realisticDayMap(172, LocalDateTime.of(2001, 6, 21, 0, 0)))));
+    }
+
+    /** As above, a realistic <b>winter</b> day — short daylight, heavier evening load. */
+    @Test
+    public void realistic_winter_day() {
+        GoldenMaster.verify("realistic_winter_day",
+                GoldenMaster.serialize(run(noExtras(), realisticDayMap(355, LocalDateTime.of(2001, 12, 21, 0, 0)))));
+    }
+
+    /** One inverter + battery over a generator-shaped day (kWh per 5-minute interval). */
+    private static Map<Inverter, SimulationEngine.InputData> realisticDayMap(int dayOfYear, LocalDateTime start) {
+        Inverter inverter = InverterBuilder.anInverter().index(1).name("INV1").build();
+        Battery battery = BatteryBuilder.aBattery().index(1).size(5.0)
+                .dischargeStopPercent(10).maxChargeDischarge(0.3, 0.3).storageLossPercent(1)
+                .inverter("INV1").build();
+        double[] loads = new double[ROWS];
+        double[] pvs = new double[ROWS];
+        for (int i = 0; i < ROWS; i++) {
+            loads[i] = EnergyDataGenerator.loadKwh(i, dayOfYear);
+            pvs[i] = EnergyDataGenerator.pvKwh(i, dayOfYear);
+        }
+        List<SimulationInputData> series = SimSeries.of(start, loads, pvs);
+        Map<Inverter, SimulationEngine.InputData> map = new LinkedHashMap<>();
+        map.put(inverter, input(inverter, series, battery, null, null));
+        return map;
     }
 
     /** Always-on load-shift: the battery charges from the grid up to the stop-at threshold. */

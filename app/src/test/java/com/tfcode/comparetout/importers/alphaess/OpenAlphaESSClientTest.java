@@ -18,7 +18,7 @@ package com.tfcode.comparetout.importers.alphaess;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assume.assumeFalse;
+import static org.junit.Assume.assumeTrue;
 
 import com.tfcode.comparetout.importers.TestSecrets;
 import com.tfcode.comparetout.importers.alphaess.responses.GetOneDayEnergyResponse;
@@ -33,9 +33,10 @@ public class OpenAlphaESSClientTest {
 
     @Before
     public void setup() {
-        assumeFalse(
-                "Skipping AlphaESS integration test in CI: requires real credentials",
-                "true".equals(System.getenv("CI")));
+        assumeTrue(
+                "Live AlphaESS integration test disabled — enable with -DrunLiveTests=true "
+                        + "and real TestSecrets credentials",
+                TestSecrets.liveTestsEnabled());
         mClient = new OpenAlphaESSClient(
                 TestSecrets.APPID,
                 TestSecrets.SECRET);

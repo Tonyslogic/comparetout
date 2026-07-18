@@ -20,7 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assume.assumeFalse;
+import static org.junit.Assume.assumeTrue;
 import static java.lang.Thread.sleep;
 
 import com.tfcode.comparetout.importers.TestSecrets;
@@ -38,10 +38,11 @@ public class HADispatcherBasicsTest {
     private static final String HA_URL = "http://" + TestSecrets.HA_IP + ":8123/api/websocket";
 
     @Before
-    public void skipInCI() {
-        assumeFalse(
-                "Skipping HomeAssistant integration test in CI: requires a reachable HA instance",
-                "true".equals(System.getenv("CI")));
+    public void skipUnlessLive() {
+        assumeTrue(
+                "Live HomeAssistant integration test disabled — enable with -DrunLiveTests=true "
+                        + "and a reachable HA instance in TestSecrets",
+                TestSecrets.liveTestsEnabled());
     }
 
     @Test

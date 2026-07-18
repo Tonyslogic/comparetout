@@ -17,6 +17,19 @@
 package com.tfcode.comparetout.importers;
 
 public class TestSecrets {
+
+    /**
+     * Live integration tests (real AlphaESS / Home Assistant / ESBN endpoints,
+     * using the credentials below) run only when explicitly opted in — set
+     * {@code -DrunLiveTests=true} or the {@code RUN_LIVE_TESTS=true} environment
+     * variable, and replace the placeholder values in this file with real
+     * ones. Off by default so the suite is green on a fresh checkout and in CI.
+     */
+    public static boolean liveTestsEnabled() {
+        return Boolean.parseBoolean(System.getProperty("runLiveTests"))
+                || "true".equals(System.getenv("RUN_LIVE_TESTS"));
+    }
+
     // The serial number of the AlphaESS system to use for testing
     public static final String SERIAL = "AL1234567891911";
 
