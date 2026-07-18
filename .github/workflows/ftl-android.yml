@@ -26,19 +26,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '17'
           distribution: 'temurin'
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Cache Gradle packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.gradle/caches
@@ -88,29 +88,29 @@ jobs:
     # Parallel Robo crawl driven by the hand-written walkthrough script. Same
     # WIF + bucket setup as the instrumentation job. The script's purpose is
     # the happy-path screenshots that Play Console pre-launch reports surface,
-    # so it runs on a phone AND a 10" tablet (both portrait) — Play Store needs
-    # tablet screenshots as listing assets, and the tablet's larger canvas
-    # produces the richer captures. The instrumentation job (above) continues
-    # to validate code across the 4-device fleet. See
+    # so it runs on a phone (portrait) AND a 10" tablet (landscape) — Play Store
+    # lists phone screenshots portrait and tablet screenshots landscape, and the
+    # tablet's larger canvas produces the richer captures. The instrumentation
+    # job (above) continues to validate code across the 4-device fleet. See
     # docs/playstore/robo-scripts.md for the script's narrative and Play
     # Console upload procedure.
     name: Robo walkthrough on FTL
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: '17'
           distribution: 'temurin'
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+        uses: android-actions/setup-android@v4
 
       - name: Cache Gradle packages
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: |
             ~/.gradle/caches
@@ -141,15 +141,15 @@ jobs:
         # 15-min timeout gives the scripted steps + post-script random crawl
         # room to run. The script alone is ~4 min (most of which is the 120 s
         # wait for the PVGIS+simulation chain after 'Try with sample data').
-        # Runs the same script on a phone and a 10" tablet, both portrait, so
-        # the results bucket carries Play-Store-ready captures at both form
-        # factors. All models are quota-free.
+        # Runs the same script on a phone (portrait) and a 10" tablet
+        # (landscape) — the two orientations Play Store lists phone vs tablet
+        # screenshots in. All models are quota-free.
         run: |
           gcloud firebase test android run \
             --type robo \
             --app app/build/outputs/apk/ie/debug/app-ie-debug.apk \
             --robo-script playstore/robo-scripts/walkthrough.json \
             --device "model=MediumPhone.arm,version=34,locale=en,orientation=portrait" \
-            --device "model=MediumTablet.arm,version=34,locale=en,orientation=portrait" \
+            --device "model=MediumTablet.arm,version=34,locale=en,orientation=landscape" \
             --results-bucket=comparetout-ftl-results \
             --timeout 15m

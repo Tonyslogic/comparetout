@@ -53,7 +53,7 @@ Robo records continuous screenshots while crawling, so the screenshot for each s
 
 ## How the FTL job runs it
 
-The `robo` job in [`.github/workflows/ftl-android.yml`](../../.github/workflows/ftl-android.yml) runs in parallel with the existing instrumentation `ftl` job. Same WIF auth, same results bucket. It runs the same script on a **phone and a 10" tablet**, both portrait (API 34) — the script's purpose is the Play-Store screenshot path, and Play Store requires tablet screenshots as listing assets, so both form factors are captured in one run. The tablet's larger canvas also produces the richer captures (more of each accordion/table visible per frame). Both models are quota-free; the 4-device instrumentation job continues to provide cross-device *code* validation.
+The `robo` job in [`.github/workflows/ftl-android.yml`](../../.github/workflows/ftl-android.yml) runs in parallel with the existing instrumentation `ftl` job. Same WIF auth, same results bucket. It runs the same script on a **phone (portrait) and a 10" tablet (landscape)** at API 34 — the two orientations Play Store lists phone vs tablet screenshots in. The tablet's larger canvas also produces the richer captures (more of each accordion/table visible per frame). Both models are quota-free; the 4-device instrumentation job continues to provide cross-device *code* validation.
 
 ```bash
 gcloud firebase test android run \
@@ -61,7 +61,7 @@ gcloud firebase test android run \
   --app app/build/outputs/apk/ie/debug/app-ie-debug.apk \
   --robo-script playstore/robo-scripts/walkthrough.json \
   --device "model=MediumPhone.arm,version=34,locale=en,orientation=portrait" \
-  --device "model=MediumTablet.arm,version=34,locale=en,orientation=portrait" \
+  --device "model=MediumTablet.arm,version=34,locale=en,orientation=landscape" \
   --results-bucket=comparetout-ftl-results \
   --timeout 15m
 ```
