@@ -28,11 +28,55 @@
   {
     "eventType": "VIEW_CLICKED",
     "elementDescriptors": [
+      { "text": "Tariff Plan" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 3000
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "Explore data" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 3000
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
       { "contentDescription": "View graphs" }
     ]
   },
   {
+    "eventType": "WAIT",
+    "delayTime": 5000
+  },
+  {
     "eventType": "PRESSED_BACK"
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "KPIs" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 3000
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "Visual overview" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 3000
   },
   {
     "eventType": "VIEW_CLICKED",
@@ -43,14 +87,104 @@
   {
     "eventType": "VIEW_CLICKED",
     "elementDescriptors": [
+      { "text": "Sources" }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "Simulations" }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "Select all" }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "Done" }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "Supplier plans" }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "Select all" }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "Done" }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "Filter" }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "Net" }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "Buy" }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "Sell" }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "Filter" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 10000
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
       { "text": "Directors" }
     ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 3000
   },
   {
     "eventType": "VIEW_CLICKED",
     "elementDescriptors": [
       { "contentDescription": "Menu" }
     ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "Supplier Plans" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 3000
   },
   {
     "eventType": "PRESSED_BACK"
@@ -64,7 +198,13 @@
   {
     "eventType": "VIEW_CLICKED",
     "elementDescriptors": [
-      { "text": "+ Create new" }
+      { "contentDescription": "Options" }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "Edit" }
     ]
   },
   {

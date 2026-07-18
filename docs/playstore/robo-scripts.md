@@ -13,6 +13,8 @@ Why hand-written and not Robo-recorded? Recorded scripts pin to whatever selecto
 
 File: [`playstore/robo-scripts/walkthrough.json`](../../playstore/robo-scripts/walkthrough.json)
 
+The script is built around one principle: **expand before you screenshot**. The dashboard and Compare screens are accordion-based and default to collapsed, so a naive tab tour captures headers, not data. Every data surface is explicitly expanded (or configured) before the crawl moves on.
+
 | Step | Event | Selector | Notes |
 |---:|---|---|---|
 | 1 | `WAIT` 5 s | — | Lets the Dashboard finish first-frame render before any tap. |
@@ -20,19 +22,29 @@ File: [`playstore/robo-scripts/walkthrough.json`](../../playstore/robo-scripts/w
 | 3 | `WAIT` 120 s | — | Generous budget for the chain on FTL hardware. PVGIS ≈ 30 s, GenerateLoad ≈ 5 s, Simulate ≈ 30 s, Cost ≈ 10 s. |
 | 4 | `VIEW_CLICKED` | `text="Scenarios"` | Bottom nav. Lands on `UI2SimulationsFragment`. |
 | 5 | `VIEW_CLICKED` | `text="Sample · First Run"` | Row tap — sets active selection, returns to Dashboard. |
-| 6 | `VIEW_CLICKED` | `contentDescription="View graphs"` | Inside the Explore Data accordion (Dashboard simulation mode). |
-| 7 | `PRESSED_BACK` | — | Back to Dashboard. |
-| 8 | `VIEW_CLICKED` | `text="Comparisons"` | Bottom nav. |
-| 9 | `VIEW_CLICKED` | `text="Directors"` | Bottom nav. |
-| 10 | `VIEW_CLICKED` | `contentDescription="Menu"` | Right-side drawer. |
-| 11 | `PRESSED_BACK` | — | Dismiss drawer. |
-| 12 | `VIEW_CLICKED` | `text="Scenarios"` | Re-select Scenarios so the next tap reaches the SectionHeader action. |
-| 13 | `VIEW_CLICKED` | `text="+ Create new"` | Opens `UI2WizardActivity` in new-scenario mode. |
-| 14 | `VIEW_CLICKED` × 6 | `contentDescription="Wizard section: Usage Data"` → Inverters → PV System → Battery → Hot Water → EV | Phase 4A's parameterized semantics. Each tap expands one accordion section so the screenshot captures that section's controls. |
-| 15 | `PRESSED_BACK` | — | Exit the wizard. Returns to Scenarios. |
-| 16 | `VIEW_CLICKED` | `text="Leave"` | Defensive — only fires if the "Leave without saving?" dialog appears (it shouldn't because we didn't edit anything, but tolerates the case). A click whose selector isn't visible is a no-op in Robo. |
+| 6 | `VIEW_CLICKED` + `WAIT` 3 s | `text="Tariff Plan"` | Expands the costing accordion — screenshot shows the per-plan cost table for both sample plans. |
+| 7 | `VIEW_CLICKED` + `WAIT` 3 s | `text="Explore data"` | Expands the KPI pie charts. **Also required for step 8** — the graphs icon only renders while this card is expanded. |
+| 8 | `VIEW_CLICKED` + `WAIT` 5 s | `contentDescription="View graphs"` | Opens the Graphs screen — bar chart + period totals with real simulation data. |
+| 9 | `PRESSED_BACK` | — | Back to Dashboard. |
+| 10 | `VIEW_CLICKED` + `WAIT` 3 s | `text="KPIs"` | Expands the KPI summary accordion. |
+| 11 | `VIEW_CLICKED` + `WAIT` 3 s | `text="Visual overview"` | Expands the system-topology diagram. |
+| 12 | `VIEW_CLICKED` | `text="Comparisons"` | Bottom nav. |
+| 13 | `VIEW_CLICKED` | `text="Sources"` | Opens the Sources accordion on the Compare screen. |
+| 14 | `VIEW_CLICKED` ×3 | `text="Simulations"` → `"Select all"` → `"Done"` | Full-screen picker: selects the sample scenario as a compare subject. |
+| 15 | `VIEW_CLICKED` ×3 | `text="Supplier plans"` → `"Select all"` → `"Done"` | Selects both sample plans (COST compare needs plans). |
+| 16 | `VIEW_CLICKED` ×5 | `text="Filter"` → `"Net"` → `"Buy"` → `"Sell"` → `"Filter"` | Opens the Filter accordion, enables the three basic cost series, then collapses the accordion so the result table is in the viewport. Timeframe already defaults to all-time-synced, so this completes the config. |
+| 17 | `WAIT` 10 s | — | Compare computes; screenshot shows the sims × plans cost result table. |
+| 18 | `VIEW_CLICKED` + `WAIT` 3 s | `text="Directors"` | Bottom nav. |
+| 19 | `VIEW_CLICKED` | `contentDescription="Menu"` | Right-side drawer. |
+| 20 | `VIEW_CLICKED` + `WAIT` 3 s | `text="Supplier Plans"` | Drawer item (capital P — distinct from Compare's `"Supplier plans"` row). Opens the plan list showing both sample plans. |
+| 21 | `PRESSED_BACK` | — | Back to the main activity. |
+| 22 | `VIEW_CLICKED` | `text="Scenarios"` | Bottom nav. |
+| 23 | `VIEW_CLICKED` ×2 | `contentDescription="Options"` → `text="Edit"` | The sample row's ⋮ menu → Edit. Opens `UI2WizardActivity` on the **populated** sample scenario — sections are unlocked and carry real config, unlike new-scenario mode where everything is locked behind Start. |
+| 24 | `VIEW_CLICKED` × 6 | `contentDescription="Wizard section: Usage Data"` → Inverters → PV System → Battery → Hot Water → EV | Phase 4A's parameterized semantics. Sections stay expanded cumulatively, so each screenshot is richer than the last. |
+| 25 | `PRESSED_BACK` | — | Exit the wizard. Returns to Scenarios. |
+| 26 | `VIEW_CLICKED` | `text="Leave"` | Defensive — only fires if the "Leave without saving?" dialog appears (it shouldn't because we didn't edit anything, but tolerates the case). A click whose selector isn't visible is a no-op in Robo. |
 
-Robo records continuous screenshots while crawling, so the screenshot for each step is captured automatically — no explicit `SCREENSHOT` events needed in the script.
+Robo records continuous screenshots while crawling, so the screenshot for each step is captured automatically — no explicit `SCREENSHOT` events needed in the script. The short `WAIT`s after each expansion give animations and async loads time to settle so the ambient screenshots capture rendered data, not spinners.
 
 ---
 
@@ -43,7 +55,7 @@ The `robo` job in [`.github/workflows/ftl-android.yml`](../../.github/workflows/
 ```bash
 gcloud firebase test android run \
   --type robo \
-  --app app/build/outputs/apk/debug/app-debug.apk \
+  --app app/build/outputs/apk/ie/debug/app-ie-debug.apk \
   --robo-script playstore/robo-scripts/walkthrough.json \
   --device "model=MediumPhone.arm,version=34,locale=en,orientation=portrait" \
   --results-bucket=comparetout-ftl-results \
@@ -95,10 +107,15 @@ The script depends on specific UI selectors. Update it whenever any of these cha
 | `text="Try with sample data"` | Renaming the empty-state button or the drawer menu item | [`UI2NavigationDrawer.kt`](../../app/src/main/java/com/tfcode/comparetout/ui2/UI2NavigationDrawer.kt), [`UI2DashboardFragment.kt`](../../app/src/main/java/com/tfcode/comparetout/ui2/UI2DashboardFragment.kt) `EmptyDashboardSampleCard` |
 | `text="Sample · First Run"` | Renaming the bundled sample scenario | [`SampleDataLoader.kt`](../../app/src/main/java/com/tfcode/comparetout/ui2/SampleDataLoader.kt) `SAMPLE_PREFIX`, [`app/src/main/assets/samples/sample_scenario.json`](../../app/src/main/assets/samples/sample_scenario.json) |
 | `text="Scenarios" / "Comparisons" / "Directors"` | Renaming bottom-nav items | [`app/src/main/res/menu/bottom_nav_menu.xml`](../../app/src/main/res/menu/bottom_nav_menu.xml) |
-| `contentDescription="View graphs"` | Removing the cd on the Explore Data graph icon | [`UI2DashboardFragment.kt`](../../app/src/main/java/com/tfcode/comparetout/ui2/UI2DashboardFragment.kt) (lines 413 / 653 at time of writing) |
-| `contentDescription="Menu"` | Renaming/removing the drawer button cd | [`UI2WizardActivity.kt`](../../app/src/main/java/com/tfcode/comparetout/ui2/UI2WizardActivity.kt:325) and other UI2 activities' menu IconButtons |
+| `text="Tariff Plan" / "Explore data" / "KPIs" / "Visual overview"` | Renaming the dashboard accordion titles (`ui2_dash_tariff_plan`, `ui2_dash_explore`, `ui2_dash_kpis`, `ui2_dash_visual_overview`) | [`UI2DashboardFragment.kt`](../../app/src/main/java/com/tfcode/comparetout/ui2/UI2DashboardFragment.kt) simulation-mode `ExpandableCard`s / `KpiAccordion` |
+| `contentDescription="View graphs"` | Removing the cd on the Explore-data graph icon — note the icon only exists while the card is **expanded** and KPIs are loaded, which is why the script expands `Explore data` first | [`UI2DashboardFragment.kt`](../../app/src/main/java/com/tfcode/comparetout/ui2/UI2DashboardFragment.kt) `ui2_dash_view_graphs` usages |
+| `text="Sources" / "Filter" / "Simulations" / "Supplier plans"` | Renaming the Compare accordions or picker rows (`ui2_cmp_sources_title`, `ui2_cmp_filter_title`, `ui2_cmp_simulations`, `ui2_supplier_plans`) | [`CompareScreen.kt`](../../app/src/main/java/com/tfcode/comparetout/ui2/CompareScreen.kt) `AccordionCard` / `SourcesSection` |
+| `text="Select all" / "Done"` | Renaming the picker-sheet buttons (`ui2_cmp_select_all`, `ui2_done`) | [`CompareScreen.kt`](../../app/src/main/java/com/tfcode/comparetout/ui2/CompareScreen.kt) `SelectSheet` |
+| `text="Net" / "Buy" / "Sell"` | Renaming the basic cost-series chips (`ui2_cmp_ser_net/buy/sell`) | [`UI2CompareViewModel.kt`](../../app/src/main/java/com/tfcode/comparetout/ui2/UI2CompareViewModel.kt) `COST_SERIES` / `BASIC_COST_IDS` |
+| `text="Supplier Plans"` (drawer, capital P) | Renaming the drawer item (`ui2_drawer_supplier_plans`) | [`UI2NavigationDrawer.kt`](../../app/src/main/java/com/tfcode/comparetout/ui2/UI2NavigationDrawer.kt) |
+| `contentDescription="Menu"` | Renaming/removing the drawer button cd | [`UI2WizardActivity.kt`](../../app/src/main/java/com/tfcode/comparetout/ui2/UI2WizardActivity.kt) and other UI2 activities' menu IconButtons |
+| `contentDescription="Options"` / `text="Edit"` | Renaming the scenario row's ⋮ menu cd (`ui2_options`) or the Edit item (`ui2_edit`) | [`UI2SimulationsFragment.kt`](../../app/src/main/java/com/tfcode/comparetout/ui2/UI2SimulationsFragment.kt) `SimulationCard` |
 | `contentDescription="Wizard section: $title"` | Changing the title text of a wizard accordion, or renaming the cd format | [`UI2WizardActivity.kt`](../../app/src/main/java/com/tfcode/comparetout/ui2/UI2WizardActivity.kt) `WizardAccordionSection` |
-| `text="+ Create new"` | Renaming the Scenarios SectionAction | [`UI2SimulationsFragment.kt`](../../app/src/main/java/com/tfcode/comparetout/ui2/UI2SimulationsFragment.kt:176) |
 
 If a step's selector goes stale, Robo will fail to find the element, time out on that step, and continue with random crawling. The pre-launch report will still complete — it just won't follow the scripted path past the failure point. Watch for shorter-than-expected reports as a signal that the script has drifted.
 
