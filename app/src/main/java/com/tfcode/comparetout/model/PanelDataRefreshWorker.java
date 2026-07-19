@@ -39,6 +39,8 @@ import com.tfcode.comparetout.CostingWorker;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.SimulatorLauncher;
 import com.tfcode.comparetout.TOUTCApplication;
+import com.tfcode.comparetout.model.dao.ReadinessDAO;
+import com.tfcode.comparetout.model.dao.SimDataDAO;
 import com.tfcode.comparetout.model.scenario.Panel;
 import com.tfcode.comparetout.scenario.SimulationWorker;
 import com.tfcode.comparetout.scenario.loadprofile.GenerateMissingLoadDataWorker;
@@ -122,14 +124,16 @@ public class PanelDataRefreshWorker extends Worker {
             ScenarioDAO scenarioDAO = db.scenarioDAO();
             AlphaEssDAO alphaEssDAO = db.alphaEssDAO();
             CostingDAO costingDAO = db.costingDAO();
+            SimDataDAO simDataDAO = db.simDataDAO();
+            ReadinessDAO readinessDAO = db.readinessDAO();
 
             // 1. Remove ALL stale/bad output. PV data is on the wrong grid; sims/costings are derived from it.
             scenarioDAO.deleteAllPanelData();
-            scenarioDAO.deleteAllSimulationData();
+            simDataDAO.deleteAllSimulationData();
             costingDAO.deleteAllCostings();
             // The readiness rows are now stale (they'd still read "up to date" while the output is gone) —
             // clear them so every scenario is re-derived as needing sim/costing by the defensive gate.
-            scenarioDAO.deleteAllReadiness();
+            readinessDAO.deleteAllReadiness();
 
             // 2. Classify panels by origin.
             Set<String> sourceSerials = new HashSet<>(alphaEssDAO.getTransformedDataSysSns());

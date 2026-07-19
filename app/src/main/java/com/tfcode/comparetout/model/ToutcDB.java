@@ -208,6 +208,18 @@ public abstract class ToutcDB extends RoomDatabase {
      */
     public abstract com.tfcode.comparetout.model.dao.LoadProfileDAO loadProfileDAO();
 
+    /**
+     * Data Access Object for simulation-output queries (mega-refactor C8).
+     */
+    public abstract com.tfcode.comparetout.model.dao.SimDataDAO simDataDAO();
+
+    /**
+     * Data Access Object for readiness-matrix queries (mega-refactor C8).
+     * Terminal-state setters live in
+     * {@link com.tfcode.comparetout.model.ops.ReadinessOps}.
+     */
+    public abstract com.tfcode.comparetout.model.dao.ReadinessDAO readinessDAO();
+
     private static volatile ToutcDB INSTANCE;
     private static final int NUMBER_OF_THREADS = 8;
     static final ExecutorService databaseWriteExecutor =

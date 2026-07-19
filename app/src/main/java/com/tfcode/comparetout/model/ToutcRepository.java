@@ -122,6 +122,9 @@ public class ToutcRepository {
     private final com.tfcode.comparetout.model.ops.PanelOps panelOps;
     private final com.tfcode.comparetout.model.dao.LoadProfileDAO loadProfileDAO;
     private final com.tfcode.comparetout.model.ops.LoadProfileOps loadProfileOps;
+    private final com.tfcode.comparetout.model.dao.SimDataDAO simDataDAO;
+    private final com.tfcode.comparetout.model.dao.ReadinessDAO readinessDAO;
+    private final com.tfcode.comparetout.model.ops.ReadinessOps readinessOps;
     private final LiveData<List<Scenario>> allScenarios;
     private final LiveData<List<Scenario2Inverter>> inverterRelations;
     private final LiveData<List<Scenario2Panel>> panelRelations;
@@ -191,6 +194,9 @@ public class ToutcRepository {
         panelOps = new com.tfcode.comparetout.model.ops.PanelOps(db);
         loadProfileDAO = db.loadProfileDAO();
         loadProfileOps = new com.tfcode.comparetout.model.ops.LoadProfileOps(db);
+        simDataDAO = db.simDataDAO();
+        readinessDAO = db.readinessDAO();
+        readinessOps = new com.tfcode.comparetout.model.ops.ReadinessOps(db);
         allScenarios = scenarioDAO.loadScenarios();
         inverterRelations = inverterDAO.loadInverterRelations();
         panelRelations = panelDAO.loadPanelRelations();
@@ -210,7 +216,7 @@ public class ToutcRepository {
         alphaESSDateRangesBySN = alphaEssDAO.loadDateRanges();
         esbnHDFDateRangesByMPRN = alphaEssDAO.loadESBNHDFDateRanges();
         homeAssistantDateRange = alphaEssDAO.loadHomeAssistantDateRange();
-        scenarioDateRange = scenarioDAO.loadDateRanges();
+        scenarioDateRange = simDataDAO.loadDateRanges();
     }
 
     // Room executes all queries on a separate thread.
@@ -226,7 +232,7 @@ public class ToutcRepository {
             long id = pricePlanDAO.addNewPricePlanWithDayRates(pp, drs, clobber);
             if (clobber) costingDAO.deleteRelatedCostings((int) id);
             // A new/replaced plan means every scenario now has a missing costing for it.
-            scenarioDAO.markAllScenariosNeedCosting(System.currentTimeMillis());
+            readinessDAO.markAllScenariosNeedCosting(System.currentTimeMillis());
         });
     }
 
@@ -297,62 +303,62 @@ public class ToutcRepository {
     }
 
     public void deleteSimulationDataForProfileID(long loadProfileID) {
-        scenarioDAO.deleteSimulationDataForProfileID(loadProfileID);
-        scenarioDAO.markProfileScenariosNeedSim(loadProfileID, System.currentTimeMillis());
+        simDataDAO.deleteSimulationDataForProfileID(loadProfileID);
+        readinessDAO.markProfileScenariosNeedSim(loadProfileID, System.currentTimeMillis());
     }
 
     public void deleteCostingDataForProfileID(long loadProfileID) {
-        scenarioDAO.deleteCostingDataForProfileID(loadProfileID);
-        scenarioDAO.markProfileScenariosNeedCosting(loadProfileID, System.currentTimeMillis());
+        simDataDAO.deleteCostingDataForProfileID(loadProfileID);
+        readinessDAO.markProfileScenariosNeedCosting(loadProfileID, System.currentTimeMillis());
     }
 
     public void deleteSimulationDataForPanelID(long panelID) {
-        scenarioDAO.deleteSimulationDataForPanelID(panelID);
-        scenarioDAO.markPanelScenarioNeedsSim(panelID, System.currentTimeMillis());
+        simDataDAO.deleteSimulationDataForPanelID(panelID);
+        readinessDAO.markPanelScenarioNeedsSim(panelID, System.currentTimeMillis());
     }
 
     public void deleteCostingDataForPanelID(long panelID) {
-        scenarioDAO.deleteCostingDataForPanelID(panelID);
-        scenarioDAO.markPanelScenarioNeedsCosting(panelID, System.currentTimeMillis());
+        simDataDAO.deleteCostingDataForPanelID(panelID);
+        readinessDAO.markPanelScenarioNeedsCosting(panelID, System.currentTimeMillis());
     }
 
     public List<Long> getAllScenariosThatNeedSimulation() {
-        return scenarioDAO.getAllScenariosThatNeedSimulation();
+        return simDataDAO.getAllScenariosThatNeedSimulation();
     }
 
     // ── readiness matrix (scenario_readiness) — fast gates + worker terminal-state setters ──
 
     public List<Long> getScenarioIdsNeedingSimulation() {
-        return scenarioDAO.getScenarioIdsNeedingSimulation();
+        return readinessDAO.getScenarioIdsNeedingSimulation();
     }
 
     public List<Long> getScenarioIdsNeedingCosting() {
-        return scenarioDAO.getScenarioIdsNeedingCosting();
+        return readinessDAO.getScenarioIdsNeedingCosting();
     }
 
     /** Simulation succeeded for a scenario → up-to-date; costing now stale. */
     public void markSimulated(long scenarioID) {
-        scenarioDAO.markSimulated(scenarioID);
+        readinessOps.markSimulated(scenarioID);
     }
 
     /** Simulation can't run yet (record the blocked reason so the gate skips it). */
     public void markSimBlocked(long scenarioID, int blockedStatus) {
-        scenarioDAO.markSimBlocked(scenarioID, blockedStatus);
+        readinessOps.markSimBlocked(scenarioID, blockedStatus);
     }
 
     /** All (scenario × plan) costings present → costing up-to-date. */
     public void markCosted(long scenarioID) {
-        scenarioDAO.markCosted(scenarioID);
+        readinessOps.markCosted(scenarioID);
     }
 
     /** Self-heal: panel data for this panel landed → unblock its scenario if it was blocked on panel data. */
     public void unblockPanelScenarios(long panelID) {
-        scenarioDAO.unblockPanelScenarios(panelID, System.currentTimeMillis());
+        readinessDAO.unblockPanelScenarios(panelID, System.currentTimeMillis());
     }
 
     /** Self-heal: CDS weather for this scenario landed → unblock it if it was blocked on weather. */
     public void unblockWeatherScenario(long scenarioID) {
-        scenarioDAO.unblockWeatherScenario(scenarioID, System.currentTimeMillis());
+        readinessDAO.unblockWeatherScenario(scenarioID, System.currentTimeMillis());
     }
 
     public Scenario getScenarioForID(long scenarioID) {
@@ -364,11 +370,11 @@ public class ToutcRepository {
     }
 
     public void saveSimulationDataForScenario(ArrayList<ScenarioSimulationData> simulationData) {
-        scenarioDAO.saveSimulationDataForScenario(simulationData);
+        simDataDAO.saveSimulationDataForScenario(simulationData);
     }
 
     public List<Long> getAllScenariosThatMayNeedCosting() {
-        return scenarioDAO.getAllScenariosThatMayNeedCosting();
+        return readinessDAO.getAllScenariosThatMayNeedCosting();
     }
 
     public List<PricePlan> getAllPricePlansNow() {
@@ -376,7 +382,7 @@ public class ToutcRepository {
     }
 
     public List<ScenarioSimulationData> getSimulationDataForScenario(long scenarioID) {
-        return scenarioDAO.getSimulationDataForScenario(scenarioID);
+        return simDataDAO.getSimulationDataForScenario(scenarioID);
     }
 
     public void saveCosting(Costings costing) {
@@ -438,7 +444,7 @@ public class ToutcRepository {
     }
 
     public SimKPIs getSimKPIsForScenario(Long scenarioID) {
-        return scenarioDAO.getSimKPIsForScenario(scenarioID);
+        return simDataDAO.getSimKPIsForScenario(scenarioID);
     }
 
     public Costings getBestCostingForScenario(Long scenarioID) {
@@ -531,7 +537,7 @@ public class ToutcRepository {
         java.util.Set<Long> panelIds = new java.util.HashSet<>();
         for (PanelData row : panelDataList) panelIds.add(row.getPanelID());
         long now = System.currentTimeMillis();
-        for (Long panelID : panelIds) scenarioDAO.unblockPanelScenarios(panelID, now);
+        for (Long panelID : panelIds) readinessDAO.unblockPanelScenarios(panelID, now);
     }
 
     public LiveData<List<PanelPVSummary>> getPanelDataSummary() {
@@ -559,7 +565,7 @@ public class ToutcRepository {
         ToutcDB.databaseWriteExecutor.execute(() -> {
             costingDAO.deleteRelatedCostings((int) pricePlanIndex);
             // An edited plan invalidates its costing across every scenario.
-            scenarioDAO.markAllScenariosNeedCosting(System.currentTimeMillis());
+            readinessDAO.markAllScenariosNeedCosting(System.currentTimeMillis());
         });
     }
 
@@ -577,19 +583,19 @@ public class ToutcRepository {
     }
 
     public List<SimulationInputData> getSimulationInputNoSolar(long scenarioID) {
-        return scenarioDAO.getSimulationInputNoSolar(scenarioID);
+        return simDataDAO.getSimulationInputNoSolar(scenarioID);
     }
 
     public List<SimulationInputData> getPVRowsForPanel(long panelID) {
-        return scenarioDAO.getPVRowsForPanel(panelID);
+        return simDataDAO.getPVRowsForPanel(panelID);
     }
 
     public int countGridImportBreaches(long scenarioID, double capPerInterval) {
-        return scenarioDAO.countGridImportBreaches(scenarioID, capPerInterval);
+        return simDataDAO.countGridImportBreaches(scenarioID, capPerInterval);
     }
 
     public List<MICBreachRow> getTopGridImportBreaches(long scenarioID, double capPerInterval, int limit) {
-        return scenarioDAO.getTopGridImportBreaches(scenarioID, capPerInterval, limit);
+        return simDataDAO.getTopGridImportBreaches(scenarioID, capPerInterval, limit);
     }
 
 
@@ -710,28 +716,28 @@ public class ToutcRepository {
     public void deleteSimulationDataForScenarioID(Long scenarioID) {
         scenarioDAO.deleteSimulationDataForScenarioID(scenarioID);
         // Sim output gone → scenario needs re-sim (and therefore re-costing).
-        scenarioDAO.markScenarioNeedsSim(scenarioID, System.currentTimeMillis());
+        readinessDAO.markScenarioNeedsSim(scenarioID, System.currentTimeMillis());
     }
 
     public void deleteCostingDataForScenarioID(Long scenarioID) {
         scenarioDAO.deleteCostingDataForScenarioID(scenarioID);
-        scenarioDAO.markScenarioNeedsCosting(scenarioID, System.currentTimeMillis());
+        readinessDAO.markScenarioNeedsCosting(scenarioID, System.currentTimeMillis());
     }
 
     public List<ScenarioBarChartData> getBarData(Long scenarioID, int dayOfYear) {
-        return scenarioDAO.getBarData(scenarioID, dayOfYear);
+        return simDataDAO.getBarData(scenarioID, dayOfYear);
     }
 
     public List<ScenarioLineGraphData> getLineData(Long scenarioID, int dayOfYear) {
-        return scenarioDAO.getLineData(scenarioID, dayOfYear);
+        return simDataDAO.getLineData(scenarioID, dayOfYear);
     }
 
     public List<ScenarioBarChartData> getMonthlyBarData(Long scenarioID, int dayOfYear) {
-        return scenarioDAO.getMonthlyBarData(scenarioID, dayOfYear);
+        return simDataDAO.getMonthlyBarData(scenarioID, dayOfYear);
     }
 
     public List<ScenarioBarChartData> getYearBarData(Long scenarioID) {
-        return scenarioDAO.getYearBarData(scenarioID);
+        return simDataDAO.getYearBarData(scenarioID);
     }
 
     public List<String> getLinkedHWSystems(long hwSystemIndex, Long scenarioID) {
@@ -1029,43 +1035,43 @@ public class ToutcRepository {
     }
 
     public List<IntervalRow> getSimSumHour(String scenarioID, String from, String to) {
-        return scenarioDAO.sumHour(scenarioID, from, to);
+        return simDataDAO.sumHour(scenarioID, from, to);
     }
 
     public List<IntervalRow> getSimSumDOY(String scenarioID, String from, String to) {
-        return scenarioDAO.sumDOY(scenarioID, from, to);
+        return simDataDAO.sumDOY(scenarioID, from, to);
     }
 
     public List<IntervalRow> getSimSumDOW(String scenarioID, String from, String to) {
-        return scenarioDAO.sumDOW(scenarioID, from, to);
+        return simDataDAO.sumDOW(scenarioID, from, to);
     }
 
     public List<IntervalRow> getSimSumMonth(String scenarioID, String from, String to) {
-        return scenarioDAO.sumMonth(scenarioID, from, to);
+        return simDataDAO.sumMonth(scenarioID, from, to);
     }
 
     public List<IntervalRow> getSimSumYear(String scenarioID, String from, String to) {
-        return scenarioDAO.sumYear(scenarioID, from, to);
+        return simDataDAO.sumYear(scenarioID, from, to);
     }
 
     public List<IntervalRow> getSimAvgHour(String scenarioID, String from, String to) {
-        return scenarioDAO.avgHour(scenarioID, from, to);
+        return simDataDAO.avgHour(scenarioID, from, to);
     }
 
     public List<IntervalRow> getSimAvgDOY(String scenarioID, String from, String to) {
-        return scenarioDAO.avgDOY(scenarioID, from, to);
+        return simDataDAO.avgDOY(scenarioID, from, to);
     }
 
     public List<IntervalRow> getSimAvgDOW(String scenarioID, String from, String to) {
-        return scenarioDAO.avgDOW(scenarioID, from, to);
+        return simDataDAO.avgDOW(scenarioID, from, to);
     }
 
     public List<IntervalRow> getSimAvgMonth(String scenarioID, String from, String to) {
-        return scenarioDAO.avgMonth(scenarioID, from, to);
+        return simDataDAO.avgMonth(scenarioID, from, to);
     }
 
     public List<IntervalRow> getSimAvgYear(String scenarioID, String from, String to) {
-        return scenarioDAO.avgYear(scenarioID, from, to);
+        return simDataDAO.avgYear(scenarioID, from, to);
     }
 
     public LiveData<List<InverterDateRange>> getScenarioLiveDateRanges() {
@@ -1103,7 +1109,7 @@ public class ToutcRepository {
     }
 
     public List<ComparisonSenarioRow> getCompareScenarios() {
-        return scenarioDAO.getCompareScenarios();
+        return simDataDAO.getCompareScenarios();
     }
 
     public InverterDateRange getDateRange(String sysSN) {
@@ -1111,7 +1117,7 @@ public class ToutcRepository {
     }
 
     public InverterDateRange getSimDateRanges(String sysSN) {
-        return scenarioDAO.getSimDateRanges(sysSN);
+        return simDataDAO.getSimDateRanges(sysSN);
     }
 
     // ---- AlphaESS transform meta (v2 enrichment tracking) ----
