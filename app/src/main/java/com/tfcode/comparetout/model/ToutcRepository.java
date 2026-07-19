@@ -150,7 +150,15 @@ public class ToutcRepository {
      * @param application Application context for database initialization
      */
     public ToutcRepository(Application application) {
-        ToutcDB db = ToutcDB.getDatabase(application);
+        this(ToutcDB.getDatabase(application));
+    }
+
+    /**
+     * Test seam: build against a caller-supplied DB (e.g. Room in-memory) so
+     * characterization tests avoid the file-backed singleton. Package-private
+     * on purpose — production code must keep using the Application constructor.
+     */
+    ToutcRepository(ToutcDB db) {
         pricePlanDAO = db.pricePlanDAO();
         allPricePlans = pricePlanDAO.loadPricePlans();
 
