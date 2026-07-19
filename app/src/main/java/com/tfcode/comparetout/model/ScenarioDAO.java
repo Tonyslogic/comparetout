@@ -129,7 +129,7 @@ public abstract class ScenarioDAO {
     public abstract long addNewHWSystem(HWSystem hwSystem); // public: shared with HotWaterOps (C3)
 
     @Insert
-    abstract long addNewLoadProfile(LoadProfile loadProfile);
+    public abstract long addNewLoadProfile(LoadProfile loadProfile); // public: shared with LoadProfileOps (C7)
 
     @Insert
     public abstract long addNewLoadShift(LoadShift loadShift); // public: shared with BatteryOps (C2)
@@ -165,7 +165,7 @@ public abstract class ScenarioDAO {
     public abstract void addNewScenario2HWSystem(Scenario2HWSystem scenario2HWSystem); // public: shared with HotWaterOps (C3)
 
     @Insert
-    abstract void addNewScenario2LoadProfile(Scenario2LoadProfile scenario2LoadProfile);
+    public abstract void addNewScenario2LoadProfile(Scenario2LoadProfile scenario2LoadProfile); // public: shared with LoadProfileOps (C7)
 
     @Insert
     public abstract void addNewScenario2LoadShift(Scenario2LoadShift scenario2LoadShift); // public: shared with BatteryOps (C2)
@@ -458,54 +458,22 @@ public abstract class ScenarioDAO {
     @Update (entity = Scenario.class)
     public abstract void updateScenario(Scenario scenario);
 
-    @Query("SELECT * FROM loadprofile, scenario2loadprofile " +
-            "WHERE scenarioID = :scenarioID AND loadProfile.loadProfileIndex = loadProfileID")
-    @RewriteQueriesToDropUnusedColumns
-    public abstract LiveData<LoadProfile> getLoadProfile(Long scenarioID);
-
-    @Query("SELECT * FROM loadprofile WHERE loadProfileIndex = :id")
-    public abstract LoadProfile getLoadProfileWithLoadProfileID(long id);
-
-    @Update (entity = LoadProfile.class)
-    public abstract void updateLoadProfile(LoadProfile loadProfile);
+    // getLoadProfile → LoadProfileDAO (mega-refactor C7)
+    // getLoadProfileWithLoadProfileID → LoadProfileDAO (mega-refactor C7)
+    // updateLoadProfile → LoadProfileDAO (mega-refactor C7)
 
     @Query("SELECT * FROM scenarios WHERE scenarioIndex = :scenarioID")
     public abstract Scenario getScenario(long scenarioID);
 
 
-    @Transaction
-    public long saveLoadProfile(Long scenarioID, LoadProfile loadProfile) {
-        long loadProfileID = loadProfile.getLoadProfileIndex();
-        if (loadProfileID == 0) {
-            loadProfileID = addNewLoadProfile(loadProfile);
-            deleteLoadProfileRelationsForScenario(Math.toIntExact(scenarioID));
-        }
-        else {
-            updateLoadProfile(loadProfile);
-        }
-        Scenario2LoadProfile s2lp = new Scenario2LoadProfile();
-        s2lp.setScenarioID(scenarioID);
-        s2lp.setLoadProfileID(loadProfileID);
-        addNewScenario2LoadProfile(s2lp);
-
-        Scenario scenario = getScenario(scenarioID);
-        scenario.setHasLoadProfiles(true);
-        updateScenario(scenario);
-        return loadProfileID;
-    }
+    // saveLoadProfile → LoadProfileOps (mega-refactor C7)
 
     // updateInverter → InverterDAO (mega-refactor C1)
     // saveInverter → InverterOps (mega-refactor C1)
     // updatePanel → PanelDAO (mega-refactor C6)
-
-    @Query("SELECT DISTINCT loadProfileID FROM loadprofiledata WHERE loadProfileID = :id")
-    public abstract long loadProfileDataCheck(long id);
-
-    @Query("DELETE FROM loadprofiledata WHERE loadProfileID = :id")
-    public abstract void deleteLoadProfileData(long id);
-
-    @Insert(entity = LoadProfileData.class)
-    public abstract void createLoadProfileDataEntries(ArrayList<LoadProfileData> rows);
+    // loadProfileDataCheck → LoadProfileDAO (mega-refactor C7)
+    // deleteLoadProfileData → LoadProfileDAO (mega-refactor C7)
+    // createLoadProfileDataEntries → LoadProfileDAO (mega-refactor C7)
 
     @Query("DELETE FROM scenariosimulationdata WHERE scenarioID IN (" +
             "SELECT scenarioID FROM scenario2loadprofile WHERE loadProfileID = :loadProfileID) ")
@@ -563,9 +531,7 @@ public abstract class ScenarioDAO {
     @Query("UPDATE scenarios SET isActive = :checked WHERE scenarioIndex = :id")
     public abstract void updateScenarioActiveStatus(int id, boolean checked);
 
-    @Query("SELECT loadProfileIndex FROM loadprofile WHERE loadProfileIndex NOT IN " +
-            "(SELECT DISTINCT loadProfileID FROM loadprofiledata)")
-    public abstract List<Long> checkForMissingLoadProfileData();
+    // checkForMissingLoadProfileData → LoadProfileDAO (mega-refactor C7)
 
     // ──────────────────────────────────────────────────────────────────────────────────────────────
     // Readiness matrix (scenario_readiness) — see ScenarioReadiness. Replaces the old derive-by-scan
@@ -929,27 +895,10 @@ public abstract class ScenarioDAO {
     @Query("SELECT * FROM scenarios")
     public abstract List<Scenario> getScenarios();
 
-    @Transaction
-    public void copyLoadProfileFromScenario(long fromScenarioID, Long toScenarioID) {
-        LoadProfile lp = getLoadProfileForScenarioID(fromScenarioID);
-        long oldLoadProfileID = lp.getLoadProfileIndex();
-        lp.setLoadProfileIndex(0L);
-        long newLoadProfileID = addNewLoadProfile(lp);
+    // copyLoadProfileFromScenario → LoadProfileOps (mega-refactor C7)
 
-        deleteLoadProfileRelationsForScenario(Math.toIntExact(toScenarioID));
-        Scenario2LoadProfile s2lp = new Scenario2LoadProfile();
-        s2lp.setScenarioID(toScenarioID);
-        s2lp.setLoadProfileID(newLoadProfileID);
-        addNewScenario2LoadProfile(s2lp);
-
-        Scenario toScenario = getScenario(toScenarioID);
-        toScenario.setHasLoadProfiles(true);
-        updateScenario(toScenario);
-        copyLoadProfileData(oldLoadProfileID, newLoadProfileID);
-
-        deleteOrphanLoadProfiles();
-    }
-
+    // copyLoadProfileData stays here until C9: called by the copyScenario
+    // lifecycle @Transaction. LoadProfileOps.copy* calls it via scenarioDAO.
     @Query("INSERT INTO loadProfiledata (loadProfileID, date, minute, load, mod, dow, do2001, millisSinceEpoch) " +
             "SELECT :newLoadProfileID, date, minute, load, mod, dow, do2001, millisSinceEpoch FROM loadProfiledata " +
             "WHERE loadProfileID = :oldLoadProfileID")
@@ -1064,10 +1013,7 @@ public abstract class ScenarioDAO {
     @Query("DELETE FROM scenariosimulationdata")
     public abstract void deleteAllSimulationData();
 
-    @Query("SELECT scenarioName FROM scenarios WHERE scenarioIndex IN (" +
-            "SELECT scenarioID FROM scenario2loadprofile WHERE  loadProfileID = (" +
-            "SELECT loadProfileID FROM scenario2loadprofile WHERE scenarioID = :scenarioID) AND scenarioID != :scenarioID )")
-    public abstract List<String> getLinkedLoadProfiles(Long scenarioID);
+    // getLinkedLoadProfiles → LoadProfileDAO (mega-refactor C7)
 
     // getLinkedInverters → InverterDAO (mega-refactor C1)
     // getLinkedPanels → PanelDAO (mega-refactor C6)
@@ -1386,8 +1332,7 @@ public abstract class ScenarioDAO {
         if (hwDivert != null) saveHWDivert(to, hwDivert);
     }
 
-    @Query("SELECT DISTINCT gridExportMax FROM loadprofile, scenario2loadprofile WHERE loadProfileID = loadProfileIndex AND scenarioID = :scenarioID")
-    public abstract double getGridExportMaxForScenario(long scenarioID);
+    // getGridExportMaxForScenario → LoadProfileDAO (mega-refactor C7)
 
 
 

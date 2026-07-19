@@ -120,6 +120,8 @@ public class ToutcRepository {
     private final com.tfcode.comparetout.model.ops.HeatPumpOps heatPumpOps;
     private final com.tfcode.comparetout.model.dao.PanelDAO panelDAO;
     private final com.tfcode.comparetout.model.ops.PanelOps panelOps;
+    private final com.tfcode.comparetout.model.dao.LoadProfileDAO loadProfileDAO;
+    private final com.tfcode.comparetout.model.ops.LoadProfileOps loadProfileOps;
     private final LiveData<List<Scenario>> allScenarios;
     private final LiveData<List<Scenario2Inverter>> inverterRelations;
     private final LiveData<List<Scenario2Panel>> panelRelations;
@@ -187,6 +189,8 @@ public class ToutcRepository {
         heatPumpOps = new com.tfcode.comparetout.model.ops.HeatPumpOps(db);
         panelDAO = db.panelDAO();
         panelOps = new com.tfcode.comparetout.model.ops.PanelOps(db);
+        loadProfileDAO = db.loadProfileDAO();
+        loadProfileOps = new com.tfcode.comparetout.model.ops.LoadProfileOps(db);
         allScenarios = scenarioDAO.loadScenarios();
         inverterRelations = inverterDAO.loadInverterRelations();
         panelRelations = panelDAO.loadPanelRelations();
@@ -263,33 +267,33 @@ public class ToutcRepository {
     }
 
     public LiveData<LoadProfile> getLoadProfile(Long scenarioID) {
-        return scenarioDAO.getLoadProfile(scenarioID);
+        return loadProfileDAO.getLoadProfile(scenarioID);
     }
 
     public void saveLoadProfile(Long scenarioID, LoadProfile loadProfile) {
         ToutcDB.databaseWriteExecutor.execute(() ->
-                scenarioDAO.saveLoadProfile(scenarioID, loadProfile));
+                loadProfileOps.saveLoadProfile(scenarioID, loadProfile));
     }
 
     public long saveLoadProfileAndReturnID(Long scenarioID, LoadProfile loadProfile) {
-        return scenarioDAO.saveLoadProfile(scenarioID, loadProfile);
+        return loadProfileOps.saveLoadProfile(scenarioID, loadProfile);
     }
 
     // Methods for Worker (LoadProfileData)
     public boolean loadProfileDataCheck(long id) {
-        return (scenarioDAO.loadProfileDataCheck(id) != id);
+        return (loadProfileDAO.loadProfileDataCheck(id) != id);
     }
 
     public void deleteLoadProfileData(long id) {
-        scenarioDAO.deleteLoadProfileData(id);
+        loadProfileDAO.deleteLoadProfileData(id);
     }
 
     public LoadProfile getLoadProfileWithLoadProfileID(long mLoadProfileID) {
-        return scenarioDAO.getLoadProfileWithLoadProfileID(mLoadProfileID);
+        return loadProfileDAO.getLoadProfileWithLoadProfileID(mLoadProfileID);
     }
 
     public void createLoadProfileDataEntries(ArrayList<LoadProfileData> rows) {
-        scenarioDAO.createLoadProfileDataEntries(rows);
+        loadProfileDAO.createLoadProfileDataEntries(rows);
     }
 
     public void deleteSimulationDataForProfileID(long loadProfileID) {
@@ -393,7 +397,7 @@ public class ToutcRepository {
     }
 
     public List<Long> checkForMissingLoadProfileData() {
-        return scenarioDAO.checkForMissingLoadProfileData();
+        return loadProfileDAO.checkForMissingLoadProfileData();
     }
 
     public void deleteScenario(int id) {
@@ -425,7 +429,7 @@ public class ToutcRepository {
 
     public void copyLoadProfileFromScenario(long fromScenarioID, Long toScenarioID) {
         ToutcDB.databaseWriteExecutor.execute(() ->
-        scenarioDAO.copyLoadProfileFromScenario(fromScenarioID, toScenarioID));
+        loadProfileOps.copyLoadProfileFromScenario(fromScenarioID, toScenarioID));
     }
 
     public void linkLoadProfileFromScenario(long fromScenarioID, Long toScenarioID) {
@@ -590,7 +594,7 @@ public class ToutcRepository {
 
 
     public List<String> getLinkedLoadProfiles(Long scenarioID) {
-        return  scenarioDAO.getLinkedLoadProfiles(scenarioID);
+        return  loadProfileDAO.getLinkedLoadProfiles(scenarioID);
     }
 
     public List<String> getLinkedInverters(Long inverterID, Long scenarioID) {
@@ -863,7 +867,7 @@ public class ToutcRepository {
     }
 
     public double getGridExportMaxForScenario(long scenarioID) {
-        return scenarioDAO.getGridExportMaxForScenario(scenarioID);
+        return loadProfileDAO.getGridExportMaxForScenario(scenarioID);
     }
 
     public List<String> getAllComparisonsNow() {
