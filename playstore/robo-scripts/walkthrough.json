@@ -1,8 +1,35 @@
 [
   {
-    "eventType": "WAIT",
-    "delayTime": 5000
+    "description": "Interrupt handler: dismiss the region-mismatch dialog whenever it appears (US-locale FTL device on the ie edition). Conditional -> never aborts if absent.",
+    "priority": 1,
+    "maxNumberOfRuns": 3,
+    "contextDescriptor": {
+      "condition": "element_present",
+      "elementDescriptors": [
+        { "text": "Got it" }
+      ]
+    },
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "Got it" }
+    ]
   },
+  {
+    "description": "Interrupt handler: dismiss the first-use disclaimer whenever it appears. Conditional -> never aborts if absent.",
+    "priority": 1,
+    "maxNumberOfRuns": 3,
+    "contextDescriptor": {
+      "condition": "element_present",
+      "elementDescriptors": [
+        { "text": "OK" }
+      ]
+    },
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "OK" }
+    ]
+  },
+
   {
     "eventType": "PERMISSIONS_REQUEST",
     "requestedPermissions": [
@@ -11,20 +38,20 @@
     "elementDescriptors": []
   },
   {
-    "eventType": "VIEW_CLICKED",
-    "elementDescriptors": [
-      { "text": "Got it" }
-    ]
-  },
-  {
-    "eventType": "VIEW_CLICKED",
-    "elementDescriptors": [
-      { "text": "OK" }
-    ]
+    "eventType": "WAIT",
+    "delayTime": 3000
   },
   {
     "eventType": "WAIT",
-    "delayTime": 2000
+    "delayTime": 3000
+  },
+
+  {
+    "eventType": "WAIT_FOR_ELEMENT",
+    "delayTime": 30000,
+    "elementDescriptors": [
+      { "text": "Try with sample data" }
+    ]
   },
   {
     "eventType": "VIEW_CLICKED",
@@ -32,9 +59,17 @@
       { "text": "Try with sample data" }
     ]
   },
+
   {
     "eventType": "WAIT",
     "delayTime": 120000
+  },
+  {
+    "eventType": "WAIT_FOR_ELEMENT",
+    "delayTime": 30000,
+    "elementDescriptors": [
+      { "text": "Scenarios" }
+    ]
   },
   {
     "eventType": "VIEW_CLICKED",
@@ -43,7 +78,8 @@
     ]
   },
   {
-    "eventType": "VIEW_CLICKED",
+    "eventType": "WAIT_FOR_ELEMENT",
+    "delayTime": 15000,
     "elementDescriptors": [
       { "text": "Sample · First Run" }
     ]
@@ -51,66 +87,16 @@
   {
     "eventType": "VIEW_CLICKED",
     "elementDescriptors": [
-      { "text": "Tariff Plan" }
+      { "text": "Sample · First Run" }
     ]
   },
+
   {
-    "eventType": "WAIT",
-    "delayTime": 3000
-  },
-  {
-    "eventType": "VIEW_CLICKED",
+    "eventType": "WAIT_FOR_ELEMENT",
+    "delayTime": 15000,
     "elementDescriptors": [
-      { "text": "Explore data" }
+      { "text": "Comparisons" }
     ]
-  },
-  {
-    "eventType": "WAIT",
-    "delayTime": 3000
-  },
-  {
-    "eventType": "VIEW_CLICKED",
-    "elementDescriptors": [
-      { "contentDescription": "View graphs" }
-    ]
-  },
-  {
-    "eventType": "WAIT",
-    "delayTime": 5000
-  },
-  {
-    "eventType": "PRESSED_BACK"
-  },
-  {
-    "eventType": "VIEW_CLICKED",
-    "elementDescriptors": [
-      { "text": "KPIs" }
-    ]
-  },
-  {
-    "eventType": "WAIT",
-    "delayTime": 3000
-  },
-  {
-    "eventType": "VIEW_CLICKED",
-    "elementDescriptors": [
-      { "text": "Visual overview" }
-    ]
-  },
-  {
-    "eventType": "WAIT",
-    "delayTime": 3000
-  },
-  {
-    "eventType": "VIEW_SWIPED",
-    "swipeDirection": "Down",
-    "elementDescriptors": [
-      { "text": "Visual overview" }
-    ]
-  },
-  {
-    "eventType": "WAIT",
-    "delayTime": 1000
   },
   {
     "eventType": "VIEW_CLICKED",
@@ -119,8 +105,11 @@
     ]
   },
   {
-    "eventType": "WAIT",
-    "delayTime": 2000
+    "eventType": "WAIT_FOR_ELEMENT",
+    "delayTime": 15000,
+    "elementDescriptors": [
+      { "text": "Sources" }
+    ]
   },
   {
     "eventType": "VIEW_CLICKED",
@@ -130,28 +119,15 @@
   },
   {
     "eventType": "WAIT",
-    "delayTime": 2000
+    "delayTime": 2500
   },
+
   {
-    "eventType": "VIEW_CLICKED",
+    "eventType": "WAIT_FOR_ELEMENT",
+    "delayTime": 15000,
     "elementDescriptors": [
-      { "text": "Filter" }
+      { "text": "Directors" }
     ]
-  },
-  {
-    "eventType": "WAIT",
-    "delayTime": 2000
-  },
-  {
-    "eventType": "VIEW_SWIPED",
-    "swipeDirection": "Down",
-    "elementDescriptors": [
-      { "text": "Filter" }
-    ]
-  },
-  {
-    "eventType": "WAIT",
-    "delayTime": 1000
   },
   {
     "eventType": "VIEW_CLICKED",
@@ -160,13 +136,23 @@
     ]
   },
   {
-    "eventType": "WAIT",
-    "delayTime": 3000
+    "eventType": "WAIT_FOR_ELEMENT",
+    "delayTime": 15000,
+    "elementDescriptors": [
+      { "contentDescription": "Menu" }
+    ]
   },
   {
     "eventType": "VIEW_CLICKED",
     "elementDescriptors": [
       { "contentDescription": "Menu" }
+    ]
+  },
+  {
+    "eventType": "WAIT_FOR_ELEMENT",
+    "delayTime": 10000,
+    "elementDescriptors": [
+      { "text": "Supplier Plans" }
     ]
   },
   {
@@ -182,10 +168,25 @@
   {
     "eventType": "PRESSED_BACK"
   },
+
+  {
+    "eventType": "WAIT_FOR_ELEMENT",
+    "delayTime": 15000,
+    "elementDescriptors": [
+      { "text": "Scenarios" }
+    ]
+  },
   {
     "eventType": "VIEW_CLICKED",
     "elementDescriptors": [
       { "text": "Scenarios" }
+    ]
+  },
+  {
+    "eventType": "WAIT_FOR_ELEMENT",
+    "delayTime": 15000,
+    "elementDescriptors": [
+      { "contentDescription": "Options" }
     ]
   },
   {
@@ -195,14 +196,24 @@
     ]
   },
   {
+    "eventType": "WAIT_FOR_ELEMENT",
+    "delayTime": 10000,
+    "elementDescriptors": [
+      { "text": "Edit" }
+    ]
+  },
+  {
     "eventType": "VIEW_CLICKED",
     "elementDescriptors": [
       { "text": "Edit" }
     ]
   },
   {
-    "eventType": "WAIT",
-    "delayTime": 2000
+    "eventType": "WAIT_FOR_ELEMENT",
+    "delayTime": 15000,
+    "elementDescriptors": [
+      { "contentDescription": "Wizard section: Usage Data" }
+    ]
   },
   {
     "eventType": "VIEW_CLICKED",
@@ -266,5 +277,100 @@
   },
   {
     "eventType": "PRESSED_BACK"
+  },
+
+  {
+    "eventType": "WAIT_FOR_ELEMENT",
+    "delayTime": 15000,
+    "elementDescriptors": [
+      { "text": "Dashboard" }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "Dashboard" }
+    ]
+  },
+  {
+    "eventType": "WAIT_FOR_ELEMENT",
+    "delayTime": 15000,
+    "elementDescriptors": [
+      { "text": "Tariff Plan" }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "Tariff Plan" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 3000
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "Explore data" }
+    ]
+  },
+  {
+    "eventType": "WAIT_FOR_ELEMENT",
+    "delayTime": 10000,
+    "elementDescriptors": [
+      { "contentDescription": "View graphs" }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "contentDescription": "View graphs" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 5000
+  },
+  {
+    "eventType": "PRESSED_BACK"
+  },
+  {
+    "eventType": "WAIT_FOR_ELEMENT",
+    "delayTime": 10000,
+    "elementDescriptors": [
+      { "text": "KPIs" }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "KPIs" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 3000
+  },
+  {
+    "eventType": "VIEW_SWIPED",
+    "swipeDirection": "Forward",
+    "elementDescriptors": [
+      { "text": "KPIs" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 1500
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "elementDescriptors": [
+      { "text": "Visual overview" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 3000
   }
 ]
