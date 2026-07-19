@@ -17,6 +17,7 @@ import com.google.gson.JsonParser
 import com.google.gson.reflect.TypeToken
 import com.tfcode.comparetout.SimulatorLauncher
 import com.tfcode.comparetout.TOUTCApplication
+import com.tfcode.comparetout.model.ops.ScenarioLifecycleOps
 import com.tfcode.comparetout.ui2.UserTimezoneStore
 import java.io.File
 import java.io.FileNotFoundException
@@ -298,7 +299,7 @@ class SnapshotImporter(private val application: Application) {
         val stagingTransformedSns: Set<String>
         try {
             stagingPlans = staging.pricePlanDAO().allPricePlansForExport
-            stagingScenarios = staging.scenarioDAO().allScenariosForExport
+            stagingScenarios = ScenarioLifecycleOps(staging).allScenariosForExport
             val sdb = staging.openHelper.readableDatabase
             stagingSysSns = queryStrings(
                 sdb,
@@ -463,9 +464,10 @@ class SnapshotImporter(private val application: Application) {
 
         val live = ToutcDB.getDatabase(application)
         val scenarioDAO = live.scenarioDAO()
+        val lifecycleOps = ScenarioLifecycleOps(live)
         // Synchronous read of current names — the LiveData path requires an
         // observer and would race against this commit.
-        val existingNames = scenarioDAO.allScenariosForExport
+        val existingNames = lifecycleOps.allScenariosForExport
             ?.map { it.scenario.scenarioName }?.toHashSet().orEmpty()
 
         var added = 0
@@ -490,7 +492,7 @@ class SnapshotImporter(private val application: Application) {
             val oldLoadProfileId = sc.loadProfile?.loadProfileIndex ?: 0L
 
             zeroScenarioPks(sc)
-            val newScenarioId = scenarioDAO.addNewScenarioWithComponents(
+            val newScenarioId = lifecycleOps.addNewScenarioWithComponents(
                 sc.scenario, sc, replaceExisting
             )
             if (collides) replaced += 1 else added += 1

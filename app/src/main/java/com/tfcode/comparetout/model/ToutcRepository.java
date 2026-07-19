@@ -125,6 +125,7 @@ public class ToutcRepository {
     private final com.tfcode.comparetout.model.dao.SimDataDAO simDataDAO;
     private final com.tfcode.comparetout.model.dao.ReadinessDAO readinessDAO;
     private final com.tfcode.comparetout.model.ops.ReadinessOps readinessOps;
+    private final com.tfcode.comparetout.model.ops.ScenarioLifecycleOps scenarioLifecycleOps;
     private final LiveData<List<Scenario>> allScenarios;
     private final LiveData<List<Scenario2Inverter>> inverterRelations;
     private final LiveData<List<Scenario2Panel>> panelRelations;
@@ -197,6 +198,7 @@ public class ToutcRepository {
         simDataDAO = db.simDataDAO();
         readinessDAO = db.readinessDAO();
         readinessOps = new com.tfcode.comparetout.model.ops.ReadinessOps(db);
+        scenarioLifecycleOps = new com.tfcode.comparetout.model.ops.ScenarioLifecycleOps(db);
         allScenarios = scenarioDAO.loadScenarios();
         inverterRelations = inverterDAO.loadInverterRelations();
         panelRelations = panelDAO.loadPanelRelations();
@@ -255,11 +257,11 @@ public class ToutcRepository {
 
     public void insertScenario(ScenarioComponents sc, boolean clobber) {
         ToutcDB.databaseWriteExecutor.execute(() ->
-                scenarioDAO.addNewScenarioWithComponents(sc.scenario, sc, clobber));
+                scenarioLifecycleOps.addNewScenarioWithComponents(sc.scenario, sc, clobber));
     }
 
     public long insertScenarioAndReturnID(ScenarioComponents sc, boolean clobber) {
-        return scenarioDAO.addNewScenarioWithComponents(sc.scenario, sc, clobber);
+        return scenarioLifecycleOps.addNewScenarioWithComponents(sc.scenario, sc, clobber);
     }
 
 
@@ -366,7 +368,7 @@ public class ToutcRepository {
     }
 
     public ScenarioComponents getScenarioComponentsForScenarioID(long scenarioID) {
-        return scenarioDAO.getScenarioComponentsForScenarioID(scenarioID);
+        return scenarioLifecycleOps.getScenarioComponentsForScenarioID(scenarioID);
     }
 
     public void saveSimulationDataForScenario(ArrayList<ScenarioSimulationData> simulationData) {
@@ -408,7 +410,7 @@ public class ToutcRepository {
 
     public void deleteScenario(int id) {
         ToutcDB.databaseWriteExecutor.execute(() ->
-                scenarioDAO.deleteScenario(id));
+                scenarioLifecycleOps.deleteScenario(id));
     }
 
     public void deleteRelatedCostings(int id) {
@@ -418,11 +420,11 @@ public class ToutcRepository {
 
     public void copyScenario(int id) {
         ToutcDB.databaseWriteExecutor.execute(() ->
-                scenarioDAO.copyScenario(id));
+                scenarioLifecycleOps.copyScenario(id));
     }
 
     public List<ScenarioComponents> getAllScenariosForExport() {
-        return scenarioDAO.getAllScenariosForExport();
+        return scenarioLifecycleOps.getAllScenariosForExport();
     }
 
     public Map<PricePlan, List<DayRate>> getAllPricePlansForExport() {
@@ -765,7 +767,7 @@ public class ToutcRepository {
     public void linkAllComponentsFromScenario(long fromScenarioID, long toScenarioID,
                                               com.tfcode.comparetout.model.scenario.HWDivert hwDivert) {
         ToutcDB.databaseWriteExecutor.execute(() ->
-                scenarioDAO.linkAllComponentsFromScenario(fromScenarioID, toScenarioID, hwDivert));
+                scenarioLifecycleOps.linkAllComponentsFromScenario(fromScenarioID, toScenarioID, hwDivert));
     }
 
     public void copyHWSettingsFromScenario(long fromScenarioID, Long toScenarioID) {

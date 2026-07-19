@@ -111,7 +111,7 @@ import java.util.List;
 public abstract class ScenarioDAO {
 
     @Insert
-    abstract long addNewScenario(Scenario scenario);
+    public abstract long addNewScenario(Scenario scenario); // public: shared with ScenarioLifecycleOps (C9)
 
     @Insert
     public abstract long addNewInverter(Inverter inverter); // public: shared with InverterOps (C1)
@@ -144,7 +144,7 @@ public abstract class ScenarioDAO {
     public abstract long addNewHWSchedule(HWSchedule hwSchedule); // public: shared with HotWaterOps (C3)
 
     @Insert
-    abstract long addNewHWDivert(HWDivert hwDivert);
+    public abstract long addNewHWDivert(HWDivert hwDivert); // public: shared with ScenarioLifecycleOps (C9)
 
     @Insert
     public abstract long addNewEVDivert(EVDivert evDivert); // public: shared with EvOps (C4)
@@ -180,7 +180,7 @@ public abstract class ScenarioDAO {
     public abstract void addNewScenario2HWSchedule(Scenario2HWSchedule scenario2HWSchedule); // public: shared with HotWaterOps (C3)
 
     @Insert
-    abstract void addNewScenario2HWDivert(Scenario2HWDivert scenario2HWDivert);
+    public abstract void addNewScenario2HWDivert(Scenario2HWDivert scenario2HWDivert); // public: shared with ScenarioLifecycleOps (C9)
 
     @Insert
     public abstract void addNewScenario2EVDivert(Scenario2EVDivert scenario2EVDivert); // public: shared with EvOps (C4)
@@ -220,153 +220,6 @@ public abstract class ScenarioDAO {
      * @param clobber If true, replace any existing scenario with same name
      * @return The generated scenarioIndex, or 0 if creation failed
      */
-    @Transaction
-    long addNewScenarioWithComponents(Scenario scenario, ScenarioComponents components, boolean clobber) {
-        if (clobber) {
-            long oldScenarioID = getScenarioID(scenario.getScenarioName());
-            deleteScenario((int) oldScenarioID);
-        }
-        long scenarioID = 0;
-        try {
-            if (!(null == components.inverters) && !components.inverters.isEmpty())
-                scenario.setHasInverters(true);
-            if (!(null == components.batteries) && !components.batteries.isEmpty())
-                scenario.setHasBatteries(true);
-            if (!(null == components.panels) && !components.panels.isEmpty())
-                scenario.setHasPanels(true);
-            if (!(null == components.hwSystem)) scenario.setHasHWSystem(true);
-            if (!(null == components.loadProfile)) scenario.setHasLoadProfiles(true);
-            if (!(null == components.loadShifts) && !components.loadShifts.isEmpty())
-                scenario.setHasLoadShifts(true);
-            if (!(null == components.discharges) && !components.discharges.isEmpty())
-                scenario.setHasDischarges(true);
-            if (!(null == components.evCharges) && !components.evCharges.isEmpty())
-                scenario.setHasEVCharges(true);
-            if (!(null == components.hwSchedules) && !components.hwSchedules.isEmpty())
-                scenario.setHasHWSchedules(true);
-            if (!(null == components.hwDivert) && (components.hwDivert.isActive()))
-                scenario.setHasHWDivert(true);
-            if (!(null == components.evDiverts) && (!components.evDiverts.isEmpty()))
-                scenario.setHasEVDivert(true);
-            if (!(null == components.heatPumps) && !components.heatPumps.isEmpty())
-                scenario.setHasHeatPump(true);
-
-            scenarioID = addNewScenario(scenario);
-            if (!(null == components.inverters)) {
-                for (Inverter i : components.inverters) {
-                    long inverterID = addNewInverter(i);
-                    Scenario2Inverter s2i = new Scenario2Inverter();
-                    s2i.setScenarioID(scenarioID);
-                    s2i.setInverterID(inverterID);
-                    addNewScenario2Inverter(s2i);
-                }
-            }
-            if (!(null == components.batteries)) {
-                for (Battery b : components.batteries) {
-                    long batteryID = addNewBattery(b);
-                    Scenario2Battery s2b = new Scenario2Battery();
-                    s2b.setScenarioID(scenarioID);
-                    s2b.setBatteryID(batteryID);
-                    addNewScenario2Battery(s2b);
-                }
-            }
-            if (!(null == components.panels)) {
-                for (Panel p : components.panels) {
-                    long panelsID = p.getPanelIndex();
-                    if (panelsID == 0) panelsID = addNewPanels(p);
-                    Scenario2Panel s2p = new Scenario2Panel();
-                    s2p.setScenarioID(scenarioID);
-                    s2p.setPanelID(panelsID);
-                    addNewScenario2Panel(s2p);
-                }
-            }
-            if (!(null == components.hwSystem)) {
-                long hwSystemID = addNewHWSystem(components.hwSystem);
-                Scenario2HWSystem s2hws = new Scenario2HWSystem();
-                s2hws.setScenarioID(scenarioID);
-                s2hws.setHwSystemID(hwSystemID);
-                addNewScenario2HWSystem(s2hws);
-            }
-            if (!(null == components.loadProfile)) {
-                long loadProfileID = components.loadProfile.getLoadProfileIndex();
-                if (loadProfileID == 0) loadProfileID = addNewLoadProfile(components.loadProfile);
-                Scenario2LoadProfile s2lp = new Scenario2LoadProfile();
-                s2lp.setScenarioID(scenarioID);
-                s2lp.setLoadProfileID(loadProfileID);
-                addNewScenario2LoadProfile(s2lp);
-            }
-            if (!(null == components.loadShifts)) {
-                for (LoadShift ls : components.loadShifts) {
-                    long loadShiftID = addNewLoadShift(ls);
-                    Scenario2LoadShift s2ls = new Scenario2LoadShift();
-                    s2ls.setScenarioID(scenarioID);
-                    s2ls.setLoadShiftID(loadShiftID);
-                    addNewScenario2LoadShift(s2ls);
-                }
-            }
-            if (!(null == components.discharges)) {
-                for (DischargeToGrid discharge : components.discharges) {
-                    long dischargeID = addNewDischarge(discharge);
-                    Scenario2DischargeToGrid s2d = new Scenario2DischargeToGrid();
-                    s2d.setScenarioID(scenarioID);
-                    s2d.setDischargeID(dischargeID);
-                    addNewScenario2Discharge(s2d);
-                }
-            }
-            if (!(null == components.evCharges)) {
-                for (EVCharge evc : components.evCharges) {
-                    long evChargeID = addNewEVCharge(evc);
-                    Scenario2EVCharge s2evc = new Scenario2EVCharge();
-                    s2evc.setScenarioID(scenarioID);
-                    s2evc.setEvChargeID(evChargeID);
-                    addNewScenario2EVCharge(s2evc);
-                }
-            }
-            if (!(null == components.hwSchedules)) {
-                for (HWSchedule hws : components.hwSchedules) {
-                    long hwScheduleID = addNewHWSchedule(hws);
-                    Scenario2HWSchedule s2hws = new Scenario2HWSchedule();
-                    s2hws.setScenarioID(scenarioID);
-                    s2hws.setHwScheduleID(hwScheduleID);
-                    addNewScenario2HWSchedule(s2hws);
-                }
-            }
-            if (!(null == components.hwDivert)) {
-                long hwDivertID = addNewHWDivert(components.hwDivert);
-                Scenario2HWDivert s2hwd = new Scenario2HWDivert();
-                s2hwd.setScenarioID(scenarioID);
-                s2hwd.setHwDivertID(hwDivertID);
-                addNewScenario2HWDivert(s2hwd);
-            }
-            if (!(null == components.evDiverts)) {
-                for (EVDivert evd : components.evDiverts) {
-                    long evDivertID = addNewEVDivert(evd);
-                    Scenario2EVDivert s2evd = new Scenario2EVDivert();
-                    s2evd.setScenarioID(scenarioID);
-                    s2evd.setEvDivertID(evDivertID);
-                    addNewScenario2EVDivert(s2evd);
-                }
-            }
-            if (!(null == components.heatPumps)) {
-                for (HeatPump hp : components.heatPumps) {
-                    long heatPumpID = addNewHeatPump(hp);
-                    Scenario2HeatPump s2hp = new Scenario2HeatPump();
-                    s2hp.setScenarioID(scenarioID);
-                    s2hp.setHeatPumpID(heatPumpID);
-                    addNewScenario2HeatPump(s2hp);
-                }
-            }
-        } catch (SQLiteConstraintException e) {
-            // The only UNIQUE constraint reachable here is scenarios.scenarioName, so this means a scenario
-            // with this name already exists. addNewScenario aborts before assigning scenarioID, so the
-            // transaction inserted nothing — return 0 (a clear "not created" sentinel) rather than a dead id
-            // the caller mistakes for success and then dereferences (e.g. savePanel -> getScenario(0) -> NPE).
-            System.out.println("addNewScenarioWithComponents: duplicate scenario name '"
-                    + scenario.getScenarioName() + "' — not created");
-            scenarioID = 0;
-        }
-        return scenarioID;
-    }
 
     /**
      * Load all scenarios for reactive UI display.
@@ -554,49 +407,6 @@ public abstract class ScenarioDAO {
      * 
      * @param id The scenarioIndex to delete
      */
-    @Transaction
-    public void deleteScenario(int id) {
-        deleteScenarioRow(id);
-        
-        // Remove all junction table relationships
-        deleteBatteryRelationsForScenario(id);
-        deleteHeatPumpRelationsForScenario(id);
-        deleteEVChargeRelationsForScenario(id);
-        deleteEVDivertRelationsForScenario(id);
-        deleteHWDivertRelationsForScenario(id);
-        deleteHWScheduleRelationsForScenario(id);
-        deleteHWSystemRelationsForScenario(id);
-        deleteInverterRelationsForScenario(id);
-        deleteLoadProfileRelationsForScenario(id);
-        deleteLoadShiftRelationsForScenario(id);
-        deleteDischargeRelationsForScenario(id);
-        deletePanelRelationsForScenario(id);
-
-        // Clean up orphaned components (not referenced by any scenario)
-        deleteOrphanBatteries();
-        deleteOrphanHeatPumps();
-        deleteOrphanEVCharges();
-        deleteOrphanEVDiverts();
-        deleteOrphanHWDiverts();
-        deleteOrphanHWSchedules();
-        deleteOrphanHWSystems();
-        deleteOrphanInverters();
-        deleteOrphanLoadProfiles();
-        deleteOrphanLoadShifts();
-        deleteOrphanDischarges();
-        deleteOrphanPanels();
-
-        // Clean up dependent data
-        deleteOrphanLoadProfileData();
-        // Prune paneldata rows whose panel was just orphaned above. Without
-        // this, fetched PVGIS rows accumulate in the DB after every scenario
-        // delete. Matches the per-panel deletePanelFromScenario flow.
-        deleteOrphanPanelData();
-        deleteSimulationDataForScenarioID(id);
-        deleteCostingDataForScenarioID(id);
-        // Drop the readiness row too so it can't orphan once the scenario is gone.
-        deleteReadinessForScenario(id);
-    }
 
     /**
      * Remove orphaned battery records not referenced by any scenario.
@@ -694,100 +504,8 @@ public abstract class ScenarioDAO {
     @Query("DELETE FROM costings WHERE scenarioID = :id")
     public abstract void deleteCostingDataForScenarioID(long id);
 
-    @Transaction
-    public void copyScenario(int id) {
-        Scenario scenario = getScenarioForID(id);
-        List<Battery> batteries = getBatteriesForScenarioID(id);
-        List<HeatPump> heatPumps = getHeatPumpsForScenarioID(id);
-        List<EVCharge> evCharges = getEVChargesForScenarioID(id);
-        List<EVDivert> evDiverts = getEVDivertForScenarioID(id);
-        HWDivert hwDivert = getHWDivertForScenarioID(id);
-        List<HWSchedule> hwSchedules = getHWSchedulesForScenarioID(id);
-        HWSystem hwSystem = getHWSystemForScenarioID(id);
-        List<Inverter> inverters = getInvertersForScenarioID(id);
-        LoadProfile loadProfile = getLoadProfileForScenarioID(id);
-        List<LoadShift> loadShifts = getLoadShiftsForScenarioID(id);
-        List<DischargeToGrid> discharges = getDischargesForScenarioID(id);
-        List<Panel> panels = getPanelsForScenarioID(id);
 
-        scenario.setScenarioName(scenario.getScenarioName() + "_copy");
-        scenario.setScenarioIndex(0);
-        for (Battery b : batteries) b.setBatteryIndex(0);
-        for (HeatPump hp : heatPumps) hp.setHeatPumpIndex(0);
-        for (EVCharge e : evCharges) e.setEvChargeIndex(0);
-        for (EVDivert d : evDiverts) d.setEvDivertIndex(0);
-        if (!(null == hwDivert)) hwDivert.setHwDivertIndex(0);
-        for (HWSchedule h : hwSchedules) h.setHwScheduleIndex(0);
-        if (!(null == hwSystem)) hwSystem.setHwSystemIndex(0);
-        for (Inverter i : inverters) i.setInverterIndex(0);
-        if (!(null == loadProfile)) {
-            long oldLoadProfileID = loadProfile.getLoadProfileIndex();
-            loadProfile.setLoadProfileIndex(0);
-            long newLoadProfileID = addNewLoadProfile(loadProfile);
-            copyLoadProfileData(oldLoadProfileID, newLoadProfileID);
-            loadProfile.setLoadProfileIndex(newLoadProfileID);
-        }
-        for (LoadShift l : loadShifts) l.setLoadShiftIndex(0);
-        for (DischargeToGrid d : discharges) d.setD2gIndex(0);
-        for (Panel p : panels) {
-            long oldPanelID = p.getPanelIndex();
-            p.setPanelIndex(0);
-            long newPanelID = addNewPanels(p);
-            copyPanelData(oldPanelID, newPanelID);
-            p.setPanelIndex(newPanelID);
-        }
 
-        ScenarioComponents copyComponents = new ScenarioComponents(
-                scenario, inverters, batteries, panels, hwSystem,
-                loadProfile, loadShifts, discharges, evCharges, hwSchedules,
-                hwDivert, evDiverts);
-        copyComponents.heatPumps = heatPumps;
-        addNewScenarioWithComponents(scenario, copyComponents, false);
-    }
-
-    @Transaction
-    public List<ScenarioComponents> getAllScenariosForExport() {
-        List<ScenarioComponents> ret = new ArrayList<>();
-        List<Scenario> scenarios = getScenarios();
-        for (Scenario scenario: scenarios){
-            ScenarioComponents scenarioComponents = new ScenarioComponents(scenario,
-                    getInvertersForScenarioID(scenario.getScenarioIndex()),
-                    getBatteriesForScenarioID(scenario.getScenarioIndex()),
-                    getPanelsForScenarioID(scenario.getScenarioIndex()),
-                    getHWSystemForScenarioID(scenario.getScenarioIndex()),
-                    getLoadProfileForScenarioID(scenario.getScenarioIndex()),
-                    getLoadShiftsForScenarioID(scenario.getScenarioIndex()),
-                    getDischargesForScenarioID(scenario.getScenarioIndex()),
-                    getEVChargesForScenarioID(scenario.getScenarioIndex()),
-                    getHWSchedulesForScenarioID(scenario.getScenarioIndex()),
-                    getHWDivertForScenarioID(scenario.getScenarioIndex()),
-                    getEVDivertForScenarioID(scenario.getScenarioIndex())
-            );
-            scenarioComponents.heatPumps = getHeatPumpsForScenarioID(scenario.getScenarioIndex());
-            ret.add(scenarioComponents);
-        }
-        return ret;
-    }
-
-    @Transaction
-    public ScenarioComponents getScenarioComponentsForScenarioID(long scenarioID) {
-        ScenarioComponents components = new ScenarioComponents(
-                getScenarioForID(scenarioID),
-                getInvertersForScenarioID(scenarioID),
-                getBatteriesForScenarioID(scenarioID),
-                getPanelsForScenarioID(scenarioID),
-                getHWSystemForScenarioID(scenarioID),
-                getLoadProfileForScenarioID(scenarioID),
-                getLoadShiftsForScenarioID(scenarioID),
-                getDischargesForScenarioID(scenarioID),
-                getEVChargesForScenarioID(scenarioID),
-                getHWSchedulesForScenarioID(scenarioID),
-                getHWDivertForScenarioID(scenarioID),
-                getEVDivertForScenarioID(scenarioID)
-        );
-        components.heatPumps = getHeatPumpsForScenarioID(scenarioID);
-        return components;
-    }
 
     @Query("SELECT * FROM scenarios")
     public abstract List<Scenario> getScenarios();
@@ -1182,23 +900,6 @@ public abstract class ScenarioDAO {
      * the load-profile/inverter links had run — losing them. Running them in order under one @Transaction
      * (with the singleton links now null-safe) removes both problems.
      */
-    @Transaction
-    public void linkAllComponentsFromScenario(long fromScenarioID, long toScenarioID, HWDivert hwDivert) {
-        Long to = toScenarioID;
-        linkLoadProfileFromScenario(fromScenarioID, to);
-        linkEVChargeFromScenario(fromScenarioID, to);
-        linkInverterFromScenario(fromScenarioID, to);
-        linkPanelFromScenario(fromScenarioID, to);
-        linkBatteryFromScenario(fromScenarioID, to);
-        linkHeatPumpFromScenario(fromScenarioID, to);
-        linkLoadShiftFromScenario(fromScenarioID, to);
-        linkDischargeFromScenario(fromScenarioID, to);
-        linkHWSystemFromScenario(fromScenarioID, to);
-        linkHWScheduleFromScenario(fromScenarioID, toScenarioID);
-        // The HW divert is replayed from wizard/builder state (not linked from the source), but it lives in
-        // the same transaction so its has*-flag write can't race/clobber the links' flag writes.
-        if (hwDivert != null) saveHWDivert(to, hwDivert);
-    }
 
     // getGridExportMaxForScenario → LoadProfileDAO (mega-refactor C7)
 
