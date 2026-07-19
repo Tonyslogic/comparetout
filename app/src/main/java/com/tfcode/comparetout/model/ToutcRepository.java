@@ -112,6 +112,8 @@ public class ToutcRepository {
     private final com.tfcode.comparetout.model.ops.InverterOps inverterOps;
     private final com.tfcode.comparetout.model.dao.BatteryDAO batteryDAO;
     private final com.tfcode.comparetout.model.ops.BatteryOps batteryOps;
+    private final com.tfcode.comparetout.model.dao.HotWaterDAO hotWaterDAO;
+    private final com.tfcode.comparetout.model.ops.HotWaterOps hotWaterOps;
     private final LiveData<List<Scenario>> allScenarios;
     private final LiveData<List<Scenario2Inverter>> inverterRelations;
     private final LiveData<List<Scenario2Panel>> panelRelations;
@@ -171,14 +173,16 @@ public class ToutcRepository {
         inverterOps = new com.tfcode.comparetout.model.ops.InverterOps(db);
         batteryDAO = db.batteryDAO();
         batteryOps = new com.tfcode.comparetout.model.ops.BatteryOps(db);
+        hotWaterDAO = db.hotWaterDAO();
+        hotWaterOps = new com.tfcode.comparetout.model.ops.HotWaterOps(db);
         allScenarios = scenarioDAO.loadScenarios();
         inverterRelations = inverterDAO.loadInverterRelations();
         panelRelations = scenarioDAO.loadPanelRelations();
         batteryRelations = batteryDAO.loadBatteryRelations();
         loadShiftRelations = batteryDAO.loadLoadShiftRelations();
         dischargeRelations = batteryDAO.loadDischargeRelations();
-        hwSystemRelations = scenarioDAO.loadHWSystemRelations();
-        hwScheduleRelations = scenarioDAO.loadHWScheduleRelations();
+        hwSystemRelations = hotWaterDAO.loadHWSystemRelations();
+        hwScheduleRelations = hotWaterDAO.loadHWScheduleRelations();
         evChargeRelations = scenarioDAO.loadEVChargeRelations();
         evDivertRelations = scenarioDAO.loadEVDivertRelations();
         panelPVSummary = scenarioDAO.getPanelPVSummary();
@@ -715,7 +719,7 @@ public class ToutcRepository {
     }
 
     public List<String> getLinkedHWSystems(long hwSystemIndex, Long scenarioID) {
-        return scenarioDAO.getLinkedHWSystems(hwSystemIndex, scenarioID);
+        return hotWaterDAO.getLinkedHWSystems(hwSystemIndex, scenarioID);
     }
 
     public HWSystem getHWSystemForScenarioID(Long scenarioID) {
@@ -723,7 +727,7 @@ public class ToutcRepository {
     }
 
     public void saveHWSystemForScenario(Long scenarioID, HWSystem hwSystem) {
-        scenarioDAO.saveHWSystemForScenario(scenarioID, hwSystem);
+        hotWaterOps.saveHWSystemForScenario(scenarioID, hwSystem);
     }
 
     public void linkHWSystemFromScenario(long fromScenarioID, Long toScenarioID) {
@@ -744,7 +748,7 @@ public class ToutcRepository {
 
     public void copyHWSettingsFromScenario(long fromScenarioID, Long toScenarioID) {
         ToutcDB.databaseWriteExecutor.execute(() ->
-                scenarioDAO.copyHWSettingsFromScenario(fromScenarioID, toScenarioID));
+                hotWaterOps.copyHWSettingsFromScenario(fromScenarioID, toScenarioID));
     }
 
     public LiveData<List<Scenario2HWSystem>> getAllHWSystemRelations() {
@@ -757,7 +761,7 @@ public class ToutcRepository {
     }
 
     public List<String> getLinkedHWSchedules(long hwScheduleIndex, Long scenarioID) {
-        return scenarioDAO.getLinkedHWSchedules(hwScheduleIndex, scenarioID);
+        return hotWaterDAO.getLinkedHWSchedules(hwScheduleIndex, scenarioID);
     }
 
     public LiveData<List<Scenario2HWSchedule>> getAllHWScheduleRelations() {
@@ -769,16 +773,16 @@ public class ToutcRepository {
     }
 
     public void deleteHWScheduleFromScenario(Long hwScheduleID, Long scenarioID) {
-        scenarioDAO.deleteHWScheduleFromScenario(hwScheduleID, scenarioID);
+        hotWaterOps.deleteHWScheduleFromScenario(hwScheduleID, scenarioID);
     }
 
     public void saveHWScheduleForScenario(Long scenarioID, HWSchedule hwSchedule) {
-        scenarioDAO.saveHWScheduleForScenario(scenarioID, hwSchedule);
+        hotWaterOps.saveHWScheduleForScenario(scenarioID, hwSchedule);
     }
 
     public void copyHWScheduleFromScenario(long fromScenarioID, Long toScenarioID) {
         ToutcDB.databaseWriteExecutor.execute(() ->
-                scenarioDAO.copyHWScheduleFromScenario(fromScenarioID, toScenarioID));
+                hotWaterOps.copyHWScheduleFromScenario(fromScenarioID, toScenarioID));
     }
 
     public void linkHWScheduleFromScenario(long fromScenarioID, long toScenarioID) {

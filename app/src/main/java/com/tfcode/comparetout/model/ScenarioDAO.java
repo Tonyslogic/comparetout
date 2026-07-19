@@ -126,7 +126,7 @@ public abstract class ScenarioDAO {
     abstract long addNewPanels(Panel panel);
 
     @Insert
-    abstract long addNewHWSystem(HWSystem hwSystem);
+    public abstract long addNewHWSystem(HWSystem hwSystem); // public: shared with HotWaterOps (C3)
 
     @Insert
     abstract long addNewLoadProfile(LoadProfile loadProfile);
@@ -141,7 +141,7 @@ public abstract class ScenarioDAO {
     abstract long addNewEVCharge(EVCharge evCharge);
 
     @Insert
-    abstract long addNewHWSchedule(HWSchedule hwSchedule);
+    public abstract long addNewHWSchedule(HWSchedule hwSchedule); // public: shared with HotWaterOps (C3)
 
     @Insert
     abstract long addNewHWDivert(HWDivert hwDivert);
@@ -162,7 +162,7 @@ public abstract class ScenarioDAO {
     abstract void addNewScenario2Panel(Scenario2Panel scenario2Panel);
 
     @Insert
-    abstract void addNewScenario2HWSystem(Scenario2HWSystem scenario2HWSystem);
+    public abstract void addNewScenario2HWSystem(Scenario2HWSystem scenario2HWSystem); // public: shared with HotWaterOps (C3)
 
     @Insert
     abstract void addNewScenario2LoadProfile(Scenario2LoadProfile scenario2LoadProfile);
@@ -177,7 +177,7 @@ public abstract class ScenarioDAO {
     abstract void addNewScenario2EVCharge(Scenario2EVCharge scenario2EVCharge);
 
     @Insert
-    abstract void addNewScenario2HWSchedule(Scenario2HWSchedule scenario2HWSchedule);
+    public abstract void addNewScenario2HWSchedule(Scenario2HWSchedule scenario2HWSchedule); // public: shared with HotWaterOps (C3)
 
     @Insert
     abstract void addNewScenario2HWDivert(Scenario2HWDivert scenario2HWDivert);
@@ -1417,34 +1417,12 @@ public abstract class ScenarioDAO {
             "GROUP BY substr(Date, 6,2) ORDER BY substr(Date, 6,2)")
     public abstract List<ScenarioBarChartData> getYearBarData(Long scenarioID);
 
-    @Query("SELECT scenarioName FROM scenarios WHERE scenarioIndex IN (" +
-            "SELECT scenarioID FROM scenario2hwsystem WHERE hwSystemID = :hwSystemIndex) AND scenarioIndex != :scenarioID")
-    public abstract List<String> getLinkedHWSystems(long hwSystemIndex, Long scenarioID);
+    // getLinkedHWSystems → HotWaterDAO (mega-refactor C3)
+    // saveHWSystemForScenario → HotWaterOps (mega-refactor C3)
+    // updateHWSystem → HotWaterDAO (mega-refactor C3)
 
-    @Transaction
-    public void saveHWSystemForScenario(Long scenarioID, HWSystem hwSystem) {
-
-        long hwSystemID = hwSystem.getHwSystemIndex();
-        if (hwSystemID == 0) {
-            hwSystemID = addNewHWSystem(hwSystem);
-            deleteHWSystemRelationsForScenario(Math.toIntExact(scenarioID));
-            Scenario2HWSystem s2hws = new Scenario2HWSystem();
-            s2hws.setScenarioID(scenarioID);
-            s2hws.setHwSystemID(hwSystemID);
-            addNewScenario2HWSystem(s2hws);
-
-            Scenario scenario = getScenario(scenarioID);
-            scenario.setHasHWSystem(true);
-            updateScenario(scenario);
-        }
-        else {
-            updateHWSystem(hwSystem);
-        }
-    }
-
-    @Update (entity = HWSystem.class)
-    public abstract void updateHWSystem(HWSystem battery);
-
+    // linkHWSystemFromScenario stays here until C9: called by the cross-domain
+    // lifecycle @Transaction linkAllComponentsFromScenario.
     @Transaction
     public void linkHWSystemFromScenario(long fromScenarioID, Long toScenarioID) {
         HWSystem hwSystem = getHWSystemForScenarioID(fromScenarioID);
@@ -1464,28 +1442,11 @@ public abstract class ScenarioDAO {
         deleteOrphanHWSystems();
     }
 
-    @Transaction
-    public void copyHWSettingsFromScenario(long fromScenarioID, Long toScenarioID) {
-        HWSystem hwSystem = getHWSystemForScenarioID(fromScenarioID);
-        hwSystem.setHwSystemIndex(0L);
-        long newHWSystemID = addNewHWSystem(hwSystem);
+    // copyHWSettingsFromScenario → HotWaterOps (mega-refactor C3)
+    // loadHWSystemRelations → HotWaterDAO (mega-refactor C3)
 
-        deleteHWSystemRelationsForScenario(Math.toIntExact(toScenarioID));
-        Scenario2HWSystem s2hws = new Scenario2HWSystem();
-        s2hws.setScenarioID(toScenarioID);
-        s2hws.setHwSystemID(newHWSystemID);
-        addNewScenario2HWSystem(s2hws);
-
-        Scenario toScenario = getScenario(toScenarioID);
-        toScenario.setHasHWSystem(true);
-        updateScenario(toScenario);
-
-        deleteOrphanHWSystems();
-    }
-
-    @Query("SELECT * FROM scenario2hwsystem")
-    public abstract LiveData<List<Scenario2HWSystem>> loadHWSystemRelations();
-
+    // saveHWDivert (+ updateHWDivert) stays here until C9: called by the
+    // cross-domain lifecycle @Transaction linkAllComponentsFromScenario.
     @Transaction
     public void saveHWDivert(Long scenarioID, HWDivert hwDivert) {
         if (hwDivert.getHwDivertIndex() == 0) {
@@ -1505,69 +1466,16 @@ public abstract class ScenarioDAO {
     @Update (entity = HWDivert.class)
     public abstract void updateHWDivert(HWDivert hwDivert);
 
-    @Query("SELECT scenarioName FROM scenarios WHERE scenarioIndex IN (" +
-            "SELECT scenarioID FROM scenario2hwschedule WHERE hwScheduleID = :hwScheduleIndex) AND scenarioIndex != :scenarioID")
-    public abstract List<String> getLinkedHWSchedules(long hwScheduleIndex, Long scenarioID);
+    // getLinkedHWSchedules → HotWaterDAO (mega-refactor C3)
+    // loadHWScheduleRelations → HotWaterDAO (mega-refactor C3)
+    // deleteHWScheduleFromScenario1 → HotWaterDAO (mega-refactor C3)
+    // deleteHWScheduleFromScenario → HotWaterOps (mega-refactor C3)
+    // saveHWScheduleForScenario → HotWaterOps (mega-refactor C3)
+    // updateHWSchedule → HotWaterDAO (mega-refactor C3)
+    // copyHWScheduleFromScenario → HotWaterOps (mega-refactor C3)
 
-    @Query("SELECT * FROM scenario2hwschedule")
-    public abstract  LiveData<List<Scenario2HWSchedule>> loadHWScheduleRelations();
-
-    @Query("DELETE FROM scenario2hwschedule WHERE scenarioID = :scenarioID AND hwScheduleID = :hwScheduleID")
-    public abstract void deleteHWScheduleFromScenario1(Long hwScheduleID, Long scenarioID);
-
-    @Transaction
-    public void deleteHWScheduleFromScenario(Long hwScheduleID, Long scenarioID) {
-        deleteHWScheduleFromScenario1(hwScheduleID, scenarioID);
-        List<HWSchedule> hwSchedules = getHWSchedulesForScenarioID(scenarioID);
-        if (hwSchedules.isEmpty()) {
-            Scenario scenario = getScenario(scenarioID);
-            scenario.setHasHWSchedules(false);
-            updateScenario(scenario);
-        }
-    }
-
-    @Transaction
-    public void saveHWScheduleForScenario(Long scenarioID, HWSchedule hwSchedule) {
-        long hwScheduleIndex = hwSchedule.getHwScheduleIndex();
-        if (hwScheduleIndex == 0) {
-            hwScheduleIndex = addNewHWSchedule(hwSchedule);
-            Scenario2HWSchedule scenario2HWSchedule = new Scenario2HWSchedule();
-            scenario2HWSchedule.setScenarioID(scenarioID);
-            scenario2HWSchedule.setHwScheduleID(hwScheduleIndex);
-            addNewScenario2HWSchedule(scenario2HWSchedule);
-
-            Scenario scenario = getScenario(scenarioID);
-            scenario.setHasHWSchedules(true);
-            updateScenario(scenario);
-        }
-        else {
-            updateHWSchedule(hwSchedule);
-        }
-    }
-
-    @Update (entity = HWSchedule.class)
-    public abstract void updateHWSchedule(HWSchedule hwSchedule);
-
-    @Transaction
-    public void copyHWScheduleFromScenario(long fromScenarioID, Long toScenarioID) {
-        List<HWSchedule> hwSchedules = getHWSchedulesForScenarioID(fromScenarioID);
-        for (HWSchedule hwSchedule: hwSchedules) {
-            hwSchedule.setHwScheduleIndex(0L);
-            long newHWScheduleID = addNewHWSchedule(hwSchedule);
-
-            Scenario2HWSchedule scenario2HWSchedule = new Scenario2HWSchedule();
-            scenario2HWSchedule.setScenarioID(toScenarioID);
-            scenario2HWSchedule.setHwScheduleID(newHWScheduleID);
-            addNewScenario2HWSchedule(scenario2HWSchedule);
-
-            Scenario toScenario = getScenario(toScenarioID);
-            toScenario.setHasHWSchedules(true);
-            updateScenario(toScenario);
-        }
-
-        deleteOrphanHWSchedules();
-    }
-
+    // linkHWScheduleFromScenario stays here until C9: called by the cross-domain
+    // lifecycle @Transaction linkAllComponentsFromScenario.
     @Transaction
     public void linkHWScheduleFromScenario(long fromScenarioID, long toScenarioID) {
         List<HWSchedule> hwSchedules = getHWSchedulesForScenarioID(fromScenarioID);
