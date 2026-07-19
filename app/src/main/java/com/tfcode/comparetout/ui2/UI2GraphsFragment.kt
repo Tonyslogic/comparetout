@@ -121,6 +121,9 @@ import com.github.mikephil.charting.formatter.ValueFormatter
 import com.github.mikephil.charting.interfaces.datasets.IBarDataSet
 import com.github.mikephil.charting.interfaces.datasets.ILineDataSet
 import com.tfcode.comparetout.R
+import com.tfcode.comparetout.ui2.charts.PieChart
+import com.tfcode.comparetout.ui2.charts.PieLegend
+import com.tfcode.comparetout.ui2.charts.PieSlice
 import com.tfcode.comparetout.ui2.UI2GraphsViewModel.DisplayScale
 import com.tfcode.comparetout.ui2.UI2GraphsViewModel.FilterSeries
 import com.tfcode.comparetout.ui2.UI2GraphsViewModel.GraphType
