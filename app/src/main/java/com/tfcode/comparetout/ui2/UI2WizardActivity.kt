@@ -97,7 +97,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -105,6 +107,7 @@ import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -153,7 +156,7 @@ class UI2WizardActivity : AppCompatActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalComposeUiApi::class)
 @Composable
 private fun WizardScreen(
     viewModel: UI2WizardViewModel = hiltViewModel(),
@@ -427,6 +430,10 @@ private fun WizardScreen(
                     .fillMaxWidth()
                     .widthIn(max = AdaptiveLayout.CONTENT_MAX_WIDTH)
                     .align(Alignment.CenterHorizontally)
+                    // Stable resourceId so the Robo walkthrough can ELEMENT_SCROLL_INTO_VIEW
+                    // any wizard section (incl. Heat Pump, off-screen in landscape) before tapping.
+                    .semantics { testTagsAsResourceId = true }
+                    .testTag("wizard_section_scroll")
                     .verticalScroll(scrollState)
                     .padding(horizontal = 16.dp, vertical = 4.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)

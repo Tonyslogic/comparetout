@@ -208,73 +208,283 @@
       { "text": "Edit" }
     ]
   },
+
   {
     "eventType": "WAIT_FOR_ELEMENT",
     "delayTime": 15000,
     "elementDescriptors": [
-      { "contentDescription": "Wizard section: Usage Data" }
-    ]
-  },
-  {
-    "eventType": "VIEW_CLICKED",
-    "elementDescriptors": [
-      { "contentDescription": "Wizard section: Usage Data" }
+      { "contentDescription": "Wizard section: Start" }
     ]
   },
   {
     "eventType": "WAIT",
     "delayTime": 1500
   },
+
+  {
+    "eventType": "ELEMENT_SCROLL_INTO_VIEW",
+    "optional": true,
+    "elementDescriptors": [
+      { "resourceId": "wizard_section_scroll" }
+    ],
+    "childElementDescriptors": [
+      { "contentDescription": "Wizard section: Start" }
+    ]
+  },
   {
     "eventType": "VIEW_CLICKED",
+    "optional": true,
+    "elementDescriptors": [
+      { "contentDescription": "Wizard section: Start" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 2000
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "optional": true,
+    "elementDescriptors": [
+      { "contentDescription": "Wizard section: Start" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 700
+  },
+
+  {
+    "eventType": "ELEMENT_SCROLL_INTO_VIEW",
+    "optional": true,
+    "elementDescriptors": [
+      { "resourceId": "wizard_section_scroll" }
+    ],
+    "childElementDescriptors": [
+      { "contentDescription": "Wizard section: Usage Data" }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "optional": true,
+    "elementDescriptors": [
+      { "contentDescription": "Wizard section: Usage Data" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 2000
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "optional": true,
+    "elementDescriptors": [
+      { "contentDescription": "Wizard section: Usage Data" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 700
+  },
+
+  {
+    "eventType": "ELEMENT_SCROLL_INTO_VIEW",
+    "optional": true,
+    "elementDescriptors": [
+      { "resourceId": "wizard_section_scroll" }
+    ],
+    "childElementDescriptors": [
+      { "contentDescription": "Wizard section: Inverters" }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "optional": true,
     "elementDescriptors": [
       { "contentDescription": "Wizard section: Inverters" }
     ]
   },
   {
     "eventType": "WAIT",
-    "delayTime": 1500
+    "delayTime": 2000
   },
   {
     "eventType": "VIEW_CLICKED",
+    "optional": true,
+    "elementDescriptors": [
+      { "contentDescription": "Wizard section: Inverters" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 700
+  },
+
+  {
+    "eventType": "ELEMENT_SCROLL_INTO_VIEW",
+    "optional": true,
+    "elementDescriptors": [
+      { "resourceId": "wizard_section_scroll" }
+    ],
+    "childElementDescriptors": [
+      { "contentDescription": "Wizard section: PV System" }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "optional": true,
     "elementDescriptors": [
       { "contentDescription": "Wizard section: PV System" }
     ]
   },
   {
     "eventType": "WAIT",
-    "delayTime": 1500
+    "delayTime": 2000
   },
   {
     "eventType": "VIEW_CLICKED",
+    "optional": true,
+    "elementDescriptors": [
+      { "contentDescription": "Wizard section: PV System" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 700
+  },
+
+  {
+    "eventType": "ELEMENT_SCROLL_INTO_VIEW",
+    "optional": true,
+    "elementDescriptors": [
+      { "resourceId": "wizard_section_scroll" }
+    ],
+    "childElementDescriptors": [
+      { "contentDescription": "Wizard section: Battery" }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "optional": true,
     "elementDescriptors": [
       { "contentDescription": "Wizard section: Battery" }
     ]
   },
   {
     "eventType": "WAIT",
-    "delayTime": 1500
+    "delayTime": 2000
   },
   {
     "eventType": "VIEW_CLICKED",
+    "optional": true,
+    "elementDescriptors": [
+      { "contentDescription": "Wizard section: Battery" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 700
+  },
+
+  {
+    "eventType": "ELEMENT_SCROLL_INTO_VIEW",
+    "optional": true,
+    "elementDescriptors": [
+      { "resourceId": "wizard_section_scroll" }
+    ],
+    "childElementDescriptors": [
+      { "contentDescription": "Wizard section: Hot Water" }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "optional": true,
     "elementDescriptors": [
       { "contentDescription": "Wizard section: Hot Water" }
     ]
   },
   {
     "eventType": "WAIT",
-    "delayTime": 1500
+    "delayTime": 2000
   },
   {
     "eventType": "VIEW_CLICKED",
+    "optional": true,
+    "elementDescriptors": [
+      { "contentDescription": "Wizard section: Hot Water" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 700
+  },
+
+  {
+    "eventType": "ELEMENT_SCROLL_INTO_VIEW",
+    "optional": true,
+    "elementDescriptors": [
+      { "resourceId": "wizard_section_scroll" }
+    ],
+    "childElementDescriptors": [
+      { "contentDescription": "Wizard section: EV" }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "optional": true,
     "elementDescriptors": [
       { "contentDescription": "Wizard section: EV" }
     ]
   },
   {
     "eventType": "WAIT",
-    "delayTime": 1500
+    "delayTime": 2000
   },
+  {
+    "eventType": "VIEW_CLICKED",
+    "optional": true,
+    "elementDescriptors": [
+      { "contentDescription": "Wizard section: EV" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 700
+  },
+
+  {
+    "eventType": "ELEMENT_SCROLL_INTO_VIEW",
+    "optional": true,
+    "elementDescriptors": [
+      { "resourceId": "wizard_section_scroll" }
+    ],
+    "childElementDescriptors": [
+      { "contentDescription": "Wizard section: Heat Pump" }
+    ]
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "optional": true,
+    "elementDescriptors": [
+      { "contentDescription": "Wizard section: Heat Pump" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 2000
+  },
+  {
+    "eventType": "VIEW_CLICKED",
+    "optional": true,
+    "elementDescriptors": [
+      { "contentDescription": "Wizard section: Heat Pump" }
+    ]
+  },
+  {
+    "eventType": "WAIT",
+    "delayTime": 700
+  },
+
   {
     "eventType": "PRESSED_BACK"
   },
@@ -336,14 +546,18 @@
     "eventType": "PRESSED_BACK"
   },
   {
-    "eventType": "WAIT_FOR_ELEMENT",
-    "delayTime": 10000,
+    "eventType": "ELEMENT_SCROLL_INTO_VIEW",
+    "optional": true,
     "elementDescriptors": [
+      { "resourceId": "dashboard_scroll" }
+    ],
+    "childElementDescriptors": [
       { "text": "KPIs" }
     ]
   },
   {
     "eventType": "VIEW_CLICKED",
+    "optional": true,
     "elementDescriptors": [
       { "text": "KPIs" }
     ]
@@ -353,18 +567,18 @@
     "delayTime": 3000
   },
   {
-    "eventType": "VIEW_SWIPED",
-    "swipeDirection": "Forward",
+    "eventType": "ELEMENT_SCROLL_INTO_VIEW",
+    "optional": true,
     "elementDescriptors": [
-      { "text": "KPIs" }
+      { "resourceId": "dashboard_scroll" }
+    ],
+    "childElementDescriptors": [
+      { "text": "Visual overview" }
     ]
   },
   {
-    "eventType": "WAIT",
-    "delayTime": 1500
-  },
-  {
     "eventType": "VIEW_CLICKED",
+    "optional": true,
     "elementDescriptors": [
       { "text": "Visual overview" }
     ]
