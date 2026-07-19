@@ -106,657 +106,116 @@ import java.util.Map;
  */
 public class JsonTools {
 
+    // Mega-refactor C10: JsonTools is now a thin facade. Implementations live in
+    // PricePlanJsonTools / ScenarioJsonTools; these one-line delegations keep all
+    // existing JsonTools.* call-sites untouched.
 
-    /**
-     * Creates a PricePlan domain object from JSON representation.
-     * <p>
-     * This method converts a PricePlanJsonFile (typically loaded from persistent storage
-     * or external configuration) into a fully populated PricePlan domain object.
-     * It handles complex nested structures including rate schedules, restrictions,
-     * and pricing configurations while providing sensible defaults for missing values.
-     * <p>
-     * The conversion process includes:
-     * - Basic plan properties (name, currency, fixed charges)
-     * - Rate ranges with minute-level granularity
-     * - Usage restrictions and excess cost calculations
-     * - Export rate configurations
-     * 
-     * @param pp The PricePlanJsonFile containing JSON-serialized plan data
-     * @return A fully populated PricePlan domain object ready for use
-     */
     public static PricePlan createPricePlan(PricePlanJsonFile pp) {
-        PricePlan p = new PricePlan();
-        p.setPlanName(pp.plan);
-        p.setSupplier(pp.supplier);
-        // Scalars are null-guarded so a terms-only dynamic file (which may carry
-        // little beyond Supplier/Plan/Dynamic) imports without unboxing NPEs.
-        p.setFeed(null == pp.feed ? 0d : pp.feed);
-        p.setStandingCharges(null == pp.standingCharges ? 0d : pp.standingCharges);
-        p.setSignUpBonus(null == pp.bonus ? 0d : pp.bonus);
-        if (!(null == pp.active)) p.setActive(pp.active);
-        if (!(null == pp.lastUpdate)) p.setLastUpdate(pp.lastUpdate);
-        if (!(null == pp.reference)) p.setReference(pp.reference);
-        p.setDeemedExport(null == pp.deemedExport ? false : pp.deemedExport);
-        if (!(null == pp.location)) p.setLocation(pp.location);
-        if (!(null == pp.dynamic)) {
-            DynamicTerms dt = new DynamicTerms();
-            dt.setMarket(pp.dynamic.market);
-            dt.setYear(pp.dynamic.year);
-            dt.setPeriodStartMonth(pp.dynamic.periodStartMonth);
-            dt.setPeriodStartDay(pp.dynamic.periodStartDay);
-            dt.setAutoWindow(pp.dynamic.autoWindow);
-            dt.setMultiplier(pp.dynamic.multiplier);
-            dt.setAdder(pp.dynamic.adder);
-            dt.setCap(pp.dynamic.cap);
-            dt.setFloor(pp.dynamic.floor);
-            dt.setFeedMultiplier(pp.dynamic.feedMultiplier);
-            dt.setFeedAdder(pp.dynamic.feedAdder);
-            dt.setSourceRef(pp.dynamic.sourceRef);
-            p.setDynamicTerms(dt);
-        }
-        Restrictions restrictions = new Restrictions();
-        RestrictionJson rj = pp.restrictions;
-        if (!(null == rj)) {
-            restrictions.setActive(rj.active);
-            ArrayList<Restriction> rjs = new ArrayList<>();
-            for (RestrictionEntryJson rje : rj.restrictionEntries) {
-                Restriction r = new Restriction();
-                r.addEntry(Restriction.RestrictionType.fromValue(rje.period), rje.scope, rje.limit, rje.excessCost);
-                rjs.add(r);
-            }
-            restrictions.setRestrictions(rjs);
-        }
-        p.setRestrictions(restrictions);
-        return p;
+        return PricePlanJsonTools.createPricePlan(pp);
     }
 
-    /**
-     * Creates a DayRate domain object from JSON representation.
-     * <p>
-     * This method transforms day rate configuration from JSON format into the
-     * internal DayRate domain object. Day rates define time-of-use pricing
-     * schedules that vary by time of day and day of week. The method provides
-     * default date ranges (full year) if not specified in the JSON.
-     * 
-     * @param drj The DayRateJson containing serialized rate configuration
-     * @return A DayRate object with populated schedule and rate information
-     */
-    public static DayRate createDayRate(DayRateJson drj){
-        DayRate dr = new DayRate();
-        if (drj.endDate == null) dr.setEndDate("12/31");
-        else dr.setEndDate(drj.endDate);
-        if (drj.startDate == null) dr.setStartDate("01/01");
-        else dr.setStartDate(drj.startDate);
-        IntHolder ih = new IntHolder();
-        ih.ints = drj.days;
-        dr.setDays(ih);
-        DoubleHolder dh = new DoubleHolder();
-        dh.doubles = drj.hours;
-        dr.setHours(dh);
-        MinuteRateRange mrr = new MinuteRateRange();
-        if (!(null == drj.minuteRange)) {
-            for (MinuteRangeCostJson mrcj : drj.minuteRange) {
-                mrr.add(mrcj.startMinute, mrcj.endMinute, mrcj.cost);
-            }
-        }
-        else {
-           mrr = MinuteRateRange.fromHours(dh);
-        }
-        dr.setMinuteRateRange(mrr);
-        dr.setRateType("sell".equalsIgnoreCase(drj.rateType)
-                ? DayRate.RATE_SELL : DayRate.RATE_BUY);
-        if (drj.dbID == null) dr.setDayRateIndex(0L);
-        else dr.setDayRateIndex(drj.dbID);
-        return dr;
+    public static DayRate createDayRate(DayRateJson drj) {
+        return PricePlanJsonTools.createDayRate(drj);
     }
 
-    private static DynamicTermsJson createDynamicTermsJson(DynamicTerms dt) {
-        if (null == dt) return null;
-        DynamicTermsJson dj = new DynamicTermsJson();
-        dj.market = dt.getMarket();
-        dj.year = dt.getYear();
-        dj.periodStartMonth = dt.getPeriodStartMonth();
-        dj.periodStartDay = dt.getPeriodStartDay();
-        dj.autoWindow = dt.getAutoWindow();
-        dj.multiplier = dt.getMultiplier();
-        dj.adder = dt.getAdder();
-        dj.cap = dt.getCap();
-        dj.floor = dt.getFloor();
-        dj.feedMultiplier = dt.getFeedMultiplier();
-        dj.feedAdder = dt.getFeedAdder();
-        dj.sourceRef = dt.getSourceRef();
-        return dj;
-    }
-
-    /**
-     * Serializes multiple price plans to JSON string format.
-     * <p>
-     * This method converts a map of price plans and their associated day rates
-     * into a JSON string suitable for storage or export. The resulting JSON
-     * maintains the hierarchical structure needed for later deserialization
-     * and includes all rate schedules, restrictions, and pricing configurations.
-     * 
-     * @param pricePlans Map of PricePlan objects to their associated DayRate lists
-     * @return JSON string representation of all price plans and rates
-     */
     public static String createPricePlanJson(Map<PricePlan, List<DayRate>> pricePlans) {
-        ArrayList<PricePlanJsonFile> ppList = new ArrayList<>();
-            for (Map.Entry<PricePlan, List<DayRate>> entry : pricePlans.entrySet()) {
-                ArrayList<DayRateJson> dayRateJsons = new ArrayList<>();
-                // Dynamic plans export terms-only: their rates are a derived artefact,
-                // regenerated locally, and market-derived prices must not be redistributed.
-                if (!entry.getKey().isDynamic()) for (DayRate dr : entry.getValue()){
-                    DayRateJson drj = new DayRateJson();
-                    drj.startDate = dr.getStartDate();
-                    drj.endDate = dr.getEndDate();
-                    drj.days = (ArrayList<Integer>) dr.getDays().ints;
-                    drj.hours = (ArrayList<Double>) dr.getHours().doubles;
-                    drj.minuteRange = new ArrayList<>();
-                    if (!(null == dr.getMinuteRateRange()) && !dr.getMinuteRateRange().getRates().isEmpty()) {
-                        for (RangeRate mrr : dr.getMinuteRateRange().getRates()) {
-                            drj.minuteRange.add(new MinuteRangeCostJson(mrr.getBegin(), mrr.getEnd(),mrr.getPrice()));
-                        }
-                    }
-                    else {
-                        // Same hours-fallback as the single-plan exporter so a
-                        // bulk export of a plan with no MinuteRateRange survives
-                        // round-tripping back into the wizard.
-                        MinuteRateRange synth = MinuteRateRange.fromHours(dr.getHours());
-                        for (RangeRate rr : synth.getRates()) {
-                            drj.minuteRange.add(new MinuteRangeCostJson(rr.getBegin(), rr.getEnd(), rr.getPrice()));
-                        }
-                    }
-                    // Absent for BUY rates, so pre-v16 exports are byte-identical.
-                    drj.rateType = (dr.getRateType() == DayRate.RATE_SELL) ? "sell" : null;
-                    drj.dbID = dr.getDayRateIndex();
-                    dayRateJsons.add(drj);
-                }
-                PricePlanJsonFile ppj = new PricePlanJsonFile();
-                ppj.rates = entry.getKey().isDynamic() ? null : dayRateJsons;
-                ppj.dynamic = createDynamicTermsJson(entry.getKey().getDynamicTerms());
-                ppj.active = entry.getKey().isActive();
-                ppj.plan = entry.getKey().getPlanName();
-                ppj.bonus = entry.getKey().getSignUpBonus();
-                ppj.feed = entry.getKey().getFeed();
-                ppj.lastUpdate = entry.getKey().getLastUpdate();
-                ppj.standingCharges = entry.getKey().getStandingCharges();
-                ppj.reference = entry.getKey().getReference();
-                ppj.supplier = entry.getKey().getSupplier();
-                ppj.deemedExport = entry.getKey().isDeemedExport();
-                ppj.location = entry.getKey().getLocation();
-                RestrictionJson restrictions = new RestrictionJson();
-                restrictions.active = entry.getKey().getRestrictions().isActive();
-                restrictions.restrictionEntries = new ArrayList<>();
-                for (Restriction r : entry.getKey().getRestrictions().getRestrictions()) {
-                    RestrictionEntryJson rje = new RestrictionEntryJson();
-                    rje.period = r.getPeriodicity().getValue();
-                    Map<String, Pair<Integer, Double>> restrictionEntries = r.getRestrictionEntries();
-                    for (Map.Entry<String, Pair<Integer, Double>> restrictionEntry : restrictionEntries.entrySet()) {
-                        rje.scope = restrictionEntry.getKey();
-                        rje.limit = restrictionEntry.getValue().first;
-                        rje.excessCost = restrictionEntry.getValue().second;
-                    }
-                    restrictions.restrictionEntries.add(rje);
-                }
-                ppj.restrictions = restrictions;
-                ppList.add(ppj);
-            }
-        Type type = new TypeToken<List<PricePlanJsonFile>>(){}.getType();
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        return gson.toJson(ppList,type);
+        return PricePlanJsonTools.createPricePlanJson(pricePlans);
     }
 
     public static String createSinglePricePlanJsonObject(PricePlan pp, List<DayRate> rates) {
-        ArrayList<DayRateJson> dayRateJsons = new ArrayList<>();
-        // Dynamic plans export terms-only: their rates are a derived artefact,
-        // regenerated locally, and market-derived prices must not be redistributed.
-        if (!pp.isDynamic()) for (DayRate dr : rates) {
-            DayRateJson drj = new DayRateJson();
-            drj.startDate = dr.getStartDate();
-            drj.endDate = dr.getEndDate();
-            drj.days = (ArrayList<Integer>) dr.getDays().ints;
-            drj.hours = (ArrayList<Double>) dr.getHours().doubles;
-            drj.minuteRange = new ArrayList<>();
-            if (!(null == dr.getMinuteRateRange()) && !dr.getMinuteRateRange().getRates().isEmpty()) {
-                for (RangeRate mrr : dr.getMinuteRateRange().getRates()) {
-                    drj.minuteRange.add(new MinuteRangeCostJson(mrr.getBegin(), mrr.getEnd(), mrr.getPrice()));
-                }
-            }
-            else {
-                // Synthesize a minuteRange from the hourly snapshot. Use
-                // MinuteRateRange.fromHours so adjacent same-price hours are
-                // merged and every range stays within [0, 1440] — the earlier
-                // hand-rolled loop emitted 25 raw hour-buckets, the last one
-                // running past midnight to 1500.
-                MinuteRateRange synth = MinuteRateRange.fromHours(dr.getHours());
-                for (RangeRate rr : synth.getRates()) {
-                    drj.minuteRange.add(new MinuteRangeCostJson(rr.getBegin(), rr.getEnd(), rr.getPrice()));
-                }
-            }
-            // Absent for BUY rates, so pre-v16 exports are byte-identical.
-            drj.rateType = (dr.getRateType() == DayRate.RATE_SELL) ? "sell" : null;
-            drj.dbID = dr.getDayRateIndex();
-            dayRateJsons.add(drj);
-        }
-        PricePlanJsonFile ppj = new PricePlanJsonFile();
-        ppj.rates = pp.isDynamic() ? null : dayRateJsons;
-        ppj.dynamic = createDynamicTermsJson(pp.getDynamicTerms());
-        ppj.active = pp.isActive();
-        ppj.plan = pp.getPlanName();
-        ppj.bonus = pp.getSignUpBonus();
-        ppj.feed = pp.getFeed();
-        ppj.lastUpdate = pp.getLastUpdate();
-        ppj.standingCharges = pp.getStandingCharges();
-        ppj.reference = pp.getReference();
-        ppj.supplier = pp.getSupplier();
-        ppj.deemedExport = pp.isDeemedExport();
-        ppj.location = pp.getLocation();
-        RestrictionJson restrictions = new RestrictionJson();
-        if (!(null == pp.getRestrictions())) {
-            restrictions.active = pp.getRestrictions().isActive();
-            restrictions.restrictionEntries = new ArrayList<>();
-            for (Restriction r : pp.getRestrictions().getRestrictions()) {
-                Map<String, Pair<Integer, Double>> restrictionEntries = r.getRestrictionEntries();
-                for (Map.Entry<String, Pair<Integer, Double>> restrictionEntry : restrictionEntries.entrySet()) {
-                    RestrictionEntryJson rje = new RestrictionEntryJson();
-                    rje.period = r.getPeriodicity().getValue();
-                    rje.scope = restrictionEntry.getKey();
-                    rje.limit = restrictionEntry.getValue().first;
-                    rje.excessCost = restrictionEntry.getValue().second;
-                    restrictions.restrictionEntries.add(rje);
-                }
-            }
-        }
-        ppj.restrictions = restrictions;
-
-        Type type = new TypeToken<PricePlanJsonFile>(){}.getType();
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        return gson.toJson(ppj, type);
+        return PricePlanJsonTools.createSinglePricePlanJsonObject(pp, rates);
     }
 
-    /* ****************************************************************
-    // Scenario conversions
-    ***************************************************************** */
-
-    public static Scenario createScenario(ScenarioJsonFile sjf){
-        Scenario scenario = new Scenario();
-        scenario.setScenarioName(sjf.name);
-        return scenario;
+    public static Scenario createScenario(ScenarioJsonFile sjf) {
+        return ScenarioJsonTools.createScenario(sjf);
     }
 
     public static List<Inverter> createInverterList(List<InverterJson> ijs) {
-        ArrayList<Inverter> inverters = new ArrayList<>();
-        if (!(null == ijs)){
-            for (InverterJson ij : ijs) {
-                Inverter inverter = createInverter(ij);
-                inverters.add(inverter);
-            }
-        }
-        return inverters;
+        return ScenarioJsonTools.createInverterList(ijs);
     }
 
     public static Inverter createInverter(InverterJson ij) {
-        Inverter inverter = new Inverter();
-        inverter.setInverterName(ij.name);
-        inverter.setMaxInverterLoad(ij.maxInverterLoad);
-        inverter.setAc2dcLoss(ij.ac2dcLoss);
-        inverter.setDc2acLoss(ij.dc2acLoss);
-        inverter.setDc2dcLoss(ij.dc2dcLoss);
-        inverter.setMpptCount(ij.mPPTCount);
-        inverter.setMinExcess(ij.minExcess);
-        // Null for scenarios exported before the dispatch-mode field existed -> default load->battery->grid.
-        inverter.setDispatchMode(ij.dispatchMode == null ? Inverter.DISPATCH_LOAD_BATTERY_GRID : ij.dispatchMode);
-        return inverter;
+        return ScenarioJsonTools.createInverter(ij);
     }
 
     public static List<Battery> createBatteryList(List<BatteryJson> jsons) {
-        ArrayList<Battery> batteries = new ArrayList<>();
-        if (!(null == jsons)){
-            for (BatteryJson json : jsons) {
-                Battery battery = createBattery(json);
-                batteries.add(battery);
-            }
-        }
-        return batteries;
+        return ScenarioJsonTools.createBatteryList(jsons);
     }
 
     public static Battery createBattery(BatteryJson bj) {
-        Battery battery = new Battery();
-        battery.setBatterySize(bj.batterySize);
-        battery.setDischargeStop(bj.dischargeStop);
-        ChargeModel chargeModel = new ChargeModel();
-        chargeModel.percent0 = bj.chargeModel.percent0;
-        chargeModel.percent12 = bj.chargeModel.percent12;
-        chargeModel.percent90 = bj.chargeModel.percent90;
-        chargeModel.percent100 = bj.chargeModel.percent100;
-        battery.setChargeModel(chargeModel);
-        battery.setMaxDischarge(bj.maxDischarge);
-        battery.setMaxCharge(bj.maxCharge);
-        battery.setStorageLoss(bj.storageLoss);
-        battery.setInverter(bj.inverter);
-        return battery;
+        return ScenarioJsonTools.createBattery(bj);
     }
 
     public static List<HeatPump> createHeatPumpList(List<HeatPumpJson> jsons) {
-        ArrayList<HeatPump> heatPumps = new ArrayList<>();
-        if (!(null == jsons)) {
-            for (HeatPumpJson json : jsons) {
-                HeatPump heatPump = createHeatPump(json);
-                if (!(null == heatPump)) heatPumps.add(heatPump);
-            }
-        }
-        return heatPumps;
+        return ScenarioJsonTools.createHeatPumpList(jsons);
     }
 
     public static HeatPump createHeatPump(HeatPumpJson hpj) {
-        // Empty-object guard: a partial "{}" must not materialise a fully-defaulted heat pump.
-        if (null == hpj || null == hpj.fuelAnnual) return null;
-        HeatPump heatPump = new HeatPump();
-        if (!(null == hpj.fuelType)) heatPump.setFuelType(hpj.fuelType);
-        heatPump.setFuelAnnual(hpj.fuelAnnual);
-        if (!(null == hpj.calorificValue)) heatPump.setCalorificValue(hpj.calorificValue);
-        if (!(null == hpj.boilerEfficiency)) heatPump.setBoilerEfficiency(hpj.boilerEfficiency);
-        if (!(null == hpj.dhwAnnualKWh)) heatPump.setDhwAnnualKWh(hpj.dhwAnnualKWh);
-        heatPump.setSpaceHeatingFraction(hpj.spaceHeatingFraction);
-        if (!(null == hpj.floorAreaM2)) heatPump.setFloorAreaM2(hpj.floorAreaM2);
-        if (!(null == hpj.heatLossIndex)) heatPump.setHeatLossIndex(hpj.heatLossIndex);
-        if (!(null == hpj.desiredIndoorTemp)) heatPump.setDesiredIndoorTemp(hpj.desiredIndoorTemp);
-        if (!(null == hpj.currentIndoorTemp)) heatPump.setCurrentIndoorTemp(hpj.currentIndoorTemp);
-        if (!(null == hpj.balancePoint)) heatPump.setBalancePoint(hpj.balancePoint);
-        if (!(null == hpj.alphaWind)) heatPump.setAlphaWind(hpj.alphaWind);
-        if (!(null == hpj.hourlyDistribution)) {
-            HourlyDist hd = new HourlyDist();
-            hd.dist = new ArrayList<>(hpj.hourlyDistribution);
-            heatPump.setHourlyDist(hd);
-        }
-        if (!(null == hpj.dowDistribution)) {
-            DOWDist dd = new DOWDist();
-            dd.dowDist = new ArrayList<>(hpj.dowDistribution);
-            heatPump.setDowDist(dd);
-        }
-        heatPump.setHeatingSeasonStart(hpj.heatingSeasonStart);
-        heatPump.setHeatingSeasonEnd(hpj.heatingSeasonEnd);
-        if (!(null == hpj.copRated)) heatPump.setCopRated(hpj.copRated);
-        if (!(null == hpj.copRefTemp)) heatPump.setCopRefTemp(hpj.copRefTemp);
-        if (!(null == hpj.copSlope)) heatPump.setCopSlope(hpj.copSlope);
-        if (!(null == hpj.scop)) heatPump.setScop(hpj.scop);
-        if (!(null == hpj.capacityKw)) heatPump.setCapacityKw(hpj.capacityKw);
-        if (!(null == hpj.backupHeater)) heatPump.setBackupHeater(hpj.backupHeater);
-        if (!(null == hpj.latitude)) heatPump.setLatitude(hpj.latitude);
-        if (!(null == hpj.longitude)) heatPump.setLongitude(hpj.longitude);
-        if (!(null == hpj.weatherSource)) heatPump.setWeatherSource(hpj.weatherSource);
-        return heatPump;
+        return ScenarioJsonTools.createHeatPump(hpj);
     }
 
     public static List<Panel> createPanelList(List<PanelJson> jsons) {
-        ArrayList<Panel> entityList = new ArrayList<>();
-        if (!(null == jsons)){
-            for (PanelJson json : jsons) {
-                Panel entity = createPanel(json);
-                entityList.add(entity);
-            }
-        }
-        return entityList;
+        return ScenarioJsonTools.createPanelList(jsons);
     }
 
     public static Panel createPanel(PanelJson pj) {
-        Panel panel = new Panel();
-        panel.setPanelCount(pj.panelCount);
-        panel.setPanelkWp(pj.panelkWp);
-        panel.setAzimuth(pj.azimuth);
-        panel.setSlope(pj.slope);
-        panel.setLatitude(pj.latitude);
-        panel.setLongitude(pj.longitude);
-        panel.setInverter(pj.inverter);
-        panel.setMppt(pj.mppt);
-        panel.setPanelName(pj.panelName);
-        panel.setConnectionMode(pj.optimized?Panel.OPTIMIZED:Panel.PARALLEL);
-        // Provenance (DB v11). Older scenario JSON predates these fields, so default a missing source to PVGIS
-        // and a missing range to the 2001 reference year — byte-identical to pre-v11 behaviour.
-        panel.setDataSource(null == pj.dataSource ? "PVGIS" : pj.dataSource);
-        panel.setDataStartDate(null == pj.dataStartDate ? "2001-01-01" : pj.dataStartDate);
-        panel.setDataEndDate(null == pj.dataEndDate ? "2001-12-31" : pj.dataEndDate);
-        // PV system loss % (DB v12). Older JSON predates it → default to PVGIS's own 14%.
-        panel.setSystemLoss(null == pj.systemLoss ? 14 : pj.systemLoss);
-        return panel;
+        return ScenarioJsonTools.createPanel(pj);
     }
 
     public static HWSystem createHWSystem(HWSystemJson hwj) {
-        // An absent or empty ("HWSystem": {}) object means the scenario has no hot-water system. Without this
-        // guard the first null-field setter below NPEs and the catch hands back a DEFAULT-constructed HWSystem,
-        // so an empty object silently imported a full default hot-water config (HWCapacity 165, …). HWCapacity
-        // is always present on a real system, so its absence is the reliable "no HW" signal.
-        if (null == hwj || null == hwj.hwCapacity) return null;
-        HWSystem hwSystem = null;
-        try {
-            hwSystem = new HWSystem();
-            hwSystem.setHwCapacity(hwj.hwCapacity);
-            hwSystem.setHwUsage(hwj.hwUsage);
-            hwSystem.setHwIntake(hwj.hwIntake);
-            hwSystem.setHwTarget(hwj.hwTarget);
-            hwSystem.setHwLoss(hwj.hwLoss);
-            hwSystem.setHwRate(hwj.hwRate);
-            HWUse hwUse = new HWUse();
-            hwUse.setUsage(hwj.hwUse);
-            hwSystem.setHwUse(hwUse);
-        }
-        catch (NullPointerException npe) {
-            System.out.println("No HWSystem in json");
-        }
-        return hwSystem;
+        return ScenarioJsonTools.createHWSystem(hwj);
     }
 
     public static LoadProfile createLoadProfile(LoadProfileJson lpj) {
-        LoadProfile loadProfile = new LoadProfile();
-        loadProfile.setAnnualUsage(lpj.annualUsage);
-        loadProfile.setHourlyBaseLoad(lpj.hourlyBaseLoad);
-        loadProfile.setGridImportMax(lpj.gridImportMax);
-        loadProfile.setGridExportMax(lpj.gridExportMax);
-        HourlyDist hourlyDist = new HourlyDist();
-        hourlyDist.dist = lpj.hourlyDistribution;
-        loadProfile.setHourlyDist(hourlyDist);
-        DOWDist dowDist = new DOWDist();
-        dowDist.dowDist.add(0,lpj.dayOfWeekDistribution.sun);
-        dowDist.dowDist.add(1,lpj.dayOfWeekDistribution.mon);
-        dowDist.dowDist.add(2,lpj.dayOfWeekDistribution.tue);
-        dowDist.dowDist.add(3,lpj.dayOfWeekDistribution.wed);
-        dowDist.dowDist.add(4,lpj.dayOfWeekDistribution.thu);
-        dowDist.dowDist.add(5,lpj.dayOfWeekDistribution.fri);
-        dowDist.dowDist.add(6,lpj.dayOfWeekDistribution.sat);
-        loadProfile.setDowDist(dowDist);
-        MonthlyDist monthlyDist = new MonthlyDist();
-        monthlyDist.monthlyDist.set(0, lpj.monthlyDistribution.jan);
-        monthlyDist.monthlyDist.set(1, lpj.monthlyDistribution.feb);
-        monthlyDist.monthlyDist.set(2, lpj.monthlyDistribution.mar);
-        monthlyDist.monthlyDist.set(3, lpj.monthlyDistribution.apr);
-        monthlyDist.monthlyDist.set(4, lpj.monthlyDistribution.may);
-        monthlyDist.monthlyDist.set(5, lpj.monthlyDistribution.jun);
-        monthlyDist.monthlyDist.set(6, lpj.monthlyDistribution.jul);
-        monthlyDist.monthlyDist.set(7, lpj.monthlyDistribution.aug);
-        monthlyDist.monthlyDist.set(8, lpj.monthlyDistribution.sep);
-        monthlyDist.monthlyDist.set(9, lpj.monthlyDistribution.oct);
-        monthlyDist.monthlyDist.set(10, lpj.monthlyDistribution.nov);
-        monthlyDist.monthlyDist.set(11, lpj.monthlyDistribution.dec);
-        loadProfile.setMonthlyDist(monthlyDist);
-        return loadProfile;
+        return ScenarioJsonTools.createLoadProfile(lpj);
     }
 
     public static List<LoadShift> createLoadShiftList(List<LoadShiftJson> jsons) {
-        ArrayList<LoadShift> entityList = new ArrayList<>();
-        if (!(null == jsons)){
-            for (LoadShiftJson json : jsons) {
-                LoadShift entity = createLoadShift(json);
-                entityList.add(entity);
-            }
-        }
-        return entityList;
+        return ScenarioJsonTools.createLoadShiftList(jsons);
     }
 
     public static LoadShift createLoadShift(LoadShiftJson loadShiftJson) {
-        LoadShift loadShift = new LoadShift();
-        loadShift.setName(loadShiftJson.name);
-        loadShift.setBegin(loadShiftJson.begin);
-        loadShift.setEnd(loadShiftJson.end);
-        loadShift.setStopAt(loadShiftJson.stopAt);
-        MonthHolder monthHolder = new MonthHolder();
-        monthHolder.months = loadShiftJson.months;
-        loadShift.setMonths(monthHolder);
-        IntHolder intHolder = new IntHolder();
-        intHolder.ints = loadShiftJson.days;
-        loadShift.setDays(intHolder);
-        loadShift.setInverter(loadShiftJson.inverter);
-        // v16 optional window fields; absent = defaults (full year, legacy hours).
-        if (!(null == loadShiftJson.startDate)) loadShift.setStartDate(loadShiftJson.startDate);
-        if (!(null == loadShiftJson.endDate)) loadShift.setEndDate(loadShiftJson.endDate);
-        if (!(null == loadShiftJson.beginMinute)) loadShift.setBeginMinute(loadShiftJson.beginMinute);
-        if (!(null == loadShiftJson.endMinute)) loadShift.setEndMinute(loadShiftJson.endMinute);
-        return loadShift;
+        return ScenarioJsonTools.createLoadShift(loadShiftJson);
     }
 
     public static List<DischargeToGrid> createDischargeList(List<DischargeToGridJson> jsons) {
-        ArrayList<DischargeToGrid> entityList = new ArrayList<>();
-        if (!(null == jsons)){
-            for (DischargeToGridJson json : jsons) {
-                DischargeToGrid entity = createDischarge(json);
-                entityList.add(entity);
-            }
-        }
-        return entityList;
+        return ScenarioJsonTools.createDischargeList(jsons);
     }
 
     public static DischargeToGrid createDischarge(DischargeToGridJson dischargeJson) {
-        DischargeToGrid dischargeToGrid = new DischargeToGrid();
-        dischargeToGrid.setName(dischargeJson.name);
-        dischargeToGrid.setBegin(dischargeJson.begin);
-        dischargeToGrid.setEnd(dischargeJson.end);
-        dischargeToGrid.setStopAt(dischargeJson.stopAt);
-        dischargeToGrid.setRate(dischargeJson.rate);
-        MonthHolder monthHolder = new MonthHolder();
-        monthHolder.months = dischargeJson.months;
-        dischargeToGrid.setMonths(monthHolder);
-        IntHolder intHolder = new IntHolder();
-        intHolder.ints = dischargeJson.days;
-        dischargeToGrid.setDays(intHolder);
-        dischargeToGrid.setInverter(dischargeJson.inverter);
-        if (!(null == dischargeJson.startDate)) dischargeToGrid.setStartDate(dischargeJson.startDate);
-        if (!(null == dischargeJson.endDate)) dischargeToGrid.setEndDate(dischargeJson.endDate);
-        if (!(null == dischargeJson.beginMinute)) dischargeToGrid.setBeginMinute(dischargeJson.beginMinute);
-        if (!(null == dischargeJson.endMinute)) dischargeToGrid.setEndMinute(dischargeJson.endMinute);
-        return dischargeToGrid;
+        return ScenarioJsonTools.createDischarge(dischargeJson);
     }
 
     public static List<EVCharge> createEVChargeList(List<EVChargeJson> jsons) {
-        ArrayList<EVCharge> entityList = new ArrayList<>();
-        if (!(null == jsons)){
-            for (EVChargeJson json : jsons) {
-                EVCharge entity = createEVCharge(json);
-                entityList.add(entity);
-            }
-        }
-        return entityList;
+        return ScenarioJsonTools.createEVChargeList(jsons);
     }
 
     public static EVCharge createEVCharge(EVChargeJson evChargeJson) {
-        EVCharge evCharge = new EVCharge();
-        evCharge.setName(evChargeJson.name);
-        evCharge.setBegin(evChargeJson.begin);
-        evCharge.setEnd(evChargeJson.end);
-        evCharge.setDraw(evChargeJson.draw);
-        MonthHolder monthHolder = new MonthHolder();
-        monthHolder.months = evChargeJson.months;
-        evCharge.setMonths(monthHolder);
-        IntHolder intHolder = new IntHolder();
-        intHolder.ints = evChargeJson.days;
-        evCharge.setDays(intHolder);
-        if (!(null == evChargeJson.startDate)) evCharge.setStartDate(evChargeJson.startDate);
-        if (!(null == evChargeJson.endDate)) evCharge.setEndDate(evChargeJson.endDate);
-        if (!(null == evChargeJson.beginMinute)) evCharge.setBeginMinute(evChargeJson.beginMinute);
-        if (!(null == evChargeJson.endMinute)) evCharge.setEndMinute(evChargeJson.endMinute);
-        return evCharge;
+        return ScenarioJsonTools.createEVCharge(evChargeJson);
     }
 
     public static List<HWSchedule> createHWScheduleList(List<HWScheduleJson> jsons) {
-        ArrayList<HWSchedule> entityList = new ArrayList<>();
-        if (!(null == jsons)){
-            for (HWScheduleJson json : jsons) {
-                HWSchedule entity = createHWSchedule(json);
-                entityList.add(entity);
-            }
-        }
-        return entityList;
+        return ScenarioJsonTools.createHWScheduleList(jsons);
     }
 
     public static HWSchedule createHWSchedule(HWScheduleJson hwScheduleJson) {
-        HWSchedule hwSchedule = new HWSchedule();
-        hwSchedule.setName(hwScheduleJson.name);
-        hwSchedule.setBegin(hwScheduleJson.begin);
-        hwSchedule.setEnd(hwScheduleJson.end);
-        MonthHolder monthHolder = new MonthHolder();
-        monthHolder.months = hwScheduleJson.months;
-        hwSchedule.setMonths(monthHolder);
-        IntHolder intHolder = new IntHolder();
-        intHolder.ints = hwScheduleJson.days;
-        hwSchedule.setDays(intHolder);
-        if (!(null == hwScheduleJson.startDate)) hwSchedule.setStartDate(hwScheduleJson.startDate);
-        if (!(null == hwScheduleJson.endDate)) hwSchedule.setEndDate(hwScheduleJson.endDate);
-        if (!(null == hwScheduleJson.beginMinute)) hwSchedule.setBeginMinute(hwScheduleJson.beginMinute);
-        if (!(null == hwScheduleJson.endMinute)) hwSchedule.setEndMinute(hwScheduleJson.endMinute);
-        return hwSchedule;
+        return ScenarioJsonTools.createHWSchedule(hwScheduleJson);
     }
 
     public static HWDivert createHWDivert(HWDivertJson hwDivertJson) {
-        HWDivert hwDivert = new HWDivert();
-        hwDivert.setActive(hwDivertJson.active);
-        return hwDivert;
+        return ScenarioJsonTools.createHWDivert(hwDivertJson);
     }
 
     public static List<EVDivert> createEVDivertList(List<EVDivertJson> jsons, EVDivertJson evDivert) {
-        ArrayList<EVDivert> entityList = new ArrayList<>();
-        if (!(null == jsons)){
-            for (EVDivertJson json : jsons) {
-                EVDivert entity = createEVDivert(json);
-                entityList.add(entity);
-            }
-        }
-        if (!(null == evDivert)){
-            EVDivert entity = createEVDivert(evDivert);
-            entityList.add(entity);
-        }
-        return entityList;
+        return ScenarioJsonTools.createEVDivertList(jsons, evDivert);
     }
 
     public static EVDivert createEVDivert(EVDivertJson evDivertJson) {
-        EVDivert evDivert = null;
-        try {
-            evDivert = new EVDivert();
-            evDivert.setName(evDivertJson.name);
-            evDivert.setActive(evDivertJson.active);
-            evDivert.setEv1st(evDivertJson.ev1st);
-            evDivert.setBegin(evDivertJson.begin);
-            evDivert.setEnd(evDivertJson.end);
-            evDivert.setDailyMax(evDivertJson.dailyMax);
-            evDivert.setMinimum((evDivertJson.minimum));
-            MonthHolder monthHolder = new MonthHolder();
-            monthHolder.months = evDivertJson.months;
-            evDivert.setMonths(monthHolder);
-            IntHolder intHolder = new IntHolder();
-            intHolder.ints = evDivertJson.days;
-            evDivert.setDays(intHolder);
-            if (!(null == evDivertJson.startDate)) evDivert.setStartDate(evDivertJson.startDate);
-            if (!(null == evDivertJson.endDate)) evDivert.setEndDate(evDivertJson.endDate);
-            if (!(null == evDivertJson.beginMinute)) evDivert.setBeginMinute(evDivertJson.beginMinute);
-            if (!(null == evDivertJson.endMinute)) evDivert.setEndMinute(evDivertJson.endMinute);
-        }
-        catch (NullPointerException npe) {
-            System.out.println("No EVDivert in json");
-        }
-        return evDivert;
+        return ScenarioJsonTools.createEVDivert(evDivertJson);
     }
 
     public static String createSingleScenarioJsonString(ScenarioJsonFile sjf) {
-        Type type = new TypeToken<ScenarioJsonFile>(){}.getType();
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        return gson.toJson(sjf, type);
+        return ScenarioJsonTools.createSingleScenarioJsonString(sjf);
     }
 
     public static ScenarioJsonFile createSingleScenarioJson(
@@ -773,344 +232,62 @@ public class JsonTools {
             HWDivert hwDivert,
             List<EVDivert> evDiverts,
             List<HeatPump> heatPumps) {
-
-        ScenarioJsonFile sjf = new ScenarioJsonFile();
-        sjf.name = scenario.getScenarioName();
-        sjf.inverters = createInverterListJson(inverters);
-        sjf.batteries = createBatteryListJson(batteries);
-        // Omit the HeatPumps field entirely when there are none, so scenarios predating the heat pump
-        // serialise byte-identically (a new "HeatPumps": [] would otherwise break round-trips).
-        ArrayList<HeatPumpJson> heatPumpJsons = createHeatPumpListJson(heatPumps);
-        sjf.heatPumps = heatPumpJsons.isEmpty() ? null : heatPumpJsons;
-        sjf.panels = createPanelListJson(panels);
-        sjf.hwSystem = createHWSystemJson(hwSystem);
-        sjf.loadProfile = createLoadProfileJson(loadProfile);
-        sjf.loadShifts = createLoadShiftJson(loadShifts);
-        sjf.dischargeToGrids = createDischargeJson(discharges);
-        sjf.evCharges = createEVChargeJson(evCharges);
-        sjf.hwSchedules = createHWScheduleJson(hwSchedules);
-        sjf.hwDivert = createHWDivertJson(hwDivert);
-        sjf.evDiverts = createEVDivertJson(evDiverts);
-        return sjf;
+        return ScenarioJsonTools.createSingleScenarioJson(scenario, inverters, batteries, panels, hwSystem, loadProfile, loadShifts, discharges, evCharges, hwSchedules, hwDivert, evDiverts, heatPumps);
     }
 
     public static ArrayList<EVDivertJson> createEVDivertJson(List<EVDivert> evDiverts) {
-        ArrayList<EVDivertJson> evDivertJsons = new ArrayList<>();
-        if (!(null == evDiverts)){
-            for (EVDivert evd : evDiverts) {
-                evDivertJsons.add(createEVDivertJson(evd));
-            }
-        }
-        return evDivertJsons;
-    }
-
-    private static EVDivertJson createEVDivertJson(EVDivert evDivert) {
-        EVDivertJson evDivertJson = new EVDivertJson();
-        if (!(null == evDivert)) {
-            evDivertJson.name = evDivert.getName();
-            evDivertJson.active = evDivert.isActive();
-            evDivertJson.ev1st = evDivert.isEv1st();
-            evDivertJson.begin = evDivert.getBegin();
-            evDivertJson.end = evDivert.getEnd();
-            evDivertJson.dailyMax = evDivert.getDailyMax();
-            evDivertJson.months = (ArrayList<Integer>) evDivert.getMonths().months;
-            evDivertJson.days = (ArrayList<Integer>) evDivert.getDays().ints;
-            evDivertJson.minimum = evDivert.getMinimum();
-            evDivertJson.startDate = "01/01".equals(evDivert.getStartDate()) ? null : evDivert.getStartDate();
-            evDivertJson.endDate = "12/31".equals(evDivert.getEndDate()) ? null : evDivert.getEndDate();
-            evDivertJson.beginMinute = evDivert.getBeginMinute() < 0 ? null : evDivert.getBeginMinute();
-            evDivertJson.endMinute = evDivert.getEndMinute() < 0 ? null : evDivert.getEndMinute();
-        }
-        return evDivertJson;
-    }
-
-    private static HWDivertJson createHWDivertJson(HWDivert hwDivert) {
-        HWDivertJson hwDivertJson = new HWDivertJson();
-        if (!(null == hwDivert)) hwDivertJson.active = hwDivert.isActive();
-        else hwDivertJson.active = false;
-        return hwDivertJson;
+        return ScenarioJsonTools.createEVDivertJson(evDiverts);
     }
 
     public static ArrayList<HWScheduleJson> createHWScheduleJson(List<HWSchedule> hwSchedules) {
-        ArrayList<HWScheduleJson> hwScheduleJsons = new ArrayList<>();
-        if (!(null == hwSchedules)){
-            for (HWSchedule hws : hwSchedules) {
-                HWScheduleJson hwScheduleJson = new HWScheduleJson();
-                hwScheduleJson.name = hws.getName();
-                hwScheduleJson.begin = hws.getBegin();
-                hwScheduleJson.end = hws.getEnd();
-                hwScheduleJson.months = (ArrayList<Integer>) hws.getMonths().months;
-                hwScheduleJson.days = (ArrayList<Integer>) hws.getDays().ints;
-                hwScheduleJson.startDate = "01/01".equals(hws.getStartDate()) ? null : hws.getStartDate();
-                hwScheduleJson.endDate = "12/31".equals(hws.getEndDate()) ? null : hws.getEndDate();
-                hwScheduleJson.beginMinute = hws.getBeginMinute() < 0 ? null : hws.getBeginMinute();
-                hwScheduleJson.endMinute = hws.getEndMinute() < 0 ? null : hws.getEndMinute();
-                hwScheduleJsons.add(hwScheduleJson);
-            }
-        }
-        return hwScheduleJsons;
+        return ScenarioJsonTools.createHWScheduleJson(hwSchedules);
     }
 
     public static ArrayList<EVChargeJson> createEVChargeJson(List<EVCharge> evCharges) {
-        ArrayList<EVChargeJson> evChargeJsons = new ArrayList<>();
-        if (!(null == evCharges)){
-            for (EVCharge evc : evCharges) {
-                EVChargeJson evChargeJson = new EVChargeJson();
-                evChargeJson.name = evc.getName();
-                evChargeJson.begin = evc.getBegin();
-                evChargeJson.end = evc.getEnd();
-                evChargeJson.draw = evc.getDraw();
-                evChargeJson.months = (ArrayList<Integer>) evc.getMonths().months;
-                evChargeJson.days = (ArrayList<Integer>) evc.getDays().ints;
-                evChargeJson.startDate = "01/01".equals(evc.getStartDate()) ? null : evc.getStartDate();
-                evChargeJson.endDate = "12/31".equals(evc.getEndDate()) ? null : evc.getEndDate();
-                evChargeJson.beginMinute = evc.getBeginMinute() < 0 ? null : evc.getBeginMinute();
-                evChargeJson.endMinute = evc.getEndMinute() < 0 ? null : evc.getEndMinute();
-                evChargeJsons.add(evChargeJson);
-            }
-        }
-        return evChargeJsons;
+        return ScenarioJsonTools.createEVChargeJson(evCharges);
     }
 
     public static ArrayList<LoadShiftJson> createLoadShiftJson(List<LoadShift> loadShifts) {
-        ArrayList<LoadShiftJson> loadShiftJsons = new ArrayList<>();
-        if (!(null == loadShifts)) {
-            for (LoadShift loadShift : loadShifts) {
-                LoadShiftJson loadShiftJson = new LoadShiftJson();
-                loadShiftJson.name = loadShift.getName();
-                loadShiftJson.begin = loadShift.getBegin();
-                loadShiftJson.end = loadShift.getEnd();
-                loadShiftJson.stopAt = loadShift.getStopAt();
-                loadShiftJson.months = (ArrayList<Integer>) loadShift.getMonths().months;
-                loadShiftJson.days = (ArrayList<Integer>) loadShift.getDays().ints;
-                loadShiftJson.inverter = loadShift.getInverter();
-                // Emit the v16 window fields only when non-default, so pre-v16
-                // scenarios serialise byte-identically.
-                loadShiftJson.startDate = "01/01".equals(loadShift.getStartDate()) ? null : loadShift.getStartDate();
-                loadShiftJson.endDate = "12/31".equals(loadShift.getEndDate()) ? null : loadShift.getEndDate();
-                loadShiftJson.beginMinute = loadShift.getBeginMinute() < 0 ? null : loadShift.getBeginMinute();
-                loadShiftJson.endMinute = loadShift.getEndMinute() < 0 ? null : loadShift.getEndMinute();
-                loadShiftJsons.add(loadShiftJson);
-            }
-        }
-        return loadShiftJsons;
+        return ScenarioJsonTools.createLoadShiftJson(loadShifts);
     }
 
     public static ArrayList<DischargeToGridJson> createDischargeJson(List<DischargeToGrid> dischargeToGrids) {
-        ArrayList<DischargeToGridJson> dischargeJsons = new ArrayList<>();
-        if (!(null == dischargeToGrids)) {
-            for (DischargeToGrid discharge : dischargeToGrids) {
-                DischargeToGridJson dischargeJson = new DischargeToGridJson();
-                dischargeJson.name = discharge.getName();
-                dischargeJson.begin = discharge.getBegin();
-                dischargeJson.end = discharge.getEnd();
-                dischargeJson.stopAt = discharge.getStopAt();
-                dischargeJson.rate = discharge.getRate();
-                dischargeJson.months = (ArrayList<Integer>) discharge.getMonths().months;
-                dischargeJson.days = (ArrayList<Integer>) discharge.getDays().ints;
-                dischargeJson.inverter = discharge.getInverter();
-                dischargeJson.startDate = "01/01".equals(discharge.getStartDate()) ? null : discharge.getStartDate();
-                dischargeJson.endDate = "12/31".equals(discharge.getEndDate()) ? null : discharge.getEndDate();
-                dischargeJson.beginMinute = discharge.getBeginMinute() < 0 ? null : discharge.getBeginMinute();
-                dischargeJson.endMinute = discharge.getEndMinute() < 0 ? null : discharge.getEndMinute();
-                dischargeJsons.add(dischargeJson);
-            }
-        }
-        return dischargeJsons;
+        return ScenarioJsonTools.createDischargeJson(dischargeToGrids);
     }
 
     public static LoadProfileJson createLoadProfileJson(LoadProfile loadProfile) {
-        LoadProfileJson loadProfileJson = new LoadProfileJson();
-        if (!(null == loadProfile)){
-            loadProfileJson.annualUsage = loadProfile.getAnnualUsage();
-            loadProfileJson.hourlyBaseLoad = loadProfile.getHourlyBaseLoad();
-            loadProfileJson.gridImportMax = loadProfile.getGridImportMax();
-            loadProfileJson.gridExportMax = loadProfile.getGridExportMax();
-            loadProfileJson.hourlyDistribution = (ArrayList<Double>) loadProfile.getHourlyDist().dist;
-            DOWDistribution dowDistribution = new DOWDistribution();
-            dowDistribution.sun = loadProfile.getDowDist().dowDist.get(0);
-            dowDistribution.mon = loadProfile.getDowDist().dowDist.get(1);
-            dowDistribution.tue = loadProfile.getDowDist().dowDist.get(2);
-            dowDistribution.wed = loadProfile.getDowDist().dowDist.get(3);
-            dowDistribution.thu = loadProfile.getDowDist().dowDist.get(4);
-            dowDistribution.fri = loadProfile.getDowDist().dowDist.get(5);
-            dowDistribution.sat = loadProfile.getDowDist().dowDist.get(6);
-            loadProfileJson.dayOfWeekDistribution = dowDistribution;
-            MonthlyDistribution md = new MonthlyDistribution();
-            md.jan = loadProfile.getMonthlyDist().monthlyDist.get(0);
-            md.feb = loadProfile.getMonthlyDist().monthlyDist.get(1);
-            md.mar = loadProfile.getMonthlyDist().monthlyDist.get(2);
-            md.apr = loadProfile.getMonthlyDist().monthlyDist.get(3);
-            md.may = loadProfile.getMonthlyDist().monthlyDist.get(4);
-            md.jun = loadProfile.getMonthlyDist().monthlyDist.get(5);
-            md.jul = loadProfile.getMonthlyDist().monthlyDist.get(6);
-            md.aug = loadProfile.getMonthlyDist().monthlyDist.get(7);
-            md.sep = loadProfile.getMonthlyDist().monthlyDist.get(8);
-            md.oct = loadProfile.getMonthlyDist().monthlyDist.get(9);
-            md.nov = loadProfile.getMonthlyDist().monthlyDist.get(10);
-            md.dec = loadProfile.getMonthlyDist().monthlyDist.get(11);
-            loadProfileJson.monthlyDistribution = md;
-        }
-        return loadProfileJson;
+        return ScenarioJsonTools.createLoadProfileJson(loadProfile);
     }
 
     public static HWSystemJson createHWSystemJson(HWSystem hwSystem) {
-        HWSystemJson hwSystemJson = new HWSystemJson();
-        if (!(null == hwSystem)) {
-            hwSystemJson.hwCapacity = hwSystem.getHwCapacity();
-            hwSystemJson.hwUsage = hwSystem.getHwUsage();
-            hwSystemJson.hwIntake = hwSystem.getHwIntake();
-            hwSystemJson.hwTarget = hwSystem.getHwTarget();
-            hwSystemJson.hwLoss = hwSystem.getHwLoss();
-            hwSystemJson.hwRate = hwSystem.getHwRate();
-            hwSystemJson.hwUse = hwSystem.getHwUse().getUsage();
-        }
-        return hwSystemJson;
+        return ScenarioJsonTools.createHWSystemJson(hwSystem);
     }
 
     public static ArrayList<PanelJson> createPanelListJson(List<Panel> panels) {
-        ArrayList<PanelJson> panelJsons = new ArrayList<>();
-        if (!(null == panels)){
-            for (Panel panel : panels){
-                PanelJson panelJson = new PanelJson();
-                panelJson.panelCount = panel.getPanelCount();
-                panelJson.panelkWp = panel.getPanelkWp();
-                panelJson.azimuth = panel.getAzimuth();
-                panelJson.slope = panel.getSlope();
-                panelJson.latitude = panel.getLatitude();
-                panelJson.longitude = panel.getLongitude();
-                panelJson.inverter = panel.getInverter();
-                panelJson.mppt = panel.getMppt();
-                panelJson.panelName = panel.getPanelName();
-                panelJson.optimized = panel.getConnectionMode() == Panel.OPTIMIZED;
-                panelJson.dataSource = panel.getDataSource();
-                panelJson.dataStartDate = panel.getDataStartDate();
-                panelJson.dataEndDate = panel.getDataEndDate();
-                panelJson.systemLoss = panel.getSystemLoss();
-                panelJsons.add(panelJson);
-            }
-        }
-        return panelJsons;
+        return ScenarioJsonTools.createPanelListJson(panels);
     }
 
     public static ArrayList<BatteryJson> createBatteryListJson(List<Battery> batteries) {
-        ArrayList<BatteryJson> batteryJsons = new ArrayList<>();
-        if (!(null == batteries)) {
-            for (Battery battery : batteries) {
-                BatteryJson batteryJson = new BatteryJson();
-                batteryJson.batterySize = battery.getBatterySize();
-                batteryJson.dischargeStop = battery.getDischargeStop();
-                ChargeModelJson cmj = new ChargeModelJson();
-                cmj.percent0 = battery.getChargeModel().percent0;
-                cmj.percent12 = battery.getChargeModel().percent12;
-                cmj.percent90 = battery.getChargeModel().percent90;
-                cmj.percent100 = battery.getChargeModel().percent100;
-                batteryJson.chargeModel = cmj;
-                batteryJson.maxDischarge = battery.getMaxDischarge();
-                batteryJson.maxCharge = battery.getMaxCharge();
-                batteryJson.storageLoss = battery.getStorageLoss();
-                batteryJson.inverter = battery.getInverter();
-                batteryJsons.add(batteryJson);
-            }
-        }
-        return batteryJsons;
+        return ScenarioJsonTools.createBatteryListJson(batteries);
     }
 
     public static ArrayList<HeatPumpJson> createHeatPumpListJson(List<HeatPump> heatPumps) {
-        ArrayList<HeatPumpJson> heatPumpJsons = new ArrayList<>();
-        if (!(null == heatPumps)) {
-            for (HeatPump heatPump : heatPumps) {
-                HeatPumpJson hpj = new HeatPumpJson();
-                hpj.fuelType = heatPump.getFuelType();
-                hpj.fuelAnnual = heatPump.getFuelAnnual();
-                hpj.calorificValue = heatPump.getCalorificValue();
-                hpj.boilerEfficiency = heatPump.getBoilerEfficiency();
-                hpj.dhwAnnualKWh = heatPump.getDhwAnnualKWh();
-                hpj.spaceHeatingFraction = heatPump.getSpaceHeatingFraction();
-                hpj.floorAreaM2 = heatPump.getFloorAreaM2();
-                hpj.heatLossIndex = heatPump.getHeatLossIndex();
-                hpj.desiredIndoorTemp = heatPump.getDesiredIndoorTemp();
-                hpj.currentIndoorTemp = heatPump.getCurrentIndoorTemp();
-                hpj.balancePoint = heatPump.getBalancePoint();
-                hpj.alphaWind = heatPump.getAlphaWind();
-                if (!(null == heatPump.getHourlyDist()))
-                    hpj.hourlyDistribution = new ArrayList<>(heatPump.getHourlyDist().dist);
-                if (!(null == heatPump.getDowDist()))
-                    hpj.dowDistribution = new ArrayList<>(heatPump.getDowDist().dowDist);
-                hpj.heatingSeasonStart = heatPump.getHeatingSeasonStart();
-                hpj.heatingSeasonEnd = heatPump.getHeatingSeasonEnd();
-                hpj.copRated = heatPump.getCopRated();
-                hpj.copRefTemp = heatPump.getCopRefTemp();
-                hpj.copSlope = heatPump.getCopSlope();
-                hpj.scop = heatPump.getScop();
-                hpj.capacityKw = heatPump.getCapacityKw();
-                hpj.backupHeater = heatPump.isBackupHeater();
-                hpj.latitude = heatPump.getLatitude();
-                hpj.longitude = heatPump.getLongitude();
-                hpj.weatherSource = heatPump.getWeatherSource();
-                heatPumpJsons.add(hpj);
-            }
-        }
-        return heatPumpJsons;
+        return ScenarioJsonTools.createHeatPumpListJson(heatPumps);
     }
 
     public static ArrayList<InverterJson> createInverterListJson(List<Inverter> inverters) {
-        ArrayList<InverterJson> inverterJsons = new ArrayList<>();
-        if (!(null == inverters)) {
-            for (Inverter inverter : inverters) {
-                InverterJson inverterJson = createInverterJson(inverter);
-                inverterJsons.add(inverterJson);
-            }
-        }
-        return inverterJsons;
+        return ScenarioJsonTools.createInverterListJson(inverters);
     }
 
-    @NonNull
     public static InverterJson createInverterJson(Inverter inverter) {
-        InverterJson inverterJson = new InverterJson();
-        inverterJson.name = inverter.getInverterName();
-        inverterJson.minExcess = inverter.getMinExcess();
-        inverterJson.maxInverterLoad = inverter.getMaxInverterLoad();
-        inverterJson.mPPTCount = inverter.getMpptCount();
-        inverterJson.ac2dcLoss = inverter.getAc2dcLoss();
-        inverterJson.dc2acLoss = inverter.getDc2acLoss();
-        inverterJson.dc2dcLoss = inverter.getDc2dcLoss();
-        inverterJson.dispatchMode = inverter.getDispatchMode();
-        return inverterJson;
+        return ScenarioJsonTools.createInverterJson(inverter);
     }
 
     public static String createScenarioList(List<ScenarioComponents> scenarios) {
-        ArrayList<ScenarioJsonFile> scenarioJsonFiles = new ArrayList<>();
-        for (ScenarioComponents scenarioComponents : scenarios){
-            scenarioJsonFiles.add(createSingleScenarioJson(scenarioComponents.scenario, scenarioComponents.inverters, scenarioComponents.batteries, scenarioComponents.panels,
-                    scenarioComponents.hwSystem, scenarioComponents.loadProfile, scenarioComponents.loadShifts, scenarioComponents.discharges, scenarioComponents.evCharges, scenarioComponents.hwSchedules,
-                    scenarioComponents.hwDivert, scenarioComponents.evDiverts, scenarioComponents.heatPumps));
-        }
-
-        Type type = new TypeToken<List<ScenarioJsonFile>>(){}.getType();
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        return gson.toJson(scenarioJsonFiles, type);
+        return ScenarioJsonTools.createScenarioList(scenarios);
     }
 
     public static List<ScenarioComponents> createScenarioComponentList(List<ScenarioJsonFile> scenarioJsonFiles) {
-        ArrayList<ScenarioComponents> scenarioComponents = new ArrayList<>();
-        for (ScenarioJsonFile scenarioJsonFile : scenarioJsonFiles){
-            ScenarioComponents singleScenarioComponents = new ScenarioComponents(
-                    createScenario(scenarioJsonFile),
-                    createInverterList(scenarioJsonFile.inverters),
-                    createBatteryList(scenarioJsonFile.batteries),
-                    createPanelList(scenarioJsonFile.panels),
-                    createHWSystem(scenarioJsonFile.hwSystem),
-                    createLoadProfile(scenarioJsonFile.loadProfile),
-                    createLoadShiftList(scenarioJsonFile.loadShifts),
-                    createDischargeList(scenarioJsonFile.dischargeToGrids),
-                    createEVChargeList(scenarioJsonFile.evCharges),
-                    createHWScheduleList(scenarioJsonFile.hwSchedules),
-                    createHWDivert(scenarioJsonFile.hwDivert),
-                    createEVDivertList(scenarioJsonFile.evDiverts, scenarioJsonFile.evDivert));
-            singleScenarioComponents.heatPumps = createHeatPumpList(scenarioJsonFile.heatPumps);
-            scenarioComponents.add(singleScenarioComponents);
-        }
-        return scenarioComponents;
+        return ScenarioJsonTools.createScenarioComponentList(scenarioJsonFiles);
     }
 }
