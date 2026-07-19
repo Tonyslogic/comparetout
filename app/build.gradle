@@ -100,6 +100,15 @@ android {
             // unmocked framework calls returning defaults.
             includeAndroidResources = true
             returnDefaultValues = true
+            all {
+                jacoco {
+                    // Robolectric's sandbox classloader re-instruments classes,
+                    // which strips debug locations — without this, code executed
+                    // under Robolectric reports 0% coverage.
+                    includeNoLocationClasses = true
+                    excludes = ['jdk.internal.*']
+                }
+            }
         }
     }
     sourceSets {
