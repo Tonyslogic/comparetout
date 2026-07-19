@@ -161,6 +161,14 @@ public abstract class ToutcDB extends RoomDatabase {
      */
     public abstract AlphaEssDAO alphaEssDAO();
 
+    /**
+     * Data Access Object for inverter-domain queries (mega-refactor C1).
+     *
+     * @return DAO instance for inverter queries; orchestration lives in
+     *         {@link com.tfcode.comparetout.model.ops.InverterOps}
+     */
+    public abstract com.tfcode.comparetout.model.dao.InverterDAO inverterDAO();
+
     private static volatile ToutcDB INSTANCE;
     private static final int NUMBER_OF_THREADS = 8;
     static final ExecutorService databaseWriteExecutor =

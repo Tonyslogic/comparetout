@@ -108,6 +108,8 @@ public class ToutcRepository {
     private final LiveData<Map<PricePlan, List<DayRate>>> allPricePlans;
 
     private final ScenarioDAO scenarioDAO;
+    private final com.tfcode.comparetout.model.dao.InverterDAO inverterDAO;
+    private final com.tfcode.comparetout.model.ops.InverterOps inverterOps;
     private final LiveData<List<Scenario>> allScenarios;
     private final LiveData<List<Scenario2Inverter>> inverterRelations;
     private final LiveData<List<Scenario2Panel>> panelRelations;
@@ -163,8 +165,10 @@ public class ToutcRepository {
         allPricePlans = pricePlanDAO.loadPricePlans();
 
         scenarioDAO = db.scenarioDAO();
+        inverterDAO = db.inverterDAO();
+        inverterOps = new com.tfcode.comparetout.model.ops.InverterOps(db);
         allScenarios = scenarioDAO.loadScenarios();
-        inverterRelations = scenarioDAO.loadInverterRelations();
+        inverterRelations = inverterDAO.loadInverterRelations();
         panelRelations = scenarioDAO.loadPanelRelations();
         batteryRelations = scenarioDAO.loadBatteryRelations();
         loadShiftRelations = scenarioDAO.loadLoadShiftRelations();
@@ -426,16 +430,16 @@ public class ToutcRepository {
     }
 
     public long saveInverter(Long scenarioID, Inverter inverter) {
-        return scenarioDAO.saveInverter(scenarioID, inverter);
+        return inverterOps.saveInverter(scenarioID, inverter);
     }
 
     public void deleteInverterFromScenario(Long inverterID, Long scenarioID) {
-        scenarioDAO.deleteInverterFromScenario(inverterID, scenarioID);
+        inverterOps.deleteInverterFromScenario(inverterID, scenarioID);
     }
 
     public void copyInverterFromScenario(long fromScenarioID, Long toScenarioID) {
         ToutcDB.databaseWriteExecutor.execute(() ->
-                scenarioDAO.copyInverterFromScenario(fromScenarioID, toScenarioID));
+                inverterOps.copyInverterFromScenario(fromScenarioID, toScenarioID));
     }
 
     public LiveData<List<Scenario2Inverter>> getAllInverterRelations() {
@@ -570,7 +574,7 @@ public class ToutcRepository {
     }
 
     public List<String> getLinkedInverters(Long inverterID, Long scenarioID) {
-        return  scenarioDAO.getLinkedInverters(inverterID, scenarioID);
+        return  inverterDAO.getLinkedInverters(inverterID, scenarioID);
     }
 
     public List<String> getLinkedPanels(long panelIndex, Long scenarioID) {

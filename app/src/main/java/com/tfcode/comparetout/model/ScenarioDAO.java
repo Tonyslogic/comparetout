@@ -114,7 +114,7 @@ public abstract class ScenarioDAO {
     abstract long addNewScenario(Scenario scenario);
 
     @Insert
-    abstract long addNewInverter(Inverter inverter);
+    public abstract long addNewInverter(Inverter inverter); // public: shared with InverterOps (C1)
 
     @Insert
     abstract long addNewBattery(Battery battery);
@@ -150,7 +150,7 @@ public abstract class ScenarioDAO {
     abstract long addNewEVDivert(EVDivert evDivert);
 
     @Insert
-    abstract void addNewScenario2Inverter(Scenario2Inverter scenario2Inverter);
+    public abstract void addNewScenario2Inverter(Scenario2Inverter scenario2Inverter); // public: shared with InverterOps (C1)
 
     @Insert
     abstract void addNewScenario2Battery(Scenario2Battery scenario2Battery);
@@ -494,31 +494,11 @@ public abstract class ScenarioDAO {
         return loadProfileID;
     }
 
-    @Update (entity = Inverter.class)
-    public abstract void updateInverter(Inverter inverter);
+    // updateInverter → InverterDAO (mega-refactor C1)
+    // saveInverter → InverterOps (mega-refactor C1)
 
     @Update (entity = Panel.class)
     public abstract void updatePanel(Panel panel);
-
-    @Transaction
-    public long saveInverter(Long scenarioID, Inverter inverter){
-        long inverterID = inverter.getInverterIndex();
-        if (inverterID == 0) {
-            inverterID = addNewInverter(inverter);
-            Scenario2Inverter s2i = new Scenario2Inverter();
-            s2i.setScenarioID(scenarioID);
-            s2i.setInverterID(inverterID);
-            addNewScenario2Inverter(s2i);
-
-            Scenario scenario = getScenario(scenarioID);
-            scenario.setHasInverters(true);
-            updateScenario(scenario);
-        }
-        else {
-            updateInverter(inverter);
-        }
-        return inverterID;
-    }
 
     @Query("SELECT DISTINCT loadProfileID FROM loadprofiledata WHERE loadProfileID = :id")
     public abstract long loadProfileDataCheck(long id);
@@ -1001,44 +981,13 @@ public abstract class ScenarioDAO {
             "FROM scenariosimulationdata WHERE scenarioID = :scenarioID")
     public abstract SimKPIs getSimKPIsForScenario(Long scenarioID);
 
-    @Query("DELETE FROM scenario2inverter WHERE scenarioID = :scenarioID AND inverterID = :inverterID")
-    public abstract void removeScenario2Inverter(Long inverterID, Long scenarioID);
+    // removeScenario2Inverter → InverterDAO (mega-refactor C1)
+    // deleteInverterFromScenario → InverterOps (mega-refactor C1)
+    // copyInverterFromScenario → InverterOps (mega-refactor C1)
+    // loadInverterRelations → InverterDAO (mega-refactor C1)
 
-    @Transaction
-    public void deleteInverterFromScenario(Long inverterID, Long scenarioID) {
-        removeScenario2Inverter(inverterID, scenarioID);
-        deleteOrphanInverters();
-        List<Inverter> inverters = getInvertersForScenarioID(scenarioID);
-        if (inverters.isEmpty()) {
-            Scenario scenario = getScenario(scenarioID);
-            scenario.setHasInverters(false);
-            updateScenario(scenario);
-        }
-    }
-
-    @Transaction
-    public void copyInverterFromScenario(long fromScenarioID, Long toScenarioID) {
-        List<Inverter> inverters = getInvertersForScenarioID(fromScenarioID);
-        for (Inverter inverter: inverters) {
-            inverter.setInverterIndex(0L);
-            long newInverterID = addNewInverter(inverter);
-
-            Scenario2Inverter s2i = new Scenario2Inverter();
-            s2i.setScenarioID(toScenarioID);
-            s2i.setInverterID(newInverterID);
-            addNewScenario2Inverter(s2i);
-
-            Scenario toScenario = getScenario(toScenarioID);
-            toScenario.setHasInverters(true);
-            updateScenario(toScenario);
-        }
-
-        deleteOrphanInverters();
-    }
-
-    @Query("SELECT * FROM scenario2inverter")
-    public abstract LiveData<List<Scenario2Inverter>> loadInverterRelations();
-
+    // linkInverterFromScenario stays here until C9: it is called by the
+    // cross-domain lifecycle @Transaction linkAllComponentsFromScenario below.
     @Transaction
     public void linkInverterFromScenario(long fromScenarioID, Long toScenarioID) {
         List<Inverter> inverters = getInvertersForScenarioID(fromScenarioID);
@@ -1240,9 +1189,7 @@ public abstract class ScenarioDAO {
             "SELECT loadProfileID FROM scenario2loadprofile WHERE scenarioID = :scenarioID) AND scenarioID != :scenarioID )")
     public abstract List<String> getLinkedLoadProfiles(Long scenarioID);
 
-    @Query("SELECT scenarioName FROM scenarios WHERE scenarioIndex IN (" +
-            "SELECT scenarioID FROM scenario2inverter WHERE inverterID = :inverterID) AND scenarioIndex != :scenarioID")
-    public abstract List<String> getLinkedInverters(Long inverterID, Long scenarioID);
+    // getLinkedInverters → InverterDAO (mega-refactor C1)
 
     @Query("SELECT scenarioName FROM scenarios WHERE scenarioIndex IN (" +
             "SELECT scenarioID FROM scenario2panel WHERE panelID = :panelIndex) AND scenarioIndex != :scenarioID")
