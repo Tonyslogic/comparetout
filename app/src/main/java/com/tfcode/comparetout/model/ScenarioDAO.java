@@ -117,7 +117,7 @@ public abstract class ScenarioDAO {
     public abstract long addNewInverter(Inverter inverter); // public: shared with InverterOps (C1)
 
     @Insert
-    abstract long addNewBattery(Battery battery);
+    public abstract long addNewBattery(Battery battery); // public: shared with BatteryOps (C2)
 
     @Insert
     abstract long addNewHeatPump(HeatPump heatPump);
@@ -132,10 +132,10 @@ public abstract class ScenarioDAO {
     abstract long addNewLoadProfile(LoadProfile loadProfile);
 
     @Insert
-    abstract long addNewLoadShift(LoadShift loadShift);
+    public abstract long addNewLoadShift(LoadShift loadShift); // public: shared with BatteryOps (C2)
 
     @Insert
-    abstract long addNewDischarge(DischargeToGrid discharge);
+    public abstract long addNewDischarge(DischargeToGrid discharge); // public: shared with BatteryOps (C2)
 
     @Insert
     abstract long addNewEVCharge(EVCharge evCharge);
@@ -153,7 +153,7 @@ public abstract class ScenarioDAO {
     public abstract void addNewScenario2Inverter(Scenario2Inverter scenario2Inverter); // public: shared with InverterOps (C1)
 
     @Insert
-    abstract void addNewScenario2Battery(Scenario2Battery scenario2Battery);
+    public abstract void addNewScenario2Battery(Scenario2Battery scenario2Battery); // public: shared with BatteryOps (C2)
 
     @Insert
     abstract void addNewScenario2HeatPump(Scenario2HeatPump scenario2HeatPump);
@@ -168,10 +168,10 @@ public abstract class ScenarioDAO {
     abstract void addNewScenario2LoadProfile(Scenario2LoadProfile scenario2LoadProfile);
 
     @Insert
-    abstract void addNewScenario2LoadShift(Scenario2LoadShift scenario2LoadShift);
+    public abstract void addNewScenario2LoadShift(Scenario2LoadShift scenario2LoadShift); // public: shared with BatteryOps (C2)
 
     @Insert
-    abstract void addNewScenario2Discharge(Scenario2DischargeToGrid scenario2Discharge);
+    public abstract void addNewScenario2Discharge(Scenario2DischargeToGrid scenario2Discharge); // public: shared with BatteryOps (C2)
 
     @Insert
     abstract void addNewScenario2EVCharge(Scenario2EVCharge scenario2EVCharge);
@@ -1195,61 +1195,15 @@ public abstract class ScenarioDAO {
             "SELECT scenarioID FROM scenario2panel WHERE panelID = :panelIndex) AND scenarioIndex != :scenarioID")
     public abstract List<String> getLinkedPanels(long panelIndex, Long scenarioID);
 
-    @Query("SELECT * FROM scenario2battery")
-    public abstract LiveData<List<Scenario2Battery>> loadBatteryRelations();
+    // loadBatteryRelations → BatteryDAO (mega-refactor C2)
+    // deleteBatteryFromScenario → BatteryDAO (mega-refactor C2)
+    // saveBatteryForScenario → BatteryOps (mega-refactor C2)
+    // updateBattery → BatteryDAO (mega-refactor C2)
+    // getLinkedBatteries → BatteryDAO (mega-refactor C2)
+    // copyBatteryFromScenario → BatteryOps (mega-refactor C2)
 
-    @Query("DELETE FROM scenario2battery WHERE scenarioID = :scenarioID AND batteryID = :batteryID")
-    public abstract void deleteBatteryFromScenario(Long batteryID, Long scenarioID);
-
-    @Transaction
-    public void saveBatteryForScenario(Long scenarioID, Battery battery) {
-        long batteryID = battery.getBatteryIndex();
-        if (batteryID == 0) {
-            batteryID = addNewBattery(battery);
-            Scenario2Battery s2b = new Scenario2Battery();
-            s2b.setScenarioID(scenarioID);
-            s2b.setBatteryID(batteryID);
-            addNewScenario2Battery(s2b);
-
-            // Guard against a bad scenarioID: never NPE here.
-            Scenario scenario = getScenario(scenarioID);
-            if (scenario != null) {
-                scenario.setHasBatteries(true);
-                updateScenario(scenario);
-            }
-        }
-        else {
-            updateBattery(battery);
-        }
-    }
-
-    @Update (entity = Battery.class)
-    public abstract void updateBattery(Battery battery);
-
-    @Query("SELECT scenarioName FROM scenarios WHERE scenarioIndex IN (" +
-            "SELECT scenarioID FROM scenario2battery WHERE batteryID = :batteryIndex) AND scenarioIndex != :scenarioID")
-    public abstract List<String> getLinkedBatteries(long batteryIndex, Long scenarioID);
-
-    @Transaction
-    public void copyBatteryFromScenario(long fromScenarioID, Long toScenarioID) {
-        List<Battery> batteries = getBatteriesForScenarioID(fromScenarioID);
-        for (Battery battery: batteries) {
-            battery.setBatteryIndex(0L);
-            long newBatteryID = addNewBattery(battery);
-
-            Scenario2Battery s2b = new Scenario2Battery();
-            s2b.setScenarioID(toScenarioID);
-            s2b.setBatteryID(newBatteryID);
-            addNewScenario2Battery(s2b);
-
-            Scenario toScenario = getScenario(toScenarioID);
-            toScenario.setHasBatteries(true);
-            updateScenario(toScenario);
-        }
-
-        deleteOrphanBatteries();
-    }
-
+    // linkBatteryFromScenario stays here until C9: called by the cross-domain
+    // lifecycle @Transaction linkAllComponentsFromScenario.
     @Transaction
     public void linkBatteryFromScenario(long fromScenarioID, Long toScenarioID) {
         List<Battery> batteries = getBatteriesForScenarioID(fromScenarioID);
@@ -1339,58 +1293,15 @@ public abstract class ScenarioDAO {
     }
 
     //##############################################
-    @Query("SELECT * FROM scenario2loadshift")
-    public abstract LiveData<List<Scenario2LoadShift>> loadLoadShiftRelations();
+    // loadLoadShiftRelations → BatteryDAO (mega-refactor C2)
+    // deleteLoadShiftFromScenario → BatteryDAO (mega-refactor C2)
+    // saveLoadShiftForScenario → BatteryOps (mega-refactor C2)
+    // updateLoadShift → BatteryDAO (mega-refactor C2)
+    // getLinkedLoadShifts → BatteryDAO (mega-refactor C2)
+    // copyLoadShiftFromScenario → BatteryOps (mega-refactor C2)
 
-    @Query("DELETE FROM scenario2loadshift WHERE scenarioID = :scenarioID AND loadShiftID = :loadShiftID")
-    public abstract void deleteLoadShiftFromScenario(Long loadShiftID, Long scenarioID);
-
-    @Transaction
-    public void saveLoadShiftForScenario(Long scenarioID, LoadShift loadShift) {
-        long loadShiftIndex = loadShift.getLoadShiftIndex();
-        if (loadShiftIndex == 0) {
-            loadShiftIndex = addNewLoadShift(loadShift);
-            Scenario2LoadShift s2ls = new Scenario2LoadShift();
-            s2ls.setScenarioID(scenarioID);
-            s2ls.setLoadShiftID(loadShiftIndex);
-            addNewScenario2LoadShift(s2ls);
-
-            Scenario scenario = getScenario(scenarioID);
-            scenario.setHasLoadShifts(true);
-            updateScenario(scenario);
-        }
-        else {
-            updateLoadShift(loadShift);
-        }
-    }
-
-    @Update (entity = LoadShift.class)
-    public abstract void updateLoadShift(LoadShift loadShift);
-
-    @Query("SELECT scenarioName FROM scenarios WHERE scenarioIndex IN (" +
-            "SELECT scenarioID FROM scenario2loadshift WHERE loadShiftID = :loadShiftIndex) AND scenarioIndex != :scenarioID")
-    public abstract List<String> getLinkedLoadShifts(long loadShiftIndex, Long scenarioID);
-
-    @Transaction
-    public void copyLoadShiftFromScenario(long fromScenarioID, Long toScenarioID) {
-        List<LoadShift> loadShifts = getLoadShiftsForScenarioID(fromScenarioID);
-        for (LoadShift loadShift: loadShifts) {
-            loadShift.setLoadShiftIndex(0L);
-            long newLoadShiftID = addNewLoadShift(loadShift);
-
-            Scenario2LoadShift s2ls = new Scenario2LoadShift();
-            s2ls.setScenarioID(toScenarioID);
-            s2ls.setLoadShiftID(newLoadShiftID);
-            addNewScenario2LoadShift(s2ls);
-
-            Scenario toScenario = getScenario(toScenarioID);
-            toScenario.setHasLoadShifts(true);
-            updateScenario(toScenario);
-        }
-
-        deleteOrphanLoadShifts();
-    }
-
+    // linkLoadShiftFromScenario stays here until C9: called by the cross-domain
+    // lifecycle @Transaction linkAllComponentsFromScenario.
     @Transaction
     public void linkLoadShiftFromScenario(long fromScenarioID, Long toScenarioID) {
         List<LoadShift> loadShifts = getLoadShiftsForScenarioID(fromScenarioID);
@@ -1409,58 +1320,15 @@ public abstract class ScenarioDAO {
     }
     //##############################################
 
-    @Query("SELECT * FROM scenario2discharge")
-    public abstract LiveData<List<Scenario2DischargeToGrid>> loadDischargeRelations();
+    // loadDischargeRelations → BatteryDAO (mega-refactor C2)
+    // deleteDischargeFromScenario → BatteryDAO (mega-refactor C2)
+    // saveDischargeForScenario → BatteryOps (mega-refactor C2)
+    // updateDischarge → BatteryDAO (mega-refactor C2)
+    // getLinkedDischarges → BatteryDAO (mega-refactor C2)
+    // copyDischargeFromScenario → BatteryOps (mega-refactor C2)
 
-    @Query("DELETE FROM scenario2discharge WHERE scenarioID = :scenarioID AND dischargeID = :dischargeID")
-    public abstract void deleteDischargeFromScenario(Long dischargeID, Long scenarioID);
-
-    @Transaction
-    public void saveDischargeForScenario(Long scenarioID, DischargeToGrid dischargeToGrid) {
-        long dischargeIndex = dischargeToGrid.getD2gIndex();
-        if (dischargeIndex == 0) {
-            dischargeIndex = addNewDischarge(dischargeToGrid);
-            Scenario2DischargeToGrid s2d = new Scenario2DischargeToGrid();
-            s2d.setScenarioID(scenarioID);
-            s2d.setDischargeID(dischargeIndex);
-            addNewScenario2Discharge(s2d);
-
-            Scenario scenario = getScenario(scenarioID);
-            scenario.setHasDischarges(true);
-            updateScenario(scenario);
-        }
-        else {
-            updateDischarge(dischargeToGrid);
-        }
-    }
-
-    @Update (entity = DischargeToGrid.class)
-    public abstract void updateDischarge(DischargeToGrid discharge);
-
-    @Query("SELECT scenarioName FROM scenarios WHERE scenarioIndex IN (" +
-            "SELECT scenarioID FROM scenario2discharge WHERE dischargeID = :dischargeIndex) AND scenarioIndex != :scenarioID")
-    public abstract List<String> getLinkedDischarges(long dischargeIndex, Long scenarioID);
-
-    @Transaction
-    public void copyDischargeFromScenario(long fromScenarioID, Long toScenarioID) {
-        List<DischargeToGrid> discharges = getDischargesForScenarioID(fromScenarioID);
-        for (DischargeToGrid discharge: discharges) {
-            discharge.setD2gIndex(0L);
-            long newD2GID = addNewDischarge(discharge);
-
-            Scenario2DischargeToGrid s2d = new Scenario2DischargeToGrid();
-            s2d.setScenarioID(toScenarioID);
-            s2d.setDischargeID(newD2GID);
-            addNewScenario2Discharge(s2d);
-
-            Scenario toScenario = getScenario(toScenarioID);
-            toScenario.setHasDischarges(true);
-            updateScenario(toScenario);
-        }
-
-        deleteOrphanDischarges();
-    }
-
+    // linkDischargeFromScenario stays here until C9: called by the cross-domain
+    // lifecycle @Transaction linkAllComponentsFromScenario.
     @Transaction
     public void linkDischargeFromScenario(long fromScenarioID, Long toScenarioID) {
         List<DischargeToGrid> discharges = getDischargesForScenarioID(fromScenarioID);

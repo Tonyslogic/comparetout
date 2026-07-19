@@ -110,6 +110,8 @@ public class ToutcRepository {
     private final ScenarioDAO scenarioDAO;
     private final com.tfcode.comparetout.model.dao.InverterDAO inverterDAO;
     private final com.tfcode.comparetout.model.ops.InverterOps inverterOps;
+    private final com.tfcode.comparetout.model.dao.BatteryDAO batteryDAO;
+    private final com.tfcode.comparetout.model.ops.BatteryOps batteryOps;
     private final LiveData<List<Scenario>> allScenarios;
     private final LiveData<List<Scenario2Inverter>> inverterRelations;
     private final LiveData<List<Scenario2Panel>> panelRelations;
@@ -167,12 +169,14 @@ public class ToutcRepository {
         scenarioDAO = db.scenarioDAO();
         inverterDAO = db.inverterDAO();
         inverterOps = new com.tfcode.comparetout.model.ops.InverterOps(db);
+        batteryDAO = db.batteryDAO();
+        batteryOps = new com.tfcode.comparetout.model.ops.BatteryOps(db);
         allScenarios = scenarioDAO.loadScenarios();
         inverterRelations = inverterDAO.loadInverterRelations();
         panelRelations = scenarioDAO.loadPanelRelations();
-        batteryRelations = scenarioDAO.loadBatteryRelations();
-        loadShiftRelations = scenarioDAO.loadLoadShiftRelations();
-        dischargeRelations = scenarioDAO.loadDischargeRelations();
+        batteryRelations = batteryDAO.loadBatteryRelations();
+        loadShiftRelations = batteryDAO.loadLoadShiftRelations();
+        dischargeRelations = batteryDAO.loadDischargeRelations();
         hwSystemRelations = scenarioDAO.loadHWSystemRelations();
         hwScheduleRelations = scenarioDAO.loadHWScheduleRelations();
         evChargeRelations = scenarioDAO.loadEVChargeRelations();
@@ -590,7 +594,7 @@ public class ToutcRepository {
     }
 
     public void deleteBatteryFromScenario(Long batteryID, Long scenarioID) {
-        scenarioDAO.deleteBatteryFromScenario(batteryID, scenarioID);
+        batteryDAO.deleteBatteryFromScenario(batteryID, scenarioID);
     }
 
     /** Remove component rows no longer referenced by any scenario — left behind whenever an edit-save
@@ -614,16 +618,16 @@ public class ToutcRepository {
     }
 
     public void saveBatteryForScenario(Long scenarioID, Battery battery) {
-        scenarioDAO.saveBatteryForScenario(scenarioID, battery);
+        batteryOps.saveBatteryForScenario(scenarioID, battery);
     }
 
     public List<String> getLinkedBatteries(long batteryIndex, Long scenarioID) {
-        return scenarioDAO.getLinkedBatteries(batteryIndex, scenarioID);
+        return batteryDAO.getLinkedBatteries(batteryIndex, scenarioID);
     }
 
     public void copyBatteryFromScenario(long fromScenarioID, Long toScenarioID) {
         ToutcDB.databaseWriteExecutor.execute(() ->
-        scenarioDAO.copyBatteryFromScenario(fromScenarioID, toScenarioID));
+        batteryOps.copyBatteryFromScenario(fromScenarioID, toScenarioID));
     }
 
     public void linkBatteryFromScenario(long fromScenarioID, Long toScenarioID) {
@@ -662,20 +666,20 @@ public class ToutcRepository {
     }
 
     public void deleteLoadShiftFromScenario(Long loadShiftID, Long scenarioID) {
-        scenarioDAO.deleteLoadShiftFromScenario(loadShiftID, scenarioID);
+        batteryDAO.deleteLoadShiftFromScenario(loadShiftID, scenarioID);
     }
 
     public void saveLoadShiftForScenario(Long scenarioID, LoadShift loadShift) {
-        scenarioDAO.saveLoadShiftForScenario(scenarioID, loadShift);
+        batteryOps.saveLoadShiftForScenario(scenarioID, loadShift);
     }
 
     public List<String> getLinkedLoadShifts(long loadShiftIndex, Long scenarioID) {
-        return scenarioDAO.getLinkedLoadShifts(loadShiftIndex, scenarioID);
+        return batteryDAO.getLinkedLoadShifts(loadShiftIndex, scenarioID);
     }
 
     public void copyLoadShiftFromScenario(long fromScenarioID, Long toScenarioID) {
         ToutcDB.databaseWriteExecutor.execute(() ->
-                scenarioDAO.copyLoadShiftFromScenario(fromScenarioID, toScenarioID));
+                batteryOps.copyLoadShiftFromScenario(fromScenarioID, toScenarioID));
     }
 
     public void linkLoadShiftFromScenario(long fromScenarioID, Long toScenarioID) {
@@ -1055,11 +1059,11 @@ public class ToutcRepository {
 
     public void copyDischargeFromScenario(long fromScenarioID, Long toScenarioID) {
         ToutcDB.databaseWriteExecutor.execute(() ->
-        scenarioDAO.copyDischargeFromScenario(fromScenarioID, toScenarioID));
+        batteryOps.copyDischargeFromScenario(fromScenarioID, toScenarioID));
     }
 
     public void saveDischargeForScenario(Long scenarioID, DischargeToGrid discharge) {
-        scenarioDAO.saveDischargeForScenario(scenarioID, discharge);
+        batteryOps.saveDischargeForScenario(scenarioID, discharge);
     }
 
     public LiveData<List<Scenario2DischargeToGrid>> getAllDischargeRelations() {
@@ -1071,11 +1075,11 @@ public class ToutcRepository {
     }
 
     public void deleteDischargeFromScenario(Long dischargeID, Long scenarioID) {
-        scenarioDAO.deleteDischargeFromScenario(dischargeID, scenarioID);
+        batteryDAO.deleteDischargeFromScenario(dischargeID, scenarioID);
     }
 
     public List<String> getLinkedDischarges(long d2gIndex, Long scenarioID) {
-        return scenarioDAO.getLinkedDischarges(d2gIndex, scenarioID);
+        return batteryDAO.getLinkedDischarges(d2gIndex, scenarioID);
     }
 
     public List<ComparisonSenarioRow> getCompareScenarios() {

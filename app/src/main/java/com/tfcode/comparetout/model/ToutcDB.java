@@ -169,6 +169,13 @@ public abstract class ToutcDB extends RoomDatabase {
      */
     public abstract com.tfcode.comparetout.model.dao.InverterDAO inverterDAO();
 
+    /**
+     * Data Access Object for battery / load-shift / discharge queries
+     * (mega-refactor C2). Orchestration lives in
+     * {@link com.tfcode.comparetout.model.ops.BatteryOps}.
+     */
+    public abstract com.tfcode.comparetout.model.dao.BatteryDAO batteryDAO();
+
     private static volatile ToutcDB INSTANCE;
     private static final int NUMBER_OF_THREADS = 8;
     static final ExecutorService databaseWriteExecutor =
