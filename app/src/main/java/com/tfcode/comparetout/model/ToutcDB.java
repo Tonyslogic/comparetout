@@ -189,6 +189,12 @@ public abstract class ToutcDB extends RoomDatabase {
      */
     public abstract com.tfcode.comparetout.model.dao.EvDAO evDAO();
 
+    /**
+     * Data Access Object for heat-pump queries (mega-refactor C5).
+     * Orchestration lives in {@link com.tfcode.comparetout.model.ops.HeatPumpOps}.
+     */
+    public abstract com.tfcode.comparetout.model.dao.HeatPumpDAO heatPumpDAO();
+
     private static volatile ToutcDB INSTANCE;
     private static final int NUMBER_OF_THREADS = 8;
     static final ExecutorService databaseWriteExecutor =

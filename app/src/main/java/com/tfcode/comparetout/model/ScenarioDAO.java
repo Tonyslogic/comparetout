@@ -120,7 +120,7 @@ public abstract class ScenarioDAO {
     public abstract long addNewBattery(Battery battery); // public: shared with BatteryOps (C2)
 
     @Insert
-    abstract long addNewHeatPump(HeatPump heatPump);
+    public abstract long addNewHeatPump(HeatPump heatPump); // public: shared with HeatPumpOps (C5)
 
     @Insert
     abstract long addNewPanels(Panel panel);
@@ -156,7 +156,7 @@ public abstract class ScenarioDAO {
     public abstract void addNewScenario2Battery(Scenario2Battery scenario2Battery); // public: shared with BatteryOps (C2)
 
     @Insert
-    abstract void addNewScenario2HeatPump(Scenario2HeatPump scenario2HeatPump);
+    public abstract void addNewScenario2HeatPump(Scenario2HeatPump scenario2HeatPump); // public: shared with HeatPumpOps (C5)
 
     @Insert
     abstract void addNewScenario2Panel(Scenario2Panel scenario2Panel);
@@ -1223,58 +1223,14 @@ public abstract class ScenarioDAO {
 
     // ---- Heat pump (mirrors the battery helpers; Phase 4 of plans/hp/plan.md) ----
 
-    @Query("DELETE FROM scenario2heatpump WHERE scenarioID = :scenarioID AND heatPumpID = :heatPumpID")
-    public abstract void deleteHeatPumpFromScenario(Long heatPumpID, Long scenarioID);
+    // deleteHeatPumpFromScenario → HeatPumpDAO (mega-refactor C5)
+    // updateHeatPump → HeatPumpDAO (mega-refactor C5)
+    // getLinkedHeatPumps → HeatPumpDAO (mega-refactor C5)
+    // saveHeatPumpForScenario → HeatPumpOps (mega-refactor C5)
+    // copyHeatPumpFromScenario → HeatPumpOps (mega-refactor C5)
 
-    @Update(entity = HeatPump.class)
-    public abstract void updateHeatPump(HeatPump heatPump);
-
-    @Query("SELECT scenarioName FROM scenarios WHERE scenarioIndex IN (" +
-            "SELECT scenarioID FROM scenario2heatpump WHERE heatPumpID = :heatPumpIndex) AND scenarioIndex != :scenarioID")
-    public abstract List<String> getLinkedHeatPumps(long heatPumpIndex, Long scenarioID);
-
-    @Transaction
-    public void saveHeatPumpForScenario(Long scenarioID, HeatPump heatPump) {
-        long heatPumpID = heatPump.getHeatPumpIndex();
-        if (heatPumpID == 0) {
-            heatPumpID = addNewHeatPump(heatPump);
-            Scenario2HeatPump s2hp = new Scenario2HeatPump();
-            s2hp.setScenarioID(scenarioID);
-            s2hp.setHeatPumpID(heatPumpID);
-            addNewScenario2HeatPump(s2hp);
-
-            // Guard against a bad scenarioID: never NPE here.
-            Scenario scenario = getScenario(scenarioID);
-            if (scenario != null) {
-                scenario.setHasHeatPump(true);
-                updateScenario(scenario);
-            }
-        }
-        else {
-            updateHeatPump(heatPump);
-        }
-    }
-
-    @Transaction
-    public void copyHeatPumpFromScenario(long fromScenarioID, Long toScenarioID) {
-        List<HeatPump> heatPumps = getHeatPumpsForScenarioID(fromScenarioID);
-        for (HeatPump heatPump : heatPumps) {
-            heatPump.setHeatPumpIndex(0L);
-            long newHeatPumpID = addNewHeatPump(heatPump);
-
-            Scenario2HeatPump s2hp = new Scenario2HeatPump();
-            s2hp.setScenarioID(toScenarioID);
-            s2hp.setHeatPumpID(newHeatPumpID);
-            addNewScenario2HeatPump(s2hp);
-
-            Scenario toScenario = getScenario(toScenarioID);
-            toScenario.setHasHeatPump(true);
-            updateScenario(toScenario);
-        }
-
-        deleteOrphanHeatPumps();
-    }
-
+    // linkHeatPumpFromScenario stays here until C9: called by the cross-domain
+    // lifecycle @Transaction linkAllComponentsFromScenario.
     @Transaction
     public void linkHeatPumpFromScenario(long fromScenarioID, Long toScenarioID) {
         List<HeatPump> heatPumps = getHeatPumpsForScenarioID(fromScenarioID);

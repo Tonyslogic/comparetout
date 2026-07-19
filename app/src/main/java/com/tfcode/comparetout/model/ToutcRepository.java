@@ -116,6 +116,8 @@ public class ToutcRepository {
     private final com.tfcode.comparetout.model.ops.HotWaterOps hotWaterOps;
     private final com.tfcode.comparetout.model.dao.EvDAO evDAO;
     private final com.tfcode.comparetout.model.ops.EvOps evOps;
+    private final com.tfcode.comparetout.model.dao.HeatPumpDAO heatPumpDAO;
+    private final com.tfcode.comparetout.model.ops.HeatPumpOps heatPumpOps;
     private final LiveData<List<Scenario>> allScenarios;
     private final LiveData<List<Scenario2Inverter>> inverterRelations;
     private final LiveData<List<Scenario2Panel>> panelRelations;
@@ -179,6 +181,8 @@ public class ToutcRepository {
         hotWaterOps = new com.tfcode.comparetout.model.ops.HotWaterOps(db);
         evDAO = db.evDAO();
         evOps = new com.tfcode.comparetout.model.ops.EvOps(db);
+        heatPumpDAO = db.heatPumpDAO();
+        heatPumpOps = new com.tfcode.comparetout.model.ops.HeatPumpOps(db);
         allScenarios = scenarioDAO.loadScenarios();
         inverterRelations = inverterDAO.loadInverterRelations();
         panelRelations = scenarioDAO.loadPanelRelations();
@@ -644,20 +648,20 @@ public class ToutcRepository {
     }
 
     public void deleteHeatPumpFromScenario(Long heatPumpID, Long scenarioID) {
-        scenarioDAO.deleteHeatPumpFromScenario(heatPumpID, scenarioID);
+        heatPumpDAO.deleteHeatPumpFromScenario(heatPumpID, scenarioID);
     }
 
     public void saveHeatPumpForScenario(Long scenarioID, HeatPump heatPump) {
-        scenarioDAO.saveHeatPumpForScenario(scenarioID, heatPump);
+        heatPumpOps.saveHeatPumpForScenario(scenarioID, heatPump);
     }
 
     public List<String> getLinkedHeatPumps(long heatPumpIndex, Long scenarioID) {
-        return scenarioDAO.getLinkedHeatPumps(heatPumpIndex, scenarioID);
+        return heatPumpDAO.getLinkedHeatPumps(heatPumpIndex, scenarioID);
     }
 
     public void copyHeatPumpFromScenario(long fromScenarioID, Long toScenarioID) {
         ToutcDB.databaseWriteExecutor.execute(() ->
-        scenarioDAO.copyHeatPumpFromScenario(fromScenarioID, toScenarioID));
+        heatPumpOps.copyHeatPumpFromScenario(fromScenarioID, toScenarioID));
     }
 
     public void linkHeatPumpFromScenario(long fromScenarioID, Long toScenarioID) {
