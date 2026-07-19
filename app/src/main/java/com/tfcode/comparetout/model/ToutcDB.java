@@ -195,6 +195,12 @@ public abstract class ToutcDB extends RoomDatabase {
      */
     public abstract com.tfcode.comparetout.model.dao.HeatPumpDAO heatPumpDAO();
 
+    /**
+     * Data Access Object for panel / panel-data queries (mega-refactor C6).
+     * Orchestration lives in {@link com.tfcode.comparetout.model.ops.PanelOps}.
+     */
+    public abstract com.tfcode.comparetout.model.dao.PanelDAO panelDAO();
+
     private static volatile ToutcDB INSTANCE;
     private static final int NUMBER_OF_THREADS = 8;
     static final ExecutorService databaseWriteExecutor =

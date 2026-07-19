@@ -118,6 +118,8 @@ public class ToutcRepository {
     private final com.tfcode.comparetout.model.ops.EvOps evOps;
     private final com.tfcode.comparetout.model.dao.HeatPumpDAO heatPumpDAO;
     private final com.tfcode.comparetout.model.ops.HeatPumpOps heatPumpOps;
+    private final com.tfcode.comparetout.model.dao.PanelDAO panelDAO;
+    private final com.tfcode.comparetout.model.ops.PanelOps panelOps;
     private final LiveData<List<Scenario>> allScenarios;
     private final LiveData<List<Scenario2Inverter>> inverterRelations;
     private final LiveData<List<Scenario2Panel>> panelRelations;
@@ -183,9 +185,11 @@ public class ToutcRepository {
         evOps = new com.tfcode.comparetout.model.ops.EvOps(db);
         heatPumpDAO = db.heatPumpDAO();
         heatPumpOps = new com.tfcode.comparetout.model.ops.HeatPumpOps(db);
+        panelDAO = db.panelDAO();
+        panelOps = new com.tfcode.comparetout.model.ops.PanelOps(db);
         allScenarios = scenarioDAO.loadScenarios();
         inverterRelations = inverterDAO.loadInverterRelations();
-        panelRelations = scenarioDAO.loadPanelRelations();
+        panelRelations = panelDAO.loadPanelRelations();
         batteryRelations = batteryDAO.loadBatteryRelations();
         loadShiftRelations = batteryDAO.loadLoadShiftRelations();
         dischargeRelations = batteryDAO.loadDischargeRelations();
@@ -193,7 +197,7 @@ public class ToutcRepository {
         hwScheduleRelations = hotWaterDAO.loadHWScheduleRelations();
         evChargeRelations = evDAO.loadEVChargeRelations();
         evDivertRelations = evDAO.loadEVDivertRelations();
-        panelPVSummary = scenarioDAO.getPanelPVSummary();
+        panelPVSummary = panelDAO.getPanelPVSummary();
 
         costingDAO = db.costingDAO();
         allCostings = costingDAO.loadCostings();
@@ -476,11 +480,11 @@ public class ToutcRepository {
     }
 
     public void deletePanelFromScenario(Long panelID, Long scenarioID) {
-        scenarioDAO.deletePanelFromScenario(panelID, scenarioID);
+        panelOps.deletePanelFromScenario(panelID, scenarioID);
     }
 
     public long savePanel(Long scenarioID, Panel panel) {
-        return scenarioDAO.savePanel(scenarioID, panel);
+        return panelOps.savePanel(scenarioID, panel);
     }
 
     /** Clone the generated time-series of one panel onto another (used by the wizard's COPY path so a copied
@@ -491,19 +495,19 @@ public class ToutcRepository {
 
     public void copyPanelFromScenario(long fromScenarioID, Long toScenarioID) {
         ToutcDB.databaseWriteExecutor.execute(() ->
-                scenarioDAO.copyPanelFromScenario(fromScenarioID, toScenarioID));
+                panelOps.copyPanelFromScenario(fromScenarioID, toScenarioID));
     }
 
     /** Idempotently link one panel to a scenario (Directors per-string share — no duplicate junction rows). */
     public void linkPanelToScenario(long panelID, long scenarioID) {
         ToutcDB.databaseWriteExecutor.execute(() ->
-                scenarioDAO.linkPanelToScenario(panelID, scenarioID));
+                panelOps.linkPanelToScenario(panelID, scenarioID));
     }
 
     /** Copy one panel (+ its data) onto a scenario (Directors per-string FORK). */
     public void copyPanelToScenario(long panelID, long scenarioID) {
         ToutcDB.databaseWriteExecutor.execute(() ->
-                scenarioDAO.copyPanelToScenario(panelID, scenarioID));
+                panelOps.copyPanelToScenario(panelID, scenarioID));
     }
 
     public void linkPanelFromScenario(long fromScenarioID, Long toScenarioID) {
@@ -516,7 +520,7 @@ public class ToutcRepository {
     }
 
     public void savePanelData(ArrayList<PanelData> panelDataList) {
-        scenarioDAO.savePanelData(panelDataList);
+        panelDAO.savePanelData(panelDataList);
         // Panel data landed → unblock any scenario that was waiting on this panel's data (self-heal).
         // Centralised here so every panel-data writer (PVGIS direct/legacy, source PV, importer) benefits
         // without knowing about readiness. A no-op for scenarios that weren't blocked on panel data.
@@ -531,20 +535,20 @@ public class ToutcRepository {
     }
 
     public boolean hasPvgisDataForParameters(double lat, double lon, int azimuth, int slope) {
-        return scenarioDAO.countPanelDataForParameters(lat, lon, azimuth, slope) > 0;
+        return panelDAO.countPanelDataForParameters(lat, lon, azimuth, slope) > 0;
     }
 
     /** Scenario names whose panels sit at this PVGIS location/orientation (for the PVGIS cache view). */
     public List<String> getScenarioNamesAtLocation(double lat, double lon, int azimuth, int slope) {
-        return scenarioDAO.getScenarioNamesAtLocation(lat, lon, azimuth, slope);
+        return panelDAO.getScenarioNamesAtLocation(lat, lon, azimuth, slope);
     }
 
     public void updatePanel(Panel panel) {
-        scenarioDAO.updatePanel(panel);
+        panelDAO.updatePanel(panel);
     }
 
     public boolean checkForMissingPanelData(Long scenarioID) {
-        return scenarioDAO.checkForMissingPanelData(scenarioID);
+        return panelDAO.checkForMissingPanelData(scenarioID);
     }
 
     public void removeCostingsForPricePlan(long pricePlanIndex) {
@@ -565,7 +569,7 @@ public class ToutcRepository {
 
     public void removeOldPanelData(Long panelID) {
         ToutcDB.databaseWriteExecutor.execute(() ->
-            scenarioDAO.removePanelData(panelID));
+            panelDAO.removePanelData(panelID));
     }
 
     public List<SimulationInputData> getSimulationInputNoSolar(long scenarioID) {
@@ -594,7 +598,7 @@ public class ToutcRepository {
     }
 
     public List<String> getLinkedPanels(long panelIndex, Long scenarioID) {
-        return scenarioDAO.getLinkedPanels(panelIndex, scenarioID);
+        return panelDAO.getLinkedPanels(panelIndex, scenarioID);
     }
 
     public LiveData<List<Scenario2Battery>> getAllBatteryRelations() {

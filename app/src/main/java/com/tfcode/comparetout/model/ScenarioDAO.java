@@ -123,7 +123,7 @@ public abstract class ScenarioDAO {
     public abstract long addNewHeatPump(HeatPump heatPump); // public: shared with HeatPumpOps (C5)
 
     @Insert
-    abstract long addNewPanels(Panel panel);
+    public abstract long addNewPanels(Panel panel); // public: shared with PanelOps (C6)
 
     @Insert
     public abstract long addNewHWSystem(HWSystem hwSystem); // public: shared with HotWaterOps (C3)
@@ -159,7 +159,7 @@ public abstract class ScenarioDAO {
     public abstract void addNewScenario2HeatPump(Scenario2HeatPump scenario2HeatPump); // public: shared with HeatPumpOps (C5)
 
     @Insert
-    abstract void addNewScenario2Panel(Scenario2Panel scenario2Panel);
+    public abstract void addNewScenario2Panel(Scenario2Panel scenario2Panel); // public: shared with PanelOps (C6)
 
     @Insert
     public abstract void addNewScenario2HWSystem(Scenario2HWSystem scenario2HWSystem); // public: shared with HotWaterOps (C3)
@@ -496,9 +496,7 @@ public abstract class ScenarioDAO {
 
     // updateInverter → InverterDAO (mega-refactor C1)
     // saveInverter → InverterOps (mega-refactor C1)
-
-    @Update (entity = Panel.class)
-    public abstract void updatePanel(Panel panel);
+    // updatePanel → PanelDAO (mega-refactor C6)
 
     @Query("SELECT DISTINCT loadProfileID FROM loadprofiledata WHERE loadProfileID = :id")
     public abstract long loadProfileDataCheck(long id);
@@ -1005,70 +1003,14 @@ public abstract class ScenarioDAO {
         deleteOrphanInverters();
     }
 
-    @Query("SELECT * FROM scenario2panel")
-    public abstract LiveData<List<Scenario2Panel>> loadPanelRelations();
+    // loadPanelRelations → PanelDAO (mega-refactor C6)
+    // removeScenario2Panel → PanelDAO (mega-refactor C6)
+    // deletePanelFromScenario → PanelOps (mega-refactor C6)
+    // savePanel → PanelOps (mega-refactor C6)
+    // copyPanelFromScenario → PanelOps (mega-refactor C6)
 
-    @Query("DELETE FROM scenario2panel WHERE scenarioID = :scenarioID AND panelID = :panelID")
-    public abstract void removeScenario2Panel(Long panelID, Long scenarioID);
-
-    @Transaction
-    public void deletePanelFromScenario(Long panelID, Long scenarioID) {
-        removeScenario2Panel(panelID, scenarioID);
-        deleteOrphanPanels();
-        deleteOrphanPanelData();
-        List<Panel> panels = getPanelsForScenarioID(scenarioID);
-        if (panels.isEmpty()) {
-            Scenario scenario = getScenario(scenarioID);
-            scenario.setHasPanels(false);
-            updateScenario(scenario);
-        }
-    }
-
-    @Transaction
-    public long savePanel(Long scenarioID, Panel panel) {
-        long panelID = panel.getPanelIndex();
-        if (panelID == 0) {
-            panelID = addNewPanels(panel);
-            Scenario2Panel s2p = new Scenario2Panel();
-            s2p.setScenarioID(scenarioID);
-            s2p.setPanelID(panelID);
-            addNewScenario2Panel(s2p);
-
-            // Guard against a bad scenarioID (e.g. a failed scenario insert returning 0): never NPE here.
-            Scenario scenario = getScenario(scenarioID);
-            if (scenario != null) {
-                scenario.setHasPanels(true);
-                updateScenario(scenario);
-            }
-        }
-        else {
-            updatePanel(panel);
-        }
-        return panelID;
-    }
-
-    @Transaction
-    public void copyPanelFromScenario(long fromScenarioID, Long toScenarioID) {
-        List<Panel> panels = getPanelsForScenarioID(fromScenarioID);
-        for (Panel panel: panels) {
-            long oldPanelID = panel.getPanelIndex();
-            panel.setPanelIndex(0L);
-            long newPanelID = addNewPanels(panel);
-
-            Scenario2Panel s2p = new Scenario2Panel();
-            s2p.setScenarioID(toScenarioID);
-            s2p.setPanelID(newPanelID);
-            addNewScenario2Panel(s2p);
-
-            Scenario toScenario = getScenario(toScenarioID);
-            toScenario.setHasPanels(true);
-            updateScenario(toScenario);
-            copyPanelData(oldPanelID, newPanelID);
-        }
-
-        deleteOrphanPanels();
-    }
-
+    // copyPanelData stays here until C9: called by the copyScenario lifecycle
+    // @Transaction (line ~875). PanelOps.copy* call it via scenarioDAO.
     @Query("INSERT INTO paneldata (PanelID, date, minute, pv, mod, dow, do2001, millisSinceEpoch) " +
             "SELECT :toPanelID, date, minute, pv, mod, dow, do2001, millisSinceEpoch FROM paneldata " +
             "WHERE panelID = :fromPanelID")
@@ -1091,51 +1033,13 @@ public abstract class ScenarioDAO {
         deleteOrphanPanels();
     }
 
-    @Query("SELECT COUNT(*) FROM scenario2panel WHERE scenarioID = :scenarioID AND panelID = :panelID")
-    public abstract int countPanelLink(long scenarioID, long panelID);
+    // countPanelLink → PanelDAO (mega-refactor C6)
+    // linkPanelToScenario → PanelOps (mega-refactor C6)
+    // copyPanelToScenario → PanelOps (mega-refactor C6)
 
-    /**
-     * Link <b>one</b> panel to a scenario, idempotently. The Directors tab shares panels per-string, but the
-     * scenario-level {@link #linkPanelFromScenario} links <i>every</i> panel of the source and {@code
-     * scenario2panel} has an autogenerated PK with no unique (scenarioID, panelID) constraint — so re-linking
-     * duplicated the junction row, and the sim (which iterates the rows) then double-counted the PV. This guards
-     * against that: nothing happens if the link already exists.
-     */
-    @Transaction
-    public void linkPanelToScenario(long panelID, long scenarioID) {
-        if (countPanelLink(scenarioID, panelID) > 0) return;
-        Scenario2Panel s2p = new Scenario2Panel();
-        s2p.setScenarioID(scenarioID);
-        s2p.setPanelID(panelID);
-        addNewScenario2Panel(s2p);
-        Scenario scenario = getScenario(scenarioID);
-        if (scenario != null) {
-            scenario.setHasPanels(true);
-            updateScenario(scenario);
-        }
-    }
-
-    /** Copy <b>one</b> panel (fresh id) and its generated data onto a scenario — the per-string FORK for the
-     *  Directors tab (the scenario-level {@link #copyPanelFromScenario} copies every panel of the source). */
-    @Transaction
-    public void copyPanelToScenario(long panelID, long scenarioID) {
-        Panel panel = getPanelForID(panelID);
-        if (panel == null) return;
-        panel.setPanelIndex(0L);
-        long newPanelID = addNewPanels(panel);
-        Scenario2Panel s2p = new Scenario2Panel();
-        s2p.setScenarioID(scenarioID);
-        s2p.setPanelID(newPanelID);
-        addNewScenario2Panel(s2p);
-        Scenario scenario = getScenario(scenarioID);
-        if (scenario != null) {
-            scenario.setHasPanels(true);
-            updateScenario(scenario);
-        }
-        copyPanelData(panelID, newPanelID);
-        deleteOrphanPanels();
-    }
-
+    // getPanelForID stays here until its direct consumer (SnapshotImporter,
+    // which holds scenarioDAO) migrates. PanelOps.copyPanelToScenario calls it
+    // via scenarioDAO.
     @Query("SELECT * FROM panels WHERE panelIndex = :panelID")
     public abstract Panel getPanelForID(Long panelID);
 
@@ -1143,38 +1047,14 @@ public abstract class ScenarioDAO {
     @Query("SELECT * FROM panels")
     public abstract List<Panel> getAllPanels();
 
-    @Insert(entity = PanelData.class, onConflict = OnConflictStrategy.REPLACE)
-    public abstract void savePanelData(ArrayList<PanelData> panelDataList);
-
-    @Query("SELECT panelID, substr(Date, 6,2) AS Month, SUM(pv) AS tot FROM paneldata GROUP BY panelID, Month ORDER BY Month ASC")
-    public abstract LiveData<List<PanelPVSummary>> getPanelPVSummary();
-
-    @Query("SELECT COUNT(*) FROM paneldata WHERE panelID IN " +
-            "(SELECT panelIndex FROM panels WHERE ROUND(latitude,3) = ROUND(:lat,3) " +
-            "AND ROUND(longitude,3) = ROUND(:lon,3) AND azimuth = :azimuth AND slope = :slope)")
-    public abstract int countPanelDataForParameters(double lat, double lon, int azimuth, int slope);
-
-    /** Names of the scenarios whose panels sit at this PVGIS location/orientation — for the PVGIS cache view
-     *  ("which scenarios this cached download feeds"). Matches the same lat/lon rounding as the cache key. */
-    @Query("SELECT DISTINCT scenarios.scenarioName FROM scenarios, scenario2panel, panels " +
-            "WHERE scenarios.scenarioIndex = scenario2panel.scenarioID " +
-            "AND scenario2panel.panelID = panels.panelIndex " +
-            "AND ROUND(panels.latitude,3) = ROUND(:lat,3) " +
-            "AND ROUND(panels.longitude,3) = ROUND(:lon,3) " +
-            "AND panels.azimuth = :azimuth AND panels.slope = :slope " +
-            "ORDER BY scenarios.scenarioName")
-    public abstract List<String> getScenarioNamesAtLocation(double lat, double lon, int azimuth, int slope);
-
-    @Query("SELECT CASE WHEN " +
-            "(SELECT COUNT (DISTINCT paneldata.panelID) AS Found FROM paneldata, scenario2panel WHERE scenario2panel.panelID = paneldata.panelID AND scenarioID = :scenarioID) = " +
-            "(SELECT COUNT (DISTINCT panelID) AS Needed FROM scenario2panel WHERE scenarioID = :scenarioID) " +
-            "THEN 1 " +
-            "ELSE 0 " +
-            "END AS OK")
-    public abstract boolean checkForMissingPanelData(Long scenarioID);
-
-    @Query("DELETE FROM paneldata WHERE panelID = :panelID")
-    public abstract void removePanelData(Long panelID);
+    // savePanelData → PanelDAO (mega-refactor C6)
+    // getPanelPVSummary → PanelDAO (mega-refactor C6)
+    // countPanelDataForParameters → PanelDAO (mega-refactor C6)
+    // getScenarioNamesAtLocation → PanelDAO (mega-refactor C6)
+    // checkForMissingPanelData → PanelDAO (mega-refactor C6)
+    // removePanelData → PanelDAO (mega-refactor C6)
+    // getAllPanels + deleteAllPanelData stay here until PanelDataRefreshWorker
+    // (direct scenarioDAO consumer) migrates.
 
     /** Wipe all generated PV data (one-time paneldata rollout refresh — it is regenerated afterwards). */
     @Query("DELETE FROM paneldata")
@@ -1190,10 +1070,7 @@ public abstract class ScenarioDAO {
     public abstract List<String> getLinkedLoadProfiles(Long scenarioID);
 
     // getLinkedInverters → InverterDAO (mega-refactor C1)
-
-    @Query("SELECT scenarioName FROM scenarios WHERE scenarioIndex IN (" +
-            "SELECT scenarioID FROM scenario2panel WHERE panelID = :panelIndex) AND scenarioIndex != :scenarioID")
-    public abstract List<String> getLinkedPanels(long panelIndex, Long scenarioID);
+    // getLinkedPanels → PanelDAO (mega-refactor C6)
 
     // loadBatteryRelations → BatteryDAO (mega-refactor C2)
     // deleteBatteryFromScenario → BatteryDAO (mega-refactor C2)
