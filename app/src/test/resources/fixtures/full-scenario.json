@@ -1,0 +1,288 @@
+[
+	{
+		"Name": "Fixture · Full Fat",
+		"Inverters": [
+			{
+				"Name": "AlphaESS",
+				"MinExcess": 0.008,
+				"MaxInverterLoad": 5.0,
+				"MPPTCount": 2,
+				"AC2DCLoss": 5,
+				"DC2ACLoss": 5,
+				"DC2DCLoss": 0,
+				"DispatchMode": 0
+			},
+			{
+				"Name": "GivEnergy",
+				"MinExcess": 0.012,
+				"MaxInverterLoad": 3.6,
+				"MPPTCount": 1,
+				"AC2DCLoss": 4,
+				"DC2ACLoss": 6,
+				"DC2DCLoss": 1,
+				"DispatchMode": 1
+			}
+		],
+		"Batteries": [
+			{
+				"Battery Size": 5.7,
+				"Discharge stop": 19.6,
+				"ChargeModel": {
+					"0": 30,
+					"12": 100,
+					"90": 10,
+					"100": 0
+				},
+				"Max discharge": 0.225,
+				"Max charge": 0.225,
+				"StorageLoss": 1.0,
+				"Inverter": "AlphaESS"
+			},
+			{
+				"Battery Size": 9.5,
+				"Discharge stop": 10.0,
+				"ChargeModel": {
+					"0": 25,
+					"12": 90,
+					"90": 15,
+					"100": 5
+				},
+				"Max discharge": 0.3,
+				"Max charge": 0.28,
+				"StorageLoss": 1.5,
+				"Inverter": "GivEnergy"
+			}
+		],
+		"Panels": [
+			{
+				"PanelCount": 7,
+				"PanelkWp": 325,
+				"Azimuth": 136,
+				"Slope": 24,
+				"Latitude": 53.349,
+				"Longitude": -6.26,
+				"Inverter": "AlphaESS",
+				"MPPT": 1,
+				"PanelName": "Top",
+				"Optimized": false,
+				"PV data source": "PVGIS",
+				"PV data start": "2001-01-01",
+				"PV data end": "2001-12-31",
+				"PV system loss": 14.0
+			},
+			{
+				"PanelCount": 9,
+				"PanelkWp": 410,
+				"Azimuth": 220,
+				"Slope": 30,
+				"Latitude": 52.668,
+				"Longitude": -8.63,
+				"Inverter": "GivEnergy",
+				"MPPT": 1,
+				"PanelName": "West Field",
+				"Optimized": true,
+				"PV data source": "AlphaESS",
+				"PV data start": "2024-03-01",
+				"PV data end": "2025-02-28",
+				"PV system loss": 9.0
+			}
+		],
+		"HWSystem": {
+			"HWCapacity": 165,
+			"HWUsage": 200,
+			"HWIntake": 15,
+			"HWTarget": 75,
+			"HWLoss": 8,
+			"HWRate": 2.5,
+			"HWUse": [
+				[8.0, 75.0],
+				[14.0, 10.0],
+				[20.0, 15.0]
+			]
+		},
+		"LoadProfile": {
+			"AnnualUsage": 6144.79,
+			"HourlyBaseLoad": 0.3,
+			"GridImportMax": 15.0,
+			"GridExportMax": 6.0,
+			"HourlyDistribution": [
+				3.0056773610654353, 2.824252131263466, 3.4755195625398114, 3.6248283037336013,
+				2.093251894140612, 2.106981341607451, 4.149806425114616, 3.843753314428644,
+				3.417200999859707, 3.425837430707642, 3.9928786092224255, 5.452673766064777,
+				5.748837165015935, 4.826126764091809, 4.9637045161974696, 4.360966086002315,
+				4.648544388192286, 8.002641709566198, 6.471674103070658, 4.120896376909735,
+				3.9126648710120393, 3.852714108738398, 4.005308302203635, 3.673260469252478
+			],
+			"DayOfWeekDistribution": {
+				"Sun": 15.021017805327919,
+				"Mon": 14.665269276899732,
+				"Tue": 13.095484141850466,
+				"Wed": 13.72967994024214,
+				"Thu": 14.019193495628194,
+				"Fri": 13.658400042963336,
+				"Sat": 15.810955297089196
+			},
+			"MonthlyDistribution": {
+				"Oct": 7.748027190514326,
+				"Nov": 7.521168339357488,
+				"Dec": 8.94741724290018,
+				"Jan": 9.354591450643655,
+				"Feb": 7.068101595009833,
+				"Mar": 8.110936256568662,
+				"Apr": 8.134533482836767,
+				"May": 8.085711635385511,
+				"Jun": 8.621775520400304,
+				"Jul": 8.487678179400852,
+				"Aug": 9.310489048446023,
+				"Sep": 8.609570058537491
+			}
+		},
+		"LoadShift": [
+			{
+				"Name": "Fixture · Night shift",
+				"begin": 2,
+				"end": 4,
+				"stop at": 80.0,
+				"months": [11, 12, 1, 2],
+				"days": [0, 1, 2, 3, 4],
+				"Inverter": "AlphaESS"
+			},
+			{
+				"Name": "Fixture · Windowed shift",
+				"begin": 13,
+				"end": 15,
+				"stop at": 95.0,
+				"months": [6, 7, 8],
+				"days": [5, 6],
+				"Inverter": "GivEnergy",
+				"StartDate": "2026-06-01",
+				"EndDate": "2026-08-31",
+				"BeginMinute": 30,
+				"EndMinute": 45
+			}
+		],
+		"DischargeToGrid": [
+			{
+				"Name": "Fixture · Evening export",
+				"begin": 17,
+				"end": 19,
+				"stop at": 35.0,
+				"rate": 0.2,
+				"months": [5, 6, 7, 8, 9],
+				"days": [0, 1, 2, 3, 4, 5, 6],
+				"Inverter": "AlphaESS"
+			},
+			{
+				"Name": "Fixture · Windowed export",
+				"begin": 16,
+				"end": 18,
+				"stop at": 40.0,
+				"rate": 0.25,
+				"months": [12, 1],
+				"days": [1, 3, 5],
+				"Inverter": "GivEnergy",
+				"StartDate": "2026-12-01",
+				"EndDate": "2027-01-31",
+				"BeginMinute": 15,
+				"EndMinute": 0
+			}
+		],
+		"EVCharge": [
+			{
+				"Name": "Fixture · Night charge",
+				"begin": 2,
+				"end": 4,
+				"draw": 7.5,
+				"months": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+				"days": [0, 1, 2, 3, 4, 5]
+			},
+			{
+				"Name": "Fixture · Windowed charge",
+				"begin": 22,
+				"end": 23,
+				"draw": 3.3,
+				"months": [10, 11],
+				"days": [6],
+				"StartDate": "2026-10-01",
+				"EndDate": "2026-11-30",
+				"BeginMinute": 10,
+				"EndMinute": 50
+			}
+		],
+		"HWSchedule": [
+			{
+				"Name": "Fixture · Morning heat",
+				"begin": 3,
+				"end": 6,
+				"months": [1, 2, 3, 10, 11, 12],
+				"days": [0, 1, 2, 3, 4, 5, 6]
+			},
+			{
+				"Name": "Fixture · Windowed heat",
+				"begin": 12,
+				"end": 14,
+				"months": [6, 7],
+				"days": [2, 4],
+				"StartDate": "2026-06-15",
+				"EndDate": "2026-07-15",
+				"BeginMinute": 20,
+				"EndMinute": 40
+			}
+		],
+		"HWDivert": {
+			"active": true
+		},
+		"EVDiverts": [
+			{
+				"Name": "Fixture · Afternoon divert",
+				"active": true,
+				"ev1st": true,
+				"begin": 11,
+				"end": 16,
+				"dailyMax": 16.0,
+				"months": [6, 7, 8],
+				"days": [0, 6],
+				"minimum": 1.4,
+				"StartDate": "2026-06-01",
+				"EndDate": "2026-08-31",
+				"BeginMinute": 5,
+				"EndMinute": 55
+			}
+		],
+		"HeatPumps": [
+			{
+				"Fuel type": "Oil",
+				"Annual fuel use": 1200.0,
+				"Calorific value": 10.35,
+				"Boiler efficiency": 0.82,
+				"DHW annual kWh": 2500.0,
+				"Space heating fraction": 0.85,
+				"Floor area m2": 145.0,
+				"Heat loss index": 2.1,
+				"Desired indoor temp": 20.5,
+				"Current indoor temp": 19.0,
+				"Balance point": 15.5,
+				"Wind coefficient": 0.35,
+				"Hourly distribution": [
+					2.5, 2.0, 1.5, 1.5, 1.5, 2.0, 4.5, 6.5,
+					6.0, 5.0, 4.5, 4.0, 4.0, 4.0, 4.5, 5.0,
+					6.0, 7.0, 7.5, 7.0, 6.0, 4.0, 3.0, 0.5
+				],
+				"Day of week distribution": [
+					15.5, 13.5, 13.5, 14.0, 14.0, 14.0, 15.5
+				],
+				"Heating season start": 10,
+				"Heating season end": 4,
+				"Rated COP": 4.2,
+				"COP reference temp": 7.0,
+				"COP slope": 0.09,
+				"SCOP": 3.8,
+				"Capacity kW": 8.5,
+				"Backup heater": true,
+				"Latitude": 52.668,
+				"Longitude": -8.63,
+				"Weather source": "CDS"
+			}
+		]
+	}
+]
