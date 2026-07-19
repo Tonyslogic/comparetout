@@ -183,6 +183,12 @@ public abstract class ToutcDB extends RoomDatabase {
      */
     public abstract com.tfcode.comparetout.model.dao.HotWaterDAO hotWaterDAO();
 
+    /**
+     * Data Access Object for EV (charge + divert) queries (mega-refactor C4).
+     * Orchestration lives in {@link com.tfcode.comparetout.model.ops.EvOps}.
+     */
+    public abstract com.tfcode.comparetout.model.dao.EvDAO evDAO();
+
     private static volatile ToutcDB INSTANCE;
     private static final int NUMBER_OF_THREADS = 8;
     static final ExecutorService databaseWriteExecutor =

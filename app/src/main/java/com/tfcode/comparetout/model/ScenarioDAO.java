@@ -138,7 +138,7 @@ public abstract class ScenarioDAO {
     public abstract long addNewDischarge(DischargeToGrid discharge); // public: shared with BatteryOps (C2)
 
     @Insert
-    abstract long addNewEVCharge(EVCharge evCharge);
+    public abstract long addNewEVCharge(EVCharge evCharge); // public: shared with EvOps (C4)
 
     @Insert
     public abstract long addNewHWSchedule(HWSchedule hwSchedule); // public: shared with HotWaterOps (C3)
@@ -147,7 +147,7 @@ public abstract class ScenarioDAO {
     abstract long addNewHWDivert(HWDivert hwDivert);
 
     @Insert
-    abstract long addNewEVDivert(EVDivert evDivert);
+    public abstract long addNewEVDivert(EVDivert evDivert); // public: shared with EvOps (C4)
 
     @Insert
     public abstract void addNewScenario2Inverter(Scenario2Inverter scenario2Inverter); // public: shared with InverterOps (C1)
@@ -174,7 +174,7 @@ public abstract class ScenarioDAO {
     public abstract void addNewScenario2Discharge(Scenario2DischargeToGrid scenario2Discharge); // public: shared with BatteryOps (C2)
 
     @Insert
-    abstract void addNewScenario2EVCharge(Scenario2EVCharge scenario2EVCharge);
+    public abstract void addNewScenario2EVCharge(Scenario2EVCharge scenario2EVCharge); // public: shared with EvOps (C4)
 
     @Insert
     public abstract void addNewScenario2HWSchedule(Scenario2HWSchedule scenario2HWSchedule); // public: shared with HotWaterOps (C3)
@@ -183,7 +183,7 @@ public abstract class ScenarioDAO {
     abstract void addNewScenario2HWDivert(Scenario2HWDivert scenario2HWDivert);
 
     @Insert
-    abstract void addNewScenario2EVDivert(Scenario2EVDivert scenario2EVDivert);
+    public abstract void addNewScenario2EVDivert(Scenario2EVDivert scenario2EVDivert); // public: shared with EvOps (C4)
 
     @Query("SELECT scenarioIndex FROM scenarios WHERE scenarioName = :scenarioName")
     public abstract long getScenarioID(String scenarioName);
@@ -1493,57 +1493,15 @@ public abstract class ScenarioDAO {
         deleteOrphanHWSchedules();
     }
 
-    @Query("SELECT scenarioName FROM scenarios WHERE scenarioIndex IN (" +
-            "SELECT scenarioID FROM scenario2evcharge WHERE evChargeID = :evChargeIndex) AND scenarioIndex != :scenarioID")
-    public abstract List<String> getLinkedEVCharges(long evChargeIndex, Long scenarioID);
+    // getLinkedEVCharges → EvDAO (mega-refactor C4)
+    // loadEVChargeRelations → EvDAO (mega-refactor C4)
+    // deleteEVChargeFromScenario → EvDAO (mega-refactor C4)
+    // saveEVChargeForScenario → EvOps (mega-refactor C4)
+    // updateEVCharge → EvDAO (mega-refactor C4)
+    // copyEVChargeFromScenario → EvOps (mega-refactor C4)
 
-    @Query("SELECT * FROM scenario2evcharge")
-    public abstract LiveData<List<Scenario2EVCharge>> loadEVChargeRelations();
-
-    @Query("DELETE FROM scenario2evcharge WHERE scenarioID = :scenarioID AND evChargeID = :evChargeID")
-    public abstract void deleteEVChargeFromScenario(Long evChargeID, Long scenarioID);
-
-    @Transaction
-    public void saveEVChargeForScenario(Long scenarioID, EVCharge evCharge) {
-        long evScheduleIndex = evCharge.getEvChargeIndex();
-        if (evScheduleIndex == 0) {
-            evScheduleIndex = addNewEVCharge(evCharge);
-            Scenario2EVCharge scenario2EVCharge = new Scenario2EVCharge();
-            scenario2EVCharge.setScenarioID(scenarioID);
-            scenario2EVCharge.setEvChargeID(evScheduleIndex);
-            addNewScenario2EVCharge(scenario2EVCharge);
-
-            Scenario scenario = getScenario(scenarioID);
-            scenario.setHasEVCharges(true);
-            updateScenario(scenario);
-        }
-        else {
-            updateEVCharge(evCharge);
-        }
-    }
-
-    @Update (entity = EVCharge.class)
-    public abstract void updateEVCharge(EVCharge evCharge);
-
-    public void copyEVChargeFromScenario(long fromScenarioID, Long toScenarioID) {
-        List<EVCharge> evCharges = getEVChargesForScenarioID(fromScenarioID);
-        for (EVCharge evCharge: evCharges) {
-            evCharge.setEvChargeIndex(0L);
-            long newEVChargeID = addNewEVCharge(evCharge);
-
-            Scenario2EVCharge scenario2EVCharge = new Scenario2EVCharge();
-            scenario2EVCharge.setScenarioID(toScenarioID);
-            scenario2EVCharge.setEvChargeID(newEVChargeID);
-            addNewScenario2EVCharge(scenario2EVCharge);
-
-            Scenario toScenario = getScenario(toScenarioID);
-            toScenario.setHasEVCharges(true);
-            updateScenario(toScenario);
-        }
-
-        deleteOrphanEVCharges();
-    }
-
+    // linkEVChargeFromScenario stays here until C9: called by the cross-domain
+    // lifecycle @Transaction linkAllComponentsFromScenario. (Not @Transaction.)
     public void linkEVChargeFromScenario(long fromScenarioID, Long toScenarioID) {
         List<EVCharge> evCharges = getEVChargesForScenarioID(fromScenarioID);
         for (EVCharge evCharge: evCharges) {
@@ -1561,73 +1519,12 @@ public abstract class ScenarioDAO {
         deleteOrphanEVCharges();
     }
 
-    @Query("SELECT scenarioName FROM scenarios WHERE scenarioIndex IN (" +
-            "SELECT scenarioID FROM scenario2evdivert WHERE evDivertID = :evDivertIndex) AND scenarioIndex != :scenarioID")
-    public abstract List<String> getLinkedEVDiverts(long evDivertIndex, Long scenarioID);
-
-    @Query("SELECT * FROM scenario2evdivert")
-    public abstract LiveData<List<Scenario2EVDivert>> loadEVDivertRelations();
-
-    @Query("DELETE FROM scenario2evdivert WHERE scenarioID = :scenarioID AND evDivertID = :evDivertID")
-    public abstract void deleteEVDivertFromScenario(Long evDivertID, Long scenarioID);
-
-    @Transaction
-    public void saveEVDivertForScenario(Long scenarioID, EVDivert evDivert) {
-        long evScheduleIndex = evDivert.getEvDivertIndex();
-        if (evScheduleIndex == 0) {
-            evScheduleIndex = addNewEVDivert(evDivert);
-            Scenario2EVDivert scenario2EVDivert = new Scenario2EVDivert();
-            scenario2EVDivert.setScenarioID(scenarioID);
-            scenario2EVDivert.setEvDivertID(evScheduleIndex);
-            addNewScenario2EVDivert(scenario2EVDivert);
-
-            Scenario scenario = getScenario(scenarioID);
-            scenario.setHasEVDivert(true);
-            updateScenario(scenario);
-        }
-        else {
-            updateEVDivert(evDivert);
-        }
-    }
-
-    @Update (entity = EVDivert.class)
-    public abstract void updateEVDivert(EVDivert evDivert);
-
-    public void copyEVDivertFromScenario(long fromScenarioID, Long toScenarioID) {
-        List<EVDivert> evDiverts = getEVDivertForScenarioID(fromScenarioID);
-        for (EVDivert evDivert: evDiverts) {
-            evDivert.setEvDivertIndex(0L);
-            long newEVDivertID = addNewEVDivert(evDivert);
-
-            Scenario2EVDivert scenario2EVDivert = new Scenario2EVDivert();
-            scenario2EVDivert.setScenarioID(toScenarioID);
-            scenario2EVDivert.setEvDivertID(newEVDivertID);
-            addNewScenario2EVDivert(scenario2EVDivert);
-
-            Scenario toScenario = getScenario(toScenarioID);
-            toScenario.setHasEVDivert(true);
-            updateScenario(toScenario);
-        }
-
-        deleteOrphanEVDiverts();
-    }
-
-    public void linkEVDivertFromScenario(long fromScenarioID, Long toScenarioID) {
-        List<EVDivert> evDiverts = getEVDivertForScenarioID(fromScenarioID);
-        for (EVDivert evDivert: evDiverts) {
-
-            Scenario2EVDivert scenario2EVDivert = new Scenario2EVDivert();
-            scenario2EVDivert.setScenarioID(toScenarioID);
-            scenario2EVDivert.setEvDivertID(evDivert.getEvDivertIndex());
-            addNewScenario2EVDivert(scenario2EVDivert);
-
-            Scenario toScenario = getScenario(toScenarioID);
-            toScenario.setHasEVDivert(true);
-            updateScenario(toScenario);
-        }
-
-        deleteOrphanEVDiverts();
-    }
+    // Entire EV-divert block → EvDAO / EvOps (mega-refactor C4):
+    //   getLinkedEVDiverts, loadEVDivertRelations, deleteEVDivertFromScenario,
+    //   updateEVDivert → EvDAO; saveEVDivertForScenario, copyEVDivertFromScenario,
+    //   linkEVDivertFromScenario → EvOps. linkEVDivertFromScenario is NOT called
+    //   by linkAllComponentsFromScenario (unlike the EV-charge link), so it moved
+    //   rather than staying for C9.
 
     /**
      * Atomically link every component of {@code fromScenarioID} onto {@code toScenarioID} in a single

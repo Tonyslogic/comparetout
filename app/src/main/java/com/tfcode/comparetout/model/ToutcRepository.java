@@ -114,6 +114,8 @@ public class ToutcRepository {
     private final com.tfcode.comparetout.model.ops.BatteryOps batteryOps;
     private final com.tfcode.comparetout.model.dao.HotWaterDAO hotWaterDAO;
     private final com.tfcode.comparetout.model.ops.HotWaterOps hotWaterOps;
+    private final com.tfcode.comparetout.model.dao.EvDAO evDAO;
+    private final com.tfcode.comparetout.model.ops.EvOps evOps;
     private final LiveData<List<Scenario>> allScenarios;
     private final LiveData<List<Scenario2Inverter>> inverterRelations;
     private final LiveData<List<Scenario2Panel>> panelRelations;
@@ -175,6 +177,8 @@ public class ToutcRepository {
         batteryOps = new com.tfcode.comparetout.model.ops.BatteryOps(db);
         hotWaterDAO = db.hotWaterDAO();
         hotWaterOps = new com.tfcode.comparetout.model.ops.HotWaterOps(db);
+        evDAO = db.evDAO();
+        evOps = new com.tfcode.comparetout.model.ops.EvOps(db);
         allScenarios = scenarioDAO.loadScenarios();
         inverterRelations = inverterDAO.loadInverterRelations();
         panelRelations = scenarioDAO.loadPanelRelations();
@@ -183,8 +187,8 @@ public class ToutcRepository {
         dischargeRelations = batteryDAO.loadDischargeRelations();
         hwSystemRelations = hotWaterDAO.loadHWSystemRelations();
         hwScheduleRelations = hotWaterDAO.loadHWScheduleRelations();
-        evChargeRelations = scenarioDAO.loadEVChargeRelations();
-        evDivertRelations = scenarioDAO.loadEVDivertRelations();
+        evChargeRelations = evDAO.loadEVChargeRelations();
+        evDivertRelations = evDAO.loadEVDivertRelations();
         panelPVSummary = scenarioDAO.getPanelPVSummary();
 
         costingDAO = db.costingDAO();
@@ -791,7 +795,7 @@ public class ToutcRepository {
     }
 
     public List<String> getLinkedEVCharges(long evChargeIndex, Long scenarioID) {
-        return scenarioDAO.getLinkedEVCharges(evChargeIndex, scenarioID);
+        return evDAO.getLinkedEVCharges(evChargeIndex, scenarioID);
     }
 
     public LiveData<List<Scenario2EVCharge>> getAllEVChargeRelations() {
@@ -803,16 +807,16 @@ public class ToutcRepository {
     }
 
     public void deleteEVChargeFromScenario(Long evChargeID, Long scenarioID) {
-        scenarioDAO.deleteEVChargeFromScenario(evChargeID, scenarioID);
+        evDAO.deleteEVChargeFromScenario(evChargeID, scenarioID);
     }
 
     public void saveEVChargeForScenario(Long scenarioID, EVCharge evCharge) {
-        scenarioDAO.saveEVChargeForScenario(scenarioID, evCharge);
+        evOps.saveEVChargeForScenario(scenarioID, evCharge);
     }
 
     public void copyEVChargeFromScenario(long fromScenarioID, Long toScenarioID) {
         ToutcDB.databaseWriteExecutor.execute(() ->
-                scenarioDAO.copyEVChargeFromScenario(fromScenarioID, toScenarioID));
+                evOps.copyEVChargeFromScenario(fromScenarioID, toScenarioID));
     }
 
     public void linkEVChargeFromScenario(long fromScenarioID, Long toScenarioID) {
@@ -821,7 +825,7 @@ public class ToutcRepository {
     }
 
     public List<String> getLinkedEVDiverts(long evDivertIndex, Long scenarioID) {
-        return scenarioDAO.getLinkedEVDiverts(evDivertIndex, scenarioID);
+        return evDAO.getLinkedEVDiverts(evDivertIndex, scenarioID);
     }
 
     public LiveData<List<Scenario2EVDivert>> getAllEVDivertRelations() {
@@ -833,21 +837,21 @@ public class ToutcRepository {
     }
 
     public void deleteEVDivertFromScenario(Long evDivertID, Long scenarioID) {
-        scenarioDAO.deleteEVDivertFromScenario(evDivertID, scenarioID);
+        evDAO.deleteEVDivertFromScenario(evDivertID, scenarioID);
     }
 
     public void saveEVDivertForScenario(Long scenarioID, EVDivert evDivert) {
-        scenarioDAO.saveEVDivertForScenario(scenarioID, evDivert);
+        evOps.saveEVDivertForScenario(scenarioID, evDivert);
     }
 
     public void copyEVDivertFromScenario(long fromScenarioID, Long toScenarioID) {
         ToutcDB.databaseWriteExecutor.execute(() ->
-                scenarioDAO.copyEVDivertFromScenario(fromScenarioID, toScenarioID));
+                evOps.copyEVDivertFromScenario(fromScenarioID, toScenarioID));
     }
 
     public void linkEVDivertFromScenario(long fromScenarioID, Long toScenarioID) {
         ToutcDB.databaseWriteExecutor.execute(() ->
-                scenarioDAO.linkEVDivertFromScenario(fromScenarioID, toScenarioID));
+                evOps.linkEVDivertFromScenario(fromScenarioID, toScenarioID));
     }
 
     public double getGridExportMaxForScenario(long scenarioID) {
