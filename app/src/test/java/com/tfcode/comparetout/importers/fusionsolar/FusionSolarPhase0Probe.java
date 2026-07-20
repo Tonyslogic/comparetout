@@ -74,15 +74,25 @@ import javax.crypto.spec.PSource;
  *       {@code timeStamp}, {@code version} and {@code enableEncrypt}.</li>
  *   <li><b>A2</b> — RSA-OAEP(SHA-384) password encryption with the pubkey
  *       {@code version} suffix is accepted (an interactive fallback retry with
- *       PKCS#1 v1.5 is offered if the portal rejects the credentials).</li>
+ *       PKCS#1 v1.5 is offered if the portal rejects the credentials).
+ *       Settled live on 2026-07-20: OAEP-SHA384 is correct — the portal
+ *       answered {@code 470} with a CAS ticket, which it does not issue to
+ *       credentials it could not decrypt.</li>
  *   <li><b>A3</b> — {@code POST /unisso/v3/validateUser.action} is the live
  *       login path (the v2 variant is tried as fallback), and what its
  *       error codes look like for captcha / bad-password.</li>
  *   <li><b>A4</b> — the captcha image endpoint ({@code /unisso/verifycode})
- *       exists; when the portal demands one, the probe saves the image and
- *       lets the tester type the code interactively.</li>
+ *       exists; when the portal actually demands one
+ *       ({@code verifyCodeCreate}), the probe saves the image and lets the
+ *       tester type the code interactively. It never volunteers a code the
+ *       portal did not ask for — doing so gets the attempt rejected as a bad
+ *       password, which is exactly how the first live run misled its tester.</li>
  *   <li><b>A5</b> — session establishment / cross-region redirect: which host
- *       the account actually lands on (the client must persist it).</li>
+ *       the account actually lands on (the client must persist it). For a
+ *       multi-region account this is the {@code errorCode 470} path — the
+ *       credentials are already accepted and {@code respMultiRegionName}
+ *       carries the CAS service ticket and region host to claim the session
+ *       with (see {@link #parseMultiRegion}).</li>
  *   <li><b>A6</b> — {@code GET /rest/dpcloud/auth/v1/keep-alive} returns the
  *       {@code payload} that must be echoed as the {@code roarand} header.</li>
  *   <li><b>A7</b> — {@code GET /rest/dpcloud/auth/v1/is-session-alive} works
@@ -254,6 +264,10 @@ public class FusionSolarPhase0Probe {
         boolean v3Worked = false;
         List<String> regionCandidates = new ArrayList<>();
         String redirectURL = null;
+        String[] hop = null;          // {regionHost, ticketPath} from a 470
+        boolean multiRegion = false;
+        boolean encryptionFailed = false;   // the cipher itself blew up locally
+        String loginErrorCode = null;       // last errorCode the portal returned
         String padding = "OAEP-SHA384";
         String verifyCode = null;
         int attempts = 0;
@@ -268,6 +282,7 @@ public class FusionSolarPhase0Probe {
                 }
             } catch (Exception e) {
                 log("LOGIN   password encryption FAILED (" + padding + "): " + e);
+                encryptionFailed = true;
                 break;
             }
             StringBuilder jb = new StringBuilder();
@@ -283,6 +298,7 @@ public class FusionSolarPhase0Probe {
             h.put("Accept", "application/json, text/plain, */*");
 
             Map<String, Object> j = null;
+            Boolean captchaFlag = null;
             int status = -1;
             String path = "/unisso/v3/validateUser.action";
             try {
@@ -319,11 +335,14 @@ public class FusionSolarPhase0Probe {
                     log("  JSON keys      : " + j.keySet());
                     Object ec = j.get("errorCode");
                     Object em = j.get("errorMsg");
+                    loginErrorCode = strOf(ec);
                     log("  errorCode      : " + ec);
                     log("  errorMsg       : " + em);
-                    if (j.containsKey("verifyCodeCreate"))
-                        log("  verifyCodeCreate : " + j.get("verifyCodeCreate")
-                                + "  [captcha-demand flag?]");
+                    if (j.containsKey("verifyCodeCreate")) {
+                        Object vc = j.get("verifyCodeCreate");
+                        if (vc instanceof Boolean) captchaFlag = (Boolean) vc;
+                        log("  verifyCodeCreate : " + vc + "  [captcha demanded?]");
+                    }
                     if (j.containsKey("twoFactorStatus"))
                         log("  twoFactorStatus  : " + j.get("twoFactorStatus"));
                     String ru = strOf(j.get("redirectURL"));
@@ -337,16 +356,32 @@ public class FusionSolarPhase0Probe {
                         log("  multiRegions   : " + trunc(redact(String.valueOf(j.get("multiRegions"))), 200));
                     Object multi = j.get("respMultiRegionName");
                     if (multi instanceof List) {
-                        log("  respMultiRegionName : " + multi + "  [region routing hint]");
+                        // Redacted: this array carries a live CAS ticket + TGT.
+                        log("  respMultiRegionName : " + redact(String.valueOf(multi))
+                                + "  [region routing hint]");
+                        hop = parseMultiRegion((List<?>) multi);
+                        if (hop != null) {
+                            regionCandidates.add(hop[0]);
+                            log("    parsed region host : " + hop[0]
+                                    + "   ticket path : " + hop[1].split("\\?")[0] + "?<redacted>");
+                        }
                         for (Object o : (List<?>) multi) {
                             String s = strOf(o);
                             if (s != null && s.matches("[a-z0-9]+")) regionCandidates.add(s);
                         }
                     }
                     boolean noError = ec == null || "0".equals(strOf(ec)) || "".equals(strOf(ec));
-                    if (status == 200 && noError) {
+                    // 470 + a parseable hop is NOT a rejection: the portal only
+                    // issues a CAS ticket to credentials it has accepted. The
+                    // first version of this probe scored it as failure, fell
+                    // into the captcha branch below, and made a tester solve
+                    // captchas the server had never asked for.
+                    multiRegion = "470".equals(strOf(ec)) && hop != null;
+                    if (status == 200 && (noError || multiRegion)) {
                         loggedIn = true;
-                        log("  >> login looks SUCCESSFUL (no errorCode).");
+                        log(multiRegion
+                                ? "  >> credentials ACCEPTED (470 = region hop; ticket issued)."
+                                : "  >> login looks SUCCESSFUL (no errorCode).");
                     }
                 }
             } catch (Exception e) {
@@ -356,18 +391,29 @@ public class FusionSolarPhase0Probe {
             log("");
             if (loggedIn) break;
 
-            // Failed — offer the captcha round-trip (validates A4) and,
-            // separately, one padding fallback. Tester stays in control so
-            // we never burn login attempts unattended.
+            // Failed — offer the captcha round-trip and, separately, one
+            // padding fallback. Tester stays in control so we never burn
+            // login attempts unattended.
+            //
+            // The captcha retry is offered ONLY when the portal set
+            // verifyCodeCreate. An earlier version prompted unconditionally,
+            // which sent a verifycode nobody had asked for; the portal
+            // answered 406 "wrong username or password" and the tester was
+            // left believing their password was broken. A4 is settled by the
+            // endpoint probe further down, not by a speculative retry.
             pace();
-            boolean captchaAvailable = probeCaptcha(sub, true);
-            if (captchaAvailable) {
-                String code = prompt("A captcha image was saved to fusionsolar-captcha.png.\n"
-                        + "Open it and type the code to retry, or press Enter to skip: ");
+            boolean captchaDemanded = Boolean.TRUE.equals(captchaFlag);
+            if (captchaDemanded && probeCaptcha(sub, true)) {
+                String code = prompt("The portal demanded a captcha; the image was saved to\n"
+                        + "fusionsolar-captcha.png. Open it and type the code to retry,\n"
+                        + "or press Enter to skip: ");
                 if (code != null && !code.isBlank()) {
                     verifyCode = code.trim();
                     continue;
                 }
+            } else if (!captchaDemanded) {
+                log("  >> verifyCodeCreate is not true - no captcha was demanded;"
+                        + " not sending one.");
             }
             if ("OAEP-SHA384".equals(padding)) {
                 String yn = prompt("Login was rejected. Retry ONCE with PKCS#1 v1.5 padding\n"
@@ -380,7 +426,18 @@ public class FusionSolarPhase0Probe {
             }
             break;
         }
-        verdict("A2", "password encryption accepted (" + padding + ")", loggedIn);
+        // A2 is only decidable in two directions: the portal acted on the
+        // decrypted password (accepted, or 470'd us a ticket), or the cipher
+        // failed here. A plain credential rejection says nothing about the
+        // encryption — 406 is equally what an unknown account gets.
+        if (loggedIn)
+            verdict("A2", "password encryption accepted (" + padding + ")", true);
+        else if (encryptionFailed)
+            verdict("A2", "password encryption accepted (" + padding + ")", false);
+        else
+            verdictNa("A2", "password encryption (" + padding + ")",
+                    "login rejected (errorCode=" + loginErrorCode + ") - a rejection cannot"
+                    + " distinguish bad encryption from an unknown/wrong account");
         verdict("A3", "validateUser v3 path live", v3Worked);
         if (!verdicts.containsKey("A4")) {
             pace();
@@ -392,19 +449,28 @@ public class FusionSolarPhase0Probe {
         // ── A5: session establishment / region redirect ───────────────────
         String dataHost = sub;
         try {
-            // Prefer the redirectURL the login response handed back (the
-            // portal's own next hop); the /unisess/v1/auth path is only the
-            // oracle-derived guess for when it is absent.
-            String authUrl = redirectURL != null
-                    ? URI.create(url(sub, "/")).resolve(redirectURL).toString()
-                    : url(sub, "/unisess/v1/auth?service="
+            // Preference order, best evidence first: the 470 multi-region
+            // ticket (the portal's own hop, carrying a single-use CAS
+            // service ticket), then any redirectURL, and only then the
+            // oracle-derived /unisess/v1/auth guess — which live runs have
+            // only ever seen 404.
+            String how;
+            String authUrl;
+            if (multiRegion) {
+                authUrl = url(hop[0], hop[1]);
+                how = "multi-region ticket on '" + hop[0] + "' ("
+                        + hop[1].split("\\?")[0] + ")";
+            } else if (redirectURL != null) {
+                authUrl = URI.create(url(sub, "/")).resolve(redirectURL).toString();
+                how = "login redirectURL (" + hostPath(authUrl) + ")";
+            } else {
+                authUrl = url(sub, "/unisess/v1/auth?service="
                         + enc("/netecowebext/home/index.html"));
+                how = "/unisess/v1/auth (oracle guess)";
+            }
             HttpResponse<byte[]> r = getFollow(authUrl);
             String landed = r.uri().getHost();
-            log("STEP 3  GET " + (redirectURL != null
-                    ? "login redirectURL (" + hostPath(authUrl) + ")"
-                    : "/unisess/v1/auth (oracle guess)")
-                    + " (session/region establishment)  [A5]");
+            log("STEP 3  GET " + how + " (session/region establishment)  [A5]");
             log("  final status   : " + r.statusCode());
             log("  redirect chain : " + hops);
             log("  final host     : " + landed);
@@ -413,7 +479,15 @@ public class FusionSolarPhase0Probe {
                 dataHost = landed.substring(0, landed.length() - DOMAIN.length());
             if (!dataHost.equals(sub))
                 log("  >> region redirect: data host is '" + dataHost + "' (client must persist this).");
-            verdict("A5", "session/region establishment (landed: " + dataHost + ")", loggedIn);
+            // The multi-region host is told to us, not guessed, so it wins
+            // over wherever the ticket GET happened to land.
+            if (multiRegion) dataHost = hop[0];
+            if (!loggedIn)
+                verdictNa("A5", "session/region establishment (landed: " + dataHost + ")",
+                        "no login, so there was no session to establish");
+            else
+                verdict("A5", "session/region establishment (data host: " + dataHost + ")",
+                        r.statusCode() < 400);
         } catch (Exception e) {
             log("STEP 3  FAILED: " + e);
             verdict("A5", "session/region establishment", false);
@@ -442,7 +516,17 @@ public class FusionSolarPhase0Probe {
         if (kaBest == 1)
             log("  >> keep-alive endpoint EXISTS on '" + dataHost + "' but no payload"
                     + " (no session) - remaining probes use this host.");
-        verdict("A6", "keep-alive returns roarand payload (host: " + dataHost + ")", keepAliveOk);
+        // Without a session the endpoint cannot hand back a roarand, so a
+        // missing payload here refutes nothing. Endpoint existence (kaBest>=1)
+        // is still real evidence and is recorded as such.
+        if (keepAliveOk)
+            verdict("A6", "keep-alive returns roarand payload (host: " + dataHost + ")", true);
+        else if (!loggedIn)
+            verdictNa("A6", "keep-alive roarand payload (endpoint "
+                            + (kaBest == 1 ? "EXISTS on '" + dataHost + "'" : "not found") + ")",
+                    "no session, so no payload could be issued");
+        else
+            verdict("A6", "keep-alive returns roarand payload (host: " + dataHost + ")", false);
         log("");
         pace();
 
@@ -527,9 +611,9 @@ public class FusionSolarPhase0Probe {
         // ── A9/A10: energy-balance, yesterday ─────────────────────────────
         if (dn == null) {
             log("STEP 7  SKIPPED - no station dn from step 6.");
-            verdict("A9", "energy-balance day curve", false);
-            verdict("A10", "explicit grid series present", false);
-            verdict("A11", "historical day retrievable", false);
+            verdictNa("A9", "energy-balance day curve", "no station dn from step 6");
+            verdictNa("A10", "explicit grid series present", "no station dn from step 6");
+            verdictNa("A11", "historical day retrievable", "no station dn from step 6");
         } else {
             ZoneId zone = ZoneId.systemDefault();
             LocalDate yesterday = LocalDate.now(zone).minusDays(1);
@@ -634,6 +718,38 @@ public class FusionSolarPhase0Probe {
     }
 
     // ── step helpers ────────────────────────────────────────────────────────
+
+    /**
+     * Pull the region hop out of a {@code respMultiRegionName} array. Seen
+     * live (2026-07-20) as three elements whose order is contracted nowhere,
+     * so each is classified by shape rather than by index:
+     * <pre>
+     *   [ "-5",
+     *     "/rest/dp/web/v1/auth/on-sso-credential-ready?ticket=ST-…&regionName=region004",
+     *     "uni004eu5.fusionsolar.huawei.com&&TGTX--F…" ]
+     * </pre>
+     * The path carries a single-use CAS service ticket; GETting it on that
+     * host is what turns accepted credentials into a session. The trailing
+     * {@code &&TGT…} is the ticket-granting ticket (also set as a cookie) and
+     * is dropped here.
+     *
+     * @return {@code {bareSubdomain, pathWithTicket}}, or null if unrecognised
+     */
+    static String[] parseMultiRegion(List<?> elements) {
+        String host = null, path = null;
+        for (Object o : elements) {
+            String s = strOf(o);
+            if (s == null) continue;
+            s = s.trim();
+            if (path == null && s.startsWith("/") && s.contains("ticket=")) path = s;
+            if (host == null) {
+                String candidate = s.split("&&", 2)[0].trim();
+                if (candidate.endsWith(DOMAIN))
+                    host = candidate.substring(0, candidate.length() - DOMAIN.length());
+            }
+        }
+        return (host == null || path == null) ? null : new String[]{host, path};
+    }
 
     /** GET the captcha endpoint; save the image when {@code save}. Records A4. */
     static boolean probeCaptcha(String sub, boolean save) {
@@ -1017,6 +1133,18 @@ public class FusionSolarPhase0Probe {
         verdicts.put(id, (ok ? "ok    " : "FAIL  ") + desc);
     }
 
+    /**
+     * An assumption the run never got to exercise — <b>not</b> a refutation.
+     * Keeping these out of the FAIL column matters: the 2026-07-20 live report
+     * scored A2 as FAIL because the login was rejected, when in fact the
+     * encryption had been accepted and the rejection was the probe's own
+     * doing. A bogus-credential run cannot distinguish "encryption wrong" from
+     * "no such account" either, and must not claim to.
+     */
+    static void verdictNa(String id, String desc, String reason) {
+        verdicts.put(id, "n/a   " + desc + "  - NOT REACHED: " + reason);
+    }
+
     // ── minimal JSON (parse only; Maps/Lists/String/Double/Boolean/null) ────
 
     @SuppressWarnings("unchecked")
@@ -1170,6 +1298,11 @@ public class FusionSolarPhase0Probe {
         if (!verdicts.isEmpty()) {
             log("================================================================");
             log("ASSUMPTION VERDICTS (see plans/source/huawei.md Phase 0)");
+            log("  ok   = exercised and held      FAIL = exercised and DISPROVED");
+            log("  n/a  = never exercised - proves nothing either way. A run that");
+            log("         could not log in tells you nothing about the assumptions");
+            log("         that live behind the login; do not read n/a as FAIL.");
+            log("");
             for (Map.Entry<String, String> e : verdicts.entrySet())
                 log("  " + e.getKey() + "  " + e.getValue());
             log("================================================================");

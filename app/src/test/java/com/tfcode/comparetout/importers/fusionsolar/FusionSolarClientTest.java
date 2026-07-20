@@ -21,6 +21,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import com.google.gson.JsonParser;
 import com.tfcode.comparetout.importers.fusionsolar.responses.EnergyBalanceResponse;
 import com.tfcode.comparetout.importers.fusionsolar.responses.StationListResponse;
 
@@ -122,6 +123,109 @@ public class FusionSolarClientTest {
         FusionSolarCaptchaRequiredException e = assertThrows(
                 FusionSolarCaptchaRequiredException.class, client::login);
         assertNotNull(e.getCaptchaImage());
+    }
+
+    // ── the multi-region (470) login path ────────────────────────────────────
+    //
+    // Live run 2026-07-20: errorCode 470 is SUCCESS — the credentials were
+    // accepted and the account belongs to another region, with a single-use
+    // CAS ticket riding along in respMultiRegionName. The client originally
+    // treated any non-zero errorCode as a rejection, which would have locked
+    // out every multi-region account (i.e. most real ones). These tests pin
+    // that down.
+
+    /** The array exactly as the portal sent it (host/ticket values scrubbed). */
+    private String liveMultiRegionArray(String host) {
+        return "[\"-5\","
+                + "\"/rest/dp/web/v1/auth/on-sso-credential-ready"
+                + "?ticket=ST-1246250-abc&regionName=region004\","
+                + "\"" + host + "&&TGTX--F1049035165-1246249-def\"]";
+    }
+
+    @Test
+    public void multiRegionHopIsParsedByShapeNotIndex() {
+        FusionSolarClient client = client();
+        // Element order is contracted nowhere, so the parse must not rely on
+        // it. Both orderings must yield the same hop.
+        String host = mServer.url("/").host();
+        FusionSolarClient.MultiRegionHop forward = client.parseMultiRegion(
+                JsonParser.parseString(liveMultiRegionArray(host)));
+        assertNotNull(forward);
+        assertEquals(host, forward.host);
+        assertTrue(forward.path.startsWith("/rest/dp/web/v1/auth/on-sso-credential-ready"));
+        assertTrue(forward.path.contains("ticket=ST-1246250-abc"));
+        // The TGT is stripped — it is not ours to use.
+        org.junit.Assert.assertFalse(forward.host.contains("TGT"));
+
+        FusionSolarClient.MultiRegionHop reversed = client.parseMultiRegion(
+                JsonParser.parseString("[\"" + host + "&&TGTX--x\","
+                        + "\"/rest/dp/web/v1/auth/on-sso-credential-ready?ticket=T1\",\"-5\"]"));
+        assertNotNull(reversed);
+        assertEquals(forward.host, reversed.host);
+    }
+
+    @Test
+    public void multiRegionHopRejectsUntrustedHostAndJunk() {
+        FusionSolarClient client = client();
+        // A ticket is a session credential: never hand it to a host outside
+        // Huawei's domain, however well-formed the rest of the array is.
+        org.junit.Assert.assertNull(client.parseMultiRegion(
+                JsonParser.parseString(
+                        "[\"-5\",\"/x?ticket=T\",\"evil.example.com&&TGT\"]")));
+        // No ticket path → no hop.
+        org.junit.Assert.assertNull(client.parseMultiRegion(
+                JsonParser.parseString(
+                        "[\"-5\",\"" + mServer.url("/").host() + "&&TGT\"]")));
+        // Absent / wrong type → no hop, no crash.
+        org.junit.Assert.assertNull(client.parseMultiRegion(null));
+        org.junit.Assert.assertNull(client.parseMultiRegion(
+                JsonParser.parseString("\"nope\"")));
+    }
+
+    @Test
+    public void errorCode470IsSuccessAndConsumesTheRegionTicket() throws Exception {
+        enqueuePubkey();
+        // validateUser answers 470 + the region ticket. This is a SUCCESS.
+        mServer.enqueue(new MockResponse().setBody(
+                "{\"errorCode\":\"470\",\"errorMsg\":null,\"verifyCodeCreate\":false,"
+                        + "\"respMultiRegionName\":"
+                        + liveMultiRegionArray(mServer.url("/").host()) + "}"));
+        // The ticket GET that mints the session.
+        mServer.enqueue(new MockResponse().setBody("{}"));
+        mServer.enqueue(new MockResponse().setBody("{\"code\":0,\"payload\":\"R-470\"}"));
+        mServer.enqueue(new MockResponse().setBody(
+                "{\"success\":true,\"failCode\":0,\"data\":{\"list\":["
+                        + "{\"dn\":\"NE=1\",\"name\":\"Home\"}]}}"));
+
+        FusionSolarClient client = client();
+        // Must not throw: 470 is not a credential rejection.
+        List<StationListResponse.Station> stations = client.getStationList();
+        assertEquals(1, stations.size());
+
+        mServer.takeRequest(); // pubkey
+        mServer.takeRequest(); // validateUser
+        // Session establishment goes to the ticket path, NOT the /unisess
+        // oracle guess (which live probing only ever saw 404).
+        RecordedRequest ticket = mServer.takeRequest();
+        assertTrue("must consume the CAS ticket, got " + ticket.getPath(),
+                ticket.getPath().startsWith("/rest/dp/web/v1/auth/on-sso-credential-ready"));
+        assertTrue(ticket.getPath().contains("ticket=ST-1246250-abc"));
+
+        RecordedRequest keepAlive = mServer.takeRequest();
+        assertTrue(keepAlive.getPath().contains("/rest/dpcloud/auth/v1/keep-alive"));
+        RecordedRequest stationList = mServer.takeRequest();
+        assertEquals("R-470", stationList.getHeader("roarand"));
+    }
+
+    @Test
+    public void errorCode470WithoutAParseableHopStillFails() {
+        enqueuePubkey();
+        // 470 but nothing usable to act on — we must not silently sail on as
+        // if logged in; that would surface later as a confusing data error.
+        mServer.enqueue(new MockResponse().setBody(
+                "{\"errorCode\":\"470\",\"respMultiRegionName\":[\"-5\"]}"));
+        FusionSolarClient client = client();
+        assertThrows(FusionSolarAuthException.class, client::login);
     }
 
     // ── happy path ───────────────────────────────────────────────────────────

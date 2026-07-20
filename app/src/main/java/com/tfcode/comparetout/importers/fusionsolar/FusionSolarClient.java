@@ -79,20 +79,32 @@ import okhttp3.ResponseBody;
  * {@code eu5} while {@code /rest/dpcloud/*} exists only on the region host),
  * so the client tracks them separately: the SSO host is adopted from
  * wherever {@code /unisso/pubkey} lands, and the data host is resolved after
- * login by scoring {@code keep-alive} across the entry host, the landed SSO
- * host and any {@code respMultiRegionName} candidates from the login
- * response. The resolved data host is exposed for persistence so later runs
- * start on the right region.
+ * login by scoring {@code keep-alive} across the candidates — the region host
+ * named in the login response first (it is told to us, not guessed), then the
+ * entry host and the landed SSO host. The resolved data host is exposed for
+ * persistence so later runs start on the right region.
  *
  * <p>Login itself: {@code GET /unisso/pubkey} → RSA-OAEP(SHA-384, MGF1-SHA384)
  * encrypt the password + append the pubkey {@code version} suffix →
- * {@code POST /unisso/v3/validateUser.action?timeStamp&nonce}. A captcha
- * demand ({@code verifyCodeCreate}) throws
+ * {@code POST /unisso/v3/validateUser.action?timeStamp&nonce}. Its
+ * {@code errorCode} vocabulary, as settled by live probing:
+ * <ul>
+ *   <li>{@code 0}/absent — signed in on this host already.</li>
+ *   <li><b>{@code 470} — success, not failure</b>: the credentials were
+ *       accepted and the account belongs to another region.
+ *       {@code respMultiRegionName} carries a single-use CAS service ticket
+ *       and the region host ({@link MultiRegionHop}); GETting that path there
+ *       is what mints the session. This is the ordinary path for a real
+ *       account, so nothing about it is exceptional.</li>
+ *   <li>{@code 406} — genuinely bad username/password.</li>
+ * </ul>
+ * A captcha demand is signalled by {@code verifyCodeCreate} and throws
  * {@link FusionSolarCaptchaRequiredException} carrying the captcha image for
- * the credential sheet; bad credentials ({@code errorCode 406}) throw
- * {@link FusionSolarAuthException}. The session lives in cookies (shared
- * across {@code *.fusionsolar.huawei.com}); data calls echo the keep-alive
- * payload back as the {@code roarand} header (CSRF).
+ * the credential sheet; a captcha code is only ever sent when the portal
+ * asked for one. Bad credentials throw {@link FusionSolarAuthException}. The
+ * session lives in cookies (shared across {@code *.fusionsolar.huawei.com});
+ * data calls echo the keep-alive payload back as the {@code roarand} header
+ * (CSRF).
  *
  * <h3>Redirects</h3>
  * The portal routes with redirects, including on POSTs. OkHttp's transparent
@@ -121,6 +133,8 @@ public class FusionSolarClient {
     private static final long[] BACKOFF_MS = {5_000L, 10_000L, 20_000L, 40_000L};
     private static final int MAX_REDIRECTS = 6;
     private static final int PAGE_SIZE = 50;
+    /** validateUser's "credentials good, claim your session on your region". */
+    private static final String ERROR_MULTI_REGION = "470";
 
     private final String mUsername;
     private final String mPassword;
@@ -131,6 +145,8 @@ public class FusionSolarClient {
 
     private String mSsoBase;
     private String mDataBase;
+    /** Non-null only in tests: every portal host collapses onto this base. */
+    private String mCollapsedBase;
     private String mRoarand;
     private boolean mLoggedIn = false;
     private long mLastRequestAt = 0L;
@@ -162,6 +178,7 @@ public class FusionSolarClient {
         this(username, password, (String) null);
         mSsoBase = trimSlash(ssoBase);
         mDataBase = trimSlash(dataBase);
+        mCollapsedBase = mDataBase;
     }
 
     private static String baseFor(@Nullable String host) {
@@ -232,8 +249,14 @@ public class FusionSolarClient {
                     "FusionSolar login response was not JSON (HTTP " + response.code + ")");
 
         String errorCode = stringOf(login.get("errorCode"));
-        boolean failed = response.code != 200
-                || (null != errorCode && !errorCode.isEmpty() && !"0".equals(errorCode));
+        // 470 is NOT a rejection: it is "credentials accepted, now claim your
+        // session on your own region host", and the CAS service ticket to do
+        // it with rides along in respMultiRegionName. Treating it as a failure
+        // (as this client first did) locks out every multi-region account.
+        MultiRegionHop hop = parseMultiRegion(login.get("respMultiRegionName"));
+        boolean multiRegion = ERROR_MULTI_REGION.equals(errorCode) && null != hop;
+        boolean failed = response.code != 200 || (!multiRegion
+                && null != errorCode && !errorCode.isEmpty() && !"0".equals(errorCode));
         if (failed) {
             if (Boolean.TRUE.equals(booleanOf(login.get("verifyCodeCreate"))))
                 throw new FusionSolarCaptchaRequiredException(
@@ -242,17 +265,28 @@ public class FusionSolarClient {
                     + errorCode + " " + stringOf(login.get("errorMsg")) + ")");
         }
 
-        // 3. Session establishment: follow the portal's own next hop.
-        String redirectURL = stringOf(login.get("redirectURL"));
-        String authUrl = null != redirectURL
-                ? URI.create(mSsoBase + "/").resolve(redirectURL).toString()
-                : mSsoBase + "/unisess/v1/auth?service="
-                        + urlEncode("/netecowebext/home/index.html");
+        // 3. Session establishment: consume the multi-region ticket on the
+        //    region host when there is one, else follow the portal's own next
+        //    hop. (/unisess/v1/auth is a last-resort guess — live probing only
+        //    ever saw it 404, so it is never the preferred path.)
+        String authUrl;
+        if (multiRegion) {
+            authUrl = regionBase(hop.host) + hop.path;
+        } else {
+            String redirectURL = stringOf(login.get("redirectURL"));
+            authUrl = null != redirectURL
+                    ? URI.create(mSsoBase + "/").resolve(redirectURL).toString()
+                    : mSsoBase + "/unisess/v1/auth?service="
+                            + urlEncode("/netecowebext/home/index.html");
+        }
         getWithRetry(authUrl, null);
 
         // 4. Data host: score keep-alive across the candidates; the host that
         //    answers with a payload is where /rest/* lives for this account.
+        //    The multi-region host is tried first — it is told to us, not
+        //    guessed, so it is the account's real region by construction.
         Set<String> candidates = new LinkedHashSet<>();
+        if (multiRegion) candidates.add(regionBase(hop.host));
         candidates.add(mDataBase);
         candidates.add(mSsoBase);
         JsonElement regions = login.get("respMultiRegionName");
@@ -277,6 +311,70 @@ public class FusionSolarClient {
         else throw new FusionSolarException(
                     "FusionSolar session did not establish on any region host");
         mLoggedIn = true;
+    }
+
+    /**
+     * The region hop carried by {@code respMultiRegionName} alongside
+     * {@code errorCode 470}. Observed live as a three-element array whose
+     * order is not contracted anywhere, so each element is classified by
+     * shape rather than by index:
+     * <pre>
+     *   [ "-5",
+     *     "/rest/dp/web/v1/auth/on-sso-credential-ready?ticket=ST-…&amp;regionName=region004",
+     *     "uni004eu5.fusionsolar.huawei.com&amp;&amp;TGTX--F…" ]
+     * </pre>
+     * The path carries a single-use CAS service ticket; GETting it on the
+     * host from the third element is what converts the validated credentials
+     * into session cookies. The trailing {@code &&TGT…} is the ticket-granting
+     * ticket, which the portal also sets as a cookie — it is stripped here and
+     * not otherwise used.
+     */
+    static final class MultiRegionHop {
+        final String host;
+        final String path;
+
+        private MultiRegionHop(String host, String path) {
+            this.host = host;
+            this.path = path;
+        }
+    }
+
+    /**
+     * Pull the region hop out of a login response's {@code respMultiRegionName}.
+     * The host is accepted only if we trust it: the ticket is a session
+     * credential, so it is never sent anywhere but Huawei's own domain.
+     *
+     * @return the hop, or null when absent, unrecognised or untrusted
+     */
+    @Nullable
+    MultiRegionHop parseMultiRegion(@Nullable JsonElement regions) {
+        if (null == regions || !regions.isJsonArray()) return null;
+        String host = null, path = null;
+        for (JsonElement element : regions.getAsJsonArray()) {
+            String value = stringOf(element);
+            if (null == value) continue;
+            value = value.trim();
+            if (null == path && value.startsWith("/") && value.contains("ticket="))
+                path = value;
+            // The host element is "host&&TGT…"; the TGT is not ours to use.
+            if (null == host) {
+                String candidate = value.split("&&", 2)[0].trim();
+                if (isTrustedPortalHost(candidate)) host = candidate;
+            }
+        }
+        if (null == host || null == path) return null;
+        return new MultiRegionHop(host, path);
+    }
+
+    private boolean isTrustedPortalHost(String host) {
+        if (host.endsWith(DOMAIN)) return true;
+        // Tests collapse every portal host onto one local MockWebServer.
+        return null != mCollapsedBase && host.equals(URI.create(mCollapsedBase).getHost());
+    }
+
+    /** Where to send the region ticket. */
+    private String regionBase(String host) {
+        return null != mCollapsedBase ? mCollapsedBase : "https://" + host;
     }
 
     private JsonObject fetchPubkey() throws FusionSolarException {
