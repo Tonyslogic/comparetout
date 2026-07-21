@@ -50,3 +50,12 @@ jobs:
       # across regions (only BuildConfig.REGION differs).
       run: ./gradlew testIeDebugUnitTest --stacktrace
 
+    - name: Compile instrumentation tests
+      # Compile (don't run) the androidTest source set so a stale instrumentation
+      # test — e.g. one calling a method a refactor moved off a DAO — fails HERE,
+      # on every PR, instead of silently rotting until someone runs the manual
+      # Firebase Test Lab smoke job. No emulator/device needed: this only builds
+      # the test APK. One flavor suffices (androidTest sources are shared across
+      # regions), mirroring the unit-test step above.
+      run: ./gradlew assembleIeDebugAndroidTest --stacktrace
+

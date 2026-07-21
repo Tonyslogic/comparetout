@@ -31,6 +31,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.tfcode.comparetout.model.dao.LoadProfileDAO;
 import com.tfcode.comparetout.model.json.JsonTools;
 import com.tfcode.comparetout.model.json.scenario.BatteryJson;
 import com.tfcode.comparetout.model.json.scenario.DischargeToGridJson;
@@ -41,6 +42,8 @@ import com.tfcode.comparetout.model.json.scenario.InverterJson;
 import com.tfcode.comparetout.model.json.scenario.LoadShiftJson;
 import com.tfcode.comparetout.model.json.scenario.PanelJson;
 import com.tfcode.comparetout.model.json.scenario.ScenarioJsonFile;
+import com.tfcode.comparetout.model.ops.LoadProfileOps;
+import com.tfcode.comparetout.model.ops.ScenarioLifecycleOps;
 import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.DischargeToGrid;
 import com.tfcode.comparetout.model.scenario.EVCharge;
@@ -72,7 +75,14 @@ public class ScenarioDAOTest {
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
 
     private volatile ToutcDB toutcDB;
+    // The mega-refactor (plans/source/mega-refactor.md, Part C) split the
+    // scenario facade: load-profile reads/writes moved to LoadProfileDAO, the
+    // copy transaction to LoadProfileOps, and scenario creation to
+    // ScenarioLifecycleOps. link*/getXForScenarioID stayed on ScenarioDAO.
     private ScenarioDAO scenarioDAO;
+    private LoadProfileDAO loadProfileDAO;
+    private LoadProfileOps loadProfileOps;
+    private ScenarioLifecycleOps lifecycleOps;
 
     @Before
     public void setUp()  {
@@ -82,6 +92,9 @@ public class ScenarioDAOTest {
                 .allowMainThreadQueries()
                 .build();
         scenarioDAO = toutcDB.scenarioDAO();
+        loadProfileDAO = toutcDB.loadProfileDAO();
+        loadProfileOps = new LoadProfileOps(toutcDB);
+        lifecycleOps = new ScenarioLifecycleOps(toutcDB);
     }
 
     @After
@@ -95,7 +108,7 @@ public class ScenarioDAOTest {
         scenario1.setScenarioName("First");
         LoadProfile loadProfile = new LoadProfile();
         loadProfile.setAnnualUsage(100.00);
-        scenarioDAO.addNewScenarioWithComponents(scenario1, new ScenarioComponents(
+        lifecycleOps.addNewScenarioWithComponents(scenario1, new ScenarioComponents(
                 scenario1, null, null, null, null, loadProfile,
                 null, null, null, null, null, null), false);
 
@@ -105,12 +118,12 @@ public class ScenarioDAOTest {
         assertEquals("First", scenario1.getScenarioName());
         assertTrue(scenario1o.isHasLoadProfiles());
 
-        LoadProfile loadProfile1o = LiveDataTestUtil.getValue(scenarioDAO.getLoadProfile(scenario1ID));
+        LoadProfile loadProfile1o = LiveDataTestUtil.getValue(loadProfileDAO.getLoadProfile(scenario1ID));
         assertEquals(100.00, loadProfile1o.getAnnualUsage(), 0);
 
         Scenario scenario2 = new Scenario();
         scenario2.setScenarioName("Second");
-        scenarioDAO.addNewScenarioWithComponents(scenario2, new ScenarioComponents(
+        lifecycleOps.addNewScenarioWithComponents(scenario2, new ScenarioComponents(
                 scenario2, null, null, null, null, null,
                 null, null, null, null, null, null), false);
 
@@ -118,17 +131,17 @@ public class ScenarioDAOTest {
         Scenario scenario2o = scenarioOutList.get(1);
         long scenario2ID = scenario2o.getScenarioIndex();
         assertEquals("Second", scenario2.getScenarioName());
-        LoadProfile loadProfile2o = LiveDataTestUtil.getValue(scenarioDAO.getLoadProfile(scenario2ID));
+        LoadProfile loadProfile2o = LiveDataTestUtil.getValue(loadProfileDAO.getLoadProfile(scenario2ID));
         assertNull(loadProfile2o);
 
-        scenarioDAO.copyLoadProfileFromScenario(scenario1ID, scenario2ID);
+        loadProfileOps.copyLoadProfileFromScenario(scenario1ID, scenario2ID);
 
         scenarioOutList = LiveDataTestUtil.getValue(scenarioDAO.loadScenarios());
         Scenario scenario2o2 = scenarioOutList.get(1);
         long scenario22ID = scenario2o2.getScenarioIndex();
         assertEquals("Second", scenario2.getScenarioName());
         assertEquals(scenario22ID, scenario2ID);
-        LoadProfile loadProfile2o2 = LiveDataTestUtil.getValue(scenarioDAO.getLoadProfile(scenario22ID));
+        LoadProfile loadProfile2o2 = LiveDataTestUtil.getValue(loadProfileDAO.getLoadProfile(scenario22ID));
         assertEquals(100.00, loadProfile2o2.getAnnualUsage(), 0);
         assertNotEquals(loadProfile2o2.getLoadProfileIndex(), loadProfile1o.getLoadProfileIndex());
     }
@@ -139,7 +152,7 @@ public class ScenarioDAOTest {
         scenario1.setScenarioName("First");
         LoadProfile loadProfile = new LoadProfile();
         loadProfile.setAnnualUsage(100.00);
-        scenarioDAO.addNewScenarioWithComponents(scenario1, new ScenarioComponents(
+        lifecycleOps.addNewScenarioWithComponents(scenario1, new ScenarioComponents(
                 scenario1, null, null, null, null, loadProfile,
                 null, null, null, null, null, null), false);
 
@@ -150,13 +163,13 @@ public class ScenarioDAOTest {
         assertEquals("First", scenario1.getScenarioName());
         assertTrue(scenario1o.isHasLoadProfiles());
 
-        LoadProfile loadProfile1o = LiveDataTestUtil.getValue(scenarioDAO.getLoadProfile(scenario1ID));
+        LoadProfile loadProfile1o = LiveDataTestUtil.getValue(loadProfileDAO.getLoadProfile(scenario1ID));
         assertEquals(100.00, loadProfile1o.getAnnualUsage(), 0);
 
         loadProfile1o.setAnnualUsage(200.00);
-        scenarioDAO.updateLoadProfile(loadProfile1o);
+        loadProfileDAO.updateLoadProfile(loadProfile1o);
 
-        loadProfile1o = LiveDataTestUtil.getValue(scenarioDAO.getLoadProfile(scenario1ID));
+        loadProfile1o = LiveDataTestUtil.getValue(loadProfileDAO.getLoadProfile(scenario1ID));
         assertEquals(200.00, loadProfile1o.getAnnualUsage(), 0);
     }
 
@@ -166,7 +179,7 @@ public class ScenarioDAOTest {
         scenario1.setScenarioName("First");
         LoadProfile loadProfile = new LoadProfile();
         loadProfile.setAnnualUsage(100.00);
-        scenarioDAO.addNewScenarioWithComponents(scenario1, new ScenarioComponents(
+        lifecycleOps.addNewScenarioWithComponents(scenario1, new ScenarioComponents(
                 scenario1, null, null, null, null, loadProfile,
                 null, null, null, null, null, null), false);
 
@@ -176,13 +189,13 @@ public class ScenarioDAOTest {
         assertEquals("First", scenario1.getScenarioName());
         assertTrue(scenario1o.isHasLoadProfiles());
 
-        LoadProfile loadProfile1o = LiveDataTestUtil.getValue(scenarioDAO.getLoadProfile(scenario1ID));
+        LoadProfile loadProfile1o = LiveDataTestUtil.getValue(loadProfileDAO.getLoadProfile(scenario1ID));
         long loadProfile1ID = loadProfile1o.getLoadProfileIndex();
         assertEquals(100.00, loadProfile1o.getAnnualUsage(), 0);
 
         Scenario scenario2 = new Scenario();
         scenario2.setScenarioName("Second");
-        scenarioDAO.addNewScenarioWithComponents(scenario2, new ScenarioComponents(
+        lifecycleOps.addNewScenarioWithComponents(scenario2, new ScenarioComponents(
                 scenario2, null, null, null, null, null,
                 null, null, null, null, null, null), false);
 
@@ -190,7 +203,7 @@ public class ScenarioDAOTest {
         Scenario scenario2o = scenarioOutList.get(1);
         long scenario2ID = scenario2o.getScenarioIndex();
         assertEquals("Second", scenario2.getScenarioName());
-        LoadProfile loadProfile2o = LiveDataTestUtil.getValue(scenarioDAO.getLoadProfile(scenario2ID));
+        LoadProfile loadProfile2o = LiveDataTestUtil.getValue(loadProfileDAO.getLoadProfile(scenario2ID));
         assertNull(loadProfile2o);
 
         scenarioDAO.linkLoadProfileFromScenario(scenario1ID, scenario2ID);
@@ -198,7 +211,7 @@ public class ScenarioDAOTest {
         scenarioOutList = LiveDataTestUtil.getValue(scenarioDAO.loadScenarios());
         Scenario scenario1o2 = scenarioOutList.get(0);
         assertEquals(scenario1o2.getScenarioIndex(), scenario1ID);
-        LoadProfile loadProfile1o2 = LiveDataTestUtil.getValue(scenarioDAO.getLoadProfile(scenario1ID));
+        LoadProfile loadProfile1o2 = LiveDataTestUtil.getValue(loadProfileDAO.getLoadProfile(scenario1ID));
         assertEquals(loadProfile1o2.getLoadProfileIndex(), loadProfile1ID);
         assertEquals(100.00, loadProfile1o2.getAnnualUsage(), 0);
 
@@ -206,7 +219,7 @@ public class ScenarioDAOTest {
         long scenario22ID = scenario2o2.getScenarioIndex();
         assertEquals("Second", scenario2o2.getScenarioName());
         assertEquals(scenario22ID, scenario2ID);
-        LoadProfile loadProfile2o2 = LiveDataTestUtil.getValue(scenarioDAO.getLoadProfile(scenario22ID));
+        LoadProfile loadProfile2o2 = LiveDataTestUtil.getValue(loadProfileDAO.getLoadProfile(scenario22ID));
         System.out.println("LPID " + loadProfile2o2.getLoadProfileIndex() + " found for scenario " + scenario22ID);
         assertEquals(100.00, loadProfile2o2.getAnnualUsage(), 0);
 
@@ -214,12 +227,12 @@ public class ScenarioDAOTest {
 
         // Confirm that a change made to the LP retrieved from Scenario2 is visible from Scenario1
         loadProfile2o2.setAnnualUsage(200.00);
-        scenarioDAO.updateLoadProfile(loadProfile2o2);
+        loadProfileDAO.updateLoadProfile(loadProfile2o2);
 
         scenarioOutList = LiveDataTestUtil.getValue(scenarioDAO.loadScenarios());
         Scenario scenario1o3 = scenarioOutList.get(0);
         assertEquals(scenario1o3.getScenarioIndex(), scenario1ID);
-        LoadProfile loadProfile1o3 = LiveDataTestUtil.getValue(scenarioDAO.getLoadProfile(scenario1ID));
+        LoadProfile loadProfile1o3 = LiveDataTestUtil.getValue(loadProfileDAO.getLoadProfile(scenario1ID));
         assertEquals(loadProfile1o3.getLoadProfileIndex(), loadProfile1ID);
         assertEquals(200.00, loadProfile1o3.getAnnualUsage(), 0);
     }
@@ -230,7 +243,7 @@ public class ScenarioDAOTest {
         List<ScenarioJsonFile> scenarioList = new Gson().fromJson(testData, type);
         List<ScenarioComponents> jsons = JsonTools.createScenarioComponentList(scenarioList);
         ScenarioComponents json = jsons.get(0);
-        scenarioDAO.addNewScenarioWithComponents(json.scenario, json, false);
+        lifecycleOps.addNewScenarioWithComponents(json.scenario, json, false);
         List<Scenario> scenarioOutList = LiveDataTestUtil.getValue(scenarioDAO.loadScenarios());
         Scenario scenario = scenarioOutList.get(0);
         long scenarioID = scenario.getScenarioIndex();
@@ -373,7 +386,7 @@ public class ScenarioDAOTest {
             ScenarioComponents scenarioComponents =
                     new ScenarioComponents(scenario, inverters, batteries, panels, hwSystem,
                             loadProfile, loadShifts, discharges, evCharges, hwSchedules, hwDivert, evDiverts);
-            scenarioDAO.addNewScenarioWithComponents(scenario, scenarioComponents, false);
+            lifecycleOps.addNewScenarioWithComponents(scenario, scenarioComponents, false);
         }
     }
 

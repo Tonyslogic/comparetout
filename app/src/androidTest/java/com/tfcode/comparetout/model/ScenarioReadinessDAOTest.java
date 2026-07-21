@@ -26,6 +26,11 @@ import androidx.room.Room;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
+import com.tfcode.comparetout.model.dao.LoadProfileDAO;
+import com.tfcode.comparetout.model.dao.ReadinessDAO;
+import com.tfcode.comparetout.model.dao.SimDataDAO;
+import com.tfcode.comparetout.model.ops.ReadinessOps;
+import com.tfcode.comparetout.model.ops.ScenarioLifecycleOps;
 import com.tfcode.comparetout.model.scenario.LoadProfile;
 import com.tfcode.comparetout.model.scenario.LoadProfileData;
 import com.tfcode.comparetout.model.scenario.Panel;
@@ -57,7 +62,17 @@ public class ScenarioReadinessDAOTest {
     public InstantTaskExecutorRule instantTaskExecutorRule = new InstantTaskExecutorRule();
 
     private ToutcDB toutcDB;
+    // The readiness matrix was split across DAOs/ops by the mega-refactor
+    // (plans/source/mega-refactor.md, Part C): scenario-core queries stay on
+    // ScenarioDAO, the readiness gates/marks live on ReadinessDAO/ReadinessOps,
+    // sim + load-profile writes on their own DAOs, and scenario creation on
+    // ScenarioLifecycleOps. This test reaches each method at its new home.
     private ScenarioDAO scenarioDAO;
+    private ReadinessDAO readinessDAO;
+    private SimDataDAO simDataDAO;
+    private LoadProfileDAO loadProfileDAO;
+    private ReadinessOps readinessOps;
+    private ScenarioLifecycleOps lifecycleOps;
 
     @Before
     public void setUp() {
@@ -66,6 +81,11 @@ public class ScenarioReadinessDAOTest {
                 .allowMainThreadQueries()
                 .build();
         scenarioDAO = toutcDB.scenarioDAO();
+        readinessDAO = toutcDB.readinessDAO();
+        simDataDAO = toutcDB.simDataDAO();
+        loadProfileDAO = toutcDB.loadProfileDAO();
+        readinessOps = new ReadinessOps(toutcDB);
+        lifecycleOps = new ScenarioLifecycleOps(toutcDB);
     }
 
     @After
@@ -81,7 +101,7 @@ public class ScenarioReadinessDAOTest {
         scenario.setScenarioName(name);
         LoadProfile loadProfile = new LoadProfile();
         loadProfile.setAnnualUsage(100.0);
-        long id = scenarioDAO.addNewScenarioWithComponents(scenario, new ScenarioComponents(
+        long id = lifecycleOps.addNewScenarioWithComponents(scenario, new ScenarioComponents(
                 scenario, null, null, null, null, loadProfile,
                 null, null, null, null, null, null), false);
         long loadProfileID = scenarioDAO.getLoadProfileForScenarioID(id).getLoadProfileIndex();
@@ -91,7 +111,7 @@ public class ScenarioReadinessDAOTest {
         row.setMinute("00:00");
         ArrayList<LoadProfileData> rows = new ArrayList<>();
         rows.add(row);
-        scenarioDAO.createLoadProfileDataEntries(rows);
+        loadProfileDAO.createLoadProfileDataEntries(rows);
         return id;
     }
 
@@ -103,7 +123,7 @@ public class ScenarioReadinessDAOTest {
         loadProfile.setAnnualUsage(100.0);
         ArrayList<Panel> panels = new ArrayList<>();
         panels.add(new Panel());
-        long id = scenarioDAO.addNewScenarioWithComponents(scenario, new ScenarioComponents(
+        long id = lifecycleOps.addNewScenarioWithComponents(scenario, new ScenarioComponents(
                 scenario, null, null, panels, null, loadProfile,
                 null, null, null, null, null, null), false);
         long loadProfileID = scenarioDAO.getLoadProfileForScenarioID(id).getLoadProfileIndex();
@@ -113,7 +133,7 @@ public class ScenarioReadinessDAOTest {
         row.setMinute("00:00");
         ArrayList<LoadProfileData> rows = new ArrayList<>();
         rows.add(row);
-        scenarioDAO.createLoadProfileDataEntries(rows);
+        loadProfileDAO.createLoadProfileDataEntries(rows);
         return id;
     }
 
@@ -124,7 +144,7 @@ public class ScenarioReadinessDAOTest {
         sd.setMinuteOfDay(0);
         ArrayList<ScenarioSimulationData> rows = new ArrayList<>();
         rows.add(sd);
-        scenarioDAO.saveSimulationDataForScenario(rows);
+        simDataDAO.saveSimulationDataForScenario(rows);
     }
 
     private long panelIdOf(long scenarioID) {
@@ -132,11 +152,11 @@ public class ScenarioReadinessDAOTest {
     }
 
     private boolean needsSim(long id) {
-        return scenarioDAO.getScenarioIdsNeedingSimulation().contains(id);
+        return readinessDAO.getScenarioIdsNeedingSimulation().contains(id);
     }
 
     private boolean needsCosting(long id) {
-        return scenarioDAO.getScenarioIdsNeedingCosting().contains(id);
+        return readinessDAO.getScenarioIdsNeedingCosting().contains(id);
     }
 
     private static long now() {
@@ -167,11 +187,11 @@ public class ScenarioReadinessDAOTest {
     @Test
     public void simulatedThenCosted() {
         long id = scenarioWithLoadData("Run");
-        scenarioDAO.markSimulated(id);
+        readinessOps.markSimulated(id);
         assertFalse("simStatus up-to-date ⇒ leaves sim gate", needsSim(id));
         assertTrue("fresh sim ⇒ needs costing", needsCosting(id));
 
-        scenarioDAO.markCosted(id);
+        readinessOps.markCosted(id);
         assertFalse("all pairs costed ⇒ leaves cost gate", needsCosting(id));
         assertFalse(needsSim(id));
     }
@@ -179,29 +199,29 @@ public class ScenarioReadinessDAOTest {
     @Test
     public void structuralEditReflagsSimAndCosting() {
         long id = scenarioWithLoadData("Edit");
-        scenarioDAO.markSimulated(id);
-        scenarioDAO.markCosted(id);
+        readinessOps.markSimulated(id);
+        readinessOps.markCosted(id);
         assertFalse(needsSim(id));
         assertFalse(needsCosting(id));
 
         // A structural edit deletes sim+costing and marks the scenario needing sim.
-        scenarioDAO.markScenarioNeedsSim(id, now());
+        readinessDAO.markScenarioNeedsSim(id, now());
         assertTrue("needs re-sim", needsSim(id));
         assertFalse("can't cost until re-simulated", needsCosting(id));
 
-        scenarioDAO.markSimulated(id);
+        readinessOps.markSimulated(id);
         assertTrue("re-simulated ⇒ needs re-costing", needsCosting(id));
     }
 
     @Test
     public void planAddFlipsAllCostingFlags() {
         long id = scenarioWithLoadData("Priced");
-        scenarioDAO.markSimulated(id);
-        scenarioDAO.markCosted(id);
+        readinessOps.markSimulated(id);
+        readinessOps.markCosted(id);
         assertFalse(needsCosting(id));
 
         // Adding/editing a plan invalidates costing for every (simulated) scenario.
-        scenarioDAO.markAllScenariosNeedCosting(now());
+        readinessDAO.markAllScenariosNeedCosting(now());
         assertTrue(needsCosting(id));
         assertFalse("sim is untouched by a plan change", needsSim(id));
     }
@@ -211,29 +231,29 @@ public class ScenarioReadinessDAOTest {
     @Test
     public void weatherBlockedExcludedThenUnblocked() {
         long id = scenarioWithLoadData("HeatPump");
-        scenarioDAO.markSimBlocked(id, ScenarioReadiness.SIM_BLOCKED_WEATHER);
+        readinessOps.markSimBlocked(id, ScenarioReadiness.SIM_BLOCKED_WEATHER);
         assertFalse("blocked on weather ⇒ out of the sim gate", needsSim(id));
 
-        scenarioDAO.unblockWeatherScenario(id, now());
+        readinessDAO.unblockWeatherScenario(id, now());
         assertTrue("weather landed ⇒ back in the sim gate", needsSim(id));
     }
 
     @Test
     public void panelBlockedExcludedThenUnblocked() {
         long id = scenarioWithLoadDataAndPanel("Solar");
-        scenarioDAO.markSimBlocked(id, ScenarioReadiness.SIM_BLOCKED_PANEL_DATA);
+        readinessOps.markSimBlocked(id, ScenarioReadiness.SIM_BLOCKED_PANEL_DATA);
         assertFalse("blocked on panel data ⇒ out of the sim gate", needsSim(id));
 
-        scenarioDAO.unblockPanelScenarios(panelIdOf(id), now());
+        readinessDAO.unblockPanelScenarios(panelIdOf(id), now());
         assertTrue("panel data landed ⇒ back in the sim gate", needsSim(id));
     }
 
     @Test
     public void unblockOnlyAffectsMatchingBlockReason() {
         long id = scenarioWithLoadData("MismatchedUnblock");
-        scenarioDAO.markSimBlocked(id, ScenarioReadiness.SIM_BLOCKED_PANEL_DATA);
+        readinessOps.markSimBlocked(id, ScenarioReadiness.SIM_BLOCKED_PANEL_DATA);
         // A weather unblock must NOT clear a panel-data block.
-        scenarioDAO.unblockWeatherScenario(id, now());
+        readinessDAO.unblockWeatherScenario(id, now());
         assertFalse(needsSim(id));
     }
 
@@ -242,12 +262,12 @@ public class ScenarioReadinessDAOTest {
     @Test
     public void deleteAllReadinessFallsBackToDefensiveGate() {
         long id = scenarioWithLoadData("Wiped");
-        scenarioDAO.markSimulated(id);
+        readinessOps.markSimulated(id);
         assertFalse(needsSim(id));
 
         // Mirrors PanelDataRefreshWorker: output is wiped and the readiness rows cleared, so the defensive
         // gate re-derives "needs sim" from the (now empty) simulation table.
-        scenarioDAO.deleteAllReadiness();
+        readinessDAO.deleteAllReadiness();
         assertTrue(needsSim(id));
     }
 }
