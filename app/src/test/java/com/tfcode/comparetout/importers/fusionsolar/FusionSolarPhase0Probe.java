@@ -439,10 +439,6 @@ public class FusionSolarPhase0Probe {
                     "login rejected (errorCode=" + loginErrorCode + ") - a rejection cannot"
                     + " distinguish bad encryption from an unknown/wrong account");
         verdict("A3", "validateUser v3 path live", v3Worked);
-        if (!verdicts.containsKey("A4")) {
-            pace();
-            probeCaptcha(sub, false); // even on success, confirm the endpoint exists
-        }
         log("");
         pace();
 
@@ -450,15 +446,20 @@ public class FusionSolarPhase0Probe {
         String dataHost = sub;
         try {
             // Preference order, best evidence first: the 470 multi-region
-            // ticket (the portal's own hop, carrying a single-use CAS
-            // service ticket), then any redirectURL, and only then the
-            // oracle-derived /unisess/v1/auth guess — which live runs have
-            // only ever seen 404.
+            // ticket, then any redirectURL, and only then the oracle-derived
+            // /unisess/v1/auth guess — which live runs have only ever seen 404.
+            //
+            // The multi-region CAS ticket is validated on the LOGIN host
+            // ('sub'), NOT the region host — mirroring FusionSolarPy, which
+            // GETs the credential-ready path on the login subdomain and lets
+            // the redirect chain carry the session onto the region. The
+            // 2026-07-27 run consumed it on the region host and bounced to
+            // /unisso/login.action (no session minted); this fixes that.
             String how;
             String authUrl;
             if (multiRegion) {
-                authUrl = url(hop[0], hop[1]);
-                how = "multi-region ticket on '" + hop[0] + "' ("
+                authUrl = url(sub, hop[1]);
+                how = "multi-region ticket on login host '" + sub + "' ("
                         + hop[1].split("\\?")[0] + ")";
             } else if (redirectURL != null) {
                 authUrl = URI.create(url(sub, "/")).resolve(redirectURL).toString();
@@ -470,23 +471,39 @@ public class FusionSolarPhase0Probe {
             }
             HttpResponse<byte[]> r = getFollow(authUrl);
             String landed = r.uri().getHost();
+            String landedPath = r.uri().getPath();
+            // The one thing that matters: did the ticket hop bounce back to the
+            // SSO login page? A 200 landing there is NOT a session — it is the
+            // portal saying "still not authenticated". The old verdict scored
+            // status < 400 as ok, which turned that bounce into a false pass.
+            boolean bouncedToLogin =
+                    (landedPath != null && landedPath.contains("/unisso/login.action"))
+                    || hops.stream().anyMatch(h -> h.contains("/unisso/login.action"));
             log("STEP 3  GET " + how + " (session/region establishment)  [A5]");
             log("  final status   : " + r.statusCode());
             log("  redirect chain : " + hops);
             log("  final host     : " + landed);
             log("  cookies now    : " + cookies.keySet());
-            if (landed != null && landed.endsWith(DOMAIN))
+            log("  cookies ever set : " + everSet
+                    + "  [any TGC/session cookie the portal offered]");
+            // The multi-region host is told to us, not guessed: data lives there.
+            if (multiRegion) {
+                dataHost = hop[0];
+            } else if (landed != null && landed.endsWith(DOMAIN)) {
                 dataHost = landed.substring(0, landed.length() - DOMAIN.length());
+            }
             if (!dataHost.equals(sub))
-                log("  >> region redirect: data host is '" + dataHost + "' (client must persist this).");
-            // The multi-region host is told to us, not guessed, so it wins
-            // over wherever the ticket GET happened to land.
-            if (multiRegion) dataHost = hop[0];
+                log("  >> data host is '" + dataHost + "' (client must persist this).");
             if (!loggedIn)
                 verdictNa("A5", "session/region establishment (landed: " + dataHost + ")",
                         "no login, so there was no session to establish");
-            else
-                verdict("A5", "session/region establishment (data host: " + dataHost + ")",
+            else if (bouncedToLogin) {
+                log("  >> the ticket hop landed back on /unisso/login.action - the CAS"
+                        + " ticket was NOT consumed and no session was minted.");
+                verdict("A5", "session establishment (ticket hop bounced to the login"
+                        + " page - no session minted)", false);
+            } else
+                verdict("A5", "session establishment (data host: " + dataHost + ")",
                         r.statusCode() < 400);
         } catch (Exception e) {
             log("STEP 3  FAILED: " + e);
@@ -494,6 +511,17 @@ public class FusionSolarPhase0Probe {
         }
         log("");
         pace();
+
+        // A4 endpoint confirmation, moved to AFTER session establishment so the
+        // captcha GET cannot rotate the SSO verify-code cookie between the 470
+        // and the single-use ticket's consumption — that ordering can void the
+        // ticket. Only needed when the login itself never demanded a captcha
+        // (the in-login retry loop settles A4 when it did).
+        if (!verdicts.containsKey("A4")) {
+            probeCaptcha(sub, false);
+            log("");
+            pace();
+        }
 
         // ── A6: keep-alive → roarand ──────────────────────────────────────
         // The SSO front-end (e.g. 'eu5') 404s /rest/dpcloud/* — the entry
@@ -521,12 +549,16 @@ public class FusionSolarPhase0Probe {
         // is still real evidence and is recorded as such.
         if (keepAliveOk)
             verdict("A6", "keep-alive returns roarand payload (host: " + dataHost + ")", true);
-        else if (!loggedIn)
+        else
+            // No payload without a session, and a missing session is an A5
+            // failure, not an A6 one — the keep-alive endpoint was never given
+            // a session to echo. A 470 login means the credentials were
+            // accepted; it does NOT mean a session was minted.
             verdictNa("A6", "keep-alive roarand payload (endpoint "
                             + (kaBest == 1 ? "EXISTS on '" + dataHost + "'" : "not found") + ")",
-                    "no session, so no payload could be issued");
-        else
-            verdict("A6", "keep-alive returns roarand payload (host: " + dataHost + ")", false);
+                    loggedIn
+                        ? "credentials accepted but no session minted (see A5)"
+                        : "no session, so no payload could be issued");
         log("");
         pace();
 
@@ -547,8 +579,18 @@ public class FusionSolarPhase0Probe {
         log("");
         pace();
 
-        if (!loggedIn && !keepAliveOk) {
-            log("Login did not succeed and no session is alive - skipping data steps.");
+        // Data steps need a real session (a roarand), not merely accepted
+        // credentials. Without one, station-list just 404s back to the login
+        // page, so A8-A11 are NOT REACHED rather than disproved.
+        if (!keepAliveOk) {
+            log("No live session (keep-alive returned no roarand) - skipping data steps.");
+            if (loggedIn)
+                log("Credentials were ACCEPTED (470 + ticket) but the ticket hop did not"
+                        + " mint a session - see STEP 3 / A5.");
+            verdictNa("A8", "station list returns dn", "no session established (see A5)");
+            verdictNa("A9", "energy-balance day curve", "no session established (see A5)");
+            verdictNa("A10", "explicit grid series present", "no session established (see A5)");
+            verdictNa("A11", "historical day retrievable", "no session established (see A5)");
             finish();
             return;
         }

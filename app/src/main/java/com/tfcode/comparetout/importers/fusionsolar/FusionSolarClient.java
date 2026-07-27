@@ -271,7 +271,13 @@ public class FusionSolarClient {
         //    ever saw it 404, so it is never the preferred path.)
         String authUrl;
         if (multiRegion) {
-            authUrl = regionBase(hop.host) + hop.path;
+            // The CAS service ticket is validated by the SSO/login host, then
+            // the redirect chain carries the session onto the region host —
+            // exactly as FusionSolarPy does (it GETs the credential-ready path
+            // on the login subdomain, not the region host). The 2026-07-27 live
+            // probe proved the region-host variant bounces to
+            // /unisso/login.action and mints no session.
+            authUrl = ssoBase() + hop.path;
         } else {
             String redirectURL = stringOf(login.get("redirectURL"));
             authUrl = null != redirectURL
@@ -296,7 +302,8 @@ public class FusionSolarClient {
                 if (null != name && name.matches("[a-z0-9]+"))
                     candidates.add("https://" + name + DOMAIN);
             }
-        String payloadHost = null, aliveHost = null;
+        String payloadHost = null;
+        boolean sawSessionlessKeepAlive = false;
         for (String candidate : candidates) {
             String roarand = tryKeepAlive(candidate);
             if (null != roarand) {
@@ -304,12 +311,17 @@ public class FusionSolarClient {
                 mRoarand = roarand;
                 break;
             }
-            if (null == aliveHost && null != mLastKeepAliveCode) aliveHost = candidate;
+            // A keep-alive that answers (e.g. code 1201 "Bad session") but
+            // carries no payload means the endpoint is there and the session is
+            // not — the ticket hop failed to mint one. That is not a login.
+            if (null != mLastKeepAliveCode) sawSessionlessKeepAlive = true;
         }
-        if (null != payloadHost) mDataBase = payloadHost;
-        else if (null != aliveHost) mDataBase = aliveHost;
-        else throw new FusionSolarException(
-                    "FusionSolar session did not establish on any region host");
+        if (null == payloadHost)
+            throw new FusionSolarException("FusionSolar session did not establish"
+                    + " (keep-alive returned no roarand payload"
+                    + (sawSessionlessKeepAlive ? "; the ticket hop did not mint a session" : "")
+                    + ")");
+        mDataBase = payloadHost;
         mLoggedIn = true;
     }
 
@@ -323,11 +335,14 @@ public class FusionSolarClient {
      *     "/rest/dp/web/v1/auth/on-sso-credential-ready?ticket=ST-…&amp;regionName=region004",
      *     "uni004eu5.fusionsolar.huawei.com&amp;&amp;TGTX--F…" ]
      * </pre>
-     * The path carries a single-use CAS service ticket; GETting it on the
-     * host from the third element is what converts the validated credentials
-     * into session cookies. The trailing {@code &&TGT…} is the ticket-granting
-     * ticket, which the portal also sets as a cookie — it is stripped here and
-     * not otherwise used.
+     * The third element carries the region/data host. The path carries a
+     * single-use CAS service ticket; GETting it on the SSO/login host (not the
+     * region host) is what converts the validated credentials into session
+     * cookies — the login host validates the ticket and 302s onto the region.
+     * The trailing {@code &&TGT…} is the ticket-granting ticket; the
+     * 2026-07-27 probe showed the portal does NOT set it as a cookie, and —
+     * like FusionSolarPy — we do not replay it: the ticket alone suffices. It
+     * is stripped here and not otherwise used.
      */
     static final class MultiRegionHop {
         final String host;
@@ -375,6 +390,11 @@ public class FusionSolarClient {
     /** Where to send the region ticket. */
     private String regionBase(String host) {
         return null != mCollapsedBase ? mCollapsedBase : "https://" + host;
+    }
+
+    /** Where a CAS service ticket is validated: the SSO/login host. */
+    private String ssoBase() {
+        return null != mCollapsedBase ? mCollapsedBase : mSsoBase;
     }
 
     private JsonObject fetchPubkey() throws FusionSolarException {
