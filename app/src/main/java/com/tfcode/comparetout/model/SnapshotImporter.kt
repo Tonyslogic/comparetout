@@ -125,10 +125,18 @@ class SnapshotImporter(private val application: Application) {
      * strong gate we want. Returns a [Validation.FileError] for any open-
      * time failure, or [Validation.Opened] (possibly with per-table errors)
      * for a file Room accepted.
+     *
+     * Registered migrations are supplied so a snapshot taken by an older app
+     * version is *upgraded* rather than rejected — a snapshot is a backup, and
+     * refusing to restore one because the app has moved on since would defeat
+     * the point. The identity gate still rejects anything Room cannot reach the
+     * current schema from. The staging file is a private copy, so migrating it
+     * never touches the user's live database.
      */
     fun validate(staged: Staged): Validation {
         val handle = runCatching {
             val builder = Room.databaseBuilder(application, ToutcDB::class.java, staged.file.absolutePath)
+                .addMigrations(*ToutcDB.MIGRATIONS)
             builder.build()
         }.getOrElse { e ->
             return Validation.FileError(
@@ -286,7 +294,11 @@ class SnapshotImporter(private val application: Application) {
         // Phase 1 — drain the staging file into in-memory objects via a
         // throw-away Room handle. Closing here releases the file so the
         // live DB can ATTACH to it for the source-row copy below.
+        // Same migrations as validate() — by now the staging file has usually
+        // been upgraded on disk already, but commit() can be reached with a
+        // fresh handle, so the builder must be able to reach the current schema.
         val staging = Room.databaseBuilder(application, ToutcDB::class.java, staged.file.absolutePath)
+            .addMigrations(*ToutcDB.MIGRATIONS)
             .build()
         val stagingPlans: Map<com.tfcode.comparetout.model.priceplan.PricePlan,
             List<com.tfcode.comparetout.model.priceplan.DayRate>>?

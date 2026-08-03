@@ -295,6 +295,18 @@ public abstract class ToutcDB extends RoomDatabase {
         }
     };
 
+    /**
+     * Every hand-written migration, in one place. Auto-migrations are declared
+     * on {@code @Database} and need no registration; these do.
+     * <p>
+     * Register this on <b>any</b> builder that opens a database the user could
+     * have created with an older build — the live database and the snapshot
+     * import staging file. A snapshot is a backup, so restoring one taken before
+     * a schema change must upgrade it rather than reject it; Room's identity
+     * check still refuses anything it cannot reach the current schema from.
+     */
+    public static final Migration[] MIGRATIONS = { MIGRATION_16_17 };
+
     private static volatile ToutcDB INSTANCE;
     private static final int NUMBER_OF_THREADS = 8;
     static final ExecutorService databaseWriteExecutor =
@@ -317,7 +329,7 @@ public abstract class ToutcDB extends RoomDatabase {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                                     ToutcDB.class, "toutc_database").setQueryExecutor(databaseWriteExecutor)
-                            .addMigrations(MIGRATION_16_17)
+                            .addMigrations(MIGRATIONS)
                             .build();
                 }
             }

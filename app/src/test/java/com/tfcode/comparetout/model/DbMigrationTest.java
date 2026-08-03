@@ -42,12 +42,17 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
 /**
- * Guards the Room AutoMigration chain (schema v1 → v16) against silent
- * back-slips. It builds a genuine v1 database from the committed
- * {@code schemas/…/1.json}, seeds it with real data, then opens it through
- * {@link ToutcDB} so Room applies every auto-migration and validates the
- * resulting schema against the compiled-in v16 identity hash (a migration
- * that produced the wrong schema throws on open). The seeded row must survive.
+ * Guards the migration chain (schema v1 → v17) against silent back-slips. It
+ * builds a genuine v1 database from the committed {@code schemas/…/1.json},
+ * seeds it with real data, then opens it through {@link ToutcDB} so Room
+ * applies every auto-migration plus the hand-written {@code MIGRATION_16_17},
+ * and validates the resulting schema against the compiled-in v17 identity hash
+ * (a migration that produced the wrong schema throws on open). The seeded row
+ * must survive.
+ *
+ * <p>Both tests register {@link ToutcDB#MIGRATIONS} — the same array the live
+ * database and the snapshot importer use — so this also guards the registry
+ * itself. A migration written but never added to it would fail here.
  *
  * <p>Runs on the JVM under Robolectric — no device, no FTL — so it rides the
  * existing {@code testIeDebugUnitTest} CI gate. The v1 schema is read straight
@@ -79,7 +84,7 @@ public class DbMigrationTest {
         // chain and then the hand-written 16→17, and validates the final schema
         // identity. getWritableDatabase forces that to happen synchronously here.
         ToutcDB room = Room.databaseBuilder(context, ToutcDB.class, dbFile.getAbsolutePath())
-                .addMigrations(ToutcDB.MIGRATION_16_17)
+                .addMigrations(ToutcDB.MIGRATIONS)
                 .allowMainThreadQueries().build();
         SupportSQLiteDatabase migrated = room.getOpenHelper().getWritableDatabase();
 
@@ -125,7 +130,7 @@ public class DbMigrationTest {
         }, dbFile);
 
         ToutcDB room = Room.databaseBuilder(context, ToutcDB.class, dbFile.getAbsolutePath())
-                .addMigrations(ToutcDB.MIGRATION_16_17)
+                .addMigrations(ToutcDB.MIGRATIONS)
                 .allowMainThreadQueries().build();
         SupportSQLiteDatabase migrated = room.getOpenHelper().getWritableDatabase();
 
