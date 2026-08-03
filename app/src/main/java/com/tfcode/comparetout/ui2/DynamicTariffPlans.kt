@@ -56,7 +56,10 @@ class DynamicTariffPlans @Inject constructor(
 ) {
 
     sealed class Result {
-        data class Generated(val planName: String, val gapFilled: Int) : Result()
+        /** @param planId the row id of the materialised plan, so callers can act
+         *  on it without a lookup that would race the insert. */
+        data class Generated(val planName: String, val gapFilled: Int,
+                             val planId: Long = 0L) : Result()
         data class Incomplete(val missingMonths: List<Int>) : Result()
         data class Failed(val error: Throwable) : Result()
     }
@@ -109,8 +112,12 @@ class DynamicTariffPlans @Inject constructor(
             plan.pricePlanIndex = 0
             plan.isDeemedExport = false
             plan.reference = referenceFor(plan, series, terms)
-            repository.insert(plan, rates, true)
-            Result.Generated(plan.planName, series.gapFilledCount)
+            // insertSync, not insert: this method is already blocking, and the
+            // id must come back with the result. The queued insert offers no
+            // ordering barrier, so a caller looking the plan up by name straight
+            // afterwards can race it and find nothing.
+            val planId = repository.insertSync(plan, rates, true)
+            Result.Generated(plan.planName, series.gapFilledCount, planId)
         } catch (t: Throwable) {
             Result.Failed(t)
         }

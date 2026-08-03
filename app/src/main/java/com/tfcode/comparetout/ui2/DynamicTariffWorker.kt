@@ -128,6 +128,17 @@ class DynamicTariffWorker(
         return when (val result =
                 plans.materialiseBlocking(source, plan, targetYear, startMonth, auto)) {
             is DynamicTariffPlans.Result.Generated -> {
+                // If this is the tariff the user is actually on, adopt it as the
+                // favourite now. Octopus tariff generation could not do it at the
+                // time: an Agile plan is enqueued here and does not exist until
+                // this fetch completes, which may be minutes later or, after a
+                // failed attempt, not until the user retries.
+                kotlinx.coroutines.runBlocking {
+                    EntryPointAccessors.fromApplication(
+                        applicationContext, FavouritePlanStoreEntryPoint::class.java
+                    ).favouritePlanStore()
+                        .claimPendingFavourite(plan.supplier, result.planName, result.planId)
+                }
                 finish("Plan '${result.planName}' is ready" +
                         (if (result.gapFilled > 0) " (${result.gapFilled} half-hours gap-filled)"
                          else "") + " — comparing costs now.")

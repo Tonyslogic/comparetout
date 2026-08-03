@@ -142,6 +142,12 @@ class OctopusTariffPlans @Inject constructor(
             if (currentProductCode != null && currentProductCode !in codes)
                 codes.add(currentProductCode)
 
+            // The user's own tariff, resolved two ways. An id is definitive and
+            // comes straight from the insert; a name is the fallback for a plan
+            // that already existed. An Agile plan yields neither here — it does
+            // not exist yet — so it registers a pending favourite instead and
+            // DynamicTariffWorker adopts it when the fetch lands.
+            var currentPlanId: Long = 0L
             var currentPlanName: String? = null
             for (code in codes) {
                 // Polite spacing between public-API bursts.
@@ -157,7 +163,13 @@ class OctopusTariffPlans @Inject constructor(
                     val outcome = try {
                         queueAgilePlan(client, code, gsp, region.uppercase(), feedRate,
                             existingNames) { name ->
-                            if (code == currentProductCode) currentPlanName = name
+                            if (code == currentProductCode) {
+                                currentPlanName = name
+                                // Materialises in the background — record the
+                                // intent so the worker can adopt it on success,
+                                // including a retry days later after a failure.
+                                favouriteStore.setPendingFavourite(SUPPLIER, name)
+                            }
                         }
                     } catch (e: OctopusException) {
                         AgileOutcome.SKIPPED
@@ -179,7 +191,11 @@ class OctopusTariffPlans @Inject constructor(
                 if (plan.first.planName in existingNames) {
                     existing++
                 } else {
-                    repository.insert(plan.first, ArrayList(plan.second), false)
+                    // insertSync, not insert: the queued insert gives no ordering
+                    // barrier, so resolving the favourite by name straight after
+                    // the loop could race it and find nothing. The id is definitive.
+                    val newId = repository.insertSync(plan.first, ArrayList(plan.second), false)
+                    if (code == currentProductCode && newId != 0L) currentPlanId = newId
                     added++
                 }
             }
@@ -195,7 +211,8 @@ class OctopusTariffPlans @Inject constructor(
                 queued += exportOutcome.queued
             }
 
-            if (currentPlanName != null) favouriteIfUnset(currentPlanName)
+            if (currentPlanId != 0L) favouriteIdIfUnset(currentPlanId)
+            else if (currentPlanName != null) favouriteIfUnset(currentPlanName)
 
             Result.Loaded(added, existing, skipped, queued)
         } catch (t: Throwable) {
@@ -357,12 +374,16 @@ class OctopusTariffPlans @Inject constructor(
         onCurrentPlan: (String) -> Unit
     ): AgileOutcome {
         val detail = client.getProductDetail(productCode)
+        // Report the name as soon as it is known — BEFORE the checks and the
+        // further API calls below, any of which can bail out or throw. A product
+        // that fails to generate is still the plan the user is on, and losing its
+        // name here is what left the favourite unset.
+        val planName = detail.displayName ?: productCode
+        onCurrentPlan(planName)
         val regional = detail.singleRegisterElectricityTariffs?.get(gsp) ?: return AgileOutcome.SKIPPED
         val tariff = regional["direct_debit_monthly"] ?: regional.values.firstOrNull()
             ?: return AgileOutcome.SKIPPED
         val tariffCode = tariff.code ?: return AgileOutcome.SKIPPED
-        val planName = detail.displayName ?: productCode
-        onCurrentPlan(planName)
         if (planName in existingNames) return AgileOutcome.EXISTING
 
         val standingPencePerDay = firstRate(
@@ -505,7 +526,18 @@ class OctopusTariffPlans @Inject constructor(
         }
     }
 
-    /** Makes [planName] the favourite when no favourite is currently set. */
+    /** Makes [planId] the favourite when no favourite is currently set. */
+    private fun favouriteIdIfUnset(planId: Long) {
+        runBlocking { favouriteStore.ensureLoaded() }
+        if (favouriteStore.id.value != null) return
+        favouriteStore.setFavourite(planId)
+    }
+
+    /**
+     * Makes the plan named [planName] the favourite when none is set. Used for a
+     * plan that already existed, so the lookup is safe — a freshly inserted plan
+     * goes through [favouriteIdIfUnset] with the id the insert returned.
+     */
     private fun favouriteIfUnset(planName: String) {
         runBlocking { favouriteStore.ensureLoaded() }
         if (favouriteStore.id.value != null) return
