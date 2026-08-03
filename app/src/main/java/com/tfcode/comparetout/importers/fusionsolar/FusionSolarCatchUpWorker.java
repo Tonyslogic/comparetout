@@ -32,6 +32,7 @@ import androidx.work.WorkManager;
 import androidx.work.Worker;
 import androidx.work.WorkerParameters;
 
+import com.tfcode.comparetout.ui2.UiVisibilityStore;
 import com.tfcode.comparetout.ComparisonUIViewModel;
 import com.tfcode.comparetout.R;
 import com.tfcode.comparetout.SimulatorLauncher;
@@ -113,6 +114,14 @@ public class FusionSolarCatchUpWorker extends Worker {
     @NonNull
     @Override
     public Result doWork() {
+        // Experimental gate: this source drives an unofficial endpoint, so a
+        // user who turned experimental sources off expects no further calls to
+        // it. Guard rather than cancel the periodic work — cancelling would
+        // leave nothing to re-enqueue it when they switch back on, and syncing
+        // would stay silently dead. Success, not failure: nothing went wrong.
+        if (!UiVisibilityStore.experimentalEnabled(getApplicationContext())) {
+            return Result.success();
+        }
         Data inputData = getInputData();
         CredentialStore.Credentials credentials = CredentialStore.get(
                 getApplicationContext(), CredentialStore.Source.FUSION_SOLAR);

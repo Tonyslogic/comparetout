@@ -59,6 +59,11 @@ class DynamicTariffWorker(
     private val notifier by lazy { NotificationManagerCompat.from(applicationContext) }
 
     override fun doWork(): Result {
+        // Experimental gate: wholesale prices are scraped from public market
+        // reports rather than supplied through a contracted API. Guarded, not
+        // cancelled, so materialisation resumes by itself when re-enabled — a
+        // pending plan stays pending and retryable in the meantime.
+        if (!UiVisibilityStore.experimentalEnabled(applicationContext)) return Result.success()
         val repository = ToutcRepository(applicationContext as Application)
         val planId = inputData.getLong(KEY_PLAN_ID, 0L)
         val planJson = inputData.getString(KEY_PLAN_JSON)

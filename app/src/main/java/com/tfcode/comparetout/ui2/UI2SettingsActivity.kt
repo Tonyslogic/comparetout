@@ -161,19 +161,43 @@ private fun SettingsScreen(onClose: () -> Unit) {
                 HorizontalDivider(Modifier.padding(vertical = 8.dp))
             }
 
+            // Experimental gate — sits above the source list because it governs
+            // several of the rows below.
+            GroupHeader(stringResource(R.string.ui2_settings_group_experimental))
+            ToggleRow(stringResource(R.string.ui2_settings_experimental),
+                stringResource(R.string.ui2_settings_experimental_sub), vis.showExperimental) {
+                update(vis.copy(showExperimental = it))
+            }
+            if (!vis.showExperimental) {
+                Text(stringResource(R.string.ui2_settings_experimental_off_note),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            HorizontalDivider(Modifier.padding(vertical = 8.dp))
+
             GroupHeader(stringResource(R.string.ui2_settings_group_sources))
             ToggleRow(stringResource(R.string.brand_alphaess), null, vis.alphaess) { update(vis.copy(alphaess = it)) }
             ToggleRow(stringResource(R.string.home_assistant), null, vis.homeassistant) { update(vis.copy(homeassistant = it)) }
             // Region-specific sources only offer a toggle in the editions where
             // they exist (UiVisibilityStore hard-gates them everywhere else).
+            // Experimental sources keep their own row — the master flag only ever
+            // subtracts, so a user can still hide ESBN alone — but the row is
+            // disabled while the master is off, because its value cannot take
+            // effect and an operable-looking switch would mislead.
             if (RegionProfiles.current.hasEsbn) {
-                ToggleRow(stringResource(R.string.brand_esbn), null, vis.esbn) { update(vis.copy(esbn = it)) }
+                ToggleRow(stringResource(R.string.brand_esbn),
+                    experimentalSub(vis.showExperimental), vis.esbn && vis.showExperimental,
+                    enabled = vis.showExperimental) { update(vis.copy(esbn = it)) }
             }
             if (RegionProfiles.current.hasOctopus) {
                 ToggleRow(stringResource(R.string.octopus_energy), null, vis.octopus) { update(vis.copy(octopus = it)) }
             }
-            ToggleRow(stringResource(R.string.brand_solis), null, vis.solis) { update(vis.copy(solis = it)) }
-            ToggleRow(stringResource(R.string.brand_fusionsolar), null, vis.fusionsolar) { update(vis.copy(fusionsolar = it)) }
+            ToggleRow(stringResource(R.string.brand_solis),
+                experimentalSub(vis.showExperimental), vis.solis && vis.showExperimental,
+                enabled = vis.showExperimental) { update(vis.copy(solis = it)) }
+            ToggleRow(stringResource(R.string.brand_fusionsolar),
+                experimentalSub(vis.showExperimental), vis.fusionsolar && vis.showExperimental,
+                enabled = vis.showExperimental) { update(vis.copy(fusionsolar = it)) }
             if (profile.hasWeatherCaches) {
                 ToggleRow(stringResource(R.string.brand_pvgis),
                     stringResource(R.string.ui2_settings_pvgis_sub), vis.pvgis) { update(vis.copy(pvgis = it)) }
@@ -185,8 +209,14 @@ private fun SettingsScreen(onClose: () -> Unit) {
             if (profile.hasDynamicTariffs &&
                 (RegionProfiles.current.dynamicMarkets.isNotEmpty() ||
                     RegionProfiles.current.hasOctopus)) {
+                // Also experimental: the prices are scraped from public market
+                // reports, not supplied through a contracted API.
                 ToggleRow(stringResource(R.string.ui2_dsm_prices_title),
-                    stringResource(R.string.ui2_settings_wholesale_sub), vis.wholesale) {
+                    if (vis.showExperimental)
+                        stringResource(R.string.ui2_settings_wholesale_sub)
+                    else stringResource(R.string.ui2_settings_experimental_disabled),
+                    vis.wholesale && vis.showExperimental,
+                    enabled = vis.showExperimental) {
                     update(vis.copy(wholesale = it))
                 }
             }
@@ -204,28 +234,37 @@ private fun GroupHeader(text: String) {
     )
 }
 
+/** Subtitle for a row the experimental master flag is currently overriding. */
+@Composable
+private fun experimentalSub(showExperimental: Boolean): String? =
+    if (showExperimental) null
+    else stringResource(R.string.ui2_settings_experimental_disabled)
+
 @Composable
 private fun ToggleRow(
     title: String,
     subtitle: String?,
     checked: Boolean,
+    enabled: Boolean = true,
     onChange: (Boolean) -> Unit
 ) {
+    val contentAlpha = if (enabled) 1f else 0.5f
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onChange(!checked) }
+            .then(if (enabled) Modifier.clickable { onChange(!checked) } else Modifier)
             .padding(vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Text(title, style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = contentAlpha))
             if (subtitle != null) {
                 Text(subtitle,
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
-        Switch(checked = checked, onCheckedChange = onChange)
+        Switch(checked = checked, enabled = enabled, onCheckedChange = onChange)
     }
 }

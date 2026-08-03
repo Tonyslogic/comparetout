@@ -55,6 +55,24 @@ import kotlinx.coroutines.launch
 const val UI_VISIBILITY_KEY = "ui_visibility"
 
 data class UiVisibility(
+    /**
+     * Show features built on unofficial or unproven ground.
+     *
+     * ESBN and FusionSolar drive undocumented endpoints that the vendor can
+     * change without notice; Solis is in the design base but not yet proven in
+     * the field; the dynamic-tariff prices come from scraped public market
+     * reports. They work today, and anything already imported is the user's to
+     * keep — but a user who wants only load-bearing, supported surfaces can turn
+     * the lot off here.
+     *
+     * Defaults to TRUE so upgrading changes nothing: a user who already has ESBN
+     * or FusionSolar data does not find their source silently gone.
+     *
+     * Hiding never deletes: imported rows stay in the database and the source
+     * returns intact when re-enabled. It also stops the background catch-up
+     * workers making further calls (see the worker-side guard).
+     */
+    val showExperimental: Boolean = true,
     // Tabs
     val comparisons: Boolean = true,
     val directors: Boolean = true,
@@ -121,7 +139,31 @@ object UiVisibilityStore {
         wholesale = v.wholesale && profile.hasDynamicTariffs
     )
 
-    private fun mask(v: UiVisibility): UiVisibility = maskForProfile(maskForRegion(v))
+    /**
+     * Experimental gate, stacked last: a surface built on unofficial or unproven
+     * ground reads as hidden when [UiVisibility.showExperimental] is off,
+     * whatever its own toggle says.
+     *
+     * Stacked rather than substituted, so a user can still hide ESBN alone while
+     * keeping FusionSolar — the master flag only ever subtracts. Same shape as
+     * [maskForRegion] / [maskForProfile]; the flag itself is never masked.
+     *
+     * Which surfaces count as experimental is deliberately listed here, in one
+     * place, rather than inferred from a per-source property — adding a source
+     * to the list is then a one-line, reviewable change.
+     */
+    internal fun maskForExperimental(v: UiVisibility): UiVisibility {
+        if (v.showExperimental) return v
+        return v.copy(
+            esbn = false,           // unofficial ESB Networks endpoints
+            fusionsolar = false,    // unofficial FusionSolar endpoints
+            solis = false,          // in the design base, not yet proven
+            wholesale = false       // dynamic tariffs — scraped market reports
+        )
+    }
+
+    private fun mask(v: UiVisibility): UiVisibility =
+        maskForExperimental(maskForProfile(maskForRegion(v)))
 
     /**
      * Synchronous read (call off the main thread where possible); missing/bad JSON → all visible.
@@ -139,6 +181,7 @@ object UiVisibilityStore {
             val obj = JsonParser.parseString(raw).asJsonObject
             fun flag(name: String): Boolean = obj.get(name)?.takeIf { it.isJsonPrimitive }?.asBoolean ?: true
             UiVisibility(
+                showExperimental = flag("showExperimental"),
                 comparisons = flag("comparisons"),
                 directors = flag("directors"),
                 inverter = flag("inverter"),
@@ -159,6 +202,20 @@ object UiVisibilityStore {
             )
         }.getOrNull() ?: UiVisibility())
     }
+
+    /**
+     * Whether experimental surfaces are enabled — the guard every background
+     * catch-up worker on an unofficial API checks before doing any network I/O.
+     *
+     * Workers guard rather than being cancelled: cancelling the periodic work
+     * would leave nothing to re-enqueue it when the user turns the flag back on,
+     * so syncing would stay silently dead. Guarding means a disabled source's
+     * scheduled run wakes, does nothing, and resumes by itself on re-enable.
+     *
+     * Synchronous DataStore read — call from a worker thread, never the main one.
+     */
+    @JvmStatic
+    fun experimentalEnabled(context: Context): Boolean = read(context).showExperimental
 
     fun write(context: Context, visibility: UiVisibility) {
         val app = context.applicationContext as? TOUTCApplication ?: return

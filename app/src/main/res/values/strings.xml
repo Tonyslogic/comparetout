@@ -387,6 +387,12 @@
     <string name="ui2_settings_directors_sub">Bulk component editing tab</string>
     <string name="ui2_settings_group_components">Scenario components</string>
     <string name="ui2_settings_components_sub">Applies to the wizard and the dashboard accordions.</string>
+    <!-- Experimental / unofficial gate -->
+    <string name="ui2_settings_group_experimental">Stability</string>
+    <string name="ui2_settings_experimental">Experimental sources</string>
+    <string name="ui2_settings_experimental_sub">Show features built on unofficial or unproven ground. They work today, but the providers can change without notice.</string>
+    <string name="ui2_settings_experimental_off_note">Hidden: ESB Networks, FusionSolar, Solis and wholesale tariff prices. Nothing is deleted — anything already imported stays in the app and returns when you switch this back on. Their background updates stop too.</string>
+    <string name="ui2_settings_experimental_disabled">Turned off by Experimental sources</string>
     <string name="ui2_settings_group_sources">Data sources</string>
     <string name="ui2_settings_pvgis_sub">Solar irradiance cache</string>
     <string name="ui2_settings_cds_sub">Heat-pump weather cache</string>

@@ -123,4 +123,73 @@ class UiVisibilityMaskTest {
         assertFalse(stacked.directors)
         assertFalse(stacked.wholesale)
     }
+
+    // ── experimental gate ───────────────────────────────────────────────
+
+    /** Load-bearing: existing installs have no "showExperimental" key in their
+     *  persisted JSON, and the read defaults missing keys to true — so an
+     *  upgrade must leave every source exactly where it was. */
+    @Test
+    fun experimentalDefaultsToVisible() {
+        assertTrue(UiVisibility().showExperimental)
+        assertEquals(allVisible, UiVisibilityStore.maskForExperimental(allVisible))
+    }
+
+    @Test
+    fun turningExperimentalOffHidesTheUnofficialSources() {
+        val masked = UiVisibilityStore.maskForExperimental(
+            allVisible.copy(showExperimental = false))
+        assertFalse("unofficial ESB Networks endpoints", masked.esbn)
+        assertFalse("unofficial FusionSolar endpoints", masked.fusionsolar)
+        assertFalse("unproven", masked.solis)
+        assertFalse("scraped market reports", masked.wholesale)
+    }
+
+    /** The gate only ever subtracts: supported sources are untouched, so a user
+     *  turning it off does not lose AlphaESS, Home Assistant or Octopus. */
+    @Test
+    fun theGateNeverTouchesSupportedSources() {
+        val masked = UiVisibilityStore.maskForExperimental(
+            allVisible.copy(showExperimental = false))
+        assertTrue(masked.alphaess)
+        assertTrue(masked.homeassistant)
+        assertTrue(masked.octopus)
+        assertTrue(masked.pvgis)
+        assertTrue(masked.cds)
+        // Nor tabs, nor scenario components.
+        assertTrue(masked.comparisons)
+        assertTrue(masked.directors)
+        assertTrue(masked.heatPump)
+    }
+
+    /** The flag itself must never be masked, or it could not be turned back on. */
+    @Test
+    fun theFlagItselfSurvivesTheMask() {
+        assertFalse(UiVisibilityStore.maskForExperimental(
+            allVisible.copy(showExperimental = false)).showExperimental)
+    }
+
+    /** Stacked, not substituted: a user can still hide one experimental source
+     *  while the master is on. */
+    @Test
+    fun perSourceTogglesStillApplyWhileExperimentalIsOn() {
+        val masked = UiVisibilityStore.maskForExperimental(allVisible.copy(esbn = false))
+        assertFalse(masked.esbn)
+        assertTrue(masked.fusionsolar)
+        assertTrue(masked.solis)
+    }
+
+    /** Hiding is a display decision — it must not imply anything about stored
+     *  data, and re-enabling restores exactly the previous per-source state. */
+    @Test
+    fun reEnablingRestoresThePreviousPerSourceChoices() {
+        // User had FusionSolar off by choice, ESBN on.
+        val stored = allVisible.copy(fusionsolar = false)
+        val off = stored.copy(showExperimental = false)
+        assertFalse(UiVisibilityStore.maskForExperimental(off).esbn)
+        // Switching back on returns the stored choices, not an all-on reset.
+        val backOn = UiVisibilityStore.maskForExperimental(off.copy(showExperimental = true))
+        assertTrue(backOn.esbn)
+        assertFalse("the user's own FusionSolar choice is remembered", backOn.fusionsolar)
+    }
 }
