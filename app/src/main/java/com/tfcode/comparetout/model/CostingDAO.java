@@ -66,9 +66,14 @@ public abstract class CostingDAO {
     /**
      * Delete all cost calculations associated with a specific price plan.
      * Called when a price plan is deleted to maintain referential integrity.
-     * @param id The pricePlanID foreign key
+     * <p>
+     * Matches BOTH key columns: a plan id can appear as the import side or, for
+     * an export plan, as the export side. Matching only {@code pricePlanID} would
+     * strand every pair row that referenced a deleted export plan, and the
+     * Compare tab would show ghost pairings until a later prune.
+     * @param id The plan id, on either side of the pairing
      */
-    @Query("DELETE FROM costings WHERE pricePlanID = :id")
+    @Query("DELETE FROM costings WHERE pricePlanID = :id OR exportPlanID = :id")
     public abstract void deleteRelatedCostings(int id);
 
     /** Wipe all costings (one-time paneldata rollout refresh — they recompute after re-simulation). */
@@ -108,8 +113,10 @@ public abstract class CostingDAO {
      * @param pricePlanIndex The price plan ID to check
      * @return true if a costing record exists for this combination
      */
-    @Query("SELECT EXISTS (SELECT * FROM costings WHERE scenarioID = :scenarioID AND pricePlanId = :pricePlanIndex) AS OK")
-    public abstract boolean costingExists(long scenarioID, long pricePlanIndex);
+    @Query("SELECT EXISTS (SELECT * FROM costings WHERE scenarioID = :scenarioID " +
+            "AND pricePlanId = :pricePlanIndex AND exportPlanID = :exportPlanIndex) AS OK")
+    public abstract boolean costingExists(long scenarioID, long pricePlanIndex,
+                                          long exportPlanIndex);
 
     /**
      * Export all cost comparison data in CSV-ready format.
@@ -141,7 +148,14 @@ public abstract class CostingDAO {
      * that have been deleted, ensuring referential integrity. The NOT IN subquery
      * identifies costings with foreign keys that no longer have corresponding
      * parent records in the PricePlans table.
+     * <p>
+     * The second clause covers the export side of a pair. {@code exportPlanID = 0}
+     * is the bundled sentinel, not a plan id, so it is excluded before the
+     * existence test — otherwise every legacy row would be pruned on sight.
      */
-    @Query("DELETE FROM costings WHERE pricePlanId NOT IN (SELECT pricePlanIndex FROM PricePlans)")
+    @Query("DELETE FROM costings " +
+            "WHERE pricePlanId NOT IN (SELECT pricePlanIndex FROM PricePlans) " +
+            "   OR (exportPlanID != 0 " +
+            "       AND exportPlanID NOT IN (SELECT pricePlanIndex FROM PricePlans))")
     public abstract void pruneCostings();
 }

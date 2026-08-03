@@ -17,16 +17,32 @@
 package com.tfcode.comparetout.model.costings;
 
 import androidx.annotation.NonNull;
+import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.Index;
 
 @Entity(tableName = "costings",
-        primaryKeys = {"scenarioID", "pricePlanID"},
-        indices = {@Index(value = {"scenarioID","pricePlanID"}, unique = true) })
+        primaryKeys = {"scenarioID", "pricePlanID", "exportPlanID"},
+        indices = {@Index(value = {"scenarioID","pricePlanID","exportPlanID"}, unique = true) })
 public class Costings {
+
+    /**
+     * {@link #exportPlanID} value meaning "this import plan's own export side" —
+     * its SELL DayRates, or failing those the scalar {@link
+     * com.tfcode.comparetout.model.priceplan.PricePlan#getFeed()}. Every pre-v17
+     * row migrates to this, so bundled-export regions are unaffected.
+     */
+    public static final long BUNDLED_EXPORT = 0L;
 
     private long scenarioID;
     private long pricePlanID;
+    /**
+     * The separate export contract this costing was priced against, or
+     * {@link #BUNDLED_EXPORT}. Part of the primary key (v17): one import plan
+     * yields one row per export plan it is paired with.
+     */
+    @ColumnInfo(name = "exportPlanID", defaultValue = "0")
+    private long exportPlanID = BUNDLED_EXPORT;
     private double buy;
     private double sell;
     private SubTotals subTotals;
@@ -78,6 +94,19 @@ public class Costings {
 
     public void setPricePlanID(long pricePlanID) {
         this.pricePlanID = pricePlanID;
+    }
+
+    public long getExportPlanID() {
+        return exportPlanID;
+    }
+
+    public void setExportPlanID(long exportPlanID) {
+        this.exportPlanID = exportPlanID;
+    }
+
+    /** True for the legacy/bundled row — export priced from the import plan itself. */
+    public boolean isBundledExport() {
+        return exportPlanID == BUNDLED_EXPORT;
     }
 
     public double getBuy() {

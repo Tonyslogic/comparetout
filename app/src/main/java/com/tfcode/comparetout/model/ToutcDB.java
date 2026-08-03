@@ -18,11 +18,14 @@ package com.tfcode.comparetout.model;
 
 import android.content.Context;
 
+import androidx.annotation.NonNull;
 import androidx.room.AutoMigration;
 import androidx.room.Database;
 import androidx.room.Room;
 import androidx.room.RoomDatabase;
 import androidx.room.TypeConverters;
+import androidx.room.migration.Migration;
+import androidx.sqlite.db.SupportSQLiteDatabase;
 
 import com.tfcode.comparetout.model.costings.Costings;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawEnergy;
@@ -30,6 +33,7 @@ import com.tfcode.comparetout.model.importers.alphaess.AlphaESSRawPower;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformMeta;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
 import com.tfcode.comparetout.model.priceplan.DayRate;
+import com.tfcode.comparetout.model.priceplan.PlanCombination;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.Battery;
 import com.tfcode.comparetout.model.scenario.DischargeToGrid;
@@ -84,8 +88,9 @@ import java.util.concurrent.Executors;
         AlphaESSRawPower.class, AlphaESSRawEnergy.class,
         AlphaESSTransformedData.class,
         AlphaESSTransformMeta.class,
-        ScenarioReadiness.class
-        }, version = 16,
+        ScenarioReadiness.class,
+        PlanCombination.class
+        }, version = 17,
         autoMigrations = {
             @AutoMigration(from = 1, to = 2),
             @AutoMigration(from = 2, to = 3),
@@ -220,6 +225,76 @@ public abstract class ToutcDB extends RoomDatabase {
      */
     public abstract com.tfcode.comparetout.model.dao.ReadinessDAO readinessDAO();
 
+    /**
+     * Data Access Object for ticked (import × export) plan pairings.
+     * See {@link com.tfcode.comparetout.model.priceplan.PlanCombination}.
+     */
+    public abstract com.tfcode.comparetout.model.dao.CombinationDAO combinationDAO();
+
+    /**
+     * v16 → v17: separate export contracts (plans/region/import-plans.md §2.3).
+     * <p>
+     * Hand-written, not an AutoMigration, because {@code costings} gains a third
+     * primary-key column and Room cannot infer a key change — and because a
+     * version step must be entirely auto or entirely manual, so the two additive
+     * {@code PricePlans} columns ride along here too.
+     * <p>
+     * The DDL is copied verbatim from the exported {@code 17.json}, index names
+     * included: Room validates the post-migration schema against its own
+     * generated one and throws on any difference.
+     * <p>
+     * Every existing costing row becomes {@code exportPlanID = 0} — "priced
+     * against this import plan's own export side" — which is exactly its old
+     * meaning, so bundled-export regions see no change.
+     */
+    public static final Migration MIGRATION_16_17 = new Migration(16, 17) {
+        @Override
+        public void migrate(@NonNull SupportSQLiteDatabase db) {
+            // ── PricePlans: direction + compatibility tags, and a unique key that
+            //    now admits an import and an export plan sharing a name.
+            db.execSQL("ALTER TABLE `PricePlans` ADD COLUMN `direction` INTEGER NOT NULL DEFAULT 0");
+            db.execSQL("ALTER TABLE `PricePlans` ADD COLUMN `compatibleWith` TEXT");
+            db.execSQL("DROP INDEX IF EXISTS `index_PricePlans_supplier_planName`");
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS "
+                    + "`index_PricePlans_supplier_planName_direction` "
+                    + "ON `PricePlans` (`supplier`, `planName`, `direction`)");
+
+            // ── plan_combinations: the ticked (import × export) pairings.
+            db.execSQL("CREATE TABLE IF NOT EXISTS `plan_combinations` ("
+                    + "`importPlanID` INTEGER NOT NULL, "
+                    + "`exportPlanID` INTEGER NOT NULL, "
+                    + "`source` TEXT, "
+                    + "PRIMARY KEY(`importPlanID`, `exportPlanID`))");
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_plan_combinations_exportPlanID` "
+                    + "ON `plan_combinations` (`exportPlanID`)");
+
+            // ── costings: recreate with the three-column primary key. SQLite
+            //    cannot ALTER a primary key, so this is create/copy/drop/rename.
+            db.execSQL("CREATE TABLE IF NOT EXISTS `costings_new` ("
+                    + "`scenarioID` INTEGER NOT NULL, "
+                    + "`pricePlanID` INTEGER NOT NULL, "
+                    + "`exportPlanID` INTEGER NOT NULL DEFAULT 0, "
+                    + "`buy` REAL NOT NULL, "
+                    + "`sell` REAL NOT NULL, "
+                    + "`subTotals` TEXT, "
+                    + "`scenarioName` TEXT, "
+                    + "`fullPlanName` TEXT, "
+                    + "`net` REAL NOT NULL, "
+                    + "PRIMARY KEY(`scenarioID`, `pricePlanID`, `exportPlanID`))");
+            db.execSQL("INSERT INTO `costings_new` "
+                    + "(`scenarioID`, `pricePlanID`, `exportPlanID`, `buy`, `sell`, "
+                    + " `subTotals`, `scenarioName`, `fullPlanName`, `net`) "
+                    + "SELECT `scenarioID`, `pricePlanID`, 0, `buy`, `sell`, "
+                    + "       `subTotals`, `scenarioName`, `fullPlanName`, `net` "
+                    + "FROM `costings`");
+            db.execSQL("DROP TABLE `costings`");
+            db.execSQL("ALTER TABLE `costings_new` RENAME TO `costings`");
+            db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS "
+                    + "`index_costings_scenarioID_pricePlanID_exportPlanID` "
+                    + "ON `costings` (`scenarioID`, `pricePlanID`, `exportPlanID`)");
+        }
+    };
+
     private static volatile ToutcDB INSTANCE;
     private static final int NUMBER_OF_THREADS = 8;
     static final ExecutorService databaseWriteExecutor =
@@ -242,6 +317,7 @@ public abstract class ToutcDB extends RoomDatabase {
                 if (INSTANCE == null) {
                     INSTANCE = Room.databaseBuilder(context.getApplicationContext(),
                                     ToutcDB.class, "toutc_database").setQueryExecutor(databaseWriteExecutor)
+                            .addMigrations(MIGRATION_16_17)
                             .build();
                 }
             }

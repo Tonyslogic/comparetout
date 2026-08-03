@@ -38,8 +38,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+// The unique key includes direction (v17): a supplier may sell an import and an
+// export tariff under the same display name, and without direction in the key the
+// second insert is swallowed by addNewPricePlanWithDayRates' constraint catch.
+// Widening can never conflict — rows unique on (supplier, planName) are unique on
+// (supplier, planName, direction) too.
 @Entity(tableName = "PricePlans", indices = {
-        @Index(value = {"supplier","planName"}, unique = true) })
+        @Index(value = {"supplier","planName","direction"}, unique = true) })
 
 /*
   Entity representing an electricity pricing plan with comprehensive tariff structure.
@@ -100,6 +105,30 @@ public class PricePlan {
     // Restrictions pattern. See DynamicTerms.
     @Nullable
     private DynamicTerms dynamicTerms = null;
+    /**
+     * Which side of the meter this plan prices. v17 — every pre-v17 row is an
+     * import plan.
+     *
+     * <p>An EXPORT plan is the UK-style separate export contract: it carries SELL
+     * DayRates only, has no standing charge or sign-up bonus, is never costed on
+     * its own, and is paired with an import plan by the combination selector.
+     * Regions where export is bundled into the import tariff (IE) never create
+     * one — there, export is the scalar {@link #feed}.
+     */
+    @ColumnInfo(name = "direction", defaultValue = "0")
+    private int direction = DIRECTION_IMPORT;
+    /**
+     * EXPORT plans only: which import plans this one may be paired with
+     * (supplier bundling). Null or empty = open market, pairs with anything.
+     * Stored as JSON TEXT via TypeConverter, the Restrictions pattern.
+     */
+    @Nullable
+    private CompatibilityTags compatibleWith = null;
+
+    /** Buys electricity from the grid — every plan before v17. */
+    public static final int DIRECTION_IMPORT = 0;
+    /** Sells electricity to the grid — a separate export contract. */
+    public static final int DIRECTION_EXPORT = 1;
 
 
     @Override
@@ -110,8 +139,13 @@ public class PricePlan {
 
         if(object instanceof PricePlan)
         {
+            // Identity must include direction, matching the unique index. Without
+            // it an import and an export plan sharing a name would collide as one
+            // key in loadPricePlans()' Map<PricePlan, List<DayRate>>, and
+            // checkNameUsageIn would reject the second as a duplicate name.
             return planName.equals(((PricePlan) object).getPlanName())
-                    && supplier.equals(((PricePlan) object).getSupplier());
+                    && supplier.equals(((PricePlan) object).getSupplier())
+                    && direction == ((PricePlan) object).getDirection();
         }
         return false;
     }
@@ -119,7 +153,7 @@ public class PricePlan {
     @Override
     public int hashCode()
     {
-        return (supplier + planName).hashCode();
+        return (supplier + planName + direction).hashCode();
     }
 
 
@@ -234,6 +268,52 @@ public class PricePlan {
         this.dynamicTerms = dynamicTerms;
     }
 
+    public int getDirection() {
+        return direction;
+    }
+
+    public void setDirection(int direction) {
+        this.direction = direction;
+    }
+
+    /** True for a separate export contract; false for every import plan. */
+    public boolean isExport() {
+        return direction == DIRECTION_EXPORT;
+    }
+
+    @Nullable
+    public CompatibilityTags getCompatibleWith() {
+        return compatibleWith;
+    }
+
+    public void setCompatibleWith(@Nullable CompatibilityTags compatibleWith) {
+        this.compatibleWith = compatibleWith;
+    }
+
+    /**
+     * May this export plan be paired with {@code importPlan}? Untagged export
+     * plans are open-market and pair with anything; an import plan is never
+     * "compatible" in this sense (pairing is export → import).
+     */
+    public boolean isCompatibleWith(@Nullable PricePlan importPlan) {
+        if (!isExport()) return false;
+        if (null == compatibleWith) return true;
+        return compatibleWith.matches(importPlan);
+    }
+
+    /**
+     * The rate direction this plan's own DayRates are authored in: an export
+     * plan's primary rate set is SELL, an import plan's is BUY.
+     */
+    public int primaryRateType() {
+        return isExport() ? DayRate.RATE_SELL : DayRate.RATE_BUY;
+    }
+
+    /** This plan's own rates, filtered to the set it actually prices with. */
+    public List<DayRate> primaryRates(List<DayRate> drs) {
+        return isExport() ? DayRate.sellRates(drs) : DayRate.buyRates(drs);
+    }
+
     /** A dynamic plan's rates are generated from its terms, never hand-edited. */
     public boolean isDynamic() {
         return !(null == dynamicTerms);
@@ -241,11 +321,15 @@ public class PricePlan {
 
     /**
      * A dynamic plan whose prices have not been materialised yet (terms present,
-     * no BUY rates). Pending plans must be skipped by costing — an empty lookup
-     * would price every row at 0 and rank the plan "best".
+     * no rates in its own direction). Pending plans must be skipped by costing —
+     * an empty lookup would price every row at 0 and rank the plan "best".
+     *
+     * <p>Direction matters: a dynamic EXPORT plan has no BUY rates by design, so
+     * testing the BUY set would leave it permanently "pending", never costed and
+     * badged with a retry that can never clear.
      */
     public boolean isPendingDynamic(List<DayRate> drs) {
-        return isDynamic() && DayRate.buyRates(drs).isEmpty();
+        return isDynamic() && primaryRates(drs).isEmpty();
     }
 
     public PricePlan copy() {
@@ -264,6 +348,8 @@ public class PricePlan {
         // Callers copy DayRates separately, so a copied dynamic plan is a
         // terms-only (pending) copy — tweak terms, rematerialise.
         copy.dynamicTerms = dynamicTerms;
+        copy.direction = direction;
+        copy.compatibleWith = compatibleWith;
         return copy;
     }
 
@@ -278,6 +364,8 @@ public class PricePlan {
     public static final int INVALID_PLAN_END_BEFORE_START = 8;
     public static final int INVALID_PLAN_MISSING_MINUTES = 9;
     public static final int INVALID_PLAN_INCOMPLETE_DYNAMIC_TERMS = 10;
+    /** An export plan carrying BUY rates — a direction mix-up, not a tariff. */
+    public static final int INVALID_PLAN_EXPORT_HAS_IMPORT_RATES = 11;
     // SELL (export) rate failures reuse the buy-side codes offset by this; see
     // getInvalidReason, which strips the offset and appends "(export)".
     public static final int EXPORT_REASON_OFFSET = 100;
@@ -285,6 +373,20 @@ public class PricePlan {
     public int validatePlan(List<DayRate> drs) {
         List<DayRate> buys = DayRate.buyRates(drs);
         List<DayRate> sells = DayRate.sellRates(drs);
+        // An EXPORT plan's mandatory set is SELL and it has no BUY rates at all —
+        // the mirror image of an import plan. Failures are reported with the
+        // export offset because they are, by definition, export-rate problems.
+        if (isExport()) {
+            if (isDynamic() && sells.isEmpty()) {
+                return dynamicTerms.isComplete()
+                        ? VALID_PLAN : INVALID_PLAN_INCOMPLETE_DYNAMIC_TERMS;
+            }
+            int sellResult = validateRateSet(sells);
+            if (sellResult != VALID_PLAN) return sellResult + EXPORT_REASON_OFFSET;
+            // A stray BUY rate on an export plan is a data error, not a tariff.
+            if (!buys.isEmpty()) return INVALID_PLAN_EXPORT_HAS_IMPORT_RATES;
+            return VALID_PLAN;
+        }
         // Terms-only branch: a dynamic plan with no BUY rates is a valid "pending"
         // plan awaiting materialisation, provided its terms are materialisable.
         // Once materialised (BUY rates present) the normal full checks apply.
@@ -391,6 +493,8 @@ public class PricePlan {
                     "Each day must have a price for every minute (0-1439)";
             case INVALID_PLAN_INCOMPLETE_DYNAMIC_TERMS ->
                     "Dynamic terms need a market, multiplier and adder";
+            case INVALID_PLAN_EXPORT_HAS_IMPORT_RATES ->
+                    "An export plan cannot hold import rates";
             default -> "Unknown reason for invalidity";
         };
     }

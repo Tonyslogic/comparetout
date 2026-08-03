@@ -103,8 +103,12 @@ class OctopusTariffPlans @Inject constructor(
             val products = client.products
             val feedRate = outgoingFixedRate(client, products, gsp)
 
-            val existingNames: Set<String> =
-                repository.allPricePlansNow?.mapNotNull { it.planName }?.toSet().orEmpty()
+            // Import-direction names only. An export plan sharing a name with an
+            // import product must not make the import product look "already
+            // generated" and be skipped (the v17 unique key allows the overlap).
+            val existingNames: Set<String> = repository.allPricePlansNow
+                ?.filter { it.direction == PricePlan.DIRECTION_IMPORT }
+                ?.mapNotNull { it.planName }?.toSet().orEmpty()
 
             var added = 0
             var existing = 0
@@ -346,8 +350,12 @@ class OctopusTariffPlans @Inject constructor(
     private fun favouriteIfUnset(planName: String) {
         runBlocking { favouriteStore.ensureLoaded() }
         if (favouriteStore.id.value != null) return
+        // Import direction only — an export plan is never the user's "my plan".
         val planId = repository.allPricePlansNow
-            ?.firstOrNull { it.supplier == SUPPLIER && it.planName == planName }
+            ?.firstOrNull {
+                it.supplier == SUPPLIER && it.planName == planName &&
+                        it.direction == PricePlan.DIRECTION_IMPORT
+            }
             ?.pricePlanIndex ?: return
         favouriteStore.setFavourite(planId)
     }

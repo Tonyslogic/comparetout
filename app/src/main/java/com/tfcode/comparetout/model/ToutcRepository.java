@@ -575,8 +575,14 @@ public class ToutcRepository {
         ToutcDB.databaseWriteExecutor.execute(costingDAO::pruneCostings);
     }
 
+    /** Bundled-export row: this import plan priced against its own export side. */
     public boolean costingExists(long scenarioID, long pricePlanIndex) {
-        return costingDAO.costingExists(scenarioID, pricePlanIndex);
+        return costingDAO.costingExists(scenarioID, pricePlanIndex, Costings.BUNDLED_EXPORT);
+    }
+
+    /** One (import × export) pairing; pass {@link Costings#BUNDLED_EXPORT} for none. */
+    public boolean costingExists(long scenarioID, long pricePlanIndex, long exportPlanIndex) {
+        return costingDAO.costingExists(scenarioID, pricePlanIndex, exportPlanIndex);
     }
 
     public void removeOldPanelData(Long panelID) {

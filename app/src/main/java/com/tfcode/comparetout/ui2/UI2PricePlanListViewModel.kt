@@ -176,14 +176,16 @@ class UI2PricePlanListViewModel @Inject constructor(
     ): ImportOutcome = withContext(Dispatchers.IO) {
         var replaced = 0
         var added = 0
-        val existingNames: Set<String> =
-            repository.allPricePlansNow?.map { it.planName }?.toSet().orEmpty()
+        // Name AND direction, matching the v17 unique key, so an incoming export
+        // plan is not miscounted as replacing a same-named import plan.
+        val existingNames: Set<Pair<String, Int>> =
+            repository.allPricePlansNow?.map { it.planName to it.direction }?.toSet().orEmpty()
         list.forEach { pp ->
             val plan = JsonTools.createPricePlan(pp)
             val drs = ArrayList<DayRate>()
             pp.rates?.forEach { drj -> drs.add(JsonTools.createDayRate(drj)) }
             repository.insert(plan, drs, clobber)
-            if (plan.planName in existingNames) replaced += 1 else added += 1
+            if ((plan.planName to plan.direction) in existingNames) replaced += 1 else added += 1
             // A terms-only dynamic plan lands pending; auto-materialise it
             // (self-heal poke — the badge offers tap-to-retry if this fails).
             DynamicTariffWorker.maybeEnqueuePendingImport(getApplication(), pp)

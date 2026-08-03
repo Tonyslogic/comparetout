@@ -433,14 +433,18 @@ class SnapshotImporter(private val application: Application) {
 
         val live = ToutcDB.getDatabase(application)
         val plansDAO = live.pricePlanDAO()
-        // Snapshot existing names so we can classify each imported plan.
-        val existingNames = plansDAO.loadPricePlansNow()?.map { it.planName }?.toHashSet().orEmpty()
+        // Snapshot existing plan identities so we can classify each imported plan.
+        // Keyed on name AND direction, matching the v17 unique index: an import
+        // plan named "Flat" must not make an incoming EXPORT plan of the same
+        // name look like a collision and get skipped.
+        val existingNames = plansDAO.loadPricePlansNow()
+            ?.map { it.planName to it.direction }?.toHashSet().orEmpty()
 
         var added = 0
         var replaced = 0
         var skipped = 0
         plans.forEach { (importedPlan, importedDayRates) ->
-            val collides = importedPlan.planName in existingNames
+            val collides = (importedPlan.planName to importedPlan.direction) in existingNames
             if (collides && !replaceExisting) {
                 skipped += 1
                 return@forEach

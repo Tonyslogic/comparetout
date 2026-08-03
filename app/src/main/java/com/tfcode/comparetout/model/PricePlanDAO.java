@@ -93,8 +93,12 @@ public abstract class PricePlanDAO {
     long addNewPricePlanWithDayRates(PricePlan pp, List<DayRate> drs, boolean clobber) {
         long pricePlanID = 0;
         if (clobber) {
-            // Find existing plan by concatenated supplier+planName identifier
-            long oldPricePlanID = getPricePlanID(pp.getSupplier() + pp.getPlanName());
+            // Match on the FULL unique key, direction included. Matching on
+            // supplier+planName alone would let "replace this export plan" delete
+            // the same-named import plan (and all its day rates) instead — silent
+            // data loss, once v17 made same-name-across-directions legal.
+            long oldPricePlanID = getPricePlanID(
+                    pp.getSupplier(), pp.getPlanName(), pp.getDirection());
             deletePricePlan(oldPricePlanID);
         }
         try {
@@ -114,19 +118,25 @@ public abstract class PricePlanDAO {
     }
 
     /**
-     * Find a price plan ID by its unique supplier+planName combination.
+     * Find a price plan ID by its full unique key: supplier + planName + direction.
      * <p>
-     * Query: SELECT pricePlanIndex FROM PricePlans WHERE supplier || planName = :planSupplierName
+     * Query: SELECT pricePlanIndex FROM PricePlans
+     *        WHERE supplier = :supplier AND planName = :planName AND direction = :direction
      * <p>
-     * This concatenates supplier and planName fields to create a unique identifier
-     * for price plan lookup. The concatenation approach allows flexible matching
-     * while maintaining uniqueness constraints.
-     * 
-     * @param planSupplierName Concatenated supplier+planName string
+     * Discrete columns, not the old {@code supplier || planName} concatenation.
+     * The concatenation was ambiguous in two ways: it could not tell an import
+     * plan from a same-named export plan (v17 made that pairing legal), and it
+     * conflated supplier "AB" + plan "C" with supplier "A" + plan "BC".
+     *
+     * @param supplier  the plan's supplier, matched exactly
+     * @param planName  the plan's name, matched exactly
+     * @param direction {@link com.tfcode.comparetout.model.priceplan.PricePlan#DIRECTION_IMPORT}
+     *                  or {@code DIRECTION_EXPORT}
      * @return The pricePlanIndex of the matching plan, or 0 if not found
      */
-    @Query("SELECT pricePlanIndex FROM PricePlans WHERE supplier || planName  = :planSupplierName")
-    public abstract long getPricePlanID(String planSupplierName);
+    @Query("SELECT pricePlanIndex FROM PricePlans " +
+            "WHERE supplier = :supplier AND planName = :planName AND direction = :direction")
+    public abstract long getPricePlanID(String supplier, String planName, int direction);
 
     /**
      * Delete all price plans and day rates from the database.
