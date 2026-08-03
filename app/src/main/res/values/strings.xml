@@ -748,6 +748,23 @@
     <string name="ui2_ppl_inactive_cd">Inactive — tap to activate for the dashboard</string>
     <string name="ui2_ppl_spec_standing">Standing</string>
     <string name="ui2_ppl_spec_feed_in">Feed-in</string>
+    <!-- Export plans / combination selection (plans/region/import-plans.md Phase 5) -->
+    <string name="ui2_ppl_spec_avg_export">Avg export</string>
+    <string name="ui2_ppl_segment_import">Import (%1$d)</string>
+    <string name="ui2_ppl_segment_export">Export (%1$d)</string>
+    <string name="ui2_ppl_header_hint_export">Export contracts are bought separately from your import supply. Pair them below.</string>
+    <string name="ui2_ppl_compat_any">Pairs with any supplier</string>
+    <string name="ui2_ppl_compat_only">Only with %1$s</string>
+    <string name="ui2_ppl_compat_hint">Tap to change which import plans this export contract can be paired with.</string>
+    <string name="ui2_ppl_compat_title">Compatible import plans</string>
+    <string name="ui2_ppl_compat_none">No restrictions — this export contract pairs with any import plan.</string>
+    <string name="ui2_ppl_compat_current">Pairs only with these:</string>
+    <string name="ui2_ppl_compat_add">Add a supplier</string>
+    <string name="ui2_ppl_combinations_title">Combinations</string>
+    <string name="ui2_ppl_combinations_of">%1$d of %2$d selected</string>
+    <string name="ui2_ppl_combinations_hint">Pick which export contract goes with each import plan. Every pairing is already costed — ticking decides what appears in Compare.</string>
+    <string name="ui2_ppl_combinations_incompatible">Unavailable — %1$s only</string>
+    <string name="ui2_ppl_combinations_feed_warning">%1$s has a bundled export rate of %2$s %3$s. Choosing a separate export contract replaces it; the bundled rate will not be counted.</string>
     <string name="ui2_ppl_spec_bonus">Bonus</string>
     <string name="ui2_ppl_spec_rates">Rates</string>
     <plurals name="ui2_ppl_day_rates">
@@ -845,6 +862,15 @@
     <string name="ui2_strategy_ev">Reschedule EV charging into the cheapest half-hours (home 18:00 → departure 08:00, same energy per session)</string>
     <string name="ui2_strategy_generated">Created “%1$s” (%2$d charge, %3$d export rows) — simulating now.</string>
     <string name="ui2_strategy_failed">Couldn\'t generate: %1$s</string>
+    <plurals name="ui2_ppl_count_export">
+        <item quantity="one">%d export contract</item>
+        <item quantity="other">%d export contracts</item>
+    </plurals>
+    <plurals name="ui2_ppl_combinations_count">
+        <item quantity="zero">No pairings selected</item>
+        <item quantity="one">%d pairing selected</item>
+        <item quantity="other">%d pairings selected</item>
+    </plurals>
     <plurals name="ui2_ppl_count">
         <item quantity="one">%1$d plan</item>
         <item quantity="other">%1$d plans</item>

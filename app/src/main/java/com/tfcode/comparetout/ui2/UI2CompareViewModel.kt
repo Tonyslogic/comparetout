@@ -1045,8 +1045,23 @@ class UI2CompareViewModel @Inject constructor(
         val axis = costBucketAxis(scale, parseOr(from, LocalDate.now()), parseOr(to, LocalDate.now()))
         val n = axis.labels.size.coerceAtLeast(1)
         val costings = repository.getAllCostingsForScenario(sim.scenarioId)
-        return plans.map { plan ->
-            val c = costings.firstOrNull { it.pricePlanID == plan.pricePlanIndex }
+        val plansById = plans.associateBy { it.pricePlanIndex }
+        // One row per COSTING, not per plan: since v17 an import plan yields either
+        // a bundled row or one row per export contract it is paired with. Driving
+        // off the costings is also what keeps a pair's row from appearing before
+        // it has actually been costed.
+        val rows = costings.mapNotNull { c ->
+            val plan = plansById[c.pricePlanID] ?: return@mapNotNull null
+            Triple(plan, plansById[c.exportPlanID], c)
+        }
+        // Plans with no costing at all still need a row, so the table can say
+        // "not yet computed" rather than silently omitting them.
+        val costedPlanIds = costings.map { it.pricePlanID }.toSet()
+        val uncosted = plans.filter {
+            it.pricePlanIndex !in costedPlanIds && !it.isExport
+        }.map { Triple(it, null, null) }
+
+        return (rows + uncosted).map { (plan, exportPlan, c) ->
             val net = (c?.net ?: 0.0) / 100.0
             val buy = (c?.buy ?: 0.0) / 100.0
             val sell = (c?.sell ?: 0.0) / 100.0
@@ -1064,7 +1079,10 @@ class UI2CompareViewModel @Inject constructor(
                 subjectName = subjectName,
                 isSimulation = true,
                 planId = plan.pricePlanIndex,
-                planName = "${plan.supplier} · ${plan.planName}",
+                // A pair names both contracts; a bundled row reads exactly as before.
+                planName = if (exportPlan == null) "${plan.supplier} · ${plan.planName}"
+                           else "${plan.supplier} · ${plan.planName} → " +
+                                "${exportPlan.supplier} · ${exportPlan.planName}",
                 available = c != null,
                 net = net,
                 buy = buy,

@@ -138,6 +138,10 @@ data class PricePlanBuilder(
     // Supplier terms of a dynamic (wholesale-tracking) plan. Non-null gates the
     // whole rate editor: the 365 generated day-rates are never loaded into
     // builders or hand-edited — the terms card regenerates them instead.
+    // Which side of the meter this plan prices. Fixed at creation (from the list
+    // segment the user was on) or loaded with the plan; the wizard never offers
+    // to flip it, because the rate set's meaning would change underneath the user.
+    val direction: Int = PricePlan.DIRECTION_IMPORT,
     val dynamicTerms: DynamicTerms? = null,
     // True only when this dynamic plan already has generated BUY rates in the DB.
     // Kept separate from dynamicTerms.year (the chosen backtest year, which the
@@ -146,6 +150,7 @@ data class PricePlanBuilder(
     val materialised: Boolean = false
 ) {
     val isDynamic: Boolean get() = dynamicTerms != null
+    val isExport: Boolean get() = direction == PricePlan.DIRECTION_EXPORT
     /** Distinct rate values (c/kWh) across all day-rate bands — the values a restriction can attach to. */
     val uniqueRates: List<Double>
         get() = dayRates.flatMap { dr -> dr.bands.map { it.price } }.distinct().sorted()
@@ -163,7 +168,13 @@ class UI2PricePlanViewModel @Inject constructor(
     val pricePlanId: Long = savedStateHandle["PricePlanID"] ?: -1L
     val isEditMode: Boolean get() = pricePlanId != -1L
 
-    private val _builder = MutableStateFlow(PricePlanBuilder())
+    /** Direction for a NEW plan — the list segment the user created it from.
+     *  Ignored in edit mode, where the plan's own direction is loaded. */
+    private val newPlanDirection: Int =
+        savedStateHandle["Direction"] ?: PricePlan.DIRECTION_IMPORT
+
+    private val _builder = MutableStateFlow(
+        PricePlanBuilder(direction = savedStateHandle["Direction"] ?: PricePlan.DIRECTION_IMPORT))
     val builder = _builder.asStateFlow()
 
     private val _isLoading = MutableStateFlow(isEditMode)
@@ -374,12 +385,13 @@ class UI2PricePlanViewModel @Inject constructor(
         //     has no minuteRange at all (legacy exports pre-dating it).
         // Day-rate ids are reset to local negatives so saving never collides
         // with the source plan's DB rows.
-        // Same BUY/SELL split as toBuilder: only import rates become editor
-        // cards. An imported plan carrying export rates (Octopus Agile, a
-        // dynamic plan's feed transform) would otherwise have them rewritten
-        // as import rates on the next Save.
+        // Same split as toBuilder, against the INCOMING plan's direction: the
+        // editor shows the plan's own rate set and carries the rest untouched.
+        // Without this, an imported plan's export rates would be rewritten as
+        // import rates on the next Save.
+        val wantSell = parsedPlan.isExport
         val (importRateJson, exportRateJson) = json.rates.orEmpty()
-            .partition { !"sell".equals(it.rateType, ignoreCase = true) }
+            .partition { "sell".equals(it.rateType, ignoreCase = true) == wantSell }
         val carriedRates = exportRateJson.map { JsonTools.createDayRate(it) }
             .onEach { it.dayRateIndex = 0L }
         val dayRateBuilders = importRateJson.map { drj ->
@@ -417,6 +429,7 @@ class UI2PricePlanViewModel @Inject constructor(
                 deemedExport = parsedPlan.isDeemedExport,
                 lastUpdate = parsedPlan.lastUpdate ?: "",
                 location = parsedPlan.location,
+                direction = parsedPlan.direction,
                 dayRates = if (parsedPlan.isDynamic) emptyList() else dayRateBuilders,
                 passthroughRates = if (parsedPlan.isDynamic) emptyList() else carriedRates,
                 restrictionsActive = parsedPlan.restrictions?.isActive == true,
@@ -611,18 +624,22 @@ internal fun PricePlan.toBuilder(rates: List<DayRate>): PricePlanBuilder = Price
     deemedExport = isDeemedExport,
     lastUpdate = lastUpdate,
     location = location,
+    direction = direction,
     // A dynamic plan's 365 generated rates never become editor cards — the
     // terms card is the only mutation path; save passes the rates through.
-    // Non-dynamic plans expose only their BUY rates to the editor.
+    // Otherwise the editor shows the plan's OWN rate set: BUY for an import
+    // plan, SELL for an export contract.
     dayRates = when {
         isDynamic -> emptyList()
-        else -> DayRate.buyRates(rates).let { buys ->
-            if (buys.isEmpty()) listOf(DayRateBuilder()) else buys.map { it.toBuilder() }
+        else -> primaryRates(rates).let { own ->
+            if (own.isEmpty()) listOf(DayRateBuilder()) else own.map { it.toBuilder() }
         }
     },
-    // Dynamic plans route their whole rate set through saveDynamic's keepRates,
-    // so adding them here too would duplicate every row on Save.
-    passthroughRates = if (isDynamic) emptyList() else DayRate.sellRates(rates),
+    // Everything the editor did NOT show, carried across Save untouched. Dynamic
+    // plans route their whole rate set through saveDynamic's keepRates, so adding
+    // them here too would duplicate every row.
+    passthroughRates = if (isDynamic) emptyList()
+                       else rates.filterNot { it.rateType == primaryRateType() },
     restrictionsActive = restrictions?.isActive == true,
     restrictionEntries = restrictions.toEntryBuilders(),
     dynamicTerms = dynamicTerms,
@@ -764,7 +781,11 @@ internal fun PricePlanBuilder.toEntities(): Pair<PricePlan, List<DayRate>> {
         restrictions = buildRestrictions(
             this@toEntities.restrictionsActive, this@toEntities.restrictionEntries)
         dynamicTerms = this@toEntities.dynamicTerms
+        direction = this@toEntities.direction
     }
+    // The editor's rate set is written in the plan's own direction: an export
+    // contract's bands are SELL prices, not import prices.
+    val ownRateType = plan.primaryRateType()
     val rates = dayRates.map { dr ->
         DayRate().apply {
             // Preserve the DB-assigned id (positive) so the DAO's @Upsert performs
@@ -772,6 +793,7 @@ internal fun PricePlanBuilder.toEntities(): Pair<PricePlan, List<DayRate>> {
             // are reset to 0 to let SQLite auto-generate a new id on insert.
             if (dr.id > 0L) dayRateIndex = dr.id
             pricePlanId = this@toEntities.pricePlanId
+            rateType = ownRateType
             startDate = dr.startDate
             endDate = dr.endDate
             days = IntHolder().also { h -> h.ints = dr.daysOfWeek.sorted().toMutableList() }

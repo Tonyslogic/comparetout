@@ -140,6 +140,8 @@ public class ToutcRepository {
 
     /** Ticked (import × export) plan pairings — see CombinationOps. */
     private final com.tfcode.comparetout.model.ops.CombinationOps combinationOps;
+    private final LiveData<java.util.List<com.tfcode.comparetout.model.priceplan.PlanCombination>>
+            planCombinations;
     private final CostingDAO costingDAO;
     private final LiveData<List<Costings>> allCostings;
 
@@ -214,6 +216,7 @@ public class ToutcRepository {
         panelPVSummary = panelDAO.getPanelPVSummary();
 
         combinationOps = new com.tfcode.comparetout.model.ops.CombinationOps(db);
+        planCombinations = db.combinationDAO().loadCombinations();
         costingDAO = db.costingDAO();
         allCostings = costingDAO.loadCostings();
 
@@ -448,6 +451,35 @@ public class ToutcRepository {
         if (clobber) costingDAO.deleteRelatedCostings((int) id);
         readinessDAO.markAllScenariosNeedCosting(System.currentTimeMillis());
         return id;
+    }
+
+    /** Ticked pairings as LiveData, for the combination-selection UI. */
+    public LiveData<java.util.List<com.tfcode.comparetout.model.priceplan.PlanCombination>>
+            getPlanCombinations() {
+        return planCombinations;
+    }
+
+    /** Tick a pairing (idempotent — re-ticking re-stamps the source). */
+    public void selectPlanCombination(long importPlanID, long exportPlanID, String source) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                combinationOps.select(importPlanID, exportPlanID, source));
+    }
+
+    /** Untick a pairing. */
+    public void deselectPlanCombination(long importPlanID, long exportPlanID) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                combinationOps.deselect(importPlanID, exportPlanID));
+    }
+
+    /**
+     * Replace an export plan's compatibility tags, then invalidate its costings —
+     * tags do not change prices, but they can make an existing pairing invalid,
+     * and the pair rows must not linger looking authoritative.
+     */
+    public void updateCompatibilityTags(long planID,
+            com.tfcode.comparetout.model.priceplan.CompatibilityTags tags) {
+        ToutcDB.databaseWriteExecutor.execute(() ->
+                pricePlanDAO.updateCompatibilityTags(planID, tags));
     }
 
     /** Drop a deleted plan's pairings from both sides of the pairing table. */

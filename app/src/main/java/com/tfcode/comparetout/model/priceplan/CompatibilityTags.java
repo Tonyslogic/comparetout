@@ -96,9 +96,13 @@ public class CompatibilityTags {
     /**
      * Match one tag against one supplier/plan pair. Split on the FIRST colon
      * only, so a plan name containing a colon still matches.
+     *
+     * <p>Public so the combination-selection UI can evaluate a single tag against
+     * a list row without re-implementing the wildcard grammar — there must be
+     * exactly one definition of what a tag means.
      */
-    static boolean matchesTag(@Nullable String tag, @NonNull String supplier,
-                              @NonNull String planName) {
+    public static boolean matchesTag(@Nullable String tag, @NonNull String supplier,
+                                     @NonNull String planName) {
         if (null == tag) return false;
         String t = tag.trim();
         if (t.isEmpty()) return false;

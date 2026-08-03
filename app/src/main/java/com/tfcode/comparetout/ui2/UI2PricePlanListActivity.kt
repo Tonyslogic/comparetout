@@ -48,6 +48,9 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -64,11 +67,13 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.toMutableStateList
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -85,6 +90,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.tfcode.comparetout.R
 import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile
+import com.tfcode.comparetout.model.priceplan.PricePlan
 import com.tfcode.comparetout.region.RegionProfiles
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.EntryPointAccessors
@@ -125,15 +131,37 @@ private fun PricePlanListScreen(
 ) {
     val context = LocalContext.current
     val allRows by viewModel.rows.collectAsState()
+    // Export plans only exist where import and export are separate contracts.
+    // Everywhere else this whole block collapses to today's single list.
+    val separateExport = RegionProfiles.current.hasSeparateExportContracts
+    var showExport by remember { mutableStateOf(false) }
+    val pairings by viewModel.pairings.observeAsState(emptyMap())
+    var tagEditorFor by remember { mutableStateOf<PricePlanListRow?>(null) }
     // Location filter: suppliers tagged with a different country than the phone
     // are hidden (and auto-deactivated by the VM) unless the user reveals them.
     var showOtherLocations by remember { mutableStateOf(false) }
     val hiddenByLocation = remember(allRows) {
         allRows.count { it.locationMismatch(viewModel.deviceCountry) }
     }
-    val rows = remember(allRows, showOtherLocations) {
+    val visibleRows = remember(allRows, showOtherLocations) {
         if (showOtherLocations) allRows
         else allRows.filterNot { it.locationMismatch(viewModel.deviceCountry) }
+    }
+    // The segment splits the SAME list; everything below (header count, empty
+    // message, delete-all) operates on the segment the user is looking at.
+    val importRows = remember(visibleRows) { visibleRows.filterNot { it.isExport } }
+    val exportRows = remember(visibleRows) { visibleRows.filter { it.isExport } }
+    val rows = remember(visibleRows, showExport, separateExport) {
+        when {
+            !separateExport -> visibleRows.filterNot { it.isExport }
+            showExport -> exportRows
+            else -> importRows
+        }
+    }
+    // Seed the cheapest pair once, so the Combinations section is never blank on
+    // first view. Runs on the export segment because that is where it is visible.
+    LaunchedEffect(exportRows.isNotEmpty(), importRows.isNotEmpty()) {
+        if (separateExport) viewModel.seedDefaultCombinationIfEmpty(visibleRows)
     }
     val favouriteId by viewModel.favouriteId.observeAsState(null)
     val (showHints, toggleShowHints) = rememberShowHints()
@@ -158,6 +186,9 @@ private fun PricePlanListScreen(
     val openWizard: (Long?) -> Unit = { planId ->
         val intent = Intent(context, UI2PricePlanWizardActivity::class.java)
         if (planId != null) intent.putExtra("PricePlanID", planId)
+        // A new plan is created in the segment the user is looking at. Ignored in
+        // edit mode, where the plan's stored direction wins.
+        else if (showExport) intent.putExtra("Direction", PricePlan.DIRECTION_EXPORT)
         context.startActivity(intent)
     }
 
@@ -199,9 +230,20 @@ private fun PricePlanListScreen(
                 contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 92.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
+                if (separateExport) {
+                    item("segment") {
+                        DirectionSegment(
+                            showExport = showExport,
+                            importCount = importRows.size,
+                            exportCount = exportRows.size,
+                            onSelect = { showExport = it }
+                        )
+                    }
+                }
                 item("header") {
                     ListHeader(
                         count = rows.size,
+                        isExport = showExport && separateExport,
                         showHints = showHints,
                         onCreate = { openWizard(null) },
                         onImport = { showImport = true },
@@ -255,6 +297,7 @@ private fun PricePlanListScreen(
                                     context.getString(R.string.ui2_ppl_dyn_pending_queued, row.planName),
                                     Toast.LENGTH_SHORT).show()
                             },
+                            onEditTags = { tagEditorFor = row },
                             onShare = {
                                 // Serialise on IO, fire the share intent on Main. The
                                 // chooser is launched from the Activity context so any
@@ -269,6 +312,22 @@ private fun PricePlanListScreen(
                                         )
                                     }
                                 }
+                            }
+                        )
+                    }
+                }
+
+                // Combinations — which import plan is paired with which export
+                // contract. Only meaningful once both sides exist.
+                if (separateExport && importRows.isNotEmpty() && exportRows.isNotEmpty()) {
+                    item("combinations") {
+                        CombinationsSection(
+                            importRows = importRows,
+                            exportRows = exportRows,
+                            pairings = pairings,
+                            showHints = showHints,
+                            onToggle = { imp, exp, on ->
+                                viewModel.toggleCombination(imp, exp, on)
                             }
                         )
                     }
@@ -297,6 +356,20 @@ private fun PricePlanListScreen(
                 }
             }
         }
+    }
+
+    tagEditorFor?.let { row ->
+        CompatibilityTagDialog(
+            row = row,
+            suppliers = remember(importRows) {
+                importRows.map { it.supplier }.distinct().sorted()
+            },
+            onDismiss = { tagEditorFor = null },
+            onSave = { tags ->
+                viewModel.setCompatibilityTags(row.planId, tags)
+                tagEditorFor = null
+            }
+        )
     }
 
     pendingDelete?.let { row ->
@@ -424,9 +497,42 @@ private fun PricePlanListScreen(
     }
 }
 
+/**
+ * Import / Export segment. Shown only where export is a separate contract, so
+ * bundled-export editions see the screen exactly as before.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun DirectionSegment(
+    showExport: Boolean,
+    importCount: Int,
+    exportCount: Int,
+    onSelect: (Boolean) -> Unit
+) {
+    SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+        SegmentedButton(
+            selected = !showExport,
+            onClick = { onSelect(false) },
+            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
+        ) {
+            Text(stringResource(R.string.ui2_ppl_segment_import, importCount),
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+        SegmentedButton(
+            selected = showExport,
+            onClick = { onSelect(true) },
+            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
+        ) {
+            Text(stringResource(R.string.ui2_ppl_segment_export, exportCount),
+                maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
 @Composable
 private fun ListHeader(
     count: Int,
+    isExport: Boolean = false,
     showHints: Boolean,
     onCreate: () -> Unit,
     onImport: () -> Unit,
@@ -444,13 +550,17 @@ private fun ListHeader(
             ) {
                 Column(Modifier.weight(1f)) {
                     Text(
-                        pluralStringResource(R.plurals.ui2_ppl_count, count, count),
+                        if (isExport)
+                            pluralStringResource(R.plurals.ui2_ppl_count_export, count, count)
+                        else
+                            pluralStringResource(R.plurals.ui2_ppl_count, count, count),
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     if (showHints) {
                         Text(
-                            stringResource(R.string.ui2_ppl_header_hint),
+                            stringResource(if (isExport) R.string.ui2_ppl_header_hint_export
+                                           else R.string.ui2_ppl_header_hint),
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -535,6 +645,7 @@ private fun PricePlanAccordion(
     onToggleFavourite: () -> Unit,
     onToggleActive: () -> Unit,
     onRetryPending: () -> Unit,
+    onEditTags: () -> Unit,
     onShare: () -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -559,14 +670,19 @@ private fun PricePlanAccordion(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    imageVector = if (isFavourite) Icons.Default.Star else Icons.Outlined.StarBorder,
-                    contentDescription = if (isFavourite)
-                        stringResource(R.string.ui2_ppl_current_plan) else null,
-                    modifier = Modifier.size(18.dp),
-                    tint = if (isFavourite) MaterialTheme.colorScheme.primary
-                           else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
-                )
+                // "My plan" is an import-supply concept — an export contract is
+                // never the plan you are on, so the star is omitted entirely.
+                if (!row.isExport) {
+                    Icon(
+                        imageVector = if (isFavourite) Icons.Default.Star
+                                      else Icons.Outlined.StarBorder,
+                        contentDescription = if (isFavourite)
+                            stringResource(R.string.ui2_ppl_current_plan) else null,
+                        modifier = Modifier.size(18.dp),
+                        tint = if (isFavourite) MaterialTheme.colorScheme.primary
+                               else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
+                    )
+                }
                 Column(Modifier.weight(1f)) {
                     Text(
                         row.supplier,
@@ -638,24 +754,63 @@ private fun PricePlanAccordion(
                     // Routed through AdaptiveCellRow so the strip wraps to 2/1
                     // cells per row under font scaling instead of clipping.
                     val cur = RegionProfiles.current.currencySymbol
-                    // The Feed-in cell is dropped where export is a separate
-                    // contract — the export plan carries the rate. AdaptiveCellRow
-                    // reflows to 3 cells without further change.
-                    val specs = listOfNotNull(
+                    val unit = RegionProfiles.current.rateUnit
+                    // An export contract has no standing charge or sign-up bonus —
+                    // those live on the import supply — so it shows its rate count
+                    // and its average sell rate instead. The Feed-in cell is dropped
+                    // wherever export is a separate contract; AdaptiveCellRow reflows
+                    // to whatever count is left without further change.
+                    val rateCountCell: Pair<String, String> = Pair(
+                        stringResource(R.string.ui2_ppl_spec_rates),
+                        pluralStringResource(R.plurals.ui2_ppl_day_rates,
+                            row.rateCount, row.rateCount))
+                    val avgExportLabel = stringResource(R.string.ui2_ppl_spec_avg_export)
+                    val specs: List<Pair<String, String>> = if (row.isExport) listOfNotNull(
+                        rateCountCell,
+                        if (row.averageRate == null) null
+                        else Pair(avgExportLabel,
+                            "${moneyFmt.format(row.averageRate)} $unit")
+                    ) else listOfNotNull(
                         stringResource(R.string.ui2_ppl_spec_standing)
                             to "$cur${moneyFmt.format(row.standingCharges)}/yr",
                         if (RegionProfiles.current.showsBundledFeed)
                             stringResource(R.string.ui2_ppl_spec_feed_in)
-                                to "${moneyFmt.format(row.feed)} ${RegionProfiles.current.rateUnit}"
+                                to "${moneyFmt.format(row.feed)} $unit"
                         else null,
                         stringResource(R.string.ui2_ppl_spec_bonus)
                             to "$cur${moneyFmt.format(row.signUpBonus)}",
-                        stringResource(R.string.ui2_ppl_spec_rates)
-                            to pluralStringResource(R.plurals.ui2_ppl_day_rates,
-                                row.rateCount, row.rateCount)
+                        rateCountCell
                     )
                     AdaptiveCellRow(items = specs) { (label, value) ->
                         SpecCell(label, value)
+                    }
+
+                    // Compatibility — who this export contract may be paired with.
+                    // Tappable: the chip IS the editor entry point.
+                    if (row.isExport) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                            shape = CircleShape,
+                            modifier = Modifier.clickable(onClick = onEditTags)
+                        ) {
+                            Text(
+                                if (row.isOpenMarket)
+                                    stringResource(R.string.ui2_ppl_compat_any)
+                                else
+                                    stringResource(R.string.ui2_ppl_compat_only,
+                                        row.compatibleWith.joinToString(", ")),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 3.dp)
+                            )
+                        }
+                        if (showHints) {
+                            Text(
+                                stringResource(R.string.ui2_ppl_compat_hint),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
 
                     // Deemed export is an IE-only concept — other editions never
@@ -712,7 +867,7 @@ private fun PricePlanAccordion(
                         }
                     }
 
-                    if (showHints && (row.isPending || row.isDynamic)) {
+                    if (showHints && !row.isExport && (row.isPending || row.isDynamic)) {
                         Text(
                             stringResource(if (row.isPending)
                                 R.string.ui2_ppl_dyn_pending_hint
@@ -761,8 +916,10 @@ private fun PricePlanAccordion(
                         val onClick: () -> Unit,
                     )
                     val starIcon = if (isFavourite) Icons.Default.Star else Icons.Outlined.StarBorder
-                    val actions = listOf(
-                        ActionSpec(starIcon,
+                    // Export plans drop the favourite action — see the collapsed
+                    // header — leaving Edit / Share / Delete.
+                    val actions = listOfNotNull(
+                        if (row.isExport) null else ActionSpec(starIcon,
                             stringResource(if (isFavourite) R.string.ui2_ppl_current_plan
                                            else R.string.ui2_ppl_mark_my_plan),
                             stringResource(if (isFavourite) R.string.ui2_ppl_legend_current
@@ -817,6 +974,241 @@ private fun PricePlanAccordion(
             }
         }
     }
+}
+
+/**
+ * Which import plan is paired with which export contract.
+ *
+ * Derived from the live import × export lists on every recomposition, so it
+ * cannot show a stale pairing — there is no cached copy to go out of date.
+ *
+ * Ticking costs nothing: every active pair is already costed (the buy and sell
+ * totals decompose, §1.2). A tick decides what Compare and the dashboard SHOW,
+ * and — per §3.3 — replaces the import plan's bundled feed rather than adding
+ * to it. Hence no "calculate" button and no cost warning.
+ */
+@Composable
+private fun CombinationsSection(
+    importRows: List<PricePlanListRow>,
+    exportRows: List<PricePlanListRow>,
+    pairings: Map<Long, Set<Long>>,
+    showHints: Boolean,
+    onToggle: (Long, Long, Boolean) -> Unit
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val total = remember(pairings) { pairings.values.sumOf { it.size } }
+
+    Card(modifier = Modifier.fillMaxWidth().clickable { expanded = !expanded }) {
+        Column {
+            Row(
+                modifier = Modifier.fillMaxWidth()
+                    .heightIn(min = AdaptiveLayout.MIN_TOUCH)
+                    .padding(horizontal = 14.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.ui2_ppl_combinations_title),
+                        style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        pluralStringResource(R.plurals.ui2_ppl_combinations_count, total, total),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Icon(
+                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp
+                                  else Icons.Default.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            if (expanded) {
+                androidx.compose.material3.HorizontalDivider(
+                    color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f))
+                Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                    if (showHints) {
+                        Text(stringResource(R.string.ui2_ppl_combinations_hint),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                    importRows.forEach { imp ->
+                        CombinationImportGroup(
+                            importRow = imp,
+                            exportRows = exportRows,
+                            selected = pairings[imp.planId].orEmpty(),
+                            showHints = showHints,
+                            onToggle = onToggle
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** One import plan's nested list of tickable export contracts. */
+@Composable
+private fun CombinationImportGroup(
+    importRow: PricePlanListRow,
+    exportRows: List<PricePlanListRow>,
+    selected: Set<Long>,
+    showHints: Boolean,
+    onToggle: (Long, Long, Boolean) -> Unit
+) {
+    var open by remember { mutableStateOf(false) }
+    val compatible = remember(exportRows, importRow) {
+        exportRows.filter { it.pairsWith(importRow) }
+    }
+
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth()
+                .heightIn(min = AdaptiveLayout.MIN_TOUCH)
+                .clickable { open = !open }
+                .padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(Modifier.weight(1f)) {
+                Text("${importRow.supplier} · ${importRow.planName}",
+                    style = MaterialTheme.typography.bodySmall,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    stringResource(R.string.ui2_ppl_combinations_of,
+                        selected.size, exportRows.size),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Icon(
+                imageVector = if (open) Icons.Default.KeyboardArrowUp
+                              else Icons.Default.KeyboardArrowDown,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        if (open) {
+            // The bundled feed and a selected export contract are mutually
+            // exclusive (§3.3) — say so before the first tick, not after.
+            if (showHints && selected.isEmpty() && importRow.feed != 0.0
+                && RegionProfiles.current.showsBundledFeed) {
+                Text(
+                    stringResource(R.string.ui2_ppl_combinations_feed_warning,
+                        importRow.planName,
+                        moneyFmt.format(importRow.feed),
+                        RegionProfiles.current.rateUnit),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(start = 12.dp, bottom = 4.dp)
+                )
+            }
+            exportRows.forEach { exp ->
+                val allowed = exp in compatible
+                val on = exp.planId in selected
+                Row(
+                    modifier = Modifier.fillMaxWidth()
+                        .heightIn(min = AdaptiveLayout.MIN_TOUCH)
+                        .then(if (allowed)
+                            Modifier.clickable { onToggle(importRow.planId, exp.planId, on) }
+                        else Modifier)
+                        .padding(start = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = on && allowed,
+                        enabled = allowed,
+                        onCheckedChange = if (allowed)
+                            ({ onToggle(importRow.planId, exp.planId, on) }) else null
+                    )
+                    Column(Modifier.weight(1f)) {
+                        Text("${exp.supplier} · ${exp.planName}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (allowed) MaterialTheme.colorScheme.onSurface
+                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                                        .copy(alpha = 0.5f),
+                            maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        // Disabled pairs say WHY, naming the tag that excluded
+                        // them — otherwise a greyed row is just a dead end.
+                        Text(
+                            if (!allowed)
+                                stringResource(R.string.ui2_ppl_combinations_incompatible,
+                                    exp.compatibleWith.joinToString(", "))
+                            else exp.averageRate?.let {
+                                "${moneyFmt.format(it)} ${RegionProfiles.current.rateUnit}"
+                            } ?: stringResource(R.string.ui2_ppl_dyn_pending_badge),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Edit an export plan's compatibility tags. Tags are PICKED from the suppliers
+ * actually present in the library rather than typed, so they cannot drift out of
+ * sync with plan names — the same reasoning as the restriction editor's rate
+ * dropdown.
+ */
+@Composable
+private fun CompatibilityTagDialog(
+    row: PricePlanListRow,
+    suppliers: List<String>,
+    onDismiss: () -> Unit,
+    onSave: (List<String>) -> Unit
+) {
+    val working = remember(row.planId) { row.compatibleWith.toMutableStateList() }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.ui2_ppl_compat_title)) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    if (working.isEmpty()) stringResource(R.string.ui2_ppl_compat_none)
+                    else stringResource(R.string.ui2_ppl_compat_current),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                working.forEach { tag ->
+                    Row(verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()) {
+                        Text(tag, style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.weight(1f))
+                        IconButton(onClick = { working.remove(tag) }) {
+                            Icon(Icons.Default.Delete,
+                                contentDescription = stringResource(R.string.ui2_delete),
+                                modifier = Modifier.size(18.dp),
+                                tint = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                }
+                androidx.compose.material3.HorizontalDivider()
+                Text(stringResource(R.string.ui2_ppl_compat_add),
+                    style = MaterialTheme.typography.labelMedium)
+                suppliers.forEach { supplier ->
+                    val tag = "$supplier:*"
+                    if (tag !in working) {
+                        TextButton(onClick = { working.add(tag) }) { Text(tag) }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onSave(working.toList()) }) {
+                Text(stringResource(R.string.ui2_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(stringResource(R.string.dialog_cancel)) }
+        }
+    )
 }
 
 @Composable

@@ -224,6 +224,19 @@ public abstract class PricePlanDAO {
     public abstract void updatePricePlanActiveStatus(int id, boolean checked);
 
     /**
+     * Replace an export plan's compatibility tags. Targeted rather than a whole
+     * -entity upsert so editing tags cannot disturb the plan's day rates.
+     * Room applies the CompatibilityTags TypeConverter to the parameter; null
+     * clears the tags, which reads as "open market".
+     *
+     * @param id   the pricePlanIndex to update
+     * @param tags the new tag set, or null for open market
+     */
+    @Query("UPDATE PricePlans SET compatibleWith = :tags WHERE pricePlanIndex = :id")
+    public abstract void updateCompatibilityTags(long id,
+            com.tfcode.comparetout.model.priceplan.CompatibilityTags tags);
+
+    /**
      * Insert or update a price plan record.
      * @param pp The price plan to upsert
      */

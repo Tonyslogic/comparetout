@@ -2,13 +2,17 @@ package com.tfcode.comparetout.ui2
 
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.asFlow
 import androidx.lifecycle.asLiveData
 import androidx.lifecycle.viewModelScope
 import com.tfcode.comparetout.model.ToutcRepository
 import com.tfcode.comparetout.model.json.JsonTools
 import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile
+import androidx.lifecycle.map
+import com.tfcode.comparetout.model.priceplan.CompatibilityTags
 import com.tfcode.comparetout.model.priceplan.DayRate
+import com.tfcode.comparetout.model.priceplan.PlanCombination
 import com.tfcode.comparetout.model.priceplan.PricePlan
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -48,11 +52,58 @@ data class PricePlanListRow(
     /** First calendar year of the backtest window, when set. */
     val dynamicYear: Int? = null,
     /** First month (1-12) of the 12-month window; null == a legacy Jan–Dec year. */
-    val dynamicPeriodStartMonth: Int? = null
+    val dynamicPeriodStartMonth: Int? = null,
+    /** [PricePlan.DIRECTION_IMPORT] / [PricePlan.DIRECTION_EXPORT]. */
+    val direction: Int = PricePlan.DIRECTION_IMPORT,
+    /** Export plans only: pairing tags. Empty = open market. */
+    val compatibleWith: List<String> = emptyList(),
+    /**
+     * Minute-weighted mean of this plan's own rates, or null when it has none
+     * (a pending dynamic plan). Derived, never stored — it is microseconds over
+     * rates already in memory, so no cached column is needed (§4.4).
+     */
+    val averageRate: Double? = null
 ) {
+    val isExport: Boolean get() = direction == PricePlan.DIRECTION_EXPORT
+    val isOpenMarket: Boolean get() = compatibleWith.isEmpty()
+
+    /**
+     * May this export plan be paired with [importRow]? Evaluated live against the
+     * import plan's CURRENT supplier/name, so renaming a plan can never silently
+     * break or fabricate a pairing. Delegates to the model's tag grammar rather
+     * than re-implementing the wildcard rules in the UI.
+     */
+    fun pairsWith(importRow: PricePlanListRow): Boolean {
+        if (!isExport || importRow.isExport) return false
+        if (isOpenMarket) return true
+        return compatibleWith.any {
+            CompatibilityTags.matchesTag(it, importRow.supplier, importRow.planName)
+        }
+    }
     /** True when [location] is set and differs from the device's country. */
     fun locationMismatch(deviceCountry: String): Boolean =
         isLocationMismatch(location, deviceCountry)
+}
+
+/**
+ * Minute-weighted mean price across a plan's own rate set — the cheap ranking
+ * used by the cheapest-pair default seed and shown on the export accordion.
+ * Null when the plan has no rates in its own direction (a pending dynamic plan),
+ * which is the signal to exclude it from ranking rather than treat it as free.
+ */
+fun averageRateOf(plan: PricePlan, rates: List<DayRate>): Double? {
+    val own = plan.primaryRates(rates)
+    var weighted = 0.0
+    var minutes = 0L
+    own.forEach { dr ->
+        val bands = dr.minuteRateRange?.rates.orEmpty()
+        bands.forEach { rr ->
+            val span = (rr.end - rr.begin).coerceAtLeast(0)
+            weighted += rr.price * span
+            minutes += span
+        }
+    }
+    return if (minutes == 0L) null else weighted / minutes
 }
 
 /** A plan is location-mismatched only when BOTH sides are known and differ. */
@@ -112,7 +163,10 @@ class UI2PricePlanListViewModel @Inject constructor(
                         isDynamic = plan.isDynamic,
                         isPending = plan.isPendingDynamic(drs),
                         dynamicYear = plan.dynamicTerms?.year,
-                        dynamicPeriodStartMonth = plan.dynamicTerms?.periodStartMonth
+                        dynamicPeriodStartMonth = plan.dynamicTerms?.periodStartMonth,
+                        direction = plan.direction,
+                        compatibleWith = plan.compatibleWith?.tags.orEmpty(),
+                        averageRate = averageRateOf(plan, drs)
                     )
                 }.sortedWith(compareBy({ it.supplier.lowercase() }, { it.planName.lowercase() }))
                 // Drop the favourite if the plan it points to has been deleted.
@@ -126,6 +180,55 @@ class UI2PricePlanListViewModel @Inject constructor(
                     .forEach { repository.updatePricePlanActiveStatus(it.pricePlanIndex.toInt(), false) }
             }
         }
+    }
+
+    /** Ticked pairings as (importPlanId → set of exportPlanIds). */
+    val pairings: LiveData<Map<Long, Set<Long>>> =
+        repository.planCombinations.map { list ->
+            list.orEmpty().groupBy { it.importPlanID }
+                .mapValues { (_, v) -> v.map { it.exportPlanID }.toSet() }
+        }
+
+    /**
+     * Tick / untick one pairing. Nothing is computed here: costing already covers
+     * every pair (the totals decompose), so a tick only changes what is shown —
+     * and, per §3.3, whether the import plan's bundled row exists at all.
+     */
+    fun toggleCombination(importPlanId: Long, exportPlanId: Long, currentlyOn: Boolean) {
+        if (currentlyOn) repository.deselectPlanCombination(importPlanId, exportPlanId)
+        else repository.selectPlanCombination(
+            importPlanId, exportPlanId, PlanCombination.SOURCE_MANUAL)
+    }
+
+    /** Replace an export plan's compatibility tags; empty means open market. */
+    fun setCompatibilityTags(planId: Long, tags: List<String>) {
+        val cleaned = tags.map { it.trim() }.filter { it.isNotEmpty() }
+        repository.updateCompatibilityTags(
+            planId, if (cleaned.isEmpty()) null else CompatibilityTags(cleaned))
+    }
+
+    /**
+     * Tick the cheapest import × cheapest export pair, once, when nothing is
+     * ticked yet — so a novice never lands on an empty Combinations section.
+     *
+     * Ranking is by [averageRateOf]; pending plans (no prices yet) are excluded
+     * rather than treated as free, and incompatible pairs are skipped. Stamped
+     * SOURCE_HEURISTIC, which is the same write path the future ranking
+     * heuristic will use, so the mechanism is exercised from day one.
+     */
+    fun seedDefaultCombinationIfEmpty(rows: List<PricePlanListRow>) {
+        if (!pairings.value.isNullOrEmpty()) return
+        val imports = rows.filter { !it.isExport && it.active && it.averageRate != null }
+        val exports = rows.filter { it.isExport && it.active && it.averageRate != null }
+        if (imports.isEmpty() || exports.isEmpty()) return
+        // Cheapest import = lowest average buy rate. Best export = HIGHEST average
+        // sell rate — export income, not cost, so the comparison inverts.
+        val bestImport = imports.minByOrNull { it.averageRate!! } ?: return
+        val bestExport = exports
+            .filter { it.pairsWith(bestImport) }
+            .maxByOrNull { it.averageRate!! } ?: return
+        repository.selectPlanCombination(
+            bestImport.planId, bestExport.planId, PlanCombination.SOURCE_HEURISTIC)
     }
 
     fun toggleFavourite(planId: Long) {
