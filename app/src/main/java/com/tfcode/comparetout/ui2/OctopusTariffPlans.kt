@@ -26,8 +26,10 @@ import com.tfcode.comparetout.importers.octopus.responses.ProductDetailResponse
 import com.tfcode.comparetout.importers.octopus.responses.RatesResponse
 import com.tfcode.comparetout.model.IntHolder
 import com.tfcode.comparetout.model.ToutcRepository
+import com.tfcode.comparetout.region.RegionProfiles
 import com.tfcode.comparetout.model.json.priceplan.DynamicTermsJson
 import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile
+import com.tfcode.comparetout.model.priceplan.CompatibilityTags
 import com.tfcode.comparetout.model.priceplan.DayRate
 import com.tfcode.comparetout.model.priceplan.DoubleHolder
 import com.tfcode.comparetout.model.priceplan.MinuteRateRange
@@ -52,10 +54,21 @@ import javax.inject.Singleton
  * pending DYNAMIC plans (Phase 8): the DynamicTariffWorker fetches the
  * backtest year's half-hourly prices and materialises them in the background.
  *
- * The export rate on every generated plan is the region's Outgoing Fixed rate
- * (a labelled assumption — see the plan's reference note). Standing charges
- * convert from pence/day to the app's pounds-per-year convention; unit rates
- * stay pence/kWh (the minor-units convention costing expects).
+ * Where the region has separate export contracts, every open Outgoing product
+ * also becomes an export [PricePlan] tagged `Octopus Energy:*` — Outgoing Fixed
+ * as SELL day rates, Outgoing Agile as a pending dynamic export plan tracking
+ * `GB-AGILE-EXPORT-<region>`.
+ *
+ * Import plans still carry the region's Outgoing Fixed rate as their scalar
+ * `feed`. That stays useful as the bundled fallback for an import plan with no
+ * export contract selected, and it is what a freshly-generated library costs
+ * with before the user pairs anything — but it is superseded the moment an
+ * export plan is ticked (see plans/region/import-plans.md §3.3).
+ *
+ * Standing charges convert from pence/day to the app's pounds-per-year
+ * convention; unit rates stay pence/kWh (the minor-units convention costing
+ * expects). Export contracts carry no standing charge — that belongs to the
+ * import supply.
  *
  * Time-of-use windows (Go, Cosy, ...) are derived from yesterday's
  * standard-unit-rates series interpreted in Europe/London — the wall-clock
@@ -171,12 +184,158 @@ class OctopusTariffPlans @Inject constructor(
                 }
             }
 
+            // Export contracts, where the region has separate ones. Before this,
+            // the whole export market was collapsed into one scalar stamped on
+            // every import plan ("Export rate assumes Outgoing Fixed").
+            if (RegionProfiles.current.hasSeparateExportContracts) {
+                val exportOutcome = generateExportPlans(client, products, gsp, region.uppercase())
+                added += exportOutcome.added
+                existing += exportOutcome.existing
+                skipped += exportOutcome.skipped
+                queued += exportOutcome.queued
+            }
+
             if (currentPlanName != null) favouriteIfUnset(currentPlanName)
 
             Result.Loaded(added, existing, skipped, queued)
         } catch (t: Throwable) {
             Result.Failed(t)
         }
+    }
+
+    private data class ExportOutcome(
+        val added: Int = 0, val existing: Int = 0,
+        val skipped: Int = 0, val queued: Int = 0
+    )
+
+    /**
+     * One export [PricePlan] per open Outgoing product in [gsp].
+     *
+     * Fixed-rate products become ordinary export plans with SELL day rates;
+     * Outgoing Agile becomes a terms-only pending DYNAMIC export plan whose feed
+     * transform is ×1 +0 — Octopus publishes Agile rates as retail pence/kWh inc
+     * VAT already, the same reasoning as the import side.
+     *
+     * Every generated plan is tagged `Octopus Energy:*`: Octopus export tariffs
+     * require an Octopus import supply, and auto-discovered plans must behave
+     * identically to hand-entered ones in the combination UI.
+     */
+    private fun generateExportPlans(
+        client: OctopusRestClient,
+        products: List<com.tfcode.comparetout.importers.octopus.responses.ProductsResponse.Product>,
+        gsp: String,
+        region: String
+    ): ExportOutcome {
+        val existingExportNames: Set<String> = repository.allPricePlansNow
+            ?.filter { it.direction == PricePlan.DIRECTION_EXPORT }
+            ?.mapNotNull { it.planName }?.toSet().orEmpty()
+
+        var added = 0; var existing = 0; var skipped = 0; var queued = 0
+        val exportProducts = products.filter {
+            it.direction == "EXPORT" && it.availableTo == null &&
+                    !it.isTracker && !it.isPrepay && !it.isBusiness && !it.isRestricted
+        }
+        for (product in exportProducts) {
+            Thread.sleep(POLITE_DELAY_MS)
+            val isAgile = product.code.contains("AGILE")
+            if (isAgile && !com.tfcode.comparetout.profile.AppProfiles.current.hasDynamicTariffs) {
+                // Would sit pending forever in a profile without dynamic tariffs.
+                skipped++; continue
+            }
+            try {
+                val detail = client.getProductDetail(product.code)
+                val planName = detail.displayName ?: product.code
+                if (planName in existingExportNames) { existing++; continue }
+                val regional = detail.singleRegisterElectricityTariffs?.get(gsp)
+                if (regional == null) { skipped++; continue }
+                val tariff = regional["direct_debit_monthly"] ?: regional.values.firstOrNull()
+                val tariffCode = tariff?.code
+                if (tariffCode == null) { skipped++; continue }
+
+                if (isAgile) {
+                    queueAgileExportPlan(planName, region, tariffCode)
+                    queued++
+                } else {
+                    val plan = buildExportPlan(client, product.code, planName, tariffCode, tariff)
+                    if (plan == null) { skipped++; continue }
+                    repository.insert(plan.first, ArrayList(plan.second), false)
+                    added++
+                }
+            } catch (e: OctopusException) {
+                skipped++
+            }
+        }
+        return ExportOutcome(added, existing, skipped, queued)
+    }
+
+    /** A fixed/TOU export product as an export PricePlan with SELL day rates. */
+    private fun buildExportPlan(
+        client: OctopusRestClient,
+        productCode: String,
+        planName: String,
+        tariffCode: String,
+        tariff: ProductDetailResponse.Tariff?
+    ): Pair<PricePlan, List<DayRate>>? {
+        val plan = PricePlan()
+        plan.supplier = SUPPLIER
+        plan.planName = planName
+        plan.direction = PricePlan.DIRECTION_EXPORT
+        // An export contract carries no standing charge or sign-up bonus — those
+        // belong to the import supply.
+        plan.standingCharges = 0.0
+        plan.signUpBonus = 0.0
+        plan.isDeemedExport = false
+        plan.isActive = true
+        plan.compatibleWith = CompatibilityTags(listOf(
+            CompatibilityTags.supplierWildcard(SUPPLIER)))
+        plan.reference = "Auto-generated from the Octopus API ($tariffCode). " +
+                "Export contract — pairs with Octopus import plans."
+
+        // Prefer the published flat rate; fall back to yesterday's series so a
+        // time-of-use export product still tiles the day.
+        val flat = tariff?.standardUnitRateIncVat
+        val segments = if (flat != null) listOf(Triple(0, 1440, flat))
+                       else dailySegments(client, productCode, tariffCode) ?: return null
+
+        val dayRate = DayRate()
+        dayRate.days = IntHolder()               // all days
+        dayRate.rateType = DayRate.RATE_SELL     // this plan prices export
+        val mrr = MinuteRateRange()
+        segments.forEach { (begin, end, cost) -> mrr.add(begin, end, cost) }
+        dayRate.minuteRateRange = mrr
+        val hours = DoubleHolder()
+        for (h in 0..24) hours.doubles[h] = mrr.lookup(minOf(h * 60, 1439))
+        dayRate.hours = hours
+
+        return plan to listOf(dayRate)
+    }
+
+    /**
+     * Outgoing Agile as a terms-only pending dynamic EXPORT plan. Its prices come
+     * from the export-side market (`GB-AGILE-EXPORT-<region>`), and the transform
+     * lives on the FEED terms because an export plan's rates are SELL rates.
+     */
+    private fun queueAgileExportPlan(planName: String, region: String, tariffCode: String) {
+        val year = LocalDate.now().year - 1
+        val ppj = PricePlanJsonFile()
+        ppj.supplier = SUPPLIER
+        ppj.plan = planName
+        ppj.standingCharges = 0.0
+        ppj.active = true
+        ppj.direction = "export"
+        ppj.compatibleWith = arrayListOf(CompatibilityTags.supplierWildcard(SUPPLIER))
+        ppj.reference = "Auto-generated from the Octopus API ($tariffCode). " +
+                "Outgoing Agile: half-hourly export prices, backtested against $year."
+        val terms = DynamicTermsJson()
+        terms.market = OctopusAgileRateSource.EXPORT_MARKET_PREFIX + region
+        // Published Agile values are already retail pence/kWh inc VAT.
+        terms.multiplier = 1.0
+        terms.adder = 0.0
+        terms.feedMultiplier = 1.0
+        terms.feedAdder = 0.0
+        terms.year = year
+        ppj.dynamic = terms
+        DynamicTariffWorker.enqueue(context, Gson().toJson(ppj), planName, year)
     }
 
     /**

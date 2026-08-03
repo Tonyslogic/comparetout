@@ -59,6 +59,16 @@ import java.util.TreeMap;
 public final class OctopusAgileRateSource implements HistoricalRateSource {
 
     public static final String MARKET_PREFIX = "GB-AGILE-";
+    /**
+     * Export-side Agile (Octopus Outgoing Agile). A distinct prefix, not a suffix,
+     * so {@code DynamicRateSources} can tell the two apart — note it CONTAINS
+     * {@link #MARKET_PREFIX}, so any dispatch must test this one first.
+     */
+    public static final String EXPORT_MARKET_PREFIX = "GB-AGILE-EXPORT-";
+    /** Product-code prefix for the import Agile family. */
+    private static final String IMPORT_CODE_PREFIX = "AGILE";
+    /** Product-code prefix for the export (Outgoing) Agile family. */
+    private static final String EXPORT_CODE_PREFIX = "OUTGOING-AGILE";
     private static final long POLITE_DELAY_MS = 300;
 
     /** The slice of the Octopus API this source needs — canned in tests. */
@@ -73,7 +83,8 @@ public final class OctopusAgileRateSource implements HistoricalRateSource {
 
     private final File cacheDir;
     private final String region;    // "A".."P"
-    private final String marketId;  // "GB-AGILE-<region>"
+    private final boolean exportSide;
+    private final String marketId;  // "GB-AGILE-<region>" / "GB-AGILE-EXPORT-<region>"
     private final AgileApi api;
     private final Clock clock;
     private final long politeDelayMs;
@@ -83,16 +94,33 @@ public final class OctopusAgileRateSource implements HistoricalRateSource {
     /** Per product: the region's tariff code, or "" when the region has none. */
     private final Map<String, String> tariffCodes = new HashMap<>();
 
+    /** Import-side Agile for a GSP region — the original behaviour. */
     public OctopusAgileRateSource(Context context, String region) {
+        this(context, region, false);
+    }
+
+    /**
+     * @param exportSide true for Outgoing Agile. Everything below the product
+     *                   filter — month assembly, the SeriesNormaliser pence trick,
+     *                   gap-fill, the availability pre-filter — is direction
+     *                   agnostic and is reused verbatim.
+     */
+    public OctopusAgileRateSource(Context context, String region, boolean exportSide) {
         this(DynamicPriceCache.cacheDir(context), region,
-                new RestClientApi(), Clock.systemUTC(), POLITE_DELAY_MS);
+                new RestClientApi(), Clock.systemUTC(), POLITE_DELAY_MS, exportSide);
     }
 
     OctopusAgileRateSource(File cacheDir, String region, AgileApi api,
                            Clock clock, long politeDelayMs) {
+        this(cacheDir, region, api, clock, politeDelayMs, false);
+    }
+
+    OctopusAgileRateSource(File cacheDir, String region, AgileApi api,
+                           Clock clock, long politeDelayMs, boolean exportSide) {
         this.cacheDir = cacheDir;
         this.region = region.toUpperCase();
-        this.marketId = MARKET_PREFIX + this.region;
+        this.exportSide = exportSide;
+        this.marketId = (exportSide ? EXPORT_MARKET_PREFIX : MARKET_PREFIX) + this.region;
         this.api = api;
         this.clock = clock;
         this.politeDelayMs = politeDelayMs;
@@ -225,13 +253,19 @@ public final class OctopusAgileRateSource implements HistoricalRateSource {
         return null;
     }
 
-    /** All Agile import products, newest first, loaded once. */
+    /** All Agile products on this source's side of the meter, newest first, loaded once. */
     private List<ProductsResponse.Product> agileProducts() throws IOException {
         if (!(null == agileProducts)) return agileProducts;
+        // Outgoing Agile products are OUTGOING-AGILE-* / EXPORT; the import family
+        // is AGILE-* / IMPORT. Note the import code test must exclude the export
+        // codes explicitly — "OUTGOING-AGILE-24-10-26" does not start with "AGILE",
+        // but the direction test is the load-bearing one either way.
+        String codePrefix = exportSide ? EXPORT_CODE_PREFIX : IMPORT_CODE_PREFIX;
+        String wantDirection = exportSide ? "EXPORT" : "IMPORT";
         List<ProductsResponse.Product> candidates = new ArrayList<>();
         for (ProductsResponse.Product product : api.products()) {
-            if (null == product.code || !product.code.startsWith("AGILE")) continue;
-            if (!"IMPORT".equalsIgnoreCase(product.direction)) continue;
+            if (null == product.code || !product.code.startsWith(codePrefix)) continue;
+            if (!wantDirection.equalsIgnoreCase(product.direction)) continue;
             if (product.isPrepay || product.isBusiness || product.isRestricted) continue;
             candidates.add(product);
         }

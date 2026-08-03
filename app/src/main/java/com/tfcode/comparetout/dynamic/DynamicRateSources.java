@@ -32,13 +32,33 @@ public final class DynamicRateSources {
         if (SemopxRateSource.MARKET_ID.equals(marketId)) {
             return new SemopxRateSource(DynamicPriceCache.cacheDir(context));
         }
-        // GB Agile market ids carry the GSP region: "GB-AGILE-C".
+        // GB Agile market ids carry the GSP region: "GB-AGILE-C" (import) and
+        // "GB-AGILE-EXPORT-C" (Outgoing Agile).
+        //
+        // The EXPORT prefix must be tested FIRST: it contains the import prefix,
+        // so the import branch would match "GB-AGILE-EXPORT-C", then fail its
+        // single-letter region check and return null — and a null source surfaces
+        // as a plan stuck "pending" forever with no error anywhere.
+        if (!(null == marketId)
+                && marketId.startsWith(OctopusAgileRateSource.EXPORT_MARKET_PREFIX)) {
+            String region = marketId.substring(
+                    OctopusAgileRateSource.EXPORT_MARKET_PREFIX.length());
+            if (isGspRegion(region)) {
+                return new OctopusAgileRateSource(context, region, /* exportSide = */ true);
+            }
+            return null;
+        }
         if (!(null == marketId) && marketId.startsWith(OctopusAgileRateSource.MARKET_PREFIX)) {
             String region = marketId.substring(OctopusAgileRateSource.MARKET_PREFIX.length());
-            if (region.length() == 1 && region.charAt(0) >= 'A' && region.charAt(0) <= 'P') {
+            if (isGspRegion(region)) {
                 return new OctopusAgileRateSource(context, region);
             }
         }
         return null;
+    }
+
+    /** A single GSP letter, "A".."P". */
+    private static boolean isGspRegion(String region) {
+        return region.length() == 1 && region.charAt(0) >= 'A' && region.charAt(0) <= 'P';
     }
 }
