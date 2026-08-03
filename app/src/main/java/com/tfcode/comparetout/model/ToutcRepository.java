@@ -138,6 +138,8 @@ public class ToutcRepository {
     private final LiveData<List<Scenario2EVDivert>> evDivertRelations;
     private final LiveData<List<PanelPVSummary>> panelPVSummary;
 
+    /** Ticked (import × export) plan pairings — see CombinationOps. */
+    private final com.tfcode.comparetout.model.ops.CombinationOps combinationOps;
     private final CostingDAO costingDAO;
     private final LiveData<List<Costings>> allCostings;
 
@@ -211,6 +213,7 @@ public class ToutcRepository {
         evDivertRelations = evDAO.loadEVDivertRelations();
         panelPVSummary = panelDAO.getPanelPVSummary();
 
+        combinationOps = new com.tfcode.comparetout.model.ops.CombinationOps(db);
         costingDAO = db.costingDAO();
         allCostings = costingDAO.loadCostings();
 
@@ -240,6 +243,10 @@ public class ToutcRepository {
 
     public void deletePricePlan(Integer id) {
         ToutcDB.databaseWriteExecutor.execute(() -> {
+            // Drop the plan's pairings first: a row naming a plan that no longer
+            // exists would keep an import plan's bundled row suppressed forever,
+            // making it look as though the plan simply stopped being costed.
+            combinationOps.removePlan(id);
             pricePlanDAO.deletePricePlan(id);
 //            System.out.println("Size after delete = " + allPricePlans.getValue().entrySet().size());
         });
@@ -389,6 +396,24 @@ public class ToutcRepository {
 
     public void saveCosting(Costings costing) {
         costingDAO.saveCosting(costing);
+    }
+
+    /**
+     * Ticked export plan ids grouped by import plan id; import plans with no
+     * pairing are absent. Call off the main thread.
+     */
+    public java.util.Map<Long, java.util.Set<Long>> getPairingsByImportPlan() {
+        return combinationOps.pairingsByImportPlan();
+    }
+
+    /** Drop a deleted plan's pairings from both sides of the pairing table. */
+    public void removePlanCombinations(long planID) {
+        ToutcDB.databaseWriteExecutor.execute(() -> combinationOps.removePlan(planID));
+    }
+
+    /** Prune pairings whose import or export plan has been deleted. */
+    public void prunePlanCombinations() {
+        ToutcDB.databaseWriteExecutor.execute(combinationOps::prune);
     }
 
     public LiveData<List<Costings>> getAllCostings() {

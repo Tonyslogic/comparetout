@@ -18,7 +18,7 @@ import com.tfcode.comparetout.model.scenario.PanelPVSummary
 import com.tfcode.comparetout.model.scenario.ScenarioComponents
 import com.tfcode.comparetout.model.scenario.SimKPIs
 import com.tfcode.comparetout.scenario.HeatPumpWeatherCache
-import com.tfcode.comparetout.util.RateLookup
+import com.tfcode.comparetout.util.PlanPricer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -658,10 +658,14 @@ class UI2DashboardViewModel @Inject constructor(
         val hourlyData = repository.getSelectedAlphaESSData(sysSn, from, to)
         val plans      = repository.allPricePlansNow
 
-        return plans.map { plan ->
+        return plans.mapNotNull { plan ->
             val dayRates  = repository.getAllDayRatesForPricePlanID(plan.pricePlanIndex)
-            val lookup    = RateLookup(plan, dayRates)
-            lookup.setStartDOY(LocalDate.parse(from, timeFormatter).dayOfYear)
+            // See recomputeScenarioTariff: BUY-only lookup, per-slot export where
+            // the plan has SELL rates, export plans and pending plans excluded.
+            if (plan.isExport) return@mapNotNull null
+            val pricer = PlanPricer(plan, dayRates,
+                LocalDate.parse(from, timeFormatter).dayOfYear)
+            if (pricer.isPending) return@mapNotNull null
 
             val subTotals = SubTotals()
             var buy = 0.0; var sell = 0.0
@@ -671,9 +675,9 @@ class UI2DashboardViewModel @Inject constructor(
                 val doy   = ldt.dayOfYear
                 val mod   = ldt.hour * 60 + ldt.minute
                 val dow   = ldt.dayOfWeek.value.let { if (it == 7) 0 else it } // 7=Sun→0
-                val price = lookup.getRate(doy, mod, dow, row.buy)
+                val price = pricer.buyRate(doy, mod, dow, row.buy)
                 buy  += price * row.buy
-                sell += plan.feed * row.feed
+                sell += pricer.sellRate(doy, mod, dow, row.feed) * row.feed
                 subTotals.addToPrice(price, row.buy)
             }
 
@@ -932,10 +936,15 @@ class UI2DashboardViewModel @Inject constructor(
         val hourRows = repository.getSimSumHour(item.id.toString(), fromStr, toStr)
         val plans    = repository.allPricePlansNow.orEmpty()
 
-        val rows = plans.map { plan ->
+        val rows = plans.mapNotNull { plan ->
             val dayRates  = repository.getAllDayRatesForPricePlanID(plan.pricePlanIndex)
-            val lookup    = RateLookup(plan, dayRates)
-            lookup.setStartDOY(midDay.dayOfYear)
+            // PlanPricer keeps the BUY lookup free of the plan's export rates and
+            // prices export per-slot where it has any — the partition CostingWorker
+            // applies. Export plans are never costed on their own, and a pending
+            // dynamic plan would price at zero and rank cheapest.
+            if (plan.isExport) return@mapNotNull null
+            val pricer    = PlanPricer(plan, dayRates, midDay.dayOfYear)
+            if (pricer.isPending) return@mapNotNull null
             val subTotals = SubTotals()
             var buy = 0.0
             var sell = 0.0
@@ -943,9 +952,9 @@ class UI2DashboardViewModel @Inject constructor(
                 val h = row.interval.toIntOrNull() ?: return@forEach
                 val mod = h * 60
                 val dow = midDay.dayOfWeek.value.let { if (it == 7) 0 else it }
-                val rate = lookup.getRate(midDay.dayOfYear, mod, dow, row.buy)
+                val rate = pricer.buyRate(midDay.dayOfYear, mod, dow, row.buy)
                 buy  += rate * row.buy
-                sell += plan.feed * row.feed
+                sell += pricer.sellRate(midDay.dayOfYear, mod, dow, row.feed) * row.feed
                 subTotals.addToPrice(rate, row.buy)
             }
             // Unit convention matches fetchCostings() (data-source mode):

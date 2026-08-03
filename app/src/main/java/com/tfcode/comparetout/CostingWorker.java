@@ -36,10 +36,11 @@ import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.PricePlan;
 import com.tfcode.comparetout.model.scenario.Scenario;
 import com.tfcode.comparetout.model.scenario.ScenarioSimulationData;
+import com.tfcode.comparetout.util.PlanPricer;
 import com.tfcode.comparetout.util.RateLookup;
 
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -70,12 +71,10 @@ import java.util.Set;
 public class CostingWorker extends Worker {
 
     private final ToutcRepository mToutcRepository;
-    private final Map<Long, RateLookup> mLookups;
-    // Plans with SELL DayRates cost export per-slot; absent from this map = scalar feed.
-    private final Map<Long, RateLookup> mSellLookups;
-    // Pending dynamic plans (terms present, prices not yet materialised) — skipped
-    // without writing a costing row, so the pair self-heals after materialisation.
-    private final Set<Long> mPendingPlans;
+    // One pricer per plan: holds its BUY lookup, its SELL lookup (or the scalar
+    // feed fallback) and the pending-dynamic guard. Replaces the three parallel
+    // maps this worker used to keep in step by hand.
+    private final Map<Long, PlanPricer> mPricers;
     private final Context mContext;
 
     /**
@@ -87,9 +86,7 @@ public class CostingWorker extends Worker {
     public CostingWorker(@NonNull Context context, @NonNull WorkerParameters workerParams) {
         super(context, workerParams);
         mToutcRepository = new ToutcRepository((Application) context);
-        mLookups = new HashMap<>();
-        mSellLookups = new HashMap<>();
-        mPendingPlans = new HashSet<>();
+        mPricers = new HashMap<>();
         mContext = context;
     }
 
@@ -117,8 +114,11 @@ public class CostingWorker extends Worker {
     @NonNull
     @Override
     public Result doWork() {
-        // Clean up obsolete costings to maintain database performance
+        // Clean up obsolete costings to maintain database performance, and the
+        // pairings that could point at a since-deleted plan (a stale pairing keeps
+        // an import plan's bundled row suppressed, so it would vanish from Compare).
         mToutcRepository.pruneCostings();
+        mToutcRepository.prunePlanCombinations();
         // Readiness gate: only scenarios flagged costingNeeded with a current simulation (or, defensively,
         // not-yet-tracked scenarios that already have simulation data). Fully-costed scenarios are never
         // loaded — replacing the old "every scenario, load its whole sim series, then discover it's costed".
@@ -153,7 +153,19 @@ public class CostingWorker extends Worker {
                  * Load all price plans to be applied to each scenario.
                  * The progress chunk is calculated based on the total number of scenario/plan pairs.
                  */
-                List<PricePlan> plans = mToutcRepository.getAllPricePlansNow();
+                List<PricePlan> allPlans = mToutcRepository.getAllPricePlansNow();
+                // Split by direction: import plans are costed, export plans are
+                // priced (a sell total per plan) and paired against them.
+                List<PricePlan> plans = new ArrayList<>();
+                List<PricePlan> exportPlans = new ArrayList<>();
+                for (PricePlan pp : allPlans) {
+                    if (pp.isExport()) exportPlans.add(pp);
+                    else plans.add(pp);
+                }
+                // Which export plans the user has ticked for each import plan.
+                // Empty in bundled-export regions, where no export plan can exist.
+                Map<Long, Set<Long>> pairings = mToutcRepository.getPairingsByImportPlan();
+
                 int PROGRESS_CHUNK = PROGRESS_MAX;
                 if ((!scenarioIDs.isEmpty()) && (!plans.isEmpty())) {
                     PROGRESS_CHUNK = PROGRESS_MAX / (scenarioIDs.size() * plans.size());
@@ -177,13 +189,52 @@ public class CostingWorker extends Worker {
                     double gridExportMax = mToutcRepository.getGridExportMaxForScenario(scenarioID);
                     if (!scenarioData.isEmpty()) {
                         long notifyTime = System.nanoTime();
+                        /*
+                         * EXPORT PASS — one pass per export plan, producing a sell
+                         * total. Done once per scenario, before the import loop,
+                         * because a sell total depends only on the export plan and
+                         * the simulated feed series: N import plans × M export plans
+                         * costs N+M passes, not N×M (import-plans.md §1.2).
+                         */
+                        Map<Long, Double> exportSell = new HashMap<>();
+                        // Nothing paired → nothing consumes these totals. Skips the
+                        // export pass entirely in bundled-export regions, so IE does
+                        // exactly the work it did before v17.
+                        for (PricePlan ep : pairings.isEmpty()
+                                ? java.util.Collections.<PricePlan>emptyList() : exportPlans) {
+                            PlanPricer pricer = pricerFor(ep);
+                            if (pricer.isPending()) continue;
+                            double sellTotal = 0D;
+                            for (ScenarioSimulationData row : scenarioData) {
+                                int dayOfWeek = (row.getDayOfWeek() == 7) ? 0 : row.getDayOfWeek();
+                                sellTotal += pricer.sellRate(row.getDayOf2001(),
+                                        row.getMinuteOfDay(), dayOfWeek, row.getFeed())
+                                        * row.getFeed();
+                            }
+                            exportSell.put(ep.getPricePlanIndex(), sellTotal);
+                        }
+
                         for (PricePlan pp : plans) {
-                            // Skip if costing already exists to avoid duplicate work
-                            if (mToutcRepository.costingExists(scenarioID, pp.getPricePlanIndex()))
-                                continue;
-                            // Pending dynamic plan (already detected below on an earlier scenario)
-                            if (mPendingPlans.contains(pp.getPricePlanIndex()))
-                                continue;
+                            // Ticked export contracts for this import plan. Non-empty
+                            // means the plan's own (bundled) export side is superseded
+                            // — no bundled row is written for it at all (§3.3).
+                            Set<Long> paired = pairings.get(pp.getPricePlanIndex());
+                            List<Long> exportIds = new ArrayList<>();
+                            if (null == paired || paired.isEmpty()) {
+                                exportIds.add(Costings.BUNDLED_EXPORT);
+                            } else {
+                                // Only pairs whose export plan actually priced —
+                                // a pending export plan must not yield a free pair.
+                                for (Long eid : paired)
+                                    if (exportSell.containsKey(eid)) exportIds.add(eid);
+                            }
+                            // Drop pairs already costed BEFORE the import pass, not
+                            // after: an already-costed plan must cost nothing to
+                            // re-check, which is what makes a follow-up pass cheap.
+                            exportIds.removeIf(eid -> mToutcRepository.costingExists(
+                                    scenarioID, pp.getPricePlanIndex(), eid));
+                            if (exportIds.isEmpty()) continue;
+
                             String planLabel = pp.getSupplier() + ": " + pp.getPlanName();
                             builder.setContentText("Costing " + planLabel);
                             // Periodically update notification to avoid UI lag
@@ -191,87 +242,74 @@ public class CostingWorker extends Worker {
                                 notifyTime = System.nanoTime();
                                 sendNotification(notificationManager, notificationId, builder);
                             }
-                            /*
-                             * Retrieve or create a RateLookup for the price plan.
-                             * This object provides efficient rate lookups for each simulation row.
-                             */
-                            RateLookup lookup = mLookups.get(pp.getPricePlanIndex());
-                            if (null == lookup) {
-                                List<DayRate> planRates = mToutcRepository
-                                        .getAllDayRatesForPricePlanID(pp.getPricePlanIndex());
-                                // A pending dynamic plan (terms, no BUY rates) must NOT be
-                                // costed: an empty lookup prices every row at 0 and the plan
-                                // ranks "best". Leave the (scenario × plan) pair missing —
-                                // materialisation fires markAllScenariosNeedCosting and the
-                                // pair self-heals on the next pass.
-                                if (pp.isPendingDynamic(planRates)) {
-                                    mPendingPlans.add(pp.getPricePlanIndex());
-                                    continue;
-                                }
-                                lookup = new RateLookup(pp, DayRate.buyRates(planRates));
-                                mLookups.put(pp.getPricePlanIndex(), lookup);
-                                List<DayRate> sellRates = DayRate.sellRates(planRates);
-                                if (!sellRates.isEmpty()) {
-                                    mSellLookups.put(pp.getPricePlanIndex(),
-                                            new RateLookup(pp, sellRates));
-                                }
-                            }
-                            // Null when the plan has no SELL rates → scalar feed applies.
-                            RateLookup sellLookup = mSellLookups.get(pp.getPricePlanIndex());
-                            /*
-                             * COST CALCULATION LOOP
-                             * For each simulation row, apply the price plan's rates to calculate buy and sell totals.
-                             * Subtotals are accumulated for detailed reporting.
-                             */
-                            Costings costing = new Costings();
-                            costing.setScenarioID(scenarioID);
-                            costing.setScenarioName(scenario.getScenarioName());
-                            costing.setPricePlanID(pp.getPricePlanIndex());
-                            costing.setFullPlanName(pp.getSupplier() + ":" + pp.getPlanName());
-                            double buy = 0D;
-                            double sell = 0D;
-                            double net;
-                            SubTotals subTotals = new SubTotals();
 
-                            // Calculate costs for each simulation data point
+                            PlanPricer pricer = pricerFor(pp);
+                            // A pending dynamic plan (terms, no prices yet) must NOT be
+                            // costed: an empty lookup prices every row at 0 and the plan
+                            // ranks "best". Leave the (scenario × plan) pair missing —
+                            // materialisation fires markAllScenariosNeedCosting and the
+                            // pair self-heals on the next pass.
+                            if (pricer.isPending()) continue;
+
+                            /*
+                             * IMPORT PASS — one pass over the simulation series per
+                             * import plan, accumulating the buy total, the rate-band
+                             * subtotals and the bundled sell total. All three depend
+                             * only on this plan, so they are reused across every pair
+                             * it takes part in.
+                             */
+                            double buy = 0D;
+                            double bundledSell = 0D;
+                            SubTotals subTotals = new SubTotals();
                             for (ScenarioSimulationData row : scenarioData) {
                                 int dayOfWeek = (row.getDayOfWeek() == 7) ? 0 : row.getDayOfWeek();
-                                double price = lookup.getRate(row.getDayOf2001(), row.getMinuteOfDay(),
-                                        dayOfWeek, row.getBuy());
-                                double rowBuy = price * row.getBuy();
-                                buy += rowBuy;
-                                double feedRate = (null == sellLookup) ? pp.getFeed()
-                                        : sellLookup.getRate(row.getDayOf2001(), row.getMinuteOfDay(),
-                                                dayOfWeek, row.getFeed());
-                                sell += feedRate * row.getFeed();
+                                double price = pricer.buyRate(row.getDayOf2001(),
+                                        row.getMinuteOfDay(), dayOfWeek, row.getBuy());
+                                buy += price * row.getBuy();
+                                bundledSell += pricer.sellRate(row.getDayOf2001(),
+                                        row.getMinuteOfDay(), dayOfWeek, row.getFeed())
+                                        * row.getFeed();
                                 subTotals.addToPrice(price, row.getBuy()); // This is the number of units
                             }
-                            costing.setBuy(buy);
-                            costing.setSell(sell);
-                            costing.setSubTotals(subTotals);
                             double days = 365; // TODO look at the biggest & smallest dates in the sim data
                             /*
                              * Handle deemed export plans by calculating export income based on max export and plan rules.
-                             * This is used for certain regulatory or supplier-specific plans.
+                             * This is used for certain regulatory or supplier-specific plans. Applies to the
+                             * BUNDLED export side only — a separate export contract prices its own way.
                              */
                             if (pp.isDeemedExport() && scenario.isHasInverters()) {
-                                sell = gridExportMax * 0.8148 * days * pp.getFeed();
-                                costing.setSell(sell);
+                                bundledSell = gridExportMax * 0.8148 * days * pp.getFeed();
                             }
+                            double fixed = (pp.getStandingCharges() * 100 * (days / 365))
+                                    - (pp.getSignUpBonus() * 100);
+
                             /*
-                             * NET COST CALCULATION
-                             * Combine buy, sell, standing charges, and sign-up bonuses to get the net cost.
+                             * COMBINE — one row per (import, export) pair. Pure
+                             * arithmetic over the totals above: no further pass over
+                             * the simulation series.
                              */
-                            net = ((buy - sell) + (pp.getStandingCharges() * 100 * (days / 365))) - (pp.getSignUpBonus() * 100);
-                            costing.setNet(net);
-                            // store in comparison table
-                            builder.setContentText("Saving " + planLabel);
-                            // Periodically update notification to avoid UI lag
-                            if (System.nanoTime() - notifyTime > 1e+9) {
-                                notifyTime = System.nanoTime();
-                                sendNotification(notificationManager, notificationId, builder);
+                            for (Long exportId : exportIds) {
+                                double sell = (exportId == Costings.BUNDLED_EXPORT)
+                                        ? bundledSell : exportSell.get(exportId);
+                                Costings costing = new Costings();
+                                costing.setScenarioID(scenarioID);
+                                costing.setScenarioName(scenario.getScenarioName());
+                                costing.setPricePlanID(pp.getPricePlanIndex());
+                                costing.setExportPlanID(exportId);
+                                costing.setFullPlanName(fullPlanName(pp, exportId, exportPlans));
+                                costing.setBuy(buy);
+                                costing.setSell(sell);
+                                costing.setSubTotals(subTotals);
+                                costing.setNet((buy - sell) + fixed);
+                                // store in comparison table
+                                builder.setContentText("Saving " + planLabel);
+                                // Periodically update notification to avoid UI lag
+                                if (System.nanoTime() - notifyTime > 1e+9) {
+                                    notifyTime = System.nanoTime();
+                                    sendNotification(notificationManager, notificationId, builder);
+                                }
+                                mToutcRepository.saveCosting(costing);
                             }
-                            mToutcRepository.saveCosting(costing);
                             // NOTIFICATION PROGRESS
                             PROGRESS_CURRENT += PROGRESS_CHUNK;
                             builder.setProgress(PROGRESS_MAX, PROGRESS_CURRENT, false);
@@ -327,6 +365,40 @@ public class CostingWorker extends Worker {
             SimulatorLauncher.enqueueFollowupPass(context);
         }
         return Result.success();
+    }
+
+    /**
+     * The cached pricer for a plan, built on first use. Caching across scenarios
+     * is safe for the lookups themselves, but note {@link PlanPricer} carries the
+     * underlying {@link RateLookup}'s tier state — which is why the original code
+     * also reused its lookups across scenarios, and why any future change to
+     * per-scenario tier accounting must rebuild these per scenario.
+     */
+    private PlanPricer pricerFor(PricePlan pp) {
+        PlanPricer cached = mPricers.get(pp.getPricePlanIndex());
+        if (null != cached) return cached;
+        List<DayRate> planRates =
+                mToutcRepository.getAllDayRatesForPricePlanID(pp.getPricePlanIndex());
+        PlanPricer pricer = new PlanPricer(pp, planRates);
+        mPricers.put(pp.getPricePlanIndex(), pricer);
+        return pricer;
+    }
+
+    /**
+     * The label Compare and the dashboard show. A bundled row keeps the legacy
+     * "Supplier:Plan" form byte-for-byte; a pair appends the export contract, so
+     * the two are distinguishable at a glance without a schema lookup.
+     */
+    private static String fullPlanName(PricePlan importPlan, long exportId,
+                                       List<PricePlan> exportPlans) {
+        String base = importPlan.getSupplier() + ":" + importPlan.getPlanName();
+        if (exportId == Costings.BUNDLED_EXPORT) return base;
+        for (PricePlan ep : exportPlans) {
+            if (ep.getPricePlanIndex() == exportId) {
+                return base + " → " + ep.getSupplier() + ":" + ep.getPlanName();
+            }
+        }
+        return base;
     }
 
     /**
