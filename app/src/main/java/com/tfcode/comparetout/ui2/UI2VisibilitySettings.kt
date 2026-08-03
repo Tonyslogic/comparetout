@@ -58,12 +58,15 @@ data class UiVisibility(
     /**
      * Show features built on unofficial or unproven ground.
      *
-     * ESBN and FusionSolar drive undocumented endpoints that the vendor can
-     * change without notice; Solis is in the design base but not yet proven in
-     * the field; the dynamic-tariff prices come from scraped public market
-     * reports. They work today, and anything already imported is the user's to
-     * keep — but a user who wants only load-bearing, supported surfaces can turn
-     * the lot off here.
+     * FusionSolar drives undocumented endpoints the vendor can change without
+     * notice; Solis is in the design base but not yet proven in the field; the
+     * dynamic-tariff prices come from scraped public market reports; and ESBN's
+     * *cloud sync* is a scraped browser flow ESB has broken before. They work
+     * today, and anything already imported is the user's to keep — but a user
+     * who wants only load-bearing, supported surfaces can turn the lot off here.
+     *
+     * ESBN's **HDF file import is a supported published format** and is never
+     * hidden by this flag, nor is the data it produced — see [esbnCloudEnabled].
      *
      * Defaults to TRUE so upgrading changes nothing: a user who already has ESBN
      * or FusionSolar data does not find their source silently gone.
@@ -155,12 +158,26 @@ object UiVisibilityStore {
     internal fun maskForExperimental(v: UiVisibility): UiVisibility {
         if (v.showExperimental) return v
         return v.copy(
-            esbn = false,           // unofficial ESB Networks endpoints
-            fusionsolar = false,    // unofficial FusionSolar endpoints
+            fusionsolar = false,    // unofficial endpoints, API-only source
             solis = false,          // in the design base, not yet proven
             wholesale = false       // dynamic tariffs — scraped market reports
         )
     }
+
+    /**
+     * ESBN is deliberately NOT in [maskForExperimental].
+     *
+     * Only half of it is experimental. The cloud sync is a scraped browser flow
+     * ESB has broken before; the **HDF file import is a published, supported
+     * format**, and the data a user already holds is theirs. Hiding the whole
+     * source would take away the file import and the export/delete controls for
+     * data they own — so the flag gates the cloud half alone, via this, and the
+     * ESBN card itself stays under the user's own `esbn` toggle.
+     *
+     * Same rule for the background worker: [experimentalEnabled] stops
+     * ESBNCatchUpWorker (cloud) but never ESBNImportWorker (file).
+     */
+    fun esbnCloudEnabled(v: UiVisibility): Boolean = v.showExperimental
 
     private fun mask(v: UiVisibility): UiVisibility =
         maskForExperimental(maskForProfile(maskForRegion(v)))

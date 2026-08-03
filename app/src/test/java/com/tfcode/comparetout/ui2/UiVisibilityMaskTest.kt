@@ -139,10 +139,26 @@ class UiVisibilityMaskTest {
     fun turningExperimentalOffHidesTheUnofficialSources() {
         val masked = UiVisibilityStore.maskForExperimental(
             allVisible.copy(showExperimental = false))
-        assertFalse("unofficial ESB Networks endpoints", masked.esbn)
         assertFalse("unofficial FusionSolar endpoints", masked.fusionsolar)
         assertFalse("unproven", masked.solis)
         assertFalse("scraped market reports", masked.wholesale)
+    }
+
+    /**
+     * ESBN must survive the gate. Only its cloud sync is a scraped flow — the
+     * HDF file import is a published, supported format, and the data a user has
+     * already imported is theirs. Hiding the whole source would take away the
+     * file import and the export/delete controls for data they own.
+     */
+    @Test
+    fun esbnSurvivesTheGateBecauseHdfImportIsSupported() {
+        val masked = UiVisibilityStore.maskForExperimental(
+            allVisible.copy(showExperimental = false))
+        assertTrue("HDF import is a supported format", masked.esbn)
+        // The cloud half is what the flag governs, reported separately.
+        assertFalse(UiVisibilityStore.esbnCloudEnabled(
+            allVisible.copy(showExperimental = false)))
+        assertTrue(UiVisibilityStore.esbnCloudEnabled(allVisible))
     }
 
     /** The gate only ever subtracts: supported sources are untouched, so a user
@@ -173,23 +189,23 @@ class UiVisibilityMaskTest {
      *  while the master is on. */
     @Test
     fun perSourceTogglesStillApplyWhileExperimentalIsOn() {
-        val masked = UiVisibilityStore.maskForExperimental(allVisible.copy(esbn = false))
-        assertFalse(masked.esbn)
+        val masked = UiVisibilityStore.maskForExperimental(allVisible.copy(solis = false))
+        assertFalse(masked.solis)
         assertTrue(masked.fusionsolar)
-        assertTrue(masked.solis)
+        assertTrue(masked.esbn)
     }
 
     /** Hiding is a display decision — it must not imply anything about stored
      *  data, and re-enabling restores exactly the previous per-source state. */
     @Test
     fun reEnablingRestoresThePreviousPerSourceChoices() {
-        // User had FusionSolar off by choice, ESBN on.
+        // User had FusionSolar off by choice, Solis on.
         val stored = allVisible.copy(fusionsolar = false)
         val off = stored.copy(showExperimental = false)
-        assertFalse(UiVisibilityStore.maskForExperimental(off).esbn)
+        assertFalse(UiVisibilityStore.maskForExperimental(off).solis)
         // Switching back on returns the stored choices, not an all-on reset.
         val backOn = UiVisibilityStore.maskForExperimental(off.copy(showExperimental = true))
-        assertTrue(backOn.esbn)
+        assertTrue(backOn.solis)
         assertFalse("the user's own FusionSolar choice is remembered", backOn.fusionsolar)
     }
 }

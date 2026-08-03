@@ -140,6 +140,12 @@ import java.time.format.DateTimeFormatter
 internal fun EsbnSection(
     state: SourceState?,
     showHints: Boolean,
+    /**
+     * Whether the experimental CLOUD half is offered. False hides the scraped
+     * login/download flow only: HDF file import, the system list, export and
+     * delete all stay — the file format is supported and the data is the user's.
+     */
+    showCloud: Boolean = true,
     onSetCredentials: (String, String) -> Unit,
     onSelect: (String) -> Unit,
     onFetch: (String) -> Unit,
@@ -171,25 +177,35 @@ internal fun EsbnSection(
     // broken before, and the user must see that before typing a password.
     // The same text repeats inside the credential dialog, above the fields.
     val experimentalNotice = stringResource(R.string.ui2_dsm_esbn_experimental)
-    Surface(
-        color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f),
-        shape = RoundedCornerShape(10.dp),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+    if (showCloud) {
+        Surface(
+            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.4f),
+            shape = RoundedCornerShape(10.dp),
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Icon(Icons.Outlined.Warning, null,
-                tint = MaterialTheme.colorScheme.onErrorContainer,
-                modifier = Modifier.size(20.dp))
-            Text(
-                experimentalNotice,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onErrorContainer
-            )
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Icon(Icons.Outlined.Warning, null,
+                    tint = MaterialTheme.colorScheme.onErrorContainer,
+                    modifier = Modifier.size(20.dp))
+                Text(
+                    experimentalNotice,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
         }
+    } else {
+        // Say why the cloud controls are missing, and where to bring them back —
+        // otherwise their absence reads as a bug.
+        Text(
+            stringResource(R.string.ui2_dsm_esbn_cloud_off),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
     // File import stays first-class, listed before the cloud controls — it is
     // the always-works path when the experimental flow breaks.
@@ -214,17 +230,24 @@ internal fun EsbnSection(
             }
         }
     }
-    CredentialStrip(
-        configured = state?.credentialsConfigured == true,
-        good = state?.credentialsKnownGood == true,
-        onEdit = { showCreds = true },
-        onDeleteSource = if (state?.credentialsConfigured == true || !state?.systems.isNullOrEmpty())
-            ({ showDeleteSource = true }) else null
-    )
+    // Shown while cloud sync is on, and also when it is off but credentials are
+    // already stored — otherwise a user who turns the flag off would have no way
+    // left to remove the password they saved.
+    if (showCloud || state?.credentialsConfigured == true) {
+        CredentialStrip(
+            configured = state?.credentialsConfigured == true,
+            good = state?.credentialsKnownGood == true,
+            onEdit = { showCreds = true },
+            onDeleteSource = if (state?.credentialsConfigured == true || !state?.systems.isNullOrEmpty())
+                ({ showDeleteSource = true }) else null
+        )
+    }
     SystemList(
         systems = state?.systems.orEmpty(),
         selected = state?.selectedSn,
-        canFetch = state?.credentialsKnownGood == true,
+        // Fetch is the cloud call — the rest of the row (select, export, delete)
+        // manages data the user already has and stays available.
+        canFetch = showCloud && state?.credentialsKnownGood == true,
         onSelect = onSelect,
         // No start-date dialog: the HDF download is always the full history
         // (one login + one POST per run), so there is nothing to pick.
@@ -239,7 +262,7 @@ internal fun EsbnSection(
             pickExportFolder.launch(null)
         }
     )
-    if (state?.credentialsConfigured == true) {
+    if (showCloud && state?.credentialsConfigured == true) {
         // Rate-limit hint under the fetch controls (plans/source/esbn.md §3).
         Text(stringResource(R.string.ui2_dsm_esbn_rate_hint),
             style = MaterialTheme.typography.labelSmall,

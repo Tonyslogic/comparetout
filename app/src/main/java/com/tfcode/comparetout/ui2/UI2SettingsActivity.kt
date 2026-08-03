@@ -184,10 +184,15 @@ private fun SettingsScreen(onClose: () -> Unit) {
             // subtracts, so a user can still hide ESBN alone — but the row is
             // disabled while the master is off, because its value cannot take
             // effect and an operable-looking switch would mislead.
+            // ESBN is NOT gated by the experimental flag: its HDF file import is
+            // a supported published format and the data it produced is the
+            // user's. Only its cloud sync is experimental, and that is hidden
+            // inside the source card, not here.
             if (RegionProfiles.current.hasEsbn) {
                 ToggleRow(stringResource(R.string.brand_esbn),
-                    experimentalSub(vis.showExperimental), vis.esbn && vis.showExperimental,
-                    enabled = vis.showExperimental) { update(vis.copy(esbn = it)) }
+                    if (vis.showExperimental) null
+                    else stringResource(R.string.ui2_settings_esbn_file_only),
+                    vis.esbn) { update(vis.copy(esbn = it)) }
             }
             if (RegionProfiles.current.hasOctopus) {
                 ToggleRow(stringResource(R.string.octopus_energy), null, vis.octopus) { update(vis.copy(octopus = it)) }

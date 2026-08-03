@@ -315,6 +315,9 @@ private fun DataSourceManagementScreen(
                             EsbnSection(
                                 state = esbn,
                                 showHints = showHints,
+                                // Only the scraped cloud flow is experimental —
+                                // HDF import and the user's own data are not.
+                                showCloud = uiVis.showExperimental,
                                 onSetCredentials = viewModel::setEsbnCredentials,
                                 onSelect = viewModel::selectEsbnSystem,
                                 onFetch = viewModel::fetchEsbn,
