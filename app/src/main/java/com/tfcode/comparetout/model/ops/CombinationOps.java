@@ -18,7 +18,9 @@ package com.tfcode.comparetout.model.ops;
 
 import com.tfcode.comparetout.model.ToutcDB;
 import com.tfcode.comparetout.model.dao.CombinationDAO;
+import com.tfcode.comparetout.model.json.PricePlanJsonTools;
 import com.tfcode.comparetout.model.priceplan.PlanCombination;
+import com.tfcode.comparetout.model.priceplan.PricePlan;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -88,5 +90,56 @@ public class CombinationOps {
     /** Every pairing, for callers that want the raw rows (export/round-trip). */
     public List<PlanCombination> all() {
         return new ArrayList<>(combinationDAO.getCombinationsNow());
+    }
+
+    /**
+     * Export-plan id → the {@code "Supplier:Plan"} keys of the import plans it is
+     * paired with, ready for the JSON {@code SelectedWith} field. Named rather
+     * than id-keyed because {@code pricePlanIndex} is device-local.
+     *
+     * @param plans every plan currently in the library, to resolve ids to names
+     */
+    public Map<Long, List<String>> pairingsAsNames(List<PricePlan> plans) {
+        Map<Long, PricePlan> byId = new HashMap<>();
+        for (PricePlan pp : plans) byId.put(pp.getPricePlanIndex(), pp);
+
+        Map<Long, List<String>> byExport = new HashMap<>();
+        for (PlanCombination pc : combinationDAO.getCombinationsNow()) {
+            PricePlan importPlan = byId.get(pc.getImportPlanID());
+            if (null == importPlan) continue;   // stale row; prune() will clear it
+            byExport.computeIfAbsent(pc.getExportPlanID(), k -> new ArrayList<>())
+                    .add(PricePlanJsonTools.planKey(importPlan));
+        }
+        return byExport;
+    }
+
+    /**
+     * Re-tick the pairings named by an imported export plan's {@code SelectedWith}.
+     * <p>
+     * Must run in a SECOND pass, after every plan in the file has been inserted:
+     * an export plan may name an import plan that appears later in the same file.
+     * Names that do not resolve on this device are <b>silently dropped</b> — a
+     * shared file naming a plan the recipient does not have should not fail the
+     * import.
+     *
+     * @return how many named pairings could not be resolved
+     */
+    public int restorePairings(long exportPlanID, List<String> selectedWith,
+                               List<PricePlan> plans) {
+        if (null == selectedWith || selectedWith.isEmpty()) return 0;
+        Map<String, Long> byKey = new HashMap<>();
+        for (PricePlan pp : plans) {
+            if (pp.isExport()) continue;        // pairing is export → import
+            byKey.put(PricePlanJsonTools.planKey(pp).toLowerCase(java.util.Locale.ROOT),
+                    pp.getPricePlanIndex());
+        }
+        int unresolved = 0;
+        for (String key : selectedWith) {
+            if (null == key) { unresolved++; continue; }
+            Long importId = byKey.get(key.trim().toLowerCase(java.util.Locale.ROOT));
+            if (null == importId) unresolved++;
+            else select(importId, exportPlanID, PlanCombination.SOURCE_MANUAL);
+        }
+        return unresolved;
     }
 }

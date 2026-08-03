@@ -46,6 +46,7 @@ import com.tfcode.comparetout.model.json.scenario.LoadShiftJson;
 import com.tfcode.comparetout.model.json.scenario.MonthlyDistribution;
 import com.tfcode.comparetout.model.json.scenario.PanelJson;
 import com.tfcode.comparetout.model.json.scenario.ScenarioJsonFile;
+import com.tfcode.comparetout.model.priceplan.CompatibilityTags;
 import com.tfcode.comparetout.model.priceplan.DayRate;
 import com.tfcode.comparetout.model.priceplan.DoubleHolder;
 import com.tfcode.comparetout.model.priceplan.DynamicTerms;
@@ -83,6 +84,31 @@ import java.util.Map;
 /** Price-plan JSON conversions, moved verbatim from JsonTools (mega-refactor C10). */
 public class PricePlanJsonTools {
 
+    /** The only non-absent value of the "Direction" field. */
+    private static final String EXPORT_DIRECTION = "export";
+
+    /**
+     * The name form used by "SelectedWith" and by compatibility tags:
+     * {@code Supplier:Plan}. Device-local ids would not survive a transfer.
+     */
+    public static String planKey(PricePlan pp) {
+        return pp.getSupplier() + ":" + pp.getPlanName();
+    }
+
+    /** Fill in the direction / tag / pairing fields shared by both exporters. */
+    private static void addExportFields(PricePlanJsonFile ppj, PricePlan pp,
+                                        List<String> selectedWith) {
+        // Absent for import plans, so pre-v17 exports stay byte-identical.
+        ppj.direction = pp.isExport() ? EXPORT_DIRECTION : null;
+        if (pp.isExport() && !(null == pp.getCompatibleWith())
+                && !pp.getCompatibleWith().getTags().isEmpty()) {
+            ppj.compatibleWith = new ArrayList<>(pp.getCompatibleWith().getTags());
+        }
+        if (pp.isExport() && !(null == selectedWith) && !selectedWith.isEmpty()) {
+            ppj.selectedWith = new ArrayList<>(selectedWith);
+        }
+    }
+
     public static PricePlan createPricePlan(PricePlanJsonFile pp) {
         PricePlan p = new PricePlan();
         p.setPlanName(pp.plan);
@@ -97,6 +123,12 @@ public class PricePlanJsonTools {
         if (!(null == pp.reference)) p.setReference(pp.reference);
         p.setDeemedExport(null == pp.deemedExport ? false : pp.deemedExport);
         if (!(null == pp.location)) p.setLocation(pp.location);
+        // Absent Direction means import — every pre-v17 file.
+        p.setDirection(EXPORT_DIRECTION.equalsIgnoreCase(pp.direction)
+                ? PricePlan.DIRECTION_EXPORT : PricePlan.DIRECTION_IMPORT);
+        if (!(null == pp.compatibleWith) && !pp.compatibleWith.isEmpty()) {
+            p.setCompatibleWith(new CompatibilityTags(pp.compatibleWith));
+        }
         if (!(null == pp.dynamic)) {
             DynamicTerms dt = new DynamicTerms();
             dt.setMarket(pp.dynamic.market);
@@ -177,6 +209,16 @@ public class PricePlanJsonTools {
     }
 
     public static String createPricePlanJson(Map<PricePlan, List<DayRate>> pricePlans) {
+        return createPricePlanJson(pricePlans, null);
+    }
+
+    /**
+     * @param pairings export plan id → the "Supplier:Plan" keys of the import
+     *                 plans it is currently paired with; null when the caller has
+     *                 no pairing context (the legacy signature).
+     */
+    public static String createPricePlanJson(Map<PricePlan, List<DayRate>> pricePlans,
+                                             Map<Long, List<String>> pairings) {
         ArrayList<PricePlanJsonFile> ppList = new ArrayList<>();
             for (Map.Entry<PricePlan, List<DayRate>> entry : pricePlans.entrySet()) {
                 ArrayList<DayRateJson> dayRateJsons = new ArrayList<>();
@@ -221,6 +263,8 @@ public class PricePlanJsonTools {
                 ppj.supplier = entry.getKey().getSupplier();
                 ppj.deemedExport = entry.getKey().isDeemedExport();
                 ppj.location = entry.getKey().getLocation();
+                addExportFields(ppj, entry.getKey(), null == pairings ? null
+                        : pairings.get(entry.getKey().getPricePlanIndex()));
                 RestrictionJson restrictions = new RestrictionJson();
                 restrictions.active = entry.getKey().getRestrictions().isActive();
                 restrictions.restrictionEntries = new ArrayList<>();
@@ -244,6 +288,12 @@ public class PricePlanJsonTools {
     }
 
     public static String createSinglePricePlanJsonObject(PricePlan pp, List<DayRate> rates) {
+        return createSinglePricePlanJsonObject(pp, rates, null);
+    }
+
+    /** @param selectedWith "Supplier:Plan" keys this export plan is paired with. */
+    public static String createSinglePricePlanJsonObject(PricePlan pp, List<DayRate> rates,
+                                                         List<String> selectedWith) {
         ArrayList<DayRateJson> dayRateJsons = new ArrayList<>();
         // Dynamic plans export terms-only: their rates are a derived artefact,
         // regenerated locally, and market-derived prices must not be redistributed.
@@ -288,6 +338,7 @@ public class PricePlanJsonTools {
         ppj.supplier = pp.getSupplier();
         ppj.deemedExport = pp.isDeemedExport();
         ppj.location = pp.getLocation();
+        addExportFields(ppj, pp, selectedWith);
         RestrictionJson restrictions = new RestrictionJson();
         if (!(null == pp.getRestrictions())) {
             restrictions.active = pp.getRestrictions().isActive();

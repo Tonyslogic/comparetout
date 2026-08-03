@@ -180,15 +180,32 @@ class UI2PricePlanListViewModel @Inject constructor(
         // plan is not miscounted as replacing a same-named import plan.
         val existingNames: Set<Pair<String, Int>> =
             repository.allPricePlansNow?.map { it.planName to it.direction }?.toSet().orEmpty()
+        // Pass 1 — insert every plan, synchronously, keeping each export plan's
+        // new id so its pairings can be restored below.
+        val exportPlanIds = mutableMapOf<PricePlanJsonFile, Long>()
         list.forEach { pp ->
             val plan = JsonTools.createPricePlan(pp)
             val drs = ArrayList<DayRate>()
             pp.rates?.forEach { drj -> drs.add(JsonTools.createDayRate(drj)) }
-            repository.insert(plan, drs, clobber)
+            val newId = repository.insertSync(plan, drs, clobber)
+            if (plan.isExport && !pp.selectedWith.isNullOrEmpty()) {
+                // A rejected duplicate returns 0 — fall back to the existing row,
+                // which is the plan the pairings refer to anyway.
+                exportPlanIds[pp] = if (newId != 0L) newId
+                else repository.findPricePlanID(
+                    plan.supplier, plan.planName, PricePlan.DIRECTION_EXPORT)
+            }
             if ((plan.planName to plan.direction) in existingNames) replaced += 1 else added += 1
             // A terms-only dynamic plan lands pending; auto-materialise it
             // (self-heal poke — the badge offers tap-to-retry if this fails).
             DynamicTariffWorker.maybeEnqueuePendingImport(getApplication(), pp)
+        }
+        // Pass 2 — re-tick pairings. Separate from pass 1 because an export plan
+        // may name an import plan that appears LATER in the same file. Names that
+        // do not resolve here are dropped silently: a shared file naming a plan
+        // the recipient does not have must not fail the import.
+        exportPlanIds.forEach { (pp, id) ->
+            if (id != 0L) repository.restorePairings(id, pp.selectedWith)
         }
         ImportOutcome(replaced, added)
     }
@@ -203,6 +220,9 @@ class UI2PricePlanListViewModel @Inject constructor(
         val all = repository.allPricePlansForExport ?: return@withContext null
         val entry = all.entries.firstOrNull { it.key.pricePlanIndex == planId }
             ?: return@withContext null
-        JsonTools.createPricePlanJson(mapOf(entry.key to entry.value))
+        // Carry the plan's pairings so a shared export plan arrives already
+        // paired with the import plans the recipient also has.
+        JsonTools.createPricePlanJson(
+            mapOf(entry.key to entry.value), repository.pairingsAsNames)
     }
 }

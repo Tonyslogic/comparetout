@@ -97,6 +97,7 @@ import com.tfcode.comparetout.model.json.JsonTools
 import com.tfcode.comparetout.model.json.priceplan.PricePlanJsonFile
 import com.tfcode.comparetout.model.json.scenario.ScenarioJsonFile
 import com.tfcode.comparetout.model.priceplan.DayRate
+import com.tfcode.comparetout.model.priceplan.PricePlan
 import com.tfcode.comparetout.model.scenario.Scenario
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -183,7 +184,10 @@ class UI2ImportExportViewModel @Inject constructor(
 
     suspend fun allPlansJson(): String? = withContext(Dispatchers.IO) {
         val map = repository.allPricePlansForExport ?: return@withContext null
-        if (map.isEmpty()) null else JsonTools.createPricePlanJson(map)
+        // Pairings ride along on each export plan's SelectedWith, so a full
+        // library round-trips its import↔export selections too.
+        if (map.isEmpty()) null
+        else JsonTools.createPricePlanJson(map, repository.pairingsAsNames)
     }
 
     suspend fun allScenariosJson(): String? = withContext(Dispatchers.IO) {
@@ -287,18 +291,31 @@ class UI2ImportExportViewModel @Inject constructor(
         // Snapshot existing plan names so we can report how many rows the
         // clobber path actually overwrote, without dragging that count out of
         // the DAO layer.
-        val existingNames: Set<String> =
-            repository.allPricePlansNow?.map { it.planName }?.toSet().orEmpty()
+        // Name AND direction, matching the v17 unique key, so an incoming export
+        // plan is not miscounted as replacing a same-named import plan.
+        val existingNames: Set<Pair<String, Int>> =
+            repository.allPricePlansNow?.map { it.planName to it.direction }?.toSet().orEmpty()
+        // Pass 1 — insert synchronously so each export plan's new id is known.
+        val exportPlanIds = mutableMapOf<PricePlanJsonFile, Long>()
         list.forEach { pp ->
             val plan = JsonTools.createPricePlan(pp)
             val drs = ArrayList<DayRate>()
             pp.rates?.forEach { drj -> drs.add(JsonTools.createDayRate(drj)) }
-            // Repository.insert queues onto ToutcDB.databaseWriteExecutor —
-            // it's the same path legacy MainActivity uses for bulk import.
-            repository.insert(plan, drs, clobber)
-            if (plan.planName in existingNames) replaced += 1 else added += 1
+            // insertSync rather than the queued insert: the pairing pass below
+            // needs the id back, and the write executor gives no ordering barrier.
+            val newId = repository.insertSync(plan, drs, clobber)
+            if (plan.isExport && !pp.selectedWith.isNullOrEmpty()) {
+                exportPlanIds[pp] = if (newId != 0L) newId
+                else repository.findPricePlanID(
+                    plan.supplier, plan.planName, PricePlan.DIRECTION_EXPORT)
+            }
+            if ((plan.planName to plan.direction) in existingNames) replaced += 1 else added += 1
             // Terms-only dynamic plans land pending — auto-materialise.
             DynamicTariffWorker.maybeEnqueuePendingImport(getApplication(), pp)
+        }
+        // Pass 2 — an export plan may name an import plan later in the same file.
+        exportPlanIds.forEach { (pp, id) ->
+            if (id != 0L) repository.restorePairings(id, pp.selectedWith)
         }
         // Imported plans flipped the costing-readiness flags; kick the recompute (UI2 has no nav observer).
         SimulatorLauncher.simulateIfNeeded(getApplication())

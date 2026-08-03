@@ -118,6 +118,12 @@ public class JsonTools {
         return PricePlanJsonTools.createDayRate(drj);
     }
 
+    /** @param pairings export plan id → paired "Supplier:Plan" keys; may be null. */
+    public static String createPricePlanJson(Map<PricePlan, List<DayRate>> pricePlans,
+                                             Map<Long, List<String>> pairings) {
+        return PricePlanJsonTools.createPricePlanJson(pricePlans, pairings);
+    }
+
     public static String createPricePlanJson(Map<PricePlan, List<DayRate>> pricePlans) {
         return PricePlanJsonTools.createPricePlanJson(pricePlans);
     }

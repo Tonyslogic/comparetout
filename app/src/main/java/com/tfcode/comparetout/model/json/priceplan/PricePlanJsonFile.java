@@ -75,5 +75,26 @@ public class PricePlanJsonFile {
     // every conventional plan.
     @SerializedName("Dynamic")
     public DynamicTermsJson dynamic;
+
+    // "export" for a separate export contract; ABSENT for import plans, so every
+    // pre-v17 file is byte-identical. Mirrors DayRateJson.rateType's convention.
+    @SerializedName("Direction")
+    public String direction;
+
+    // Export plans only: which import plans this one may be paired with, as
+    // "Supplier:Plan" / "Supplier:*" tags. Absent or empty = open market.
+    @SerializedName("CompatibleWith")
+    public ArrayList<String> compatibleWith;
+
+    // Export plans only: the import plans this export plan is currently paired
+    // with, as "Supplier:Plan" strings.
+    //
+    // Carried on the export plan rather than in a parallel top-level block so the
+    // file keeps its bare-array shape and old parsers still work. Name-based, not
+    // id-based, because pricePlanIndex is device-local — an id list would be
+    // meaningless after import, whereas "Octopus Energy:Flexible" resolves
+    // against whatever the receiving device happens to have.
+    @SerializedName("SelectedWith")
+    public ArrayList<String> selectedWith;
 }
 

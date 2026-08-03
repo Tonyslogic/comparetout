@@ -406,6 +406,50 @@ public class ToutcRepository {
         return combinationOps.pairingsByImportPlan();
     }
 
+    /**
+     * Export-plan id → the "Supplier:Plan" keys it is paired with, for the JSON
+     * {@code SelectedWith} field. Call off the main thread.
+     */
+    public java.util.Map<Long, java.util.List<String>> getPairingsAsNames() {
+        return combinationOps.pairingsAsNames(getAllPricePlansNow());
+    }
+
+    /**
+     * Second pass of a plan import: re-tick the pairings an imported export plan
+     * named. Runs after every plan in the file is inserted, because an export
+     * plan may name an import plan that appears later in the same file.
+     *
+     * @return how many named pairings did not resolve on this device
+     */
+    public int restorePairings(long exportPlanID, java.util.List<String> selectedWith) {
+        return combinationOps.restorePairings(exportPlanID, selectedWith, getAllPricePlansNow());
+    }
+
+    /** Look up a plan by its full unique key — used to resolve a just-imported plan. */
+    public long findPricePlanID(String supplier, String planName, int direction) {
+        return pricePlanDAO.getPricePlanID(supplier, planName, direction);
+    }
+
+    /**
+     * {@link #insert} done synchronously on the calling thread, returning the new
+     * plan's id.
+     * <p>
+     * The async {@code insert} queues onto an 8-thread pool, so a caller that must
+     * read back what it just wrote cannot simply wait — there is no ordering
+     * barrier, and a follow-up task can run before earlier inserts finish. The
+     * plan importer needs the id to restore that plan's pairings, so it uses this
+     * instead. <b>Call off the main thread.</b>
+     *
+     * @return the new pricePlanIndex, or 0 when the insert was rejected as a
+     *         duplicate (the DAO swallows the constraint violation)
+     */
+    public long insertSync(PricePlan pp, List<DayRate> drs, boolean clobber) {
+        long id = pricePlanDAO.addNewPricePlanWithDayRates(pp, drs, clobber);
+        if (clobber) costingDAO.deleteRelatedCostings((int) id);
+        readinessDAO.markAllScenariosNeedCosting(System.currentTimeMillis());
+        return id;
+    }
+
     /** Drop a deleted plan's pairings from both sides of the pairing table. */
     public void removePlanCombinations(long planID) {
         ToutcDB.databaseWriteExecutor.execute(() -> combinationOps.removePlan(planID));
