@@ -16,7 +16,7 @@ import com.tfcode.comparetout.model.costings.SubTotals
 import com.tfcode.comparetout.model.importers.InverterDateRange
 import com.tfcode.comparetout.model.priceplan.PricePlan
 import com.tfcode.comparetout.model.scenario.Scenario
-import com.tfcode.comparetout.util.RateLookup
+import com.tfcode.comparetout.util.PlanPricer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -874,6 +874,29 @@ class UI2CompareViewModel @Inject constructor(
         )
     }
 
+    /** A zeroed, explicitly-unavailable row — used where a plan cannot honestly
+     *  be priced (pending dynamic prices), so it never ranks as "cheapest". */
+    private fun unavailableRow(
+        subjectId: String, subjectName: String, plan: PricePlan, axis: CostBucketAxis
+    ): CompareCostRow {
+        val n = axis.labels.size.coerceAtLeast(1)
+        val zeros = List(n) { 0.0 }
+        return CompareCostRow(
+            subjectId = subjectId,
+            subjectName = subjectName,
+            isSimulation = false,
+            planId = plan.pricePlanIndex,
+            planName = "${plan.supplier} · ${plan.planName}",
+            available = false,
+            net = 0.0, buy = 0.0, sell = 0.0, fixed = 0.0, bonus = 0.0,
+            buyBands = emptyList(), buyBandRates = emptyList(),
+            timeline = BucketSeries(axis.labels, mapOf(
+                "net" to zeros, "buy" to zeros, "sell" to zeros,
+                "fixed" to zeros, "bonus" to zeros
+            ))
+        )
+    }
+
     private fun sourceCosts(
         src: CompareSourceItem, gran: DataSourcePeriod, anchor: LocalDate, advanced: Boolean,
         scale: CompareAxisScale,
@@ -887,8 +910,18 @@ class UI2CompareViewModel @Inject constructor(
         val axis = costBucketAxis(scale, fromD, toD)
         return plans.map { plan ->
             val dayRates = repository.getAllDayRatesForPricePlanID(plan.pricePlanIndex)
-            val lookup = RateLookup(plan, dayRates)
-            lookup.setStartDOY(fromD.dayOfYear)
+            // A pending dynamic plan (terms present, prices not yet downloaded)
+            // has no BUY rates. Costing it would price every row at 0 and rank
+            // it cheapest — the same trap CostingWorker guards at :207. Report it
+            // as not-yet-available instead, which the table already renders.
+            if (PlanPricer(plan, dayRates).isPending)
+                return@map unavailableRow(subjectId, subjectName, plan, axis)
+            // Partition by direction exactly as CostingWorker does. Feeding the
+            // whole set to one RateLookup mixed a plan's export prices into its
+            // import lookup; pricing export at the scalar `feed` then ignored
+            // time-varying export rates altogether, so an Agile plan costed
+            // differently here than on the dashboard.
+            val pricer = PlanPricer(plan, dayRates, fromD.dayOfYear)
             var buy = 0.0; var sell = 0.0
             val n = axis.labels.size.coerceAtLeast(1)
             val bucketedNet = DoubleArray(n)
@@ -898,9 +931,11 @@ class UI2CompareViewModel @Inject constructor(
             hourly.forEach { row ->
                 val ldt = LocalDateTime.parse(row.dateTime, rowFmt)
                 val dow = ldt.dayOfWeek.value.let { if (it == 7) 0 else it }
-                val price = lookup.getRate(ldt.dayOfYear, ldt.hour * 60 + ldt.minute, dow, row.buy)
+                val minuteOfDay = ldt.hour * 60 + ldt.minute
+                val price = pricer.buyRate(ldt.dayOfYear, minuteOfDay, dow, row.buy)
                 val rowBuy = price * row.buy
-                val rowSell = plan.feed * row.feed
+                // Per-slot when the plan has SELL rates, else its scalar feed.
+                val rowSell = pricer.sellRate(ldt.dayOfYear, minuteOfDay, dow, row.feed) * row.feed
                 buy += rowBuy
                 sell += rowSell
                 val idx = axis.indexOf(ldt)

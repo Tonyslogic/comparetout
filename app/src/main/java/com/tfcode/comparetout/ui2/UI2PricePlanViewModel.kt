@@ -117,7 +117,20 @@ data class PricePlanBuilder(
     // ISO 3166-1 alpha-2 country the supplier operates in; "" = everywhere.
     // Drives the phone-location filter in the plan list.
     val location: String = "",
+    // The EDITABLE rate set only — BUY (import) rates. See [passthroughRates].
     val dayRates: List<DayRateBuilder> = listOf(DayRateBuilder()),
+    // Rates the wizard does not edit but must not destroy: today that is the
+    // SELL (export) set, which only generators produce (a dynamic plan's feed
+    // transform, an Octopus Agile plan). They ride along as raw entities,
+    // keeping their DB ids, and toEntities() re-appends them on Save.
+    //
+    // Without this the editor round-trip was lossy in the worst way: toBuilder
+    // read every rate regardless of rateType and toEntities wrote fresh
+    // DayRate objects, which default to RATE_BUY — so opening a plan with
+    // export rates and pressing Save silently converted them into a second set
+    // of import rates, and validatePlan then rejected the plan for overlapping
+    // BUY date ranges.
+    val passthroughRates: List<DayRate> = emptyList(),
     // Tiered-usage restrictions (e.g. Octopus Zero: 4000 kWh/year at the base
     // rate, then a different unit price). Costing applies them via RateLookup.
     val restrictionsActive: Boolean = false,
@@ -361,7 +374,15 @@ class UI2PricePlanViewModel @Inject constructor(
         //     has no minuteRange at all (legacy exports pre-dating it).
         // Day-rate ids are reset to local negatives so saving never collides
         // with the source plan's DB rows.
-        val dayRateBuilders = json.rates.orEmpty().map { drj ->
+        // Same BUY/SELL split as toBuilder: only import rates become editor
+        // cards. An imported plan carrying export rates (Octopus Agile, a
+        // dynamic plan's feed transform) would otherwise have them rewritten
+        // as import rates on the next Save.
+        val (importRateJson, exportRateJson) = json.rates.orEmpty()
+            .partition { !"sell".equals(it.rateType, ignoreCase = true) }
+        val carriedRates = exportRateJson.map { JsonTools.createDayRate(it) }
+            .onEach { it.dayRateIndex = 0L }
+        val dayRateBuilders = importRateJson.map { drj ->
             val bands: List<RateBand> = when {
                 drj.minuteRange != null -> drj.minuteRange.map {
                     RateBand(it.startMinute, it.endMinute, it.cost)
@@ -397,6 +418,7 @@ class UI2PricePlanViewModel @Inject constructor(
                 lastUpdate = parsedPlan.lastUpdate ?: "",
                 location = parsedPlan.location,
                 dayRates = if (parsedPlan.isDynamic) emptyList() else dayRateBuilders,
+                passthroughRates = if (parsedPlan.isDynamic) emptyList() else carriedRates,
                 restrictionsActive = parsedPlan.restrictions?.isActive == true,
                 restrictionEntries = parsedPlan.restrictions.toEntryBuilders(),
                 dynamicTerms = parsedPlan.dynamicTerms,
@@ -576,7 +598,9 @@ private fun parseMmDd(text: String): Int? {
 
 // ── conversions ─────────────────────────────────────────────────────────────
 
-private fun PricePlan.toBuilder(rates: List<DayRate>): PricePlanBuilder = PricePlanBuilder(
+// internal, not private: the BUY/SELL split these two perform is the whole of
+// the editor's round-trip contract and is unit-tested (PricePlanRoundTripTest).
+internal fun PricePlan.toBuilder(rates: List<DayRate>): PricePlanBuilder = PricePlanBuilder(
     pricePlanId = pricePlanIndex,
     supplier = supplier,
     planName = planName,
@@ -589,11 +613,16 @@ private fun PricePlan.toBuilder(rates: List<DayRate>): PricePlanBuilder = PriceP
     location = location,
     // A dynamic plan's 365 generated rates never become editor cards — the
     // terms card is the only mutation path; save passes the rates through.
+    // Non-dynamic plans expose only their BUY rates to the editor.
     dayRates = when {
         isDynamic -> emptyList()
-        rates.isEmpty() -> listOf(DayRateBuilder())
-        else -> rates.map { it.toBuilder() }
+        else -> DayRate.buyRates(rates).let { buys ->
+            if (buys.isEmpty()) listOf(DayRateBuilder()) else buys.map { it.toBuilder() }
+        }
     },
+    // Dynamic plans route their whole rate set through saveDynamic's keepRates,
+    // so adding them here too would duplicate every row on Save.
+    passthroughRates = if (isDynamic) emptyList() else DayRate.sellRates(rates),
     restrictionsActive = restrictions?.isActive == true,
     restrictionEntries = restrictions.toEntryBuilders(),
     dynamicTerms = dynamicTerms,
@@ -720,7 +749,7 @@ private fun dynamicPlanJson(plan: PricePlan): PricePlanJsonFile {
     return ppj
 }
 
-private fun PricePlanBuilder.toEntities(): Pair<PricePlan, List<DayRate>> {
+internal fun PricePlanBuilder.toEntities(): Pair<PricePlan, List<DayRate>> {
     val plan = PricePlan().apply {
         pricePlanIndex = this@toEntities.pricePlanId
         supplier = this@toEntities.supplier
@@ -763,5 +792,9 @@ private fun PricePlanBuilder.toEntities(): Pair<PricePlan, List<DayRate>> {
             hours = dh
         }
     }
-    return plan to rates
+    // Re-attach the rates the editor never showed (export/SELL). They keep their
+    // DB ids, so PricePlanDAO.updatePricePlanWithDayRates sees them in newIDs and
+    // leaves them alone rather than deleting them as "removed" rows.
+    val carried = passthroughRates.onEach { it.pricePlanId = this@toEntities.pricePlanId }
+    return plan to (rates + carried)
 }
