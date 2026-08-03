@@ -238,11 +238,16 @@ private fun PricePlanWizardScreen(
                         item("charges") {
                             AccordionSection(
                                 title = stringResource(R.string.ui2_ppw_charges_title),
-                                subtitle = stringResource(R.string.ui2_ppw_charges_subtitle,
-                                    "%.2f".format(builder.feed),
-                                    RegionProfiles.current.minorSymbol,
-                                    RegionProfiles.current.currencySymbol,
-                                    "%.2f".format(builder.standingCharges)),
+                                subtitle = if (RegionProfiles.current.showsBundledFeed)
+                                    stringResource(R.string.ui2_ppw_charges_subtitle,
+                                        "%.2f".format(builder.feed),
+                                        RegionProfiles.current.minorSymbol,
+                                        RegionProfiles.current.currencySymbol,
+                                        "%.2f".format(builder.standingCharges))
+                                else
+                                    stringResource(R.string.ui2_ppw_charges_subtitle_no_feed,
+                                        RegionProfiles.current.currencySymbol,
+                                        "%.2f".format(builder.standingCharges)),
                                 isComplete = true,
                                 hasError = false,
                                 isExpanded = expanded.contains("charges"),
@@ -751,11 +756,17 @@ private fun DetailsSection(
 @Composable
 private fun ChargesSection(builder: PricePlanBuilder, vm: UI2PricePlanViewModel) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        DoubleField(
-            label = stringResource(R.string.ui2_ppw_feed_label, RegionProfiles.current.rateUnit),
-            value = builder.feed,
-            onValue = { v -> vm.updateBuilder { it.copy(feed = v) } }
-        )
+        // The bundled feed-in rate only exists where export is part of the import
+        // contract. Where export is bought separately the export plan carries it,
+        // so the field is hidden — the stored value is untouched and still exports.
+        if (RegionProfiles.current.showsBundledFeed) {
+            DoubleField(
+                label = stringResource(R.string.ui2_ppw_feed_label,
+                    RegionProfiles.current.rateUnit),
+                value = builder.feed,
+                onValue = { v -> vm.updateBuilder { it.copy(feed = v) } }
+            )
+        }
         DoubleField(
             label = stringResource(R.string.ui2_ppw_standing_label,
                 RegionProfiles.current.currencySymbol),

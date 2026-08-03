@@ -638,11 +638,16 @@ private fun PricePlanAccordion(
                     // Routed through AdaptiveCellRow so the strip wraps to 2/1
                     // cells per row under font scaling instead of clipping.
                     val cur = RegionProfiles.current.currencySymbol
-                    val specs = listOf(
+                    // The Feed-in cell is dropped where export is a separate
+                    // contract — the export plan carries the rate. AdaptiveCellRow
+                    // reflows to 3 cells without further change.
+                    val specs = listOfNotNull(
                         stringResource(R.string.ui2_ppl_spec_standing)
                             to "$cur${moneyFmt.format(row.standingCharges)}/yr",
-                        stringResource(R.string.ui2_ppl_spec_feed_in)
-                            to "${moneyFmt.format(row.feed)} ${RegionProfiles.current.rateUnit}",
+                        if (RegionProfiles.current.showsBundledFeed)
+                            stringResource(R.string.ui2_ppl_spec_feed_in)
+                                to "${moneyFmt.format(row.feed)} ${RegionProfiles.current.rateUnit}"
+                        else null,
                         stringResource(R.string.ui2_ppl_spec_bonus)
                             to "$cur${moneyFmt.format(row.signUpBonus)}",
                         stringResource(R.string.ui2_ppl_spec_rates)

@@ -1012,6 +1012,8 @@
     <string name="ui2_ppw_details_required">Supplier &amp; plan name (required)</string>
     <string name="ui2_ppw_charges_title">Charges</string>
     <string name="ui2_ppw_charges_subtitle">Feed %1$s %2$s · Standing %3$s%4$s/yr</string>
+    <!-- Charges summary where export is a separate contract: no bundled feed rate. -->
+    <string name="ui2_ppw_charges_subtitle_no_feed">Standing %1$s%2$s/yr</string>
     <string name="ui2_ppw_rates_title">Day rates</string>
     <string name="ui2_ppw_restrictions_title">Restrictions</string>
     <string name="ui2_ppw_restrictions_none">None — plan prices apply without usage caps</string>

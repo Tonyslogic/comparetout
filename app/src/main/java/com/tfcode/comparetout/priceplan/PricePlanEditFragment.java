@@ -546,35 +546,40 @@ public class PricePlanEditFragment extends Fragment {
         mPropertiesTable.addView(tableRow);
         mEditFields.add(b);
 
-        tableRow = new TableRow(getActivity());
-        tableRow.setOnLongClickListener(v -> {
-            showHelp();
-            return true;
-        });
-        a = new MaterialTextView(getActivity());
-        a.setText(R.string.FeedInRate);
-        a.setMinimumHeight(80);
-        a.setHeight(80);
-        b = new EditText(getActivity());
-        b.setEnabled(mEdit);
-        b.setPadding(0, 25, 0, 25);
-        b.setText(String.format("%s", mPricePlan.getFeed()));
-        b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
-        b.addTextChangedListener(new AbstractTextWatcher() {
-            @Override
-            public void afterTextChanged(Editable s) {
-                mPricePlan.setFeed(getDoubleOrZero(s));
-                ((PricePlanActivity) requireActivity()).updateFocusedPlan(
-                        JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
-                ((PricePlanActivity) requireActivity()).setSaveNeeded(true);
-            }
-        });
-        a.setLayoutParams(planParams);
-//        b.setLayoutParams(textParams);
-        tableRow.addView(a);
-        tableRow.addView(b);
-        mPropertiesTable.addView(tableRow);
-        mEditFields.add(b);
+        // Bundled feed-in rate: only shown where export is part of the import
+        // contract. Where export is bought separately (GB) the export plan
+        // carries the rate, so the row is omitted. Display-only gating — the
+        // stored value is untouched and still round-trips through JSON.
+        if (RegionProfiles.current.getShowsBundledFeed()) {
+            tableRow = new TableRow(getActivity());
+            tableRow.setOnLongClickListener(v -> {
+                showHelp();
+                return true;
+            });
+            a = new MaterialTextView(getActivity());
+            a.setText(R.string.FeedInRate);
+            a.setMinimumHeight(80);
+            a.setHeight(80);
+            b = new EditText(getActivity());
+            b.setEnabled(mEdit);
+            b.setPadding(0, 25, 0, 25);
+            b.setText(String.format("%s", mPricePlan.getFeed()));
+            b.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+            b.addTextChangedListener(new AbstractTextWatcher() {
+                @Override
+                public void afterTextChanged(Editable s) {
+                    mPricePlan.setFeed(getDoubleOrZero(s));
+                    ((PricePlanActivity) requireActivity()).updateFocusedPlan(
+                            JsonTools.createSinglePricePlanJsonObject(mPricePlan, mDayRates));
+                    ((PricePlanActivity) requireActivity()).setSaveNeeded(true);
+                }
+            });
+            a.setLayoutParams(planParams);
+            tableRow.addView(a);
+            tableRow.addView(b);
+            mPropertiesTable.addView(tableRow);
+            mEditFields.add(b);
+        }
 
         tableRow = new TableRow(getActivity());
         tableRow.setOnLongClickListener(v -> {

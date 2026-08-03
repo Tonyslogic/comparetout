@@ -65,6 +65,12 @@ data class RegionProfile(
     @JvmField val minorSymbol: String,
     /** Deemed/estimated micro-generation export payments — IE-only concept. */
     @JvmField val hasDeemedExport: Boolean,
+    /**
+     * Import and export are separate contracts, bought from possibly different
+     * suppliers (GB). Where false (IE), export is a bundled fixed rate carried
+     * on the import plan — the `Feed` field — and there is no export-plan UI.
+     */
+    @JvmField val hasSeparateExportContracts: Boolean,
     /** Maximum Import Capacity breach reporting — IE grid concept. */
     @JvmField val hasMIC: Boolean,
     /** Octopus Energy importer + tariff browser (GB supplier). */
@@ -83,6 +89,17 @@ data class RegionProfile(
 ) {
     /** Rate unit for per-kWh prices: "c/kWh" / "p/kWh". */
     val rateUnit: String get() = "$minorSymbol/kWh"
+
+    /**
+     * Show the bundled `Feed` field (a scalar export rate on the import plan).
+     *
+     * Hidden wherever export is a separate contract, because the export plan
+     * supersedes it — except in the region-less source edition, which surfaces
+     * every model and lets the user choose. Display only: the stored value is
+     * never cleared and always round-trips, so an imported foreign plan keeps
+     * its feed and reinstalling the other edition brings the field back intact.
+     */
+    val showsBundledFeed: Boolean get() = !hasSeparateExportContracts || isGlobal
 
     /** True only for the region-less source edition: skip the region-mismatch
      * warning and ask the user for a region where one is needed (community feed). */
@@ -106,6 +123,8 @@ object RegionProfiles {
         currencySymbol = "€",
         minorSymbol = "c",
         hasDeemedExport = true,
+        // Irish export is a bundled fixed rate on the import plan (the Feed field).
+        hasSeparateExportContracts = false,
         hasMIC = true,
         hasOctopus = false,
         hasEsbn = true,
@@ -130,6 +149,9 @@ object RegionProfiles {
         currencySymbol = "£",
         minorSymbol = "p",
         hasDeemedExport = false,
+        // GB buys export separately (Octopus Outgoing, and every rival's export
+        // tariff), so the bundled Feed field is superseded by an export plan.
+        hasSeparateExportContracts = true,
         hasMIC = false,
         hasOctopus = true,
         hasEsbn = false,
@@ -155,6 +177,9 @@ object RegionProfiles {
             currencySymbol = major,
             minorSymbol = minor,
             hasDeemedExport = true,
+            // Both models are offered: export plans are available AND the
+            // bundled Feed field stays visible (see showsBundledFeed).
+            hasSeparateExportContracts = true,
             hasMIC = true,
             hasOctopus = true,
             hasEsbn = true,
