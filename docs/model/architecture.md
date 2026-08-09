@@ -10,23 +10,18 @@ Everything below serves that pipeline.
 
 ## The pipeline
 
-```mermaid
-flowchart LR
-  subgraph Ingest
-    A[Importers<br/>AlphaESS · ESBN · HA<br/>Octopus · Solis · FusionSolar]
-    W[Weather / PV<br/>PVGIS · Copernicus CDS]
-  end
-  subgraph Model
-    S[Scenario<br/>inverters · panels · battery<br/>load · HW · EV · heat pump]
-    P[Price plans<br/>import + export]
-  end
-  A --> S
-  W --> S
-  S --> SIM[SimulationWorker<br/>8760 hourly rows]
-  SIM --> COST[CostingWorker]
-  P --> COST
-  COST --> UI[Compare / Dashboard]
+![Ingest and model feed the simulation, which the costing worker prices for the comparison screens](pipeline.svg)
+
+<details><summary>Diagram source, as text</summary>
+
 ```
+Importers (AlphaESS · ESBN · HA · Octopus · Solis · FusionSolar) ─┐
+Weather / PV (PVGIS · Copernicus CDS) ────────────────────────────┴─> Scenario
+Scenario ─> SimulationWorker (8760 hourly rows) ─> CostingWorker ─> Compare / Dashboard
+Price plans (import + export) ───────────────────────────────────────> CostingWorker
+```
+
+</details>
 
 Two long-running background stages carry the weight, and both are idempotent and
 resumable:
@@ -42,24 +37,19 @@ correctness hazard — see [Invalidation](#invalidation-the-recurring-hazard).
 
 ## Layers
 
-```mermaid
-flowchart TD
-  subgraph UI
-    U2[UI2 — Jetpack Compose<br/>9 activities · 12 ViewModels]
-    U1[UI1 — Views/Fragments<br/>18 activities · ComparisonUIViewModel]
-  end
-  L[LaunchActivity<br/>chooses UI at runtime]
-  L --> U2
-  L --> U1
-  WK[Workers<br/>27 classes, WorkManager]
-  U2 --> R
-  U1 --> R
-  WK --> R[ToutcRepository<br/>facade · 1273 lines]
-  R --> O["model/ops/*<br/>10 composite operations"]
-  R --> D
-  O --> D["DAOs — 14 classes<br/>model/dao/* + 4 legacy"]
-  D --> DB[(Room / SQLite<br/>37 tables · v17)]
+![Both UI surfaces and all workers funnel through ToutcRepository into the ops and DAO layers](layers.svg)
+
+<details><summary>Diagram source, as text</summary>
+
 ```
+LaunchActivity ─> UI2 (Compose, 9 activities, 12 ViewModels)   ─┐
+               └> UI1 (Views/Fragments, 18 activities)         ─┤
+Workers (27 classes, WorkManager) ─ direct, outlives the UI ────┴─> ToutcRepository
+ToutcRepository ─> model/ops/* (10 composite operations) ─┐
+                └─────────────────────────────────────────┴─> DAOs (14) ─> Room/SQLite (37 tables, v17)
+```
+
+</details>
 
 **`ToutcRepository`** (`model/ToutcRepository.java`) is the single entry point.
 Every UI path and every worker goes through it; nothing else opens the database.
@@ -160,10 +150,18 @@ its series will show greyed-out filters.
 Three independent masks stack in `ui2/UI2VisibilitySettings.kt`, each only ever
 subtracting:
 
-```mermaid
-flowchart LR
-  V[User toggles] --> R[maskForRegion<br/>edition] --> P[maskForProfile<br/>build profile] --> E[maskForExperimental<br/>stability flag] --> OUT[Effective visibility]
+![Three masks stack in order: region, then profile, then the experimental flag](visibility-gating.svg)
+
+<details><summary>Diagram source, as text</summary>
+
 ```
+User toggles ─> maskForRegion (edition, build-time)
+             ─> maskForProfile (PROFILE, build-time)
+             ─> maskForExperimental (stability flag, user-facing)
+             ─> Effective visibility
+```
+
+</details>
 
 - **Region** (`region/RegionProfile.kt`) — `ie` / `gb` / `source` product
   flavors set `REGION` at build time. Octopus outside GB and ESBN outside IE read

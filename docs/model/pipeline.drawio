@@ -1,0 +1,60 @@
+<mxfile host="Electron" agent="comparetout-docs" version="24.7.17">
+  <diagram name="Pipeline" id="pipeline">
+    <mxGraphModel dx="1100" dy="500" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="950" pageHeight="320" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="ingestBox" value="Ingest" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#9E9E9E;dashed=1;verticalAlign=top;align=left;spacingLeft=8;fontSize=11;fontColor=#616161;" vertex="1" parent="1">
+          <mxGeometry x="20" y="40" width="190" height="195" as="geometry" />
+        </mxCell>
+        <mxCell id="modelBox" value="Model" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#9E9E9E;dashed=1;verticalAlign=top;align=left;spacingLeft=8;fontSize=11;fontColor=#616161;" vertex="1" parent="1">
+          <mxGeometry x="250" y="40" width="190" height="195" as="geometry" />
+        </mxCell>
+
+        <mxCell id="importers" value="&lt;b&gt;Importers&lt;/b&gt;&lt;br&gt;AlphaESS · ESBN · HA&lt;br&gt;Octopus · Solis · FusionSolar" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="35" y="70" width="160" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="weather" value="&lt;b&gt;Weather / PV&lt;/b&gt;&lt;br&gt;PVGIS · Copernicus CDS" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="35" y="160" width="160" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="scenario" value="&lt;b&gt;Scenario&lt;/b&gt;&lt;br&gt;inverters · panels · battery&lt;br&gt;load · HW · EV · heat pump" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="265" y="70" width="160" height="75" as="geometry" />
+        </mxCell>
+        <mxCell id="plans" value="&lt;b&gt;Price plans&lt;/b&gt;&lt;br&gt;import + export" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="265" y="160" width="160" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="sim" value="&lt;b&gt;SimulationWorker&lt;/b&gt;&lt;br&gt;8760 hourly rows" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="500" y="70" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="cost" value="&lt;b&gt;CostingWorker&lt;/b&gt;&lt;br&gt;N+M passes, not N×M" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="500" y="180" width="170" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="ui" value="&lt;b&gt;Compare / Dashboard&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="740" y="180" width="170" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#666666;exitX=1;exitY=0.5;entryX=0;entryY=0.35;" edge="1" parent="1" source="importers" target="scenario">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#666666;exitX=1;exitY=0.5;entryX=0;entryY=0.8;" edge="1" parent="1" source="weather" target="scenario">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#666666;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="scenario" target="sim">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#666666;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="sim" target="cost">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#666666;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="plans" target="cost">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#666666;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="cost" target="ui">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

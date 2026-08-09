@@ -15,36 +15,36 @@ junctions exist so a component can be *shared* between scenarios — copying a
 scenario can either duplicate a battery or link the same one, and the UI offers
 both.
 
-```mermaid
-erDiagram
-  scenarios ||--o{ scenario2inverter : ""
-  scenarios ||--o{ scenario2battery : ""
-  scenarios ||--o{ scenario2panel : ""
-  scenarios ||--o{ scenario2loadprofile : ""
-  scenarios ||--o{ scenario2hwsystem : ""
-  scenarios ||--o{ scenario2evcharge : ""
-  scenarios ||--o{ scenario2heatpump : ""
-  inverters ||--o{ scenario2inverter : ""
-  batteries ||--o{ scenario2battery : ""
-  panels ||--o{ scenario2panel : ""
-  loadprofile ||--o{ scenario2loadprofile : ""
-  hwsystem ||--o{ scenario2hwsystem : ""
-  evcharge ||--o{ scenario2evcharge : ""
-  heatpumps ||--o{ scenario2heatpump : ""
-  panels ||--o{ paneldata : "generation series"
-  loadprofile ||--o{ loadprofiledata : "consumption series"
-  scenarios ||--o{ scenariosimulationdata : "simulation output"
-  scenarios ||--|| scenario_readiness : "gates sim/costing"
-  scenarios ||--o{ costings : "priced against"
-  PricePlans ||--o{ costings : ""
-  PricePlans ||--o{ DayRates : ""
-  PricePlans ||--o{ plan_combinations : "import x export"
-```
+![Components reach scenarios through junction tables; scenarios drive readiness, simulation and costing](schema-overview.svg)
 
 Omitted above for legibility: the remaining junctions
 (`scenario2evdivert`, `scenario2hwschedule`, `scenario2hwdivert`,
 `scenario2loadshift`, `scenario2discharge`) follow the identical pattern against
 `evdivert`, `hwschedule`, `hwdivert`, `loadshift` and `discharge2grid`.
+
+<details><summary>Diagram source, as text</summary>
+
+```
+inverters   ── scenario2inverter    ─┐
+batteries   ── scenario2battery     ─┤
+panels      ── scenario2panel       ─┤
+loadprofile ── scenario2loadprofile ─┼─> scenarios
+hwsystem    ── scenario2hwsystem    ─┤
+evcharge    ── scenario2evcharge    ─┤
+heatpumps   ── scenario2heatpump    ─┘
+
+scenarios ─> scenario_readiness (gates sim + costing) ─> scenariosimulationdata
+scenarios ─> costings <─ PricePlans (direction: import | export)
+PricePlans ── DayRates (rateType: buy | sell)
+PricePlans ── plan_combinations (import x export)
+panels      ── paneldata (generation series)
+loadprofile ── loadprofiledata (consumption series)
+
+imported data, every source: alphaESSRawEnergy · alphaESSRawPower
+                             alphaESSTransformedData · alphaESSTransformMeta
+```
+
+</details>
 
 ## Tables by role
 

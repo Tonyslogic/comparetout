@@ -1,0 +1,72 @@
+<mxfile host="Electron" agent="comparetout-docs" version="24.7.17">
+  <diagram name="Layers" id="layers">
+    <mxGraphModel dx="900" dy="700" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="760" pageHeight="560" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="uiBox" value="UI — both surfaces ship" style="rounded=0;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#9E9E9E;dashed=1;verticalAlign=top;align=left;spacingLeft=8;fontSize=11;fontColor=#616161;" vertex="1" parent="1">
+          <mxGeometry x="30" y="95" width="440" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="launch" value="&lt;b&gt;LaunchActivity&lt;/b&gt;&lt;br&gt;chooses the UI at runtime" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="140" y="20" width="220" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ui2" value="&lt;b&gt;UI2 — Jetpack Compose&lt;/b&gt;&lt;br&gt;9 activities · 12 ViewModels&lt;br&gt;&lt;i&gt;current surface&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="45" y="125" width="200" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="ui1" value="&lt;b&gt;UI1 — Views / Fragments&lt;/b&gt;&lt;br&gt;18 activities&lt;br&gt;ComparisonUIViewModel" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="255" y="125" width="200" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="workers" value="&lt;b&gt;Workers&lt;/b&gt;&lt;br&gt;27 classes&lt;br&gt;WorkManager" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="520" y="125" width="180" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="repo" value="&lt;b&gt;ToutcRepository&lt;/b&gt;&lt;br&gt;the only door · 1273 lines · 215 public methods" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="150" y="255" width="400" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="ops" value="&lt;b&gt;model/ops/*&lt;/b&gt;&lt;br&gt;10 composite operations&lt;br&gt;multi-table logical acts" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="90" y="355" width="220" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="daos" value="&lt;b&gt;DAOs — 14 classes&lt;/b&gt;&lt;br&gt;model/dao/* (10) + 4 legacy&lt;br&gt;&lt;i&gt;split is in progress&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="380" y="355" width="220" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="db" value="&lt;b&gt;Room / SQLite&lt;/b&gt;&lt;br&gt;37 tables · version 17" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=12;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="245" y="465" width="220" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="l1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#666666;exitX=0.35;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="launch" target="ui2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#666666;exitX=0.65;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="launch" target="ui1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#666666;exitX=0.5;exitY=1;entryX=0.2;entryY=0;" edge="1" parent="1" source="ui2" target="repo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#666666;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="ui1" target="repo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l5" value="direct — outlives the UI" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#d79b00;fontSize=10;fontColor=#B8860B;exitX=0.5;exitY=1;entryX=0.9;entryY=0;" edge="1" parent="1" source="workers" target="repo">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#666666;exitX=0.3;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="repo" target="ops">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#666666;exitX=0.75;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="repo" target="daos">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#666666;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="ops" target="daos">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="l9" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#666666;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="daos" target="db">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

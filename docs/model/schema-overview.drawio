@@ -1,0 +1,111 @@
+<mxfile host="Electron" agent="comparetout-docs" version="24.7.17">
+  <diagram name="Schema overview" id="schemaoverview">
+    <mxGraphModel dx="1200" dy="800" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="580" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="title" value="Representative shape — 7 of the 12 component/junction pairs shown. The other five (evdivert, hwschedule, hwdivert, loadshift, discharge2grid) are identical in form." style="text;html=1;align=left;verticalAlign=middle;fontSize=10;fontColor=#616161;" vertex="1" parent="1">
+          <mxGeometry x="20" y="10" width="1060" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="hdrComp" value="COMPONENTS" style="text;html=1;align=center;fontSize=10;fontStyle=1;fontColor=#82b366;" vertex="1" parent="1">
+          <mxGeometry x="30" y="42" width="150" height="18" as="geometry" />
+        </mxCell>
+        <mxCell id="hdrJunc" value="JUNCTIONS" style="text;html=1;align=center;fontSize=10;fontStyle=1;fontColor=#9E9E9E;" vertex="1" parent="1">
+          <mxGeometry x="230" y="42" width="180" height="18" as="geometry" />
+        </mxCell>
+
+        <mxCell id="inverters" value="inverters" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1"><mxGeometry x="30" y="65" width="150" height="32" as="geometry" /></mxCell>
+        <mxCell id="batteries" value="batteries" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1"><mxGeometry x="30" y="117" width="150" height="32" as="geometry" /></mxCell>
+        <mxCell id="panels" value="panels" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1"><mxGeometry x="30" y="169" width="150" height="32" as="geometry" /></mxCell>
+        <mxCell id="loadprofile" value="loadprofile" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1"><mxGeometry x="30" y="221" width="150" height="32" as="geometry" /></mxCell>
+        <mxCell id="hwsystem" value="hwsystem" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1"><mxGeometry x="30" y="273" width="150" height="32" as="geometry" /></mxCell>
+        <mxCell id="evcharge" value="evcharge" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1"><mxGeometry x="30" y="325" width="150" height="32" as="geometry" /></mxCell>
+        <mxCell id="heatpumps" value="heatpumps" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1"><mxGeometry x="30" y="377" width="150" height="32" as="geometry" /></mxCell>
+
+        <mxCell id="j1" value="scenario2inverter" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;" vertex="1" parent="1"><mxGeometry x="230" y="65" width="180" height="32" as="geometry" /></mxCell>
+        <mxCell id="j2" value="scenario2battery" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;" vertex="1" parent="1"><mxGeometry x="230" y="117" width="180" height="32" as="geometry" /></mxCell>
+        <mxCell id="j3" value="scenario2panel" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;" vertex="1" parent="1"><mxGeometry x="230" y="169" width="180" height="32" as="geometry" /></mxCell>
+        <mxCell id="j4" value="scenario2loadprofile" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;" vertex="1" parent="1"><mxGeometry x="230" y="221" width="180" height="32" as="geometry" /></mxCell>
+        <mxCell id="j5" value="scenario2hwsystem" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;" vertex="1" parent="1"><mxGeometry x="230" y="273" width="180" height="32" as="geometry" /></mxCell>
+        <mxCell id="j6" value="scenario2evcharge" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;" vertex="1" parent="1"><mxGeometry x="230" y="325" width="180" height="32" as="geometry" /></mxCell>
+        <mxCell id="j7" value="scenario2heatpump" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#999999;fontSize=11;" vertex="1" parent="1"><mxGeometry x="230" y="377" width="180" height="32" as="geometry" /></mxCell>
+
+        <mxCell id="scenarios" value="&lt;b&gt;scenarios&lt;/b&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=13;" vertex="1" parent="1">
+          <mxGeometry x="480" y="195" width="150" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="readiness" value="scenario_readiness&#10;&lt;i&gt;gates sim + costing&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="470" y="300" width="170" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="simdata" value="scenariosimulationdata&#10;&lt;i&gt;8760 hourly rows&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="470" y="362" width="170" height="42" as="geometry" />
+        </mxCell>
+
+        <mxCell id="costings" value="&lt;b&gt;costings&lt;/b&gt;&#10;&lt;i&gt;annual scalars only&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="720" y="300" width="160" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="priceplans" value="&lt;b&gt;PricePlans&lt;/b&gt;&#10;&lt;i&gt;direction: import | export&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="720" y="150" width="160" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="dayrates" value="DayRates&#10;&lt;i&gt;rateType: buy | sell&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="930" y="90" width="150" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="combos" value="plan_combinations&#10;&lt;i&gt;import × export&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="930" y="200" width="150" height="42" as="geometry" />
+        </mxCell>
+
+        <mxCell id="paneldata" value="paneldata&#10;&lt;i&gt;generation series&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="30" y="450" width="150" height="42" as="geometry" />
+        </mxCell>
+        <mxCell id="lpdata" value="loadprofiledata&#10;&lt;i&gt;consumption series&lt;/i&gt;" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="230" y="450" width="180" height="42" as="geometry" />
+        </mxCell>
+
+        <mxCell id="imported" value="&lt;b&gt;alphaESSRawEnergy · alphaESSRawPower · alphaESSTransformedData · alphaESSTransformMeta&lt;/b&gt;&#10;every source lands here, whatever its name — prefixed system serial keeps them apart" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="470" y="450" width="610" height="52" as="geometry" />
+        </mxCell>
+
+        <mxCell id="c1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#999999;endArrow=none;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="inverters" target="j1"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="c2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#999999;endArrow=none;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="batteries" target="j2"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="c3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#999999;endArrow=none;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="panels" target="j3"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="c4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#999999;endArrow=none;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="loadprofile" target="j4"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="c5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#999999;endArrow=none;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="hwsystem" target="j5"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="c6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#999999;endArrow=none;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="evcharge" target="j6"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="c7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeColor=#999999;endArrow=none;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="heatpumps" target="j7"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="s1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6c8ebf;endArrow=none;exitX=1;exitY=0.5;entryX=0;entryY=0.2;" edge="1" parent="1" source="j1" target="scenarios"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="s2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6c8ebf;endArrow=none;exitX=1;exitY=0.5;entryX=0;entryY=0.35;" edge="1" parent="1" source="j2" target="scenarios"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="s3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6c8ebf;endArrow=none;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="j3" target="scenarios"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="s4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6c8ebf;endArrow=none;exitX=1;exitY=0.5;entryX=0;entryY=0.65;" edge="1" parent="1" source="j4" target="scenarios"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="s5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6c8ebf;endArrow=none;exitX=1;exitY=0.5;entryX=0;entryY=0.8;" edge="1" parent="1" source="j5" target="scenarios"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="s6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6c8ebf;endArrow=none;exitX=1;exitY=0.5;entryX=0.25;entryY=1;" edge="1" parent="1" source="j6" target="scenarios"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="s7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#6c8ebf;endArrow=none;exitX=1;exitY=0.5;entryX=0.1;entryY=1;" edge="1" parent="1" source="j7" target="scenarios"><mxGeometry relative="1" as="geometry" /></mxCell>
+
+        <mxCell id="d1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#d6b656;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="scenarios" target="readiness"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="d2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#d6b656;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="readiness" target="simdata"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="d3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#b85450;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="scenarios" target="costings"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="d4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#b85450;exitX=0.5;exitY=1;entryX=0.5;entryY=0;" edge="1" parent="1" source="priceplans" target="costings"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="d5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#b85450;endArrow=none;exitX=1;exitY=0.3;entryX=0;entryY=0.5;" edge="1" parent="1" source="priceplans" target="dayrates"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="d6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#b85450;endArrow=none;exitX=1;exitY=0.7;entryX=0;entryY=0.5;" edge="1" parent="1" source="priceplans" target="combos"><mxGeometry relative="1" as="geometry" /></mxCell>
+        <mxCell id="d7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#d6b656;endArrow=none;exitX=1;exitY=0.5;entryX=1;entryY=0.5;" edge="1" parent="1" source="panels" target="paneldata">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="197" y="185" />
+              <mxPoint x="197" y="471" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="d8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#d6b656;endArrow=none;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="loadprofile" target="lpdata">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="215" y="237" />
+              <mxPoint x="215" y="471" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

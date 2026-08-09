@@ -22,24 +22,42 @@ Related documents elsewhere in `docs/`:
   authoring guide for new simulation components (EV, hot water, heat pump…)
 - [../dynamic-tariffs.md](../dynamic-tariffs.md) — wholesale-tracking tariffs
 
-## Diagram formats, and which to trust
+## Diagram format
 
-Two formats coexist deliberately:
+**Every diagram is draw.io.** Mermaid was tried and dropped: Android Studio
+tracks an older IntelliJ platform than IDEA, and the Markdown plugin's
+Mermaid extension is not available there — the diagrams rendered on GitHub and
+showed as raw code in the IDE where the code is actually read.
 
-- **Mermaid**, inline in the markdown. Renders on GitHub and in most IDEs
-  without a build step, diffs cleanly, and is readable as source text. These are
-  the *maintained* diagrams — when code and diagram disagree, fix these.
-- **draw.io** (`*.drawio` + exported `*.svg`). Hand-laid detailed views whose
-  layout carries meaning that auto-layout would destroy. Edit the `.drawio` in
-  draw.io desktop and push; `.github/workflows/drawio-export.yml` re-exports the
-  `.svg` automatically, so the two never drift.
+So: edit the `.drawio` in draw.io desktop, push, and
+`.github/workflows/drawio-export.yml` re-exports the `.svg`. The markdown embeds
+the `.svg`, which IntelliJ previews natively. The two cannot drift, because you
+never export by hand.
+
+Each diagram also carries a **plain-text rendition** in a collapsed
+`<details>` block beneath it. That is not decoration: `.drawio` XML is text but
+not *readable* text, and the text block is what a language model — or anyone
+reading the raw markdown — can actually use. Keep it in step when you change a
+diagram; it is short by design.
+
+### Current diagrams
+
+Authored 2026-08-09 against the code as it stands, and referenced from the
+documents above:
+
+| Diagram | Shows |
+|---|---|
+| `pipeline` | Ingest → scenario → simulation → costing → comparison |
+| `layers` | Both UI surfaces, workers, repository, ops, DAOs, database |
+| `visibility-gating` | The three stacked visibility masks |
+| `schema-overview` | Component/junction/scenario shape and the costing side |
 
 ### Provenance of the inherited diagrams
 
-The `.drawio` views came from branch `copilot/fix-27`, generated against the code
-as of **2025-06-22** and never reviewed. They are kept because their layout is
-worth keeping, but they predate several structural changes. Treat them as
-sketches until verified:
+The remaining `.drawio` views came from branch `copilot/fix-27`, generated
+against the code as of **2025-06-22** and never reviewed. They are kept because
+their layout is worth keeping, but they predate several structural changes. Treat
+them as sketches until verified:
 
 | Diagram | Confidence today | Why |
 |---|---|---|
@@ -51,9 +69,10 @@ sketches until verified:
 | `battery-package`, `ev-package`, `panel-package`, `load-profile-package` | Likely fair | Component shapes are stable; the DAO beneath them split. |
 | `main-comparison`, `price-plan-management`, `scenario-fragments`, `import-fragments`, `import-overview-fragment`, `base-graphs-fragment` | **UI1 only** | Accurate for the Views/Fragments surface; the Compose UI2 surface is not drawn at all. |
 
-Nothing above is a diagram of UI2, the ops layer, the profile/flavor gating or
-the dynamic-tariff subsystem. Those live as Mermaid in
-[architecture.md](architecture.md).
+Note that `database-schema.drawio` (inherited, column-level, stale) and
+`schema-overview.drawio` (current, relationship-level) are different views of the
+same schema, not duplicates. The inherited one still has the fuller column
+detail; it is simply describing five fewer tables than exist.
 
 ## Keeping this current
 

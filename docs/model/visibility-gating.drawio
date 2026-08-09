@@ -1,0 +1,47 @@
+<mxfile host="Electron" agent="comparetout-docs" version="24.7.17">
+  <diagram name="Visibility gating" id="gating">
+    <mxGraphModel dx="1100" dy="400" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1020" pageHeight="230" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <mxCell id="note" value="Each mask only ever SUBTRACTS. A user can hide one source while keeping another; no mask can reveal what an earlier one hid." style="text;html=1;align=left;verticalAlign=middle;fontSize=11;fontColor=#616161;" vertex="1" parent="1">
+          <mxGeometry x="20" y="185" width="960" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="toggles" value="&lt;b&gt;User toggles&lt;/b&gt;&lt;br&gt;persisted JSON" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="20" y="50" width="150" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="region" value="&lt;b&gt;maskForRegion&lt;/b&gt;&lt;br&gt;edition: ie / gb / source&lt;br&gt;&lt;i&gt;build-time&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="215" y="50" width="180" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="profile" value="&lt;b&gt;maskForProfile&lt;/b&gt;&lt;br&gt;PROFILE: FULL / SOURCE&lt;br&gt;&lt;i&gt;build-time&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="440" y="50" width="180" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="experimental" value="&lt;b&gt;maskForExperimental&lt;/b&gt;&lt;br&gt;stability flag&lt;br&gt;&lt;i&gt;user-facing&lt;/i&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="665" y="50" width="180" height="65" as="geometry" />
+        </mxCell>
+        <mxCell id="effective" value="&lt;b&gt;Effective visibility&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="890" y="50" width="110" height="65" as="geometry" />
+        </mxCell>
+
+        <mxCell id="split" value="ESBN and Home Assistant are SPLIT, not hidden whole: only the scraped cloud sync&#10;(esbnCloudEnabled) and the HA push (haBackfillEnabled) are gated. HDF file import&#10;and the HA read path are supported, and stay." style="text;html=1;align=left;verticalAlign=top;fontSize=10;fontColor=#B8860B;" vertex="1" parent="1">
+          <mxGeometry x="665" y="120" width="340" height="45" as="geometry" />
+        </mxCell>
+
+        <mxCell id="g1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#666666;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="toggles" target="region">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="g2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#666666;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="region" target="profile">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="g3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#666666;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="profile" target="experimental">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="g4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeColor=#666666;exitX=1;exitY=0.5;entryX=0;entryY=0.5;" edge="1" parent="1" source="experimental" target="effective">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
