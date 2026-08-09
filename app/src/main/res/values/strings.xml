@@ -392,8 +392,9 @@
     <string name="ui2_settings_group_experimental">Stability</string>
     <string name="ui2_settings_experimental">Experimental sources</string>
     <string name="ui2_settings_experimental_sub">Show features built on unofficial or unproven ground. They work today, but the providers can change without notice.</string>
-    <string name="ui2_settings_experimental_off_note">Hidden: FusionSolar, Solis, wholesale tariff prices, and ESB Networks cloud sync. Nothing is deleted — anything already imported stays in the app and returns when you switch this back on, and their background updates stop. ESB Networks HDF file import is a supported format and keeps working.</string>
+    <string name="ui2_settings_experimental_off_note">Hidden: FusionSolar, Solis, wholesale tariff prices, ESB Networks cloud sync, and writing data back to Home Assistant. Nothing is deleted — anything already imported stays in the app and returns when you switch this back on, and their background updates stop. ESB Networks HDF file import is a supported format and keeps working, as does importing from Home Assistant.</string>
     <string name="ui2_settings_esbn_file_only">HDF file import only — cloud sync is off</string>
+    <string name="ui2_settings_ha_import_only">Import only — writing data back to Home Assistant is off</string>
     <string name="ui2_settings_experimental_disabled">Turned off by Experimental sources</string>
     <string name="ui2_settings_group_sources">Data sources</string>
     <string name="ui2_settings_pvgis_sub">Solar irradiance cache</string>

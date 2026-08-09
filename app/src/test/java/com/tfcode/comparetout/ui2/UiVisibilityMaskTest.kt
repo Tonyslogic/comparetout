@@ -161,6 +161,21 @@ class UiVisibilityMaskTest {
         assertTrue(UiVisibilityStore.esbnCloudEnabled(allVisible))
     }
 
+    /**
+     * Home Assistant is split the same way. Reading from HA is an official
+     * websocket API and survives the gate; only the backfill that pushes
+     * statistics back into the user's recorder database — the one thing the app
+     * does that writes outside itself — is governed by the flag.
+     */
+    @Test
+    fun haSurvivesTheGateButItsPushDoesNot() {
+        val off = allVisible.copy(showExperimental = false)
+        assertTrue("reading HA is an official API",
+            UiVisibilityStore.maskForExperimental(off).homeassistant)
+        assertFalse(UiVisibilityStore.haBackfillEnabled(off))
+        assertTrue(UiVisibilityStore.haBackfillEnabled(allVisible))
+    }
+
     /** The gate only ever subtracts: supported sources are untouched, so a user
      *  turning it off does not lose AlphaESS, Home Assistant or Octopus. */
     @Test

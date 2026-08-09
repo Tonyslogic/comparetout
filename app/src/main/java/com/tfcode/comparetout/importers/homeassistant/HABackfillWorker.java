@@ -55,6 +55,7 @@ import com.tfcode.comparetout.importers.homeassistant.messages.statsForPeriodRes
 import com.tfcode.comparetout.model.ToutcRepository;
 import com.tfcode.comparetout.model.importers.alphaess.AlphaESSTransformedData;
 import com.tfcode.comparetout.ui2.UI2NotificationLaunch;
+import com.tfcode.comparetout.ui2.UiVisibilityStore;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -163,6 +164,20 @@ public class HABackfillWorker extends Worker {
     @NonNull
     @Override
     public Result doWork() {
+        // Experimental gate: the read side of Home Assistant is an official API
+        // and stays, but this worker WRITES into the user's own recorder
+        // database, and that is not yet proven in the field. A user who turned
+        // experimental surfaces off has withdrawn permission to touch it.
+        //
+        // Unlike the periodic catch-up workers there is nothing here to resume:
+        // a backfill is a one-shot the user asked for, and the UI that asks is
+        // hidden while the flag is off. Dropping it is the honest outcome — a
+        // push held over until the flag came back on would arrive as a surprise
+        // write long after the user had forgotten requesting it. Success, not
+        // failure: nothing went wrong.
+        if (!UiVisibilityStore.experimentalEnabled(getApplicationContext())) {
+            return Result.success();
+        }
         Data inputData = getInputData();
         String host = inputData.getString(KEY_HOST);
         String token = inputData.getString(KEY_TOKEN);

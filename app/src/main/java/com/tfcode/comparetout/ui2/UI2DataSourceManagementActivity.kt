@@ -293,6 +293,9 @@ private fun DataSourceManagementScreen(
                                 state = ha,
                                 sensors = haSensors,
                                 showHints = showHints,
+                                // Only the push back into HA is experimental —
+                                // reading from it is an official API.
+                                showBackfill = uiVis.showExperimental,
                                 onRediscover = viewModel::discoverHA,
                                 onRediscoverStored = viewModel::rediscoverHA,
                                 onFetch = viewModel::fetchHA,

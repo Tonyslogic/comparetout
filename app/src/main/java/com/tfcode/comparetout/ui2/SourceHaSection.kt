@@ -141,6 +141,13 @@ internal fun HASection(
     state: SourceState?,
     sensors: HASensorSnapshot?,
     showHints: Boolean,
+    /**
+     * Whether the experimental PUSH half is offered. False hides the backfill
+     * wizard only: credentials, sensors, fetch and the data controls stay —
+     * reading from HA is an official API, and only writing back into the user's
+     * recorder database is unproven.
+     */
+    showBackfill: Boolean = true,
     onRediscover: (String, String) -> Unit,
     onRediscoverStored: () -> Unit,
     onFetch: (LocalDateTime) -> Unit,
@@ -199,7 +206,10 @@ internal fun HASection(
 
     // Backfill is a multi-step flow (source → timeframe → series → preview →
     // commit) — too much for a nested accordion, so it opens its own wizard.
-    run {
+    // Hidden entirely behind the experimental flag rather than shown disabled:
+    // this is the app writing into someone else's database, so a user who
+    // turned experimental off should not be invited to try it.
+    if (showBackfill) {
         val context = LocalContext.current
         Surface(
             color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f),

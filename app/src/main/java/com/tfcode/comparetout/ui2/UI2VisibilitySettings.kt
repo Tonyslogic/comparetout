@@ -65,8 +65,12 @@ data class UiVisibility(
      * today, and anything already imported is the user's to keep — but a user
      * who wants only load-bearing, supported surfaces can turn the lot off here.
      *
-     * ESBN's **HDF file import is a supported published format** and is never
-     * hidden by this flag, nor is the data it produced — see [esbnCloudEnabled].
+     * Two sources are split rather than hidden whole, because only half of each
+     * is experimental. ESBN's **HDF file import is a supported published
+     * format** and is never hidden by this flag, nor is the data it produced —
+     * see [esbnCloudEnabled]. Home Assistant's **read path is an official API**
+     * and stays; only the backfill that pushes statistics back into the user's
+     * HA is gated — see [haBackfillEnabled].
      *
      * Defaults to TRUE so upgrading changes nothing: a user who already has ESBN
      * or FusionSolar data does not find their source silently gone.
@@ -178,6 +182,26 @@ object UiVisibilityStore {
      * ESBNCatchUpWorker (cloud) but never ESBNImportWorker (file).
      */
     fun esbnCloudEnabled(v: UiVisibility): Boolean = v.showExperimental
+
+    /**
+     * Home Assistant is split the same way, and for the same reason.
+     *
+     * Reading from HA is an official, documented websocket API and a proven
+     * path. **Pushing** — the backfill wizard writing hourly long-term
+     * statistics back into the user's own HA recorder database — is not proven
+     * in the field, and it is the one thing this app does that modifies data
+     * outside itself: it writes to real entity ids and shifts every later total
+     * via `adjust_sum_statistics`. A user who wants only load-bearing surfaces
+     * should be able to switch that off without losing HA as a data source.
+     *
+     * So the flag gates the push alone; the `homeassistant` card, its sensors
+     * and its fetch stay under the user's own toggle, exactly as ESBN's HDF
+     * import does.
+     *
+     * Same rule for the worker: [experimentalEnabled] stops HABackfillWorker
+     * (push) but never HACatchupWorker (read).
+     */
+    fun haBackfillEnabled(v: UiVisibility): Boolean = v.showExperimental
 
     private fun mask(v: UiVisibility): UiVisibility =
         maskForExperimental(maskForProfile(maskForRegion(v)))

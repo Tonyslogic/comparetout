@@ -177,7 +177,14 @@ private fun SettingsScreen(onClose: () -> Unit) {
 
             GroupHeader(stringResource(R.string.ui2_settings_group_sources))
             ToggleRow(stringResource(R.string.brand_alphaess), null, vis.alphaess) { update(vis.copy(alphaess = it)) }
-            ToggleRow(stringResource(R.string.home_assistant), null, vis.homeassistant) { update(vis.copy(homeassistant = it)) }
+            // Home Assistant is split like ESBN: reading is an official API and
+            // is never gated, so the row stays operable. Only the backfill that
+            // writes into the user's recorder database follows the master flag,
+            // and it is hidden inside the source card, not here.
+            ToggleRow(stringResource(R.string.home_assistant),
+                if (vis.showExperimental) null
+                else stringResource(R.string.ui2_settings_ha_import_only),
+                vis.homeassistant) { update(vis.copy(homeassistant = it)) }
             // Region-specific sources only offer a toggle in the editions where
             // they exist (UiVisibilityStore hard-gates them everywhere else).
             // Experimental sources keep their own row — the master flag only ever
