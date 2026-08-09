@@ -49,6 +49,18 @@ public class FusionSolarDataMassagerTest {
         return b.append(']').toString();
     }
 
+    /** The live portal's date-stamped xAxis ("2026-01-15 HH:mm"). */
+    private static String dateStampedXAxis(LocalDate day) {
+        StringBuilder b = new StringBuilder("[");
+        String d = day.toString();
+        for (int h = 0; h < 24; h++)
+            for (int m = 0; m < 60; m += 5) {
+                if (b.length() > 1) b.append(',');
+                b.append(String.format("\"%s %02d:%02d\"", d, h, m));
+            }
+        return b.append(']').toString();
+    }
+
     /** A 288-length series with `value` at slot indexes [i0,i1] and "--" elsewhere. */
     private static String series(double value, int... liveSlots) {
         StringBuilder b = new StringBuilder("[");
@@ -249,6 +261,75 @@ public class FusionSolarDataMassagerTest {
                 FusionSolarDataMassager.massage(SYS_SN, JAN_DAY, DUBLIN, parse(data));
 
         assertTrue(rows.isEmpty());
+    }
+
+    // ── live-contract shapes (2026-07-28 Phase 0 report) ─────────────────────
+
+    @Test
+    public void dateStampedXAxisIsBucketedByTime() {
+        // The live xAxis carries the date ("2026-01-15 00:00"), not bare HH:mm.
+        int noon = slotIndex(12, 0);
+        String data = "{"
+                + "\"xAxis\":" + dateStampedXAxis(JAN_DAY) + ","
+                + "\"productPower\":" + series(4.0, noon) + ","
+                + "\"totalProductPower\":4.0}";
+
+        List<AlphaESSTransformedData> rows =
+                FusionSolarDataMassager.massage(SYS_SN, JAN_DAY, DUBLIN, parse(data));
+
+        assertEquals(288, rows.size());
+        assertEquals("00:00", rows.get(0).getMinute());
+        assertEquals("12:00", rows.get(noon).getMinute());
+        assertEquals(4.0, sum(rows, AlphaESSTransformedData::getPv), DELTA);
+    }
+
+    @Test
+    public void batteryWithoutDailyTotalsIsIntegratedDirectly() {
+        // The live plant returns chargePower/dischargePower but NO
+        // totalCharge/totalDischarge — integrate the curves directly (÷12)
+        // instead of dropping the battery to zero.
+        int a = slotIndex(10, 0);
+        int b = slotIndex(20, 0);
+        String data = "{"
+                + "\"xAxis\":" + xAxis() + ","
+                + "\"productPower\":" + series(4.0, a) + ","
+                + "\"totalProductPower\":4.0,"
+                + "\"chargePower\":" + series(6.0, a) + ","
+                + "\"dischargePower\":" + series(3.0, b) + "}";
+
+        List<AlphaESSTransformedData> rows =
+                FusionSolarDataMassager.massage(SYS_SN, JAN_DAY, DUBLIN, parse(data));
+
+        // 6 kW for one 5-min slot = 0.5 kWh charge; 3 kW = 0.25 kWh discharge.
+        // Stored signed: +0.5 − 0.25 = +0.25 net across the day.
+        assertEquals(0.25, sum(rows, AlphaESSTransformedData::getCharge), DELTA);
+    }
+
+    @Test
+    public void singleFeedSeriesKeepsFeedAndDerivesBuy() {
+        // The live shape: onGridPower (feed) present with totalOnGridPower and
+        // a totalBuyPower scalar, but NO buy series. The old magnitude pairing
+        // mislabelled the export curve as import and zeroed feed.
+        int a = slotIndex(9, 0);
+        int b = slotIndex(18, 0);
+        int c = slotIndex(13, 0);
+        String data = "{"
+                + "\"xAxis\":" + xAxis() + ","
+                + "\"productPower\":" + series(1.0, a) + ","
+                + "\"usePower\":" + series(3.0, a, b) + ","
+                + "\"onGridPower\":" + series(0.5, c) + ","
+                + "\"totalProductPower\":1.0,"
+                + "\"totalUsePower\":6.0,"
+                + "\"totalOnGridPower\":0.5,"
+                + "\"totalBuyPower\":5.0}";
+
+        List<AlphaESSTransformedData> rows =
+                FusionSolarDataMassager.massage(SYS_SN, JAN_DAY, DUBLIN, parse(data));
+
+        // Feed is preserved from onGridPower (not swallowed); buy is derived
+        // from the balance (load − pv) and lands at the day's import.
+        assertEquals(0.5, sum(rows, AlphaESSTransformedData::getFeed), DELTA);
+        assertEquals(5.0, sum(rows, AlphaESSTransformedData::getBuy), DELTA);
     }
 
     @Test
