@@ -7,10 +7,20 @@ Beta test version V1.63 (Ireland only, so far)
 
 > Sign up from your [browser](https://play.google.com/apps/testing/com.tfcode.comparetout)
 
-Internal test version V1.64 
+Internal test version V1.65 
 > [email me](mailto:tonysfreecode@gmail.com?subject=AlphaTest), with the email address used in your android play store account
 
 Read more on the [documentation site](https://github.com/Tonyslogic/comparetout-doc)
+
+V1.65
+
+* Dynamic pricing
+* Huawei (Fusion Solar)
+* Solis cloud
+* Code refactoring
+* Supplier export plans
+* Experimental setting
+* Octopus improvements
 
 V1.64
 
