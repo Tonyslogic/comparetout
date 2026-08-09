@@ -279,7 +279,11 @@ public class ComponentLinkCopyCharacterizationTest extends CharacterizationTestB
         repo.savePanelData(pdRows(west.getPanelIndex()));
         assertTrue(repo.checkForMissingPanelData(a));
 
+        // removeOldPanelData queues onto databaseWriteExecutor like every other
+        // mutation here, so the read below must wait for it. Without the
+        // barrier this races the delete and passes only on an idle machine.
         repo.removeOldPanelData(top.getPanelIndex());
+        awaitDbWrites();
         assertFalse(repo.hasPvgisDataForParameters(53.349, -6.26, 136, 24));
     }
 
