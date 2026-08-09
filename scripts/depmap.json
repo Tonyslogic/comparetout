@@ -1,0 +1,1348 @@
+{
+ "tables": [
+  "DayRates",
+  "PricePlans",
+  "alphaESSRawEnergy",
+  "alphaESSRawPower",
+  "alphaESSTransformMeta",
+  "alphaESSTransformedData",
+  "batteries",
+  "costings",
+  "discharge2grid",
+  "evcharge",
+  "evdivert",
+  "heatpumps",
+  "hwdivert",
+  "hwschedule",
+  "hwsystem",
+  "inverters",
+  "loadprofile",
+  "loadprofiledata",
+  "loadshift",
+  "paneldata",
+  "panels",
+  "plan_combinations",
+  "scenario2battery",
+  "scenario2discharge",
+  "scenario2evcharge",
+  "scenario2evdivert",
+  "scenario2heatpump",
+  "scenario2hwdivert",
+  "scenario2hwschedule",
+  "scenario2hwsystem",
+  "scenario2inverter",
+  "scenario2loadprofile",
+  "scenario2loadshift",
+  "scenario2panel",
+  "scenario_readiness",
+  "scenarios",
+  "scenariosimulationdata"
+ ],
+ "entity2table": {
+  "Costings": "costings",
+  "AlphaESSRawEnergy": "alphaESSRawEnergy",
+  "AlphaESSRawPower": "alphaESSRawPower",
+  "AlphaESSTransformedData": "alphaESSTransformedData",
+  "AlphaESSTransformMeta": "alphaESSTransformMeta",
+  "DayRate": "DayRates",
+  "PlanCombination": "plan_combinations",
+  "PricePlan": "PricePlans",
+  "Battery": "batteries",
+  "DischargeToGrid": "discharge2grid",
+  "EVCharge": "evcharge",
+  "EVDivert": "evdivert",
+  "HeatPump": "heatpumps",
+  "HWDivert": "hwdivert",
+  "HWSchedule": "hwschedule",
+  "HWSystem": "hwsystem",
+  "Inverter": "inverters",
+  "LoadProfile": "loadprofile",
+  "LoadProfileData": "loadprofiledata",
+  "LoadShift": "loadshift",
+  "Panel": "panels",
+  "PanelData": "paneldata",
+  "Scenario": "scenarios",
+  "Scenario2Battery": "scenario2battery",
+  "Scenario2DischargeToGrid": "scenario2discharge",
+  "Scenario2EVCharge": "scenario2evcharge",
+  "Scenario2EVDivert": "scenario2evdivert",
+  "Scenario2HeatPump": "scenario2heatpump",
+  "Scenario2HWDivert": "scenario2hwdivert",
+  "Scenario2HWSchedule": "scenario2hwschedule",
+  "Scenario2HWSystem": "scenario2hwsystem",
+  "Scenario2Inverter": "scenario2inverter",
+  "Scenario2LoadProfile": "scenario2loadprofile",
+  "Scenario2LoadShift": "scenario2loadshift",
+  "Scenario2Panel": "scenario2panel",
+  "ScenarioReadiness": "scenario_readiness",
+  "ScenarioSimulationData": "scenariosimulationdata"
+ },
+ "dao_method_count": {
+  "ScenarioDAO": 79,
+  "PricePlanDAO": 18,
+  "CostingDAO": 7,
+  "AlphaEssDAO": 33,
+  "BatteryDAO": 10,
+  "CombinationDAO": 5,
+  "EvDAO": 7,
+  "HeatPumpDAO": 3,
+  "HotWaterDAO": 6,
+  "InverterDAO": 4,
+  "LoadProfileDAO": 7,
+  "PanelDAO": 9,
+  "ReadinessDAO": 7,
+  "SimDataDAO": 10
+ },
+ "dao_tables": {
+  "AlphaEssDAO": [
+   "alphaESSRawEnergy",
+   "alphaESSRawPower",
+   "alphaESSTransformMeta",
+   "alphaESSTransformedData"
+  ],
+  "BatteryDAO": [
+   "batteries",
+   "discharge2grid",
+   "loadshift",
+   "scenario2battery",
+   "scenario2discharge",
+   "scenario2loadshift",
+   "scenarios"
+  ],
+  "CombinationDAO": [
+   "plan_combinations"
+  ],
+  "CostingDAO": [
+   "costings"
+  ],
+  "EvDAO": [
+   "evcharge",
+   "evdivert",
+   "scenario2evcharge",
+   "scenario2evdivert",
+   "scenarios"
+  ],
+  "HeatPumpDAO": [
+   "heatpumps",
+   "scenario2heatpump",
+   "scenarios"
+  ],
+  "HotWaterDAO": [
+   "hwschedule",
+   "hwsystem",
+   "scenario2hwschedule",
+   "scenario2hwsystem",
+   "scenarios"
+  ],
+  "InverterDAO": [
+   "inverters",
+   "scenario2inverter",
+   "scenarios"
+  ],
+  "LoadProfileDAO": [
+   "loadprofile",
+   "loadprofiledata",
+   "scenario2loadprofile",
+   "scenarios"
+  ],
+  "PanelDAO": [
+   "paneldata",
+   "panels",
+   "scenario2panel",
+   "scenarios"
+  ],
+  "PricePlanDAO": [
+   "DayRates",
+   "PricePlans"
+  ],
+  "ReadinessDAO": [
+   "scenario_readiness",
+   "scenarios"
+  ],
+  "ScenarioDAO": [
+   "batteries",
+   "costings",
+   "discharge2grid",
+   "evcharge",
+   "evdivert",
+   "heatpumps",
+   "hwdivert",
+   "hwschedule",
+   "hwsystem",
+   "inverters",
+   "loadprofile",
+   "loadprofiledata",
+   "loadshift",
+   "paneldata",
+   "panels",
+   "scenario2battery",
+   "scenario2discharge",
+   "scenario2evcharge",
+   "scenario2evdivert",
+   "scenario2heatpump",
+   "scenario2hwdivert",
+   "scenario2hwschedule",
+   "scenario2hwsystem",
+   "scenario2inverter",
+   "scenario2loadprofile",
+   "scenario2loadshift",
+   "scenario2panel",
+   "scenario_readiness",
+   "scenarios",
+   "scenariosimulationdata"
+  ],
+  "SimDataDAO": [
+   "costings",
+   "scenario2loadprofile",
+   "scenariosimulationdata"
+  ]
+ },
+ "repo_method_tables": {
+  "addRawEnergy": [
+   "alphaESSRawEnergy",
+   "alphaESSRawPower",
+   "alphaESSTransformedData"
+  ],
+  "addRawPower": [
+   "alphaESSRawPower",
+   "alphaESSTransformedData"
+  ],
+  "addTransformedData": [
+   "alphaESSTransformedData"
+  ],
+  "checkSysSnForDataOnDate": [
+   "alphaESSRawEnergy"
+  ],
+  "clearAlphaESSDataForSN": [
+   "alphaESSTransformedData"
+  ],
+  "countGridImportBreaches": [
+   "scenariosimulationdata"
+  ],
+  "createLoadProfileDataEntries": [
+   "loadprofile",
+   "loadprofiledata"
+  ],
+  "deleteBatteryFromScenario": [
+   "scenario2battery"
+  ],
+  "deleteCostingDataForScenarioID": [
+   "costings",
+   "scenario_readiness"
+  ],
+  "deleteDischargeFromScenario": [
+   "scenario2discharge"
+  ],
+  "deleteEVChargeFromScenario": [
+   "scenario2evcharge"
+  ],
+  "deleteEVDivertFromScenario": [
+   "scenario2evdivert"
+  ],
+  "deleteHeatPumpFromScenario": [
+   "scenario2heatpump"
+  ],
+  "deleteInverterDatesBySN": [
+   "alphaESSTransformedData"
+  ],
+  "deleteLoadProfileData": [
+   "loadprofiledata"
+  ],
+  "deleteLoadShiftFromScenario": [
+   "scenario2loadshift"
+  ],
+  "deleteOrphanComponents": [
+   "batteries",
+   "discharge2grid",
+   "evcharge",
+   "evdivert",
+   "heatpumps",
+   "hwdivert",
+   "hwschedule",
+   "hwsystem",
+   "inverters",
+   "loadprofile",
+   "loadprofiledata",
+   "loadshift",
+   "paneldata",
+   "panels",
+   "scenario2battery",
+   "scenario2discharge",
+   "scenario2evcharge",
+   "scenario2evdivert",
+   "scenario2heatpump",
+   "scenario2hwdivert",
+   "scenario2hwschedule",
+   "scenario2hwsystem",
+   "scenario2inverter",
+   "scenario2loadprofile",
+   "scenario2loadshift",
+   "scenario2panel"
+  ],
+  "deletePricePlan": [
+   "DayRates",
+   "PricePlans"
+  ],
+  "deleteRelatedCostings": [
+   "costings"
+  ],
+  "deleteSimulationDataForScenarioID": [
+   "scenario_readiness",
+   "scenariosimulationdata"
+  ],
+  "getAllAlphaESSTransformMetaLive": [
+   "alphaESSTransformMeta"
+  ],
+  "getAllCostingsForScenario": [
+   "costings"
+  ],
+  "getAllDayRatesForPricePlanID": [
+   "DayRates"
+  ],
+  "getAllPricePlansForExport": [
+   "DayRates",
+   "PricePlans"
+  ],
+  "getAllPricePlansNow": [
+   "PricePlans"
+  ],
+  "getAllScenariosThatMayNeedCosting": [
+   "scenarios"
+  ],
+  "getAlphaESSEnergyForDate": [
+   "alphaESSRawEnergy"
+  ],
+  "getAlphaESSEnergyForSharing": [
+   "alphaESSRawEnergy"
+  ],
+  "getAlphaESSPowerForSharing": [
+   "alphaESSRawPower"
+  ],
+  "getAlphaESSTransformMeta": [
+   "alphaESSTransformMeta"
+  ],
+  "getDateRange": [
+   "alphaESSTransformedData"
+  ],
+  "getDischargeStopInput": [
+   "alphaESSRawPower"
+  ],
+  "getExportDatesForSN": [
+   "alphaESSRawEnergy"
+  ],
+  "getGridExportMaxForScenario": [
+   "loadprofile"
+  ],
+  "getLatestDateForSn": [
+   "alphaESSTransformedData"
+  ],
+  "getLineData": [
+   "scenariosimulationdata"
+  ],
+  "getLoadProfileWithLoadProfileID": [
+   "loadprofile"
+  ],
+  "getPanelForID": [
+   "panels"
+  ],
+  "getScenarioForID": [
+   "scenarios"
+  ],
+  "getScenarios": [
+   "scenarios"
+  ],
+  "getSimDateRanges": [
+   "scenariosimulationdata"
+  ],
+  "insert": [
+   "costings",
+   "scenario_readiness"
+  ],
+  "insertSync": [
+   "costings",
+   "scenario_readiness"
+  ],
+  "linkInverterFromScenario": [
+   "paneldata"
+  ],
+  "linkPanelFromScenario": [
+   "panels"
+  ],
+  "loadProfileDataCheck": [
+   "loadprofiledata"
+  ],
+  "removeCostingsForPricePlan": [
+   "costings",
+   "scenario_readiness"
+  ],
+  "removeOldPanelData": [
+   "paneldata"
+  ],
+  "saveCosting": [
+   "costings"
+  ],
+  "savePanelData": [
+   "paneldata"
+  ],
+  "saveSimulationDataForScenario": [
+   "scenariosimulationdata"
+  ],
+  "stampAlphaESSTransformCurrentIfSafe": [
+   "alphaESSTransformMeta"
+  ],
+  "unblockWeatherScenario": [
+   "scenario_readiness"
+  ],
+  "updateCompatibilityTags": [
+   "PricePlans"
+  ],
+  "updatePanel": [
+   "paneldata",
+   "panels",
+   "scenario2panel"
+  ],
+  "updatePricePlan": [
+   "DayRates"
+  ],
+  "updatePricePlanActiveStatus": [
+   "PricePlans"
+  ],
+  "updateScenario": [
+   "scenarios"
+  ],
+  "updateScenarioActiveStatus": [
+   "scenarios"
+  ],
+  "upsertAlphaESSTransformMeta": [
+   "alphaESSTransformMeta"
+  ]
+ },
+ "repo_methods_no_tables": [
+  "checkForMissingLoadProfileData",
+  "checkForMissingPanelData",
+  "copyBatteryFromScenario",
+  "copyDischargeFromScenario",
+  "copyEVChargeFromScenario",
+  "copyEVDivertFromScenario",
+  "copyHWScheduleFromScenario",
+  "copyHWSettingsFromScenario",
+  "copyHeatPumpFromScenario",
+  "copyInverterFromScenario",
+  "copyLoadProfileFromScenario",
+  "copyLoadShiftFromScenario",
+  "copyPanelData",
+  "copyPanelFromScenario",
+  "copyPanelToScenario",
+  "copyScenario",
+  "costingExists",
+  "deleteCostingDataForPanelID",
+  "deleteCostingDataForProfileID",
+  "deleteHWScheduleFromScenario",
+  "deleteInverterFromScenario",
+  "deletePanelFromScenario",
+  "deleteScenario",
+  "deleteSimulationDataForPanelID",
+  "deleteSimulationDataForProfileID",
+  "deselectPlanCombination",
+  "findPricePlanID",
+  "getAllBatteryRelations",
+  "getAllComparisonsNow",
+  "getAllCostings",
+  "getAllDischargeRelations",
+  "getAllEVChargeRelations",
+  "getAllEVDivertRelations",
+  "getAllHWScheduleRelations",
+  "getAllHWSystemRelations",
+  "getAllInverterRelations",
+  "getAllLoadShiftRelations",
+  "getAllPanelRelations",
+  "getAllPricePlans",
+  "getAllScenarios",
+  "getAllScenariosForExport",
+  "getAllScenariosThatNeedSimulation",
+  "getAlphaESSTransformedData",
+  "getAvgDOW",
+  "getAvgDOY",
+  "getAvgHour",
+  "getAvgMonth",
+  "getAvgYear",
+  "getBarData",
+  "getBaseLoad",
+  "getBatteriesForScenarioID",
+  "getBestCostingForScenario",
+  "getChargeModelInput",
+  "getCompareScenarios",
+  "getDischargesForScenario",
+  "getESBNLiveDateRanges",
+  "getEVChargesForScenario",
+  "getEVDivertsForScenario",
+  "getHAKeyStats",
+  "getHALiveDateRanges",
+  "getHAPoinv",
+  "getHAPopv",
+  "getHWSchedulesForScenario",
+  "getHWSystemForScenarioID",
+  "getInvertersForScenario",
+  "getKPIs",
+  "getKeyStats",
+  "getLinkedBatteries",
+  "getLinkedDischarges",
+  "getLinkedEVCharges",
+  "getLinkedEVDiverts",
+  "getLinkedHWSchedules",
+  "getLinkedHWSystems",
+  "getLinkedHeatPumps",
+  "getLinkedInverters",
+  "getLinkedLoadProfiles",
+  "getLinkedLoadShifts",
+  "getLinkedPanels",
+  "getLiveDateRanges",
+  "getLoadProfile",
+  "getLoadShiftsForScenarioID",
+  "getLosses",
+  "getMaxCalcInput",
+  "getMonthlyBarData",
+  "getPVRowsForPanel",
+  "getPairingsAsNames",
+  "getPairingsByImportPlan",
+  "getPanelDataSummary",
+  "getPanelsForScenario",
+  "getPlanCombinations",
+  "getScenarioComponentsForScenarioID",
+  "getScenarioIdsNeedingCosting",
+  "getScenarioIdsNeedingSimulation",
+  "getScenarioLiveDateRanges",
+  "getScenarioNamesAtLocation",
+  "getScheduleRIInput",
+  "getSelectedAlphaESSData",
+  "getSimAvgDOW",
+  "getSimAvgDOY",
+  "getSimAvgHour",
+  "getSimAvgMonth",
+  "getSimAvgYear",
+  "getSimKPIsForScenario",
+  "getSimSumDOW",
+  "getSimSumDOY",
+  "getSimSumHour",
+  "getSimSumMonth",
+  "getSimSumYear",
+  "getSimulationDataForScenario",
+  "getSimulationInputNoSolar",
+  "getSumByDate",
+  "getSumDOW",
+  "getSumDOY",
+  "getSumHour",
+  "getSumMonth",
+  "getSumYear",
+  "getTopGridImportBreaches",
+  "getYearBarData",
+  "hasPvgisDataForParameters",
+  "insertScenario",
+  "insertScenarioAndReturnID",
+  "linkAllComponentsFromScenario",
+  "linkBatteryFromScenario",
+  "linkDischargeFromScenario",
+  "linkEVChargeFromScenario",
+  "linkEVDivertFromScenario",
+  "linkHWScheduleFromScenario",
+  "linkHWSystemFromScenario",
+  "linkHeatPumpFromScenario",
+  "linkLoadProfileFromScenario",
+  "linkLoadShiftFromScenario",
+  "linkPanelToScenario",
+  "markCosted",
+  "markSimBlocked",
+  "markSimulated",
+  "pruneCostings",
+  "prunePlanCombinations",
+  "removePlanCombinations",
+  "restorePairings",
+  "saveBatteryForScenario",
+  "saveDischargeForScenario",
+  "saveEVChargeForScenario",
+  "saveEVDivertForScenario",
+  "saveHWDivert",
+  "saveHWScheduleForScenario",
+  "saveHWSystemForScenario",
+  "saveHeatPumpForScenario",
+  "saveInverter",
+  "saveLoadProfile",
+  "saveLoadProfileAndReturnID",
+  "saveLoadShiftForScenario",
+  "savePanel",
+  "selectPlanCombination",
+  "stampAlphaESSTransformCurrent",
+  "unblockPanelScenarios"
+ ],
+ "caller_tables": {
+  "ComparisonUIViewModel.java": [
+   "DayRates",
+   "PricePlans",
+   "alphaESSTransformedData",
+   "costings",
+   "paneldata",
+   "panels",
+   "scenario2battery",
+   "scenario2discharge",
+   "scenario2evcharge",
+   "scenario2evdivert",
+   "scenario2loadshift",
+   "scenario2panel",
+   "scenario_readiness",
+   "scenarios",
+   "scenariosimulationdata"
+  ],
+  "CostingWorker.java": [
+   "DayRates",
+   "PricePlans",
+   "costings",
+   "loadprofile",
+   "scenarios"
+  ],
+  "importers/AbstractGenerationWorker.java": [
+   "loadprofile",
+   "loadprofiledata",
+   "paneldata",
+   "scenarios"
+  ],
+  "importers/ImportOverviewFragment.java": [
+   "DayRates",
+   "PricePlans"
+  ],
+  "importers/alphaess/AlphaESSMigrationWorker.java": [
+   "alphaESSRawEnergy",
+   "alphaESSRawPower",
+   "alphaESSTransformedData"
+  ],
+  "importers/alphaess/CatchUpWorker.java": [
+   "alphaESSRawEnergy",
+   "alphaESSRawPower",
+   "alphaESSTransformMeta",
+   "alphaESSTransformedData"
+  ],
+  "importers/alphaess/DailyWorker.java": [
+   "alphaESSRawEnergy",
+   "alphaESSRawPower",
+   "alphaESSTransformMeta",
+   "alphaESSTransformedData"
+  ],
+  "importers/alphaess/ExportWorker.java": [
+   "alphaESSRawEnergy",
+   "alphaESSRawPower"
+  ],
+  "importers/alphaess/GenerationWorker.java": [
+   "alphaESSRawPower"
+  ],
+  "importers/alphaess/ImportWorker.java": [
+   "alphaESSRawEnergy",
+   "alphaESSRawPower",
+   "alphaESSTransformedData"
+  ],
+  "importers/esbn/ESBNCatchUpWorker.java": [
+   "alphaESSTransformedData"
+  ],
+  "importers/esbn/ESBNExportWorker.java": [
+   "alphaESSTransformedData"
+  ],
+  "importers/esbn/ESBNImportWorker.java": [
+   "alphaESSTransformedData"
+  ],
+  "importers/esbn/GenerationWorker.java": [
+   "loadprofile",
+   "loadprofiledata",
+   "scenarios"
+  ],
+  "importers/fusionsolar/FusionSolarCatchUpWorker.java": [
+   "alphaESSRawEnergy",
+   "alphaESSTransformedData"
+  ],
+  "importers/homeassistant/HACatchupWorker.java": [
+   "alphaESSTransformedData"
+  ],
+  "importers/octopus/OctopusCatchUpWorker.java": [
+   "alphaESSTransformedData"
+  ],
+  "importers/octopus/OctopusCsvImportWorker.java": [
+   "alphaESSTransformedData"
+  ],
+  "importers/solis/SolisCatchUpWorker.java": [
+   "alphaESSRawEnergy",
+   "alphaESSTransformedData"
+  ],
+  "scenario/ScenarioSelectDialog.java": [
+   "scenarios"
+  ],
+  "scenario/SimulationWorker.java": [
+   "scenariosimulationdata"
+  ],
+  "scenario/loadprofile/DeleteLoadDataFromProfileWorker.java": [
+   "loadprofiledata"
+  ],
+  "scenario/loadprofile/GenerateMissingLoadDataWorker.java": [
+   "loadprofile",
+   "loadprofiledata"
+  ],
+  "scenario/panel/PVGISLoader.java": [
+   "paneldata",
+   "panels"
+  ],
+  "ui2/DynamicTariffPlans.kt": [
+   "costings",
+   "scenario_readiness"
+  ],
+  "ui2/DynamicTariffWorker.kt": [
+   "costings",
+   "scenario_readiness"
+  ],
+  "ui2/HeatPumpWeatherFetchWorker.kt": [
+   "scenario_readiness"
+  ],
+  "ui2/OctopusTariffPlans.kt": [
+   "costings",
+   "scenario_readiness"
+  ],
+  "ui2/PVGISDirectFetchWorker.kt": [
+   "paneldata",
+   "panels"
+  ],
+  "ui2/PanelSourceFetchWorker.kt": [
+   "paneldata"
+  ],
+  "ui2/PricePlanDownloader.kt": [
+   "costings",
+   "scenario_readiness"
+  ],
+  "ui2/SampleDataLoader.kt": [
+   "costings",
+   "scenario_readiness"
+  ],
+  "ui2/SimpleScenarioLoader.kt": [
+   "costings",
+   "scenario_readiness",
+   "scenariosimulationdata"
+  ],
+  "ui2/StrategyScenarioGenerator.kt": [
+   "DayRates",
+   "PricePlans"
+  ],
+  "ui2/UI2CompareViewModel.kt": [
+   "DayRates",
+   "costings",
+   "scenariosimulationdata"
+  ],
+  "ui2/UI2DashboardViewModel.kt": [
+   "DayRates",
+   "costings",
+   "scenariosimulationdata"
+  ],
+  "ui2/UI2DataSourceManagementViewModel.kt": [
+   "alphaESSTransformMeta",
+   "alphaESSTransformedData"
+  ],
+  "ui2/UI2DirectorViewModel.kt": [
+   "paneldata",
+   "panels",
+   "scenario2battery",
+   "scenario2discharge",
+   "scenario2evcharge",
+   "scenario2evdivert",
+   "scenario2heatpump",
+   "scenario2loadshift"
+  ],
+  "ui2/UI2GraphsViewModel.kt": [
+   "scenariosimulationdata"
+  ],
+  "ui2/UI2ImportExportActivity.kt": [
+   "costings",
+   "scenario_readiness"
+  ],
+  "ui2/UI2PricePlanListViewModel.kt": [
+   "DayRates",
+   "PricePlans",
+   "costings",
+   "scenario_readiness"
+  ],
+  "ui2/UI2PricePlanViewModel.kt": [
+   "DayRates",
+   "costings",
+   "scenario_readiness"
+  ],
+  "ui2/UI2SharedViewModel.kt": [
+   "alphaESSTransformedData"
+  ],
+  "ui2/UI2SimulationsViewModel.kt": [
+   "DayRates"
+  ],
+  "ui2/UI2WizardViewModel.kt": [
+   "batteries",
+   "costings",
+   "discharge2grid",
+   "evcharge",
+   "evdivert",
+   "heatpumps",
+   "hwdivert",
+   "hwschedule",
+   "hwsystem",
+   "inverters",
+   "loadprofile",
+   "loadprofiledata",
+   "loadshift",
+   "paneldata",
+   "panels",
+   "scenario2battery",
+   "scenario2discharge",
+   "scenario2evcharge",
+   "scenario2evdivert",
+   "scenario2heatpump",
+   "scenario2hwdivert",
+   "scenario2hwschedule",
+   "scenario2hwsystem",
+   "scenario2inverter",
+   "scenario2loadprofile",
+   "scenario2loadshift",
+   "scenario2panel",
+   "scenario_readiness",
+   "scenarios",
+   "scenariosimulationdata"
+  ]
+ },
+ "caller_repo_calls": {
+  "ComparisonUIViewModel.java": [
+   "checkForMissingPanelData",
+   "clearAlphaESSDataForSN",
+   "copyBatteryFromScenario",
+   "copyDischargeFromScenario",
+   "copyEVChargeFromScenario",
+   "copyEVDivertFromScenario",
+   "copyHWScheduleFromScenario",
+   "copyHWSettingsFromScenario",
+   "copyInverterFromScenario",
+   "copyLoadProfileFromScenario",
+   "copyLoadShiftFromScenario",
+   "copyPanelFromScenario",
+   "copyScenario",
+   "deleteBatteryFromScenario",
+   "deleteCostingDataForPanelID",
+   "deleteCostingDataForScenarioID",
+   "deleteDischargeFromScenario",
+   "deleteEVChargeFromScenario",
+   "deleteEVDivertFromScenario",
+   "deleteHWScheduleFromScenario",
+   "deleteInverterDatesBySN",
+   "deleteInverterFromScenario",
+   "deleteLoadShiftFromScenario",
+   "deletePanelFromScenario",
+   "deletePricePlan",
+   "deleteRelatedCostings",
+   "deleteScenario",
+   "deleteSimulationDataForPanelID",
+   "deleteSimulationDataForScenarioID",
+   "getAllBatteryRelations",
+   "getAllComparisonsNow",
+   "getAllCostings",
+   "getAllDischargeRelations",
+   "getAllEVChargeRelations",
+   "getAllEVDivertRelations",
+   "getAllHWScheduleRelations",
+   "getAllHWSystemRelations",
+   "getAllInverterRelations",
+   "getAllLoadShiftRelations",
+   "getAllPanelRelations",
+   "getAllPricePlans",
+   "getAllPricePlansForExport",
+   "getAllScenarios",
+   "getAllScenariosForExport",
+   "getAvgDOW",
+   "getAvgDOY",
+   "getAvgHour",
+   "getAvgMonth",
+   "getAvgYear",
+   "getBarData",
+   "getBatteriesForScenarioID",
+   "getBestCostingForScenario",
+   "getDateRange",
+   "getDischargesForScenario",
+   "getESBNLiveDateRanges",
+   "getEVChargesForScenario",
+   "getEVDivertsForScenario",
+   "getHAKeyStats",
+   "getHALiveDateRanges",
+   "getHWSchedulesForScenario",
+   "getHWSystemForScenarioID",
+   "getInvertersForScenario",
+   "getKPIs",
+   "getKeyStats",
+   "getLineData",
+   "getLinkedBatteries",
+   "getLinkedDischarges",
+   "getLinkedEVCharges",
+   "getLinkedEVDiverts",
+   "getLinkedHWSchedules",
+   "getLinkedHWSystems",
+   "getLinkedInverters",
+   "getLinkedLoadProfiles",
+   "getLinkedLoadShifts",
+   "getLinkedPanels",
+   "getLiveDateRanges",
+   "getLoadProfile",
+   "getLoadShiftsForScenarioID",
+   "getMonthlyBarData",
+   "getPanelDataSummary",
+   "getPanelForID",
+   "getPanelsForScenario",
+   "getScenarioComponentsForScenarioID",
+   "getScenarioLiveDateRanges",
+   "getSelectedAlphaESSData",
+   "getSimAvgDOW",
+   "getSimAvgDOY",
+   "getSimAvgHour",
+   "getSimAvgMonth",
+   "getSimAvgYear",
+   "getSimDateRanges",
+   "getSimKPIsForScenario",
+   "getSimSumDOW",
+   "getSimSumDOY",
+   "getSimSumHour",
+   "getSimSumMonth",
+   "getSimSumYear",
+   "getSumDOW",
+   "getSumDOY",
+   "getSumHour",
+   "getSumMonth",
+   "getSumYear",
+   "getYearBarData",
+   "insert",
+   "insertScenario",
+   "insertScenarioAndReturnID",
+   "linkBatteryFromScenario",
+   "linkDischargeFromScenario",
+   "linkEVChargeFromScenario",
+   "linkEVDivertFromScenario",
+   "linkHWScheduleFromScenario",
+   "linkHWSystemFromScenario",
+   "linkInverterFromScenario",
+   "linkLoadProfileFromScenario",
+   "linkLoadShiftFromScenario",
+   "linkPanelFromScenario",
+   "pruneCostings",
+   "removeCostingsForPricePlan",
+   "removeOldPanelData",
+   "saveBatteryForScenario",
+   "saveDischargeForScenario",
+   "saveEVChargeForScenario",
+   "saveEVDivertForScenario",
+   "saveHWDivert",
+   "saveHWScheduleForScenario",
+   "saveHWSystemForScenario",
+   "saveInverter",
+   "saveLoadProfile",
+   "saveLoadProfileAndReturnID",
+   "saveLoadShiftForScenario",
+   "savePanel",
+   "updatePanel",
+   "updatePricePlan",
+   "updatePricePlanActiveStatus",
+   "updateScenario",
+   "updateScenarioActiveStatus"
+  ],
+  "CostingWorker.java": [
+   "costingExists",
+   "getAllDayRatesForPricePlanID",
+   "getAllPricePlansNow",
+   "getGridExportMaxForScenario",
+   "getPairingsByImportPlan",
+   "getScenarioForID",
+   "getScenarioIdsNeedingCosting",
+   "getScenarioIdsNeedingSimulation",
+   "getSimulationDataForScenario",
+   "markCosted",
+   "pruneCostings",
+   "prunePlanCombinations",
+   "saveCosting"
+  ],
+  "importers/AbstractGenerationWorker.java": [
+   "createLoadProfileDataEntries",
+   "getAlphaESSTransformedData",
+   "getAvgMonth",
+   "getBaseLoad",
+   "getScenarios",
+   "getSumDOW",
+   "getSumHour",
+   "insertScenarioAndReturnID",
+   "saveInverter",
+   "saveLoadProfileAndReturnID",
+   "savePanel",
+   "savePanelData"
+  ],
+  "importers/ImportOverviewFragment.java": [
+   "getAllDayRatesForPricePlanID",
+   "getAllPricePlansNow"
+  ],
+  "importers/alphaess/AlphaESSMigrationWorker.java": [
+   "addTransformedData",
+   "getAlphaESSEnergyForDate",
+   "getAlphaESSPowerForSharing",
+   "getExportDatesForSN",
+   "stampAlphaESSTransformCurrent"
+  ],
+  "importers/alphaess/CatchUpWorker.java": [
+   "addRawEnergy",
+   "addRawPower",
+   "addTransformedData",
+   "checkSysSnForDataOnDate",
+   "getLatestDateForSn",
+   "stampAlphaESSTransformCurrentIfSafe"
+  ],
+  "importers/alphaess/DailyWorker.java": [
+   "addRawEnergy",
+   "addRawPower",
+   "addTransformedData",
+   "checkSysSnForDataOnDate",
+   "getLatestDateForSn",
+   "stampAlphaESSTransformCurrentIfSafe"
+  ],
+  "importers/alphaess/ExportWorker.java": [
+   "getAlphaESSEnergyForSharing",
+   "getAlphaESSPowerForSharing",
+   "getExportDatesForSN"
+  ],
+  "importers/alphaess/GenerationWorker.java": [
+   "getChargeModelInput",
+   "getDischargeStopInput",
+   "getLosses",
+   "getMaxCalcInput",
+   "getScheduleRIInput",
+   "saveBatteryForScenario",
+   "saveLoadShiftForScenario"
+  ],
+  "importers/alphaess/ImportWorker.java": [
+   "addRawEnergy",
+   "addRawPower",
+   "addTransformedData",
+   "getAlphaESSEnergyForDate",
+   "getAlphaESSPowerForSharing",
+   "getExportDatesForSN",
+   "stampAlphaESSTransformCurrent"
+  ],
+  "importers/esbn/ESBNCatchUpWorker.java": [
+   "addTransformedData"
+  ],
+  "importers/esbn/ESBNExportWorker.java": [
+   "getAlphaESSTransformedData",
+   "getDateRange"
+  ],
+  "importers/esbn/ESBNImportWorker.java": [
+   "addTransformedData"
+  ],
+  "importers/esbn/GenerationWorker.java": [
+   "createLoadProfileDataEntries",
+   "deleteLoadProfileData",
+   "getAlphaESSTransformedData",
+   "getAvgMonth",
+   "getBaseLoad",
+   "getScenarios",
+   "getSumDOW",
+   "getSumHour",
+   "insertScenarioAndReturnID",
+   "saveLoadProfileAndReturnID"
+  ],
+  "importers/fusionsolar/FusionSolarCatchUpWorker.java": [
+   "addTransformedData",
+   "checkSysSnForDataOnDate"
+  ],
+  "importers/homeassistant/GenerationWorker.java": [
+   "getHAPoinv",
+   "getHAPopv",
+   "saveBatteryForScenario",
+   "saveEVChargeForScenario",
+   "saveHWScheduleForScenario",
+   "saveHWSystemForScenario"
+  ],
+  "importers/homeassistant/HABackfillWorker.java": [
+   "getAlphaESSTransformedData"
+  ],
+  "importers/homeassistant/HACatchupWorker.java": [
+   "addTransformedData"
+  ],
+  "importers/octopus/OctopusCatchUpWorker.java": [
+   "addTransformedData",
+   "getLatestDateForSn"
+  ],
+  "importers/octopus/OctopusCsvImportWorker.java": [
+   "addTransformedData"
+  ],
+  "importers/solis/SolisCatchUpWorker.java": [
+   "addTransformedData",
+   "checkSysSnForDataOnDate"
+  ],
+  "scenario/ScenarioSelectDialog.java": [
+   "getScenarios"
+  ],
+  "scenario/SimulationWorker.java": [
+   "checkForMissingPanelData",
+   "getPVRowsForPanel",
+   "getScenarioComponentsForScenarioID",
+   "getScenarioIdsNeedingSimulation",
+   "getSimulationInputNoSolar",
+   "markSimBlocked",
+   "markSimulated",
+   "saveSimulationDataForScenario"
+  ],
+  "scenario/loadprofile/DeleteLoadDataFromProfileWorker.java": [
+   "deleteCostingDataForProfileID",
+   "deleteLoadProfileData",
+   "deleteSimulationDataForProfileID"
+  ],
+  "scenario/loadprofile/GenerateMissingLoadDataWorker.java": [
+   "checkForMissingLoadProfileData",
+   "createLoadProfileDataEntries",
+   "getLoadProfileWithLoadProfileID"
+  ],
+  "scenario/panel/PVGISLoader.java": [
+   "getPanelForID",
+   "savePanelData"
+  ],
+  "ui2/DynamicTariffPlans.kt": [
+   "insertSync"
+  ],
+  "ui2/DynamicTariffWorker.kt": [
+   "insert"
+  ],
+  "ui2/HeatPumpWeatherFetchWorker.kt": [
+   "getScenarioComponentsForScenarioID",
+   "getSimulationInputNoSolar",
+   "unblockWeatherScenario"
+  ],
+  "ui2/OctopusTariffPlans.kt": [
+   "insert",
+   "insertSync"
+  ],
+  "ui2/PVGISDirectFetchWorker.kt": [
+   "getPanelForID",
+   "savePanelData"
+  ],
+  "ui2/PanelSourceFetchWorker.kt": [
+   "getAlphaESSTransformedData",
+   "savePanelData"
+  ],
+  "ui2/PricePlanDownloader.kt": [
+   "insert"
+  ],
+  "ui2/SampleDataLoader.kt": [
+   "getPanelsForScenario",
+   "insert",
+   "insertScenarioAndReturnID"
+  ],
+  "ui2/SimpleScenarioLoader.kt": [
+   "deleteCostingDataForScenarioID",
+   "deleteScenario",
+   "deleteSimulationDataForScenarioID",
+   "getPanelsForScenario",
+   "insertScenarioAndReturnID"
+  ],
+  "ui2/StrategyScenarioGenerator.kt": [
+   "getAllDayRatesForPricePlanID",
+   "getAllPricePlansNow",
+   "getScenarioComponentsForScenarioID",
+   "insertScenarioAndReturnID"
+  ],
+  "ui2/UI2CompareViewModel.kt": [
+   "getAllCostingsForScenario",
+   "getAllDayRatesForPricePlanID",
+   "getSelectedAlphaESSData",
+   "getSimDateRanges",
+   "getSimSumDOW",
+   "getSimSumDOY",
+   "getSimSumHour",
+   "getSimSumMonth",
+   "getSimSumYear",
+   "getSumByDate",
+   "getSumDOW",
+   "getSumDOY",
+   "getSumHour",
+   "getSumMonth",
+   "getSumYear"
+  ],
+  "ui2/UI2DashboardViewModel.kt": [
+   "checkForMissingPanelData",
+   "countGridImportBreaches",
+   "getAllCostingsForScenario",
+   "getAllDayRatesForPricePlanID",
+   "getBestCostingForScenario",
+   "getHAKeyStats",
+   "getKPIs",
+   "getKeyStats",
+   "getScenarioComponentsForScenarioID",
+   "getSelectedAlphaESSData",
+   "getSimDateRanges",
+   "getSimKPIsForScenario",
+   "getSimSumDOY",
+   "getSimSumHour",
+   "getSumDOW",
+   "getSumDOY",
+   "getSumHour",
+   "getSumMonth",
+   "getTopGridImportBreaches"
+  ],
+  "ui2/UI2DataSourceManagementViewModel.kt": [
+   "clearAlphaESSDataForSN",
+   "deleteInverterDatesBySN",
+   "getAllAlphaESSTransformMetaLive",
+   "getDateRange",
+   "getScenarioNamesAtLocation"
+  ],
+  "ui2/UI2DirectorViewModel.kt": [
+   "copyBatteryFromScenario",
+   "copyDischargeFromScenario",
+   "copyEVChargeFromScenario",
+   "copyEVDivertFromScenario",
+   "copyHWScheduleFromScenario",
+   "copyHWSettingsFromScenario",
+   "copyHeatPumpFromScenario",
+   "copyInverterFromScenario",
+   "copyLoadProfileFromScenario",
+   "copyLoadShiftFromScenario",
+   "copyPanelFromScenario",
+   "copyPanelToScenario",
+   "deleteBatteryFromScenario",
+   "deleteDischargeFromScenario",
+   "deleteEVChargeFromScenario",
+   "deleteEVDivertFromScenario",
+   "deleteHWScheduleFromScenario",
+   "deleteHeatPumpFromScenario",
+   "deleteInverterFromScenario",
+   "deleteLoadShiftFromScenario",
+   "deletePanelFromScenario",
+   "getBatteriesForScenarioID",
+   "getDischargesForScenario",
+   "getEVChargesForScenario",
+   "getEVDivertsForScenario",
+   "getHWSchedulesForScenario",
+   "getHWSystemForScenarioID",
+   "getInvertersForScenario",
+   "getLoadShiftsForScenarioID",
+   "getPanelsForScenario",
+   "getScenarioComponentsForScenarioID",
+   "linkBatteryFromScenario",
+   "linkDischargeFromScenario",
+   "linkEVChargeFromScenario",
+   "linkEVDivertFromScenario",
+   "linkHWScheduleFromScenario",
+   "linkHWSystemFromScenario",
+   "linkHeatPumpFromScenario",
+   "linkInverterFromScenario",
+   "linkLoadProfileFromScenario",
+   "linkLoadShiftFromScenario",
+   "linkPanelFromScenario",
+   "linkPanelToScenario"
+  ],
+  "ui2/UI2GraphsViewModel.kt": [
+   "getAvgDOW",
+   "getAvgDOY",
+   "getAvgHour",
+   "getAvgMonth",
+   "getAvgYear",
+   "getBarData",
+   "getLineData",
+   "getScenarioComponentsForScenarioID",
+   "getSimAvgDOW",
+   "getSimAvgDOY",
+   "getSimAvgHour",
+   "getSimAvgMonth",
+   "getSimAvgYear",
+   "getSimDateRanges",
+   "getSimSumDOW",
+   "getSimSumDOY",
+   "getSimSumHour",
+   "getSimSumMonth",
+   "getSimSumYear",
+   "getSumDOW",
+   "getSumDOY",
+   "getSumHour",
+   "getSumMonth",
+   "getSumYear"
+  ],
+  "ui2/UI2HaBackfillViewModel.kt": [
+   "getAlphaESSTransformedData"
+  ],
+  "ui2/UI2ImportExportActivity.kt": [
+   "findPricePlanID",
+   "insertScenario",
+   "insertSync",
+   "restorePairings"
+  ],
+  "ui2/UI2PricePlanListViewModel.kt": [
+   "deletePricePlan",
+   "deleteRelatedCostings",
+   "deselectPlanCombination",
+   "findPricePlanID",
+   "insertSync",
+   "restorePairings",
+   "selectPlanCombination",
+   "updateCompatibilityTags",
+   "updatePricePlanActiveStatus"
+  ],
+  "ui2/UI2PricePlanViewModel.kt": [
+   "getAllDayRatesForPricePlanID",
+   "insert",
+   "removeCostingsForPricePlan",
+   "updatePricePlan"
+  ],
+  "ui2/UI2SharedViewModel.kt": [
+   "getDateRange",
+   "getScenarioComponentsForScenarioID"
+  ],
+  "ui2/UI2SimpleViewModel.kt": [
+   "getAlphaESSTransformedData",
+   "getBestCostingForScenario",
+   "getScenarioComponentsForScenarioID"
+  ],
+  "ui2/UI2SimulationsViewModel.kt": [
+   "deleteScenario",
+   "getAllDayRatesForPricePlanID",
+   "getBestCostingForScenario",
+   "getScenarioComponentsForScenarioID"
+  ],
+  "ui2/UI2WizardViewModel.kt": [
+   "copyPanelData",
+   "createLoadProfileDataEntries",
+   "deleteBatteryFromScenario",
+   "deleteCostingDataForScenarioID",
+   "deleteDischargeFromScenario",
+   "deleteEVChargeFromScenario",
+   "deleteEVDivertFromScenario",
+   "deleteHWScheduleFromScenario",
+   "deleteHeatPumpFromScenario",
+   "deleteInverterFromScenario",
+   "deleteLoadShiftFromScenario",
+   "deleteOrphanComponents",
+   "deletePanelFromScenario",
+   "deleteSimulationDataForScenarioID",
+   "getAlphaESSTransformedData",
+   "getPanelsForScenario",
+   "getScenarioComponentsForScenarioID",
+   "hasPvgisDataForParameters",
+   "insertScenarioAndReturnID",
+   "linkAllComponentsFromScenario",
+   "linkLoadProfileFromScenario",
+   "saveBatteryForScenario",
+   "saveDischargeForScenario",
+   "saveEVChargeForScenario",
+   "saveEVDivertForScenario",
+   "saveHWDivert",
+   "saveHWScheduleForScenario",
+   "saveHWSystemForScenario",
+   "saveHeatPumpForScenario",
+   "saveInverter",
+   "saveLoadProfile",
+   "saveLoadShiftForScenario",
+   "savePanel",
+   "updatePanel",
+   "updateScenario"
+  ],
+  "util/CompareScenarioSelectDialog.java": [
+   "getCompareScenarios"
+  ]
+ },
+ "unresolved_calls": {}
+}

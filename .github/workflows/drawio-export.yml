@@ -1,0 +1,66 @@
+# Keeps docs/model/*.svg in step with the hand-laid docs/model/*.drawio sources.
+#
+# Why this exists: the .drawio files carry deliberate layout that auto-layout
+# tools would destroy, so we keep them — but an exported SVG that nobody
+# remembers to regenerate is worse than no SVG at all. This job removes the
+# manual export step: edit the diagram in draw.io desktop, push, and the render
+# follows.
+#
+# Chose commit-back over a "your exports are stale" gate: a gate would just hand
+# the diagram's author an export chore, which is the thing being automated away.
+name: Export drawio diagrams
+
+on:
+  push:
+    paths:
+      - 'docs/**/*.drawio'
+      - '.github/workflows/drawio-export.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  # One export at a time per branch; a rapid second push supersedes the first
+  # rather than racing it to the same commit.
+  group: drawio-export-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  export:
+    # Never react to our own commit-back. Belt and braces alongside [skip ci]:
+    # a loop here would be a self-sustaining push cycle.
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Need real history to push back, not the default shallow grafted HEAD.
+          fetch-depth: 0
+
+      - name: Export .drawio to .svg
+        # Pinned by tag: the renderer version decides the output bytes, so an
+        # unpinned action would produce spurious diffs on every upstream release.
+        uses: rlespinasse/drawio-export-action@v2
+        with:
+          path: docs/model
+          format: svg
+          transparent: true
+          # Write foo.svg beside foo.drawio rather than into an export/ subtree,
+          # so existing links in the markdown keep resolving.
+          output: .
+          action-mode: all
+
+      - name: Commit regenerated SVGs
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/model/*.svg
+          # --quiet exits non-zero when there is nothing staged, which is the
+          # common case (a .drawio edit that does not change the render).
+          if git diff --cached --quiet; then
+            echo "SVGs already current — nothing to commit."
+            exit 0
+          fi
+          git commit -m "Re-export drawio diagrams to SVG [skip ci]"
+          git push origin HEAD:${GITHUB_REF_NAME}
