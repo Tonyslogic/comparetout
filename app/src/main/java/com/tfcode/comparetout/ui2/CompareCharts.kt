@@ -377,7 +377,14 @@ fun buildCompareLines(data: List<ChartDatum>, series: List<SeriesDef>): List<Com
     return lines
 }
 
-private fun shortenLabel(s: String): String = if (s.length <= 18) s else s.take(17) + "…"
+/**
+ * Truncate for display without splitting a surrogate pair — an emoji in a
+ * scenario name is two UTF-16 code units, and `take(17)` can keep half of one,
+ * which renders as `�`. See plans/bugs/plan.md §1.
+ */
+private fun shortenLabel(s: String): String =
+    if (s.length <= 18) s
+    else s.substring(0, if (Character.isHighSurrogate(s[16])) 16 else 17) + "…"
 
 /**
  * Sample [labels] down to at most [target] entries, evenly spaced. Keeps the

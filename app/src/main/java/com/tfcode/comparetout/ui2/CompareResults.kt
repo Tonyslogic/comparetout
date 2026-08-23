@@ -907,7 +907,18 @@ internal fun usageData(rows: List<CompareUsageRow>): List<ChartDatum> = rows.map
     )
 }
 
-internal fun shorten(s: String): String = if (s.length <= 12) s else s.take(11) + "…"
+/**
+ * Truncate for display without splitting a surrogate pair.
+ *
+ * `String.take(n)` counts UTF-16 code units, so cutting a scenario name like
+ * "PersonA 🌞🔋⌚" at 11 keeps the high surrogate of 🔋 and drops its low one —
+ * the survivor renders as `�`. Backing the cut off by one keeps the string
+ * valid. See plans/bugs/plan.md §1; this is surrogate-safe, not
+ * grapheme-cluster-safe.
+ */
+internal fun shorten(s: String): String =
+    if (s.length <= 12) s
+    else s.substring(0, if (Character.isHighSurrogate(s[10])) 10 else 11) + "…"
 
 /**
  * Build pie data for usage — one pie per subject, slices are the selected series

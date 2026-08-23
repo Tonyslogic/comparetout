@@ -244,14 +244,30 @@ public class ToutcRepository {
         });
     }
 
+    /**
+     * Delete a price plan and everything that referenced it.
+     * <p>
+     * All three deletes run in a single executor task, deliberately.
+     * {@code databaseWriteExecutor} is an 8-thread pool with no ordering
+     * barrier, so callers that submitted the costings delete as a separate task
+     * had no guarantee it landed before — or after — the plan delete. A read
+     * arriving in the gap saw a costing whose plan was already gone
+     * (plans/bugs/plan.md §2). Keeping them together closes that window and
+     * means a caller cannot forget the second step.
+     * <p>
+     * Callers that still call {@link #deleteRelatedCostings(int)} beforehand are
+     * harmless — the delete is idempotent.
+     */
     public void deletePricePlan(Integer id) {
         ToutcDB.databaseWriteExecutor.execute(() -> {
             // Drop the plan's pairings first: a row naming a plan that no longer
             // exists would keep an import plan's bundled row suppressed forever,
             // making it look as though the plan simply stopped being costed.
             combinationOps.removePlan(id);
+            // Then the costings that named it, on either side of the pairing —
+            // nothing else removes them, as the schema declares no foreign keys.
+            costingDAO.deleteRelatedCostings(id);
             pricePlanDAO.deletePricePlan(id);
-//            System.out.println("Size after delete = " + allPricePlans.getValue().entrySet().size());
         });
     }
 

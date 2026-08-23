@@ -81,23 +81,34 @@ public abstract class CostingDAO {
     public abstract void deleteAllCostings();
 
     /**
-     * Find the most cost-effective price plan for a given scenario.
+     * Find the most cost-effective price plan for a given scenario, ignoring any
+     * costing whose plan no longer exists.
      * <p>
-     * Query: SELECT * FROM costings 
-     *        WHERE net = (SELECT MIN(net) FROM costings WHERE scenarioID = :scenarioID)
-     *        AND scenarioID = :scenarioID
+     * The existence tests are load-bearing, not defensive tidying. The schema
+     * declares no foreign keys, so deleting a {@code PricePlans} row leaves its
+     * {@code costings} rows behind until something prunes them — and the prune is
+     * a separate task on {@code databaseWriteExecutor}, an 8-thread pool with no
+     * ordering barrier. A dashboard read that lands in that window would
+     * otherwise return the orphan and cache it, leaving "Best Cost/Year" naming a
+     * plan the user just deleted (plans/bugs/plan.md §2).
      * <p>
-     * This query uses a subquery to find the minimum net cost for the scenario,
-     * then returns the complete costing record that achieved that minimum.
-     * The "net" field represents the total cost after accounting for both
-     * electricity purchases and sales back to the grid.
-     * 
+     * {@code exportPlanID = 0} is the bundled-export sentinel, not a plan id, so
+     * it is excluded from the test before the lookup — the same carve-out
+     * {@link #pruneCostings()} makes. Without it every IE row, where export is a
+     * bundled rate rather than a separate contract, would be filtered out.
+     * <p>
+     * {@code ORDER BY net ASC LIMIT 1} replaces the old {@code MIN(net)}
+     * subquery: one scan instead of two, and it cannot return two rows on a tie.
+     *
      * @param scenarioID The scenario to find the best costing for
-     * @return The Costings record with the lowest net cost for the scenario
+     * @return The lowest-net costing whose plans still exist, or null if none do
      */
     @Query("SELECT * FROM costings " +
-            "WHERE (net = (SELECT MIN(net) AS bignet FROM costings AS costings_1 WHERE scenarioID = :scenarioID))" +
-            "AND scenarioID = :scenarioID")
+            "WHERE scenarioID = :scenarioID " +
+            "  AND pricePlanID IN (SELECT pricePlanIndex FROM PricePlans) " +
+            "  AND (exportPlanID = 0 " +
+            "       OR exportPlanID IN (SELECT pricePlanIndex FROM PricePlans)) " +
+            "ORDER BY net ASC LIMIT 1")
     public abstract Costings getBestCostingForScenario(Long scenarioID);
 
     @Query("SELECT * FROM costings WHERE scenarioID = :scenarioID ORDER BY net ASC")
