@@ -382,6 +382,20 @@ public class PVGISActivity extends AbstractEPOFolderActivity {
         tableRow.addView(dbRefreshIndicator);
         mTableLayout.addView(tableRow);
 
+        // In-context disclosure for the location button below. Sits immediately
+        // above it, unconditionally: the coordinate is sent to PVGIS, an external
+        // dataset provider, and the button label alone does not say so. Same
+        // string as the simple screen and the wizard PV card, so all three entry
+        // points disclose identically — see plans/store/plan.md §3.5.
+        TableRow rationaleRow = new TableRow(this);
+        TextView locationRationale = new TextView(this);
+        locationRationale.setText(R.string.ui2_simple_location_needed);
+        TableRow.LayoutParams rationaleParams = new TableRow.LayoutParams();
+        rationaleParams.span = 2;
+        locationRationale.setLayoutParams(rationaleParams);
+        rationaleRow.addView(locationRationale);
+        mTableLayout.addView(rationaleRow);
+
         tableRow = new TableRow(this);
         Button location = new Button(this);
         location.setText(R.string.UpdateLocation);

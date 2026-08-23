@@ -245,6 +245,17 @@ fun WizardPanelCard(
                             tint = MaterialTheme.colorScheme.primary)
                     }
                 }
+                // In-context disclosure for the GPS button above. Shown
+                // unconditionally, not behind the hints toggle: it tells the user
+                // the coordinate is sent to an external dataset provider, which is
+                // a disclosure rather than a tip. Same string, and the same
+                // placement relative to the control, as the simple screen
+                // (UI2SimpleScreen) — see plans/store/plan.md §3.5.
+                Text(
+                    stringResource(R.string.ui2_simple_location_needed),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
                 // Orientation
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     NumericIntField(
