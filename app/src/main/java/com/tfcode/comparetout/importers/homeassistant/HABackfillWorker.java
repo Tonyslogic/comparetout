@@ -323,27 +323,27 @@ public class HABackfillWorker extends Worker {
                 case "buy":
                     extractor = AlphaESSTransformedData::getBuy;
                     externalId = EXTERNAL_SOURCE + ":ha_grid_import";
-                    name = "Grid import (Eco Power Optimiser)";
+                    name = "Grid import (Watt Options)";
                     break;
                 case "feed":
                     extractor = AlphaESSTransformedData::getFeed;
                     externalId = EXTERNAL_SOURCE + ":ha_grid_export";
-                    name = "Grid export (Eco Power Optimiser)";
+                    name = "Grid export (Watt Options)";
                     break;
                 case "pv":
                     extractor = AlphaESSTransformedData::getPv;
                     externalId = EXTERNAL_SOURCE + ":ha_solar";
-                    name = "Solar generation (Eco Power Optimiser)";
+                    name = "Solar generation (Watt Options)";
                     break;
                 case "charge":
                     extractor = r -> Math.max(0, r.getCharge());
                     externalId = EXTERNAL_SOURCE + ":ha_battery_charge";
-                    name = "Battery charge (Eco Power Optimiser)";
+                    name = "Battery charge (Watt Options)";
                     break;
                 case "discharge":
                     extractor = r -> Math.max(0, -r.getCharge());
                     externalId = EXTERNAL_SOURCE + ":ha_battery_discharge";
-                    name = "Battery discharge (Eco Power Optimiser)";
+                    name = "Battery discharge (Watt Options)";
                     break;
                 default:
                     continue;

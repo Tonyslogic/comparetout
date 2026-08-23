@@ -43,7 +43,7 @@ class SnapshotExporter(private val application: Application) {
     /**
      * Build [target] as a scoped snapshot of the live database. Deletes the
      * file first if it exists. Caller is responsible for choosing the path
-     * (typically `cacheDir/exports/eco-power-optimiser-<...>.db`).
+     * (typically `cacheDir/exports/watt-options-<...>.db`).
      *
      * @param includeOutputs when true, costings / scenariosimulationdata /
      *   loadprofiledata / paneldata are exported alongside inputs. When false

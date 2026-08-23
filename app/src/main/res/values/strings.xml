@@ -340,7 +340,7 @@
     <!-- Launcher label. Product name is a brand — not translated. Debug builds
          override this per region (src/ieDebug, src/gbDebug) so the side-by-side
          .test install is distinguishable from the store app. -->
-    <string name="app_name" translatable="false">Eco Power Optimiser</string>
+    <string name="app_name" translatable="false">Watt Options</string>
 
     <!-- ══════════════════════════════════════════════════════════════════
          UI2 string extraction (region survey Phase 3, plans/region/).
@@ -613,7 +613,7 @@
     <string name="ui2_ie_help_import_db">Pick a .db file exported from another device. The file is validated against the current schema before any rows are written; you\'ll see a preview and a Replace toggle before commit.</string>
     <string name="ui2_ie_import_hint_plans">Accepts the JSON shape produced by the Share button on a plan, or the bulk export above.</string>
     <string name="ui2_ie_import_hint_scenarios">Accepts the JSON shape produced by the Share button on a scenario, or the bulk export above.</string>
-    <string name="ui2_ie_snapshot_subject">Eco Power Optimiser snapshot</string>
+    <string name="ui2_ie_snapshot_subject">Watt Options snapshot</string>
     <string name="ui2_ie_snapshot_export_failed">Snapshot export failed</string>
     <string name="ui2_ie_snapshot_import_failed">Snapshot import failed</string>
     <string name="ui2_ie_snapshot_rejected">Snapshot rejected</string>
@@ -1252,7 +1252,7 @@
     <string name="ui2_dash_yymm">YY-MM</string>
     <string name="ui2_dash_pick_subject_title">Pick a dashboard subject</string>
     <string name="ui2_dash_pick_subject_body">The scenario or data source this dashboard was set to is no longer available. Open the navigation drawer and pick a scenario or data source to view.</string>
-    <string name="ui2_dash_welcome">Welcome to Eco Power Optimiser</string>
+    <string name="ui2_dash_welcome">Welcome to Watt Options</string>
     <string name="ui2_dash_pick_start">Pick how you\'d like to start:</string>
     <string name="ui2_dash_add_scenario">Add a scenario</string>
     <!-- Source edition welcome card (profiles without scenarios). -->

@@ -140,7 +140,7 @@ class SnapshotImporter(private val application: Application) {
             builder.build()
         }.getOrElse { e ->
             return Validation.FileError(
-                "This file is not a Eco Power Optimiser snapshot, or it's from a different app version (${e.message ?: "open failed"})."
+                "This file is not a Watt Options snapshot, or it's from a different app version (${e.message ?: "open failed"})."
             )
         }
 

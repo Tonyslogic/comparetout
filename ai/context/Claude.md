@@ -1,6 +1,6 @@
 # CLAUDE — PROJECT SYSTEM RULES (SHORT VERSION)
 
-Repo: Eco Power Optimiser (internal codename "comparetout" / "TOUTC").
+Repo: Watt Options (internal codename "comparetout" / "TOUTC").
 Current focus: **the simulation engine refactor.** Plan and phases: `plans/sim/refactor.md`.
 
 ------------------------------------------------------------

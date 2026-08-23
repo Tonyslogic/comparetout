@@ -8,7 +8,7 @@ as worked examples (EV charge as a demand contributor, EV/HW divert as surplus s
 Converter/Storage/Generator bundle). The **heat pump (HP)** is the next intended user — it is *not* built
 here, but each section flags what the HP would touch, so you can use this as the map when you implement it.
 
-> Product note: the user-facing name is **Eco Power Optimiser**; `comparetout` / `TOUTC` are internal
+> Product note: the user-facing name is **Watt Options**; `comparetout` / `TOUTC` are internal
 > codenames only.
 
 ---

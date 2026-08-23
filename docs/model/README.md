@@ -1,6 +1,6 @@
 # Architecture & data model documentation
 
-Reference material for the Eco Power Optimiser Android app (internal codename
+Reference material for the Watt Options Android app (internal codename
 `comparetout` / TOUTC). Written to be read by both people and language models:
 prose states *why*, tables state *what*, and every claim is anchored to a file
 path you can open.

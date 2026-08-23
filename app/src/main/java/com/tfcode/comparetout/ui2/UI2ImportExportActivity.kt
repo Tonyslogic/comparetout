@@ -234,7 +234,7 @@ class UI2ImportExportViewModel @Inject constructor(
             val app = getApplication<Application>()
             val dir = File(app.cacheDir, "exports").apply { mkdirs() }
             val stamp = SimpleDateFormat("yyyyMMdd-HHmm", Locale.US).format(Date())
-            val target = File(dir, "eco-power-optimiser-$filenameSuffix-$stamp.db")
+            val target = File(dir, "watt-options-$filenameSuffix-$stamp.db")
             snapshotExporter.buildSnapshot(scope, includeOutputs, target)
             FileProvider.getUriForFile(app, "${app.packageName}.fileprovider", target)
         }.getOrNull()

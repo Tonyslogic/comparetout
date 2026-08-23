@@ -5,7 +5,7 @@ database, and how the strategy optimiser turns them into battery charge/export s
 holds, and smart EV charging. This is the deliverable of `plans/dynamic/regional-dynamic-tariffs.md`
 (status: `plans/dynamic/status.md`).
 
-> Product note: the user-facing name is **Eco Power Optimiser**; `comparetout` / `TOUTC` are internal
+> Product note: the user-facing name is **Watt Options**; `comparetout` / `TOUTC` are internal
 > codenames only.
 
 ---

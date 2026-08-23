@@ -84,8 +84,7 @@ class UI2SimpleFragment : Fragment() {
 
     private val locationPermissionRequest =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { result ->
-            val granted = result[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
-                result[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+            val granted = result[Manifest.permission.ACCESS_COARSE_LOCATION] == true
             if (granted) fetchLocation()
             else Toast.makeText(
                 requireContext(),
@@ -140,17 +139,11 @@ class UI2SimpleFragment : Fragment() {
         val hasCoarse = ContextCompat.checkSelfPermission(
             ctx, Manifest.permission.ACCESS_COARSE_LOCATION
         ) == PackageManager.PERMISSION_GRANTED
-        val hasFine = ContextCompat.checkSelfPermission(
-            ctx, Manifest.permission.ACCESS_FINE_LOCATION
-        ) == PackageManager.PERMISSION_GRANTED
-        if (hasCoarse || hasFine) {
+        if (hasCoarse) {
             fetchLocation()
         } else {
             locationPermissionRequest.launch(
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                )
+                arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION)
             )
         }
     }

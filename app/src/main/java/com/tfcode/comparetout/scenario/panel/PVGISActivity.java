@@ -131,15 +131,10 @@ public class PVGISActivity extends AbstractEPOFolderActivity {
     private final ActivityResultLauncher<String[]> locationPermissionRequest =
         registerForActivityResult(new ActivityResultContracts
                     .RequestMultiplePermissions(), result -> {
-                Boolean fineLocationGranted = result.getOrDefault(
-                        "android.permission.ACCESS_FINE_LOCATION", false);
                 Boolean coarseLocationGranted = result.getOrDefault(
                         "android.permission.ACCESS_COARSE_LOCATION",false);
-                if (fineLocationGranted != null && fineLocationGranted) {
-                    // Precise location access granted.
-                    updateLocation();
-                } else if (coarseLocationGranted != null && coarseLocationGranted) {
-                    // Only approximate location access granted.
+                if (coarseLocationGranted != null && coarseLocationGranted) {
+                    // Approximate location is all PVGIS needs.
                     updateLocation();
                 } else {
                     Snackbar.make(getWindow().getDecorView().getRootView(),
@@ -408,7 +403,6 @@ public class PVGISActivity extends AbstractEPOFolderActivity {
         }
         else {
             locationPermissionRequest.launch(new String[] {
-                    "android.permission.ACCESS_FINE_LOCATION",
                     "android.permission.ACCESS_COARSE_LOCATION"
             });
         }

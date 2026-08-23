@@ -1,7 +1,7 @@
-# GLOBAL DEVELOPMENT SPEC — Eco Power Optimiser
+# GLOBAL DEVELOPMENT SPEC — Watt Options
 
 ## 0. PROJECT OVERVIEW
-This repo is the Android app **Eco Power Optimiser** (internal codename "comparetout" / "TOUTC"):
+This repo is the Android app **Watt Options** (internal codename "comparetout" / "TOUTC"):
 it simulates home energy systems (PV, batteries, inverters, hot water, EV charging) against tariff
 plans to estimate cost/benefit.
 

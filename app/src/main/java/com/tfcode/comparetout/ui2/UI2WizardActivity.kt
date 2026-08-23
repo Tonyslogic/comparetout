@@ -204,8 +204,7 @@ private fun WizardScreen(
     val locationPermLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { perms ->
-        val granted = perms[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
-                      perms[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+        val granted = perms[Manifest.permission.ACCESS_COARSE_LOCATION] == true
         val entryId = pendingLocationRequest
         if (granted && entryId != null) {
             locationClient.lastLocation
@@ -221,9 +220,8 @@ private fun WizardScreen(
 
     LaunchedEffect(pendingLocationRequest) {
         val entryId = pendingLocationRequest ?: return@LaunchedEffect
-        val hasFine   = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)   == PackageManager.PERMISSION_GRANTED
         val hasCoarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
-        if (hasFine || hasCoarse) {
+        if (hasCoarse) {
             locationClient.lastLocation
                 .addOnSuccessListener { loc ->
                     if (loc != null) viewModel.locationRetrieved(entryId, loc.latitude, loc.longitude)
@@ -232,7 +230,6 @@ private fun WizardScreen(
                 .addOnFailureListener { viewModel.locationRequestDismissed() }
         } else {
             locationPermLauncher.launch(arrayOf(
-                Manifest.permission.ACCESS_FINE_LOCATION,
                 Manifest.permission.ACCESS_COARSE_LOCATION
             ))
         }

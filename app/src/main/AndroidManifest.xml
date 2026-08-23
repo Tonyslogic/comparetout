@@ -4,8 +4,13 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Approximate location only. Every consumer feeds a site coordinate to
+         PVGIS (solar irradiance) or Copernicus CDS (heat-pump weather), and
+         neither needs better than a few km — ACCESS_FINE_LOCATION was
+         minimum-scope over-reach (plans/store/plan.md §3.4). All three call
+         sites read FusedLocationProviderClient.getLastLocation(), which is
+         satisfied by a coarse fix. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
     <application
         android:name=".TOUTCApplication"

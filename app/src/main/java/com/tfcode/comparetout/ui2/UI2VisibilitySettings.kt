@@ -72,14 +72,22 @@ data class UiVisibility(
      * and stays; only the backfill that pushes statistics back into the user's
      * HA is gated — see [haBackfillEnabled].
      *
-     * Defaults to TRUE so upgrading changes nothing: a user who already has ESBN
-     * or FusionSolar data does not find their source silently gone.
+     * Defaults to FALSE. It defaulted to true until the store-release review
+     * (plans/store/plan.md §3.6): shipping these surfaces on by default puts
+     * unofficial-endpoint and unproven flows in front of every new user and
+     * every Play reviewer. Off by default, opt in from Settings.
      *
-     * Hiding never deletes: imported rows stay in the database and the source
-     * returns intact when re-enabled. It also stops the background catch-up
-     * workers making further calls (see the worker-side guard).
+     * This is the one flag whose default is not `true`, so it is also the one
+     * that changes on upgrade: a user who already had ESBN cloud sync,
+     * FusionSolar, Solis or wholesale surfaces finds them hidden until they
+     * re-enable the toggle. Hiding never deletes — imported rows stay in the
+     * database and the source returns intact when re-enabled — but the
+     * disappearance is real and should be called out in the release notes.
+     *
+     * Hiding also stops the background catch-up workers making further calls
+     * (see the worker-side guard).
      */
-    val showExperimental: Boolean = true,
+    val showExperimental: Boolean = false,
     // Tabs
     val comparisons: Boolean = true,
     val directors: Boolean = true,
@@ -207,11 +215,18 @@ object UiVisibilityStore {
         maskForExperimental(maskForProfile(maskForRegion(v)))
 
     /**
-     * Synchronous read (call off the main thread where possible); missing/bad JSON → all visible.
+     * Synchronous read (call off the main thread where possible); missing/bad
+     * JSON → constructor defaults, i.e. everything visible except the
+     * experimental surfaces.
      *
      * Field-by-field with a missing-key default of true: Gson bypasses Kotlin
      * constructor defaults, so a flag added after the JSON was persisted would
      * otherwise deserialize as false and silently hide the new UI.
+     *
+     * `showExperimental` is the deliberate exception and passes
+     * `ifMissing = false`, matching its constructor default. An install whose
+     * stored JSON predates the key gets the gate closed rather than open — see
+     * [UiVisibility.showExperimental].
      */
     fun read(context: Context): UiVisibility {
         val app = context.applicationContext as? TOUTCApplication
@@ -220,9 +235,10 @@ object UiVisibilityStore {
         if (raw.isNullOrBlank()) return mask(UiVisibility())
         return mask(runCatching {
             val obj = JsonParser.parseString(raw).asJsonObject
-            fun flag(name: String): Boolean = obj.get(name)?.takeIf { it.isJsonPrimitive }?.asBoolean ?: true
+            fun flag(name: String, ifMissing: Boolean = true): Boolean =
+                obj.get(name)?.takeIf { it.isJsonPrimitive }?.asBoolean ?: ifMissing
             UiVisibility(
-                showExperimental = flag("showExperimental"),
+                showExperimental = flag("showExperimental", ifMissing = false),
                 comparisons = flag("comparisons"),
                 directors = flag("directors"),
                 inverter = flag("inverter"),
@@ -267,7 +283,11 @@ object UiVisibilityStore {
 /**
  * The visibility flags as Compose state, re-read on every ON_RESUME so a trip
  * to the settings screen takes effect the moment the host screen returns.
- * Defaults to all-visible until the first read lands.
+ *
+ * Until the first read lands the placeholder is the constructor default:
+ * everything visible except the experimental surfaces. That is the right way
+ * round — a user with the gate open sees those surfaces appear a frame late,
+ * rather than every user seeing them flash before the read hides them.
  */
 @Composable
 fun rememberUiVisibility(): UiVisibility {

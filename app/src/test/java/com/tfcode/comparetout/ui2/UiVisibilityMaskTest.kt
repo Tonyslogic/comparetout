@@ -30,7 +30,11 @@ import org.junit.Test
  */
 class UiVisibilityMaskTest {
 
-    private val allVisible = UiVisibility()
+    /** Everything on, including the experimental gate. Stated explicitly rather
+     *  than taken from `UiVisibility()`, because `showExperimental` now defaults
+     *  to false — the bare constructor is no longer "all visible", and letting
+     *  this fixture drift with it would quietly weaken every assertion below. */
+    private val allVisible = UiVisibility(showExperimental = true)
 
     // ── FULL profile is the identity ────────────────────────────────────
 
@@ -126,12 +130,21 @@ class UiVisibilityMaskTest {
 
     // ── experimental gate ───────────────────────────────────────────────
 
-    /** Load-bearing: existing installs have no "showExperimental" key in their
-     *  persisted JSON, and the read defaults missing keys to true — so an
-     *  upgrade must leave every source exactly where it was. */
+    /** Load-bearing, and inverted at the store-release review
+     *  (plans/store/plan.md §3.6): the experimental gate is the one flag that
+     *  defaults CLOSED, so a fresh install — and an existing install whose
+     *  persisted JSON predates the key — shows no unofficial-endpoint surface
+     *  until the user opts in. Every other flag still defaults to visible. */
     @Test
-    fun experimentalDefaultsToVisible() {
-        assertTrue(UiVisibility().showExperimental)
+    fun experimentalDefaultsToHidden() {
+        assertFalse(UiVisibility().showExperimental)
+        val fresh = UiVisibilityStore.maskForExperimental(UiVisibility())
+        assertFalse("unofficial FusionSolar endpoints", fresh.fusionsolar)
+        assertFalse("unproven", fresh.solis)
+        assertFalse("scraped market reports", fresh.wholesale)
+        // The gate closes only the experimental surfaces; nothing else moves.
+        assertTrue(fresh.alphaess)
+        assertTrue(fresh.comparisons)
         assertEquals(allVisible, UiVisibilityStore.maskForExperimental(allVisible))
     }
 

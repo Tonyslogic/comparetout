@@ -1,4 +1,4 @@
-# Play Console Robo script — Eco Power Optimiser walkthrough
+# Play Console Robo script — Watt Options walkthrough
 
 This project ships a hand-written [Robo script](https://firebase.google.com/docs/test-lab/android/robo-scripts-reference) that drives a guided happy-path walkthrough of the app. The same JSON is consumed by:
 

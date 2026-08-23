@@ -1,6 +1,6 @@
 # Third-party notices
 
-Eco Power Optimiser is licensed under the Apache License, Version 2.0 (see
+Watt Options is licensed under the Apache License, Version 2.0 (see
 [LICENSE](LICENSE)). This file collects notices for third-party projects that
 informed parts of this codebase but whose code is **not** included in it.
 
