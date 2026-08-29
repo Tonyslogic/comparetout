@@ -665,7 +665,12 @@ data class WizardBuilder(
         return ScenarioComponents(
             sc,
             inverterEntries.map { it.toInverter() },
-            batteryEntries.map { it.toBattery() },
+            // Insert-only path: every component row is created fresh. A COPY/IMPORT builder carries the
+            // SOURCE row's primary key on batteries and heat pumps, and addNewScenarioWithComponents inserts
+            // them with a plain @Insert (ABORT) — the PK collision raised a SQLiteConstraintException that the
+            // caller reports as "name already in use", rolling the whole scenario back. Reset the ids so the
+            // copy gets its own rows (mirrors what the edit-save path already does).
+            batteryEntries.map { it.toBattery().also { b -> b.batteryIndex = 0 } },
             emptyList(),
             hwSystem?.toHwSystem(),
             toLoadProfile(),
@@ -675,7 +680,7 @@ data class WizardBuilder(
             hwSchedules.map { it.toHwSchedule() },
             if (hwDivert.active) hwDivert.toHwDivert() else null,
             evDivertEntries.map { it.toEvDivert() }
-        ).also { it.heatPumps = heatPumpEntries.map { e -> e.toHeatPump() } }
+        ).also { it.heatPumps = heatPumpEntries.map { e -> e.toHeatPump().also { hp -> hp.heatPumpIndex = 0 } } }
     }
 
     // Shell with no load profile and no EV — used for full-link saves
@@ -693,7 +698,8 @@ data class WizardBuilder(
         return ScenarioComponents(
             sc,
             inverterEntries.map { it.toInverter() },
-            batteryEntries.map { it.toBattery() },
+            // Same fresh-row reset as toScenarioComponents — this is an insert path too.
+            batteryEntries.map { it.toBattery().also { b -> b.batteryIndex = 0 } },
             emptyList(),
             hwSystem?.toHwSystem(),
             LoadProfile(),
@@ -703,7 +709,7 @@ data class WizardBuilder(
             hwSchedules.map { it.toHwSchedule() },
             if (hwDivert.active) hwDivert.toHwDivert() else null,
             evDivertEntries.map { it.toEvDivert() }
-        ).also { it.heatPumps = heatPumpEntries.map { e -> e.toHeatPump() } }
+        ).also { it.heatPumps = heatPumpEntries.map { e -> e.toHeatPump().also { hp -> hp.heatPumpIndex = 0 } } }
     }
 }
 
