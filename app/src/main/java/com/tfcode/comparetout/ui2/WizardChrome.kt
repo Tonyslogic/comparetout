@@ -378,6 +378,15 @@ internal fun WizardFooter(
     simButtonState: SimButtonState,
     showSavedTick: Boolean,
     noviceMode: Boolean,
+    /** Why Save is greyed out, or null when it is not. Rendered under the buttons:
+     *  the only blocker today is the scenario name, and its error message lives in
+     *  the Start section, which is collapsed by default and scrolls out of sight as
+     *  soon as the user works further down the form. A user who had added components
+     *  since then saw a permanently dead Save button with nothing on screen
+     *  explaining it, and closing offered only "discard". */
+    saveBlockedReason: String? = null,
+    /** Opens the section holding the offending field. */
+    onFixBlocked: () -> Unit = {},
     onSave: () -> Unit,
     onRun: () -> Unit,
     onClose: () -> Unit
@@ -460,6 +469,17 @@ internal fun WizardFooter(
             ) {
                 Text(stringResource(R.string.ui2_close))
             }
+        }
+        if (saveBlockedReason != null) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                stringResource(R.string.ui2_wiz_save_blocked, saveBlockedReason),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(onClick = onFixBlocked)
+            )
         }
         }
     }

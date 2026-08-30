@@ -20,6 +20,7 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -176,11 +177,16 @@ private fun WizardScreen(
     val isSaving               = saveResult == WizardSaveResult.Saving
     var simulationQueued       by remember { mutableStateOf(false) }
     var pvgisQueued            by remember { mutableIntStateOf(0) }
-    var lastSavedBuilder       by remember { mutableStateOf<WizardBuilder?>(null) }
-    var initialBuilder         by remember { mutableStateOf<WizardBuilder?>(null) }
-    var sawLoading             by remember { mutableStateOf(false) }
     var showCloseConfirm       by remember { mutableStateOf(false) }
     var showSavedTick          by remember { mutableStateOf(false) }
+    // Set when the user chooses "Save and leave": the close waits for the save to
+    // report Done rather than racing it.
+    var closeAfterSave         by remember { mutableStateOf(false) }
+    // Both live in the ViewModel now. Held here in `remember`, they were lost on every
+    // configuration change, and the wizard then either re-baselined onto the edited
+    // builder or never baselined at all - either way Close stopped asking.
+    val isDirty                by viewModel.isDirty.collectAsState()
+    val nameError              by viewModel.nameError.collectAsState()
 
     val context = LocalContext.current
 
@@ -238,6 +244,8 @@ private fun WizardScreen(
     LaunchedEffect(saveResult) {
         val result = saveResult
         if (result is WizardSaveResult.Failed) {
+            // Stay put so the user can fix whatever blocked the save.
+            closeAfterSave = false
             // The save couldn't complete (e.g. duplicate name slipping past the field check). Tell the user
             // instead of dismissing silently; the wizard stays open so they can fix it.
             Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
@@ -266,10 +274,9 @@ private fun WizardScreen(
                     SimulatorLauncher.simulateIfNeeded(context)
                 }
             }
-            if (!result.runSimulation) {
-                lastSavedBuilder = builder
-                showSavedTick = true
-            }
+            // The baseline is the ViewModel's business now (it knows what was written).
+            if (!result.runSimulation) showSavedTick = true
+            if (closeAfterSave) { closeAfterSave = false; onClose() }
         }
     }
 
@@ -280,24 +287,6 @@ private fun WizardScreen(
         }
     }
 
-    // Existing names for uniqueness check (exclude the current scenario). Collected from a flow so that once a
-    // brand-new scenario is saved and the VM adopts its id, the just-saved name stops counting against itself
-    // (otherwise it would falsely read as "name already in use").
-    val currentScenarioId by viewModel.scenarioIdFlow.collectAsState()
-    val usedNames = remember(allScenarios, currentScenarioId) {
-        allScenarios
-            .filter { it.scenarioIndex != currentScenarioId }
-            .map { it.scenarioName }
-            .toSet()
-    }
-    val nameInUse = stringResource(R.string.ui2_wiz_name_in_use)
-    val nameError = remember(builder.scenarioName, usedNames) {
-        when {
-            builder.scenarioName.isBlank() -> null
-            usedNames.contains(builder.scenarioName) -> nameInUse
-            else -> null
-        }
-    }
 
     var showDrawer by remember { mutableStateOf(false) }
     // Per-accordion JSON import — null when no sheet is open. Each section's
@@ -311,34 +300,48 @@ private fun WizardScreen(
         else -> stringResource(R.string.ui2_wiz_title_new)
     }
 
-    // Capture the wizard's pristine baseline so close-confirm only fires after real
-    // user edits. In edit/copy/link modes the baseline is the loaded scenario; in new
-    // mode it's the default builder taken on first render.
-    LaunchedEffect(isLoading) {
-        if (isLoading) sawLoading = true
-    }
-    LaunchedEffect(isLoading, sawLoading, builder) {
-        if (initialBuilder == null && !isLoading) {
-            if (!viewModel.isEditMode || sawLoading) {
-                initialBuilder = builder
-            }
-        }
+    val handleClose: () -> Unit = {
+        if (isDirty) showCloseConfirm = true else onClose()
     }
 
-    val handleClose: () -> Unit = {
-        val baseline = lastSavedBuilder ?: initialBuilder
-        val hasChanges = baseline != null && baseline != builder
-        if (hasChanges) showCloseConfirm = true else onClose()
-    }
+    // Every exit goes through the same guard. The system back button and gesture used
+    // to call finish() directly - no prompt, no save - which is how a scenario saved
+    // and then extended with an inverter and a battery lost the additions.
+    BackHandler { handleClose() }
 
     if (showCloseConfirm) {
         AlertDialog(
             onDismissRequest = { showCloseConfirm = false },
             title = { Text(stringResource(R.string.ui2_ppw_discard_title)) },
-            text = { Text(stringResource(R.string.ui2_wiz_unsaved_body)) },
+            text = {
+                Column {
+                    Text(stringResource(R.string.ui2_wiz_unsaved_body))
+                    // Saving is the offered way out unless the name blocks it, in which
+                    // case say so here: discarding used to be the only option on screen,
+                    // with no hint that a fixable name was the reason.
+                    nameError?.let {
+                        Spacer(Modifier.height(8.dp))
+                        Text(stringResource(R.string.ui2_wiz_unsaved_blocked, it),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.error)
+                    }
+                }
+            },
             confirmButton = {
-                Button(onClick = { showCloseConfirm = false; onClose() }) {
-                    Text(stringResource(R.string.ui2_wiz_leave))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = { showCloseConfirm = false; onClose() }) {
+                        Text(stringResource(R.string.ui2_wiz_leave))
+                    }
+                    Button(
+                        enabled = nameError == null && !isSaving,
+                        onClick = {
+                            showCloseConfirm = false
+                            closeAfterSave = true
+                            viewModel.save(runSimulation = false)
+                        }
+                    ) {
+                        Text(stringResource(R.string.ui2_wiz_save_and_leave))
+                    }
                 }
             },
             dismissButton = {
@@ -413,6 +416,11 @@ private fun WizardScreen(
                         simButtonState = simButtonState,
                         showSavedTick = showSavedTick,
                         noviceMode = noviceMode,
+                        // Surface WHY Save is dead. The name check is the only blocker,
+                        // and its message sits in the Start section — collapsed by default
+                        // and long scrolled past by the time the user is adding components.
+                        saveBlockedReason = nameError,
+                        onFixBlocked = { viewModel.expandSection("start") },
                         onSave = { viewModel.save(runSimulation = false) },
                         onRun = { simulationQueued = false; viewModel.save(runSimulation = true) },
                         onClose = handleClose

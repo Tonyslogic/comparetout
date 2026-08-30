@@ -14,6 +14,8 @@ import com.tfcode.comparetout.model.priceplan.CompatibilityTags
 import com.tfcode.comparetout.model.priceplan.DayRate
 import com.tfcode.comparetout.model.priceplan.PlanCombination
 import com.tfcode.comparetout.model.priceplan.PricePlan
+import com.tfcode.comparetout.region.RegionProfile
+import com.tfcode.comparetout.region.RegionProfiles
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -111,6 +113,24 @@ fun isLocationMismatch(location: String, deviceCountry: String): Boolean =
     location.isNotBlank() && deviceCountry.isNotBlank() &&
             !location.equals(deviceCountry, ignoreCase = true)
 
+/**
+ * The country a plan's location is judged against.
+ *
+ * The installed **edition** is the authority, not the phone: a GB build models
+ * the GB market, so it must show GB tariffs whether the handset holds a UK SIM,
+ * an Irish one, or none at all. Judging by SIM meant a GB build on a foreign SIM
+ * hid every GB plan behind the "show other locations" tick AND auto-deactivated
+ * them (the filter at the end of the init block), so the dashboard's Tariff Plan
+ * table came up empty - found while capturing the GB store screenshots on a
+ * handset with an IE SIM.
+ *
+ * The region-less source edition has no region of its own, so it keeps the
+ * device's country: it is the one build where the phone is the best available
+ * signal of which market the user is in.
+ */
+fun planFilterCountry(region: RegionProfile, deviceCountry: String): String =
+    if (region.isGlobal) deviceCountry else region.regionCode
+
 /** SIM country → network country → locale. Uppercase ISO 3166-1 alpha-2, or "". */
 fun resolveDeviceCountry(context: android.content.Context): String {
     val tm = context.getSystemService(android.content.Context.TELEPHONY_SERVICE)
@@ -137,7 +157,10 @@ class UI2PricePlanListViewModel @Inject constructor(
     val favouriteId = favouriteStore.id.asLiveData()
 
     /** Device country the location filter compares against (fixed per session). */
-    val deviceCountry: String = resolveDeviceCountry(application)
+    /** What plan locations are compared against - the edition's region, or the
+     *  device's country in the region-less source edition. See [planFilterCountry]. */
+    val filterCountry: String =
+        planFilterCountry(RegionProfiles.current, resolveDeviceCountry(application))
 
     init {
         viewModelScope.launch(Dispatchers.IO) { favouriteStore.ensureLoaded() }
@@ -176,7 +199,7 @@ class UI2PricePlanListViewModel @Inject constructor(
                 // may have deliberately switched a local plan off, and can manually
                 // re-activate a revealed foreign plan.
                 entries.keys
-                    .filter { it.isActive && isLocationMismatch(it.location, deviceCountry) }
+                    .filter { it.isActive && isLocationMismatch(it.location, filterCountry) }
                     .forEach { repository.updatePricePlanActiveStatus(it.pricePlanIndex.toInt(), false) }
             }
         }
@@ -310,6 +333,12 @@ class UI2PricePlanListViewModel @Inject constructor(
         exportPlanIds.forEach { (pp, id) ->
             if (id != 0L) repository.restorePairings(id, pp.selectedWith)
         }
+        // Every insert marked the scenarios as needing a costing, but marking is not
+        // running: CostingWorker only starts when something launches it. Without this
+        // the imported plans have no costings until an unrelated action happens to
+        // trigger a recompute, so the dashboard's "Best Cost/Year" goes on naming a
+        // plan from before the import. Missing-only, so it is cheap when nothing changed.
+        com.tfcode.comparetout.SimulatorLauncher.simulateIfNeeded(getApplication())
         ImportOutcome(replaced, added)
     }
 

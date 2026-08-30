@@ -155,10 +155,15 @@ object RegionProfiles {
         hasMIC = false,
         hasOctopus = true,
         hasEsbn = false,
-        // No community feed for GB yet — the Octopus tariff browser covers
-        // open tariffs; a curated feed can be added here when one exists.
-        pricePlanFeedUrl = null,
-        pricePlanFeedNote = null
+        // GB feed added 2026-08-29 (comparetout-doc/price-plans/rates_gb.json).
+        // Same schema as the IE file, plus the fields GB needs: every plan
+        // carries Location "GB", eight are Direction "export" with CompatibleWith
+        // tags, and two are terms-only Dynamic offers (markets GB-AGILE-G and
+        // GB-AGILE-EXPORT-G) that materialise on-device after import.
+        pricePlanFeedUrl =
+            "https://raw.githubusercontent.com/Tonyslogic/comparetout-doc/main/price-plans/rates_gb.json",
+        pricePlanFeedNote = "Community-maintained GB supplier tariffs, import and " +
+            "export — may be out of date. You can edit any plan after importing."
     )
 
     /**

@@ -1579,12 +1579,20 @@
 
     <!-- Tranche 7: UI2WizardActivity -->
     <string name="ui2_wiz_name_in_use">Name already in use</string>
+    <!-- Shown beside a disabled Save/Run so the blocker is visible even when the
+         section holding the offending field is collapsed or scrolled away. -->
+    <string name="ui2_wiz_save_blocked">Cannot save: %1$s. Tap to fix.</string>
     <string name="ui2_wiz_title_edit_named">Edit scenario · %1$s</string>
     <string name="ui2_wiz_title_edit">Edit scenario</string>
     <string name="ui2_wiz_title_new">Build your scenario</string>
-    <string name="ui2_wiz_unsaved_body">You have unsaved changes. Leave anyway?</string>
-    <string name="ui2_wiz_leave">Leave</string>
+    <string name="ui2_wiz_unsaved_body">You have unsaved changes. Save them before leaving?</string>
+    <!-- Discard is the destructive choice, so it is worded as one rather than "Leave". -->
+    <string name="ui2_wiz_leave">Discard</string>
     <string name="ui2_wiz_stay">Stay</string>
+    <string name="ui2_wiz_save_and_leave">Save and leave</string>
+    <!-- Shown in place of "Save and leave" when the name check blocks saving. -->
+    <string name="ui2_wiz_unsaved_blocked">%1$s — fix it to save these changes.</string>
+    <string name="ui2_wiz_name_required">Name required</string>
     <string name="ui2_wiz_banner_hint">Tap any section to expand it. Start and Usage Data are required to run a simulation.</string>
     <string name="ui2_wiz_start">Start</string>
     <string name="ui2_wiz_inverters">Inverters</string>

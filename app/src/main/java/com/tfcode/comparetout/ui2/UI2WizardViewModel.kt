@@ -42,8 +42,13 @@ import com.tfcode.comparetout.scenario.sim.SimTime
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
+import androidx.lifecycle.asFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -56,6 +61,42 @@ import javax.inject.Inject
 
 private const val KEY_NOVICE_MODE = "wizard_novice_mode"
 
+
+/** What is wrong with a scenario name, or null when nothing is. */
+internal enum class WizardNameProblem { BLANK, IN_USE }
+
+/**
+ * The scenario-name rule, as a pure function so both the ViewModel and its tests can
+ * ask the same question. [existing] is (scenarioIndex, scenarioName) for every saved
+ * scenario; [scenarioId] is the one being edited, or -1 for an unsaved wizard.
+ *
+ * Excluding [scenarioId] is what lets a scenario keep its own name: once a new one is
+ * saved and its id adopted, the name it just took must stop counting against it.
+ */
+internal fun wizardNameProblem(
+    name: String,
+    scenarioId: Long,
+    existing: List<Pair<Long, String>>
+): WizardNameProblem? = when {
+    name.isBlank() -> WizardNameProblem.BLANK
+    existing.any { (id, existingName) -> id != scenarioId && existingName == name } ->
+        WizardNameProblem.IN_USE
+    else -> null
+}
+
+/**
+ * Stamp the panel row ids a save assigned onto the builder's entries, keyed by the
+ * entry's own stable id.
+ *
+ * Without this the builder still says panelIndex = 0 after a create, so the next save
+ * treats every panel as new: the edit path deletes the saved rows and re-inserts them,
+ * discarding generated PanelData and re-fetching PVGIS.
+ */
+internal fun WizardBuilder.withPanelIds(assigned: Map<String, Long>): WizardBuilder =
+    if (assigned.isEmpty()) this
+    else copy(panelEntries = panelEntries.map { e ->
+        assigned[e.id]?.let { e.copy(panelIndex = it) } ?: e
+    })
 
 @HiltViewModel
 class UI2WizardViewModel @Inject constructor(
@@ -110,6 +151,53 @@ class UI2WizardViewModel @Inject constructor(
     // All existing scenarios for the copy/link picker and name-uniqueness check
     val allScenarios: LiveData<List<Scenario>> = repository.allScenarios
 
+    // ── Saved-state tracking (one source of truth) ────────────────────────────
+    //
+    // What "unsaved changes" means used to be decided in the composition, from two
+    // WizardBuilder snapshots held in `remember`. That lost the baseline on every
+    // configuration change - after a rotation the wizard either re-baselined on the
+    // already-edited builder or never baselined at all, and Close then discarded
+    // without asking. The snapshot lives here instead, so it survives exactly as
+    // long as the builder it describes.
+    //
+    // Null means "no baseline yet" (an edit-mode load still in flight), which counts
+    // as not-dirty: there is nothing to lose until the scenario has been read.
+    private val _savedSnapshot = MutableStateFlow<WizardBuilder?>(null)
+
+    /** True when the builder differs from what is on disk. Drives the close/back guard. */
+    val isDirty: StateFlow<Boolean> =
+        combine(_builder, _savedSnapshot) { current, saved -> saved != null && current != saved }
+            .stateIn(viewModelScope, SharingStarted.Eagerly, false)
+
+    /**
+     * Why this scenario cannot be saved under its current name, or null when it can.
+     *
+     * In the ViewModel rather than the composition because [save] has to answer the
+     * same question. It used to learn about a duplicate only by watching the INSERT
+     * fail, which meant the DAO's blanket SQLiteConstraintException handler decided
+     * the message - and reported an unrelated constraint (a component primary key,
+     * say) as "name already in use".
+     *
+     * A blank name is an error too. It used to pass, because only Run required a
+     * name, so Save happily wrote a scenario called "" - and the second one collided
+     * on the UNIQUE index and was reported to the user as a duplicate name.
+     */
+    val nameError: StateFlow<String?> =
+        combine(
+            _builder.map { it.scenarioName },
+            _scenarioId,
+            repository.allScenarios.asFlow()
+        ) { name, id, all ->
+            when (wizardNameProblem(name, id, all.map { it.scenarioIndex to it.scenarioName })) {
+                WizardNameProblem.BLANK  -> context.getString(R.string.ui2_wiz_name_required)
+                WizardNameProblem.IN_USE -> context.getString(R.string.ui2_wiz_name_in_use)
+                null -> null
+            }
+        }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    /** Baseline a freshly-loaded or freshly-saved builder as "what is on disk". */
+    private fun markSaved(snapshot: WizardBuilder) { _savedSnapshot.value = snapshot }
+
     // Combined list of available data sources (AlphaESS + ESBN + HA)
     private val _availableSources = MediatorLiveData<List<SourceDateRange>>()
     val availableSources: LiveData<List<SourceDateRange>> = _availableSources
@@ -160,12 +248,18 @@ class UI2WizardViewModel @Inject constructor(
         }
 
         if (isEditMode) loadExisting()
+        // A brand-new wizard starts clean: its baseline is the empty builder, so
+        // closing straight away asks nothing. Edit mode baselines once the scenario
+        // has actually been read (below) - until then there is nothing to lose.
+        else markSaved(_builder.value)
     }
 
     private fun loadExisting() {
         viewModelScope.launch(Dispatchers.IO) {
             _isLoading.value = true
             populateBuilderFrom(scenarioId, isLinked = false, keepName = false)
+            // What was just loaded IS what is on disk.
+            markSaved(_builder.value)
             _isLoading.value = false
         }
     }
@@ -291,6 +385,13 @@ class UI2WizardViewModel @Inject constructor(
             (context.applicationContext as TOUTCApplication)
                 .putStringValueIntoDataStore(KEY_NOVICE_MODE, newValue.toString())
         }
+    }
+
+    /** Open a section, leaving it open if it already was — the footer's
+     *  "why can't I save" affordance jumps here, and a toggle would slam it shut
+     *  on the user who already had it open. */
+    fun expandSection(id: String) {
+        _expandedSections.value = _expandedSections.value + id
     }
 
     fun toggleSection(id: String) {
@@ -1014,9 +1115,23 @@ class UI2WizardViewModel @Inject constructor(
     fun save(runSimulation: Boolean) {
         if (_saveResult.value == WizardSaveResult.Saving) return
         viewModelScope.launch(Dispatchers.IO) {
-            _saveResult.value = WizardSaveResult.Saving
             try {
                 val b = _builder.value
+                // One name check, consulted by both the button state and the save
+                // itself. Previously save() had no opinion and simply let the INSERT
+                // fail, which is why an unrelated constraint could be reported to the
+                // user as a duplicate name.
+                nameError.value?.let { problem ->
+                    _saveResult.value = WizardSaveResult.Failed(problem)
+                    return@launch
+                }
+                _saveResult.value = WizardSaveResult.Saving
+                // entry.id -> the panel row it was written to. Collected because the
+                // builder's panelIndex stays 0 after a create, so the NEXT save saw
+                // every panel as new: the edit path deleted the saved rows and
+                // re-inserted them, throwing away generated PanelData and re-fetching
+                // PVGIS. Writing the ids back makes the second save an update.
+                val assignedPanelIds = mutableMapOf<String, Long>()
                 android.util.Log.i(PanelSourceFetchWorker.TAG,
                     "save(): scenarioName='${b.scenarioName}' isEditMode=$isEditMode " +
                     "isLinked=${b.isLinked} loadSource=${b.loadSource} " +
@@ -1137,6 +1252,7 @@ class UI2WizardViewModel @Inject constructor(
                         b.panelEntries.filter { it.panelIndex == 0L }
                             .forEach { entry ->
                                 val panelId = repository.savePanel(scenarioId, entry.toPanel())
+                                assignedPanelIds[entry.id] = panelId
                                 triggerPanelDataFetch(entry, panelId)
                             }
                         // Editing a scenario in place changes its energy flows, so
@@ -1176,6 +1292,7 @@ class UI2WizardViewModel @Inject constructor(
                             repository.linkLoadProfileFromScenario(b.basedOnId, newId)
                             b.panelEntries.forEach { entry ->
                                 val panelId = repository.savePanel(newId, entry.toPanel())
+                                assignedPanelIds[entry.id] = panelId
                                 triggerPanelDataFetch(entry, panelId)
                             }
                         }
@@ -1201,6 +1318,7 @@ class UI2WizardViewModel @Inject constructor(
                                     val before = sourcePanels[sourcePanelId]
                                     val after = entry.toPanel().also { it.panelIndex = 0L }
                                     val newPanelId = repository.savePanel(newId, after)
+                                    assignedPanelIds[entry.id] = newPanelId
                                     when {
                                         // Edited fetch inputs (or a panel with no source row) → fetch fresh data
                                         // that matches the new config, but only when the source is fetchable.
@@ -1216,6 +1334,7 @@ class UI2WizardViewModel @Inject constructor(
                                     }
                                 } else {
                                     val panelId = repository.savePanel(newId, entry.toPanel())
+                                    assignedPanelIds[entry.id] = panelId
                                     triggerPanelDataFetch(entry, panelId)
                                 }
                             }
@@ -1247,6 +1366,14 @@ class UI2WizardViewModel @Inject constructor(
                 // in use" (the just-saved name no longer counts against itself) and routes any further Save
                 // through the in-place edit path instead of a second INSERT that would hit the UNIQUE name index.
                 _scenarioId.value = savedId
+                // Write the new panel ids back, then baseline. The baseline is built from
+                // `b` - the builder that was actually written - not from the live builder,
+                // so edits made DURING the save stay dirty instead of being silently
+                // marked saved.
+                if (assignedPanelIds.isNotEmpty()) {
+                    _builder.update { live -> live.withPanelIds(assignedPanelIds) }
+                }
+                markSaved(b.withPanelIds(assignedPanelIds))
                 val needsWeatherFetch = b.heatPumpEntries.any { it.weatherSource == "cds" }
                 _saveResult.value = WizardSaveResult.Done(savedId, runSimulation, pvgisCount, needsWeatherFetch)
             } catch (e: Exception) {

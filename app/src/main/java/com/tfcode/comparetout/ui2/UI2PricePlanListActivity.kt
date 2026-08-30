@@ -137,15 +137,16 @@ private fun PricePlanListScreen(
     var showExport by remember { mutableStateOf(false) }
     val pairings by viewModel.pairings.observeAsState(emptyMap())
     var tagEditorFor by remember { mutableStateOf<PricePlanListRow?>(null) }
-    // Location filter: suppliers tagged with a different country than the phone
-    // are hidden (and auto-deactivated by the VM) unless the user reveals them.
+    // Location filter: suppliers tagged with a different country than this
+    // EDITION's region are hidden (and auto-deactivated by the VM) unless the
+    // user reveals them. Edition, not phone - see planFilterCountry.
     var showOtherLocations by remember { mutableStateOf(false) }
     val hiddenByLocation = remember(allRows) {
-        allRows.count { it.locationMismatch(viewModel.deviceCountry) }
+        allRows.count { it.locationMismatch(viewModel.filterCountry) }
     }
     val visibleRows = remember(allRows, showOtherLocations) {
         if (showOtherLocations) allRows
-        else allRows.filterNot { it.locationMismatch(viewModel.deviceCountry) }
+        else allRows.filterNot { it.locationMismatch(viewModel.filterCountry) }
     }
     // The segment splits the SAME list; everything below (header count, empty
     // message, delete-all) operates on the segment the user is looking at.
@@ -269,7 +270,7 @@ private fun PricePlanListScreen(
                             Text(
                                 if (!showOtherLocations && hiddenByLocation > 0)
                                     stringResource(R.string.ui2_ppl_show_other_locations_hidden,
-                                        hiddenByLocation, viewModel.deviceCountry)
+                                        hiddenByLocation, viewModel.filterCountry)
                                 else stringResource(R.string.ui2_ppl_show_other_locations),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant

@@ -236,12 +236,44 @@ public class ToutcRepository {
     // You must call this on a non-UI thread or your app will throw an exception. Room ensures
     // that you're not doing any long running operations on the main thread, blocking the UI.
     public void insert(PricePlan pp, List<DayRate> drs, boolean clobber) {
-        ToutcDB.databaseWriteExecutor.execute(() -> {
-            long id = pricePlanDAO.addNewPricePlanWithDayRates(pp, drs, clobber);
-            if (clobber) costingDAO.deleteRelatedCostings((int) id);
-            // A new/replaced plan means every scenario now has a missing costing for it.
-            readinessDAO.markAllScenariosNeedCosting(System.currentTimeMillis());
-        });
+        ToutcDB.databaseWriteExecutor.execute(() -> insertPlanAndPrune(pp, drs, clobber));
+    }
+
+    /**
+     * Shared body of {@link #insert} and {@link #insertSync}: write the plan, prune
+     * the costings it invalidates, and mark every scenario as needing a recompute.
+     * <p>
+     * The pruning is why this is not a one-liner. A clobbering write does not update
+     * the existing row - {@code PricePlanDAO.addNewPricePlanWithDayRates} DELETEs the
+     * old plan and INSERTs a replacement, which gets a <b>new</b> pricePlanIndex. So
+     * the costings to remove are the <b>old</b> id's; deleting against the new id
+     * removed nothing and left every replaced plan's costings behind as orphans.
+     * <p>
+     * That was user-visible on the dashboard. "Best Cost/Year" reads through
+     * {@code CostingDAO.getBestCostingForScenario}, which ignores costings whose plan
+     * no longer exists, so it skipped every orphan and kept naming whichever plan the
+     * import had <i>not</i> replaced - while the Tariff Plan table below it, which has
+     * no such filter and renders the denormalised {@code fullPlanName}, went on showing
+     * the replaced plans' old figures. Re-importing a supplier feed therefore left the
+     * headline price stale and disagreeing with the table under it.
+     * <p>
+     * The old id is looked up before the write, on the same thread, so there is no
+     * window where another task could observe the plan gone but its costings still
+     * present. Both ids are pruned: the new one is a no-op today but costs nothing and
+     * stays correct if the DAO ever moves to an in-place update.
+     */
+    private long insertPlanAndPrune(PricePlan pp, List<DayRate> drs, boolean clobber) {
+        long oldId = clobber
+                ? pricePlanDAO.getPricePlanID(pp.getSupplier(), pp.getPlanName(), pp.getDirection())
+                : 0L;
+        long id = pricePlanDAO.addNewPricePlanWithDayRates(pp, drs, clobber);
+        if (clobber) {
+            if (oldId > 0) costingDAO.deleteRelatedCostings((int) oldId);
+            if (id > 0 && id != oldId) costingDAO.deleteRelatedCostings((int) id);
+        }
+        // A new/replaced plan means every scenario now has a missing costing for it.
+        readinessDAO.markAllScenariosNeedCosting(System.currentTimeMillis());
+        return id;
     }
 
     /**
@@ -463,10 +495,7 @@ public class ToutcRepository {
      *         duplicate (the DAO swallows the constraint violation)
      */
     public long insertSync(PricePlan pp, List<DayRate> drs, boolean clobber) {
-        long id = pricePlanDAO.addNewPricePlanWithDayRates(pp, drs, clobber);
-        if (clobber) costingDAO.deleteRelatedCostings((int) id);
-        readinessDAO.markAllScenariosNeedCosting(System.currentTimeMillis());
-        return id;
+        return insertPlanAndPrune(pp, drs, clobber);
     }
 
     /** Ticked pairings as LiveData, for the combination-selection UI. */

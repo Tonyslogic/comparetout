@@ -42,7 +42,9 @@ import javax.inject.Singleton
 /**
  * Downloads the community-maintained supplier tariffs for the installed
  * edition's region ([RegionProfiles.current.pricePlanFeedUrl]) and inserts
- * them as price plans. Editions without a curated feed (GB) get [Result.Empty].
+ * them as price plans. IE and GB each have a feed; an edition without one
+ * (currently only the region-less source build, which asks the user to pick a
+ * region instead) gets [Result.Empty].
  *
  * This is the same payload + transform the legacy `MainActivity` "download"
  * menu used (`MainActivity.java:600-665`), ported to Kotlin/coroutines and
@@ -77,7 +79,7 @@ class PricePlanDownloader @Inject constructor(
      */
     suspend fun download(clobber: Boolean = false): Result = withContext(Dispatchers.IO) {
         // The feed is region-specific; an edition without a curated feed
-        // (currently GB) simply has nothing to download.
+        // simply has nothing to download.
         val feedUrl = RegionProfiles.current.pricePlanFeedUrl
             ?: return@withContext Result.Empty
         try {
@@ -103,6 +105,11 @@ class PricePlanDownloader @Inject constructor(
                 // (licensing) — each installation materialises prices locally.
                 DynamicTariffWorker.maybeEnqueuePendingImport(context, pp)
             }
+            // Same reason as the import sheet (UI2PricePlanListViewModel.importPlansFromList):
+            // the inserts mark every scenario as needing a costing, but nothing computes it
+            // until a launch. Downloading the community feed must leave the dashboard's
+            // headline price consistent with the plans just downloaded.
+            com.tfcode.comparetout.SimulatorLauncher.simulateIfNeeded(context)
             Result.Loaded(added, replaced)
         } catch (e: UnknownHostException) {
             Result.NoNetwork
